@@ -1,5 +1,7 @@
 'use strict';
 
+require('./env');
+
 const path = require('node:path');
 const http = require('node:http');
 const express = require('express');
@@ -20,6 +22,8 @@ const {
   requireFetchHeader,
 } = require('./auth');
 const { attach: attachWs } = require('./ws');
+const groupsRouter = require('./routes/groups');
+const attachmentsRouter = require('./routes/attachments');
 
 const PORT = process.env.PORT || 3000;
 const USERNAME_RE = /^[a-zA-Z0-9_-]{3,32}$/;
@@ -30,6 +34,9 @@ app.disable('x-powered-by');
 app.use(express.json({ limit: '256kb' }));
 app.use(parseCookies);
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+const server = http.createServer(app);
+const ws = attachWs(server);
 
 function publicUser(row) {
   return { id: row.id, username: row.username, publicKey: row.public_key };
@@ -174,8 +181,8 @@ app.post('/api/messages', requireAuth, requireFetchHeader, (req, res) => {
   res.status(201).json({ message: payload });
 });
 
-const server = http.createServer(app);
-const ws = attachWs(server);
+app.use(groupsRouter(ws));
+app.use(attachmentsRouter());
 
 server.listen(PORT, () => {
   console.log(`Messagerie chiffree demarree sur http://localhost:${PORT}`);

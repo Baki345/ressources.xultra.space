@@ -90,6 +90,75 @@ async function decryptMessage(ciphertextB64, nonceB64, senderPublicKeyB64, recip
   }
 }
 
+// ---- chiffrement de groupe : une cle symetrique aleatoire par message,
+// emballee individuellement pour chaque membre avec crypto_box. ----
+
+async function encryptGroupMessage(plaintext, members, senderPrivateKey) {
+  // members: [{ id, publicKey (base64) }, ...] (tous les membres du groupe)
+  const sodium = await init();
+  const messageKey = sodium.crypto_secretbox_keygen();
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  const ciphertext = sodium.crypto_secretbox_easy(sodium.from_string(plaintext), nonce, messageKey);
+
+  const wrappedKeys = members.map((member) => {
+    const memberPublicKey = sodium.from_base64(member.publicKey, B64());
+    const boxNonce = sodium.randombytes_buf(sodium.crypto_box_NONCEBYTES);
+    const wrapped = sodium.crypto_box_easy(messageKey, boxNonce, memberPublicKey, senderPrivateKey);
+    return {
+      memberId: member.id,
+      ciphertext: sodium.to_base64(wrapped, B64()),
+      nonce: sodium.to_base64(boxNonce, B64()),
+    };
+  });
+
+  return {
+    ciphertext: sodium.to_base64(ciphertext, B64()),
+    nonce: sodium.to_base64(nonce, B64()),
+    wrappedKeys,
+  };
+}
+
+async function decryptGroupMessage(ciphertextB64, nonceB64, keyCiphertextB64, keyNonceB64, senderPublicKeyB64, myPrivateKey) {
+  const sodium = await init();
+  try {
+    const senderPublicKey = sodium.from_base64(senderPublicKeyB64, B64());
+    const wrappedKey = sodium.from_base64(keyCiphertextB64, B64());
+    const keyNonce = sodium.from_base64(keyNonceB64, B64());
+    const messageKey = sodium.crypto_box_open_easy(wrappedKey, keyNonce, senderPublicKey, myPrivateKey);
+
+    const ciphertext = sodium.from_base64(ciphertextB64, B64());
+    const nonce = sodium.from_base64(nonceB64, B64());
+    const plainBytes = sodium.crypto_secretbox_open_easy(ciphertext, nonce, messageKey);
+    return sodium.to_string(plainBytes);
+  } catch {
+    return '⚠️ [message illisible : cle incorrecte ou donnees alterees]';
+  }
+}
+
+// ---- chiffrement de fichiers (photos, videos, vocaux, documents) ----
+// Chaque fichier a sa propre cle aleatoire ; cette cle est ensuite transmise au
+// destinataire en la placant dans le texte du message (lui-meme chiffre par les
+// mecanismes ci-dessus). Le serveur ne stocke que des octets chiffres opaques.
+
+async function encryptFile(fileBytes) {
+  const sodium = await init();
+  const key = sodium.crypto_secretbox_keygen();
+  const nonce = sodium.randombytes_buf(sodium.crypto_secretbox_NONCEBYTES);
+  const ciphertext = sodium.crypto_secretbox_easy(fileBytes, nonce, key);
+  return {
+    ciphertextBytes: ciphertext,
+    keyB64: sodium.to_base64(key, B64()),
+    nonceB64: sodium.to_base64(nonce, B64()),
+  };
+}
+
+async function decryptFile(ciphertextBytes, keyB64, nonceB64) {
+  const sodium = await init();
+  const key = sodium.from_base64(keyB64, B64());
+  const nonce = sodium.from_base64(nonceB64, B64());
+  return sodium.crypto_secretbox_open_easy(new Uint8Array(ciphertextBytes), nonce, key);
+}
+
 window.E2E = {
   init,
   generateKeyPair,
@@ -98,4 +167,8 @@ window.E2E = {
   unwrapPrivateKey,
   encryptMessage,
   decryptMessage,
+  encryptGroupMessage,
+  decryptGroupMessage,
+  encryptFile,
+  decryptFile,
 };

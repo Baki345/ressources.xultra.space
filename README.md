@@ -37,10 +37,21 @@ messageries réelles :
    (b) une dérivation Argon2id côté client pour déverrouiller la clé
    privée. Les deux sont indépendants — le serveur ne peut pas remonter
    de l'un à l'autre.
-4. Un message est chiffré dans le navigateur de l'expéditeur avec la clé
-   publique du destinataire, avant même de quitter la page. Le serveur ne
-   stocke et ne relaie que du texte chiffré (`ciphertext` + `nonce`).
-5. La clé privée déchiffrée ne vit qu'en mémoire JavaScript, jamais sur
+4. Un message 1:1 est chiffré dans le navigateur de l'expéditeur avec la
+   clé publique du destinataire, avant même de quitter la page. Le serveur
+   ne stocke et ne relaie que du texte chiffré (`ciphertext` + `nonce`).
+5. Un message de **groupe** est chiffré une fois avec une clé symétrique
+   aléatoire propre à ce message ; cette clé est ensuite emballée
+   individuellement pour chaque membre (`crypto_box`). Un nouveau membre
+   n'a pas les clés des messages antérieurs à son arrivée : il ne peut
+   pas lire l'historique d'avant son ajout (comportement volontaire, pas
+   un bug).
+6. Les **pièces jointes** (photos, vidéos, messages vocaux, fichiers) sont
+   chiffrées dans le navigateur avec une clé symétrique aléatoire propre
+   au fichier ; seul le blob chiffré est envoyé au stockage (Bunny ou
+   disque local). Cette clé de fichier est elle-même transmise dans le
+   texte du message, donc protégée exactement comme le reste du contenu.
+7. La clé privée déchiffrée ne vit qu'en mémoire JavaScript, jamais sur
    disque : à chaque rechargement de page, il faut resaisir le mot de
    passe pour la déverrouiller à nouveau.
 
@@ -56,14 +67,32 @@ lors du tout premier échange (pas de vérification d'empreinte /
 pas en absolu — ceci vise le meilleur niveau pratique atteignable avec des
 primitives éprouvées, pas une promesse d'invulnérabilité totale.
 
+**Métadonnées visibles par le serveur** (honnêteté totale) : le nom d'un
+groupe, la liste de ses membres, qui parle à qui et à quel moment, et la
+taille des fichiers échangés ne sont **pas** chiffrés — seul le *contenu*
+(texte, fichiers) l'est. C'est le même compromis que la quasi-totalité des
+messageries chiffrées grand public (Signal excepté, qui va plus loin sur
+ce point précis).
+
+## Fonctionnalités
+
+- Comptes avec connexion, chat 1:1 et **groupes** (ex. "Famille")
+- Photos, vidéos, documents et **messages vocaux**, chiffrés avant l'envoi
+- Temps réel via WebSocket, historique persistant
+- **PWA installable** (icône sur l'écran d'accueil, mobile et bureau)
+
 ## Stack
 
 - **Node.js 22** + **Express 5**
 - **`node:sqlite`** (module natif de Node, pas de dépendance ni de
-  compilation native)
+  compilation native) — migration vers PostgreSQL prévue si l'usage
+  dépasse le cadre familial
 - **`ws`** pour le relais temps réel (WebSocket)
 - **libsodium** (build "sumo", inclut Argon2) chargé côté navigateur
   depuis `public/vendor/` — aucune dépendance externe au runtime
+- **Bunny Storage/CDN** (optionnel) pour les pièces jointes ; sans
+  configuration, elles sont stockées localement sur le VPS dans
+  `data/attachments/`
 
 ## Démarrage
 
@@ -75,9 +104,16 @@ npm start
 Puis ouvrir `http://localhost:3000`.
 
 En production, servez l'application derrière un reverse proxy TLS
-(HTTPS obligatoire — sans ça les mots de passe et le cookie de session
-circulent en clair) et lancez avec `NODE_ENV=production` (active le
-cookie de session `Secure`).
+(HTTPS obligatoire — sans ça les mots de passe, le cookie de session et
+le micro/caméra du navigateur ne fonctionneront pas) et lancez avec
+`NODE_ENV=production` (active le cookie de session `Secure`).
+
+### Activer Bunny pour les pièces jointes
+
+Copiez `.env.example` en `.env` sur le VPS et renseignez les 4 variables
+`BUNNY_*` (storage zone, clé d'accès, host régional, URL de la pull zone
+CDN). Sans ça, tout fonctionne quand même — les fichiers restent
+simplement sur le disque du VPS.
 
 ## Limites connues / pistes d'amélioration
 
@@ -90,3 +126,11 @@ cookie de session `Secure`).
   usage à fort enjeu.
 - Limitation de débit basique en mémoire (redémarre à chaque redémarrage
   du serveur) — correct pour un usage personnel, pas pour un service public.
+- Groupes limités à un ajout manuel de membres, pas de rôles/permissions
+  ni de suppression de membre pour l'instant.
+- Nom de l'app encore générique ("Messagerie privée") : pour le
+  renommage public en "Private", il suffira de changer `public/manifest.json`
+  et le `<title>` de `public/index.html`.
+- Avant une ouverture au grand public : migrer SQLite → PostgreSQL,
+  ajouter une vraie modération/CGU, et durcir le rate-limiting (actuellement
+  en mémoire, pensé pour un usage familial).

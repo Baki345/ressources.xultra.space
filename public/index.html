@@ -3,8 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f1216">
 <title>Messagerie privée chiffrée</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" href="/icons/icon-192.png">
 </head>
 <body>
 
@@ -42,15 +46,28 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <span id="me-username"></span>
-      <button id="logout-btn" type="button" title="Se déconnecter">Déconnexion</button>
+      <div class="sidebar-actions">
+        <button id="new-group-btn" type="button" title="Créer un groupe">+ Groupe</button>
+        <button id="logout-btn" type="button" title="Se déconnecter">Déconnexion</button>
+      </div>
     </div>
+
+    <form id="new-group-form" class="new-group-form hidden">
+      <input id="new-group-name" placeholder="Nom du groupe" autocomplete="off" required>
+      <div id="new-group-members" class="new-group-members"></div>
+      <button type="submit">Créer</button>
+    </form>
+
     <ul id="contact-list" class="contact-list"></ul>
   </aside>
   <section class="chat">
-    <header id="chat-header" class="chat-header">Sélectionnez un contact</header>
+    <header id="chat-header" class="chat-header">Sélectionnez une conversation</header>
     <ul id="message-list" class="message-list"></ul>
     <form id="send-form" class="send-form hidden">
-      <input id="message-input" autocomplete="off" placeholder="Votre message (chiffré avant envoi)…" required>
+      <input id="file-input" type="file" class="hidden">
+      <button type="button" id="attach-btn" title="Joindre un fichier">📎</button>
+      <button type="button" id="voice-btn" title="Message vocal">🎙️</button>
+      <input id="message-input" autocomplete="off" placeholder="Votre message (chiffré avant envoi)…">
       <button type="submit">Envoyer</button>
     </form>
   </section>

@@ -103,6 +103,7 @@ body {
   border-bottom: 1px solid var(--border);
   font-size: 0.85rem;
 }
+.sidebar-actions { display: flex; gap: 6px; }
 .sidebar-header button {
   background: none;
   border: 1px solid var(--border);
@@ -113,13 +114,51 @@ body {
   font-size: 0.75rem;
 }
 
+.new-group-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.new-group-form input[type="text"], .new-group-form input:not([type]) {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+}
+.new-group-members { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; font-size: 0.85rem; }
+.new-group-members label { display: flex; align-items: center; gap: 6px; }
+.new-group-form button {
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .contact-list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
 .contact-list li {
   padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
+.contact-list li .badge {
+  font-size: 0.65rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+.contact-list li.active .badge { color: white; border-color: rgba(255,255,255,0.5); }
 .contact-list li:hover { background: var(--panel-2); }
 .contact-list li.active { background: var(--accent); color: white; }
 
@@ -151,15 +190,20 @@ body {
 }
 .bubble.me { align-self: flex-end; background: var(--bubble-me); color: white; border-bottom-right-radius: 2px; }
 .bubble.them { align-self: flex-start; background: var(--bubble-them); border-bottom-left-radius: 2px; }
+.bubble .sender { display: block; font-size: 0.7rem; opacity: 0.75; margin-bottom: 2px; font-weight: 600; }
 .bubble time { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 4px; }
+.bubble img, .bubble video { max-width: 100%; border-radius: 8px; display: block; }
+.bubble audio { max-width: 220px; }
+.bubble .file-link { color: inherit; text-decoration: underline; }
 
 .send-form {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 14px;
   border-top: 1px solid var(--border);
 }
-.send-form input {
+.send-form input#message-input {
   flex: 1;
   padding: 10px 12px;
   border-radius: 20px;
@@ -175,4 +219,16 @@ body {
   color: white;
   font-weight: 600;
   cursor: pointer;
+}
+.send-form button#attach-btn,
+.send-form button#voice-btn {
+  padding: 8px 10px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 1rem;
+}
+.send-form button#voice-btn.recording {
+  background: var(--danger);
+  border-color: var(--danger);
 }
