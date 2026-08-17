@@ -1,0 +1,178 @@
+:root {
+  color-scheme: light dark;
+  --bg: #0f1216;
+  --panel: #171b21;
+  --panel-2: #1e232b;
+  --border: #2a303a;
+  --text: #e8eaed;
+  --muted: #9aa4b2;
+  --accent: #4f8cff;
+  --accent-2: #3a6fd8;
+  --bubble-me: #2b5fd9;
+  --bubble-them: #232a34;
+  --danger: #e5534b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+.view { height: 100vh; }
+.hidden { display: none !important; }
+
+#auth-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.card h1 { margin: 0 0 4px; font-size: 1.4rem; }
+.subtitle { margin: 0 0 20px; color: var(--muted); font-size: 0.85rem; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tab {
+  flex: 1;
+  padding: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.tab.active { color: var(--text); border-color: var(--accent); }
+
+.form { display: flex; flex-direction: column; gap: 8px; }
+.form label { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+.form input {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.form button {
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+.form button:hover { background: var(--accent-2); }
+.form button:disabled { opacity: 0.6; cursor: wait; }
+
+.status { min-height: 1.2em; font-size: 0.85rem; color: var(--danger); margin-top: 12px; }
+.status.ok { color: #4caf7d; }
+
+#chat-view {
+  display: flex;
+}
+
+.sidebar {
+  width: 240px;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.sidebar-header {
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.sidebar-header button {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.contact-list { list-style: none; margin: 0; padding: 8px; overflow-y: auto; flex: 1; }
+.contact-list li {
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text);
+}
+.contact-list li:hover { background: var(--panel-2); }
+.contact-list li.active { background: var(--accent); color: white; }
+
+.chat { flex: 1; display: flex; flex-direction: column; }
+.chat-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.message-list {
+  list-style: none;
+  margin: 0;
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bubble {
+  max-width: 60%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  line-height: 1.35;
+  font-size: 0.92rem;
+  word-wrap: break-word;
+}
+.bubble.me { align-self: flex-end; background: var(--bubble-me); color: white; border-bottom-right-radius: 2px; }
+.bubble.them { align-self: flex-start; background: var(--bubble-them); border-bottom-left-radius: 2px; }
+.bubble time { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 4px; }
+
+.send-form {
+  display: flex;
+  gap: 8px;
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+.send-form input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text);
+}
+.send-form button {
+  padding: 10px 18px;
+  border-radius: 20px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}

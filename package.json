@@ -1,0 +1,32 @@
+{
+  "name": "ressources.xultra.space",
+  "version": "1.0.0",
+  "description": "Messagerie privee chiffree de bout en bout (E2EE)",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Baki345/ressources.xultra.space.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Baki345/ressources.xultra.space/issues"
+  },
+  "homepage": "https://github.com/Baki345/ressources.xultra.space#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "libsodium-sumo": "^0.8.4",
+    "libsodium-wrappers-sumo": "^0.8.4"
+  }
+}
