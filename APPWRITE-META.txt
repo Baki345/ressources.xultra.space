@@ -1,0 +1,9 @@
+Attributs optionnels à ajouter sur collection "ressources" (Appwrite) :
+- durationSec  integer  default 0
+- fileSize     integer  default 0
+- mimeType     string 80
+- width        integer  default 0
+- height       integer  default 0
+- fileName     string 120
+
+Sans ces attributs, l'upload fonctionne quand même (retry sans meta).
