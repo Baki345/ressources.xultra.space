@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#7c3aed" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='28' fill='%237c3aed'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='64' font-family='system-ui' fill='white'%3ER%3C/text%3E%3C/svg%3E" />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Ressources — Procédures & tutoriels</title>
+  <link rel="stylesheet" href="ressources.css" />
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@16.1.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" defer></script>
+</head>
+<body>
+  <div id="loadingOverlay" class="loading-overlay" hidden>
+    <div class="loader-ring"></div>
+    <p id="loadingText">Chargement…</p>
+  </div>
+  <!-- Events expand modal -->
+  <div id="eventsModal" class="ev-modal" hidden>
+    <div class="ev-modal-backdrop" id="eventsModalBackdrop"></div>
+    <div class="ev-modal-sheet" role="dialog" aria-labelledby="eventsModalTitle">
+      <header class="ev-modal-head">
+        <div>
+          <h2 id="eventsModalTitle">Événements · Rivière-du-Loup</h2>
+          <p class="ev-modal-sub">Prochains rendez-vous (calendrier auto)</p>
+        </div>
+        <button type="button" class="ev-modal-close" id="eventsModalClose" aria-label="Fermer">✕</button>
+      </header>
+      <div id="eventsModalList" class="ev-modal-list"></div>
+    </div>
+  </div>
+  <div id="toastRoot" class="toast-root" aria-live="polite"></div>
+  <div id="netBanner" class="net-banner" hidden>Hors ligne ou réseau instable — certaines actions sont indisponibles.</div>
+  <div id="app">
+    <section id="viewList" class="view">
+      <header class="site-header">
+        <div class="shell shell-header">
+          <div class="brand">
+            <span class="brand-mark">R</span>
+            <div class="brand-text">
+              <div class="brand-title-row">
+                <h1>Ressources</h1>
+                <span class="secure-badge">🔒 HTTPS</span>
+              </div>
+              <p class="sub">Procédures & tutoriels</p>
+            </div>
+          </div>
+          <button type="button" id="btnAdminOpen" class="btn-admin-top">⚙ Gestion</button>
+        </div>
+      </header>
+      <div class="shell shell-main">
+      <div class="home-block" data-home-block="tips" id="proTipsBlock">
+        <div class="pro-tips" id="proTips">
+          <div class="pro-tips-head">
+            <span class="pro-tips-badge">Pro tip</span>
+            <button type="button" class="pro-tips-x" id="proTipsClose" aria-label="Fermer">✕</button>
+          </div>
+          <p class="pro-tips-text"><strong>Mode magasin</strong> — Scanne le QR sur ta feuille, ou tape un mot (ex. <em>caisse</em>, <em>plonge</em>). Code unique : <strong>XF-XXXXXX</strong>. Ajoute le site à l’écran d’accueil pour un accès en 1 tap.</p>
+        </div>
+      </div>
+<div class="home-block" data-home-block="widgets"><div class="home-widgets">
+        <div id="weatherWidget" class="widget weather-widget">
+          <div class="widget-h">🌤 Rivière-du-Loup</div>
+          <div id="weatherBody" class="widget-body">Météo…</div>
+        </div>
+        <button type="button" class="widget widget-clickable" id="eventsWidget" aria-label="Voir tous les événements">
+          <div class="widget-h">📅 À venir · Rivière-du-Loup <span class="widget-badge">auto</span></div>
+          <div id="eventsBody" class="widget-body">Chargement…</div>
+          <div class="widget-more">Voir tout →</div>
+        </button>
+      </div></div>
+      <div class="home-block" data-home-block="search"><div class="search-bar"><input type="search" id="searchInput" placeholder="Rechercher (titre, catégorie, XF-…)" /></div>
+      <div id="catTabs" class="cats"></div>
+      <div id="list" class="list"><div class="loading">Chargement…</div></div>
+
+      <div class="home-block" data-home-block="ideas"><section class="ideas-section" id="ideasBox">
+        <h2 class="ideas-title">💡 Boîte à idées</h2>
+        <p class="hint">Propose une amélioration de procédure, un tutoriel manquant, un outil…</p>
+        <form id="ideaForm" class="comment-form">
+          <input type="text" id="ideaName" maxlength="40" placeholder="Ton prénom" required class="input" />
+          <textarea id="ideaText" maxlength="500" rows="3" placeholder="Ton idée…" required class="input"></textarea>
+          <input type="text" id="ideaHp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true" />
+          <button type="submit" class="btn-send">Envoyer l’idée</button>
+          <p class="hint" id="ideaStatus"></p>
+        </form>
+        <div id="ideaList" class="idea-list"></div>
+      </section>
+      </div>
+      <div class="home-block" data-home-block="news">
+        <section class="news-section" id="newsWidget">
+          <div class="news-head">
+            <h2 class="news-title">📰 Nouvelles magasin</h2>
+            <a class="news-lsstar" href="https://lsstar.starbucks.com/" target="_blank" rel="noopener noreferrer">Ouvrir LS Star ↗</a>
+          </div>
+          <p class="hint">Mises à jour collées depuis LS Star (Nouvelles et mises à jour).</p>
+          <div id="newsList" class="news-list"><div class="hint">Chargement…</div></div>
+        </section>
+      </div>
+
+      <!-- /shell-main -->
+    </section>
+
+    <section id="viewPlayer" class="view" hidden>
+      <header class="site-header">
+        <div class="shell shell-header player-top">
+          <button type="button" class="btn-back" id="btnBack" aria-label="Retour">←</button>
+          <div class="player-titles">
+            <h2 id="pTitle">Tutoriel</h2>
+            <p id="pCat" class="sub"></p>
+          </div>
+          <button type="button" id="btnAdminOpen2" class="btn-admin-top">⚙</button>
+        </div>
+      </header>
+      <div class="shell shell-main">
+      <div class="video-shell">
+        <video id="player" playsinline webkit-playsinline controls preload="metadata"></video>
+        <img id="playerGif" alt="" hidden />
+        <button type="button" id="unmuteOverlay" class="unmute-overlay" hidden>
+          <span class="play-ico">▶</span>
+          <span>Appuie pour lancer le son</span>
+        </button>
+      </div>
+      <div class="player-body">
+        <p id="pDesc" class="desc"></p>
+        <section class="share-block" id="shareBlock">
+          <h3>Partager ce tutoriel</h3>
+          <div class="share-row">
+            <input type="text" id="shareUrl" class="share-url" readonly value="" />
+            <button type="button" class="btn-send btn-copy" id="btnCopyLink">Copier</button>
+          </div>
+          <div class="share-actions">
+            <button type="button" class="vote-btn" id="btnNativeShare">📤 Partager</button>
+            <a class="vote-btn" id="btnShareWa" href="#" target="_blank" rel="noopener">WhatsApp</a>
+          </div>
+          <div class="qr-box">
+            <canvas id="qrCanvas" width="240" height="240" class="qr-canvas" aria-label="QR code"></canvas>
+            <p class="qr-hint">Scanne pour ouvrir ce tutoriel</p>
+            <a id="qrDownload" class="btn-send btn-dl-qr" href="#" download="qr-tutoriel.png">Télécharger le QR</a>
+          </div>
+        </section>
+        <div class="votes">
+          <button type="button" class="vote-btn" id="btnLike"><span>👍</span> <strong id="likeCount">0</strong></button>
+          <button type="button" class="vote-btn" id="btnDislike"><span>👎</span> <strong id="dislikeCount">0</strong></button>
+        </div>
+        <section class="complete-block" id="completeBlock">
+          <h3>✅ J’ai suivi ce tutoriel</h3>
+          <p class="hint">Confirme que tu as bien regardé et compris la procédure.</p>
+          <div class="complete-row">
+            <input type="text" id="completeName" class="input" maxlength="40" placeholder="Ton prénom (ex. Alex)" />
+            <button type="button" class="btn-send" id="btnComplete">Marquer comme terminé</button>
+          </div>
+          <p class="hint" id="completeStatus"></p>
+          <div class="complete-rank">
+            <h4>Qui a terminé</h4>
+            <div id="completeList" class="complete-list"><div class="hint">Chargement…</div></div>
+          </div>
+        </section>
+        <section class="comments-block">
+          <h3>Commentaires</h3>
+          <form id="commentForm" class="comment-form comment-form-voice" autocomplete="on">
+            <input type="text" id="cName" name="name" maxlength="40" placeholder="Ton prénom" required class="input" />
+            <div class="cmt-row">
+              <textarea id="cText" name="text" maxlength="500" rows="1" placeholder="Message…" class="input cmt-text"></textarea>
+              <button type="button" class="voice-btn" id="voiceBtn" title="Maintenir pour enregistrer">
+                <span class="voice-ico">🎤</span>
+              </button>
+              <button type="submit" class="btn-send cmt-send">Envoyer</button>
+            </div>
+            <div id="voiceBar" class="voice-bar" hidden>
+              <span class="voice-rec-dot"></span>
+              <span id="voiceTimer">0:00</span>
+              <span class="voice-hint">Relâche pour envoyer · glisse hors pour annuler</span>
+            </div>
+            <div id="voicePreview" class="voice-preview" hidden></div>
+          </form>
+          <div id="commentList" class="comment-list"></div>
+        </section>
+      </div>
+          </div><!-- /player-shell -->
+    </section>
+
+    <section id="viewAdmin" class="view" hidden>
+      <header class="site-header">
+        <div class="shell shell-header">
+          <button type="button" class="btn-back" id="btnAdminBack">←</button>
+          <div class="brand">
+            <span class="brand-mark">⚙</span>
+            <div class="brand-text">
+              <h1>Admin Ressources</h1>
+              <p class="sub" id="adminWho">—</p>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div class="shell shell-main">
+      <div class="admin-body">
+        <div class="admin-panel-card">
+        <div id="admLoginBox" class="adm-login-box" hidden>
+          <h3 class="admin-h">Connexion équipe</h3>
+          <p class="hint">Comptes isolés pour le magasin (indépendants du site public XULTRA).</p>
+          <label class="field-label">Email admin ou identifiant employé</label>
+          <input type="text" id="admLoginEmail" class="input" autocomplete="username" placeholder="test  ou  admin@email.com" />
+          <label class="field-label">Mot de passe</label>
+          <input type="password" id="admLoginPass" class="input" autocomplete="current-password" />
+          <p class="hint" id="admLoginErr" style="color:#f87171"></p>
+          <button type="button" class="btn-send" id="admLoginBtn">Se connecter</button>
+          <hr class="sep" />
+          <h3 class="admin-h">Créer un compte employé</h3>
+          <p class="hint">Sans email — le gérant doit approuver ton compte.</p>
+          <label class="field-label">Prénom / nom affiché</label>
+          <input type="text" id="regName" class="input" maxlength="40" autocomplete="nickname" />
+          <label class="field-label">Identifiant (sans email)</label>
+          <input type="text" id="regUser" class="input" maxlength="24" autocomplete="username" placeholder="ex. alex.p" />
+          <label class="field-label">Mot de passe (min 8)</label>
+          <input type="password" id="regPass" class="input" minlength="8" autocomplete="new-password" />
+          <p class="hint" id="regStatus"></p>
+          <button type="button" class="btn-send" id="regBtn">Demander l’accès</button>
+        </div>
+
+        <div id="admPanelBody" hidden>
+          <div class="admin-tabs" id="adminTabs">
+            <button type="button" class="admin-tab active" data-tab="upload">Upload</button>
+            <button type="button" class="admin-tab" data-tab="manage">Fichiers</button>
+            <button type="button" class="admin-tab" data-tab="pending" id="tabPending">À valider</button>
+            <button type="button" class="admin-tab" data-tab="staff" id="tabStaff">Équipe</button>
+            <button type="button" class="admin-tab" data-tab="events" id="tabEvents">Événements</button>
+            <button type="button" class="admin-tab" data-tab="layout" id="tabLayout">Accueil</button>
+            <button type="button" class="admin-tab" data-tab="news" id="tabNews">News LS</button>
+            <button type="button" class="admin-tab" data-tab="music" id="tabMusic">Musique</button>
+            <button type="button" class="admin-tab" data-tab="settings" id="tabSettings">Réglages</button>
+          </div>
+
+          <div id="adminTabUpload" class="admin-pane">
+            <h3 class="admin-h">Nouveau tutoriel vidéo</h3>
+            <div class="mode-toggle">
+              <button type="button" class="mode-btn active" data-mode="simple" id="modeSimple">Simple</button>
+              <button type="button" class="mode-btn" data-mode="advanced" id="modeAdvanced">Avancé</button>
+            </div>
+            <p class="hint" id="uploadLimitHint">Limite d’upload : 200 Mo</p>
+
+            <label class="field-label">Fichier vidéo / GIF</label>
+            <div class="file-picker" id="admFilePicker">
+              <input type="file" id="admFile" accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,video/ogg,video/3gpp,image/gif,video/*" class="file-native" />
+              <div class="file-picker-ui">
+                <span class="file-ico">🎬</span>
+                <div class="file-meta">
+                  <strong id="admFileName">Choisir une vidéo</strong>
+                  <span id="admFileHint">MP4, WEBM, MOV, AVI, MKV, GIF… · max 200 Mo</span>
+                </div>
+              </div>
+            </div>
+
+            <label class="field-label">Titre</label>
+            <input type="text" id="admTitle" class="input" maxlength="120" placeholder="Ex. Ouverture caisse" />
+
+            <label class="field-label">Description</label>
+            <div id="admDescEditorSimple" class="input" style="display:none"></div>
+            <textarea id="admDescSimple" class="input" rows="3" maxlength="2000" placeholder="Résumé simple pour l’équipe…"></textarea>
+            <div id="advDescWrap" class="adv-only" hidden>
+              <label class="field-label">Description (article riche)</label>
+              <div id="admDescEditor" class="rte-editor"></div>
+              <input type="hidden" id="admDesc" value="" />
+            </div>
+
+            <label class="field-label">Miniature</label>
+            <p class="hint">Propositions auto depuis la vidéo, ou importe ta propre image.</p>
+            <div id="thumbProposals" class="thumb-proposals"></div>
+            <div class="file-picker file-picker-sm" id="admThumbPicker">
+              <input type="file" id="admThumbFile" accept="image/*" class="file-native" />
+              <div class="file-picker-ui">
+                <span class="file-ico">🖼️</span>
+                <div class="file-meta">
+                  <strong id="admThumbName">Miniature perso (optionnel)</strong>
+                  <span>JPG / PNG · max 5 Mo</span>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="admThumbData" value="" />
+            <input type="hidden" id="admThumbUrl" value="" />
+
+            <div class="adv-only" hidden>
+              <label class="field-label">Slug (interne)</label>
+              <input type="text" id="admSlug" class="input" maxlength="80" placeholder="auto" />
+              <label class="field-label">Catégorie</label>
+              <input type="text" id="admCat" class="input" list="catSuggestions" maxlength="60" placeholder="Caisse, Plonge…" />
+              <datalist id="catSuggestions">
+                <option value="Caisse"></option>
+                <option value="Plonge"></option>
+                <option value="Ouverture"></option>
+                <option value="Fermeture"></option>
+                <option value="Général"></option>
+              </datalist>
+              <label class="field-label">URL vidéo (optionnel si fichier)</label>
+              <input type="url" id="admVideoUrl" class="input" placeholder="https://…mp4" />
+              <label class="field-label">Style QR</label>
+              <select id="admQrStyle" class="input">
+                <option value="starbucks" selected>Starbucks (☕)</option>
+                <option value="xultra">XULTRA</option>
+                <option value="dark">Sombre</option>
+              </select>
+              <label class="field-label">Logo QR (URL optionnelle)</label>
+              <input type="url" id="admQrLogo" class="input" placeholder="https://…png" />
+            </div>
+
+            <p class="hint" id="admStatus"></p>
+            <div id="admProgress" class="adm-progress" hidden>
+              <div class="adm-progress-track"><div id="admFill" class="adm-progress-fill"></div></div>
+              <span id="admPct">0%</span>
+            </div>
+            <button type="button" class="btn-send" id="admPublish">Publier le tutoriel</button>
+            <div id="publishResult" class="publish-result" hidden>
+              <h4>Tutoriel prêt</h4>
+              <p class="hint">Lien de partage généré automatiquement</p>
+              <input type="text" id="admResultUrl" class="input" readonly />
+              <div class="result-actions">
+                <button type="button" class="btn-send" id="admResultCopy">Copier le lien</button>
+                <button type="button" class="btn-back" id="admResultOpen">Ouvrir</button>
+              </div>
+              <canvas id="admResultQr" width="280" height="280" style="max-width:100%;border-radius:12px;margin:12px auto;display:block;background:#fff"></canvas>
+              <a id="admResultQrDl" class="btn-send btn-dl-qr" href="#" download="qr-tutoriel.png">Télécharger le QR</a>
+            </div>
+          </div>
+          <div id="adminTabManage" class="admin-pane" hidden>
+            <h3 class="admin-h">Gestionnaire</h3>
+            <div id="admManageList" class="adm-manage-list"></div>
+          </div>
+
+          <div id="adminTabPending" class="admin-pane" hidden>
+            <h3 class="admin-h">Vidéos à approuver</h3>
+            <p class="hint">Les employés publient → tu approuves ou refuses avant affichage public.</p>
+            <div id="admPendingList" class="adm-manage-list"></div>
+          </div>
+
+          <div id="adminTabStaff" class="admin-pane" hidden>
+            <h3 class="admin-h">Équipe magasin</h3>
+            <p class="hint">Comptes pour les employés — accès uniquement à ce panel Ressources.</p>
+            <label class="field-label">Email</label>
+            <input type="email" id="staffEmail" class="input" />
+            <label class="field-label">Nom</label>
+            <input type="text" id="staffName" class="input" />
+            <label class="field-label">Mot de passe (min 8)</label>
+            <input type="password" id="staffPass" class="input" />
+            <div class="perm-box">
+              <div class="perm-title">Permissions</div>
+              <label class="perm-row" for="staffCanEdit">
+                <input type="checkbox" id="staffCanEdit" class="perm-check" />
+                <span class="perm-text">
+                  <strong>Peut modifier</strong>
+                  <em>Éditer titre, description, miniature</em>
+                </span>
+              </label>
+              <label class="perm-row" for="staffCanDelete">
+                <input type="checkbox" id="staffCanDelete" class="perm-check" />
+                <span class="perm-text">
+                  <strong>Peut supprimer</strong>
+                  <em>Retirer des tutoriels</em>
+                </span>
+              </label>
+              <p class="hint perm-note">Ajout de vidéos : toujours autorisé par défaut.</p>
+            </div>
+            <button type="button" class="btn-send" id="staffAddBtn">Créer le compte employé</button>
+            <p class="hint" id="staffStatus"></p>
+            <div id="staffList" class="adm-manage-list" style="margin-top:14px"></div>
+          </div>
+
+          <div id="adminTabEvents" class="admin-pane" hidden>
+            <h3 class="admin-h">Top événements Rivière-du-Loup</h3>
+            <p class="hint">Optionnel : si tu ajoutes des événements ici, ils remplacent le calendrier auto (sinon tout est automatique).</p>
+            <label class="field-label">Titre</label>
+            <input type="text" id="evTitle" class="input" maxlength="120" />
+            <label class="field-label">Quand</label>
+            <input type="text" id="evWhen" class="input" maxlength="80" placeholder="12 août · 19h" />
+            <label class="field-label">Lieu</label>
+            <input type="text" id="evPlace" class="input" maxlength="120" placeholder="Centre culturel…" />
+            <button type="button" class="btn-send" id="evAddBtn">Ajouter</button>
+            <p class="hint" id="evStatus"></p>
+            <div id="evList" class="adm-manage-list" style="margin-top:12px"></div>
+          </div>
+          <div id="adminTabLayout" class="admin-pane" hidden>
+            <h3 class="admin-h">Disposition de l’accueil</h3>
+            <p class="hint">Réorganise les blocs de la page d’accueil (visible pour tout le monde après enregistrement).</p>
+            <div id="layoutEditor" class="layout-editor"></div>
+            <button type="button" class="btn-send" id="layoutResetBtn" style="margin-top:12px">Réinitialiser</button>
+          </div>
+          <div id="adminTabNews" class="admin-pane" hidden>
+            <h3 class="admin-h">Nouvelles LS Star</h3>
+            <p class="hint">LS Star est protégé par login — colle ici les titres / résumés quand il y a une mise à jour.</p>
+            <label class="field-label">Titre</label>
+            <input type="text" id="newsTitle" class="input" maxlength="200" placeholder="Ex. Documents promo Été 2 disponibles" />
+            <label class="field-label">Résumé</label>
+            <textarea id="newsSummary" class="input" rows="3" maxlength="2000" placeholder="Court résumé pour l’équipe…"></textarea>
+            <label class="field-label">Lien (optionnel, page LS Star)</label>
+            <input type="url" id="newsUrl" class="input" placeholder="https://lsstar.starbucks.com/s/article/…" />
+            <label class="field-label">Date / libellé</label>
+            <input type="text" id="newsWhen" class="input" maxlength="80" placeholder="Ex. 10 août 2026 · Mise à jour hebdo" />
+            <p class="hint" id="newsStatus"></p>
+            <button type="button" class="btn-send" id="newsAddBtn">Publier la nouvelle</button>
+            <div id="newsAdminList" class="news-admin-list" style="margin-top:14px"></div>
+          </div>
+          <div id="adminTabMusic" class="admin-pane" hidden>
+            <h3 class="admin-h">Playlist magasin</h3>
+            <p class="hint">Upload depuis ton appareil (recommandé) ou colle un lien https. Le mini-lecteur apparaît dès qu’il y a au moins 1 piste.</p>
+            <label class="field-label">Fichier audio</label>
+            <div class="file-picker" id="musicFilePicker">
+              <input type="file" id="musicFile" accept="audio/*,.mp3,.m4a,.aac,.ogg,.wav,.flac,audio/mpeg,audio/mp4" hidden />
+              <div class="file-picker-ui">
+                <span class="file-ico">🎵</span>
+                <div>
+                  <div class="file-name" id="musicFileName">Choisir un fichier audio</div>
+                  <div class="file-sub">MP3, M4A, AAC, OGG, WAV… · max 50 Mo</div>
+                </div>
+              </div>
+            </div>
+            <label class="field-label">Titre (auto si vide)</label>
+            <input type="text" id="musicTitle" class="input" maxlength="200" placeholder="Titre" />
+            <label class="field-label">Artiste</label>
+            <input type="text" id="musicArtist" class="input" maxlength="120" placeholder="Artiste / ambiance" />
+            <label class="field-label">Ou URL audio (optionnel si fichier)</label>
+            <input type="url" id="musicUrl" class="input" placeholder="https://…" />
+            <label class="field-label">Cover (URL image optionnelle)</label>
+            <input type="url" id="musicCover" class="input" placeholder="https://…" />
+            <p class="hint" id="musicStatus"></p>
+            <div id="musicProgress" class="hint" hidden></div>
+            <button type="button" class="btn-send" id="musicAddBtn">Ajouter à la playlist</button>
+            <div id="musicAdminList" class="news-admin-list" style="margin-top:14px"></div>
+          </div>
+          <div id="adminTabSettings" class="admin-pane" hidden>
+            <h3 class="admin-h">Réglages</h3>
+            <label class="field-label">Limite upload (Mo)</label>
+            <input type="number" id="setMaxMb" class="input" min="1" max="2048" value="200" />
+            <button type="button" class="btn-send" id="setSaveBtn">Enregistrer</button>
+            <p class="hint" id="setStatus"></p>
+          </div>
+        </div>
+      </div>
+          </div></div><!-- /admin-panel-card -->
+      <!-- /admin-shell -->
+    </section>
+
+    <section id="viewError" class="view" hidden>
+      <div class="empty">
+        <p>Tutoriel introuvable</p>
+        <button type="button" class="btn-send" id="btnHome">Retour</button>
+      </div>
+    </section>
+    <div id="a2hsBar" class="a2hs-bar" hidden>
+    <div class="a2hs-text">
+      <strong>Accès rapide</strong>
+      <span id="a2hsHint">Ajoute Ressources à ton écran d’accueil</span>
+    </div>
+    <button type="button" class="a2hs-btn" id="a2hsBtn">Ajouter</button>
+    <button type="button" class="a2hs-x" id="a2hsDismiss" aria-label="Fermer">✕</button>
+  </div>
+  <div id="a2hsHelp" class="a2hs-help" hidden>
+    <div class="a2hs-help-card">
+      <h3>Ajouter à l’écran d’accueil</h3>
+      <ol id="a2hsSteps"></ol>
+      <button type="button" class="btn-send" id="a2hsHelpClose">Compris</button>
+    </div>
+  </div>
+  
+  <div id="miniPlayer" class="mini-player" hidden>
+    <audio id="miniAudio" preload="metadata"></audio>
+    <button type="button" class="mini-cover-btn" id="miniCoverBtn" aria-label="Piste">
+      <img id="miniCover" class="mini-cover" alt="" />
+      <span id="miniCoverFallback" class="mini-cover-fb">♪</span>
+    </button>
+    <div class="mini-meta">
+      <div id="miniTitle" class="mini-title">—</div>
+      <div id="miniArtist" class="mini-artist">Playlist magasin</div>
+    </div>
+    <div class="mini-controls">
+      <button type="button" class="mini-ctrl" id="miniPrev" aria-label="Précédent">⏮</button>
+      <button type="button" class="mini-ctrl mini-play" id="miniPlay" aria-label="Lecture">▶</button>
+      <button type="button" class="mini-ctrl" id="miniNext" aria-label="Suivant">⏭</button>
+    </div>
+    <input type="range" id="miniSeek" class="mini-seek" min="0" max="1000" value="0" aria-label="Progression" />
+    <input type="range" id="miniVol" class="mini-vol" min="0" max="100" value="70" aria-label="Volume" />
+    <button type="button" class="mini-ctrl mini-hide" id="miniHide" aria-label="Masquer">✕</button>
+  </div>
+
+  <footer class="site-footer">
+      <p>© XULTRA — Code propriétaire. Tous droits réservés.</p>
+    </footer>
+  </div>
+  <!-- Modal édition tutoriel -->
+  <div id="editModal" class="modal" hidden>
+    <div class="modal-box">
+      <header class="modal-head">
+        <h3>Modifier le tutoriel</h3>
+        <button type="button" class="btn-back" id="editClose" aria-label="Fermer">✕</button>
+      </header>
+      <div class="modal-body">
+        <input type="hidden" id="editId" />
+        <label class="field-label">Titre</label>
+        <input type="text" id="editTitle" class="input" maxlength="120" />
+        <label class="field-label">Slug</label>
+        <input type="text" id="editSlug" class="input" maxlength="80" />
+        <label class="field-label">Catégorie</label>
+        <input type="text" id="editCat" class="input" maxlength="60" />
+        <label class="field-label">URL vidéo</label>
+        <input type="url" id="editVideoUrl" class="input" />
+        <label class="field-label">Description / article</label>
+        <div id="editDescEditor" class="rte-editor"></div>
+        <label class="field-label">Style QR</label>
+        <select id="editQrStyle" class="input">
+          <option value="starbucks" selected>Starbucks (logo officiel)</option>
+          <option value="xultra">XULTRA (violet)</option>
+          <option value="dark">Sombre</option>
+        </select>
+        <label class="field-label">Logo QR (URL optionnelle)</label>
+        <input type="url" id="editQrLogo" class="input" placeholder="https://…png" />
+        <div class="qr-box" style="margin-top:12px">
+          <canvas id="editQrCanvas" width="220" height="220" class="qr-canvas"></canvas>
+          <button type="button" class="btn-send btn-dl-qr" id="editQrRefresh" style="width:auto;display:inline-block">Rafraîchir QR</button>
+        </div>
+        <p class="hint" id="editStatus"></p>
+        <button type="button" class="btn-send" id="editSave">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+  <script src="ressources.js"></script>
+</body>
+</html>
