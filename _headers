@@ -1,0 +1,8 @@
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  X-XSS-Protection: 0
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://fra.cloud.appwrite.io https://cloud.appwrite.io https://*.workers.dev https://xultra-upload.lordfamily1.workers.dev https://xultra.b-cdn.net https://api.qrserver.com https://api.open-meteo.com https://api.allorigins.win https://news.google.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

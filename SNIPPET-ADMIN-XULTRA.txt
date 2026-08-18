@@ -1,0 +1,6 @@
+// À coller dans script.js (panel admin XULTRA) — bouton d'accès Ressources
+function openRessourcesAdmin() {
+  window.open("https://ressources.xultra.space/?admin=1", "_blank");
+}
+// Dans le HTML admin, ajoute un bouton :
+// <button type="button" class="btn-primary" onclick="openRessourcesAdmin()">📋 Ressources / Tutos</button>
