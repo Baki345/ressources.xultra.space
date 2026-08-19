@@ -1,0 +1,15 @@
+{
+  "version": "\u03b10.2.36",
+  "worker": "ultravoc",
+  "domain": "xultra.space",
+  "exported_at": "2026-08-19",
+  "files": [
+    "README.md",
+    "app-script.js",
+    "app-style.css",
+    "app.html",
+    "home.html",
+    "worker-fetch-handler.js",
+    "worker.js"
+  ]
+}

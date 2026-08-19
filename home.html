@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="uv-country" content="AUTO"><meta name="theme-color" content="#0a0612"><meta name="robots" content="noindex">
+<title>ULTRAVOC — XULTRA</title>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0/dist/iife/sdk.js"></script>
+<style>
+:root{--bg:#07040f;--card:rgba(18,12,28,.88);--p:#c084fc;--p2:#7c3aed;--p3:#a855f7;--t:#f5f0ff;--m:#9b8bb8;--b:rgba(192,132,252,.28);--ok:#4ade80;--line:rgba(255,255,255,.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--t);min-height:100dvh;position:relative;overflow-x:hidden}
+.bg{position:fixed;inset:0;z-index:0;background:#07040f;pointer-events:none!important}
+.bg::before,.bg::after{content:"";position:absolute;inset:-25%;background:
+  radial-gradient(ellipse 55% 45% at 30% 25%,rgba(124,58,237,.5),transparent 55%),
+  radial-gradient(ellipse 45% 40% at 75% 30%,rgba(168,85,247,.35),transparent 50%),
+  radial-gradient(ellipse 40% 35% at 50% 85%,rgba(34,211,238,.1),transparent 55%);
+  animation:drift 14s ease-in-out infinite alternate;filter:saturate(1.2)}
+.bg::after{animation-duration:20s;animation-direction:alternate-reverse;opacity:.8;mix-blend-mode:screen}
+@keyframes drift{0%{transform:translate3d(-2%,-1%,0) scale(1)}100%{transform:translate3d(2%,2%,0) scale(1.06)}}
+.wrap{position:relative;z-index:2;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 14px 28px;gap:14px}
+.brand{text-align:center}
+h1.brand-title{font-size:clamp(2.6rem,9vw,3.4rem);font-weight:900;letter-spacing:.2em;background:linear-gradient(90deg,#f3e8ff,#e9d5ff 25%,#c084fc 50%,#a855f7 75%,#67e8f9);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 60px rgba(168,85,247,.35);margin-bottom:4px}
+.tag{color:var(--m);font-size:.8rem;margin-top:6px;line-height:1.35;max-width:320px;margin-left:auto;margin-right:auto}
+.card{width:min(360px,100%);background:var(--card);border:1px solid var(--b);border-radius:16px;padding:16px;backdrop-filter:blur(16px);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;background:rgba(0,0,0,.35);border-radius:11px;padding:3px;margin-bottom:12px}
+.tab{border:0;background:0;color:var(--m);padding:9px 4px;border-radius:8px;font-weight:700;font-size:.8rem;cursor:pointer}
+.tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff}
+.panel{display:none}.panel.on{display:block}
+label{display:block;font-size:.65rem;font-weight:700;color:var(--m);margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
+.f{margin-bottom:10px}
+input{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--b);background:rgba(7,4,15,.9);color:var(--t);outline:0;font-size:.95rem}
+input:focus{border-color:var(--p)}
+.btn{width:100%;padding:12px;border:0;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;cursor:pointer;font-size:.92rem}
+.btn.ghost{background:rgba(255,255,255,.06);border:1px solid var(--b)}
+#msg.msg{display:none;padding:8px 10px;border-radius:9px;margin-bottom:8px;font-size:.8rem;font-weight:600}
+#msg.msg.on{display:block}.msg.e{background:rgba(244,63,94,.12);color:#fecdd3}.msg.o{background:rgba(34,197,94,.1);color:#bbf7d0}
+.hint{font-size:.68rem;color:var(--m);margin-top:10px;line-height:1.4;text-align:center}
+.qr-box{text-align:center;padding:4px 0}
+.qr-box img{width:160px;height:160px;border-radius:12px;background:#fff;padding:8px}
+.qr-code{margin-top:10px;font-family:ui-monospace,monospace;font-size:1.2rem;font-weight:800;letter-spacing:.18em;color:var(--p)}
+.qr-note{font-size:.7rem;color:var(--m);margin-top:6px;line-height:1.35}
+.security{width:min(360px,100%);background:rgba(16,12,26,.55);border:1px solid rgba(74,222,128,.18);border-radius:12px;padding:10px 12px}
+.security h2{font-size:.68rem;font-weight:800;color:var(--ok);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.security ul{list-style:none;display:grid;gap:3px}
+.security li{font-size:.7rem;color:#cfc0e8;line-height:1.35;padding-left:14px;position:relative}
+.security li::before{content:"✓";position:absolute;left:0;color:var(--ok);font-weight:800;font-size:.65rem}
+.foot{font-size:.65rem;color:var(--m);text-align:center}
+.foot strong{color:#d8b4fe}
+</style></head><body>
+<div class="bg" aria-hidden="true"></div>
+<div class="wrap">
+  <div class="brand">
+    <h1 class="brand-title">XULTRA</h1>
+    <p class="tag">Ultravoc — vocal, social &amp; hubs. Ta bulle chiffrée, no-log.</p>
+  </div>
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" data-p="l" type="button">Connexion</button>
+      <button class="tab" data-p="r" type="button">Inscription</button>
+      <button class="tab" data-p="q" type="button">QR</button>
+    </div>
+    <div id="msg" class="msg"></div>
+    <form class="panel on" id="fl">
+      <div class="f"><label>E-mail</label><input id="le" type="email" required autocomplete="username"></div>
+      <div class="f"><label>Mot de passe</label><input id="lp" type="password" required minlength="8" autocomplete="current-password"></div>
+      <button class="btn" type="submit">Entrer dans Ultravoc</button>
+    </form>
+    <form class="panel" id="fr">
+      <div class="f"><label>Pseudo</label><input id="ru" required pattern="[A-Za-z0-9_]{3,24}" title="3-24 lettres, chiffres, _" autocomplete="username"></div>
+      <div class="f"><label>E-mail</label><input id="re" type="email" required autocomplete="email"></div>
+      <div class="f"><label>Mot de passe</label><input id="rp" type="password" required minlength="8" autocomplete="new-password"></div>
+      <div class="f"><label>Confirmer</label><input id="rp2" type="password" required minlength="8" autocomplete="new-password"></div>
+      <button class="btn" type="submit">Créer mon compte</button>
+    </form>
+    <div class="panel" id="fq">
+      <div class="qr-box">
+        <img id="qr-img" alt="QR Ultravoc" width="160" height="160">
+        <div class="qr-code" id="qr-code">————</div>
+        <p class="qr-note">Scanne pour ouvrir Ultravoc sur mobile.</p>
+        <button class="btn ghost" type="button" id="qr-refresh" style="margin-top:10px">Nouveau code</button>
+      </div>
+    </div>
+    <p class="hint">Compte = e-mail unique · session propre à chaque connexion</p>
+  </div>
+  <div class="security">
+    <h2>Sécurité &amp; no-log</h2>
+    <ul>
+      <li>HTTPS · cookies de session isolés</li>
+      <li>Pas de revente / pub sur tes messages privés</li>
+      <li>Médias éphémères · sessions anti-mixte</li>
+    </ul>
+  </div>
+  <p class="foot">Propulsé par <strong>XULTRA</strong> · Ultravoc</p>
+</div>
+<script>
+const {Client,Account,ID}=Appwrite;
+const account=new Account(new Client().setEndpoint('https://fra.cloud.appwrite.io/v1').setProject('6a73b975002f14dc6b91'));
+const esc=s=>String(s||'').replace(/[<>&"'`]/g,'');
+const msg=document.getElementById('msg');
+const show=(t,e)=>{msg.textContent=t;msg.className='msg on '+(e?'e':'o')};
+const fl=document.getElementById('fl'),fr=document.getElementById('fr'),fq=document.getElementById('fq');
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  fl.classList.toggle('on',t.dataset.p==='l');
+  fr.classList.toggle('on',t.dataset.p==='r');
+  fq.classList.toggle('on',t.dataset.p==='q');
+  msg.className='msg';
+  if(t.dataset.p==='q')refreshQr();
+});
+async function killSessions(){try{await account.deleteSessions()}catch(_){try{await account.deleteSession('current')}catch(__){}}}
+function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let s='';for(let i=0;i<6;i++)s+=a[Math.floor(Math.random()*a.length)];return s}
+function refreshQr(){
+  const code=makeCode();
+  const url=location.origin+'/?pair='+encodeURIComponent(code);
+  document.getElementById('qr-code').textContent=code;
+  document.getElementById('qr-img').src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&margin=6&data='+encodeURIComponent(url);
+  try{sessionStorage.setItem('uv_pair_code',code)}catch(e){}
+}
+document.getElementById('qr-refresh').onclick=refreshQr;
+(function(){
+  const pair=new URLSearchParams(location.search).get('pair');
+  if(pair){try{sessionStorage.setItem('uv_incoming_pair',pair)}catch(e){}show('Code appareil: '+pair+' — connecte-toi',0)}
+})();
+account.get().then(u=>{
+  const n=+(sessionStorage.getItem('uv_redir')||0);
+  if(n>=3){sessionStorage.removeItem('uv_redir');show('Reconnecte-toi manuellement.');return;}
+  show('Session active — redirection…');
+  setTimeout(()=>location.replace('/app'),400);
+}).catch(()=>{sessionStorage.removeItem('uv_redir')});
+fr.onsubmit=async e=>{e.preventDefault();if(rp.value!==rp2.value)return show('Mots de passe différents',1);
+try{await killSessions();await account.create(ID.unique(),re.value.trim().toLowerCase(),rp.value,ru.value.trim());await account.createEmailPasswordSession(re.value.trim().toLowerCase(),rp.value);location.replace('/app')}catch(err){show(esc(err.message),1)}};
+fl.onsubmit=async e=>{e.preventDefault();
+try{await killSessions();await account.createEmailPasswordSession(le.value.trim().toLowerCase(),lp.value);const u=await account.get();show('Connecté: '+(u.name||u.email));location.replace('/app')}catch(err){show(esc(err.message),1)}};
+</script></body></html>
