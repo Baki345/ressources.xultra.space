@@ -365,6 +365,7 @@ button{cursor:pointer;border:0;background:0}
 .call-modal{text-align:center;width:min(320px,100%)}
 .call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
 .call-ring-av img{width:100%;height:100%;object-fit:cover}
+.call-ring-av.settled{animation:none;box-shadow:none}
 @keyframes callPulse{0%{box-shadow:0 0 0 0 rgba(124,58,237,.5)}70%{box-shadow:0 0 0 18px rgba(124,58,237,0)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0)}}
 .call-modal h3{font-size:1.1rem;font-weight:800}
 .call-sub{color:var(--muted);font-size:.82rem;margin-top:4px}
@@ -541,7 +542,7 @@ button{cursor:pointer;border:0;background:0}
   <div class="modal-box call-modal">
     <div class="call-ring-av" id="ic-av">?</div>
     <h3 id="ic-name">—</h3>
-    <div class="call-sub">Appel vocal entrant…</div>
+    <div class="call-sub" id="ic-sub">Appel vocal entrant…</div>
     <div class="call-modal-acts">
       <button type="button" class="call-act decline" id="ic-decline" title="Refuser">✕</button>
       <button type="button" class="call-act accept" id="ic-accept" title="Répondre">📞</button>
@@ -705,6 +706,7 @@ async function enterApp(){
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
+  try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   showView('dms');
 }
 
@@ -1267,7 +1269,7 @@ const ICE_SERVERS={iceServers:[
 
 let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
 let callPeerUid=null, callPeerName=null, callIsCaller=false;
-let callSeconds=0, callTimerId=null, callTimeoutId=null;
+let callTimerId=null, callTimeoutId=null, callStartedAt=null, currentCallLabel='';
 let callUnsubs=[];
 let pendingLocalIce=[];
 let camStream=null, screenStream=null, videoSender=null;
@@ -1367,14 +1369,34 @@ function subscribeIncomingCalls(){
     callUnsubs.push(unsub);
   }catch(e){xlog('call_sub_fail',{msg:(e&&e.message)||String(e)});}
 }
+async function checkPendingIncomingCall(){
+  if(!me||activeCallDoc||incomingCallDoc)return;
+  try{
+    const r=await db.listDocuments(DB,'direct_calls',[Appwrite.Query.limit(20)]);
+    const docs=(r.documents||[]).filter(function(d){return String(d.calleeId)===String(me.\$id)&&d.status==='ringing'});
+    if(!docs.length)return;
+    docs.sort(function(a,b){return new Date(b.\$createdAt)-new Date(a.\$createdAt)});
+    showIncomingCall(docs[0]);
+  }catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+}
 
+let ringSubtitleTimeoutId=null;
 function showIncomingCall(doc){
   incomingCallDoc=doc;
   \$('ic-name').textContent=doc.callerName||'Appel inconnu';
   const av=\$('ic-av');
   if(doc.callerAvatar&&/^https?:/i.test(doc.callerAvatar))av.innerHTML='<img src="'+esc(doc.callerAvatar)+'" alt=""/>';
   else av.textContent=ini(doc.callerName||'?');
+  av.classList.remove('settled');
   \$('modal-incoming-call').classList.remove('hidden');
+  const ringElapsed=Date.now()-new Date(doc.\$createdAt).getTime();
+  const ringRemaining=Math.max(0,60000-ringElapsed);
+  function settle(){
+    \$('ic-sub').textContent='Appel en cours — rejoins quand tu veux';
+    av.classList.add('settled');
+  }
+  if(ringRemaining<=0)settle();
+  else ringSubtitleTimeoutId=setTimeout(settle,ringRemaining);
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+doc.\$id,function(res){
     if(eventIs(res.events,'.delete')||(res.payload&&['declined','ended','missed'].indexOf(res.payload.status)>=0)){
       if(incomingCallDoc&&incomingCallDoc.\$id===doc.\$id)dismissIncomingCall();
@@ -1385,6 +1407,8 @@ function showIncomingCall(doc){
 function dismissIncomingCall(){
   incomingCallDoc=null;
   \$('modal-incoming-call').classList.add('hidden');
+  \$('ic-sub').textContent='Appel vocal entrant…';
+  if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
 }
 
 async function acceptIncomingCall(){
@@ -1409,7 +1433,7 @@ async function acceptIncomingCall(){
     subscribeIceForCall(doc.\$id);
     subscribeCallDocLifecycle(doc.\$id);
     callLive=true;
-    showCallBar(callPeerName,'En appel…',true);
+    showCallBar(callPeerName,'En appel…',new Date(doc.\$createdAt).getTime());
   }catch(e){
     xlog('call_accept_fail',{msg:(e&&e.message)||String(e)});
     endCall('ended');
@@ -1450,12 +1474,14 @@ async function startCall(peerUid,peerName){
     activeCallDoc=doc;
     pendingLocalIce.forEach(function(c){sendSignal(doc.\$id,'ice',c)});
     pendingLocalIce=[];
-    showCallBar(peerName,'Sonne…',false);
+    showCallBar(peerName,'Sonne…',new Date(doc.\$createdAt).getTime());
     subscribeCallAnswer(doc.\$id);
     subscribeIceForCall(doc.\$id);
     callTimeoutId=setTimeout(function(){
-      if(activeCallDoc&&activeCallDoc.\$id===doc.\$id)endCall('missed');
-    },45000);
+      // Personne n'a décroché après 1 min : on ne raccroche pas, l'appelant
+      // reste seul dans le salon jusqu'à ce que l'autre rejoigne.
+      if(activeCallDoc&&activeCallDoc.\$id===doc.\$id){callTimeoutId=null;setCallStatusLabel('En attente…');}
+    },60000);
     xlog('call_start',{to:peerUid});
   }catch(e){
     xlog('call_start_fail',{msg:(e&&e.message)||String(e)});
@@ -1473,7 +1499,7 @@ function subscribeCallAnswer(callId){
         await callPc.setRemoteDescription(new RTCSessionDescription(JSON.parse(payload.answer)));
         if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
         callLive=true;
-        showCallBar(callPeerName,'En appel…',true);
+        setCallStatusLabel('En appel…');
       }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
     } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
       endCall('ended',true);
@@ -1534,21 +1560,27 @@ async function sendSignal(callId,kind,data){
   }catch(e){}
 }
 
-function showCallBar(name,status,live){
+function showCallBar(name,label,startedAtMs){
   \$('cb-name').textContent=name||'Appel';
-  \$('cb-status').textContent=status||'';
-  \$('cb-status').classList.toggle('live',!!live);
   \$('cb-av').textContent=ini(name||'?');
   \$('call-bar').classList.remove('hidden');
-  if(live&&!callTimerId){
-    callSeconds=0;
-    callTimerId=setInterval(function(){
-      callSeconds++;
-      const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
-      const s=String(callSeconds%60).padStart(2,'0');
-      \$('cb-status').textContent=m+':'+s;
-    },1000);
+  if(startedAtMs)callStartedAt=startedAtMs;
+  setCallStatusLabel(label);
+  if(!callTimerId){
+    callTimerId=setInterval(function(){renderCallStatus()},1000);
   }
+}
+function setCallStatusLabel(label){
+  currentCallLabel=label||'';
+  renderCallStatus();
+}
+function renderCallStatus(){
+  const el=\$('cb-status');if(!el)return;
+  const elapsed=callStartedAt?Math.max(0,Math.floor((Date.now()-callStartedAt)/1000)):0;
+  const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+  const s=String(elapsed%60).padStart(2,'0');
+  el.textContent=currentCallLabel+' '+m+':'+s;
+  el.classList.toggle('live',currentCallLabel==='En appel…');
 }
 function cleanupCallLocal(){
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
@@ -1556,12 +1588,15 @@ function cleanupCallLocal(){
   if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
   videoSender=null;callLive=false;remoteVideoActive=false;makingOffer=false;ignoreOffer=false;
+  callStartedAt=null;currentCallLabel='';
   if(callTimerId){clearInterval(callTimerId);callTimerId=null;}
   if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
+  if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
   callUnsubAll();
   activeCallDoc=null;incomingCallDoc=null;callPeerUid=null;callPeerName=null;callIsCaller=false;
   \$('call-bar').classList.add('hidden');
   \$('call-video-stage').classList.add('hidden');
+  \$('modal-incoming-call').classList.add('hidden');
   const audioEl=\$('call-remote-audio');if(audioEl)audioEl.srcObject=null;
   const rv=\$('call-remote-video');if(rv)rv.srcObject=null;
   const lv=\$('call-local-video');if(lv)lv.srcObject=null;
