@@ -258,6 +258,74 @@ button{cursor:pointer;border:0;background:0}
 .dash .bio{text-align:center;color:#c4b5fd;font-size:.85rem;margin-top:10px;line-height:1.4}
 .dash .ok-badge{display:flex;align-items:center;gap:8px;justify-content:center;margin-top:16px;padding:10px;border-radius:12px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac;font-size:.8rem;font-weight:700}
 .dash .btn-out{width:100%;height:42px;border-radius:12px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f2ebff;margin-top:18px}
+
+/* Phase 2: app shell */
+:root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e}
+#app{display:none;height:100dvh;position:relative;z-index:1}
+#app:not(.hidden){display:flex}
+.rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:8px;flex-shrink:0}
+.rail-btn{width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
+.rail-btn:hover,.rail-btn.on{border-radius:14px;background:#7c3aed}
+.list-col{width:var(--list-w);background:#130c1c;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
+.list-head{padding:14px 14px 8px}
+.list-head h1{font-size:.95rem;font-weight:800;margin-bottom:10px}
+.search-row{display:flex;gap:6px}
+.search-box{flex:1;min-width:0;height:34px;background:#0d0814;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:.82rem;outline:0;color:#f2ebff}
+.icon-btn{height:34px;width:34px;border-radius:8px;background:var(--elev);font-size:.9rem;flex-shrink:0}
+.icon-btn:hover{background:var(--hover)}
+.list-body{flex:1;overflow-y:auto;padding:6px}
+.list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
+.row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
+.row:hover,.row.active{background:rgba(167,139,250,.1)}
+.row .av{width:36px;height:36px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.85rem;overflow:hidden}
+.row .av img{width:100%;height:100%;object-fit:cover}
+.row .info{flex:1;min-width:0}
+.row .info .n{font-weight:700;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .info .p{font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .act{display:flex;gap:4px;flex-shrink:0}
+.row .act button{height:26px;padding:0 8px;border-radius:6px;font-size:.7rem;font-weight:700;background:#7c3aed;color:#fff}
+.row .act button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
+.userbar{height:56px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 10px;border-top:1px solid var(--line);background:#0f0917}
+.userbar .av{width:32px;height:32px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+.userbar .av img{width:100%;height:100%;object-fit:cover}
+.userbar .meta{flex:1;min-width:0}
+.userbar .n{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.userbar .s{font-size:.68rem;color:var(--online)}
+.ub-btn{width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:.9rem}
+.ub-btn:hover{background:var(--elev);color:#f2ebff}
+.chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#110a1a}
+.empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
+.empty h3{color:#f2ebff;margin:8px 0 4px;font-size:1rem}
+.empty p{font-size:.82rem}
+.chat-active{flex:1;display:flex;flex-direction:column;min-height:0}
+.chat-top{height:52px;padding:0 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+.chat-top .t{font-weight:800;font-size:.9rem}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:10px;max-width:80%}
+.msg.mine{align-self:flex-end;flex-direction:row-reverse}
+.msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
+.msg .bub{background:var(--elev);border-radius:12px;padding:8px 12px;font-size:.85rem;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.msg.mine .bub{background:#7c3aed}
+.msg .meta{font-size:.65rem;color:var(--muted);margin-top:3px}
+.composer{padding:10px 14px;display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line);flex-shrink:0}
+.composer textarea{flex:1;background:var(--elev);border:1px solid transparent;border-radius:10px;padding:9px 12px;outline:0;resize:none;max-height:100px;font-size:.85rem;color:#f2ebff}
+.composer textarea:focus{border-color:#8b5cf6}
+.send-btn{width:38px;height:38px;border-radius:10px;background:#7c3aed;color:#fff;font-size:1rem;flex-shrink:0}
+.overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px}
+.overlay:not(.hidden){display:flex}
+.modal-box{width:min(360px,100%);background:#15101f;border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:20px;position:relative}
+.modal-box h3{font-size:1rem;margin-bottom:12px}
+.modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
+.field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
+.fr-results{max-height:220px;overflow-y:auto}
+@media (max-width:640px){
+  .list-col{width:100%}
+  #app.chat-open .list-col{display:none}
+  #app:not(.chat-open) .chat-col{display:none}
+  .rail{display:none}
+  #app.chat-open .rail{display:none}
+}
 </style>
 </head>
 <body>
@@ -307,13 +375,55 @@ button{cursor:pointer;border:0;background:0}
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
   </div>
-  <div id="dash" class="dash hidden">
-    <div class="av" id="dash-av">?</div>
-    <h2 id="dash-name">—</h2>
-    <div class="tag" id="dash-tag">@—</div>
-    <div class="bio" id="dash-bio"></div>
-    <div class="ok-badge">✅ Connecté et profil chargé avec succès</div>
-    <button type="button" class="btn-out" id="btn-logout">Se déconnecter</button>
+</div>
+
+<div id="app" class="hidden">
+  <nav class="rail">
+    <button type="button" class="rail-btn on" id="nav-dms" title="Messages">💬</button>
+    <button type="button" class="rail-btn" id="nav-friends" title="Amis">👥</button>
+    <button type="button" class="rail-btn" id="nav-members" title="Membres">🌐</button>
+  </nav>
+  <aside class="list-col">
+    <div class="list-head">
+      <h1 id="list-title">Messages</h1>
+      <div class="search-row">
+        <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
+        <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
+      </div>
+    </div>
+    <div class="list-body" id="list-body"></div>
+    <div class="userbar">
+      <div class="av" id="ub-av">?</div>
+      <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
+      <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion">⏻</button>
+    </div>
+  </aside>
+  <section class="chat-col" id="chat-col">
+    <div class="empty" id="chat-empty">
+      <div style="font-size:2rem">💬</div>
+      <h3>Sélectionne une conversation</h3>
+      <p>Ou ouvre l'onglet Amis pour en démarrer une.</p>
+    </div>
+    <div class="chat-active hidden" id="chat-active">
+      <div class="chat-top">
+        <div class="av" id="ch-av">?</div>
+        <div class="titles"><div class="t" id="ch-title">—</div></div>
+      </div>
+      <div class="msgs" id="msgs"></div>
+      <div class="composer">
+        <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
+        <button type="button" class="send-btn" id="btn-send">➤</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="overlay hidden" id="modal-friend">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="mf-close">✕</button>
+    <h3>Ajouter un ami</h3>
+    <input id="fq" class="field-input" placeholder="Nom d'utilisateur" autocomplete="off"/>
+    <div id="fr" class="fr-results"></div>
   </div>
 </div>
 
@@ -432,7 +542,8 @@ function readSession(){
   try{return localStorage.getItem('xultra_session');}catch(e){return null}
 }
 
-async function showDash(){
+let me=null, meProfile=null;
+async function enterApp(){
   xlog('show_dash_start',{});
   let acc=null;
   try{acc=await account.get();}catch(e){xlog('dash_account_fail',{msg:(e&&e.message)||String(e)});throw e}
@@ -441,20 +552,18 @@ async function showDash(){
     const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',acc.\$id),Appwrite.Query.limit(1)]);
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
+  me=acc;meProfile=profile;
   const name=(profile&&(profile.displayName||profile.username))||acc.name||acc.email||'Compte';
-  const tag=profile?('@'+(profile.username||slugUsername(name))+(profile.tag?('#'+profile.tag):'')):('@'+slugUsername(name));
-  \$('dash-name').textContent=name;
-  \$('dash-tag').textContent=tag;
-  \$('dash-bio').textContent=(profile&&profile.bio)||'';
-  const av=\$('dash-av');
-  if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){
-    av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/>';
-  }else{
-    av.textContent=ini(name);
-  }
+  \$('ub-name').textContent=name;
+  const av=\$('ub-av');
+  if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/>';}
+  else{av.textContent=ini(name);}
   \$('auth').classList.add('hidden');
-  \$('dash').classList.remove('hidden');
+  \$('app').classList.remove('hidden');
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
+  try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
+  showView('dms');
 }
 
 async function doLogin(){
@@ -469,7 +578,7 @@ async function doLogin(){
     const jj=await serverLogin(email,pass);
     applySession(jj.secret);
     xlog('login_server_ok',{});
-    await showDash();
+    await enterApp();
   }catch(e){
     xlog('login_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Connexion impossible');
@@ -508,7 +617,7 @@ async function doRegister(){
     try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
     catch(e){await db.createDocument(DB,'users',Appwrite.ID.unique(),{authUserId:acc.\$id,email:acc.email||email,username:uname,displayName:name,tag:tag});}
     xlog('register_success',{uid:acc.\$id});
-    await showDash();
+    await enterApp();
   }catch(e){
     xlog('register_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Inscription impossible');
@@ -529,6 +638,228 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
   location.reload();
 });
 
+let view='dms';
+function showView(v){
+  view=v;
+  document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.remove('on')});
+  const map={dms:'nav-dms',friends:'nav-friends',members:'nav-members'};
+  const btn=\$(map[v]);if(btn)btn.classList.add('on');
+  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
+  if(v==='dms')renderDms();
+  else if(v==='friends')renderFriends();
+  else{loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})});}
+}
+document.querySelectorAll('.rail-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    try{showView(b.id==='nav-dms'?'dms':(b.id==='nav-friends'?'friends':'members'));}
+    catch(e){xlog('nav_error',{msg:(e&&e.message)||String(e)});}
+  });
+});
+
+let membersCache=[];
+async function loadMembers(){
+  const r=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]);
+  membersCache=r.documents||[];
+  return membersCache;
+}
+function rowAvatar(p,name,uid){
+  const av=p&&p.avatar;
+  if(av&&/^https?:/i.test(av))return '<div class="av" data-uid="'+esc(uid)+'"><img src="'+esc(av)+'" alt=""/></div>';
+  return '<div class="av" data-uid="'+esc(uid)+'">'+esc(ini(name))+'</div>';
+}
+function renderMembers(){
+  const box=\$('list-body');if(!box)return;
+  if(!membersCache.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
+  box.innerHTML=membersCache.map(function(p){
+    const name=p.displayName||p.username||'User';
+    const uid=p.authUserId||p.\$id;
+    return '<div class="row" data-open-profile="'+esc(uid)+'" data-name="'+esc(name)+'">'
+      +rowAvatar(p,name,uid)
+      +'<div class="info"><div class="n">'+esc(name)+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-open-profile]').forEach(function(el){
+    el.onclick=function(){startDmWith(el.getAttribute('data-open-profile'),el.getAttribute('data-name'))};
+  });
+}
+
+let friendsCache=[];
+async function loadFriends(){
+  if(!me)return[];
+  const r=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',me.\$id),Appwrite.Query.limit(100)]);
+  friendsCache=r.documents||[];
+  return friendsCache;
+}
+function renderFriends(){
+  const box=\$('list-body');if(!box)return;
+  const accepted=friendsCache.filter(function(f){return f.status==='accepted'});
+  const incoming=friendsCache.filter(function(f){return f.status==='pending_in'});
+  if(!accepted.length&&!incoming.length){box.innerHTML='<div class="empty-hint">Aucun ami pour l\\'instant. Utilise le bouton 👤+ pour en ajouter.</div>';return}
+  let h='';
+  if(incoming.length){
+    h+='<div class="empty-hint" style="padding:8px 8px 2px">Demandes reçues</div>';
+    h+=incoming.map(function(f){
+      return '<div class="row"><div class="av">'+esc(ini(f.name||'?'))+'</div>'
+        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
+        +'<div class="act"><button type="button" data-accept="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'" data-fname="'+esc(f.name||'')+'">Accepter</button>'
+        +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'">✕</button></div></div>';
+    }).join('');
+  }
+  if(accepted.length){
+    h+='<div class="empty-hint" style="padding:8px 8px 2px">Amis</div>';
+    h+=accepted.map(function(f){
+      return '<div class="row" data-open-dm="'+esc(f.friendId)+'" data-name="'+esc(f.name||'Ami')+'">'
+        +'<div class="av">'+esc(ini(f.name||'?'))+'</div>'
+        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div></div></div>';
+    }).join('');
+  }
+  box.innerHTML=h;
+  box.querySelectorAll('[data-open-dm]').forEach(function(el){
+    el.onclick=function(){startDmWith(el.getAttribute('data-open-dm'),el.getAttribute('data-name'))};
+  });
+  box.querySelectorAll('[data-accept]').forEach(function(el){
+    el.onclick=async function(){
+      try{
+        await db.updateDocument(DB,'ultravoc_friends',el.getAttribute('data-accept'),{status:'accepted'});
+        const fromUid=el.getAttribute('data-from'),fname=el.getAttribute('data-fname');
+        const mine=friendsCache.find(function(f){return f.friendId===fromUid&&f.status==='pending_out'});
+        if(mine){await db.updateDocument(DB,'ultravoc_friends',mine.\$id,{status:'accepted'});}
+        else{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:fromUid,friendId:me.\$id,status:'accepted',name:(meProfile&&(meProfile.displayName||meProfile.username))||'Ami'});}
+        await loadFriends();renderFriends();
+      }catch(e){xlog('friend_accept_fail',{msg:(e&&e.message)||String(e)});}
+    };
+  });
+  box.querySelectorAll('[data-reject]').forEach(function(el){
+    el.onclick=async function(){
+      try{await db.deleteDocument(DB,'ultravoc_friends',el.getAttribute('data-reject'));await loadFriends();renderFriends();}
+      catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
+    };
+  });
+}
+async function sendFriendRequest(targetUid,targetName){
+  if(!me||!targetUid||targetUid===me.\$id)return;
+  const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
+  try{
+    await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:targetUid,status:'pending_out',name:targetName||'Ami'});
+    try{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:targetUid,friendId:me.\$id,status:'pending_in',name:myName});}catch(e){}
+    xlog('friend_request_sent',{to:targetUid});
+    return true;
+  }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
+}
+
+let dmsCache=[];
+function dmPeerId(dm){
+  const members=(dm.members||[]).map(String);
+  return members.find(function(m){return m!==me.\$id})||'';
+}
+async function loadDms(){
+  if(!me)return[];
+  const r=await db.listDocuments(DB,'dms',[Appwrite.Query.limit(100)]);
+  dmsCache=(r.documents||[]).filter(function(d){return (d.members||[]).map(String).indexOf(me.\$id)>=0});
+  return dmsCache;
+}
+function renderDms(){
+  const box=\$('list-body');if(!box)return;
+  if(!dmsCache.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
+  box.innerHTML=dmsCache.map(function(d){
+    const title=d.displayName||'Conversation';
+    return '<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
+      +'<div class="av">'+esc(ini(title))+'</div>'
+      +'<div class="info"><div class="n">'+esc(title)+'</div><div class="p">'+esc(d.lastMessage||'')+'</div></div></div>';
+  }).join('');
+  box.querySelectorAll('[data-dm]').forEach(function(el){
+    el.onclick=function(){openDm(el.getAttribute('data-dm'),el.getAttribute('data-title'))};
+  });
+}
+async function startDmWith(peerUid,peerName){
+  if(!me||!peerUid)return;
+  try{
+    await loadDms();
+    let dm=dmsCache.find(function(d){return dmPeerId(d)===peerUid});
+    if(!dm){
+      dm=await db.createDocument(DB,'dms',Appwrite.ID.unique(),{members:[String(me.\$id),String(peerUid)],displayName:peerName||'Conversation',lastMessage:''});
+      dmsCache.unshift(dm);
+    }
+    showView('dms');
+    await openDm(dm.\$id,dm.displayName||peerName||'Conversation');
+  }catch(e){xlog('start_dm_fail',{msg:(e&&e.message)||String(e)});}
+}
+
+let activeDm=null, msgsCache=[];
+async function openDm(threadId,title){
+  activeDm=threadId;
+  \$('chat-empty').classList.add('hidden');
+  \$('chat-active').classList.remove('hidden');
+  \$('ch-title').textContent=title||'Conversation';
+  \$('ch-av').textContent=ini(title||'?');
+  document.getElementById('app').classList.add('chat-open');
+  await loadMessages(threadId);
+}
+async function loadMessages(threadId){
+  try{
+    const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',threadId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
+    msgsCache=(r.documents||[]).slice().reverse();
+  }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];}
+  renderMessages();
+}
+function renderMessages(){
+  const box=\$('msgs');if(!box)return;
+  if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
+  box.innerHTML=msgsCache.map(function(m){
+    const mine=m.uid===(me&&me.\$id);
+    const name=m.displayName||'User';
+    return '<div class="msg'+(mine?' mine':'')+'"><div class="av">'+esc(ini(name))+'</div>'
+      +'<div><div class="bub">'+esc(m.text||'')+'</div><div class="meta">'+esc(mine?'':name)+'</div></div></div>';
+  }).join('');
+  box.scrollTop=box.scrollHeight;
+}
+async function sendMessage(){
+  const input=\$('msg-input');
+  const text=(input.value||'').trim();
+  if(!text||!activeDm||!me)return;
+  input.value='';
+  try{
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),{threadId:activeDm,uid:me.\$id,text:text.slice(0,2000),displayName:name,type:'text'});
+    try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:text.slice(0,100)});}catch(e){}
+    await loadMessages(activeDm);
+    await loadDms();if(view==='dms')renderDms();
+  }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
+}
+if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
+if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+
+if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function(){
+  \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
+});
+if(\$('mf-close'))\$('mf-close').addEventListener('click',function(){\$('modal-friend').classList.add('hidden')});
+if(\$('fq'))\$('fq').addEventListener('input',async function(){
+  const q=this.value.trim().toLowerCase();
+  if(q.length<2){\$('fr').innerHTML='';return}
+  try{
+    if(!membersCache.length)await loadMembers();
+    const matches=membersCache.filter(function(p){
+      return (p.username||'').toLowerCase().indexOf(q)>=0||(p.displayName||'').toLowerCase().indexOf(q)>=0;
+    }).slice(0,10);
+    \$('fr').innerHTML=matches.map(function(p){
+      const name=p.displayName||p.username||'User';
+      const uid=p.authUserId||p.\$id;
+      return '<div class="row" data-add="'+esc(uid)+'" data-name="'+esc(name)+'">'
+        +'<div class="av">'+esc(ini(name))+'</div>'
+        +'<div class="info"><div class="n">'+esc(name)+'</div></div>'
+        +'<div class="act"><button type="button">Ajouter</button></div></div>';
+    }).join('')||'<div class="empty-hint">Aucun résultat</div>';
+    \$('fr').querySelectorAll('[data-add]').forEach(function(el){
+      el.querySelector('button').onclick=async function(){
+        try{
+          await sendFriendRequest(el.getAttribute('data-add'),el.getAttribute('data-name'));
+          this.textContent='Envoyé';this.disabled=true;
+        }catch(e){this.textContent='Erreur';}
+      };
+    });
+  }catch(e){xlog('friend_search_fail',{msg:(e&&e.message)||String(e)});}
+});
+
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
   waitSdk(async function(){
@@ -537,7 +868,7 @@ function boot(){
     if(!s){xlog('boot_no_session',{});return}
     try{
       applySession(s);
-      await showDash();
+      await enterApp();
       xlog('boot_restore_ok',{});
     }catch(e){
       xlog('boot_restore_fail',{msg:(e&&e.message)||String(e)});
