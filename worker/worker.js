@@ -291,7 +291,7 @@ button{cursor:pointer;border:0;background:0}
 .userbar .meta{flex:1;min-width:0}
 .userbar .n{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .userbar .s{font-size:.68rem;color:var(--online)}
-.ub-btn{width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:.9rem}
+.ub-btn{width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:.9rem;display:grid;place-items:center}
 .ub-btn:hover{background:var(--elev);color:#f2ebff}
 .chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#110a1a}
 .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
@@ -408,7 +408,7 @@ button{cursor:pointer;border:0;background:0}
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
       <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
-      <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion">⏻</button>
+      <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
     </div>
   </aside>
   <section class="chat-col" id="chat-col">
