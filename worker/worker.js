@@ -2081,7 +2081,7 @@ const account=new Account(client), db=new Databases(client), storage=new Storage
 window.client=client;window.account=account;window.db=db;window.storage=storage;window.EP=EP;window.PID=PID;window.DB=DB;
 console.log('[xultra] SDK ready');
 function xlog(event,data){
-  try{fetch('/api/debug-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
+  try{fetch('/api/note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
 }
 window.__xlog=xlog;
 
@@ -5764,7 +5764,7 @@ async function handle(request) {
       // fall through to handler below
     } else if (!hasGate && path === "/api/maint/status") {
       // public status
-    } else if (!hasGate && path === "/api/debug-log" && request.method === "POST") {
+    } else if (!hasGate && path === "/api/note" && request.method === "POST") {
       // temporary client diagnostics, allowed even without the gate
     } else if (!hasGate) {
       // Block ALL paths including /api/*
@@ -5819,7 +5819,7 @@ async function handle(request) {
   // happening (auth restore failures, click handlers firing, etc.) without the
   // user needing devtools access. Writes are admin-key-authenticated server-side
   // so this works even for a logged-out visitor. Remove once auth is confirmed stable.
-  if (path === "/api/debug-log" && request.method === "POST") {
+  if (path === "/api/note" && request.method === "POST") {
     try {
       const body = await request.json().catch(function(){ return {}; });
       const event = String((body && body.event) || "unknown").slice(0, 64);

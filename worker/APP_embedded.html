@@ -1943,7 +1943,7 @@ const account=new Account(client), db=new Databases(client), storage=new Storage
 window.client=client;window.account=account;window.db=db;window.storage=storage;window.EP=EP;window.PID=PID;window.DB=DB;
 console.log('[xultra] SDK ready');
 function xlog(event,data){
-  try{fetch('/api/debug-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
+  try{fetch('/api/note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
 }
 window.__xlog=xlog;
 
