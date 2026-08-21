@@ -365,9 +365,20 @@ button{cursor:pointer;border:0;background:0}
 .member-row{align-items:flex-start}
 .member-row .info{padding-top:1px}
 .member-badges{display:flex;gap:4px;margin-top:5px}
-.badge-chip{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.04);font-size:.85rem;display:grid;place-items:center;flex-shrink:0;transition:transform .1s}
-.badge-chip:hover{transform:scale(1.15)}
-.badge-chip.sm{width:19px;height:19px;font-size:.72rem}
+@keyframes badgeShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes badgePulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.15)}}
+.badge-chip{
+  width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;
+  font-size:.85rem;line-height:1;border:1px solid transparent;isolation:isolate;
+  background-size:220% 220%;transition:transform .15s;
+  animation:badgeShift 7s ease infinite,badgePulse 3.2s ease-in-out infinite;
+}
+.badge-chip:hover{transform:scale(1.18)}
+.badge-chip.sm{width:20px;height:20px;font-size:.7rem}
+.badge-base{background-image:linear-gradient(125deg,#6d28d9,#a78bfa,#7c3aed,#c084fc,#6d28d9);color:#fff;border-color:rgba(167,139,250,.5);box-shadow:0 0 10px rgba(124,58,237,.45)}
+.badge-dev{background-image:linear-gradient(125deg,#7f1d1d,#ef4444,#991b1b,#f87171,#7f1d1d);color:#fff;border-color:rgba(239,68,68,.55);box-shadow:0 0 10px rgba(220,38,38,.5)}
+.badge-hunter{background-image:linear-gradient(125deg,#78350f,#fbbf24,#a16207,#fde68a,#78350f);color:#1a1005;border-color:rgba(251,191,36,.65);box-shadow:0 0 12px rgba(245,158,11,.55)}
+.badge-early{background-image:linear-gradient(125deg,#cbd5e1,#ffffff,#e2e8f0,#f8fafc,#cbd5e1);color:#0f172a;border-color:rgba(255,255,255,.75);box-shadow:0 0 10px rgba(255,255,255,.45)}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
 .pm-av{width:78px;height:78px;border-radius:50%;margin:-42px auto 0;position:relative;z-index:1;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #15101f;overflow:hidden}
@@ -377,15 +388,28 @@ button{cursor:pointer;border:0;background:0}
 .pm-tag{color:var(--muted);font-size:.78rem;margin-top:2px}
 .pm-grade{display:inline-block;margin:8px auto 0;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.7rem;font-weight:700;letter-spacing:.03em}
 .pm-badges{display:flex;justify-content:center;gap:8px;margin:14px 0}
-.pm-badges .badge-chip{width:34px;height:34px;font-size:1.1rem;border-radius:9px}
+.pm-badges .badge-chip{width:38px;height:38px;font-size:1.15rem}
 #pm-message{margin-top:4px}
 #pm-message.hidden{display:none}
 .pm-section{text-align:left;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03)}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
-.badge-info-card{width:min(340px,100%);--badge-color:#a78bfa;background:linear-gradient(165deg,color-mix(in srgb,var(--badge-color) 22%,#15101f),#0d0814);border-color:color-mix(in srgb,var(--badge-color) 45%,transparent)}
-.bi-head{font-size:1.15rem;font-weight:900;color:var(--badge-color);display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.bi-desc{font-size:.86rem;line-height:1.55;color:#e9e3f5}
+.badge-info-card{width:min(340px,100%);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+.badge-info-card::before{content:'';position:absolute;inset:0;opacity:.25;pointer-events:none}
+.badge-info-card.badge-base{background:linear-gradient(160deg,#10081c,#2a1548 40%,#10081c);border-color:rgba(167,139,250,.4)}
+.badge-info-card.badge-base::before{background:radial-gradient(circle at 30% 20%,#a78bfa,transparent 55%)}
+.badge-info-card.badge-dev{background:linear-gradient(160deg,#1a0505,#3f0a0a 40%,#1a0505);border-color:rgba(239,68,68,.4)}
+.badge-info-card.badge-dev::before{background:radial-gradient(circle at 30% 20%,#ef4444,transparent 55%)}
+.badge-info-card.badge-hunter{background:linear-gradient(160deg,#1a1205,#3d2e0a 40%,#1a1205);border-color:rgba(251,191,36,.45)}
+.badge-info-card.badge-hunter::before{background:radial-gradient(circle at 30% 20%,#fbbf24,transparent 55%)}
+.badge-info-card.badge-early{background:linear-gradient(160deg,#0f1218,#1e293b 40%,#0f1218);border-color:rgba(255,255,255,.35)}
+.badge-info-card.badge-early::before{background:radial-gradient(circle at 30% 20%,#fff,transparent 55%)}
+.bi-head{font-size:1.15rem;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative}
+.badge-info-card.badge-base .bi-head{color:#e9d5ff}
+.badge-info-card.badge-dev .bi-head{color:#fca5a5}
+.badge-info-card.badge-hunter .bi-head{color:#fde68a}
+.badge-info-card.badge-early .bi-head{color:#fff}
+.bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .call-btn{margin-left:auto}
 .call-modal{text-align:center;width:min(320px,100%)}
 .call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
@@ -587,7 +611,7 @@ button{cursor:pointer;border:0;background:0}
 </div>
 
 <div class="overlay hidden" id="modal-badge-info">
-  <div class="modal-box badge-info-card">
+  <div class="modal-box badge-info-card" id="bi-card">
     <button type="button" class="modal-close" id="bi-close">✕</button>
     <div class="bi-head"><span id="bi-icon">💜</span> <span id="bi-label">MEMBRE</span></div>
     <div class="bi-desc" id="bi-desc"></div>
@@ -890,7 +914,7 @@ function badgeChipsHtml(badges,size){
   const cls=size==='sm'?'badge-chip sm':'badge-chip';
   return badges.map(function(b){
     const d=BADGE_DEFS[b];if(!d)return '';
-    return '<button type="button" class="'+cls+'" data-badge="'+b+'" title="'+esc(d.label)+'">'+d.icon+'</button>';
+    return '<button type="button" class="'+cls+' badge-'+b+'" data-badge="'+b+'" title="'+esc(d.label)+'">'+d.icon+'</button>';
   }).join('');
 }
 function wireBadgeChips(root){
@@ -900,12 +924,12 @@ function wireBadgeChips(root){
 }
 function showBadgeInfo(key){
   const d=BADGE_DEFS[key];if(!d)return;
-  const modal=\$('modal-badge-info');
   \$('bi-icon').textContent=d.icon;
   \$('bi-label').textContent=d.label;
   \$('bi-desc').textContent=d.desc;
-  modal.style.setProperty('--badge-color',d.color);
-  modal.classList.remove('hidden');
+  const card=\$('bi-card');
+  card.className='modal-box badge-info-card badge-'+key;
+  \$('modal-badge-info').classList.remove('hidden');
 }
 if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-badge-info').classList.add('hidden')});
 if(\$('modal-badge-info'))\$('modal-badge-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
