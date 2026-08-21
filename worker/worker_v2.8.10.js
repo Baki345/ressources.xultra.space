@@ -301,6 +301,7 @@ button{cursor:pointer;border:0;background:0}
 .chat-top{height:52px;padding:0 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
 .chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
 .chat-top .t{font-weight:800;font-size:.9rem}
+.chat-back{display:none;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .msg{display:flex;gap:10px;max-width:80%}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
@@ -319,12 +320,19 @@ button{cursor:pointer;border:0;background:0}
 .modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
 .field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
 .fr-results{max-height:220px;overflow-y:auto}
+.tabbar{display:none}
 @media (max-width:640px){
+  #app{flex-direction:column}
   .list-col{width:100%}
   #app.chat-open .list-col{display:none}
   #app:not(.chat-open) .chat-col{display:none}
   .rail{display:none}
   #app.chat-open .rail{display:none}
+  .tabbar{display:flex;order:3;height:56px;flex-shrink:0;background:#0a0610;border-top:1px solid var(--line)}
+  #app.chat-open .tabbar{display:none}
+  .tabbar .rail-btn{flex:1;width:auto;height:100%;border-radius:0;background:transparent}
+  .tabbar .rail-btn.on{border-radius:0;background:rgba(124,58,237,.18)}
+  .chat-back{display:grid;place-items:center}
 }
 </style>
 </head>
@@ -379,9 +387,14 @@ button{cursor:pointer;border:0;background:0}
 
 <div id="app" class="hidden">
   <nav class="rail">
-    <button type="button" class="rail-btn on" id="nav-dms" title="Messages">💬</button>
-    <button type="button" class="rail-btn" id="nav-friends" title="Amis">👥</button>
-    <button type="button" class="rail-btn" id="nav-members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
+    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥</button>
+    <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
+  </nav>
+  <nav class="tabbar">
+    <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
+    <button type="button" class="rail-btn" data-view="friends" title="Amis">👥</button>
+    <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
   </nav>
   <aside class="list-col">
     <div class="list-head">
@@ -406,6 +419,7 @@ button{cursor:pointer;border:0;background:0}
     </div>
     <div class="chat-active hidden" id="chat-active">
       <div class="chat-top">
+        <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div></div>
       </div>
@@ -559,6 +573,7 @@ async function enterApp(){
   if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/>';}
   else{av.textContent=ini(name);}
   \$('auth').classList.add('hidden');
+  \$('stage').classList.add('hidden');
   \$('app').classList.remove('hidden');
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
@@ -641,17 +656,16 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
 let view='dms';
 function showView(v){
   view=v;
-  document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.remove('on')});
-  const map={dms:'nav-dms',friends:'nav-friends',members:'nav-members'};
-  const btn=\$(map[v]);if(btn)btn.classList.add('on');
+  document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v)});
   \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
+  document.getElementById('app').classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
   else{loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})});}
 }
 document.querySelectorAll('.rail-btn').forEach(function(b){
   b.addEventListener('click',function(){
-    try{showView(b.id==='nav-dms'?'dms':(b.id==='nav-friends'?'friends':'members'));}
+    try{showView(b.getAttribute('data-view'));}
     catch(e){xlog('nav_error',{msg:(e&&e.message)||String(e)});}
   });
 });
@@ -828,6 +842,7 @@ async function sendMessage(){
 }
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
+if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
 
 if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function(){
   \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
