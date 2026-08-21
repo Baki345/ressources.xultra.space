@@ -162,6 +162,7 @@ const APP = `<!DOCTYPE html>
       document.documentElement.appendChild(b);
     }catch(e){}
   }
+  window.__xErrBanner=showErr;
   window.addEventListener('error',function(e){
     showErr((e&&e.message)+' @ '+(e&&e.filename)+':'+(e&&e.lineno)+':'+(e&&e.colno));
   });
@@ -223,7 +224,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;
 
 /* AUTH */
 #auth{
-  min-height:100dvh;display:grid;place-items:center;padding:20px;overflow:hidden;position:relative;
+  min-height:100dvh;display:grid;place-items:center;padding:20px;overflow:hidden;
   background:
     radial-gradient(ellipse 60% 45% at 18% 20%,rgba(124,58,237,.38),transparent 60%),
     radial-gradient(ellipse 55% 45% at 85% 15%,rgba(167,139,250,.24),transparent 60%),
@@ -245,7 +246,7 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;
   background-size:28px 28px;opacity:.5;mix-blend-mode:screen;
 }
 .auth-box{
-  position:relative;z-index:1;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
+  position:relative;z-index:10001;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
   background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
   border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:24px 22px;
   box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.08) inset;
@@ -5677,6 +5678,9 @@ $('e-save').onclick=async()=>{
     await boot();
   }catch(e){
     console.warn('init no session', e);
+    if(readStoredSession()&&typeof window.__xErrBanner==='function'){
+      window.__xErrBanner('Session stockée trouvée mais rejetée au chargement (1re tentative) : '+((e&&e.message)||e));
+    }
     // Retry once after short delay (race with SDK)
     try{
       await new Promise(function(r){setTimeout(r,400);});
@@ -5688,7 +5692,12 @@ $('e-save').onclick=async()=>{
         await boot();
         return;
       }
-    }catch(e2){console.warn('init retry fail',e2);}
+    }catch(e2){
+      console.warn('init retry fail',e2);
+      if(typeof window.__xErrBanner==='function'){
+        window.__xErrBanner('Reprise de session impossible (2e tentative) : '+((e2&&e2.message)||e2));
+      }
+    }
     user=null;window.user=null;
     try{showAuth()}catch(_){}
   }
