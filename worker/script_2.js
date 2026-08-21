@@ -176,6 +176,7 @@ const toast=m=>{const e=$('toast');e.textContent=m;e.classList.add('on');clearTi
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const ini=n=>String(n||'?').trim().charAt(0).toUpperCase()||'?';
 const av=(url,n)=>{const u=String(url||'').trim();const ok=u&&(/^https?:\/\//i.test(u)||u.indexOf('//')===0||u.indexOf('data:image')===0);return ok?'<img src="'+esc(u)+'" alt="" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">':esc(ini(n));};
+const safeUrl=url=>{const u=String(url||'').trim();return (/^https?:\/\//i.test(u)||u.indexOf('//')===0||u.indexOf('data:image')===0)?u:'';};
 const members=d=>{const m=d&&d.members;return Array.isArray(m)?m.map(String):String(m||'').split(',').filter(Boolean)};
 const sc=s=>({online:'var(--online)',idle:'#f0b232',dnd:'var(--danger)',offline:'#80848e'}[s]||'var(--online)');
 const closeP=()=>{['p-emoji','p-gif'].forEach(id=>$(id).classList.remove('on'));['btn-emoji','btn-gif'].forEach(id=>$(id).classList.remove('on'))};
@@ -2347,11 +2348,12 @@ function renderMsgs(){
     if(display.indexOf('⟦REPLY:')===0){const end=display.indexOf('⟧');if(end>0){const meta=display.slice(7,end);const body=display.slice(end+1);const p=meta.split('|');quote='<div class="quote"><b>'+esc(p[0]||'')+'</b>'+esc(p[1]||'')+'</div>';display=body}}
     const type=m.type||'text',url=m.mediaUrl||'';
     let media='';
-    if((type==='image'||type==='gif')&&url)media='<div class="media"><img src="'+esc(url)+'" loading="lazy"/></div>';
-    else if(type==='video'&&url)media='<div class="media"><video src="'+esc(url)+'" controls playsinline></video></div>';
-    else if(type==='file'&&url)media='<div class="media"><a class="file" href="'+esc(url)+'" target="_blank" rel="noopener">📄 '+esc(display||'Fichier')+'</a></div>';
-    else if(type==='voice'&&url)media='<div class="voice"><button type="button" data-play="'+esc(url)+'">▶</button><span style="font-size:.72rem;color:var(--muted)">vocal</span></div>';
-    else if(type==='location'&&url)media='<a class="loc" href="'+esc(url)+'" target="_blank" rel="noopener">📍 Position</a>';
+    const safeMediaUrl=safeUrl(url);
+    if((type==='image'||type==='gif')&&safeMediaUrl)media='<div class="media"><img src="'+esc(safeMediaUrl)+'" loading="lazy"/></div>';
+    else if(type==='video'&&safeMediaUrl)media='<div class="media"><video src="'+esc(safeMediaUrl)+'" controls playsinline></video></div>';
+    else if(type==='file'&&safeMediaUrl)media='<div class="media"><a class="file" href="'+esc(safeMediaUrl)+'" target="_blank" rel="noopener">📄 '+esc(display||'Fichier')+'</a></div>';
+    else if(type==='voice'&&safeMediaUrl)media='<div class="voice"><button type="button" data-play="'+esc(safeMediaUrl)+'">▶</button><span style="font-size:.72rem;color:var(--muted)">vocal</span></div>';
+    else if(type==='location'&&safeMediaUrl)media='<a class="loc" href="'+esc(safeMediaUrl)+'" target="_blank" rel="noopener">📍 Position</a>';
     const ops='<div class="msg-ops"><button type="button" data-rp="'+esc(m.$id)+'">↩️</button>'+(mine?'<button type="button" class="del" data-dl="'+esc(m.$id)+'">🗑️</button>':'')+'</div>';
     const uid=m.uid||'';
     return '<div class="msg"><div class="av uclick" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'">'+esc(ini(name))+'</div><div class="body"><div class="head"><span class="name uclick" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'">'+esc(name)+'</span><span class="time">'+esc(time)+'</span></div>'
