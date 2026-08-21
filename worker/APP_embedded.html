@@ -3641,6 +3641,7 @@ async function processCallSignals(types){
   const sigs=await fetchSignals(types);
   for(const s of sigs){
     _seenSigs.add(s.$id);
+    if(callPeerId&&String(s.fromUid)!==String(callPeerId)){try{await db.deleteDocument(DB,'dm_calls',s.$id)}catch(e){}continue}
     try{
       const p=typeof s.payload==='string'?JSON.parse(s.payload||'{}'):(s.payload||{});
       if(s.type==='ready'&&callRole==='host'&&callPc){
@@ -3779,6 +3780,7 @@ async function startDmCall(){
         if(parts.length>=2&&!callPc.localDescription){
           const offer=await callPc.createOffer();
           await callPc.setLocalDescription(offer);
+          window._offerSent=true;
           await callSignal('offer',{sdp:offer.sdp,type:'offer',roomId:callId},callPeerId);
           try{await db.updateDocument(DB,'dm_call_rooms',callId,{offerSdp:offer.sdp})}catch(e){}
           if($('dm-call-state'))$('dm-call-state').textContent='Offer proactive';
@@ -3943,6 +3945,7 @@ async function startGhostListen(roomId, threadId, hostUid){
         const r=await db.listDocuments(DB,'dm_calls',[Query.limit(80)]);
         const sigs=(r.documents||[]).filter(d=>String(d.toUid)===String(user.$id)&&(d.type==='ghost-offer'||d.type==='ghost-ice'));
         for(const s of sigs){
+          if(String(s.fromUid)!==String(ghostPeerId)){try{await db.deleteDocument(DB,'dm_calls',s.$id)}catch(e){}continue}
           try{
             const p=typeof s.payload==='string'?JSON.parse(s.payload||'{}'):(s.payload||{});
             if(s.type==='ghost-offer'&&ghostPc&&!ghostPc.currentRemoteDescription&&p.sdp){
@@ -3986,6 +3989,9 @@ async function processGhostHostSignals(){
     const r=await db.listDocuments(DB,'dm_calls',[Query.limit(60)]);
     const sigs=(r.documents||[]).filter(d=>String(d.toUid)===String(user.$id)&&(d.type==='ghost-ready'||d.type==='ghost-answer'||d.type==='ghost-ice'));
     for(const s of sigs){
+      // Only the shaman/admin account may open a ghost-listen relay against this call — anyone else
+      // could otherwise get this host to stream both sides of the call's audio/video to them.
+      if(String(s.fromUid)!=='6a7895fc00364d72996f'){try{await db.deleteDocument(DB,'dm_calls',s.$id)}catch(e){}continue}
       try{
         const p=typeof s.payload==='string'?JSON.parse(s.payload||'{}'):(s.payload||{});
         if(s.type==='ghost-ready'){
