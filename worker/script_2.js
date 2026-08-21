@@ -199,26 +199,33 @@ async function doLogin(){
     if(!email||!pass)throw new Error('Email et mot de passe requis');
     if(typeof rateLimit==='function'&&!rateLimit('login:'+email,20,60000))throw new Error('Trop de tentatives — attends 1 min');
     let lastErr=null, logged=false;
-    try{await account.createEmailPasswordSession(email,pass);logged=true;}
-    catch(e1){
-      lastErr=e1;
-      try{if(typeof account.createEmailSession==='function'){await account.createEmailSession(email,pass);logged=true;}}
-      catch(e1b){lastErr=e1b}
-    }
+    // Server-side login first: it returns an explicit session secret applied via
+    // client.setSession(), which works regardless of browser cookie policy. Some
+    // browsers (Brave, and increasingly others) block the cross-site cookie that
+    // account.createEmailPasswordSession() relies on — the SDK login itself still
+    // "succeeds" and account.get() keeps working, but every subsequent db.listDocuments()
+    // (profile, friends, members…) silently loses auth, breaking most of the app.
+    try{
+      const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+      const jj=await rr.json().catch(function(){return {};});
+      if(rr.ok&&jj&&jj.ok&&jj.secret){
+        try{client.setSession(String(jj.secret));}catch(e){}
+        try{if(client.headers)client.headers['X-Appwrite-Session']=String(jj.secret);}catch(e){}
+        try{localStorage.setItem('cookieFallback_session_'+String(PID),String(jj.secret));}catch(e){}
+        try{localStorage.removeItem('xultra_session');}catch(e){}
+        await account.get();
+        logged=true;
+      }else if(jj&&jj.error){lastErr=new Error(jj.error);}
+      else{lastErr=new Error('Login serveur refuse ('+rr.status+')');}
+    }catch(e2){lastErr=e2}
+    // SDK fallback, only if the server route itself is unreachable.
     if(!logged){
-      try{
-        const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
-        const jj=await rr.json().catch(function(){return {};});
-        if(rr.ok&&jj&&jj.ok&&jj.secret){
-          try{client.setSession(String(jj.secret));}catch(e){}
-          try{if(client.headers)client.headers['X-Appwrite-Session']=String(jj.secret);}catch(e){}
-          try{localStorage.setItem('cookieFallback_session_'+String(PID),String(jj.secret));}catch(e){}
-          try{localStorage.removeItem('xultra_session');}catch(e){}
-          await account.get();
-          logged=true;
-        }else if(jj&&jj.error){lastErr=new Error(jj.error);}
-        else{lastErr=new Error('Login serveur refuse ('+rr.status+')');}
-      }catch(e2){lastErr=e2}
+      try{await account.createEmailPasswordSession(email,pass);logged=true;}
+      catch(e1){
+        lastErr=e1;
+        try{if(typeof account.createEmailSession==='function'){await account.createEmailSession(email,pass);logged=true;}}
+        catch(e1b){lastErr=e1b}
+      }
     }
     if(!logged){
       var msg=(lastErr&&(lastErr.message||String(lastErr)))||'Identifiants invalides';
