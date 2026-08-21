@@ -258,25 +258,27 @@ window.__nav=function(v){
         return;
       }
       if(v==='status'){
-        if(window.openServiceStatus)try{window.openServiceStatus();return;}catch(e){}
+        if(window.openSysStatus){try{window.openSysStatus();return;}catch(e){}}
         alert('XULTRA\\nAppwrite: OK\\nCloudflare Worker: OK\\nVersion: β2.8.10');
         return;
       }
       if(v==='addfriend'){
-        if(window.openAddFriend){try{window.openAddFriend();return;}catch(e){}}
+        var modalFriend=document.getElementById('modal-friend');
+        if(modalFriend){
+          try{var fq=document.getElementById('fq');if(fq)fq.value='';var fr=document.getElementById('fr');if(fr)fr.innerHTML='';modalFriend.classList.add('on');return;}catch(e){}
+        }
         var q=prompt("Nom utilisateur ou @ a ajouter en ami :");
         if(!q)return;
-        if(window.sendFriendRequest){try{window.sendFriendRequest(q);return;}catch(e){}}
         alert('Recherche ami: '+q+'\\n(module amis en reconnexion)');
         return;
       }
       if(v==='settings'){
-        if(window.openSettings){try{window.openSettings();return;}catch(e){}}
+        if(window.openEdit){try{window.openEdit();return;}catch(e){}}
         alert('Paramètres — module en reconnexion. Recharge la page.');
         return;
       }
       if(v==='notifs'){
-        if(window.openNotifications){try{window.openNotifications();return;}catch(e){}}
+        if(window.openNotifPanel){try{window.openNotifPanel();return;}catch(e){}}
         alert('Pas de nouvelle notification');
         return;
       }

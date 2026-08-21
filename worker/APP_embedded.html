@@ -6,6 +6,33 @@
 <meta name="theme-color" content="#0d0814"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <title>XULTRA</title>
+<script>
+(function(){
+  var shown=false;
+  function showErr(msg){
+    if(shown)return;shown=true;
+    try{
+      var b=document.createElement('div');
+      b.id='xultra-err-banner';
+      b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#7f1d1d;color:#fff;font:12px/1.4 monospace;padding:10px 34px 10px 14px;white-space:pre-wrap;word-break:break-word;box-shadow:0 2px 10px rgba(0,0,0,.5)';
+      b.textContent='XULTRA a rencontré une erreur JS (copie ce texte pour le support) :\n'+msg;
+      var x=document.createElement('button');
+      x.textContent='✕';
+      x.style.cssText='position:absolute;top:6px;right:8px;background:0;border:0;color:#fff;font-size:16px;cursor:pointer;padding:4px 8px';
+      x.onclick=function(){b.remove()};
+      b.appendChild(x);
+      document.documentElement.appendChild(b);
+    }catch(e){}
+  }
+  window.addEventListener('error',function(e){
+    showErr((e&&e.message)+' @ '+(e&&e.filename)+':'+(e&&e.lineno)+':'+(e&&e.colno));
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    var r=e&&e.reason;
+    showErr('Promise rejetée: '+((r&&r.message)||r));
+  });
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0"></script>
 <script>
 window.__awReady=false;
@@ -1669,25 +1696,27 @@ window.__nav=function(v){
         return;
       }
       if(v==='status'){
-        if(window.openServiceStatus)try{window.openServiceStatus();return;}catch(e){}
+        if(window.openSysStatus){try{window.openSysStatus();return;}catch(e){}}
         alert('XULTRA\\nAppwrite: OK\\nCloudflare Worker: OK\\nVersion: β2.8.10');
         return;
       }
       if(v==='addfriend'){
-        if(window.openAddFriend){try{window.openAddFriend();return;}catch(e){}}
+        var modalFriend=document.getElementById('modal-friend');
+        if(modalFriend){
+          try{var fq=document.getElementById('fq');if(fq)fq.value='';var fr=document.getElementById('fr');if(fr)fr.innerHTML='';modalFriend.classList.add('on');return;}catch(e){}
+        }
         var q=prompt("Nom utilisateur ou @ a ajouter en ami :");
         if(!q)return;
-        if(window.sendFriendRequest){try{window.sendFriendRequest(q);return;}catch(e){}}
         alert('Recherche ami: '+q+'\\n(module amis en reconnexion)');
         return;
       }
       if(v==='settings'){
-        if(window.openSettings){try{window.openSettings();return;}catch(e){}}
+        if(window.openEdit){try{window.openEdit();return;}catch(e){}}
         alert('Paramètres — module en reconnexion. Recharge la page.');
         return;
       }
       if(v==='notifs'){
-        if(window.openNotifications){try{window.openNotifications();return;}catch(e){}}
+        if(window.openNotifPanel){try{window.openNotifPanel();return;}catch(e){}}
         alert('Pas de nouvelle notification');
         return;
       }
