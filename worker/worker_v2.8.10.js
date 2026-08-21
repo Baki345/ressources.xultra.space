@@ -58,8 +58,8 @@ async function resolveSessionUser(request) {
 async function resolveProfile(authUserId) {
   try {
     const url = "/databases/" + AW_DB + "/collections/users/documents?" +
-      "queries[]=" + encodeURIComponent('equal("authUserId",' + JSON.stringify([String(authUserId)]) + ')') +
-      "&queries[]=" + encodeURIComponent('limit(1)');
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "authUserId", values: [String(authUserId)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
     const data = await awFetch(url, { asAdmin: true });
     const docs = (data && data.documents) || [];
     return docs[0] || null;
@@ -100,7 +100,7 @@ function hasValidGate(request) {
 
 async function listActiveDmCalls() {
   const url = "/databases/" + AW_DB + "/collections/dm_call_rooms/documents?" +
-    "queries[]=" + encodeURIComponent("limit(80)");
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [80] }));
   const data = await awFetch(url, { asAdmin: true });
   const docs = ((data && data.documents) || []).filter(function (d) {
     return (d.status || "") === "active";
@@ -108,7 +108,7 @@ async function listActiveDmCalls() {
   // attach simple user names
   let users = [];
   try {
-    const u = await awFetch("/databases/" + AW_DB + "/collections/users/documents?queries[]=" + encodeURIComponent("limit(200)"), { asAdmin: true });
+    const u = await awFetch("/databases/" + AW_DB + "/collections/users/documents?queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
     users = (u && u.documents) || [];
   } catch (e) {}
   function nameOf(id) {
@@ -320,6 +320,25 @@ button{cursor:pointer;border:0;background:0}
 .modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
 .field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
 .fr-results{max-height:220px;overflow-y:auto}
+.admin-subtabs{display:flex;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
+.admin-subtab{flex-shrink:0;padding:7px 12px;border-radius:8px;font-size:.78rem;font-weight:700;color:var(--muted);background:var(--elev)}
+.admin-subtab.on{background:#7c3aed;color:#fff}
+.admin-body{flex:1;overflow-y:auto;padding:10px 14px}
+.admin-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
+.admin-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;border-bottom:1px solid var(--line)}
+.admin-row .av{width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+.admin-row .av img{width:100%;height:100%;object-fit:cover}
+.admin-row .info{flex:1;min-width:0}
+.admin-row .info .n{font-weight:700;font-size:.85rem;display:flex;align-items:center;gap:6px}
+.admin-row .info .n .tag-mod{font-size:.62rem;font-weight:800;padding:1px 6px;border-radius:5px;background:rgba(124,58,237,.25);color:#c4b5fd}
+.admin-row .info .p{font-size:.72rem;color:var(--muted);margin-top:2px}
+.admin-row .acts{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0}
+.admin-row .acts button{height:28px;padding:0 10px;border-radius:6px;font-size:.7rem;font-weight:700;background:var(--elev);color:#f2ebff}
+.admin-row .acts button.danger{background:rgba(239,68,68,.22);color:#fca5a5}
+.admin-row .acts button.ok{background:rgba(34,197,94,.2);color:#86efac}
+.log-line{padding:9px 4px;border-bottom:1px solid var(--line);font-size:.8rem;line-height:1.4}
+.log-line b{color:#c4b5fd}
+.log-line .when{color:var(--muted);font-size:.68rem;margin-top:2px}
 .tabbar{display:none}
 @media (max-width:640px){
   #app{flex-direction:column}
@@ -390,11 +409,13 @@ button{cursor:pointer;border:0;background:0}
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥</button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" data-view="friends" title="Amis">👥</button>
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
   <aside class="list-col">
     <div class="list-head">
@@ -408,6 +429,7 @@ button{cursor:pointer;border:0;background:0}
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
       <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
+      <button type="button" class="ub-btn" id="btn-report-bug" title="Signaler un bug">🐞</button>
       <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
     </div>
   </aside>
@@ -429,6 +451,20 @@ button{cursor:pointer;border:0;background:0}
         <button type="button" class="send-btn" id="btn-send">➤</button>
       </div>
     </div>
+    <div class="chat-active hidden" id="admin-active">
+      <div class="chat-top">
+        <button type="button" class="ub-btn chat-back" id="btn-admin-back" title="Retour">←</button>
+        <div class="titles"><div class="t">🛡️ Panneau admin</div></div>
+      </div>
+      <div class="admin-subtabs">
+        <button type="button" class="admin-subtab on" data-atab="members">Membres</button>
+        <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
+        <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
+        <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
+        <button type="button" class="admin-subtab" data-atab="logs">Logs</button>
+      </div>
+      <div class="admin-body" id="admin-body"></div>
+    </div>
   </section>
 </div>
 
@@ -438,6 +474,17 @@ button{cursor:pointer;border:0;background:0}
     <h3>Ajouter un ami</h3>
     <input id="fq" class="field-input" placeholder="Nom d'utilisateur" autocomplete="off"/>
     <div id="fr" class="fr-results"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-bug">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="mb-close">✕</button>
+    <h3>🐞 Signaler un bug</h3>
+    <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
+    <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
+    <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
+    <div class="err" id="bug-err"></div>
   </div>
 </div>
 
@@ -578,6 +625,7 @@ async function enterApp(){
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   showView('dms');
 }
 
@@ -657,8 +705,19 @@ let view='dms';
 function showView(v){
   view=v;
   document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v)});
+  const app=document.getElementById('app');
+  if(v==='admin'){
+    \$('list-title').textContent='Membres';
+    app.classList.add('chat-open');
+    \$('chat-empty').classList.add('hidden');
+    \$('chat-active').classList.add('hidden');
+    \$('admin-active').classList.remove('hidden');
+    showAdminTab(adminTab);
+    return;
+  }
+  \$('admin-active').classList.add('hidden');
   \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
-  document.getElementById('app').classList.remove('chat-open');
+  app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
   else{loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})});}
@@ -873,6 +932,214 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
       };
     });
   }catch(e){xlog('friend_search_fail',{msg:(e&&e.message)||String(e)});}
+});
+
+let isAdmin=false, adminTab='members';
+async function adminJwt(){
+  const j=await account.createJWT();
+  return j&&j.jwt;
+}
+async function adminFetch(path,body){
+  const jwt=await adminJwt();
+  const r=await fetch(path,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+jwt},
+    body:JSON.stringify(body||{})
+  });
+  const j=await r.json().catch(function(){return {ok:false,error:'Réponse invalide'}});
+  if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
+  return j;
+}
+async function checkAdmin(){
+  try{
+    const jwt=await adminJwt();
+    const r=await fetch('/api/admin/access',{headers:{'Authorization':'Bearer '+jwt}});
+    const j=await r.json().catch(function(){return {ok:false}});
+    isAdmin=!!(j&&j.ok);
+  }catch(e){isAdmin=false}
+  document.querySelectorAll('.admin-nav-btn').forEach(function(b){b.classList.toggle('hidden',!isAdmin)});
+  xlog('admin_check',{isAdmin:isAdmin});
+}
+if(\$('btn-admin-back'))\$('btn-admin-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
+document.querySelectorAll('.admin-subtab').forEach(function(b){
+  b.addEventListener('click',function(){showAdminTab(b.getAttribute('data-atab'))});
+});
+function showAdminTab(tab){
+  adminTab=tab;
+  document.querySelectorAll('.admin-subtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-atab')===tab)});
+  const box=\$('admin-body');if(!box)return;
+  box.innerHTML='<div class="empty-hint">Chargement…</div>';
+  if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
+  else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
+  else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
+  else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
+  else if(tab==='logs')loadAdminLogs().then(renderAdminLogs).catch(adminErr);
+}
+function adminErr(e){
+  const box=\$('admin-body');if(box)box.innerHTML='<div class="empty-hint">Erreur : '+esc((e&&e.message)||String(e))+'</div>';
+  xlog('admin_tab_error',{tab:adminTab,msg:(e&&e.message)||String(e)});
+}
+
+async function loadAdminMembers(){
+  if(!membersCache.length)await loadMembers();
+  return membersCache;
+}
+function renderAdminMembers(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
+  box.innerHTML=list.map(function(p){
+    const name=p.displayName||p.username||'User';
+    const uid=p.authUserId||p.\$id;
+    const self=uid===(me&&me.\$id);
+    const modTag=p.isMod?'<span class="tag-mod">MOD</span>':'';
+    return '<div class="admin-row">'
+      +rowAvatar(p,name,uid)
+      +'<div class="info"><div class="n">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
+      +(self?'':'<div class="acts">'
+        +'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>'
+        +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
+        +'<button type="button" data-ban="'+esc(uid)+'" data-name="'+esc(name)+'" class="danger">Ban</button>'
+        +'</div>')
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-modtoggle]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await adminFetch('/api/admin/mod',{profileId:el.getAttribute('data-modtoggle'),isMod:el.getAttribute('data-mod')!=='1',targetName:el.getAttribute('data-name')});
+        membersCache=[];await loadAdminMembers().then(renderAdminMembers);
+      }catch(e){adminErr(e)}
+    };
+  });
+  box.querySelectorAll('[data-ban]').forEach(function(el){
+    el.onclick=async function(){
+      const reason=prompt('Raison du ban :','')||'Ban staff';
+      this.disabled=true;
+      try{
+        await adminFetch('/api/admin/ban',{uid:el.getAttribute('data-ban'),username:el.getAttribute('data-name'),reason:reason,type:'ban'});
+        alert('Utilisateur banni.');
+      }catch(e){adminErr(e)}
+      this.disabled=false;
+    };
+  });
+  box.querySelectorAll('[data-tban]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await adminFetch('/api/admin/ban',{uid:el.getAttribute('data-tban'),username:el.getAttribute('data-name'),reason:'Temp ban 24h',type:'tempban'});
+        alert('Ban temporaire de 24h appliqué.');
+      }catch(e){adminErr(e)}
+      this.disabled=false;
+    };
+  });
+}
+
+async function loadAdminBans(){
+  const r=await db.listDocuments(DB,'bans',[Appwrite.Query.limit(100)]);
+  return r.documents||[];
+}
+function renderAdminBans(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucune sanction active.</div>';return}
+  box.innerHTML=list.map(function(b){
+    const untilTxt=b.until==='permanent'?'Permanent':('Jusqu\\'au '+new Date(Number(b.until)).toLocaleString('fr-FR'));
+    return '<div class="admin-row">'
+      +'<div class="av">'+esc(ini(b.username||b.uid))+'</div>'
+      +'<div class="info"><div class="n">'+esc(b.username||b.uid)+' · '+esc(b.type||'ban')+'</div><div class="p">'+esc(b.reason||'')+' — '+esc(untilTxt)+' — par '+esc(b.by||'?')+'</div></div>'
+      +'<div class="acts"><button type="button" data-unban="'+esc(b.\$id)+'" class="ok">Lever</button></div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-unban]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await adminFetch('/api/admin/unban',{banId:el.getAttribute('data-unban')});
+        await loadAdminBans().then(renderAdminBans);
+      }catch(e){adminErr(e)}
+    };
+  });
+}
+
+async function loadAdminBugs(){
+  const r=await db.listDocuments(DB,'bug_reports',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+  return r.documents||[];
+}
+function renderAdminBugs(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun rapport de bug.</div>';return}
+  const statusLabel={open:'Ouvert',resolved:'Résolu',wontfix:"Ne sera pas corrigé"};
+  box.innerHTML=list.map(function(b){
+    const st=b.status||'open';
+    return '<div class="admin-row" style="align-items:flex-start">'
+      +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
+      +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+'</div>'
+      +'<div class="p">'+esc(b.description||'')+'</div>'
+      +'<div class="p">par '+esc(b.username||'?')+' — '+esc(statusLabel[st]||st)+'</div></div>'
+      +'<div class="acts">'
+      +(st!=='resolved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="resolved" class="ok">Résolu</button>':'')
+      +(st!=='wontfix'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="wontfix">Won\\'t fix</button>':'')
+      +(st!=='open'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="open">Rouvrir</button>':'')
+      +'</div></div>';
+  }).join('');
+  box.querySelectorAll('[data-bugstatus]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await adminFetch('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
+        await loadAdminBugs().then(renderAdminBugs);
+      }catch(e){adminErr(e)}
+    };
+  });
+}
+
+async function loadAdminCalls(){
+  const jwt=await adminJwt();
+  const r=await fetch('/api/admin/calls',{headers:{'Authorization':'Bearer '+jwt}});
+  const j=await r.json().catch(function(){return {ok:false}});
+  if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
+  return j.calls||[];
+}
+function renderAdminCalls(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun appel actif.</div>';return}
+  box.innerHTML=list.map(function(c){
+    return '<div class="admin-row"><div class="av">📞</div>'
+      +'<div class="info"><div class="n">Hébergé par '+esc(c.hostName||'?')+'</div>'
+      +'<div class="p">Participants : '+esc((c.participantNames||[]).join(', ')||'—')+'</div></div></div>';
+  }).join('');
+}
+
+async function loadAdminLogs(){
+  const r=await db.listDocuments(DB,'admin_logs',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+  return r.documents||[];
+}
+function renderAdminLogs(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun log. Les actions admin (ban, grades…) apparaîtront ici.</div>';return}
+  box.innerHTML=list.map(function(l){
+    const when=l.at?new Date(l.at).toLocaleString('fr-FR'):'';
+    return '<div class="log-line"><b>'+esc(l.by||'?')+'</b> — '+esc(l.action||'')+' — '+esc(l.detail||'')+'<div class="when">'+esc(when)+'</div></div>';
+  }).join('');
+}
+
+if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){
+  \$('bug-title').value='';\$('bug-desc').value='';\$('bug-err').textContent='';
+  \$('modal-bug').classList.remove('hidden');
+});
+if(\$('mb-close'))\$('mb-close').addEventListener('click',function(){\$('modal-bug').classList.add('hidden')});
+if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
+  const title=(\$('bug-title').value||'').trim();
+  const desc=(\$('bug-desc').value||'').trim();
+  if(!title||!desc){\$('bug-err').textContent='Titre et description requis';return}
+  this.disabled=true;this.textContent='Envoi…';
+  try{
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    await db.createDocument(DB,'bug_reports',Appwrite.ID.unique(),{uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),status:'open',upvotes:0});
+    xlog('bug_report_sent',{});
+    \$('modal-bug').classList.add('hidden');
+    alert('Merci ! Ton rapport a été envoyé à l\\'équipe.');
+  }catch(e){\$('bug-err').textContent=(e&&e.message)||'Erreur';xlog('bug_report_fail',{msg:(e&&e.message)||String(e)});}
+  this.disabled=false;this.textContent='Envoyer le rapport';
 });
 
 function boot(){
@@ -1223,9 +1490,119 @@ async function handle(request) {
       });
     }
   }
+  if (path === "/api/admin/ban" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      const username = String((body && body.username) || "");
+      const reason = String((body && body.reason) || "Ban staff").slice(0, 300);
+      const type = (body && body.type) === "tempban" ? "tempban" : "ban";
+      if (!uid) throw new Error("uid requis");
+      const until = type === "tempban" ? String(Date.now() + 86400000) : "permanent";
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/bans/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { uid, username, reason, type, by, until } }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: type, detail: username || uid, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/unban" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const banId = String((body && body.banId) || "");
+      if (!banId) throw new Error("banId requis");
+      await awFetch("/databases/" + AW_DB + "/collections/bans/documents/" + banId, { method: "DELETE", asAdmin: true });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "unban", detail: banId, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/mod" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const profileId = String((body && body.profileId) || "");
+      const isMod = !!(body && body.isMod);
+      const targetName = String((body && body.targetName) || "");
+      if (!profileId) throw new Error("profileId requis");
+      await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + profileId, {
+        method: "PATCH", asAdmin: true, body: { data: { isMod } }
+      });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: isMod ? "grant_mod" : "revoke_mod", detail: targetName || profileId, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/bugstatus" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const reportId = String((body && body.reportId) || "");
+      const status = String((body && body.status) || "");
+      if (!reportId || ["open", "resolved", "wontfix"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
+        method: "PATCH", asAdmin: true, body: { data: { status } }
+      });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
 
-  
-  
+
+
   if (path === "/api/auth/login" && request.method === "POST") {
     try {
       const body = await request.json();
