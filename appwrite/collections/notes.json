@@ -1,0 +1,282 @@
+{
+  "$id": "notes",
+  "$createdAt": "2026-08-05T23:16:31.861+00:00",
+  "$updatedAt": "2026-08-21T15:07:42.551+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "notes",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:32.776+00:00",
+      "$updatedAt": "2026-08-05T23:16:33.203+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "title",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:33.056+00:00",
+      "$updatedAt": "2026-08-05T23:16:33.657+00:00",
+      "size": 120,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "body",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:33.352+00:00",
+      "$updatedAt": "2026-08-05T23:16:34.145+00:00",
+      "size": 4000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "passwordHash",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:33.632+00:00",
+      "$updatedAt": "2026-08-05T23:16:34.605+00:00",
+      "size": 128,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:34.037+00:00",
+      "$updatedAt": "2026-08-05T23:36:34.707+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "author",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:40.177+00:00",
+      "$updatedAt": "2026-08-06T16:53:40.833+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "burnAfterRead",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:40.462+00:00",
+      "$updatedAt": "2026-08-06T16:53:41.616+00:00",
+      "default": false
+    },
+    {
+      "key": "exposure",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:40.658+00:00",
+      "$updatedAt": "2026-08-06T16:53:42.431+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "listed",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:40.867+00:00",
+      "$updatedAt": "2026-08-06T16:53:43.031+00:00",
+      "default": false
+    },
+    {
+      "key": "category",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:41.076+00:00",
+      "$updatedAt": "2026-08-06T16:53:43.687+00:00",
+      "size": 32,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "syntax",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:41.255+00:00",
+      "$updatedAt": "2026-08-06T16:53:44.323+00:00",
+      "size": 32,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "folder",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:41.449+00:00",
+      "$updatedAt": "2026-08-06T16:53:45.046+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "tags",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-06T16:53:41.623+00:00",
+      "$updatedAt": "2026-08-06T16:53:45.572+00:00",
+      "size": 32,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "views",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:41.932+00:00",
+      "$updatedAt": "2026-08-06T16:53:46.097+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "authorName",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:42.096+00:00",
+      "$updatedAt": "2026-08-06T16:53:46.856+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "username",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:53:42.289+00:00",
+      "$updatedAt": "2026-08-06T16:53:47.518+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "expiresAt",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:54:09.402+00:00",
+      "$updatedAt": "2026-08-06T16:54:09.957+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": null
+    },
+    {
+      "key": "burned",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T16:54:09.579+00:00",
+      "$updatedAt": "2026-08-06T16:54:10.653+00:00",
+      "default": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_8_idx_uid",
+      "$createdAt": "2026-08-05T23:36:53.342+00:00",
+      "$updatedAt": "2026-08-05T23:36:53.584+00:00",
+      "key": "idx_uid",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "uid"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    },
+    {
+      "$id": "142876_8_idx_uid_listed",
+      "$createdAt": "2026-08-06T16:54:13.636+00:00",
+      "$updatedAt": "2026-08-06T16:54:14.011+00:00",
+      "key": "idx_uid_listed",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "uid",
+        "listed"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 19717
+}

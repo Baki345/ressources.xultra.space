@@ -1,0 +1,35 @@
+{
+  "$id": "settings",
+  "$createdAt": "2026-08-06T00:37:37.400+00:00",
+  "$updatedAt": "2026-08-19T02:12:39.365+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"user:6a7895fc00364d72996f\")",
+    "update(\"user:6a7895fc00364d72996f\")",
+    "delete(\"user:6a7895fc00364d72996f\")",
+    "update(\"team:admins\")",
+    "delete(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "settings",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "dataJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:37:48.426+00:00",
+      "$updatedAt": "2026-08-06T00:37:48.864+00:00",
+      "size": 10000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [],
+  "bytesMax": 65535,
+  "bytesUsed": 41069
+}

@@ -1,0 +1,114 @@
+{
+  "$id": "notifications",
+  "$createdAt": "2026-08-05T23:14:58.376+00:00",
+  "$updatedAt": "2026-08-21T15:08:16.343+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "notifications",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "to",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:59.437+00:00",
+      "$updatedAt": "2026-08-05T23:14:59.809+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "from",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:59.783+00:00",
+      "$updatedAt": "2026-08-05T23:15:00.145+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "text",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:00.281+00:00",
+      "$updatedAt": "2026-08-05T23:15:00.613+00:00",
+      "size": 200,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "link",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:01.079+00:00",
+      "$updatedAt": "2026-08-05T23:15:01.491+00:00",
+      "size": 200,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "read",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:01.892+00:00",
+      "$updatedAt": "2026-08-05T23:15:02.339+00:00",
+      "default": false
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:33:08.156+00:00",
+      "$updatedAt": "2026-08-05T23:33:09.548+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_5_idx_to",
+      "$createdAt": "2026-08-05T23:33:30.209+00:00",
+      "$updatedAt": "2026-08-05T23:33:30.415+00:00",
+      "key": "idx_to",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "to",
+        "at"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 3191
+}

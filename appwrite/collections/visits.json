@@ -1,0 +1,75 @@
+{
+  "$id": "visits",
+  "$createdAt": "2026-08-06T00:39:51.589+00:00",
+  "$updatedAt": "2026-08-21T15:08:18.574+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "visits",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "ip",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:15.028+00:00",
+      "$updatedAt": "2026-08-06T00:40:19.730+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "ua",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:15.262+00:00",
+      "$updatedAt": "2026-08-06T00:40:20.284+00:00",
+      "size": 200,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:16.265+00:00",
+      "$updatedAt": "2026-08-06T00:40:20.759+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_27_idx_at",
+      "$createdAt": "2026-08-06T00:41:07.175+00:00",
+      "$updatedAt": "2026-08-06T00:41:07.534+00:00",
+      "key": "idx_at",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "at"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 2132
+}

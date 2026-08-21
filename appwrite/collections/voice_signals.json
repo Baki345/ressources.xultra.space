@@ -1,0 +1,101 @@
+{
+  "$id": "voice_signals",
+  "$createdAt": "2026-08-05T23:17:28.244+00:00",
+  "$updatedAt": "2026-08-21T15:08:16.860+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "voice_signals",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "roomId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:29.093+00:00",
+      "$updatedAt": "2026-08-05T23:17:29.444+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "from",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:29.518+00:00",
+      "$updatedAt": "2026-08-05T23:17:29.975+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "to",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:29.851+00:00",
+      "$updatedAt": "2026-08-05T23:17:30.372+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "payload",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:30.245+00:00",
+      "$updatedAt": "2026-08-05T23:17:30.816+00:00",
+      "size": 4000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:35.725+00:00",
+      "$updatedAt": "2026-08-05T23:36:36.596+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_14_idx_room",
+      "$createdAt": "2026-08-05T23:36:51.154+00:00",
+      "$updatedAt": "2026-08-05T23:36:51.437+00:00",
+      "key": "idx_room",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "roomId"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 17847
+}

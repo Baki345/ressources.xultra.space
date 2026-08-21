@@ -1,0 +1,165 @@
+{
+  "$id": "dms_messages",
+  "$createdAt": "2026-08-05T23:14:24.719+00:00",
+  "$updatedAt": "2026-08-21T15:08:15.891+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "dms_messages",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "threadId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:25.724+00:00",
+      "$updatedAt": "2026-08-05T23:14:26.222+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:26.653+00:00",
+      "$updatedAt": "2026-08-05T23:14:26.970+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "text",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:27.545+00:00",
+      "$updatedAt": "2026-08-05T23:14:27.865+00:00",
+      "size": 4000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:33:07.227+00:00",
+      "$updatedAt": "2026-08-05T23:33:08.288+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "enc",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:33:07.602+00:00",
+      "$updatedAt": "2026-08-05T23:33:08.689+00:00",
+      "default": false
+    },
+    {
+      "key": "displayName",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:33:07.812+00:00",
+      "$updatedAt": "2026-08-05T23:33:09.088+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "seenBy",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T20:19:11.564+00:00",
+      "$updatedAt": "2026-08-08T20:19:11.710+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "seenAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T20:19:11.948+00:00",
+      "$updatedAt": "2026-08-08T20:19:12.135+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "type",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T20:19:12.162+00:00",
+      "$updatedAt": "2026-08-08T20:19:12.304+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "mediaUrl",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T20:19:12.412+00:00",
+      "$updatedAt": "2026-08-08T20:19:12.559+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_4_idx_thread",
+      "$createdAt": "2026-08-05T23:33:29.962+00:00",
+      "$updatedAt": "2026-08-05T23:33:30.177+00:00",
+      "key": "idx_thread",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "threadId",
+        "at"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 22179
+}

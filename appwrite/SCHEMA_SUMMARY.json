@@ -1,0 +1,532 @@
+[
+  {
+    "id": "users",
+    "name": "users",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "authUserId",
+      "email",
+      "username",
+      "baseUsername",
+      "tag",
+      "displayName",
+      "bio",
+      "bioPos",
+      "avatar",
+      "bg",
+      "particles",
+      "theme",
+      "btnStyle",
+      "btnShape",
+      "font",
+      "headerLayout",
+      "bgType",
+      "bgColor",
+      "btnColor",
+      "btnTextColor",
+      "textColor",
+      "statusManual",
+      "spotify",
+      "logo",
+      "titleSize",
+      "bgVideo",
+      "socialsJson",
+      "privacyJson",
+      "friendsJson",
+      "require2FA",
+      "totpEnabled",
+      "requireTotp",
+      "isMod",
+      "verified",
+      "lastSeen",
+      "createdAt",
+      "pronouns",
+      "statusText",
+      "statusEmoji",
+      "privacy",
+      "nameEffect",
+      "nameColor",
+      "avatarDeco",
+      "profileFrame",
+      "nameFont"
+    ]
+  },
+  {
+    "id": "chat",
+    "name": "chat",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "uid",
+      "displayName",
+      "username",
+      "text",
+      "createdAt",
+      "at",
+      "role",
+      "tag",
+      "baseUsername",
+      "mediaUrl",
+      "type",
+      "seenByJson"
+    ]
+  },
+  {
+    "id": "dms",
+    "name": "dms",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "members",
+      "lastMessage",
+      "updatedAt",
+      "unreadJson",
+      "memberInfoJson",
+      "displayName",
+      "username",
+      "lastMsg",
+      "lastAt",
+      "uid"
+    ]
+  },
+  {
+    "id": "dms_messages",
+    "name": "dms_messages",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "threadId",
+      "uid",
+      "text",
+      "at",
+      "enc",
+      "displayName",
+      "seenBy",
+      "seenAt",
+      "type",
+      "mediaUrl"
+    ]
+  },
+  {
+    "id": "notifications",
+    "name": "notifications",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "to",
+      "from",
+      "text",
+      "link",
+      "read",
+      "at"
+    ]
+  },
+  {
+    "id": "guilds",
+    "name": "guilds",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "name",
+      "tag",
+      "ownerId",
+      "icon",
+      "color",
+      "desc",
+      "members",
+      "officers",
+      "open",
+      "banned",
+      "createdAt",
+      "banner",
+      "rules",
+      "linksJson"
+    ]
+  },
+  {
+    "id": "tracks",
+    "name": "tracks",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "uid",
+      "title",
+      "artist",
+      "url",
+      "cover",
+      "likes",
+      "plays",
+      "public",
+      "createdAt",
+      "likesCount",
+      "canvasUrl",
+      "genre",
+      "duration"
+    ]
+  },
+  {
+    "id": "notes",
+    "name": "notes",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "uid",
+      "title",
+      "body",
+      "passwordHash",
+      "createdAt",
+      "author",
+      "burnAfterRead",
+      "exposure",
+      "listed",
+      "category",
+      "syntax",
+      "folder",
+      "tags",
+      "views",
+      "authorName",
+      "username",
+      "expiresAt",
+      "burned"
+    ]
+  },
+  {
+    "id": "gallery",
+    "name": "gallery",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "uid",
+      "url",
+      "caption",
+      "createdAt",
+      "displayName",
+      "username",
+      "size",
+      "tags",
+      "likesCount",
+      "isGif"
+    ]
+  },
+  {
+    "id": "posts",
+    "name": "posts",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "authorId",
+      "content",
+      "likes",
+      "createdAt",
+      "authorName",
+      "authorUsername",
+      "commentsJson"
+    ]
+  },
+  {
+    "id": "voice_categories",
+    "name": "voice_categories",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "delete(\"team:admins\")",
+      "update(\"team:admins\")"
+    ],
+    "attributes": [
+      "name",
+      "order"
+    ]
+  },
+  {
+    "id": "voice_rooms",
+    "name": "voice_rooms",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "delete(\"team:admins\")",
+      "update(\"team:admins\")"
+    ],
+    "attributes": [
+      "name",
+      "categoryId",
+      "order"
+    ]
+  },
+  {
+    "id": "voice_members",
+    "name": "voice_members",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "roomId",
+      "uid",
+      "name",
+      "muted",
+      "cam",
+      "beat",
+      "joinedAt"
+    ]
+  },
+  {
+    "id": "voice_signals",
+    "name": "voice_signals",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "roomId",
+      "from",
+      "to",
+      "payload",
+      "at"
+    ]
+  },
+  {
+    "id": "voice_chat",
+    "name": "voice_chat",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "roomId",
+      "uid",
+      "displayName",
+      "text",
+      "createdAt"
+    ]
+  },
+  {
+    "id": "settings",
+    "name": "settings",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"user:6a7895fc00364d72996f\")",
+      "update(\"user:6a7895fc00364d72996f\")",
+      "delete(\"user:6a7895fc00364d72996f\")",
+      "update(\"team:admins\")",
+      "delete(\"team:admins\")"
+    ],
+    "attributes": [
+      "dataJson"
+    ]
+  },
+  {
+    "id": "siteConfig",
+    "name": "siteConfig",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"user:6a7895fc00364d72996f\")",
+      "update(\"user:6a7895fc00364d72996f\")",
+      "delete(\"user:6a7895fc00364d72996f\")",
+      "update(\"team:admins\")",
+      "delete(\"team:admins\")"
+    ],
+    "attributes": [
+      "dataJson"
+    ]
+  },
+  {
+    "id": "config",
+    "name": "config",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"user:6a7895fc00364d72996f\")",
+      "update(\"user:6a7895fc00364d72996f\")",
+      "delete(\"user:6a7895fc00364d72996f\")",
+      "update(\"team:admins\")",
+      "delete(\"team:admins\")"
+    ],
+    "attributes": [
+      "dataJson"
+    ]
+  },
+  {
+    "id": "roles",
+    "name": "roles",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "name",
+      "color",
+      "position",
+      "permissionsJson",
+      "voicePermissionsJson",
+      "createdAt",
+      "updatedAt"
+    ]
+  },
+  {
+    "id": "badges",
+    "name": "badges",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "name",
+      "icon",
+      "desc",
+      "color"
+    ]
+  },
+  {
+    "id": "gameScores",
+    "name": "gameScores",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "delete(\"team:admins\")",
+      "update(\"team:admins\")"
+    ],
+    "attributes": [
+      "uid",
+      "game",
+      "score",
+      "createdAt"
+    ]
+  },
+  {
+    "id": "videos",
+    "name": "videos",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "delete(\"team:admins\")",
+      "update(\"team:admins\")"
+    ],
+    "attributes": [
+      "title",
+      "url",
+      "createdAt"
+    ]
+  },
+  {
+    "id": "visits",
+    "name": "visits",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "ip",
+      "ua",
+      "at"
+    ]
+  },
+  {
+    "id": "galleryReactions",
+    "name": "galleryReactions",
+    "documentSecurity": true,
+    "permissions": [
+      "read(\"any\")",
+      "create(\"users\")",
+      "delete(\"team:admins\")",
+      "update(\"team:admins\")"
+    ],
+    "attributes": [
+      "ownerId",
+      "idx",
+      "likes",
+      "dislikes",
+      "commentsJson"
+    ]
+  },
+  {
+    "id": "formMessages",
+    "name": "formMessages",
+    "documentSecurity": false,
+    "permissions": [
+      "read(\"users\")",
+      "create(\"users\")",
+      "update(\"users\")",
+      "delete(\"users\")"
+    ],
+    "attributes": [
+      "to",
+      "blockId",
+      "name",
+      "msg",
+      "from",
+      "at"
+    ]
+  }
+]

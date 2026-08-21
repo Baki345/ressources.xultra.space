@@ -1,0 +1,221 @@
+{
+  "$id": "tracks",
+  "$createdAt": "2026-08-05T23:15:09.631+00:00",
+  "$updatedAt": "2026-08-21T15:07:42.262+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "tracks",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:12.917+00:00",
+      "$updatedAt": "2026-08-05T23:15:13.519+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "title",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:18.653+00:00",
+      "$updatedAt": "2026-08-05T23:15:19.059+00:00",
+      "size": 120,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "artist",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:21.947+00:00",
+      "$updatedAt": "2026-08-05T23:15:22.384+00:00",
+      "size": 80,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "url",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:22.881+00:00",
+      "$updatedAt": "2026-08-05T23:15:23.290+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "cover",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:23.207+00:00",
+      "$updatedAt": "2026-08-05T23:15:23.839+00:00",
+      "size": 500,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "likes",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-05T23:15:23.502+00:00",
+      "$updatedAt": "2026-08-05T23:15:24.385+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "plays",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:24.064+00:00",
+      "$updatedAt": "2026-08-05T23:15:24.922+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "public",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:24.717+00:00",
+      "$updatedAt": "2026-08-05T23:15:25.500+00:00",
+      "default": true
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:33.617+00:00",
+      "$updatedAt": "2026-08-05T23:36:34.205+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "likesCount",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:53.410+00:00",
+      "$updatedAt": "2026-08-06T01:03:54.754+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "canvasUrl",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T20:14:52.339+00:00",
+      "$updatedAt": "2026-08-08T20:14:52.641+00:00",
+      "size": 800,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "genre",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-09T20:24:48.091+00:00",
+      "$updatedAt": "2026-08-09T20:24:48.621+00:00",
+      "size": 32,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "duration",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-09T20:24:48.444+00:00",
+      "$updatedAt": "2026-08-09T20:24:49.006+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_7_idx_uid",
+      "$createdAt": "2026-08-05T23:36:54.011+00:00",
+      "$updatedAt": "2026-08-05T23:36:54.213+00:00",
+      "key": "idx_uid",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "uid",
+        "createdAt"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    },
+    {
+      "$id": "142876_7_idx_genre",
+      "$createdAt": "2026-08-09T20:25:12.840+00:00",
+      "$updatedAt": "2026-08-09T20:25:13.019+00:00",
+      "key": "idx_genre",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "genre"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 11513
+}

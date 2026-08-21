@@ -1,0 +1,104 @@
+{
+  "$id": "galleryReactions",
+  "$createdAt": "2026-08-06T00:39:52.098+00:00",
+  "$updatedAt": "2026-08-09T20:22:32.782+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "delete(\"team:admins\")",
+    "update(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "galleryReactions",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "ownerId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:16.938+00:00",
+      "$updatedAt": "2026-08-06T00:40:21.247+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "idx",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:17.388+00:00",
+      "$updatedAt": "2026-08-06T00:40:21.740+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "likes",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-06T00:40:17.692+00:00",
+      "$updatedAt": "2026-08-06T00:40:22.230+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "dislikes",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-06T00:40:17.917+00:00",
+      "$updatedAt": "2026-08-06T00:40:22.636+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "commentsJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:18.217+00:00",
+      "$updatedAt": "2026-08-06T00:40:23.158+00:00",
+      "size": 4000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_28_idx_owner",
+      "$createdAt": "2026-08-06T00:41:07.668+00:00",
+      "$updatedAt": "2026-08-06T00:41:07.905+00:00",
+      "key": "idx_owner",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "ownerId",
+        "idx"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 17374
+}

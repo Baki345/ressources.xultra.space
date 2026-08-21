@@ -1,0 +1,116 @@
+{
+  "$id": "formMessages",
+  "$createdAt": "2026-08-06T00:39:52.632+00:00",
+  "$updatedAt": "2026-08-21T15:08:18.155+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "formMessages",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "to",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:36.888+00:00",
+      "$updatedAt": "2026-08-06T00:40:37.330+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "blockId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:37.149+00:00",
+      "$updatedAt": "2026-08-06T00:40:37.899+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:37.471+00:00",
+      "$updatedAt": "2026-08-06T00:40:38.423+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "msg",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:37.720+00:00",
+      "$updatedAt": "2026-08-06T00:40:38.992+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "from",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:37.991+00:00",
+      "$updatedAt": "2026-08-06T00:40:39.509+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:38.404+00:00",
+      "$updatedAt": "2026-08-06T00:40:40.115+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_29_idx_to",
+      "$createdAt": "2026-08-06T00:41:09.005+00:00",
+      "$updatedAt": "2026-08-06T00:41:09.239+00:00",
+      "key": "idx_to",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "to",
+        "at"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 6104
+}

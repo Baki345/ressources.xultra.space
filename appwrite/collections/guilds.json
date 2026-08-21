@@ -1,0 +1,230 @@
+{
+  "$id": "guilds",
+  "$createdAt": "2026-08-05T23:15:02.443+00:00",
+  "$updatedAt": "2026-08-21T15:07:42.897+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "guilds",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:04.482+00:00",
+      "$updatedAt": "2026-08-05T23:15:04.910+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "tag",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:05.307+00:00",
+      "$updatedAt": "2026-08-05T23:15:05.749+00:00",
+      "size": 8,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "ownerId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:06.147+00:00",
+      "$updatedAt": "2026-08-05T23:15:06.559+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "icon",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:06.706+00:00",
+      "$updatedAt": "2026-08-05T23:15:07.098+00:00",
+      "size": 8,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "color",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:07.185+00:00",
+      "$updatedAt": "2026-08-05T23:15:07.595+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "desc",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:07.508+00:00",
+      "$updatedAt": "2026-08-05T23:15:08.176+00:00",
+      "size": 300,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "members",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-05T23:15:07.935+00:00",
+      "$updatedAt": "2026-08-05T23:15:08.661+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "officers",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-05T23:15:08.344+00:00",
+      "$updatedAt": "2026-08-05T23:15:09.170+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "open",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:08.873+00:00",
+      "$updatedAt": "2026-08-05T23:15:09.751+00:00",
+      "default": true
+    },
+    {
+      "key": "banned",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:15:09.288+00:00",
+      "$updatedAt": "2026-08-05T23:15:10.282+00:00",
+      "default": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:33.141+00:00",
+      "$updatedAt": "2026-08-05T23:36:33.615+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "banner",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:52.813+00:00",
+      "$updatedAt": "2026-08-06T01:03:53.290+00:00",
+      "size": 500,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "rules",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:53.018+00:00",
+      "$updatedAt": "2026-08-06T01:03:53.852+00:00",
+      "size": 2000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "linksJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:53.232+00:00",
+      "$updatedAt": "2026-08-06T01:03:54.276+00:00",
+      "size": 2000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_6_idx_owner",
+      "$createdAt": "2026-08-05T23:36:52.446+00:00",
+      "$updatedAt": "2026-08-05T23:36:52.665+00:00",
+      "key": "idx_owner",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "ownerId"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    },
+    {
+      "$id": "142876_6_idx_tag",
+      "$createdAt": "2026-08-06T16:54:13.943+00:00",
+      "$updatedAt": "2026-08-06T16:54:15.835+00:00",
+      "key": "idx_tag",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "tag"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 20969
+}

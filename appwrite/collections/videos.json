@@ -1,0 +1,74 @@
+{
+  "$id": "videos",
+  "$createdAt": "2026-08-06T00:39:50.868+00:00",
+  "$updatedAt": "2026-08-09T20:22:29.781+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "delete(\"team:admins\")",
+    "update(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "videos",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "title",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:13.914+00:00",
+      "$updatedAt": "2026-08-06T00:40:18.105+00:00",
+      "size": 120,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "url",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:14.164+00:00",
+      "$updatedAt": "2026-08-06T00:40:18.666+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:14.620+00:00",
+      "$updatedAt": "2026-08-06T00:40:19.117+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_26_idx_created",
+      "$createdAt": "2026-08-06T00:41:06.778+00:00",
+      "$updatedAt": "2026-08-06T00:41:07.224+00:00",
+      "key": "idx_created",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "createdAt"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 5557
+}

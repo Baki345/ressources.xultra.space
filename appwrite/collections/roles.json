@@ -1,0 +1,126 @@
+{
+  "$id": "roles",
+  "$createdAt": "2026-08-06T00:39:49.027+00:00",
+  "$updatedAt": "2026-08-21T15:07:41.283+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "roles",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:08.815+00:00",
+      "$updatedAt": "2026-08-06T00:40:09.711+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "color",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:09.125+00:00",
+      "$updatedAt": "2026-08-06T00:40:10.326+00:00",
+      "size": 16,
+      "default": "#a78bfa",
+      "encrypt": false
+    },
+    {
+      "key": "position",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:09.562+00:00",
+      "$updatedAt": "2026-08-06T00:40:10.981+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 10
+    },
+    {
+      "key": "permissionsJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:09.785+00:00",
+      "$updatedAt": "2026-08-06T00:40:11.473+00:00",
+      "size": 3000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "voicePermissionsJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:09.999+00:00",
+      "$updatedAt": "2026-08-06T00:40:11.998+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:10.532+00:00",
+      "$updatedAt": "2026-08-06T00:40:12.566+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "updatedAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:10.779+00:00",
+      "$updatedAt": "2026-08-06T00:40:13.125+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_23_idx_pos",
+      "$createdAt": "2026-08-06T00:41:05.731+00:00",
+      "$updatedAt": "2026-08-06T00:41:06.207+00:00",
+      "key": "idx_pos",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "position"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 17415
+}

@@ -1,0 +1,90 @@
+{
+  "$id": "gameScores",
+  "$createdAt": "2026-08-06T00:39:50.233+00:00",
+  "$updatedAt": "2026-08-09T20:22:30.330+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "delete(\"team:admins\")",
+    "update(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "gameScores",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:12.181+00:00",
+      "$updatedAt": "2026-08-06T00:40:16.000+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "game",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:12.438+00:00",
+      "$updatedAt": "2026-08-06T00:40:16.550+00:00",
+      "size": 32,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "score",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:12.877+00:00",
+      "$updatedAt": "2026-08-06T00:40:17.038+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:13.402+00:00",
+      "$updatedAt": "2026-08-06T00:40:17.578+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_25_idx_game",
+      "$createdAt": "2026-08-06T00:41:06.219+00:00",
+      "$updatedAt": "2026-08-06T00:41:06.598+00:00",
+      "key": "idx_game",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "game",
+        "score"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 1468
+}

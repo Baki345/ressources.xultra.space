@@ -1,0 +1,129 @@
+{
+  "$id": "posts",
+  "$createdAt": "2026-08-05T23:16:35.771+00:00",
+  "$updatedAt": "2026-08-21T15:07:41.677+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "posts",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "authorId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:37.611+00:00",
+      "$updatedAt": "2026-08-05T23:16:38.007+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "content",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:38.134+00:00",
+      "$updatedAt": "2026-08-05T23:16:38.619+00:00",
+      "size": 2000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "likes",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-05T23:16:38.643+00:00",
+      "$updatedAt": "2026-08-05T23:16:39.099+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:34.893+00:00",
+      "$updatedAt": "2026-08-05T23:36:35.674+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "authorName",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:54.327+00:00",
+      "$updatedAt": "2026-08-06T01:03:56.683+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "authorUsername",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:54.530+00:00",
+      "$updatedAt": "2026-08-06T01:03:57.180+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "commentsJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:54.730+00:00",
+      "$updatedAt": "2026-08-06T01:03:57.615+00:00",
+      "size": 4000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_10_idx_author",
+      "$createdAt": "2026-08-05T23:36:54.410+00:00",
+      "$updatedAt": "2026-08-05T23:36:54.611+00:00",
+      "key": "idx_author",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "authorId",
+        "createdAt"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 25869
+}

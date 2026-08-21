@@ -1,0 +1,77 @@
+{
+  "$id": "voice_rooms",
+  "$createdAt": "2026-08-05T23:17:14.551+00:00",
+  "$updatedAt": "2026-08-09T20:22:28.095+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "delete(\"team:admins\")",
+    "update(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "voice_rooms",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:18.888+00:00",
+      "$updatedAt": "2026-08-05T23:17:19.246+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "categoryId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:20.978+00:00",
+      "$updatedAt": "2026-08-05T23:17:21.398+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "order",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:21.816+00:00",
+      "$updatedAt": "2026-08-05T23:17:22.163+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_12_idx_cat",
+      "$createdAt": "2026-08-05T23:36:52.015+00:00",
+      "$updatedAt": "2026-08-05T23:36:52.197+00:00",
+      "key": "idx_cat",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "categoryId",
+        "order"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 1589
+}

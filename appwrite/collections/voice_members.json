@@ -1,0 +1,123 @@
+{
+  "$id": "voice_members",
+  "$createdAt": "2026-08-05T23:17:22.879+00:00",
+  "$updatedAt": "2026-08-21T15:08:17.261+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "voice_members",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "roomId",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:23.825+00:00",
+      "$updatedAt": "2026-08-05T23:17:24.254+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:24.595+00:00",
+      "$updatedAt": "2026-08-05T23:17:24.929+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:25.384+00:00",
+      "$updatedAt": "2026-08-05T23:17:25.736+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "muted",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:26.841+00:00",
+      "$updatedAt": "2026-08-05T23:17:27.235+00:00",
+      "default": false
+    },
+    {
+      "key": "cam",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:27.279+00:00",
+      "$updatedAt": "2026-08-05T23:17:27.725+00:00",
+      "default": false
+    },
+    {
+      "key": "beat",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:17:27.834+00:00",
+      "$updatedAt": "2026-08-05T23:17:28.153+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "joinedAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:35.333+00:00",
+      "$updatedAt": "2026-08-05T23:36:36.175+00:00",
+      "format": "",
+      "default": null
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_13_idx_room",
+      "$createdAt": "2026-08-05T23:36:50.725+00:00",
+      "$updatedAt": "2026-08-05T23:36:50.938+00:00",
+      "key": "idx_room",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "roomId"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 1855
+}

@@ -1,0 +1,72 @@
+{
+  "$id": "badges",
+  "$createdAt": "2026-08-06T00:39:49.694+00:00",
+  "$updatedAt": "2026-08-21T15:07:40.788+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "badges",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:11.188+00:00",
+      "$updatedAt": "2026-08-06T00:40:13.701+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "icon",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:11.424+00:00",
+      "$updatedAt": "2026-08-06T00:40:14.353+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "desc",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T00:40:11.702+00:00",
+      "$updatedAt": "2026-08-06T00:40:14.989+00:00",
+      "size": 300,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "color",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-08T21:15:02.376+00:00",
+      "$updatedAt": "2026-08-08T21:15:03.308+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [],
+  "bytesMax": 65535,
+  "bytesUsed": 2656
+}

@@ -1,0 +1,45 @@
+{
+  "$id": "voice_categories",
+  "$createdAt": "2026-08-05T23:16:39.004+00:00",
+  "$updatedAt": "2026-08-09T20:22:28.642+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "delete(\"team:admins\")",
+    "update(\"team:admins\")"
+  ],
+  "databaseId": "xultra",
+  "name": "voice_categories",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "name",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:42.376+00:00",
+      "$updatedAt": "2026-08-05T23:16:42.794+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "order",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:47.652+00:00",
+      "$updatedAt": "2026-08-05T23:16:47.990+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    }
+  ],
+  "indexes": [],
+  "bytesMax": 65535,
+  "bytesUsed": 1332
+}

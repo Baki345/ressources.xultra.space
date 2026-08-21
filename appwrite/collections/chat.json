@@ -1,0 +1,191 @@
+{
+  "$id": "chat",
+  "$createdAt": "2026-08-05T23:14:13.883+00:00",
+  "$updatedAt": "2026-08-21T15:08:19.014+00:00",
+  "$permissions": [
+    "read(\"users\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "chat",
+  "enabled": true,
+  "documentSecurity": false,
+  "attributes": [
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:16.312+00:00",
+      "$updatedAt": "2026-08-05T23:14:16.777+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "displayName",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:16.772+00:00",
+      "$updatedAt": "2026-08-05T23:14:17.322+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "username",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:17.578+00:00",
+      "$updatedAt": "2026-08-05T23:14:18.068+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "text",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:14:18.162+00:00",
+      "$updatedAt": "2026-08-05T23:14:18.599+00:00",
+      "size": 2000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:33:06.058+00:00",
+      "$updatedAt": "2026-08-05T23:33:06.492+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "at",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:54.924+00:00",
+      "$updatedAt": "2026-08-06T01:03:58.144+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "role",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:55.124+00:00",
+      "$updatedAt": "2026-08-06T01:03:58.615+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "tag",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:55.314+00:00",
+      "$updatedAt": "2026-08-06T01:03:59.118+00:00",
+      "size": 8,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "baseUsername",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:55.515+00:00",
+      "$updatedAt": "2026-08-06T01:03:59.597+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "mediaUrl",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:55.721+00:00",
+      "$updatedAt": "2026-08-06T01:04:00.123+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "type",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:55.914+00:00",
+      "$updatedAt": "2026-08-06T01:04:00.592+00:00",
+      "size": 16,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "seenByJson",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:56.113+00:00",
+      "$updatedAt": "2026-08-06T01:04:01.127+00:00",
+      "size": 2000,
+      "default": null,
+      "encrypt": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_2_idx_createdAt",
+      "$createdAt": "2026-08-05T23:33:29.530+00:00",
+      "$updatedAt": "2026-08-05T23:33:29.789+00:00",
+      "key": "idx_createdAt",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "createdAt"
+      ],
+      "lengths": [
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 22278
+}

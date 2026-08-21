@@ -1,0 +1,49 @@
+{
+  "total": 4,
+  "users": [
+    {
+      "$id": "6a7895fc00364d72996f",
+      "authUserId": "6a7895fc00364d72996f",
+      "username": "shaman",
+      "displayName": "Shaman",
+      "email": "lordfamily1@proton.me",
+      "tag": "72996F",
+      "avatar": "https://fra.cloud.appwrite.io/v1/storage/buckets/ultravoc_media/files/6a86ddaa001bb7151c67/view?project=6a73b975002f14dc6b91",
+      "bio": "Test",
+      "statusManual": "idle"
+    },
+    {
+      "$id": "6a83732900127c5084a2",
+      "authUserId": "6a83732900127c5084a2",
+      "username": "ryu",
+      "displayName": "Ryu",
+      "email": "ryushintodream@gmail.com",
+      "tag": "5084A2",
+      "avatar": "https://fra.cloud.appwrite.io/v1/storage/buckets/ultravoc_media/files/6a8635a80022e7fce3a7/view?project=6a73b975002f14dc6b91",
+      "bio": "",
+      "statusManual": "online"
+    },
+    {
+      "$id": "6a84e5b400028d0ec050",
+      "authUserId": "6a84e5b400028d0ec050",
+      "username": "moutarde",
+      "displayName": "Moutarde",
+      "email": "sophiebordier8@gmail.com",
+      "tag": "0EC050",
+      "avatar": "",
+      "bio": "",
+      "statusManual": "online"
+    },
+    {
+      "$id": "6a877d2e001aae8ef23e",
+      "authUserId": "6a877d2c002ff822dfb1",
+      "username": "libellule",
+      "displayName": "Libellule",
+      "email": "emma.555.lord@gmail.com",
+      "tag": "4768",
+      "avatar": "",
+      "bio": "",
+      "statusManual": "online"
+    }
+  ]
+}

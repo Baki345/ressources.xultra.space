@@ -1,0 +1,166 @@
+{
+  "$id": "gallery",
+  "$createdAt": "2026-08-05T23:16:33.998+00:00",
+  "$updatedAt": "2026-08-21T15:07:41.965+00:00",
+  "$permissions": [
+    "read(\"any\")",
+    "create(\"users\")",
+    "update(\"users\")",
+    "delete(\"users\")"
+  ],
+  "databaseId": "xultra",
+  "name": "gallery",
+  "enabled": true,
+  "documentSecurity": true,
+  "attributes": [
+    {
+      "key": "uid",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:34.866+00:00",
+      "$updatedAt": "2026-08-05T23:16:35.266+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "url",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:35.180+00:00",
+      "$updatedAt": "2026-08-05T23:16:35.714+00:00",
+      "size": 1000,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "caption",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:16:35.507+00:00",
+      "$updatedAt": "2026-08-05T23:16:36.231+00:00",
+      "size": 200,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "createdAt",
+      "type": "datetime",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-05T23:36:34.451+00:00",
+      "$updatedAt": "2026-08-05T23:36:35.173+00:00",
+      "format": "",
+      "default": null
+    },
+    {
+      "key": "displayName",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:53.599+00:00",
+      "$updatedAt": "2026-08-06T01:03:55.185+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "username",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:53.802+00:00",
+      "$updatedAt": "2026-08-06T01:03:55.738+00:00",
+      "size": 64,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "size",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-06T01:03:54.135+00:00",
+      "$updatedAt": "2026-08-06T01:03:56.194+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "tags",
+      "type": "string",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": true,
+      "$createdAt": "2026-08-09T20:44:37.037+00:00",
+      "$updatedAt": "2026-08-09T20:44:37.356+00:00",
+      "size": 24,
+      "default": null,
+      "encrypt": false
+    },
+    {
+      "key": "likesCount",
+      "type": "integer",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-09T20:44:37.429+00:00",
+      "$updatedAt": "2026-08-09T20:44:37.686+00:00",
+      "min": -9223372036854775808,
+      "max": 9223372036854775807,
+      "default": 0
+    },
+    {
+      "key": "isGif",
+      "type": "boolean",
+      "status": "available",
+      "error": "",
+      "required": false,
+      "array": false,
+      "$createdAt": "2026-08-09T20:44:37.769+00:00",
+      "$updatedAt": "2026-08-09T20:44:38.023+00:00",
+      "default": false
+    }
+  ],
+  "indexes": [
+    {
+      "$id": "142876_9_idx_uid",
+      "$createdAt": "2026-08-05T23:36:52.876+00:00",
+      "$updatedAt": "2026-08-05T23:36:53.094+00:00",
+      "key": "idx_uid",
+      "type": "key",
+      "status": "available",
+      "error": "",
+      "attributes": [
+        "uid",
+        "createdAt"
+      ],
+      "lengths": [
+        0,
+        0
+      ],
+      "orders": []
+    }
+  ],
+  "bytesMax": 65535,
+  "bytesUsed": 6685
+}
