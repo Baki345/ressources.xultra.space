@@ -1942,6 +1942,10 @@ try{
 const account=new Account(client), db=new Databases(client), storage=new Storage(client);
 window.client=client;window.account=account;window.db=db;window.storage=storage;window.EP=EP;window.PID=PID;window.DB=DB;
 console.log('[xultra] SDK ready');
+function xlog(event,data){
+  try{fetch('/api/debug-log',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
+}
+window.__xlog=xlog;
 
 
 window.boot=boot;
@@ -2086,9 +2090,14 @@ const cleanPrev=t=>String(t||'').replace(/⟦REPLY:[^⟧]*⟧/g,'').replace(/\\[
 
 /* AUTH */
 document.querySelectorAll('.tabs button').forEach(b=>{
-  b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-    const reg=b.dataset.tab==='register';$('form-login').classList.toggle('hidden',reg);$('form-register').classList.toggle('hidden',!reg);$('auth-err').textContent='';
-    if(reg){_regShownAt=Date.now();updateRegPreview();}};
+  b.onclick=()=>{
+    try{
+      xlog('tab_click',{tab:b.dataset.tab});
+      document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+      const reg=b.dataset.tab==='register';$('form-login').classList.toggle('hidden',reg);$('form-register').classList.toggle('hidden',!reg);$('auth-err').textContent='';
+      if(reg){_regShownAt=Date.now();updateRegPreview();}
+    }catch(e){xlog('tab_click_error',{msg:(e&&e.message)||String(e)});}
+  };
 });
 
 /* Registration live preview */
@@ -2155,16 +2164,17 @@ async function doLogin(){
         try{localStorage.removeItem('xultra_session');}catch(e){}
         await account.get();
         logged=true;
-      }else if(jj&&jj.error){lastErr=new Error(jj.error);}
-      else{lastErr=new Error('Login serveur refuse ('+rr.status+')');}
-    }catch(e2){lastErr=e2}
+        xlog('login_server_ok',{stored:!!localStorage.getItem('cookieFallback_session_'+String(PID))});
+      }else if(jj&&jj.error){lastErr=new Error(jj.error);xlog('login_server_fail',{status:rr.status,err:jj.error});}
+      else{lastErr=new Error('Login serveur refuse ('+rr.status+')');xlog('login_server_fail',{status:rr.status,body:jj});}
+    }catch(e2){lastErr=e2;xlog('login_server_throw',{msg:(e2&&e2.message)||String(e2)});}
     // SDK fallback, only if the server route itself is unreachable.
     if(!logged){
-      try{await account.createEmailPasswordSession(email,pass);logged=true;}
+      try{await account.createEmailPasswordSession(email,pass);logged=true;xlog('login_sdk_fallback_ok',{});}
       catch(e1){
         lastErr=e1;
-        try{if(typeof account.createEmailSession==='function'){await account.createEmailSession(email,pass);logged=true;}}
-        catch(e1b){lastErr=e1b}
+        try{if(typeof account.createEmailSession==='function'){await account.createEmailSession(email,pass);logged=true;xlog('login_sdk_fallback2_ok',{});}}
+        catch(e1b){lastErr=e1b;xlog('login_sdk_fallback_fail',{msg:(e1b&&e1b.message)||String(e1b)});}
       }
     }
     if(!logged){
@@ -2176,15 +2186,17 @@ async function doLogin(){
     await boot();
     if(!user){try{user=await account.get();if(user)await boot();}catch(e){}}
     if(!user)throw new Error('Session active mais profil inaccessible');
+    xlog('login_final_ok',{uid:user&&user.$id,stored:!!localStorage.getItem('cookieFallback_session_'+String(PID))});
   }catch(e){
     console.error('login',e);
+    xlog('login_outer_fail',{msg:(e&&e.message)||String(e)});
     if($('auth-err'))$('auth-err').textContent=(e&&e.message)||'Connexion impossible';
     try{showAuth()}catch(_){}
   }
   if($('btn-login')){$('btn-login').disabled=false;$('btn-login').textContent='Entrer';}
 }
 
-window.__xLogin=function(){return doLogin();};
+window.__xLogin=function(){xlog('login_click',{});return doLogin();};
 function bindAuthForms(){
   var fl=$('form-login');
   if(fl){
@@ -2221,11 +2233,12 @@ function bindAuthForms(){
 try{bindAuthForms()}catch(e){}
 document.addEventListener('DOMContentLoaded',function(){try{bindAuthForms()}catch(e){}});
 async function doRegister(){
+  xlog('register_click',{hp:!!($('in-hp')&&$('in-hp').value),elapsed:Date.now()-_regShownAt});
   // Honeypot: real users never fill this (it's visually hidden); bots that
   // auto-fill every field do. Silently no-op instead of telling the bot why.
-  if(($('in-hp')&&$('in-hp').value))return;
+  if(($('in-hp')&&$('in-hp').value)){xlog('register_honeypot_blocked',{});return}
   // A human needs at least ~1.2s to look at the form and type into it.
-  if(Date.now()-_regShownAt<1200){$('auth-err').textContent='Un instant…';return}
+  if(Date.now()-_regShownAt<1200){xlog('register_timing_blocked',{elapsed:Date.now()-_regShownAt});$('auth-err').textContent='Un instant…';return}
   const name=(($('in-user')&&$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\- ]/g,'').slice(0,24);
   const email=(($('in-email2')&&$('in-email2').value)||'').trim();
   const pass=(($('in-pass2')&&$('in-pass2').value)||'');
@@ -2265,8 +2278,9 @@ async function doRegister(){
     };
     try{profile=await db.createDocument(DB,'users',ID.unique(),doc);}
     catch(e){profile=await db.createDocument(DB,'users',ID.unique(),{authUserId:u.$id,email:u.email||email,username:uniq.username,displayName:name,tag:uniq.tag});}
+    xlog('register_success',{uid:u&&u.$id});
     await boot();
-  }catch(e){$('auth-err').textContent=(e&&e.message)||'Inscription impossible'}
+  }catch(e){xlog('register_fail',{msg:(e&&e.message)||String(e)});$('auth-err').textContent=(e&&e.message)||'Inscription impossible'}
   $('btn-register').disabled=false;$('btn-register').textContent='Créer mon compte';
 }
 $('btn-register').onclick=doRegister;
@@ -5532,14 +5546,18 @@ $('e-save').onclick=async()=>{
     if(!s){try{s=localStorage.getItem('cookieFallback_session_'+PID);}catch(e){}}
     return s;
   }
+  var _s0=readStoredSession();
+  xlog('boot_init',{hasStored:!!_s0,source:_s0?(localStorage.getItem('xultra_aw_sdk_session')?'xultra_aw_sdk_session':(sessionStorage.getItem('xultra_aw_sdk_session')?'sessionStorage':'cookieFallback')):'none'});
   try{
     var s=readStoredSession();
     if(s){try{client.setSession(String(s));}catch(e){}}
     user=await account.get();
     window.user=user;
+    xlog('boot_success',{uid:user&&user.$id});
     await boot();
   }catch(e){
     console.warn('init no session', e);
+    xlog('boot_fail_1',{hasStored:!!readStoredSession(),msg:(e&&e.message)||String(e),code:e&&e.code,type:e&&e.type});
     if(readStoredSession()&&typeof window.__xErrBanner==='function'){
       window.__xErrBanner('Session stockée trouvée mais rejetée au chargement (1re tentative) : '+((e&&e.message)||e));
     }
@@ -5551,11 +5569,14 @@ $('e-save').onclick=async()=>{
         try{client.setSession(String(s2));}catch(e3){}
         user=await account.get();
         window.user=user;
+        xlog('boot_retry_success',{uid:user&&user.$id});
         await boot();
         return;
       }
+      xlog('boot_retry_skipped',{hasStored:false});
     }catch(e2){
       console.warn('init retry fail',e2);
+      xlog('boot_fail_2',{hasStored:!!readStoredSession(),msg:(e2&&e2.message)||String(e2),code:e2&&e2.code,type:e2&&e2.type});
       if(typeof window.__xErrBanner==='function'){
         window.__xErrBanner('Reprise de session impossible (2e tentative) : '+((e2&&e2.message)||e2));
       }
