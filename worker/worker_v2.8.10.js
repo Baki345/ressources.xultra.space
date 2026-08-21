@@ -361,6 +361,31 @@ button{cursor:pointer;border:0;background:0}
 .maint-toggle-row{display:flex;align-items:flex-start;gap:10px;font-size:.85rem;font-weight:600;line-height:1.4;margin-bottom:16px;cursor:pointer}
 .maint-toggle-row input{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#7c3aed;cursor:pointer}
 .maint-label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.member-group-label{padding:14px 10px 6px;font-size:.68rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.member-row{align-items:flex-start}
+.member-row .info{padding-top:1px}
+.member-badges{display:flex;gap:4px;margin-top:5px}
+.badge-chip{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.04);font-size:.85rem;display:grid;place-items:center;flex-shrink:0;transition:transform .1s}
+.badge-chip:hover{transform:scale(1.15)}
+.badge-chip.sm{width:19px;height:19px;font-size:.72rem}
+.profile-card{width:min(360px,100%);padding:0;overflow:hidden}
+.pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
+.pm-av{width:78px;height:78px;border-radius:50%;margin:-42px auto 0;position:relative;z-index:1;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #15101f;overflow:hidden}
+.pm-av img{width:100%;height:100%;object-fit:cover}
+.pm-body{padding:10px 22px 22px;text-align:center}
+.pm-body h3{font-size:1.15rem;font-weight:900;margin-top:6px}
+.pm-tag{color:var(--muted);font-size:.78rem;margin-top:2px}
+.pm-grade{display:inline-block;margin:8px auto 0;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.7rem;font-weight:700;letter-spacing:.03em}
+.pm-badges{display:flex;justify-content:center;gap:8px;margin:14px 0}
+.pm-badges .badge-chip{width:34px;height:34px;font-size:1.1rem;border-radius:9px}
+#pm-message{margin-top:4px}
+#pm-message.hidden{display:none}
+.pm-section{text-align:left;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03)}
+.pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.pm-section-body{font-size:.85rem;line-height:1.4}
+.badge-info-card{width:min(340px,100%);--badge-color:#a78bfa;background:linear-gradient(165deg,color-mix(in srgb,var(--badge-color) 22%,#15101f),#0d0814);border-color:color-mix(in srgb,var(--badge-color) 45%,transparent)}
+.bi-head{font-size:1.15rem;font-weight:900;color:var(--badge-color);display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.bi-desc{font-size:.86rem;line-height:1.55;color:#e9e3f5}
 .call-btn{margin-left:auto}
 .call-modal{text-align:center;width:min(320px,100%)}
 .call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
@@ -535,6 +560,37 @@ button{cursor:pointer;border:0;background:0}
     <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
     <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
     <div class="err" id="bug-err"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-profile">
+  <div class="modal-box profile-card">
+    <button type="button" class="modal-close" id="pm-close">✕</button>
+    <div class="pm-banner" id="pm-banner"></div>
+    <div class="pm-av" id="pm-av">?</div>
+    <div class="pm-body">
+      <h3 id="pm-name">—</h3>
+      <div class="pm-tag" id="pm-tag">#0000</div>
+      <div class="pm-grade" id="pm-grade">membre</div>
+      <div class="pm-badges" id="pm-badges"></div>
+      <button type="button" class="btn-main" id="pm-message">Message</button>
+      <div class="pm-section">
+        <div class="pm-section-label">Bio</div>
+        <div class="pm-section-body" id="pm-bio">—</div>
+      </div>
+      <div class="pm-section">
+        <div class="pm-section-label">Membre depuis</div>
+        <div class="pm-section-body" id="pm-since">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-badge-info">
+  <div class="modal-box badge-info-card">
+    <button type="button" class="modal-close" id="bi-close">✕</button>
+    <div class="bi-head"><span id="bi-icon">💜</span> <span id="bi-label">MEMBRE</span></div>
+    <div class="bi-desc" id="bi-desc"></div>
   </div>
 </div>
 
@@ -810,10 +866,59 @@ document.querySelectorAll('.rail-btn').forEach(function(b){
   });
 });
 
-let membersCache=[];
+const BADGE_DEFS={
+  base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
+  dev:{icon:'🛠️',label:'DEV',color:'#ef4444',desc:"Le grade le plus rare. Réservé aux créateurs qui bâtissent XULTRA. Accès total, outils internes, décision technique. Tu ne le demandes pas : tu le mérites en construisant le futur de la plateforme. Rouge, brûlant, impossible à ignorer."},
+  hunter:{icon:'🐛',label:'BUG HUNTER',color:'#f59e0b',desc:"Les yeux de la plateforme. Tu traques les failles, tu envoies des rapports, tu forces le code à devenir plus solide. 10 bugs validés et résolus = ce badge or qui brille pour de vrai. Chaque rapport te rapproche du graal. Les chasseurs ne dorment jamais."},
+  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Parmi les tout premiers membres à rejoindre XULTRA, quand la plateforme n'était encore qu'une idée. Ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."}
+};
+const BADGE_GROUP_ORDER=['dev','hunter','early','base'];
+const BADGE_GROUP_LABEL={dev:'STAFF / DEV',hunter:'BUG HUNTERS',early:'EARLY USERS',base:'MEMBRES'};
+function parseBadges(meta){
+  try{
+    const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
+    const set=Array.isArray(arr)?arr.filter(function(b){return BADGE_DEFS[b]}):[];
+    if(set.indexOf('base')<0)set.unshift('base');
+    return set;
+  }catch(e){return ['base']}
+}
+function primaryBadge(badges){
+  for(var i=0;i<BADGE_GROUP_ORDER.length;i++){if(badges.indexOf(BADGE_GROUP_ORDER[i])>=0)return BADGE_GROUP_ORDER[i]}
+  return 'base';
+}
+function badgeChipsHtml(badges,size){
+  const cls=size==='sm'?'badge-chip sm':'badge-chip';
+  return badges.map(function(b){
+    const d=BADGE_DEFS[b];if(!d)return '';
+    return '<button type="button" class="'+cls+'" data-badge="'+b+'" title="'+esc(d.label)+'">'+d.icon+'</button>';
+  }).join('');
+}
+function wireBadgeChips(root){
+  (root||document).querySelectorAll('[data-badge]').forEach(function(el){
+    el.onclick=function(e){e.stopPropagation();showBadgeInfo(el.getAttribute('data-badge'))};
+  });
+}
+function showBadgeInfo(key){
+  const d=BADGE_DEFS[key];if(!d)return;
+  const modal=\$('modal-badge-info');
+  \$('bi-icon').textContent=d.icon;
+  \$('bi-label').textContent=d.label;
+  \$('bi-desc').textContent=d.desc;
+  modal.style.setProperty('--badge-color',d.color);
+  modal.classList.remove('hidden');
+}
+if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-badge-info').classList.add('hidden')});
+if(\$('modal-badge-info'))\$('modal-badge-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+
+let membersCache=[], memberMetaByUid={};
 async function loadMembers(){
   const r=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]);
   membersCache=r.documents||[];
+  try{
+    const m=await db.listDocuments(DB,'user_meta',[Appwrite.Query.limit(100)]);
+    memberMetaByUid={};
+    (m.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d});
+  }catch(e){memberMetaByUid={}}
   return membersCache;
 }
 function rowAvatar(p,name,uid){
@@ -824,16 +929,30 @@ function rowAvatar(p,name,uid){
 function renderMembers(){
   const box=\$('list-body');if(!box)return;
   if(!membersCache.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
-  box.innerHTML=membersCache.map(function(p){
-    const name=p.displayName||p.username||'User';
+  const groups={};
+  membersCache.forEach(function(p){
     const uid=p.authUserId||p.\$id;
-    return '<div class="row" data-open-profile="'+esc(uid)+'" data-name="'+esc(name)+'">'
-      +rowAvatar(p,name,uid)
-      +'<div class="info"><div class="n">'+esc(name)+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
-      +'</div>';
-  }).join('');
+    const badges=parseBadges(memberMetaByUid[uid]);
+    const g=primaryBadge(badges);
+    (groups[g]=groups[g]||[]).push({p:p,badges:badges,uid:uid});
+  });
+  let html='<div class="empty-hint" style="padding:6px 8px 2px">TOUS LES MEMBRES — '+membersCache.length+'</div>';
+  BADGE_GROUP_ORDER.forEach(function(g){
+    const list=groups[g];if(!list||!list.length)return;
+    html+='<div class="member-group-label">'+esc(BADGE_GROUP_LABEL[g])+'</div>';
+    html+=list.map(function(entry){
+      const p=entry.p,name=p.displayName||p.username||'User';
+      return '<div class="row member-row" data-open-profile="'+esc(entry.uid)+'" data-name="'+esc(name)+'">'
+        +rowAvatar(p,name,entry.uid)
+        +'<div class="info"><div class="n">'+esc(name)+' <span class="p" style="font-weight:400">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</span></div>'
+        +'<div class="member-badges">'+badgeChipsHtml(entry.badges,'sm')+'</div></div>'
+        +'</div>';
+    }).join('');
+  });
+  box.innerHTML=html;
+  wireBadgeChips(box);
   box.querySelectorAll('[data-open-profile]').forEach(function(el){
-    el.onclick=function(){startDmWith(el.getAttribute('data-open-profile'),el.getAttribute('data-name'))};
+    el.onclick=function(){openProfileModal(el.getAttribute('data-open-profile'))};
   });
 }
 
@@ -942,6 +1061,44 @@ async function startDmWith(peerUid,peerName){
     await openDm(dm.\$id,dm.displayName||peerName||'Conversation',peerUid);
   }catch(e){xlog('start_dm_fail',{msg:(e&&e.message)||String(e)});}
 }
+
+async function openProfileModal(uid){
+  let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  if(!p){
+    try{
+      const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',uid),Appwrite.Query.limit(1)]);
+      p=(r.documents||[])[0];
+    }catch(e){}
+  }
+  if(!p){alert('Profil introuvable');return}
+  let meta=memberMetaByUid[uid];
+  if(!meta){
+    try{meta=await db.getDocument(DB,'user_meta',uid);}catch(e){meta=null}
+  }
+  const badges=parseBadges(meta);
+  const name=p.displayName||p.username||'User';
+  \$('pm-name').textContent=name;
+  \$('pm-tag').textContent='#'+esc(p.tag||'');
+  \$('pm-grade').textContent=BADGE_DEFS[primaryBadge(badges)].label.toLowerCase();
+  const banner=\$('pm-banner');
+  banner.style.backgroundImage=(p.bg&&/^https?:/i.test(p.bg))?('url("'+p.bg.replace(/"/g,'')+'")'):'';
+  banner.classList.toggle('has-img',!!(p.bg&&/^https?:/i.test(p.bg)));
+  const av=\$('pm-av');
+  if(p.avatar&&/^https?:/i.test(p.avatar))av.innerHTML='<img src="'+esc(p.avatar)+'" alt=""/>';
+  else av.textContent=ini(name);
+  \$('pm-badges').innerHTML=badgeChipsHtml(badges);
+  wireBadgeChips(\$('pm-badges'));
+  \$('pm-bio').textContent=p.bio||'Aucune bio';
+  const since=p.createdAt||p.\$createdAt;
+  \$('pm-since').textContent=since?new Date(since).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const msgBtn=\$('pm-message');
+  const isSelf=me&&uid===me.\$id;
+  msgBtn.classList.toggle('hidden',!!isSelf);
+  msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
+  \$('modal-profile').classList.remove('hidden');
+}
+if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){\$('modal-profile').classList.add('hidden')});
+if(\$('modal-profile'))\$('modal-profile').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 let activeDm=null, activeDmPeerUid=null, msgsCache=[];
 async function openDm(threadId,title,peerUid){
@@ -1071,6 +1228,7 @@ async function loadAdminMembers(){
   if(!membersCache.length)await loadMembers();
   return membersCache;
 }
+const TOGGLEABLE_BADGES=['dev','hunter','early'];
 function renderAdminMembers(list){
   const box=\$('admin-body');if(!box)return;
   if(!list.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
@@ -1079,9 +1237,15 @@ function renderAdminMembers(list){
     const uid=p.authUserId||p.\$id;
     const self=uid===(me&&me.\$id);
     const modTag=p.isMod?'<span class="tag-mod">MOD</span>':'';
-    return '<div class="admin-row">'
+    const badges=parseBadges(memberMetaByUid[uid]);
+    const badgeBtns=TOGGLEABLE_BADGES.map(function(b){
+      const on=badges.indexOf(b)>=0;
+      return '<button type="button" data-badgetoggle="'+b+'" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'" class="'+(on?'ok':'')+'" title="'+esc(BADGE_DEFS[b].label)+'">'+BADGE_DEFS[b].icon+(on?' ✓':'')+'</button>';
+    }).join('');
+    return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +rowAvatar(p,name,uid)
-      +'<div class="info"><div class="n">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
+      +'<div class="info"><div class="n">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
+      +'<div class="acts" style="margin-top:6px">'+badgeBtns+'</div></div>'
       +(self?'':'<div class="acts">'
         +'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>'
         +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
@@ -1089,6 +1253,20 @@ function renderAdminMembers(list){
         +'</div>')
       +'</div>';
   }).join('');
+  box.querySelectorAll('[data-badgetoggle]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        const uid=el.getAttribute('data-uid'),badge=el.getAttribute('data-badgetoggle');
+        const current=parseBadges(memberMetaByUid[uid]);
+        const has=current.indexOf(badge)>=0;
+        const next=has?current.filter(function(b){return b!==badge}):current.concat([badge]);
+        await authPost('/api/admin/badges',{authUserId:uid,badges:next,targetName:el.getAttribute('data-name')});
+        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{badgesJson:JSON.stringify(next)});
+        renderAdminMembers(list);
+      }catch(e){adminErr(e)}
+    };
+  });
   box.querySelectorAll('[data-modtoggle]').forEach(function(el){
     el.onclick=async function(){
       this.disabled=true;
@@ -2086,6 +2264,49 @@ async function handle(request) {
         body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/badges" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const authUserId = String((body && body.authUserId) || "");
+      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter", "early"].indexOf(b) >= 0; }) : [];
+      const targetName = String((body && body.targetName) || "");
+      if (!authUserId) throw new Error("authUserId requis");
+      const badgesJson = JSON.stringify(badges);
+      // Locked to admin-key writes only: user_meta documents were created with a
+      // self-update permission that would otherwise let anyone grant themselves
+      // a badge directly via the client SDK. Every write through this route
+      // re-pins the document to read-only-for-everyone-but-admin.
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, {
+          method: "PATCH", asAdmin: true, body: { data: { badgesJson }, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true,
+            body: { documentId: authUserId, data: { badgesJson }, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "set_badges", detail: (targetName || authUserId) + " -> " + badges.join(","), by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, badges }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
