@@ -5508,10 +5508,15 @@ $('e-save').onclick=async()=>{
 
 
 (async function(){
-  try{
+  function readStoredSession(){
     var s=null;
     try{s=localStorage.getItem('xultra_aw_sdk_session');}catch(e){}
     if(!s){try{s=sessionStorage.getItem('xultra_aw_sdk_session');}catch(e){}}
+    if(!s){try{s=localStorage.getItem('cookieFallback_session_'+PID);}catch(e){}}
+    return s;
+  }
+  try{
+    var s=readStoredSession();
     if(s){try{client.setSession(String(s));}catch(e){}}
     user=await account.get();
     window.user=user;
@@ -5521,8 +5526,7 @@ $('e-save').onclick=async()=>{
     // Retry once after short delay (race with SDK)
     try{
       await new Promise(function(r){setTimeout(r,400);});
-      var s2=null;try{s2=localStorage.getItem("xultra_aw_sdk_session")||sessionStorage.getItem("xultra_aw_sdk_session");}catch(e3){}
-      if(!s2){try{s2=localStorage.getItem('xultra_aw_sdk_session');}catch(e3){}}
+      var s2=readStoredSession();
       if(s2){
         try{client.setSession(String(s2));}catch(e3){}
         user=await account.get();
