@@ -410,6 +410,21 @@ button{cursor:pointer;border:0;background:0}
 .badge-info-card.badge-hunter .bi-head{color:#fde68a}
 .badge-info-card.badge-early .bi-head{color:#fff}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
+.hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
+.hunter-stats{font-size:.8rem;color:var(--muted);font-weight:700;margin-top:6px}
+.bug-item{background:var(--elev);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;text-align:left}
+.bug-item .bt{font-weight:800;font-size:.9rem;margin-bottom:4px}
+.bug-item .bd{font-size:.82rem;color:var(--muted);white-space:pre-wrap;margin-bottom:8px}
+.bug-item .meta{font-size:.7rem;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bug-item .st{padding:2px 8px;border-radius:999px;font-weight:800;font-size:.65rem;text-transform:uppercase}
+.st-pending{background:rgba(148,163,184,.2);color:#cbd5e1}
+.st-approved{background:rgba(59,130,246,.2);color:#93c5fd}
+.st-resolved{background:rgba(34,197,94,.2);color:#86efac}
+.bug-item .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.bug-item .actions button{padding:6px 10px;border-radius:8px;font-size:.72rem;font-weight:700;background:var(--elev);border:1px solid var(--line);color:#f2ebff}
+.bug-item .actions button.ok{background:rgba(59,130,246,.25);border-color:rgba(59,130,246,.4)}
+.bug-item .actions button.done{background:rgba(34,197,94,.25);border-color:rgba(34,197,94,.4)}
+.bug-item .actions button.del{color:#fca5a5}
 .call-btn{margin-left:auto}
 .call-modal{text-align:center;width:min(320px,100%)}
 .call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
@@ -526,6 +541,7 @@ button{cursor:pointer;border:0;background:0}
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
       <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
+      <button type="button" class="ub-btn hidden" id="ub-hunter" title="Panneau Bug Hunter">🐛</button>
       <button type="button" class="ub-btn" id="btn-report-bug" title="Signaler un bug">🐞</button>
       <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
     </div>
@@ -579,11 +595,21 @@ button{cursor:pointer;border:0;background:0}
 <div class="overlay hidden" id="modal-bug">
   <div class="modal-box">
     <button type="button" class="modal-close" id="mb-close">✕</button>
-    <h3>🐞 Signaler un bug</h3>
+    <h3 id="bug-modal-title">🐞 Signaler un bug</h3>
     <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
     <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
     <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
     <div class="err" id="bug-err"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-hunter">
+  <div class="modal-box hunter-panel">
+    <button type="button" class="modal-close" id="hp-close">✕</button>
+    <h3>🐛 Panneau Bug Hunter</h3>
+    <div class="hunter-stats" id="hunter-stats">0/10 résolus</div>
+    <button type="button" class="btn-main" id="hp-new" style="margin:10px 0">+ Nouveau rapport</button>
+    <div id="hunter-bug-list"></div>
   </div>
 </div>
 
@@ -785,6 +811,7 @@ async function enterApp(){
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
+  try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   showView('dms');
@@ -1356,18 +1383,17 @@ async function loadAdminBugs(){
 function renderAdminBugs(list){
   const box=\$('admin-body');if(!box)return;
   if(!list.length){box.innerHTML='<div class="empty-hint">Aucun rapport de bug.</div>';return}
-  const statusLabel={open:'Ouvert',resolved:'Résolu',wontfix:"Ne sera pas corrigé"};
   box.innerHTML=list.map(function(b){
-    const st=b.status||'open';
+    const st=(b.status==='open'?'pending':b.status)||'pending';
     return '<div class="admin-row" style="align-items:flex-start">'
       +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
       +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+'</div>'
       +'<div class="p">'+esc(b.description||'')+'</div>'
-      +'<div class="p">par '+esc(b.username||'?')+' — '+esc(statusLabel[st]||st)+'</div></div>'
+      +'<div class="p">par '+esc(b.username||'?')+' — '+esc(BUG_STATUS_LABEL[st]||st)+' · 👍 '+(b.upvotes||0)+'</div></div>'
       +'<div class="acts">'
+      +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
       +(st!=='resolved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="resolved" class="ok">Résolu</button>':'')
-      +(st!=='wontfix'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="wontfix">Won\\'t fix</button>':'')
-      +(st!=='open'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="open">Rouvrir</button>':'')
+      +(st!=='pending'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="pending">Attente</button>':'')
       +'</div></div>';
   }).join('');
   box.querySelectorAll('[data-bugstatus]').forEach(function(el){
@@ -1439,25 +1465,130 @@ function renderAdminMaintenance(state){
   };
 }
 
-if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){
-  \$('bug-title').value='';\$('bug-desc').value='';\$('bug-err').textContent='';
+let editBugId=null;
+function openBugModal(doc){
+  editBugId=doc?doc.\$id:null;
+  \$('bug-title').value=doc?(doc.title||''):'';
+  \$('bug-desc').value=doc?(doc.description||''):'';
+  \$('bug-err').textContent='';
+  \$('bug-modal-title').textContent=doc?'✏️ Éditer mon rapport':'🐞 Signaler un bug';
   \$('modal-bug').classList.remove('hidden');
-});
+}
+if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){openBugModal(null)});
 if(\$('mb-close'))\$('mb-close').addEventListener('click',function(){\$('modal-bug').classList.add('hidden')});
 if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
   const title=(\$('bug-title').value||'').trim();
   const desc=(\$('bug-desc').value||'').trim();
   if(!title||!desc){\$('bug-err').textContent='Titre et description requis';return}
-  this.disabled=true;this.textContent='Envoi…';
+  this.disabled=true;this.textContent=editBugId?'Mise à jour…':'Envoi…';
   try{
-    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
-    await db.createDocument(DB,'bug_reports',Appwrite.ID.unique(),{uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),status:'open',upvotes:0});
-    xlog('bug_report_sent',{});
+    if(editBugId){
+      await db.updateDocument(DB,'bug_reports',editBugId,{title:title.slice(0,120),description:desc.slice(0,2000)});
+      xlog('bug_report_edited',{});
+    } else {
+      const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+      await db.createDocument(DB,'bug_reports',Appwrite.ID.unique(),{
+        uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),status:'pending',upvotes:0
+      },[
+        Appwrite.Permission.read(Appwrite.Role.any()),
+        Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
+        Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
+      ]);
+      xlog('bug_report_sent',{});
+      alert('Merci ! Ton rapport a été envoyé à l\\'équipe.');
+    }
+    editBugId=null;
     \$('modal-bug').classList.add('hidden');
-    alert('Merci ! Ton rapport a été envoyé à l\\'équipe.');
+    try{await refreshHunterEligibility();}catch(e){}
+    if(!\$('modal-hunter').classList.contains('hidden'))await loadMyBugs();
   }catch(e){\$('bug-err').textContent=(e&&e.message)||'Erreur';xlog('bug_report_fail',{msg:(e&&e.message)||String(e)});}
   this.disabled=false;this.textContent='Envoyer le rapport';
 });
+
+let resolvedBugCount=0;
+async function countResolvedBugs(){
+  if(!me)return 0;
+  try{
+    const r=await db.listDocuments(DB,'bug_reports',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('status','resolved'),Appwrite.Query.limit(100)]);
+    return (r.documents||[]).length;
+  }catch(e){return 0}
+}
+async function refreshHunterEligibility(){
+  if(!me)return;
+  resolvedBugCount=await countResolvedBugs();
+  let meta=memberMetaByUid[me.\$id];
+  if(!meta){
+    try{meta=await db.getDocument(DB,'user_meta',me.\$id);memberMetaByUid[me.\$id]=meta;}catch(e){}
+  }
+  const badges=parseBadges(meta);
+  const eligible=badges.indexOf('hunter')>=0||badges.indexOf('dev')>=0||resolvedBugCount>=10;
+  const btn=\$('ub-hunter');
+  if(btn)btn.classList.toggle('hidden',!eligible);
+}
+
+let myBugsCache=[];
+async function loadMyBugs(){
+  if(!me)return;
+  try{
+    const r=await db.listDocuments(DB,'bug_reports',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
+    myBugsCache=r.documents||[];
+  }catch(e){myBugsCache=[]}
+  const resolved=myBugsCache.filter(function(b){return b.status==='resolved'}).length;
+  \$('hunter-stats').textContent=resolved+'/10 résolus';
+  renderMyBugs();
+}
+const BUG_STATUS_LABEL={pending:'En attente',approved:'En cours',resolved:'Résolu'};
+function renderMyBugs(){
+  const box=\$('hunter-bug-list');if(!box)return;
+  if(!myBugsCache.length){box.innerHTML='<p style="color:var(--muted);font-size:.85rem">Aucun rapport pour l\\'instant.</p>';return}
+  box.innerHTML=myBugsCache.map(function(b){
+    const st=b.status||'pending';
+    return '<div class="bug-item"><div class="bt">'+esc(b.title||'Sans titre')+'</div>'
+      +'<div class="bd">'+esc(b.description||'')+'</div>'
+      +'<div class="meta"><span class="st st-'+esc(st)+'">'+esc(BUG_STATUS_LABEL[st]||st)+'</span>'
+      +'<span>👍 '+(b.upvotes||0)+'</span>'
+      +'<span>'+esc((b.\$createdAt||'').toString().slice(0,10))+'</span></div>'
+      +'<div class="actions">'
+      +(st==='pending'?'<button type="button" data-bedit="'+esc(b.\$id)+'">✏️ Éditer</button>':'')
+      +'<button type="button" data-bup="'+esc(b.\$id)+'">👍 Up</button>'
+      +'<button type="button" class="del" data-bdel="'+esc(b.\$id)+'">🗑️</button>'
+      +'</div></div>';
+  }).join('');
+  box.querySelectorAll('[data-bedit]').forEach(function(el){
+    el.onclick=function(){
+      const doc=myBugsCache.find(function(x){return x.\$id===el.getAttribute('data-bedit')});
+      if(doc)openBugModal(doc);
+    };
+  });
+  box.querySelectorAll('[data-bup]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        const jwt=await authJwt();
+        const r=await fetch('/api/bugs/upvote',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+jwt},body:JSON.stringify({reportId:el.getAttribute('data-bup')})});
+        const j=await r.json().catch(function(){return {ok:false}});
+        if(!r.ok||!j.ok)throw new Error((j&&j.error)||'Erreur');
+        await loadMyBugs();
+      }catch(e){this.disabled=false;xlog('bug_upvote_fail',{msg:(e&&e.message)||String(e)});}
+    };
+  });
+  box.querySelectorAll('[data-bdel]').forEach(function(el){
+    el.onclick=async function(){
+      if(!confirm('Supprimer ce rapport ?'))return;
+      this.disabled=true;
+      try{
+        await db.deleteDocument(DB,'bug_reports',el.getAttribute('data-bdel'));
+        await loadMyBugs();await refreshHunterEligibility();
+      }catch(e){this.disabled=false;xlog('bug_delete_fail',{msg:(e&&e.message)||String(e)});}
+    };
+  });
+}
+if(\$('ub-hunter'))\$('ub-hunter').addEventListener('click',function(){
+  \$('modal-hunter').classList.remove('hidden');
+  loadMyBugs();
+});
+if(\$('hp-close'))\$('hp-close').addEventListener('click',function(){\$('modal-hunter').classList.add('hidden')});
+if(\$('hp-new'))\$('hp-new').addEventListener('click',function(){openBugModal(null)});
 
 /* ===== Appels vocaux (WebRTC) ===== */
 const ICE_SERVERS={iceServers:[
@@ -2278,7 +2409,7 @@ async function handle(request) {
       const body = await request.json();
       const reportId = String((body && body.reportId) || "");
       const status = String((body && body.status) || "");
-      if (!reportId || ["open", "resolved", "wontfix"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      if (!reportId || ["pending", "approved", "resolved"].indexOf(status) === -1) throw new Error("paramètres invalides");
       await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
         method: "PATCH", asAdmin: true, body: { data: { status } }
       });
@@ -2288,6 +2419,28 @@ async function handle(request) {
         body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/bugs/upvote" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const reportId = String((body && body.reportId) || "");
+      if (!reportId) throw new Error("reportId requis");
+      const report = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, { asAdmin: true });
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
+        method: "PATCH", asAdmin: true, body: { data: { upvotes: (Number(report.upvotes) || 0) + 1 } }
+      });
+      return new Response(JSON.stringify({ ok: true, upvotes: doc.upvotes }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
