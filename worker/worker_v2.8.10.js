@@ -99,13 +99,12 @@ function hasValidGate(request) {
 }
 
 async function listActiveDmCalls() {
-  const url = "/databases/" + AW_DB + "/collections/dm_call_rooms/documents?" +
+  const url = "/databases/" + AW_DB + "/collections/direct_calls/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [80] }));
   const data = await awFetch(url, { asAdmin: true });
   const docs = ((data && data.documents) || []).filter(function (d) {
-    return (d.status || "") === "active";
+    return ["ringing", "accepted"].indexOf(d.status || "") >= 0;
   });
-  // attach simple user names
   let users = [];
   try {
     const u = await awFetch("/databases/" + AW_DB + "/collections/users/documents?queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -115,21 +114,15 @@ async function listActiveDmCalls() {
     const p = users.find(function (x) { return String(x.authUserId || x.$id) === String(id); });
     return p ? (p.displayName || p.username || id) : String(id).slice(0, 8);
   }
-  return docs.map(function (room) {
-    var parts = [];
-    try {
-      var p = JSON.parse(room.participants || "[]");
-      parts = Array.isArray(p) ? p : [];
-    } catch (e) {}
+  return docs.map(function (call) {
     return {
-      id: room.$id,
-      threadId: room.threadId || "",
-      hostUid: room.hostUid || "",
-      hostName: nameOf(room.hostUid || ""),
-      participants: parts,
-      participantNames: parts.map(nameOf),
-      startedAt: room.startedAt || null,
-      status: room.status || "active"
+      id: call.$id,
+      hostUid: call.callerId || "",
+      hostName: call.callerName || nameOf(call.callerId || ""),
+      participants: [call.callerId, call.calleeId].filter(Boolean),
+      participantNames: [call.callerName || nameOf(call.callerId || ""), nameOf(call.calleeId || "")],
+      startedAt: call.$createdAt || null,
+      status: call.status || "ringing"
     };
   });
 }
@@ -339,6 +332,26 @@ button{cursor:pointer;border:0;background:0}
 .log-line{padding:9px 4px;border-bottom:1px solid var(--line);font-size:.8rem;line-height:1.4}
 .log-line b{color:#c4b5fd}
 .log-line .when{color:var(--muted);font-size:.68rem;margin-top:2px}
+.call-btn{margin-left:auto}
+.call-modal{text-align:center;width:min(320px,100%)}
+.call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
+.call-ring-av img{width:100%;height:100%;object-fit:cover}
+@keyframes callPulse{0%{box-shadow:0 0 0 0 rgba(124,58,237,.5)}70%{box-shadow:0 0 0 18px rgba(124,58,237,0)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0)}}
+.call-modal h3{font-size:1.1rem;font-weight:800}
+.call-sub{color:var(--muted);font-size:.82rem;margin-top:4px}
+.call-modal-acts{display:flex;justify-content:center;gap:22px;margin-top:22px}
+.call-act{width:52px;height:52px;border-radius:50%;font-size:1.2rem;display:grid;place-items:center}
+.call-act.accept{background:#22c55e;color:#052e16}
+.call-act.decline{background:#ef4444;color:#450a0a}
+.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(21,16,31,.96);backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:400px;margin:0 auto}
+.call-bar .av{width:38px;height:38px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.call-bar .av img{width:100%;height:100%;object-fit:cover}
+.cb-info{flex:1;min-width:0}
+.cb-name{font-weight:700;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-status{font-size:.72rem;color:var(--muted)}
+.cb-status.live{color:var(--online)}
+#cb-mute.on{background:rgba(239,68,68,.22);color:#fca5a5}
+.call-bar .call-act{width:34px;height:34px;font-size:.9rem}
 .tabbar{display:none}
 @media (max-width:640px){
   #app{flex-direction:column}
@@ -444,6 +457,7 @@ button{cursor:pointer;border:0;background:0}
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div></div>
+        <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
       <div class="msgs" id="msgs"></div>
       <div class="composer">
@@ -486,6 +500,29 @@ button{cursor:pointer;border:0;background:0}
     <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
     <div class="err" id="bug-err"></div>
   </div>
+</div>
+
+<div class="overlay hidden" id="modal-incoming-call">
+  <div class="modal-box call-modal">
+    <div class="call-ring-av" id="ic-av">?</div>
+    <h3 id="ic-name">—</h3>
+    <div class="call-sub">Appel vocal entrant…</div>
+    <div class="call-modal-acts">
+      <button type="button" class="call-act decline" id="ic-decline" title="Refuser">✕</button>
+      <button type="button" class="call-act accept" id="ic-accept" title="Répondre">📞</button>
+    </div>
+  </div>
+</div>
+
+<div class="call-bar hidden" id="call-bar">
+  <div class="av" id="cb-av">?</div>
+  <div class="cb-info">
+    <div class="cb-name" id="cb-name">—</div>
+    <div class="cb-status" id="cb-status">Appel…</div>
+  </div>
+  <button type="button" class="ub-btn" id="cb-mute" title="Muet">🎤</button>
+  <button type="button" class="ub-btn call-act decline" id="cb-hangup" title="Raccrocher">✕</button>
+  <audio id="call-remote-audio" autoplay playsinline></audio>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0"></script>
@@ -626,6 +663,7 @@ async function enterApp(){
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
+  try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   showView('dms');
 }
 
@@ -841,7 +879,11 @@ function renderDms(){
       +'<div class="info"><div class="n">'+esc(title)+'</div><div class="p">'+esc(d.lastMessage||'')+'</div></div></div>';
   }).join('');
   box.querySelectorAll('[data-dm]').forEach(function(el){
-    el.onclick=function(){openDm(el.getAttribute('data-dm'),el.getAttribute('data-title'))};
+    el.onclick=function(){
+      const id=el.getAttribute('data-dm');
+      const dm=dmsCache.find(function(d){return d.\$id===id});
+      openDm(id,el.getAttribute('data-title'),dm?dmPeerId(dm):null);
+    };
   });
 }
 async function startDmWith(peerUid,peerName){
@@ -854,13 +896,14 @@ async function startDmWith(peerUid,peerName){
       dmsCache.unshift(dm);
     }
     showView('dms');
-    await openDm(dm.\$id,dm.displayName||peerName||'Conversation');
+    await openDm(dm.\$id,dm.displayName||peerName||'Conversation',peerUid);
   }catch(e){xlog('start_dm_fail',{msg:(e&&e.message)||String(e)});}
 }
 
-let activeDm=null, msgsCache=[];
-async function openDm(threadId,title){
+let activeDm=null, activeDmPeerUid=null, msgsCache=[];
+async function openDm(threadId,title,peerUid){
   activeDm=threadId;
+  activeDmPeerUid=peerUid||null;
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
@@ -935,12 +978,12 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
 });
 
 let isAdmin=false, adminTab='members';
-async function adminJwt(){
+async function authJwt(){
   const j=await account.createJWT();
   return j&&j.jwt;
 }
-async function adminFetch(path,body){
-  const jwt=await adminJwt();
+async function authPost(path,body){
+  const jwt=await authJwt();
   const r=await fetch(path,{
     method:'POST',
     headers:{'Content-Type':'application/json','Authorization':'Bearer '+jwt},
@@ -952,7 +995,7 @@ async function adminFetch(path,body){
 }
 async function checkAdmin(){
   try{
-    const jwt=await adminJwt();
+    const jwt=await authJwt();
     const r=await fetch('/api/admin/access',{headers:{'Authorization':'Bearer '+jwt}});
     const j=await r.json().catch(function(){return {ok:false}});
     isAdmin=!!(j&&j.ok);
@@ -1006,7 +1049,7 @@ function renderAdminMembers(list){
     el.onclick=async function(){
       this.disabled=true;
       try{
-        await adminFetch('/api/admin/mod',{profileId:el.getAttribute('data-modtoggle'),isMod:el.getAttribute('data-mod')!=='1',targetName:el.getAttribute('data-name')});
+        await authPost('/api/admin/mod',{profileId:el.getAttribute('data-modtoggle'),isMod:el.getAttribute('data-mod')!=='1',targetName:el.getAttribute('data-name')});
         membersCache=[];await loadAdminMembers().then(renderAdminMembers);
       }catch(e){adminErr(e)}
     };
@@ -1016,7 +1059,7 @@ function renderAdminMembers(list){
       const reason=prompt('Raison du ban :','')||'Ban staff';
       this.disabled=true;
       try{
-        await adminFetch('/api/admin/ban',{uid:el.getAttribute('data-ban'),username:el.getAttribute('data-name'),reason:reason,type:'ban'});
+        await authPost('/api/admin/ban',{uid:el.getAttribute('data-ban'),username:el.getAttribute('data-name'),reason:reason,type:'ban'});
         alert('Utilisateur banni.');
       }catch(e){adminErr(e)}
       this.disabled=false;
@@ -1026,7 +1069,7 @@ function renderAdminMembers(list){
     el.onclick=async function(){
       this.disabled=true;
       try{
-        await adminFetch('/api/admin/ban',{uid:el.getAttribute('data-tban'),username:el.getAttribute('data-name'),reason:'Temp ban 24h',type:'tempban'});
+        await authPost('/api/admin/ban',{uid:el.getAttribute('data-tban'),username:el.getAttribute('data-name'),reason:'Temp ban 24h',type:'tempban'});
         alert('Ban temporaire de 24h appliqué.');
       }catch(e){adminErr(e)}
       this.disabled=false;
@@ -1053,7 +1096,7 @@ function renderAdminBans(list){
     el.onclick=async function(){
       this.disabled=true;
       try{
-        await adminFetch('/api/admin/unban',{banId:el.getAttribute('data-unban')});
+        await authPost('/api/admin/unban',{banId:el.getAttribute('data-unban')});
         await loadAdminBans().then(renderAdminBans);
       }catch(e){adminErr(e)}
     };
@@ -1085,7 +1128,7 @@ function renderAdminBugs(list){
     el.onclick=async function(){
       this.disabled=true;
       try{
-        await adminFetch('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
+        await authPost('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
         await loadAdminBugs().then(renderAdminBugs);
       }catch(e){adminErr(e)}
     };
@@ -1093,7 +1136,7 @@ function renderAdminBugs(list){
 }
 
 async function loadAdminCalls(){
-  const jwt=await adminJwt();
+  const jwt=await authJwt();
   const r=await fetch('/api/admin/calls',{headers:{'Authorization':'Bearer '+jwt}});
   const j=await r.json().catch(function(){return {ok:false}});
   if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
@@ -1102,10 +1145,11 @@ async function loadAdminCalls(){
 function renderAdminCalls(list){
   const box=\$('admin-body');if(!box)return;
   if(!list.length){box.innerHTML='<div class="empty-hint">Aucun appel actif.</div>';return}
+  const statusLabel={ringing:'Sonne…',accepted:'En cours'};
   box.innerHTML=list.map(function(c){
     return '<div class="admin-row"><div class="av">📞</div>'
-      +'<div class="info"><div class="n">Hébergé par '+esc(c.hostName||'?')+'</div>'
-      +'<div class="p">Participants : '+esc((c.participantNames||[]).join(', ')||'—')+'</div></div></div>';
+      +'<div class="info"><div class="n">Appel : '+esc((c.participantNames||[]).join(' ↔ ')||'—')+'</div>'
+      +'<div class="p">'+esc(statusLabel[c.status]||c.status||'')+' — démarré '+esc(c.startedAt?new Date(c.startedAt).toLocaleString('fr-FR'):'?')+'</div></div></div>';
   }).join('');
 }
 
@@ -1140,6 +1184,233 @@ if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
     alert('Merci ! Ton rapport a été envoyé à l\\'équipe.');
   }catch(e){\$('bug-err').textContent=(e&&e.message)||'Erreur';xlog('bug_report_fail',{msg:(e&&e.message)||String(e)});}
   this.disabled=false;this.textContent='Envoyer le rapport';
+});
+
+/* ===== Appels vocaux (WebRTC) ===== */
+const ICE_SERVERS={iceServers:[
+  {urls:'stun:stun.l.google.com:19302'},
+  {urls:'stun:stun1.l.google.com:19302'},
+  {urls:'stun:openrelay.metered.ca:80'},
+  {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+  {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
+]};
+
+let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
+let callPeerUid=null, callPeerName=null, callIsCaller=false;
+let callSeconds=0, callTimerId=null, callTimeoutId=null;
+let callUnsubs=[];
+let pendingLocalIce=[];
+
+function callUnsubAll(){
+  callUnsubs.forEach(function(u){try{u()}catch(e){}});
+  callUnsubs=[];
+}
+function eventIs(events,suffix){
+  return (events||[]).some(function(e){return e.indexOf(suffix)>=0});
+}
+
+function subscribeIncomingCalls(){
+  try{
+    const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents',function(res){
+      if(!eventIs(res.events,'.create'))return;
+      const doc=res.payload;
+      if(!doc||String(doc.calleeId)!==String(me.\$id))return;
+      if(doc.status!=='ringing')return;
+      if(activeCallDoc||incomingCallDoc)return; // already busy
+      showIncomingCall(doc);
+    });
+    callUnsubs.push(unsub);
+  }catch(e){xlog('call_sub_fail',{msg:(e&&e.message)||String(e)});}
+}
+
+function showIncomingCall(doc){
+  incomingCallDoc=doc;
+  \$('ic-name').textContent=doc.callerName||'Appel inconnu';
+  const av=\$('ic-av');
+  if(doc.callerAvatar&&/^https?:/i.test(doc.callerAvatar))av.innerHTML='<img src="'+esc(doc.callerAvatar)+'" alt=""/>';
+  else av.textContent=ini(doc.callerName||'?');
+  \$('modal-incoming-call').classList.remove('hidden');
+  const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+doc.\$id,function(res){
+    if(eventIs(res.events,'.delete')||(res.payload&&['declined','ended','missed'].indexOf(res.payload.status)>=0)){
+      if(incomingCallDoc&&incomingCallDoc.\$id===doc.\$id)dismissIncomingCall();
+    }
+  });
+  callUnsubs.push(unsub);
+}
+function dismissIncomingCall(){
+  incomingCallDoc=null;
+  \$('modal-incoming-call').classList.add('hidden');
+}
+
+async function acceptIncomingCall(){
+  const doc=incomingCallDoc;
+  if(!doc)return;
+  dismissIncomingCall();
+  callPeerUid=doc.callerId;callPeerName=doc.callerName||'Appel';callIsCaller=false;
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  }catch(e){alert('Micro refusé ou indisponible');try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e2){}return}
+  try{
+    const pc=new RTCPeerConnection(ICE_SERVERS);
+    callPc=pc;
+    localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream)});
+    pc.ontrack=function(e){\$('call-remote-audio').srcObject=e.streams[0];};
+    pc.onicecandidate=function(e){if(e.candidate)sendIce(doc.\$id,e.candidate)};
+    await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(doc.offer)));
+    const answer=await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    activeCallDoc=await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'accepted',answer:JSON.stringify(answer)});
+    subscribeIceForCall(doc.\$id);
+    subscribeCallDocLifecycle(doc.\$id);
+    showCallBar(callPeerName,'En appel…',true);
+  }catch(e){
+    xlog('call_accept_fail',{msg:(e&&e.message)||String(e)});
+    endCall('ended');
+  }
+}
+async function declineIncomingCall(){
+  const doc=incomingCallDoc;
+  dismissIncomingCall();
+  if(!doc)return;
+  try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e){}
+}
+
+async function startCall(peerUid,peerName){
+  if(!me||!peerUid||peerUid===me.\$id)return;
+  if(activeCallDoc||incomingCallDoc){alert('Un appel est déjà en cours.');return}
+  callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
+  pendingLocalIce=[];
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  }catch(e){alert('Micro refusé ou indisponible sur cet appareil');return}
+  try{
+    const pc=new RTCPeerConnection(ICE_SERVERS);
+    callPc=pc;
+    localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream)});
+    pc.ontrack=function(e){\$('call-remote-audio').srcObject=e.streams[0];};
+    pc.onicecandidate=function(e){
+      if(!e.candidate)return;
+      if(activeCallDoc)sendIce(activeCallDoc.\$id,e.candidate);
+      else pendingLocalIce.push(e.candidate);
+    };
+    const offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    const avatar=(meProfile&&meProfile.avatar)||'';
+    const started=await authPost('/api/calls/start',{calleeId:peerUid,offer:JSON.stringify(offer),callerName:name,callerAvatar:avatar});
+    const doc=started.doc;
+    activeCallDoc=doc;
+    pendingLocalIce.forEach(function(c){sendIce(doc.\$id,c)});
+    pendingLocalIce=[];
+    showCallBar(peerName,'Sonne…',false);
+    subscribeCallAnswer(doc.\$id);
+    subscribeIceForCall(doc.\$id);
+    callTimeoutId=setTimeout(function(){
+      if(activeCallDoc&&activeCallDoc.\$id===doc.\$id)endCall('missed');
+    },45000);
+    xlog('call_start',{to:peerUid});
+  }catch(e){
+    xlog('call_start_fail',{msg:(e&&e.message)||String(e)});
+    alert('Impossible de démarrer l\\'appel : '+((e&&e.message)||e));
+    cleanupCallLocal();
+  }
+}
+
+function subscribeCallAnswer(callId){
+  const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,async function(res){
+    const payload=res.payload;
+    if(!payload)return;
+    if(eventIs(res.events,'.update')&&payload.status==='accepted'&&payload.answer&&callPc&&!callPc.currentRemoteDescription){
+      try{
+        await callPc.setRemoteDescription(new RTCSessionDescription(JSON.parse(payload.answer)));
+        if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
+        showCallBar(callPeerName,'En appel…',true);
+      }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
+    } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
+      endCall('ended',true);
+    }
+  });
+  callUnsubs.push(unsub);
+}
+function subscribeCallDocLifecycle(callId){
+  const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,function(res){
+    const payload=res.payload;
+    if(eventIs(res.events,'.delete')||(payload&&payload.status==='ended')){
+      endCall('ended',true);
+    }
+  });
+  callUnsubs.push(unsub);
+}
+function subscribeIceForCall(callId){
+  const unsub=client.subscribe('databases.'+DB+'.collections.direct_call_ice.documents',function(res){
+    if(!eventIs(res.events,'.create'))return;
+    const payload=res.payload;
+    if(!payload||String(payload.callId)!==String(callId))return;
+    if(String(payload.fromUid)===String(me.\$id))return;
+    if(!callPc)return;
+    try{callPc.addIceCandidate(new RTCIceCandidate(JSON.parse(payload.candidate)));}catch(e){}
+  });
+  callUnsubs.push(unsub);
+}
+async function sendIce(callId,candidate){
+  if(!callPeerUid||!me)return;
+  try{
+    await authPost('/api/calls/ice',{callId:callId,candidate:JSON.stringify(candidate)});
+  }catch(e){}
+}
+
+function showCallBar(name,status,live){
+  \$('cb-name').textContent=name||'Appel';
+  \$('cb-status').textContent=status||'';
+  \$('cb-status').classList.toggle('live',!!live);
+  \$('cb-av').textContent=ini(name||'?');
+  \$('call-bar').classList.remove('hidden');
+  if(live&&!callTimerId){
+    callSeconds=0;
+    callTimerId=setInterval(function(){
+      callSeconds++;
+      const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
+      const s=String(callSeconds%60).padStart(2,'0');
+      \$('cb-status').textContent=m+':'+s;
+    },1000);
+  }
+}
+function cleanupCallLocal(){
+  if(callPc){try{callPc.close();}catch(e){}callPc=null;}
+  if(localStream){localStream.getTracks().forEach(function(t){t.stop()});localStream=null;}
+  if(callTimerId){clearInterval(callTimerId);callTimerId=null;}
+  if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
+  callUnsubAll();
+  activeCallDoc=null;incomingCallDoc=null;callPeerUid=null;callPeerName=null;callIsCaller=false;
+  \$('call-bar').classList.add('hidden');
+  const audioEl=\$('call-remote-audio');if(audioEl)audioEl.srcObject=null;
+  \$('cb-mute').classList.remove('on');
+  subscribeIncomingCalls();
+}
+async function endCall(finalStatus,skipRemoteUpdate){
+  const doc=activeCallDoc;
+  cleanupCallLocal();
+  if(doc&&!skipRemoteUpdate){
+    try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:finalStatus||'ended'});}catch(e){}
+  }
+}
+
+if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
+  if(!activeDmPeerUid){alert('Ouvre une conversation directe pour lancer un appel.');return}
+  const title=\$('ch-title')?\$('ch-title').textContent:'Appel';
+  startCall(activeDmPeerUid,title);
+});
+if(\$('ic-accept'))\$('ic-accept').addEventListener('click',acceptIncomingCall);
+if(\$('ic-decline'))\$('ic-decline').addEventListener('click',declineIncomingCall);
+if(\$('cb-hangup'))\$('cb-hangup').addEventListener('click',function(){endCall('ended')});
+if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
+  if(!localStream)return;
+  const tracks=localStream.getAudioTracks();
+  if(!tracks.length)return;
+  const willMute=tracks[0].enabled;
+  tracks.forEach(function(t){t.enabled=!willMute;});
+  this.classList.toggle('on',willMute);
 });
 
 function boot(){
@@ -1594,6 +1865,88 @@ async function handle(request) {
         body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  // --- Voice call signaling (any authenticated user) ---
+  // A plain client session cannot grant document permissions to another user's
+  // role (Appwrite blocks that as an anti-privilege-escalation guard), so the
+  // very first document of each call/ICE exchange has to be created here with
+  // the admin key, scoped to exactly the two participants. Every later update
+  // (accept, decline, hangup) is a normal client SDK call on a document the
+  // caller already holds update rights on, so it doesn't need a route.
+  if (path === "/api/calls/start" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const calleeId = String((body && body.calleeId) || "");
+      const offer = String((body && body.offer) || "");
+      const callerName = String((body && body.callerName) || acc.name || "User").slice(0, 120);
+      const callerAvatar = String((body && body.callerAvatar) || "");
+      if (!calleeId || !offer || calleeId === acc.$id) throw new Error("paramètres invalides");
+      const perms = [
+        "read(\"user:" + acc.$id + "\")", "read(\"user:" + calleeId + "\")",
+        "update(\"user:" + acc.$id + "\")", "update(\"user:" + calleeId + "\")",
+        "delete(\"user:" + acc.$id + "\")", "delete(\"user:" + calleeId + "\")"
+      ];
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { callerId: acc.$id, calleeId, callerName, callerAvatar, status: "ringing", offer, answer: "" },
+          permissions: perms
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/calls/ice" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const callId = String((body && body.callId) || "");
+      const candidate = String((body && body.candidate) || "");
+      if (!callId || !candidate) throw new Error("paramètres invalides");
+      const call = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents/" + callId, { asAdmin: true });
+      const callerId = String(call.callerId || "");
+      const calleeId = String(call.calleeId || "");
+      if (acc.$id !== callerId && acc.$id !== calleeId) {
+        return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+          status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
+      const perms = [
+        "read(\"user:" + callerId + "\")", "read(\"user:" + calleeId + "\")",
+        "update(\"user:" + callerId + "\")", "update(\"user:" + calleeId + "\")",
+        "delete(\"user:" + callerId + "\")", "delete(\"user:" + calleeId + "\")"
+      ];
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/direct_call_ice/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { callId, fromUid: acc.$id, candidate },
+          permissions: perms
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
