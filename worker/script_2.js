@@ -186,8 +186,47 @@ const cleanPrev=t=>String(t||'').replace(/⟦REPLY:[^⟧]*⟧/g,'').replace(/\\[
 /* AUTH */
 document.querySelectorAll('.tabs button').forEach(b=>{
   b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
-    const reg=b.dataset.tab==='register';$('form-login').classList.toggle('hidden',reg);$('form-register').classList.toggle('hidden',!reg);$('auth-err').textContent=''};
+    const reg=b.dataset.tab==='register';$('form-login').classList.toggle('hidden',reg);$('form-register').classList.toggle('hidden',!reg);$('auth-err').textContent='';
+    if(reg){_regShownAt=Date.now();updateRegPreview();}};
 });
+
+/* Registration live preview */
+let _regShownAt=Date.now();
+window._regAvatarFile=null;
+window._regAvatarUrl='';
+function updateRegPreview(){
+  const nameEl=$('in-user'),bioEl=$('in-bio2');
+  const n=((nameEl&&nameEl.value)||'').trim()||'Nouveau membre';
+  const bio=((bioEl&&bioEl.value)||'').trim();
+  const swOn=document.querySelector('#reg-swatches button.on');
+  const c=(swOn&&swOn.dataset.c)||'#7c3aed';
+  if($('rp-name'))$('rp-name').textContent=n;
+  if($('rp-tag'))$('rp-tag').textContent='@'+slugUsername(n)+'#····';
+  if($('rp-bio'))$('rp-bio').textContent=bio;
+  const av=$('rp-av');
+  if(av){
+    av.innerHTML=(window._regAvatarUrl?'<img src="'+esc(window._regAvatarUrl)+'" alt=""/>':esc(ini(n)))+'<div class="rp-cam">📷</div>';
+    av.style.background='linear-gradient(135deg,'+c+',#4c1d95)';
+  }
+}
+['in-user','in-bio2'].forEach(id=>{if($(id))$(id).addEventListener('input',updateRegPreview)});
+if($('reg-swatches')){
+  $('reg-swatches').querySelectorAll('button').forEach(b=>{
+    b.onclick=e=>{e.preventDefault();$('reg-swatches').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');updateRegPreview()};
+  });
+}
+if($('rp-av'))$('rp-av').onclick=()=>{if($('reg-file-av'))$('reg-file-av').click()};
+if($('reg-file-av'))$('reg-file-av').onchange=async function(){
+  const file=this.files&&this.files[0];this.value='';
+  if(!file)return;
+  if(file.size>8*1024*1024){$('auth-err').textContent='Avatar max 8 Mo';return}
+  if(file.type.indexOf('image/')!==0){$('auth-err').textContent='Choisis une image';return}
+  window._regAvatarFile=file;
+  try{
+    window._regAvatarUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)});
+  }catch(e){window._regAvatarUrl=''}
+  updateRegPreview();
+};
 
 
 async function doLogin(){
@@ -280,16 +319,56 @@ function bindAuthForms(){
 }
 try{bindAuthForms()}catch(e){}
 document.addEventListener('DOMContentLoaded',function(){try{bindAuthForms()}catch(e){}});
-$('btn-register').onclick=async()=>{
-  const name=$('in-user').value.trim().replace(/[^a-zA-Z0-9_.-]/g,'').slice(0,24);
-  const email=$('in-email2').value.trim(),pass=$('in-pass2').value;
+async function doRegister(){
+  // Honeypot: real users never fill this (it's visually hidden); bots that
+  // auto-fill every field do. Silently no-op instead of telling the bot why.
+  if(($('in-hp')&&$('in-hp').value))return;
+  // A human needs at least ~1.2s to look at the form and type into it.
+  if(Date.now()-_regShownAt<1200){$('auth-err').textContent='Un instant…';return}
+  const name=(($('in-user')&&$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\- ]/g,'').slice(0,24);
+  const email=(($('in-email2')&&$('in-email2').value)||'').trim();
+  const pass=(($('in-pass2')&&$('in-pass2').value)||'');
+  const bio=(($('in-bio2')&&$('in-bio2').value)||'').trim().slice(0,80);
+  const swOn=document.querySelector('#reg-swatches button.on');
+  const accent=(swOn&&swOn.dataset.c)||'#7c3aed';
+  $('auth-err').textContent='';
   if(!name||name.length<2){$('auth-err').textContent='Pseudo trop court';return}
-  if(pass.length<8){$('auth-err').textContent='Min. 8 caractères';return}
-  $('btn-register').disabled=true;
-  try{await account.create(ID.unique(),email,pass,name);try{await account.createEmailPasswordSession(email,pass)}catch(e){await account.createEmailSession(email,pass)};await ensureProfile(name);await boot()}
-  catch(e){$('auth-err').textContent=(e&&e.message)||'Inscription impossible'}
-  $('btn-register').disabled=false;
-};
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){$('auth-err').textContent='Email invalide';return}
+  if(pass.length<8){$('auth-err').textContent='Mot de passe : 8 caractères minimum';return}
+  if(typeof rateLimit==='function'&&!rateLimit('register:'+email,5,60000)){$('auth-err').textContent='Trop de tentatives — patiente une minute';return}
+  $('btn-register').disabled=true;$('btn-register').textContent='Création…';
+  try{
+    await account.create(ID.unique(),email,pass,name);
+    // Same robust, cookie-independent session as doLogin() — never the
+    // SDK's cookie-only createEmailPasswordSession().
+    let sessionOk=false;
+    try{
+      const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pass})});
+      const jj=await rr.json().catch(()=>({}));
+      if(rr.ok&&jj&&jj.ok&&jj.secret){
+        try{client.setSession(String(jj.secret));}catch(e){}
+        try{if(client.headers)client.headers['X-Appwrite-Session']=String(jj.secret);}catch(e){}
+        try{localStorage.setItem('cookieFallback_session_'+String(PID),String(jj.secret));}catch(e){}
+        sessionOk=true;
+      }
+    }catch(e){}
+    if(!sessionOk){try{await account.createEmailPasswordSession(email,pass);}catch(e){}}
+    let avatarUrl='';
+    if(window._regAvatarFile){try{const up=await upload(window._regAvatarFile);avatarUrl=up.url||'';}catch(e){}}
+    const u=await account.get();
+    const uniq=await ensureUniqueUserTag(name,'',null);
+    const doc={
+      authUserId:u.$id,email:u.email||email,username:uniq.username,baseUsername:uniq.username,
+      tag:uniq.tag,displayName:name,bio,avatar:avatarUrl,bgColor:accent,btnColor:accent,
+      statusManual:'online'
+    };
+    try{profile=await db.createDocument(DB,'users',ID.unique(),doc);}
+    catch(e){profile=await db.createDocument(DB,'users',ID.unique(),{authUserId:u.$id,email:u.email||email,username:uniq.username,displayName:name,tag:uniq.tag});}
+    await boot();
+  }catch(e){$('auth-err').textContent=(e&&e.message)||'Inscription impossible'}
+  $('btn-register').disabled=false;$('btn-register').textContent='Créer mon compte';
+}
+$('btn-register').onclick=doRegister;
 async function findProf(id){try{const r=await db.listDocuments(DB,'users',[Query.equal('authUserId',id),Query.limit(1)]);return(r.documents||[])[0]||null}catch(e){return null}}
 async function ensureProfile(dn){
   const u=await account.get();const ex=await findProf(u.$id);if(ex){profile=ex;return ex}
