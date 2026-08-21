@@ -32,6 +32,16 @@
     var r=e&&e.reason;
     showErr('Promise rejetée: '+((r&&r.message)||r));
   });
+  // On-screen mobile debug console (Eruda), opt-in only via ?debug=1 — no
+  // computer/devtools needed to see console output, network requests, etc.
+  try{
+    if(location.search.indexOf('debug=1')>=0){
+      var es=document.createElement('script');
+      es.src='https://cdn.jsdelivr.net/npm/eruda';
+      es.onload=function(){try{eruda.init();}catch(e){}};
+      document.head.appendChild(es);
+    }
+  }catch(e){}
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0"></script>
