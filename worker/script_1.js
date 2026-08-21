@@ -355,7 +355,13 @@ window.__nav=function(v){
       console.warn('autoResume',e);
       // Ne PAS effacer la session ici — peut etre un race condition
     }
-  })();
+  });
+  // autoResume is intentionally never invoked: it only checked xultra_aw_sdk_session
+  // (missing the cookieFallback_session_<PID> key doLogin() actually persists), and
+  // it ran on its own separate Appwrite Client instance (from ensureAw()) that shares
+  // no session state with the main app's client/account/db — a second, uncoordinated
+  // auto-boot attempt racing the real one at the bottom of the page. The real one
+  // (fixed to check all storage keys) is authoritative.
 
 
   function bind(){
@@ -378,8 +384,11 @@ window.__nav=function(v){
       form.addEventListener('submit',function(ev){ev.preventDefault();standaloneLogin();return false;},true);
     }
   }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);
-  else bind();
-  setTimeout(bind,0);
-  setTimeout(bind,500);
+  // NOTE: bind() is intentionally never called. It used to re-attach btn-login's
+  // onclick to this legacy standaloneLogin() (including via a setTimeout(...,500)
+  // that fires after script_2.js's own doLogin() binding), so depending on load
+  // timing a real login could silently go through this old cookie-only path
+  // instead of the robust one — explaining intermittent "logged out on refresh"
+  // even when doLogin() itself works fine. doLogin() (script_2.js) is now the
+  // only login handler; this function is kept but unused.
 })();
