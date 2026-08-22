@@ -501,7 +501,7 @@ button{cursor:pointer;border:0;background:0}
 .attach-menu button:hover{background:var(--elev)}
 .hidden-input{display:none}
 .composer.recording textarea,.composer.recording #btn-attach,.composer.recording #btn-send{visibility:hidden}
-.voice-record{display:none;position:absolute;inset:0 0 0 0;align-items:center;gap:10px;padding:0 14px;background:#110a1a}
+.voice-record{display:none;position:absolute;inset:0 0 0 0;align-items:center;gap:10px;padding:0 14px;background:#110a1a;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .composer.recording .voice-record{display:flex}
 .vr-cancel-hint{font-size:.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;transition:color .15s}
 .voice-record.will-cancel .vr-cancel-hint{color:#fca5a5;font-weight:800}
