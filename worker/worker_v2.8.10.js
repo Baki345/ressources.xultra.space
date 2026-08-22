@@ -282,14 +282,21 @@ button{cursor:pointer;border:0;background:0}
 #app{display:none;height:100dvh;position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:8px;flex-shrink:0}
-.rail-btn{width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
+.rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
 .rail-btn:hover,.rail-btn.on{border-radius:14px;background:#7c3aed}
+.rail-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;display:grid;place-items:center;border:2px solid #0a0610;line-height:1}
+.rail-badge.hidden{display:none}
 .list-col{width:var(--list-w);background:#130c1c;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
-.list-head{padding:14px 14px 8px}
-.list-head h1{font-size:.95rem;font-weight:800;margin-bottom:10px}
+.list-head{padding:16px 14px 10px}
+.list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
+.list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px}
+.list-sub .dot{width:5px;height:5px;border-radius:50%;background:var(--online);display:inline-block}
 .search-row{display:flex;gap:6px}
-.search-box{flex:1;min-width:0;height:34px;background:#0d0814;border:1px solid var(--line);border-radius:8px;padding:0 10px;font-size:.82rem;outline:0;color:#f2ebff}
-.icon-btn{height:34px;width:34px;border-radius:8px;background:var(--elev);font-size:.9rem;flex-shrink:0}
+.search-wrap{position:relative;flex:1;min-width:0}
+.search-wrap svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.search-box{width:100%;height:36px;background:#0d0814;border:1px solid var(--line);border-radius:999px;padding:0 12px 0 32px;font-size:.82rem;outline:0;color:#f2ebff;transition:border-color .15s,background .15s}
+.search-box:focus{border-color:#7c3aed;background:#100a1a}
+.icon-btn{height:36px;width:36px;border-radius:999px;background:var(--elev);font-size:.9rem;flex-shrink:0}
 .icon-btn:hover{background:var(--hover)}
 .list-body{flex:1;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
@@ -303,13 +310,16 @@ button{cursor:pointer;border:0;background:0}
 .row .act{display:flex;gap:4px;flex-shrink:0}
 .row .act button{height:26px;padding:0 8px;border-radius:6px;font-size:.7rem;font-weight:700;background:#7c3aed;color:#fff}
 .row .act button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
-.userbar{height:56px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 10px;border-top:1px solid var(--line);background:#0f0917}
-.userbar .av{width:32px;height:32px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+.userbar{flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
+.userbar .av{position:relative;width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.82rem;overflow:hidden}
 .userbar .av img{width:100%;height:100%;object-fit:cover}
+.userbar .av .dot{position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--online);border:2px solid #150e21}
 .userbar .meta{flex:1;min-width:0}
-.userbar .n{font-weight:700;font-size:.8rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.userbar .s{font-size:.68rem;color:var(--online)}
-.ub-btn{width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:.9rem;display:grid;place-items:center}
+.userbar .n{font-weight:800;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:linear-gradient(90deg,#ede9fe,#c4b5fd,#ede9fe);-webkit-background-clip:text;background-clip:text;color:transparent}
+.userbar .s{font-size:.66rem;color:var(--online);font-weight:600}
+.ub-btn{position:relative;width:30px;height:30px;border-radius:8px;color:var(--muted);font-size:.9rem;display:grid;place-items:center}
+.ub-badge{position:absolute;top:-2px;right:-2px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:800;display:grid;place-items:center;line-height:1}
+.ub-badge.hidden{display:none}
 .ub-btn:hover{background:var(--elev);color:#f2ebff}
 .chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#110a1a}
 .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
@@ -519,21 +529,25 @@ button{cursor:pointer;border:0;background:0}
 <div id="app" class="hidden">
   <nav class="rail">
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
-    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥</button>
+    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
-    <button type="button" class="rail-btn" data-view="friends" title="Amis">👥</button>
+    <button type="button" class="rail-btn" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
   <aside class="list-col">
     <div class="list-head">
       <h1 id="list-title">Messages</h1>
+      <div class="list-sub" id="list-sub"><span class="dot"></span><span id="list-sub-txt">XULTRA</span></div>
       <div class="search-row">
-        <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
+        </div>
         <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
       </div>
     </div>
@@ -541,6 +555,7 @@ button{cursor:pointer;border:0;background:0}
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
       <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
+      <button type="button" class="ub-btn" id="ub-bell" title="Demandes d'amis">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
       <button type="button" class="ub-btn hidden" id="ub-hunter" title="Panneau Bug Hunter">🐛</button>
       <button type="button" class="ub-btn" id="btn-report-bug" title="Signaler un bug">🐞</button>
       <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
@@ -802,8 +817,8 @@ async function enterApp(){
   const name=(profile&&(profile.displayName||profile.username))||acc.name||acc.email||'Compte';
   \$('ub-name').textContent=name;
   const av=\$('ub-av');
-  if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/>';}
-  else{av.textContent=ini(name);}
+  if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/><span class="dot"></span>';}
+  else{av.innerHTML=esc(ini(name))+'<span class="dot"></span>';}
   \$('auth').classList.add('hidden');
   \$('stage').classList.add('hidden');
   \$('app').classList.remove('hidden');
@@ -895,7 +910,8 @@ function showView(v){
   document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v)});
   const app=document.getElementById('app');
   if(v==='admin'){
-    \$('list-title').textContent='Membres';
+    \$('list-title').textContent='Admin';
+    \$('list-sub-txt').textContent='Panneau shaman';
     app.classList.add('chat-open');
     \$('chat-empty').classList.add('hidden');
     \$('chat-active').classList.add('hidden');
@@ -905,6 +921,7 @@ function showView(v){
   }
   \$('admin-active').classList.add('hidden');
   \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
+  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':'Membres');
   app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
@@ -979,6 +996,7 @@ function rowAvatar(p,name,uid){
 }
 function renderMembers(){
   const box=\$('list-body');if(!box)return;
+  \$('list-sub-txt').textContent=membersCache.length+' membre'+(membersCache.length!==1?'s':'');
   if(!membersCache.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
   const groups={};
   membersCache.forEach(function(p){
@@ -1012,12 +1030,24 @@ async function loadFriends(){
   if(!me)return[];
   const r=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',me.\$id),Appwrite.Query.limit(100)]);
   friendsCache=r.documents||[];
+  updateFriendBadge();
   return friendsCache;
+}
+function updateFriendBadge(){
+  const n=friendsCache.filter(function(f){return f.status==='pending_in'}).length;
+  document.querySelectorAll('.rail-friends-badge').forEach(function(el){
+    el.textContent=n>9?'9+':String(n);
+    el.classList.toggle('hidden',n===0);
+  });
+  const bell=\$('ub-bell-badge');
+  if(bell){bell.textContent=n>9?'9+':String(n);bell.classList.toggle('hidden',n===0);}
 }
 function renderFriends(){
   const box=\$('list-body');if(!box)return;
   const accepted=friendsCache.filter(function(f){return f.status==='accepted'});
   const incoming=friendsCache.filter(function(f){return f.status==='pending_in'});
+  \$('list-sub-txt').textContent=accepted.length+' ami'+(accepted.length!==1?'s':'');
+  updateFriendBadge();
   if(!accepted.length&&!incoming.length){box.innerHTML='<div class="empty-hint">Aucun ami pour l\\'instant. Utilise le bouton 👤+ pour en ajouter.</div>';return}
   let h='';
   if(incoming.length){
@@ -1084,6 +1114,7 @@ async function loadDms(){
 }
 function renderDms(){
   const box=\$('list-body');if(!box)return;
+  \$('list-sub-txt').textContent=dmsCache.length+' conversation'+(dmsCache.length!==1?'s':'');
   if(!dmsCache.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
   box.innerHTML=dmsCache.map(function(d){
     const title=d.displayName||'Conversation';
@@ -1587,6 +1618,7 @@ if(\$('ub-hunter'))\$('ub-hunter').addEventListener('click',function(){
   \$('modal-hunter').classList.remove('hidden');
   loadMyBugs();
 });
+if(\$('ub-bell'))\$('ub-bell').addEventListener('click',function(){showView('friends')});
 if(\$('hp-close'))\$('hp-close').addEventListener('click',function(){\$('modal-hunter').classList.add('hidden')});
 if(\$('hp-new'))\$('hp-new').addEventListener('click',function(){openBugModal(null)});
 
