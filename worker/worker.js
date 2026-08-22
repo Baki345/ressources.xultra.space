@@ -938,6 +938,24 @@ button{cursor:pointer;border:0;background:0}
 .dm-call-badge:hover{background:rgba(34,197,94,.24)}
 .dcb-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:cbPulse 1.4s ease-in-out infinite}
 .settings-modal{width:min(400px,100%);max-height:88dvh;overflow-y:auto;text-align:left}
+.notif-panel{width:min(440px,100%);max-height:85dvh;display:flex;flex-direction:column}
+.notif-panel h3{margin-bottom:10px}
+.notif-bulk-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;flex-shrink:0}
+.ntf-bulk-btn{padding:7px 12px;border-radius:999px;background:rgba(255,255,255,.06);color:#f2ebff;font-size:.74rem;font-weight:700}
+.ntf-bulk-btn:hover{background:rgba(255,255,255,.12)}
+#ntf-clear-all{margin-left:auto;color:#fca5a5}
+.notif-list{overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin:0 -8px;padding:0 8px}
+.notif-list .empty-hint{padding:24px 8px;text-align:center;color:var(--muted);font-size:.82rem}
+.notif-row{align-items:flex-start;cursor:default}
+.notif-row.clickable{cursor:pointer}
+.ntf-icon{font-size:1.15rem;flex-shrink:0;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.06);display:grid;place-items:center}
+.ntf-body{flex:1;min-width:0}
+.ntf-text{font-size:.82rem;line-height:1.4}
+.ntf-time{font-size:.66rem;color:var(--muted);margin-top:3px}
+.ntf-actions{display:flex;gap:6px;margin-top:8px}
+.ntf-actions button{padding:6px 12px;border-radius:8px;font-size:.72rem;font-weight:700;background:#7c3aed;color:#fff}
+.ntf-actions button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
+.ntf-actions button:hover{filter:brightness(1.1)}
 .status-panel{width:min(460px,100%);max-height:88dvh;padding:0;overflow:hidden;position:relative;background:#050308;border:1px solid rgba(167,139,250,.3)}
 .status-rain{position:absolute;inset:0;filter:blur(2px) brightness(.7);opacity:.55}
 .status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(5,3,10,.4),rgba(5,3,10,.88) 30%)}
@@ -1127,7 +1145,7 @@ button{cursor:pointer;border:0;background:0}
         <div class="n" id="ub-name">—</div>
         <button type="button" class="ub-presence-btn" id="ub-presence-btn"><span class="pr-dot ub-static-dot" id="ub-presence-dot"></span><span id="ub-status">En ligne</span></button>
       </div>
-      <button type="button" class="ub-btn" id="ub-bell" title="Demandes d'amis">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
+      <button type="button" class="ub-btn" id="ub-bell" title="Notifications">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
       <button type="button" class="ub-btn" id="ub-more" title="Plus d'options">⋯</button>
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
@@ -1520,6 +1538,19 @@ button{cursor:pointer;border:0;background:0}
     <span class="lp-dot"></span><span id="screen-reveal-label">Voir la diffusion</span>
   </div>
   <audio id="call-remote-audio" autoplay playsinline></audio>
+</div>
+
+<div class="overlay hidden" id="modal-notifications">
+  <div class="modal-box notif-panel">
+    <button type="button" class="modal-close" id="ntf-close">✕</button>
+    <h3>🔔 Notifications</h3>
+    <div class="notif-bulk-row" id="ntf-bulk-row">
+      <button type="button" class="ntf-bulk-btn hidden" id="ntf-accept-all">✅ Tout accepter</button>
+      <button type="button" class="ntf-bulk-btn hidden" id="ntf-decline-all">✕ Tout refuser</button>
+      <button type="button" class="ntf-bulk-btn hidden" id="ntf-clear-all">🗑 Tout supprimer</button>
+    </div>
+    <div class="notif-list" id="ntf-list"></div>
+  </div>
 </div>
 
 <div class="overlay hidden" id="modal-status">
@@ -2042,6 +2073,7 @@ async function enterApp(){
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeCallBadgeWatcher();}catch(e){}
   try{subscribeDmDeleteWatcher();}catch(e){}
+  try{subscribeNotifWatcher();await loadNotifications();updateNotifBadge();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
@@ -2415,8 +2447,7 @@ function updateFriendBadge(){
     el.textContent=n>9?'9+':String(n);
     el.classList.toggle('hidden',n===0);
   });
-  const bell=\$('ub-bell-badge');
-  if(bell){bell.textContent=n>9?'9+':String(n);bell.classList.toggle('hidden',n===0);}
+  updateNotifBadge();
 }
 function renderFriends(){
   const box=\$('list-body');if(!box)return;
@@ -2438,9 +2469,11 @@ function renderFriends(){
   if(accepted.length){
     h+='<div class="empty-hint" style="padding:8px 8px 2px">Amis</div>';
     h+=accepted.map(function(f){
-      return '<div class="row" data-profile="'+esc(f.friendId)+'">'
+      return '<div class="row-swipe" data-friend-wrap="'+esc(f.friendId)+'">'
+        +'<div class="row-del-action" data-del-friend="'+esc(f.friendId)+'" data-del-name="'+esc(f.name||'')+'"><span>🗑</span></div>'
+        +'<div class="row" data-profile="'+esc(f.friendId)+'">'
         +'<div class="av">'+esc(ini(f.name||'?'))+presenceDotHtml(f.friendId)+'</div>'
-        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div>';
+        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div></div>';
     }).join('');
   }
   box.innerHTML=h;
@@ -2449,23 +2482,48 @@ function renderFriends(){
     el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
   });
   box.querySelectorAll('[data-accept]').forEach(function(el){
-    el.onclick=async function(){
-      try{
-        await db.updateDocument(DB,'ultravoc_friends',el.getAttribute('data-accept'),{status:'accepted'});
-        const fromUid=el.getAttribute('data-from'),fname=el.getAttribute('data-fname');
-        const mine=friendsCache.find(function(f){return f.friendId===fromUid&&f.status==='pending_out'});
-        if(mine){await db.updateDocument(DB,'ultravoc_friends',mine.\$id,{status:'accepted'});}
-        else{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:fromUid,friendId:me.\$id,status:'accepted',name:(meProfile&&(meProfile.displayName||meProfile.username))||'Ami'});}
-        await loadFriends();renderFriends();
-      }catch(e){xlog('friend_accept_fail',{msg:(e&&e.message)||String(e)});}
-    };
+    el.onclick=function(){acceptFriendRequest(el.getAttribute('data-accept'),el.getAttribute('data-from'));};
   });
   box.querySelectorAll('[data-reject]').forEach(function(el){
-    el.onclick=async function(){
-      try{await db.deleteDocument(DB,'ultravoc_friends',el.getAttribute('data-reject'));await loadFriends();renderFriends();}
-      catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
-    };
+    el.onclick=function(){rejectFriendRequest(el.getAttribute('data-reject'));};
   });
+  box.querySelectorAll('[data-friend-wrap]').forEach(function(wrap){attachRowSwipe(wrap);});
+  box.querySelectorAll('[data-del-friend]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const uid=el.getAttribute('data-del-friend'),name=el.getAttribute('data-del-name');
+      showSlideConfirm('Retirer '+(name||'cet ami')+' de tes amis ?',function(){removeFriend(uid,name);});
+    });
+  });
+}
+async function acceptFriendRequest(reqDocId,fromUid){
+  try{
+    await db.updateDocument(DB,'ultravoc_friends',reqDocId,{status:'accepted'});
+    const mine=friendsCache.find(function(f){return f.friendId===fromUid&&f.status==='pending_out'});
+    const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
+    if(mine){await db.updateDocument(DB,'ultravoc_friends',mine.\$id,{status:'accepted'});}
+    else{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:fromUid,friendId:me.\$id,status:'accepted',name:myName});}
+    sendNotification(fromUid,'friend_accepted',me.\$id,myName,myName+' a accepté ta demande d\\'ami');
+    await loadFriends();if(view==='friends')renderFriends();
+  }catch(e){xlog('friend_accept_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function rejectFriendRequest(reqDocId){
+  try{await db.deleteDocument(DB,'ultravoc_friends',reqDocId);await loadFriends();if(view==='friends')renderFriends();}
+  catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function removeFriend(uid,name){
+  try{
+    const mine=friendsCache.find(function(f){return String(f.friendId)===String(uid)&&f.status==='accepted'});
+    if(mine)await db.deleteDocument(DB,'ultravoc_friends',mine.\$id);
+    try{
+      const theirs=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',uid),Appwrite.Query.equal('friendId',me.\$id),Appwrite.Query.limit(5)]);
+      for(const d of (theirs.documents||[]))await db.deleteDocument(DB,'ultravoc_friends',d.\$id);
+    }catch(e){}
+    const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
+    sendNotification(uid,'friend_removed',me.\$id,myName,myName+' t\\'a retiré de ses amis');
+    await loadFriends();if(view==='friends')renderFriends();
+    showToast('Ami retiré.');
+  }catch(e){showToast('Action impossible','error');}
 }
 async function sendFriendRequest(targetUid,targetName){
   if(!me||!targetUid||targetUid===me.\$id)return;
@@ -2473,10 +2531,149 @@ async function sendFriendRequest(targetUid,targetName){
   try{
     await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:targetUid,status:'pending_out',name:targetName||'Ami'});
     try{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:targetUid,friendId:me.\$id,status:'pending_in',name:myName});}catch(e){}
+    sendNotification(targetUid,'friend_request',me.\$id,myName,myName+' t\\'a envoyé une demande d\\'ami');
     authPost('/api/push/notify',{type:'friend_request',toUid:targetUid}).catch(function(){});
     xlog('friend_request_sent',{to:targetUid});
     return true;
   }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
+}
+
+const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬'};
+let notifCache=[];
+async function loadNotifications(){
+  if(!me)return [];
+  try{
+    const r=await db.listDocuments(DB,'notifications',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
+    notifCache=r.documents||[];
+  }catch(e){notifCache=[];}
+  return notifCache;
+}
+function computeUnreadDmEntries(){
+  if(!me)return [];
+  return dmsCache.map(function(d){
+    const unread=parseJsonSafe(d.unreadJson,{});
+    const n=unread[me.\$id]||0;
+    if(!n)return null;
+    return {kind:'dm',dmId:d.\$id,peerUid:dmIsGroup(d)?null:dmPeerId(d),count:n,title:d.displayName||'Conversation',ts:d.\$updatedAt||d.\$createdAt};
+  }).filter(Boolean);
+}
+function updateNotifBadge(){
+  const pendingCount=friendsCache.filter(function(f){return f.status==='pending_in'}).length;
+  const unreadNotif=notifCache.filter(function(n){return !n.read}).length;
+  const unreadDm=computeUnreadDmEntries().reduce(function(s,e){return s+e.count},0);
+  const total=pendingCount+unreadNotif+unreadDm;
+  const badge=\$('ub-bell-badge');
+  if(badge){badge.textContent=total>9?'9+':String(total);badge.classList.toggle('hidden',total===0);}
+}
+async function openNotificationsPanel(){
+  \$('modal-notifications').classList.remove('hidden');
+  await loadNotifications();
+  renderNotifications();
+  const unread=notifCache.filter(function(n){return !n.read});
+  if(unread.length){
+    unread.forEach(function(n){db.updateDocument(DB,'notifications',n.\$id,{read:true}).catch(function(){});n.read=true;});
+    updateNotifBadge();
+  }
+}
+function renderNotifications(){
+  const list=\$('ntf-list');if(!list)return;
+  const pendingReqs=friendsCache.filter(function(f){return f.status==='pending_in'});
+  const dmEntries=computeUnreadDmEntries();
+  const entries=[];
+  pendingReqs.forEach(function(f){entries.push({kind:'friend_request',id:f.\$id,fromUid:f.friendId,name:f.name,ts:f.\$createdAt});});
+  dmEntries.forEach(function(e){entries.push(e);});
+  notifCache.forEach(function(n){entries.push({kind:n.type,id:n.\$id,fromUid:n.fromUid,name:n.fromName,text:n.text,ts:n.\$createdAt});});
+  entries.sort(function(a,b){return new Date(b.ts)-new Date(a.ts);});
+  \$('ntf-accept-all').classList.toggle('hidden',!pendingReqs.length);
+  \$('ntf-decline-all').classList.toggle('hidden',!pendingReqs.length);
+  \$('ntf-clear-all').classList.toggle('hidden',!entries.length);
+  if(!entries.length){list.innerHTML='<div class="empty-hint">Aucune notification pour l\\'instant.</div>';return}
+  list.innerHTML=entries.map(function(e){
+    let body='',clickable=false;
+    if(e.kind==='friend_request'){
+      body='<div class="ntf-text"><b>'+esc(e.name||'Quelqu\\'un')+'</b> t\\'a envoyé une demande d\\'ami</div>'
+        +'<div class="ntf-actions"><button type="button" data-ntf-accept="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Accepter</button>'
+        +'<button type="button" class="rej" data-ntf-decline="'+esc(e.id)+'">Refuser</button>'
+        +'<button type="button" class="rej" data-ntf-block="'+esc(e.fromUid)+'" data-ntf-blockname="'+esc(e.name||'')+'">Bloquer</button></div>';
+    } else if(e.kind==='dm'){
+      clickable=true;
+      body='<div class="ntf-text">'+e.count+' nouveau'+(e.count>1?'x':'')+' message'+(e.count>1?'s':'')+' de <b>'+esc(e.title)+'</b></div>';
+    } else {
+      body='<div class="ntf-text">'+esc(e.text||'')+'</div>';
+      clickable=!!e.fromUid;
+    }
+    return '<div class="row-swipe" data-notif-wrap>'
+      +'<div class="row-del-action" data-ntf-del="'+esc(e.kind==='dm'?e.dmId:e.id||'')+'" data-ntf-del-kind="'+esc(e.kind)+'"><span>🗑</span></div>'
+      +'<div class="row notif-row'+(clickable?' clickable':'')+'" data-notif-kind="'+esc(e.kind)+'" data-notif-dm="'+esc(e.dmId||'')+'" data-notif-uid="'+esc(e.fromUid||'')+'">'
+      +'<span class="ntf-icon">'+(NOTIF_ICONS[e.kind]||'🔔')+'</span>'
+      +'<div class="ntf-body">'+body+'<div class="ntf-time">'+esc(fmtRelTime(e.ts))+'</div></div>'
+      +'</div></div>';
+  }).join('');
+  list.querySelectorAll('[data-notif-wrap]').forEach(function(wrap){attachRowSwipe(wrap);});
+  list.querySelectorAll('.notif-row.clickable').forEach(function(el){
+    el.addEventListener('click',function(){
+      const dmId=el.getAttribute('data-notif-dm');
+      const uid=el.getAttribute('data-notif-uid');
+      \$('modal-notifications').classList.add('hidden');
+      if(dmId){
+        const dm=dmsCache.find(function(d){return d.\$id===dmId});
+        showView('dms');openDm(dmId,dm?dm.displayName:'Conversation',dm?dmPeerId(dm):null);
+      } else if(uid){openProfileModal(uid);}
+    });
+  });
+  list.querySelectorAll('[data-ntf-accept]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();acceptFriendRequest(el.getAttribute('data-ntf-accept'),el.getAttribute('data-ntf-from')).then(renderNotifications);});
+  });
+  list.querySelectorAll('[data-ntf-decline]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();rejectFriendRequest(el.getAttribute('data-ntf-decline')).then(renderNotifications);});
+  });
+  list.querySelectorAll('[data-ntf-block]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();confirmBlockUser(el.getAttribute('data-ntf-block'),el.getAttribute('data-ntf-blockname'));});
+  });
+  list.querySelectorAll('[data-ntf-del]').forEach(function(el){
+    el.addEventListener('click',async function(e){
+      e.stopPropagation();
+      const kind=el.getAttribute('data-ntf-del-kind');
+      const id=el.getAttribute('data-ntf-del');
+      if(kind==='friend_request'){await rejectFriendRequest(id);}
+      else if(kind==='dm'){await markDmRead(id);}
+      else if(id){try{await db.deleteDocument(DB,'notifications',id);notifCache=notifCache.filter(function(n){return n.\$id!==id});}catch(err){}}
+      renderNotifications();updateNotifBadge();
+    });
+  });
+}
+if(\$('ntf-accept-all'))\$('ntf-accept-all').addEventListener('click',async function(){
+  const pend=friendsCache.filter(function(f){return f.status==='pending_in'});
+  for(const f of pend)await acceptFriendRequest(f.\$id,f.friendId);
+  renderNotifications();
+});
+if(\$('ntf-decline-all'))\$('ntf-decline-all').addEventListener('click',async function(){
+  const pend=friendsCache.filter(function(f){return f.status==='pending_in'});
+  for(const f of pend)await rejectFriendRequest(f.\$id);
+  renderNotifications();
+});
+if(\$('ntf-clear-all'))\$('ntf-clear-all').addEventListener('click',function(){
+  showSlideConfirm('Supprimer toutes les notifications ? (les demandes d\\'ami en attente resteront actives)',async function(){
+    for(const n of notifCache.slice())try{await db.deleteDocument(DB,'notifications',n.\$id);}catch(e){}
+    notifCache=[];
+    for(const e of computeUnreadDmEntries())await markDmRead(e.dmId);
+    renderNotifications();updateNotifBadge();
+  });
+});
+if(\$('ntf-close'))\$('ntf-close').addEventListener('click',function(){\$('modal-notifications').classList.add('hidden')});
+if(\$('modal-notifications'))\$('modal-notifications').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('ub-bell'))\$('ub-bell').addEventListener('click',openNotificationsPanel);
+function subscribeNotifWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.notifications.documents',function(res){
+      const p=res.payload;if(!p||!me||String(p.uid)!==String(me.\$id))return;
+      if(eventIs(res.events,'.create')){
+        if(!notifCache.find(function(n){return n.\$id===p.\$id}))notifCache.unshift(p);
+        updateNotifBadge();
+        if(!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
+      }
+    });
+  }catch(e){}
 }
 
 let dmsCache=[];
@@ -2648,6 +2845,18 @@ const SOCIAL_DEFS=[
 ];
 function parseSocialLinks(json){
   try{const o=JSON.parse(json||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}
+}
+function parseJsonSafe(str,fallback){
+  try{const o=JSON.parse(str||'');return (o&&typeof o==='object')?o:fallback;}catch(e){return fallback;}
+}
+async function sendNotification(uid,type,fromUid,fromName,text,refId){
+  if(!uid||!me)return;
+  try{
+    await db.createDocument(DB,'notifications',Appwrite.ID.unique(),{
+      uid:String(uid),type:type,fromUid:fromUid?String(fromUid):'',fromName:fromName||'',
+      text:(text||'').slice(0,200),refId:refId||'',read:false
+    });
+  }catch(e){}
 }
 function normalizeSocialUrl(def,val){
   val=String(val||'').trim();
@@ -3290,6 +3499,17 @@ async function openDm(threadId,title,peerUid){
   await loadMessages(threadId);
   refreshCallBadge(activeDmPeerUid);
   updateChatHeaderPresence();
+  markDmRead(threadId);
+}
+async function markDmRead(threadId){
+  const dm=dmsCache.find(function(d){return d.\$id===threadId});
+  if(!dm||!me)return;
+  const unread=parseJsonSafe(dm.unreadJson,{});
+  if(!unread[me.\$id])return;
+  unread[me.\$id]=0;
+  dm.unreadJson=JSON.stringify(unread);
+  try{await db.updateDocument(DB,'dms',threadId,{unreadJson:dm.unreadJson});}catch(e){}
+  updateNotifBadge();
 }
 function updateChatHeaderPresence(){
   const el=\$('ch-presence');if(!el)return;
@@ -3607,8 +3827,13 @@ async function postMessage(data,lastMessagePreview,keyCtx){
   const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:''},data,{text:text,enc:enc,keysJson:keysJson});
   await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),payload);
   const previewPub=enc?'🔒 Message chiffré':lastMessagePreview;
-  try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:previewPub.slice(0,100)});}catch(e){}
   const recipients=activeDmIsGroup?activeDmMembers.filter(function(u){return u!==me.\$id}):(activeDmPeerUid?[activeDmPeerUid]:[]);
+  try{
+    const dmDoc=dmsCache.find(function(d){return d.\$id===activeDm});
+    const unread=parseJsonSafe(dmDoc&&dmDoc.unreadJson,{});
+    recipients.forEach(function(uid){unread[uid]=(unread[uid]||0)+1;});
+    await db.updateDocument(DB,'dms',activeDm,{lastMessage:previewPub.slice(0,100),unreadJson:JSON.stringify(unread)});
+  }catch(e){}
   recipients.forEach(function(uid){
     authPost('/api/push/notify',{type:'message',toUid:uid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
   });
