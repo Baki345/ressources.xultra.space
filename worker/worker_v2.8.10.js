@@ -1175,12 +1175,13 @@ function slugUsername(name){
   return s||'user';
 }
 const EP='https://fra.cloud.appwrite.io/v1', PID='6a73b975002f14dc6b91', DB='xultra', BUCKET='ultravoc_media';
+const PROXY_EP=location.origin+'/api/aw';
 let client=null, account=null, db=null, storage=null, sdkReady=false;
 function ensureSdk(){
   if(sdkReady)return true;
   if(typeof Appwrite==='undefined')return false;
   const A=Appwrite;
-  client=new A.Client().setEndpoint(EP).setProject(PID);
+  client=new A.Client().setEndpoint(PROXY_EP).setProject(PID);
   account=new A.Account(client);
   db=new A.Databases(client);
   storage=new A.Storage(client);
@@ -1495,7 +1496,7 @@ async function enterApp(){
   const name=(profile&&(profile.displayName||profile.username))||acc.name||acc.email||'Compte';
   \$('ub-name').textContent=name;
   const av=\$('ub-av');
-  if(profile&&profile.avatar&&/^https?:/i.test(profile.avatar)){av.innerHTML='<img src="'+esc(profile.avatar)+'" alt=""/><span class="dot"></span>';}
+  if(profile&&safeUrl(profile.avatar)){av.innerHTML='<img src="'+esc(safeUrl(profile.avatar))+'" alt=""/><span class="dot"></span>';}
   else{av.innerHTML=esc(ini(name))+'<span class="dot"></span>';}
   \$('auth').classList.add('hidden');
   \$('stage').classList.add('hidden');
@@ -1596,7 +1597,7 @@ async function doRegister(){
     xlog('register_session_ok',{});
     let avatarUrl='';
     if(regAvatarFile){
-      try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
+      try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
     }
     let acc;
     try{
@@ -1717,8 +1718,8 @@ async function loadMembers(){
   return membersCache;
 }
 function rowAvatar(p,name,uid){
-  const av=p&&p.avatar;
-  if(av&&/^https?:/i.test(av))return '<div class="av" data-uid="'+esc(uid)+'"><img src="'+esc(av)+'" alt=""/></div>';
+  const av=safeUrl(p&&p.avatar);
+  if(av)return '<div class="av" data-uid="'+esc(uid)+'"><img src="'+esc(av)+'" alt=""/></div>';
   return '<div class="av" data-uid="'+esc(uid)+'">'+esc(ini(name))+'</div>';
 }
 function renderMembers(){
@@ -1896,10 +1897,11 @@ async function openProfileModal(uid){
   \$('pm-tag').textContent='#'+esc(p.tag||'');
   \$('pm-grade').textContent=BADGE_DEFS[primaryBadge(badges)].label.toLowerCase();
   const banner=\$('pm-banner');
-  banner.style.backgroundImage=(p.bg&&/^https?:/i.test(p.bg))?('url("'+p.bg.replace(/"/g,'')+'")'):'';
-  banner.classList.toggle('has-img',!!(p.bg&&/^https?:/i.test(p.bg)));
+  const bgUrl=safeUrl(p.bg);
+  banner.style.backgroundImage=bgUrl?('url("'+bgUrl.replace(/"/g,'')+'")'):'';
+  banner.classList.toggle('has-img',!!bgUrl);
   const av=\$('pm-av');
-  if(p.avatar&&/^https?:/i.test(p.avatar))av.innerHTML='<img src="'+esc(p.avatar)+'" alt=""/>';
+  if(safeUrl(p.avatar))av.innerHTML='<img src="'+esc(safeUrl(p.avatar))+'" alt=""/>';
   else av.textContent=ini(name);
   \$('pm-badges').innerHTML=badgeChipsHtml(badges);
   wireBadgeChips(\$('pm-badges'));
@@ -1960,7 +1962,12 @@ async function loadMessages(threadId){
   }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];}
   renderMessages();
 }
-function safeUrl(u){return /^https?:\\/\\//i.test(String(u||''))?String(u):''}
+function safeUrl(u){
+  u=String(u||'');
+  if(!/^https?:\\/\\//i.test(u))return '';
+  if(u.indexOf(EP)===0)u=PROXY_EP+u.slice(EP.length);
+  return u;
+}
 function linkify(escapedText){
   return escapedText.replace(/(https?:\\/\\/[^\\s<]+)/g,function(u){return '<a href="'+u+'" target="_blank" rel="noopener noreferrer">'+u+'</a>'});
 }
@@ -2016,9 +2023,10 @@ async function hydrateEncryptedMessages(){
       try{text=await e2eDecryptText(peerUid,text);}catch(e){ok=false;text='';}
     }
     let mediaUrl='';
-    if(ok&&safeUrl(m.mediaUrl)){
+    const srcUrl=safeUrl(m.mediaUrl);
+    if(ok&&srcUrl){
       try{
-        const blob=await e2eDecryptBlob(peerUid,m.mediaUrl,m.mime||'application/octet-stream');
+        const blob=await e2eDecryptBlob(peerUid,srcUrl,m.mime||'application/octet-stream');
         mediaUrl=URL.createObjectURL(blob);
       }catch(e){ok=false;}
     }
@@ -2161,7 +2169,7 @@ async function handleFileAttach(file,kindHint){
       if(encBlob){uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});enc=true;}
     }
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
-    const fileUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type};
     let preview='📎 Pièce jointe';
     if(type==='image'){preview='📷 Photo';}
@@ -2313,7 +2321,7 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
     }
     const file=new File([uploadBlob],'voice-'+Date.now()+'.'+(enc?'bin':ext),{type:enc?'application/octet-stream':mimeType});
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
-    const fileUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal');
   }catch(e){alert('Envoi du message vocal impossible : '+((e&&e.message)||e));xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
 }
@@ -3262,7 +3270,7 @@ function showIncomingCall(doc){
   incomingCallDoc=doc;
   \$('ic-name').textContent=doc.callerName||'Appel inconnu';
   const av=\$('ic-av');
-  if(doc.callerAvatar&&/^https?:/i.test(doc.callerAvatar))av.innerHTML='<img src="'+esc(doc.callerAvatar)+'" alt=""/>';
+  if(safeUrl(doc.callerAvatar))av.innerHTML='<img src="'+esc(safeUrl(doc.callerAvatar))+'" alt=""/>';
   else av.textContent=ini(doc.callerName||'?');
   av.classList.remove('settled');
   av.style.cursor='pointer';
@@ -3739,9 +3747,43 @@ async function handle(request) {
     }
   }
 
-      
-  
-  
+
+  // === Reverse proxy transparent vers Appwrite Cloud (contourne les réseaux qui ===
+  // === bloquent les appels directs du navigateur vers fra.cloud.appwrite.io)   ===
+  if (path === "/api/aw" || path.startsWith("/api/aw/")) {
+    const sub = path.slice("/api/aw".length) || "/";
+    const targetUrl = AW_EP + sub + url.search;
+    if ((request.headers.get("Upgrade") || "").toLowerCase() === "websocket") {
+      return fetch(targetUrl, request);
+    }
+    const fwdHeaders = new Headers();
+    ["x-appwrite-project", "x-appwrite-session", "x-appwrite-jwt", "content-type", "x-sdk-version", "x-appwrite-response-format", "x-appwrite-id", "content-range"].forEach(function(h) {
+      const v = request.headers.get(h);
+      if (v) fwdHeaders.set(h, v);
+    });
+    const init = { method: request.method, headers: fwdHeaders };
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      init.body = request.body;
+      init.duplex = "half";
+    }
+    let awRes;
+    try {
+      awRes = await fetch(targetUrl, init);
+    } catch (e) {
+      return new Response(JSON.stringify({ message: "Proxy Appwrite indisponible", code: 502 }), {
+        status: 502, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    const respHeaders = new Headers();
+    ["content-type", "content-length", "cache-control", "content-disposition"].forEach(function(h) {
+      const v = awRes.headers.get(h);
+      if (v) respHeaders.set(h, v);
+    });
+    Object.keys(cors).forEach(function(k) { respHeaders.set(k, cors[k]); });
+    return new Response(awRes.body, { status: awRes.status, headers: respHeaders });
+  }
+
+
   // --- Dev login during maintenance (shaman only) ---
   
   if (path === "/api/maint/status") {
