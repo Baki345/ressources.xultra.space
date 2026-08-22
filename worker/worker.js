@@ -500,7 +500,7 @@ button{cursor:pointer;border:0;background:0}
 .attach-menu button{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;font-size:.85rem;font-weight:700;color:#f2ebff;text-align:left}
 .attach-menu button:hover{background:var(--elev)}
 .hidden-input{display:none}
-.composer.recording textarea,.composer.recording #btn-attach,.composer.recording #btn-send,.composer.recording #btn-voice{visibility:hidden}
+.composer.recording textarea,.composer.recording #btn-attach,.composer.recording #btn-send{visibility:hidden}
 .voice-record{display:none;position:absolute;inset:0 0 0 0;align-items:center;gap:10px;padding:0 14px;background:#110a1a}
 .composer.recording .voice-record{display:flex}
 .vr-cancel-hint{font-size:.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;transition:color .15s}
