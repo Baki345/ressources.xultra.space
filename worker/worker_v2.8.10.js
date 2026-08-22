@@ -1469,6 +1469,15 @@ function applySession(secret,jwt){
   if(jwt){
     try{localStorage.setItem('xultra_jwt',String(jwt));}catch(e){}
   }
+  /* Le SDK Appwrite n'authentifie le WebSocket temps réel que s'il trouve la
+     session dans ce format natif au moment du "connected" — sans ça, toute
+     souscription à un document à permissions restreintes (appels, ICE...)
+     reste "invité" et ne reçoit jamais d'événement, même si la connexion
+     s'établit sans erreur apparente. */
+  try{localStorage.setItem('cookieFallback',JSON.stringify({['a_session_'+PID]:String(secret)}));}catch(e){}
+}
+function clearCookieFallback(){
+  try{localStorage.removeItem('cookieFallback');}catch(e){}
 }
 function readSession(){
   try{return localStorage.getItem('xultra_session');}catch(e){return null}
@@ -1783,6 +1792,7 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
   xlog('logout_click',{});
   try{if(ensureSdk())await account.deleteSession('current');}catch(e){}
   try{localStorage.removeItem('xultra_session');}catch(e){}
+  clearCookieFallback();
   location.reload();
 });
 
