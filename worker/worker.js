@@ -141,6 +141,26 @@ async function requireShaman(request) {
   return { ok: true, acc, profile };
 }
 
+// Rôles staff : "owner" (Shaman, toutes les capacités) et "mod" (isMod=true,
+// capacités limitées listées ci-dessous). Un membre normal n'a aucun rôle.
+function resolveStaffRole(acc, profile) {
+  if (isShamanAccount(acc, profile)) return "owner";
+  if (profile && profile.isMod) return "mod";
+  return "member";
+}
+const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status"];
+async function requireStaff(request, capability) {
+  const acc = await resolveSessionUser(request);
+  if (!acc) return { ok: false, status: 401, error: "auth_required" };
+  const profile = await resolveProfile(acc.$id);
+  const role = resolveStaffRole(acc, profile);
+  if (role === "member") return { ok: false, status: 403, error: "forbidden" };
+  if (role === "mod" && MOD_CAPABILITIES.indexOf(capability) === -1) {
+    return { ok: false, status: 403, error: "forbidden_role" };
+  }
+  return { ok: true, acc, profile, role };
+}
+
 // Validates the xultra_gate cookie value against MAINT_GATE (not just its presence).
 function hasValidGate(request) {
   const cookies = request.headers.get("Cookie") || "";
@@ -979,7 +999,7 @@ button{cursor:pointer;border:0;background:0}
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
         <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
         <button type="button" class="admin-subtab" data-atab="logs">Logs</button>
-        <button type="button" class="admin-subtab" data-atab="maintenance">Maintenance</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance">Maintenance</button>
       </div>
       <div class="admin-body" id="admin-body"></div>
     </div>
@@ -2537,7 +2557,7 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
   }catch(e){xlog('friend_search_fail',{msg:(e&&e.message)||String(e)});}
 });
 
-let isAdmin=false, adminTab='dashboard';
+let isAdmin=false, staffRole='member', adminTab='dashboard';
 async function authJwt(){
   const j=await account.createJWT();
   return j&&j.jwt;
@@ -2631,9 +2651,11 @@ async function checkAdmin(){
     const r=await fetch('/api/admin/access',{headers:{'Authorization':'Bearer '+jwt}});
     const j=await r.json().catch(function(){return {ok:false}});
     isAdmin=!!(j&&j.ok);
-  }catch(e){isAdmin=false}
+    staffRole=isAdmin?(j.role||'mod'):'member';
+  }catch(e){isAdmin=false;staffRole='member'}
   document.querySelectorAll('.admin-nav-btn').forEach(function(b){b.classList.toggle('hidden',!isAdmin)});
-  xlog('admin_check',{isAdmin:isAdmin});
+  document.querySelectorAll('.owner-only').forEach(function(b){b.classList.toggle('hidden',staffRole!=='owner')});
+  xlog('admin_check',{isAdmin:isAdmin,role:staffRole});
 }
 if(\$('btn-admin-back'))\$('btn-admin-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
 document.querySelectorAll('.admin-subtab').forEach(function(b){
@@ -2761,18 +2783,19 @@ function renderAdminMembers(list,focusSearch){
     const self=uid===(me&&me.\$id);
     const modTag=p.isMod?'<span class="tag-mod">MOD</span>':'';
     const badges=parseBadges(memberMetaByUid[uid]);
-    const badgeBtns=TOGGLEABLE_BADGES.map(function(b){
+    const isOwner=staffRole==='owner';
+    const badgeBtns=isOwner?TOGGLEABLE_BADGES.map(function(b){
       const on=badges.indexOf(b)>=0;
       return '<button type="button" data-badgetoggle="'+b+'" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'" class="'+(on?'ok':'')+'" title="'+esc(BADGE_DEFS[b].label)+'">'+BADGE_DEFS[b].icon+(on?' ✓':'')+'</button>';
-    }).join('');
+    }).join(''):'';
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +'<span data-profile="'+esc(uid)+'" style="display:contents;cursor:pointer">'+rowAvatar(p,name,uid)+'</span>'
       +'<div class="info"><div class="n" data-profile="'+esc(uid)+'" style="cursor:pointer">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
       +'<div class="acts" style="margin-top:6px">'+badgeBtns+'<button type="button" data-adminfiche="'+esc(uid)+'">📋 Fiche</button></div></div>'
       +(self?'':'<div class="acts">'
-        +'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>'
+        +(isOwner?'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>':'')
         +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
-        +'<button type="button" data-ban="'+esc(uid)+'" data-name="'+esc(name)+'" class="danger">Ban</button>'
+        +(isOwner?'<button type="button" data-ban="'+esc(uid)+'" data-name="'+esc(name)+'" class="danger">Ban</button>':'')
         +'</div>')
       +'</div>';
   }).join('');
@@ -2959,8 +2982,8 @@ function renderAdminCalls(list){
 }
 
 async function loadAdminLogs(){
-  const r=await db.listDocuments(DB,'admin_logs',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
-  return r.documents||[];
+  const r=await authGet('/api/admin/logs');
+  return r.logs||[];
 }
 function renderAdminLogs(list){
   const box=\$('admin-body');if(!box)return;
@@ -4243,7 +4266,7 @@ async function handle(request) {
 
   // --- Secure admin API (Worker-side, no VPS) ---
   if (path === "/api/admin/access") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status,
@@ -4252,13 +4275,13 @@ async function handle(request) {
     }
     return new Response(JSON.stringify({
       ok: true,
-      role: "shaman",
+      role: gate.role,
       uid: gate.acc.$id,
-      name: (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "Shaman"
+      name: (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "Staff"
     }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
   }
   if (path === "/api/admin/calls") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status,
@@ -4278,7 +4301,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/ban" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "tempban");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4290,6 +4313,11 @@ async function handle(request) {
       const username = String((body && body.username) || "");
       const reason = String((body && body.reason) || "Ban staff").slice(0, 300);
       const type = (body && body.type) === "tempban" ? "tempban" : "ban";
+      if (type === "ban" && gate.role !== "owner") {
+        return new Response(JSON.stringify({ ok: false, error: "Seul le propriétaire peut bannir définitivement" }), {
+          status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
       if (!uid) throw new Error("uid requis");
       const until = type === "tempban" ? String(Date.now() + 86400000) : "permanent";
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
@@ -4309,7 +4337,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/bans" && request.method === "GET") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4320,6 +4348,25 @@ async function handle(request) {
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
       const data = await awFetch(q, { asAdmin: true });
       return new Response(JSON.stringify({ ok: true, bans: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/logs" && request.method === "GET") {
+    const gate = await requireStaff(request, "view");
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const q = "/databases/" + AW_DB + "/collections/admin_logs/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
+      const data = await awFetch(q, { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, logs: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4379,7 +4426,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/bugstatus" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "bug_status");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4439,7 +4486,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/reports" && request.method === "GET") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4458,7 +4505,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/reports/status" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "report_status");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4550,7 +4597,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/notes" && request.method === "GET") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "notes");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -4572,7 +4619,7 @@ async function handle(request) {
     }
   }
   if (path === "/api/admin/notes" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaff(request, "notes");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
