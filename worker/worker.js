@@ -3567,7 +3567,7 @@ async function onNegotiationNeeded(){
   finally{makingOffer=false;}
 }
 async function toggleCamera(){
-  if(!callPc||!callLive)return;
+  if(!callPc)return;
   if(camSender){
     try{callPc.removeTrack(camSender);}catch(e){}
     camSender=null;
@@ -3596,7 +3596,7 @@ function stopScreenShare(){
   renderVideoGrid();
 }
 async function toggleScreenShare(){
-  if(!callPc||!callLive)return;
+  if(!callPc)return;
   if(screenSender){stopScreenShare();return;}
   try{
     const q=AV_QUALITY[screenQualityKey]||AV_QUALITY['1080p60'];
@@ -3771,6 +3771,10 @@ function subscribeCallAnswer(callId){
         if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
         callLive=true;
         setCallStatusLabel('En appel…');
+        /* Caméra/partage activés pendant la sonnerie (avant que l'appel soit
+           "live") n'ont pas pu être renégociés à ce moment-là (callPc n'avait
+           pas encore de description distante) : on rattrape maintenant. */
+        if(camSender||screenSender)onNegotiationNeeded();
       }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
     } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
       endCall('ended',true);
