@@ -3896,7 +3896,7 @@ async function sendSignal(callId,kind,data){
   if(!callPeerUid||!me)return;
   try{
     await authPost('/api/calls/ice',{callId:callId,candidate:JSON.stringify({kind:kind,data:data})});
-  }catch(e){}
+  }catch(e){xlog('send_signal_fail',{kind:kind,msg:(e&&e.message)||String(e)});}
 }
 
 function showCallBar(name,label,startedAtMs){
@@ -3990,6 +3990,13 @@ if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
   if(!tracks.length)return;
   const willMute=tracks[0].enabled;
   tracks.forEach(function(t){t.enabled=!willMute;});
+  /* Le sender WebRTC peut porter une piste différente de localStream (voir
+     rebuildMicChain, qui la remplace par la sortie du graphe Web Audio) :
+     on coupe directement la piste réellement envoyée, pour ne pas dépendre
+     de la propagation du silence à travers le graphe. */
+  if(callPc){
+    callPc.getSenders().forEach(function(s){if(s.track&&s.track.kind==='audio')s.track.enabled=!willMute;});
+  }
   this.classList.toggle('on',willMute);
 });
 if(\$('cb-cam'))\$('cb-cam').addEventListener('click',toggleCamera);
