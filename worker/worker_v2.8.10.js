@@ -298,7 +298,7 @@ button{cursor:pointer;border:0;background:0}
 .search-box:focus{border-color:#7c3aed;background:#100a1a}
 .icon-btn{height:36px;width:36px;border-radius:999px;background:var(--elev);font-size:.9rem;flex-shrink:0}
 .icon-btn:hover{background:var(--hover)}
-.list-body{flex:1;overflow-y:auto;padding:6px}
+.list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
 .row:hover,.row.active{background:rgba(167,139,250,.1)}
@@ -464,7 +464,7 @@ button{cursor:pointer;border:0;background:0}
 .tabbar{display:none}
 @media (max-width:640px){
   #app{flex-direction:column}
-  .list-col{width:100%}
+  .list-col{width:100%;flex:1;min-height:0}
   #app.chat-open .list-col{display:none}
   #app:not(.chat-open) .chat-col{display:none}
   .rail{display:none}
