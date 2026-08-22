@@ -746,7 +746,10 @@ button{cursor:pointer;border:0;background:0}
 .call-act{width:52px;height:52px;border-radius:50%;font-size:1.2rem;display:grid;place-items:center}
 .call-act.accept{background:#22c55e;color:#052e16}
 .call-act.decline{background:#ef4444;color:#450a0a}
-.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto}
+.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
+.call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(124,58,237,.85),rgba(76,29,149,.95),rgba(15,9,25,.98));animation:moodShift 7s ease infinite;border-color:rgba(167,139,250,.4)}
+.call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(76,29,149,.9),rgba(15,9,25,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
+@keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .call-bar.embedded{position:static;max-width:none;margin:10px 14px 0;box-shadow:none}
 .cb-top{display:flex;align-items:center;gap:10px}
 .call-bar .av{width:38px;height:38px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden;cursor:pointer}
@@ -4039,6 +4042,11 @@ function renderCallStatus(){
   const n=callLive?2:1;
   nameEl.textContent='En appel · '+n+' participant'+(n>1?'s':'');
   timeEl.parentElement.classList.toggle('live',currentCallLabel==='En appel…');
+  const bar=\$('call-bar');
+  if(bar){
+    bar.classList.toggle('mood-live',callLive);
+    bar.classList.toggle('mood-ringing',!callLive);
+  }
 }
 function cleanupCallLocal(){
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
