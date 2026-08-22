@@ -1314,7 +1314,31 @@ async function doRegister(){
     if(regAvatarFile){
       try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
     }
-    const acc=await account.get();
+    try{
+      const hdrSession=client.headers&&client.headers['X-Appwrite-Session'];
+      xlog('pre_account_get_debug',{
+        hdrLen:hdrSession?hdrSession.length:0,
+        hdrPrefix:hdrSession?hdrSession.slice(0,12):'',
+        hdrSuffix:hdrSession?hdrSession.slice(-8):'',
+        jjSecretLen:(jj.secret||'').length,
+        jjJwtLen:(jj.jwt||'').length,
+        cfgSessionLen:(client.config&&client.config.session)?client.config.session.length:0
+      });
+    }catch(eDbg){}
+    let acc;
+    try{
+      acc=await account.get();
+    }catch(eGet){
+      try{
+        xlog('account_get_error_detail',{
+          msg:(eGet&&eGet.message)||String(eGet),
+          code:eGet&&eGet.code,
+          type:eGet&&eGet.type,
+          response:eGet&&eGet.response?JSON.stringify(eGet.response).slice(0,500):''
+        });
+      }catch(eDbg2){}
+      throw eGet;
+    }
     const tag=String(Math.floor(1000+Math.random()*9000));
     const uname=slugUsername(name);
     const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bgColor:accent,btnColor:accent,statusManual:'online'};
