@@ -2905,6 +2905,9 @@ if(\$('ub-more'))\$('ub-more').addEventListener('click',function(e){
 document.addEventListener('click',function(e){
   if(!e.target.closest('.ub-popover')&&!e.target.closest('#ub-presence-btn')&&!e.target.closest('#ub-more'))closeUbPopovers();
 });
+if(\$('ub-more-menu'))\$('ub-more-menu').addEventListener('click',function(e){
+  if(e.target.closest('button'))closeUbPopovers();
+});
 
 let peDraft=null,peOriginalMeta=null;
 function openProfileEditPanel(p,meta){
