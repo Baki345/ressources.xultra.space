@@ -379,13 +379,43 @@ button{cursor:pointer;border:0;background:0}
   background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);
   background-size:28px 28px;opacity:.5;mix-blend-mode:screen;
 }
+.stage-inner{position:relative;z-index:1;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:26px;padding:20px 0}
 .card{
   position:relative;z-index:1;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
   background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
   border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:24px 22px;
   box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.08) inset;
 }
-.logo{font-size:1.9rem;font-weight:900;text-align:center;letter-spacing:.04em;background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent}
+.logo{font-size:1.9rem;font-weight:900;text-align:center;letter-spacing:.04em;background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;animation:logoGlow 4s ease-in-out infinite}
+@keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(167,139,250,0))}50%{filter:drop-shadow(0 0 14px rgba(167,139,250,.55))}}
+@media (prefers-reduced-motion:reduce){.logo{animation:none}}
+
+/* ===== Showcase / présentation du site (sous la carte de connexion) ===== */
+.showcase{
+  width:100%;background:rgba(17,10,26,.55);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  border:1px solid rgba(167,139,250,.18);border-radius:22px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(124,58,237,.06) inset;
+}
+.showcase-track{display:flex;transition:transform .6s cubic-bezier(.65,0,.35,1)}
+.sc-slide{flex:0 0 100%;width:100%;padding:30px 30px 24px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.sc-art{
+  width:78px;height:78px;border-radius:22px;display:grid;place-items:center;margin-bottom:18px;
+  animation:scFloat 3.4s ease-in-out infinite;box-shadow:0 12px 28px rgba(124,58,237,.35);
+}
+@keyframes scFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-7px) rotate(-3deg)}}
+@media (prefers-reduced-motion:reduce){.sc-art{animation:none}}
+.sc-icon{font-size:2.1rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.sc-art-1{background:linear-gradient(135deg,#7c3aed,#c026d3)}
+.sc-art-2{background:linear-gradient(135deg,#8b5cf6,#0ea5e9)}
+.sc-art-3{background:linear-gradient(135deg,#a855f7,#7c3aed)}
+.sc-art-4{background:linear-gradient(135deg,#c026d3,#f59e0b)}
+.sc-art-5{background:linear-gradient(135deg,#7c3aed,#22c55e)}
+.sc-art-6{background:linear-gradient(135deg,#0ea5e9,#7c3aed)}
+.sc-slide h3{font-size:1.05rem;font-weight:800;background:linear-gradient(135deg,#f2ebff,#c4b5fd);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px;line-height:1.3}
+.sc-slide p{font-size:.85rem;color:#a99cc4;line-height:1.55;max-width:380px}
+.showcase-dots{display:flex;justify-content:center;gap:7px;padding:0 0 20px}
+.sc-dot{width:7px;height:7px;border-radius:50%;background:rgba(167,139,250,.28);transition:background .25s,transform .25s;cursor:pointer}
+.sc-dot.on{background:#a78bfa;transform:scale(1.35)}
 .logo-sub{text-align:center;color:#9a8fb0;font-size:.8rem;margin:4px 0 16px}
 .tabs{display:flex;gap:4px;background:rgba(0,0,0,.25);padding:4px;border-radius:12px;margin-bottom:14px}
 .tabs button{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:.9rem;color:#9a8fb0;transition:background .15s,color .15s}
@@ -735,6 +765,12 @@ button{cursor:pointer;border:0;background:0}
 .seg-btn.on{background:rgba(124,58,237,.35);border-color:rgba(167,139,250,.5);color:#e9d5ff}
 .tabbar{display:none}
 @media (max-width:640px){
+  .stage-inner{gap:18px;padding:14px 0}
+  .sc-slide{padding:24px 20px 18px}
+  .sc-art{width:64px;height:64px;border-radius:18px;margin-bottom:14px}
+  .sc-icon{font-size:1.7rem}
+  .sc-slide h3{font-size:.95rem}
+  .sc-slide p{font-size:.8rem}
   #app{flex-direction:column}
   .list-col{width:100%;flex:1;min-height:0}
   #app.chat-open .list-col{display:none}
@@ -751,6 +787,7 @@ button{cursor:pointer;border:0;background:0}
 </head>
 <body>
 <div id="stage">
+ <div class="stage-inner">
   <div id="auth" class="card">
     <div class="logo">XULTRA</div>
     <div class="logo-sub">Messages · Amis · Profils</div>
@@ -765,6 +802,7 @@ button{cursor:pointer;border:0;background:0}
         <input type="checkbox" id="in-remember" checked/>
         <span>Rester connecté</span>
       </label>
+      <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
       <button type="submit" class="btn-main" id="btn-login">Entrer</button>
     </form>
     <form id="pane-register" class="hidden" autocomplete="on">
@@ -796,12 +834,48 @@ button{cursor:pointer;border:0;background:0}
         </div>
       </div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
-      <div class="turnstile-wrap" id="turnstile-wrap"></div>
+      <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
       <button type="submit" class="btn-main" id="btn-register">Créer mon compte</button>
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
   </div>
+  <div class="showcase" id="showcase">
+    <div class="showcase-track" id="showcase-track">
+      <div class="sc-slide">
+        <div class="sc-art sc-art-1"><span class="sc-icon">🔒</span></div>
+        <h3>Vos conversations n'appartiennent qu'à vous</h3>
+        <p>Chiffrement de bout en bout sur tous les messages et médias échangés. Les clés restent sur vos appareils : même nous, on ne peut pas les lire.</p>
+      </div>
+      <div class="sc-slide">
+        <div class="sc-art sc-art-2"><span class="sc-icon">💬</span></div>
+        <h3>Une messagerie pensée pour aller vite</h3>
+        <p>Interface fluide et intuitive, conçue pour discuter sans friction — sur mobile comme sur ordinateur.</p>
+      </div>
+      <div class="sc-slide">
+        <div class="sc-art sc-art-3"><span class="sc-icon">📞</span></div>
+        <h3>Appels et partage d'écran en un clic</h3>
+        <p>Lancez un appel vocal ou partagez votre écran instantanément, directement depuis votre conversation.</p>
+      </div>
+      <div class="sc-slide">
+        <div class="sc-art sc-art-4"><span class="sc-icon">🎨</span></div>
+        <h3>Ton profil, à ton image</h3>
+        <p>Couleurs, thèmes, avatars, effets de nom — personnalisez votre profil pour qu'il vous ressemble vraiment.</p>
+      </div>
+      <div class="sc-slide">
+        <div class="sc-art sc-art-5"><span class="sc-icon">🛡️</span></div>
+        <h3>Ton compte, bien gardé</h3>
+        <p>Vérification anti-robot et recommandations de mot de passe robuste en temps réel : votre accès est protégé dès l'inscription.</p>
+      </div>
+      <div class="sc-slide">
+        <div class="sc-art sc-art-6"><span class="sc-icon">🔔</span></div>
+        <h3>Jamais un message manqué</h3>
+        <p>Notifications instantanées, même quand l'application est fermée. Restez connecté à ce qui compte.</p>
+      </div>
+    </div>
+    <div class="showcase-dots" id="showcase-dots"></div>
+  </div>
+ </div>
 </div>
 
 <div id="app" class="hidden">
@@ -1131,6 +1205,42 @@ xlog('page_loaded',{ready:document.readyState});
 
 function showErrTxt(msg){if(\$('auth-err'))\$('auth-err').textContent=msg||''}
 
+/* ===== Carrousel de présentation (page de connexion) ===== */
+(function initShowcase(){
+  const track=\$('showcase-track'),dotsWrap=\$('showcase-dots');
+  if(!track||!dotsWrap)return;
+  const slides=track.querySelectorAll('.sc-slide');
+  if(!slides.length)return;
+  let idx=0,timer=null;
+  slides.forEach(function(_,i){
+    const d=document.createElement('span');
+    d.className='sc-dot'+(i===0?' on':'');
+    d.addEventListener('click',function(){go(i);restart();});
+    dotsWrap.appendChild(d);
+  });
+  const dots=dotsWrap.querySelectorAll('.sc-dot');
+  function go(i){
+    idx=(i+slides.length)%slides.length;
+    track.style.transform='translateX(-'+(idx*100)+'%)';
+    dots.forEach(function(d,j){d.classList.toggle('on',j===idx)});
+  }
+  function next(){go(idx+1)}
+  function restart(){
+    if(timer)clearInterval(timer);
+    timer=setInterval(next,5000);
+  }
+  restart();
+  const showcase=\$('showcase');
+  if(showcase){
+    showcase.addEventListener('mouseenter',function(){if(timer)clearInterval(timer)});
+    showcase.addEventListener('mouseleave',restart);
+  }
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='hidden'){if(timer)clearInterval(timer);}
+    else{restart();}
+  });
+})();
+
 document.querySelectorAll('.tabs button').forEach(function(b){
   b.addEventListener('click',function(){
     try{
@@ -1141,7 +1251,8 @@ document.querySelectorAll('.tabs button').forEach(function(b){
       \$('pane-login').classList.toggle('hidden',reg);
       \$('pane-register').classList.toggle('hidden',!reg);
       showErrTxt('');
-      if(reg){regShownAt=Date.now();updateRegPreview();renderTurnstile();}
+      if(reg){regShownAt=Date.now();updateRegPreview();renderTurnstile('register');}
+      else{renderTurnstile('login');}
     }catch(e){xlog('tab_click_error',{msg:(e&&e.message)||String(e)});}
   });
 });
@@ -1149,21 +1260,21 @@ document.querySelectorAll('.tabs button').forEach(function(b){
 let regShownAt=Date.now();
 let regAvatarFile=null, regAvatarUrl='';
 
-/* ===== Turnstile anti-bot (inscription) ===== */
+/* ===== Turnstile anti-bot (connexion + inscription) ===== */
 const TURNSTILE_SITE_KEY='0x4AAAAAAEYe1BBAtdJkZkA0';
-let turnstileWidgetId=null;
-function renderTurnstile(){
-  const wrap=\$('turnstile-wrap');if(!wrap)return;
+const turnstileWidgetIds={login:null,register:null};
+function renderTurnstile(which){
+  const wrap=\$('turnstile-wrap-'+which);if(!wrap)return;
   if(!TURNSTILE_SITE_KEY){wrap.classList.add('hidden');return}
   wrap.classList.remove('hidden');
-  if(turnstileWidgetId!=null||typeof turnstile==='undefined')return;
-  try{turnstileWidgetId=turnstile.render(wrap,{sitekey:TURNSTILE_SITE_KEY,theme:'dark'});}catch(e){}
+  if(turnstileWidgetIds[which]!=null||typeof turnstile==='undefined')return;
+  try{turnstileWidgetIds[which]=turnstile.render(wrap,{sitekey:TURNSTILE_SITE_KEY,theme:'dark'});}catch(e){}
 }
 if(TURNSTILE_SITE_KEY){
   const tsScript=document.createElement('script');
   tsScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js';
   tsScript.async=true;tsScript.defer=true;
-  tsScript.onload=renderTurnstile;
+  tsScript.onload=function(){renderTurnstile('login');};
   document.head.appendChild(tsScript);
 }
 
@@ -1426,6 +1537,18 @@ function startJwtRefreshLoop(){
   },8*60*1000);
 }
 
+async function verifyTurnstile(which){
+  if(!TURNSTILE_SITE_KEY)return true;
+  const wid=turnstileWidgetIds[which];
+  const tsToken=(typeof turnstile!=='undefined'&&wid!=null)?turnstile.getResponse(wid):'';
+  if(!tsToken){showErrTxt('Merci de valider la vérification anti-robot');return false}
+  try{
+    const tv=await fetch('/api/turnstile/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tsToken})});
+    const tvj=await tv.json().catch(function(){return {ok:false}});
+    if(!tv.ok||!tvj.ok){showErrTxt('Vérification anti-robot échouée, réessaie');if(typeof turnstile!=='undefined'&&wid!=null)turnstile.reset(wid);return false}
+    return true;
+  }catch(e){showErrTxt('Vérification anti-robot indisponible, réessaie');return false}
+}
 async function doLogin(){
   xlog('login_click',{});
   showErrTxt('');
@@ -1433,6 +1556,7 @@ async function doLogin(){
   const pass=(\$('in-pass')&&\$('in-pass').value)||'';
   if(!email||!pass){showErrTxt('Email et mot de passe requis');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
+  if(!(await verifyTurnstile('login')))return;
   \$('btn-login').disabled=true;\$('btn-login').textContent='Connexion…';
   try{
     const jj=await serverLogin(email,pass);
@@ -1442,6 +1566,7 @@ async function doLogin(){
   }catch(e){
     xlog('login_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Connexion impossible');
+    if(typeof turnstile!=='undefined'&&turnstileWidgetIds.login!=null)turnstile.reset(turnstileWidgetIds.login);
   }
   \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
 }
@@ -1462,15 +1587,7 @@ async function doRegister(){
   if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
   if(pass!==passConfirm){showErrTxt('Les mots de passe ne correspondent pas');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
-  if(TURNSTILE_SITE_KEY){
-    const tsToken=(typeof turnstile!=='undefined'&&turnstileWidgetId!=null)?turnstile.getResponse(turnstileWidgetId):'';
-    if(!tsToken){showErrTxt('Merci de valider la vérification anti-robot');return}
-    try{
-      const tv=await fetch('/api/turnstile/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tsToken})});
-      const tvj=await tv.json().catch(function(){return {ok:false}});
-      if(!tv.ok||!tvj.ok){showErrTxt('Vérification anti-robot échouée, réessaie');if(typeof turnstile!=='undefined'&&turnstileWidgetId!=null)turnstile.reset(turnstileWidgetId);return}
-    }catch(e){showErrTxt('Vérification anti-robot indisponible, réessaie');return}
-  }
+  if(!(await verifyTurnstile('register')))return;
   \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
   try{
     await account.create(Appwrite.ID.unique(),email,pass,name);
@@ -1498,6 +1615,7 @@ async function doRegister(){
   }catch(e){
     xlog('register_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Inscription impossible');
+    if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
   }
   \$('btn-register').disabled=false;\$('btn-register').textContent='Créer mon compte';
 }
