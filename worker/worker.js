@@ -458,6 +458,8 @@ button{cursor:pointer;border:0;background:0}
 .cb-dot{width:7px;height:7px;border-radius:50%;background:#7c3aed;flex-shrink:0;animation:cbPulse 1.6s ease-in-out infinite}
 .cb-status.live .cb-dot{background:var(--online)}
 @keyframes cbPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.cb-gear{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#c4b5fd;font-size:.95rem;display:grid;place-items:center;flex-shrink:0;align-self:flex-start}
+.cb-gear:hover{background:rgba(255,255,255,.14)}
 .cb-controls{display:flex;gap:6px;margin-top:12px}
 .cb-ctl{flex:1;height:38px;border-radius:10px;background:var(--elev);color:#f2ebff;font-size:1rem;display:grid;place-items:center}
 .cb-ctl:hover{background:var(--hover)}
@@ -465,10 +467,51 @@ button{cursor:pointer;border:0;background:0}
 .cb-ctl.hangup{flex:1.6;background:rgba(239,68,68,.22);color:#fca5a5;font-size:.8rem;font-weight:800}
 .cb-ctl.hangup:hover{background:rgba(239,68,68,.32)}
 .cb-ctl:disabled{opacity:.35;pointer-events:none}
-.call-video-stage{position:fixed;inset:0;z-index:2900;background:#050308;display:flex}
-.call-video-stage.hidden{display:none}
-#call-remote-video{width:100%;height:100%;object-fit:contain;background:#050308}
-#call-local-video{position:absolute;bottom:96px;right:14px;width:110px;height:150px;border-radius:14px;object-fit:cover;background:#0d0814;border:1px solid rgba(167,139,250,.3);box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.cb-video{margin-top:12px;border-radius:12px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15)}
+.cb-video.hidden{display:none}
+.cbv-top{display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.03)}
+.cbv-label{flex:1;font-size:.68rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.vstage-btn{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.06);color:#f2ebff;font-size:.85rem;display:grid;place-items:center;flex-shrink:0;border:0}
+.vstage-btn:hover{background:rgba(255,255,255,.16)}
+.vstage-btn.on{background:rgba(124,58,237,.5)}
+.vstage-btn:disabled{opacity:.35;pointer-events:none}
+.vgrid{display:grid;gap:6px;padding:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));grid-auto-rows:140px}
+.vgrid.n1{grid-template-columns:1fr;grid-auto-rows:220px}
+.vgrid.cinema{flex:1;min-height:0;padding:0 14px 14px;grid-auto-rows:1fr}
+.vtile{position:relative;border-radius:10px;overflow:hidden;background:#000;cursor:pointer;min-height:0}
+.vtile video{width:100%;height:100%;object-fit:cover;display:block}
+.vtile .vlabel{position:absolute;left:6px;bottom:6px;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.6);font-size:.66rem;font-weight:700;color:#f2ebff}
+.vtile.enlarged{grid-column:1/-1;grid-row:span 2}
+.video-stage{position:fixed;inset:0;z-index:3200;background:#050308;display:flex;flex-direction:column}
+.video-stage.hidden{display:none}
+.vstage-top-bar{display:flex;align-items:center;justify-content:flex-end;padding:12px 14px;flex-shrink:0}
+.vstage-top-bar .vstage-btn{width:auto;padding:0 14px;font-size:.8rem;font-weight:700}
+.live-pill{display:none;align-items:center;gap:7px;margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:.76rem;font-weight:800;cursor:pointer}
+.live-pill.show{display:flex}
+.live-pill .lp-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;animation:cbPulse 1.2s ease-in-out infinite}
+.settings-modal{width:min(400px,100%);max-height:88dvh;overflow-y:auto;text-align:left}
+.settings-modal h3{margin-bottom:14px}
+.set-section{margin-bottom:18px}
+.set-section-label{font-size:.68rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.set-row{margin-bottom:12px}
+.set-row label{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;font-weight:700;margin-bottom:5px}
+.set-row label span.val{color:var(--muted);font-weight:600;font-size:.76rem}
+.set-row select{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 10px}
+.set-row input[type=range]{width:100%;-webkit-appearance:none;height:5px;border-radius:999px;background:var(--elev);outline:0}
+.set-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#a78bfa;cursor:pointer;box-shadow:0 0 0 3px rgba(167,139,250,.2)}
+.set-row input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#a78bfa;border:0;cursor:pointer}
+.set-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:.82rem;font-weight:700}
+.set-switch{width:40px;height:22px;border-radius:999px;background:var(--elev);position:relative;flex-shrink:0;cursor:pointer;border:1px solid var(--line)}
+.set-switch::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#9ca3af;transition:transform .15s,background .15s}
+.set-switch.on{background:rgba(124,58,237,.4);border-color:rgba(167,139,250,.5)}
+.set-switch.on::after{transform:translateX(18px);background:#e9d5ff}
+.mic-meter{height:8px;border-radius:999px;background:var(--elev);overflow:hidden;margin-top:8px}
+.mic-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#7c3aed,#22c55e);transition:width .08s linear}
+.mic-test-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.mic-test-row button{flex:1;height:36px;border-radius:8px;background:var(--elev);color:#f2ebff;font-size:.78rem;font-weight:700;border:1px solid var(--line)}
+.seg-group{display:flex;gap:6px;margin-top:4px}
+.seg-btn{flex:1;height:34px;border-radius:8px;background:var(--elev);border:1px solid var(--line);color:var(--muted);font-size:.72rem;font-weight:700}
+.seg-btn.on{background:rgba(124,58,237,.35);border-color:rgba(167,139,250,.5);color:#e9d5ff}
 .tabbar{display:none}
 @media (max-width:640px){
   #app{flex-direction:column}
@@ -680,9 +723,81 @@ button{cursor:pointer;border:0;background:0}
   </div>
 </div>
 
-<div class="call-video-stage hidden" id="call-video-stage">
-  <video id="call-remote-video" autoplay playsinline></video>
-  <video id="call-local-video" autoplay playsinline muted></video>
+<div class="overlay hidden" id="modal-call-settings">
+  <div class="modal-box settings-modal">
+    <button type="button" class="modal-close" id="cs-close">✕</button>
+    <h3>🎛️ Paramètres audio &amp; vidéo</h3>
+    <div class="set-section">
+      <div class="set-section-label">Micro</div>
+      <div class="set-row">
+        <label>Source</label>
+        <select id="cs-mic-device"></select>
+      </div>
+      <div class="set-row">
+        <label>Volume micro <span class="val" id="cs-mic-vol-val">100%</span></label>
+        <input type="range" id="cs-mic-vol" min="0" max="200" value="100"/>
+      </div>
+      <div class="set-row">
+        <label>Canal audio</label>
+        <div class="seg-group">
+          <button type="button" class="seg-btn on" data-chan="mono">Mono</button>
+          <button type="button" class="seg-btn" data-chan="stereo">Stéréo</button>
+          <button type="button" class="seg-btn" data-chan="spatial">Spatial (sim. 7.1)</button>
+        </div>
+      </div>
+      <div class="set-toggle-row"><span>Réduction de bruit</span><div class="set-switch on" id="cs-noise" data-on="1"></div></div>
+      <div class="set-toggle-row"><span>Annulation d'écho</span><div class="set-switch on" id="cs-echo" data-on="1"></div></div>
+      <div class="set-toggle-row"><span>Gain automatique</span><div class="set-switch on" id="cs-agc" data-on="1"></div></div>
+      <div class="set-row">
+        <label>Test micro</label>
+        <div class="mic-meter"><div class="mic-meter-fill" id="cs-mic-meter"></div></div>
+        <div class="mic-test-row"><button type="button" id="cs-mic-record">🔴 Écouter ma voix (3s)</button></div>
+      </div>
+    </div>
+    <div class="set-section">
+      <div class="set-section-label">Sortie audio</div>
+      <div class="set-row">
+        <label>Volume sortie <span class="val" id="cs-out-vol-val">100%</span></label>
+        <input type="range" id="cs-out-vol" min="0" max="200" value="100"/>
+      </div>
+    </div>
+    <div class="set-section">
+      <div class="set-section-label">Caméra</div>
+      <div class="set-row">
+        <label>Qualité</label>
+        <select id="cs-cam-quality">
+          <option value="480p30">480p · 30 fps</option>
+          <option value="720p30" selected>720p · 30 fps</option>
+          <option value="720p60">720p · 60 fps</option>
+          <option value="1080p30">1080p · 30 fps</option>
+          <option value="1080p60">1080p · 60 fps</option>
+          <option value="1440p60">1440p · 60 fps</option>
+          <option value="2160p30">4K · 30 fps</option>
+          <option value="2160p60">4K · 60 fps</option>
+        </select>
+      </div>
+    </div>
+    <div class="set-section">
+      <div class="set-section-label">Partage d'écran</div>
+      <div class="set-row">
+        <label>Qualité</label>
+        <select id="cs-screen-quality">
+          <option value="720p30">720p · 30 fps</option>
+          <option value="1080p30">1080p · 30 fps</option>
+          <option value="1080p60" selected>1080p · 60 fps</option>
+          <option value="1440p60">1440p · 60 fps</option>
+          <option value="2160p30">4K · 30 fps</option>
+          <option value="2160p60">4K · 60 fps</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="video-stage hidden" id="call-video-stage">
+  <div class="vstage-top-bar">
+    <button type="button" class="vstage-btn" id="vstage-exit">▾ Réduire</button>
+  </div>
 </div>
 <div class="call-bar hidden" id="call-bar">
   <div class="cb-top">
@@ -691,14 +806,24 @@ button{cursor:pointer;border:0;background:0}
       <div class="cb-name" id="cb-name">En appel · 1 participant</div>
       <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
     </div>
+    <button type="button" class="cb-gear" id="cb-settings" title="Paramètres audio/vidéo">⚙️</button>
   </div>
   <div class="cb-controls">
     <button type="button" class="cb-ctl" id="cb-mute" title="Muet">🎤</button>
     <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir">🎧</button>
     <button type="button" class="cb-ctl" id="cb-cam" title="Caméra">📷</button>
     <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran">🖥️</button>
-    <button type="button" class="cb-ctl" id="cb-fullscreen" title="Plein écran" disabled>⛶</button>
     <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher">Quitter</button>
+  </div>
+  <div class="cb-video hidden" id="cb-video">
+    <div class="cbv-top">
+      <span class="cbv-label" id="cbv-label">Vidéo</span>
+      <button type="button" class="vstage-btn" id="cb-cinema" title="Mode cinéma">⛶</button>
+      <button type="button" class="vstage-btn" id="cb-mask" title="Masquer">▾</button>
+    </div>
+  </div>
+  <div class="live-pill" id="live-pill">
+    <span class="lp-dot"></span><span id="lp-label">Webcam active</span>
   </div>
   <audio id="call-remote-audio" autoplay playsinline></audio>
 </div>
@@ -1680,26 +1805,271 @@ const ICE_SERVERS={iceServers:[
   {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
   {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'}
 ]};
+const AV_QUALITY={
+  '480p30':{w:854,h:480,fps:30,bitrate:700000},
+  '720p30':{w:1280,h:720,fps:30,bitrate:1500000},
+  '720p60':{w:1280,h:720,fps:60,bitrate:2200000},
+  '1080p30':{w:1920,h:1080,fps:30,bitrate:3000000},
+  '1080p60':{w:1920,h:1080,fps:60,bitrate:4500000},
+  '1440p60':{w:2560,h:1440,fps:60,bitrate:8000000},
+  '2160p30':{w:3840,h:2160,fps:30,bitrate:10000000},
+  '2160p60':{w:3840,h:2160,fps:60,bitrate:15000000}
+};
 
 let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
 let callPeerUid=null, callPeerName=null, callIsCaller=false;
 let callTimerId=null, callTimeoutId=null, callStartedAt=null, currentCallLabel='';
 let callUnsubs=[];
 let pendingLocalIce=[];
-let camStream=null, screenStream=null, videoSender=null;
-let makingOffer=false, ignoreOffer=false, callLive=false, remoteVideoActive=false;
+let camStream=null, screenStream=null, camSender=null, screenSender=null;
+let makingOffer=false, ignoreOffer=false, callLive=false;
+let remoteTiles={cam:null,screen:null};
+let remoteMetaByMid={}, pendingRemoteTracksByMid={}, localMetaQueue=[];
+let videoMasked=false, cinemaMode=false, enlargedTileKey=null, videoEls={};
+let camQualityKey='720p30', screenQualityKey='1080p60';
+let micVolumePct=100, outVolumePct=100;
+let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='mono';
+let audioCtx=null;
+let micSourceNode=null, micGainNode=null, micDestNode=null, micAnalyser=null, micMeterRaf=null;
+let outSourceNode=null, outGainNode=null, outPanner=null, outLfo=null, outLfoGain=null, outConnected=false;
 function isPolite(){return !callIsCaller}
+
+function ensureAudioCtx(){
+  if(audioCtx)return audioCtx;
+  try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null;}
+  return audioCtx;
+}
+function ensureOutputAudioGraph(){
+  const el=\$('call-remote-audio');if(!el)return;
+  const ctx=ensureAudioCtx();if(!ctx)return;
+  if(outConnected)return;
+  try{
+    outSourceNode=ctx.createMediaElementSource(el);
+    outPanner=ctx.createStereoPanner();
+    outGainNode=ctx.createGain();
+    outGainNode.gain.value=outVolumePct/100;
+    outSourceNode.connect(outPanner).connect(outGainNode).connect(ctx.destination);
+    outConnected=true;
+    applyChannelMode();
+  }catch(e){xlog('out_chain_fail',{msg:(e&&e.message)||String(e)});}
+}
+function rebuildMicChain(){
+  if(!localStream||!callPc)return;
+  const ctx=ensureAudioCtx();if(!ctx)return;
+  try{
+    if(micAnalyser){try{micAnalyser.disconnect();}catch(e){}micAnalyser=null;}
+    if(micSourceNode){try{micSourceNode.disconnect();}catch(e){}}
+    if(micGainNode){try{micGainNode.disconnect();}catch(e){}}
+    micSourceNode=ctx.createMediaStreamSource(localStream);
+    micGainNode=ctx.createGain();
+    micGainNode.gain.value=micVolumePct/100;
+    micDestNode=ctx.createMediaStreamDestination();
+    micSourceNode.connect(micGainNode).connect(micDestNode);
+    const newTrack=micDestNode.stream.getAudioTracks()[0];
+    const sender=callPc.getSenders().find(function(s){return s.track&&s.track.kind==='audio'});
+    if(sender&&newTrack)sender.replaceTrack(newTrack);
+  }catch(e){xlog('mic_chain_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function applyChannelMode(){
+  if(localStream){
+    const t=localStream.getAudioTracks()[0];
+    if(t){try{await t.applyConstraints({channelCount:channelMode==='mono'?1:2});}catch(e){}}
+  }
+  if(outPanner){
+    if(channelMode==='spatial'){
+      if(!outLfo&&audioCtx){
+        outLfo=audioCtx.createOscillator();
+        outLfo.frequency.value=0.12;
+        outLfoGain=audioCtx.createGain();
+        outLfoGain.gain.value=0.35;
+        outLfo.connect(outLfoGain).connect(outPanner.pan);
+        outLfo.start();
+      }
+    } else if(outLfo){
+      try{outLfo.stop();outLfo.disconnect();}catch(e){}
+      outLfo=null;
+      try{outPanner.pan.value=0;}catch(e){}
+    }
+  }
+}
+function startMicMeter(){
+  if(!localStream)return;
+  if(!micSourceNode)rebuildMicChain();
+  const ctx=audioCtx;if(!ctx||!micSourceNode)return;
+  if(!micAnalyser){
+    micAnalyser=ctx.createAnalyser();
+    micAnalyser.fftSize=256;
+    micSourceNode.connect(micAnalyser);
+  }
+  const data=new Uint8Array(micAnalyser.frequencyBinCount);
+  function loop(){
+    const modal=\$('modal-call-settings');
+    if(!modal||modal.classList.contains('hidden')||!micAnalyser){micMeterRaf=null;return}
+    micAnalyser.getByteFrequencyData(data);
+    let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];
+    const avg=sum/data.length;
+    const pct=Math.min(100,Math.round((avg/140)*100));
+    const fill=\$('cs-mic-meter');if(fill)fill.style.width=pct+'%';
+    micMeterRaf=requestAnimationFrame(loop);
+  }
+  loop();
+}
+function stopMicMeter(){
+  if(micMeterRaf){cancelAnimationFrame(micMeterRaf);micMeterRaf=null;}
+}
+async function applyEncodingBitrate(sender,bitrate){
+  if(!sender)return;
+  try{
+    const params=sender.getParameters();
+    if(!params.encodings||!params.encodings.length)params.encodings=[{}];
+    params.encodings[0].maxBitrate=bitrate;
+    await sender.setParameters(params);
+  }catch(e){}
+}
+async function applyCamQualityLive(){
+  if(!camStream||!camSender)return;
+  const q=AV_QUALITY[camQualityKey];if(!q)return;
+  const track=camStream.getVideoTracks()[0];
+  if(track){try{await track.applyConstraints({width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}});}catch(e){}}
+  applyEncodingBitrate(camSender,q.bitrate);
+}
+async function applyScreenQualityLive(){
+  if(!screenStream||!screenSender)return;
+  const q=AV_QUALITY[screenQualityKey];if(!q)return;
+  const track=screenStream.getVideoTracks()[0];
+  if(track){try{await track.applyConstraints({width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}});}catch(e){}}
+  applyEncodingBitrate(screenSender,q.bitrate);
+}
+function getMidForSender(sender){
+  if(!callPc||!sender)return null;
+  const tr=callPc.getTransceivers().find(function(t){return t.sender===sender});
+  return tr?tr.mid:null;
+}
+function flushLocalMetaQueue(){
+  if(!localMetaQueue.length||!activeCallDoc)return;
+  const q=localMetaQueue;localMetaQueue=[];
+  q.forEach(function(entry){
+    const mid=getMidForSender(entry.sender);
+    if(mid==null){localMetaQueue.push(entry);return}
+    sendSignal(activeCallDoc.\$id,'video-meta',{mid:mid,type:entry.type});
+  });
+}
+
+function computeActiveTiles(){
+  const tiles=[];
+  if(camStream)tiles.push({key:'local-cam',stream:camStream,label:'Toi · Caméra',isLocal:true});
+  if(screenStream)tiles.push({key:'local-screen',stream:screenStream,label:'Toi · Écran',isLocal:true});
+  if(remoteTiles.cam)tiles.push({key:'remote-cam',stream:remoteTiles.cam.stream,label:(callPeerName||'Correspondant')+' · Caméra',isLocal:false});
+  if(remoteTiles.screen)tiles.push({key:'remote-screen',stream:remoteTiles.screen.stream,label:(callPeerName||'Correspondant')+' · Écran',isLocal:false});
+  return tiles;
+}
+function renderVideoGrid(){
+  const grid=\$('vgrid');if(!grid)return;
+  const tiles=computeActiveTiles();
+  const hasVideo=tiles.length>0;
+  if(!hasVideo){
+    videoMasked=false;
+    enlargedTileKey=null;
+    if(cinemaMode)exitCinema();
+  }
+  if(enlargedTileKey&&!tiles.some(function(t){return t.key===enlargedTileKey}))enlargedTileKey=null;
+  const seen={};
+  tiles.forEach(function(t){
+    seen[t.key]=true;
+    let wrap=videoEls[t.key];
+    if(!wrap){
+      wrap=document.createElement('div');
+      wrap.className='vtile';
+      const video=document.createElement('video');
+      video.autoplay=true;video.playsInline=true;
+      if(t.isLocal)video.muted=true;
+      wrap.appendChild(video);
+      const lbl=document.createElement('div');
+      lbl.className='vlabel';
+      wrap.appendChild(lbl);
+      wrap.addEventListener('click',function(){
+        enlargedTileKey=(enlargedTileKey===t.key)?null:t.key;
+        renderVideoGrid();
+      });
+      videoEls[t.key]=wrap;
+    }
+    const video=wrap.querySelector('video');
+    if(video.srcObject!==t.stream)video.srcObject=t.stream;
+    wrap.querySelector('.vlabel').textContent=t.label;
+    wrap.classList.toggle('enlarged',enlargedTileKey===t.key);
+    if(grid!==wrap.parentElement)grid.appendChild(wrap);
+  });
+  Object.keys(videoEls).forEach(function(k){
+    if(!seen[k]){
+      const el=videoEls[k];
+      if(el.parentElement)el.parentElement.removeChild(el);
+      const v=el.querySelector('video');if(v)v.srcObject=null;
+      delete videoEls[k];
+    }
+  });
+  grid.classList.toggle('n1',tiles.length===1);
+  const cbv=\$('cb-video');if(cbv)cbv.classList.toggle('hidden',!hasVideo||videoMasked);
+  const camActive=!!camStream||!!remoteTiles.cam;
+  const screenActive=!!screenStream||!!remoteTiles.screen;
+  let pillLabel='';
+  if(camActive&&screenActive)pillLabel='Webcam & écran actifs';
+  else if(screenActive)pillLabel='Partage d\\'écran actif';
+  else if(camActive)pillLabel='Webcam active';
+  const lp=\$('lp-label');if(lp)lp.textContent=pillLabel;
+  const pill=\$('live-pill');if(pill)pill.classList.toggle('show',hasVideo&&videoMasked);
+  const cin=\$('cb-cinema');if(cin)cin.disabled=!hasVideo;
+}
+function enterCinema(){
+  if(cinemaMode)return;
+  cinemaMode=true;videoMasked=false;
+  const stage=\$('call-video-stage'),grid=\$('vgrid');
+  if(stage&&grid){stage.appendChild(grid);grid.classList.add('cinema');stage.classList.remove('hidden');}
+  const btn=\$('cb-cinema');if(btn)btn.classList.add('on');
+  try{if(stage&&stage.requestFullscreen)stage.requestFullscreen().catch(function(){});}catch(e){}
+  renderVideoGrid();
+}
+function exitCinema(){
+  if(!cinemaMode)return;
+  cinemaMode=false;
+  const cbv=\$('cb-video'),grid=\$('vgrid');
+  if(cbv&&grid){
+    const top=cbv.querySelector('.cbv-top');
+    if(top)top.insertAdjacentElement('afterend',grid);else cbv.appendChild(grid);
+    grid.classList.remove('cinema');
+  }
+  const stage=\$('call-video-stage');if(stage)stage.classList.add('hidden');
+  const btn=\$('cb-cinema');if(btn)btn.classList.remove('on');
+  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
+  renderVideoGrid();
+}
+document.addEventListener('fullscreenchange',function(){
+  if(!document.fullscreenElement&&cinemaMode)exitCinema();
+});
+(function initVideoGrid(){
+  const grid=document.createElement('div');
+  grid.className='vgrid';grid.id='vgrid';
+  const cbv=\$('cb-video');
+  if(cbv)cbv.appendChild(grid);
+})();
 
 function onRemoteTrack(e){
   if(e.track.kind==='video'){
-    const v=\$('call-remote-video');
-    if(v)v.srcObject=e.streams[0];
-    remoteVideoActive=true;
-    updateVideoStage();
-    e.track.onended=function(){remoteVideoActive=false;updateVideoStage();};
+    const mid=e.transceiver?e.transceiver.mid:null;
+    const stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    let type=(mid!=null)?remoteMetaByMid[mid]:null;
+    if(!type){
+      type=remoteTiles.cam?'screen':'cam';
+      if(mid!=null)pendingRemoteTracksByMid[mid]={stream:stream,track:e.track};
+    }
+    remoteTiles[type]={stream:stream,track:e.track,mid:mid};
+    e.track.onended=function(){
+      if(remoteTiles[type]&&remoteTiles[type].track===e.track){remoteTiles[type]=null;renderVideoGrid();}
+    };
+    renderVideoGrid();
   } else {
     const a=\$('call-remote-audio');
-    if(a)a.srcObject=e.streams[0];
+    if(a)a.srcObject=e.streams[0]||new MediaStream([e.track]);
+    ensureOutputAudioGraph();
   }
 }
 async function onNegotiationNeeded(){
@@ -1708,57 +2078,52 @@ async function onNegotiationNeeded(){
     makingOffer=true;
     await callPc.setLocalDescription();
     sendSignal(activeCallDoc.\$id,'reneg-offer',callPc.localDescription);
+    flushLocalMetaQueue();
   }catch(e){xlog('call_reneg_fail',{msg:(e&&e.message)||String(e)});}
   finally{makingOffer=false;}
 }
-function updateVideoStage(){
-  const stage=\$('call-video-stage');if(!stage)return;
-  const hasVideo=remoteVideoActive||!!videoSender;
-  stage.classList.toggle('hidden',!hasVideo);
-  const lv=\$('call-local-video');if(lv)lv.classList.toggle('hidden',!videoSender);
-  const fs=\$('cb-fullscreen');if(fs)fs.disabled=!hasVideo;
-}
 async function toggleCamera(){
   if(!callPc||!callLive)return;
-  if(videoSender){
-    try{callPc.removeTrack(videoSender);}catch(e){}
-    videoSender=null;
+  if(camSender){
+    try{callPc.removeTrack(camSender);}catch(e){}
+    camSender=null;
     if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
-    const lv=\$('call-local-video');if(lv)lv.srcObject=null;
     \$('cb-cam').classList.remove('on');
-    updateVideoStage();
+    if(enlargedTileKey==='local-cam')enlargedTileKey=null;
+    renderVideoGrid();
     return;
   }
-  if(screenStream)await toggleScreenShare();
   try{
-    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+    const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}}});
     const track=camStream.getVideoTracks()[0];
-    videoSender=callPc.addTrack(track,camStream);
-    const lv=\$('call-local-video');if(lv)lv.srcObject=camStream;
+    camSender=callPc.addTrack(track,camStream);
+    localMetaQueue.push({sender:camSender,type:'cam'});
+    applyEncodingBitrate(camSender,q.bitrate);
     \$('cb-cam').classList.add('on');
-    updateVideoStage();
+    renderVideoGrid();
   }catch(e){alert('Caméra refusée ou indisponible');}
+}
+function stopScreenShare(){
+  if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
+  if(screenSender){try{callPc.removeTrack(screenSender);}catch(e){}screenSender=null;}
+  \$('cb-screen').classList.remove('on');
+  if(enlargedTileKey==='local-screen')enlargedTileKey=null;
+  renderVideoGrid();
 }
 async function toggleScreenShare(){
   if(!callPc||!callLive)return;
-  if(screenStream){
-    screenStream.getTracks().forEach(function(t){t.stop()});
-    screenStream=null;
-    if(videoSender){try{callPc.removeTrack(videoSender);}catch(e){}videoSender=null;}
-    const lv=\$('call-local-video');if(lv)lv.srcObject=null;
-    \$('cb-screen').classList.remove('on');
-    updateVideoStage();
-    return;
-  }
-  if(camStream)await toggleCamera();
+  if(screenSender){stopScreenShare();return;}
   try{
-    screenStream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});
+    const q=AV_QUALITY[screenQualityKey]||AV_QUALITY['1080p60'];
+    screenStream=await navigator.mediaDevices.getDisplayMedia({video:{width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}},audio:false});
     const track=screenStream.getVideoTracks()[0];
-    videoSender=callPc.addTrack(track,screenStream);
-    const lv=\$('call-local-video');if(lv)lv.srcObject=screenStream;
+    screenSender=callPc.addTrack(track,screenStream);
+    localMetaQueue.push({sender:screenSender,type:'screen'});
+    applyEncodingBitrate(screenSender,q.bitrate);
     \$('cb-screen').classList.add('on');
-    updateVideoStage();
-    track.onended=function(){toggleScreenShare();};
+    renderVideoGrid();
+    track.onended=function(){stopScreenShare();};
   }catch(e){
     if(e&&e.name!=='NotAllowedError')alert('Partage d\\'écran indisponible');
   }
@@ -1837,7 +2202,7 @@ async function acceptIncomingCall(){
   dismissIncomingCall();
   callPeerUid=doc.callerId;callPeerName=doc.callerName||'Appel';callIsCaller=false;
   try{
-    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
   }catch(e){alert('Micro refusé ou indisponible');try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e2){}return}
   try{
     const pc=new RTCPeerConnection(ICE_SERVERS);
@@ -1853,6 +2218,7 @@ async function acceptIncomingCall(){
     subscribeIceForCall(doc.\$id);
     subscribeCallDocLifecycle(doc.\$id);
     callLive=true;
+    rebuildMicChain();
     showCallBar(callPeerName,'En appel…',new Date(doc.\$createdAt).getTime());
   }catch(e){
     xlog('call_accept_fail',{msg:(e&&e.message)||String(e)});
@@ -1872,7 +2238,7 @@ async function startCall(peerUid,peerName){
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
   pendingLocalIce=[];
   try{
-    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
   }catch(e){alert('Micro refusé ou indisponible sur cet appareil');return}
   try{
     const pc=new RTCPeerConnection(ICE_SERVERS);
@@ -1894,6 +2260,7 @@ async function startCall(peerUid,peerName){
     activeCallDoc=doc;
     pendingLocalIce.forEach(function(c){sendSignal(doc.\$id,'ice',c)});
     pendingLocalIce=[];
+    rebuildMicChain();
     showCallBar(peerName,'Sonne…',new Date(doc.\$createdAt).getTime());
     subscribeCallAnswer(doc.\$id);
     subscribeIceForCall(doc.\$id);
@@ -1968,6 +2335,18 @@ function subscribeIceForCall(callId){
         if(callPc.signalingState==='have-local-offer'){
           await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
         }
+        flushLocalMetaQueue();
+      } else if(msg.kind==='video-meta'){
+        const mid=msg.data&&msg.data.mid,type=msg.data&&msg.data.type;
+        if(mid==null||!type)return;
+        remoteMetaByMid[mid]=type;
+        const pend=pendingRemoteTracksByMid[mid];
+        if(pend){
+          Object.keys(remoteTiles).forEach(function(k){if(remoteTiles[k]&&remoteTiles[k].track===pend.track)remoteTiles[k]=null;});
+          remoteTiles[type]={stream:pend.stream,track:pend.track,mid:mid};
+          delete pendingRemoteTracksByMid[mid];
+          renderVideoGrid();
+        }
       }
     }catch(e){xlog('call_signal_fail',{kind:msg.kind,msg:(e&&e.message)||String(e)});}
   });
@@ -1987,6 +2366,7 @@ function showCallBar(name,label,startedAtMs){
   if(startedAtMs)callStartedAt=startedAtMs;
   setCallStatusLabel(label);
   repositionCallPanel();
+  renderVideoGrid();
   if(!callTimerId){
     callTimerId=setInterval(function(){renderCallStatus()},1000);
   }
@@ -2011,26 +2391,40 @@ function cleanupCallLocal(){
   if(localStream){localStream.getTracks().forEach(function(t){t.stop()});localStream=null;}
   if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
-  videoSender=null;callLive=false;remoteVideoActive=false;makingOffer=false;ignoreOffer=false;
+  camSender=null;screenSender=null;
+  callLive=false;makingOffer=false;ignoreOffer=false;
   callStartedAt=null;currentCallLabel='';
   if(callTimerId){clearInterval(callTimerId);callTimerId=null;}
   if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
   if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
   callUnsubAll();
   activeCallDoc=null;incomingCallDoc=null;callPeerUid=null;callPeerName=null;callIsCaller=false;
+  remoteTiles={cam:null,screen:null};
+  pendingRemoteTracksByMid={};remoteMetaByMid={};localMetaQueue=[];
+  if(cinemaMode)exitCinema();
+  videoMasked=false;enlargedTileKey=null;
+  Object.keys(videoEls).forEach(function(k){
+    const el=videoEls[k];
+    if(el.parentElement)el.parentElement.removeChild(el);
+    const v=el.querySelector('video');if(v)v.srcObject=null;
+  });
+  videoEls={};
   \$('call-bar').classList.add('hidden');
-  \$('call-video-stage').classList.add('hidden');
+  \$('cb-video').classList.add('hidden');
+  \$('live-pill').classList.remove('show');
   \$('modal-incoming-call').classList.add('hidden');
-  const audioEl=\$('call-remote-audio');if(audioEl)audioEl.srcObject=null;
-  const rv=\$('call-remote-video');if(rv)rv.srcObject=null;
-  const lv=\$('call-local-video');if(lv)lv.srcObject=null;
+  \$('modal-call-settings').classList.add('hidden');
+  stopMicMeter();
+  if(micAnalyser){try{micAnalyser.disconnect();}catch(e){}micAnalyser=null;}
+  if(micSourceNode){try{micSourceNode.disconnect();}catch(e){}micSourceNode=null;}
+  if(micGainNode){try{micGainNode.disconnect();}catch(e){}micGainNode=null;}
+  micDestNode=null;
+  if(outGainNode)outGainNode.gain.value=outVolumePct/100;
+  const audioEl=\$('call-remote-audio');if(audioEl){audioEl.srcObject=null;audioEl.muted=false;}
   \$('cb-mute').classList.remove('on');
   \$('cb-cam').classList.remove('on');
   \$('cb-screen').classList.remove('on');
   \$('cb-deafen').classList.remove('on');
-  if(audioEl)audioEl.muted=false;
-  if(rv)rv.muted=false;
-  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
   subscribeIncomingCalls();
 }
 async function endCall(finalStatus,skipRemoteUpdate){
@@ -2062,17 +2456,112 @@ if(\$('cb-screen'))\$('cb-screen').addEventListener('click',toggleScreenShare);
 if(\$('cb-deafen'))\$('cb-deafen').addEventListener('click',function(){
   const deafened=!this.classList.contains('on');
   this.classList.toggle('on',deafened);
-  const a=\$('call-remote-audio'),v=\$('call-remote-video');
+  if(outGainNode)outGainNode.gain.value=deafened?0:(outVolumePct/100);
+  const a=\$('call-remote-audio');
   if(a)a.muted=deafened;
-  if(v)v.muted=deafened;
 });
-if(\$('cb-fullscreen'))\$('cb-fullscreen').addEventListener('click',function(){
-  const stage=\$('call-video-stage');
-  if(!stage||stage.classList.contains('hidden'))return;
+if(\$('cb-cinema'))\$('cb-cinema').addEventListener('click',function(){
+  if(cinemaMode)exitCinema();else enterCinema();
+});
+if(\$('vstage-exit'))\$('vstage-exit').addEventListener('click',function(){exitCinema();});
+if(\$('cb-mask'))\$('cb-mask').addEventListener('click',function(){videoMasked=true;renderVideoGrid();});
+if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMasked=false;renderVideoGrid();});
+
+if(\$('cb-settings'))\$('cb-settings').addEventListener('click',function(){
+  \$('modal-call-settings').classList.remove('hidden');
+  populateMicDevices();
+  startMicMeter();
+});
+if(\$('cs-close'))\$('cs-close').addEventListener('click',function(){
+  \$('modal-call-settings').classList.add('hidden');
+  stopMicMeter();
+});
+async function populateMicDevices(){
+  const sel=\$('cs-mic-device');if(!sel)return;
   try{
-    if(document.fullscreenElement)document.exitFullscreen();
-    else if(stage.requestFullscreen)stage.requestFullscreen();
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const mics=devices.filter(function(d){return d.kind==='audioinput'});
+    sel.innerHTML=mics.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||('Micro '+(i+1)))+'</option>'}).join('');
   }catch(e){}
+}
+if(\$('cs-mic-device'))\$('cs-mic-device').addEventListener('change',async function(){
+  if(!callPc||!localStream)return;
+  const deviceId=this.value;if(!deviceId)return;
+  try{
+    const newStream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:deviceId},echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
+    const newTrack=newStream.getAudioTracks()[0];
+    const oldTrack=localStream.getAudioTracks()[0];
+    if(oldTrack){localStream.removeTrack(oldTrack);try{oldTrack.stop();}catch(e){}}
+    localStream.addTrack(newTrack);
+    rebuildMicChain();
+  }catch(e){alert('Changement de micro impossible');}
+});
+if(\$('cs-mic-vol'))\$('cs-mic-vol').addEventListener('input',function(){
+  micVolumePct=parseInt(this.value,10)||0;
+  \$('cs-mic-vol-val').textContent=micVolumePct+'%';
+  if(micGainNode)micGainNode.gain.value=micVolumePct/100;
+});
+if(\$('cs-out-vol'))\$('cs-out-vol').addEventListener('input',function(){
+  outVolumePct=parseInt(this.value,10)||0;
+  \$('cs-out-vol-val').textContent=outVolumePct+'%';
+  if(outGainNode&&!\$('cb-deafen').classList.contains('on'))outGainNode.gain.value=outVolumePct/100;
+});
+document.querySelectorAll('[data-chan]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    channelMode=btn.getAttribute('data-chan');
+    document.querySelectorAll('[data-chan]').forEach(function(b){b.classList.toggle('on',b===btn)});
+    applyChannelMode();
+  });
+});
+function wireSetSwitch(id,setter){
+  const el=\$(id);if(!el)return;
+  el.addEventListener('click',function(){
+    const on=el.getAttribute('data-on')!=='1';
+    el.setAttribute('data-on',on?'1':'0');
+    el.classList.toggle('on',on);
+    setter(on);
+  });
+}
+wireSetSwitch('cs-noise',function(on){
+  noiseSuppressionOn=on;
+  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({noiseSuppression:on}).catch(function(){});}
+});
+wireSetSwitch('cs-echo',function(on){
+  echoCancellationOn=on;
+  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({echoCancellation:on}).catch(function(){});}
+});
+wireSetSwitch('cs-agc',function(on){
+  agcOn=on;
+  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({autoGainControl:on}).catch(function(){});}
+});
+if(\$('cs-mic-record'))\$('cs-mic-record').addEventListener('click',function(){
+  if(!localStream){alert('Rejoins un appel pour tester ton micro.');return}
+  const btn=this;
+  if(btn.disabled)return;
+  try{
+    const rec=new MediaRecorder(localStream);
+    const chunks=[];
+    rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
+    rec.onstop=function(){
+      const blob=new Blob(chunks,{type:rec.mimeType||'audio/webm'});
+      const url=URL.createObjectURL(blob);
+      const player=new Audio(url);
+      player.play().catch(function(){});
+      player.onended=function(){URL.revokeObjectURL(url)};
+      btn.disabled=false;btn.textContent='🔴 Écouter ma voix (3s)';
+    };
+    rec.start();
+    btn.disabled=true;btn.textContent='🎙️ Enregistrement…';
+    setTimeout(function(){try{rec.stop();}catch(e){}},3000);
+  }catch(e){alert('Enregistrement indisponible sur ce navigateur');}
+});
+if(\$('cs-cam-quality'))\$('cs-cam-quality').addEventListener('change',function(){
+  camQualityKey=this.value;
+  applyCamQualityLive();
+});
+if(\$('cs-screen-quality'))\$('cs-screen-quality').addEventListener('change',function(){
+  screenQualityKey=this.value;
+  applyScreenQualityLive();
 });
 
 function boot(){
