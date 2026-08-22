@@ -3319,10 +3319,24 @@ let outSourceNode=null, outGainNode=null, outPanner=null, outLfo=null, outLfoGai
 function isPolite(){return !callIsCaller}
 
 function ensureAudioCtx(){
-  if(audioCtx)return audioCtx;
-  try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null;}
+  if(!audioCtx){
+    try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){audioCtx=null;}
+  }
+  /* Sur mobile, l'AudioContext démarre souvent "suspended" tant qu'aucun
+     geste utilisateur direct ne le débloque — une fois qu'on route
+     l'élément <audio> à travers ce contexte (ensureOutputAudioGraph), son
+     chemin de sortie natif est coupé : s'il reste suspendu, aucun son ne
+     sort, sans la moindre erreur JS. On tente de le relancer à chaque
+     appel, et un tap n'importe où sur la barre d'appel (voir plus bas)
+     redonne une nouvelle chance si la première tentative a été refusée. */
+  if(audioCtx&&audioCtx.state==='suspended'){
+    audioCtx.resume().then(function(){xlog('audio_ctx_resume',{state:audioCtx&&audioCtx.state});}).catch(function(){});
+  }
   return audioCtx;
 }
+if(\$('call-bar'))\$('call-bar').addEventListener('click',function(){
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(function(){});
+},true);
 function ensureOutputAudioGraph(){
   const el=\$('call-remote-audio');if(!el)return;
   const ctx=ensureAudioCtx();if(!ctx)return;
@@ -3334,6 +3348,7 @@ function ensureOutputAudioGraph(){
     outGainNode.gain.value=outVolumePct/100;
     outSourceNode.connect(outPanner).connect(outGainNode).connect(ctx.destination);
     outConnected=true;
+    xlog('out_chain_ready',{ctxState:ctx.state});
     applyChannelMode();
   }catch(e){xlog('out_chain_fail',{msg:(e&&e.message)||String(e)});}
 }
@@ -3545,6 +3560,7 @@ function onRemoteTrack(e){
       type=remoteTiles.cam?'screen':'cam';
       if(mid!=null)pendingRemoteTracksByMid[mid]={stream:stream,track:e.track};
     }
+    xlog('remote_video_track',{mid:mid,type:type,readyState:e.track.readyState});
     remoteTiles[type]={stream:stream,track:e.track,mid:mid};
     e.track.onended=function(){
       if(remoteTiles[type]&&remoteTiles[type].track===e.track){remoteTiles[type]=null;renderVideoGrid();}
@@ -3557,10 +3573,14 @@ function onRemoteTrack(e){
   }
 }
 async function onNegotiationNeeded(){
-  if(!callLive||!activeCallDoc||!callPc)return;
+  if(!callLive||!activeCallDoc||!callPc){
+    xlog('reneg_skipped',{callLive:callLive,hasDoc:!!activeCallDoc,hasPc:!!callPc});
+    return;
+  }
   try{
     makingOffer=true;
     await callPc.setLocalDescription();
+    xlog('reneg_offer_sent',{state:callPc.signalingState,senders:callPc.getSenders().map(function(s){return s.track&&s.track.kind}).filter(Boolean)});
     sendSignal(activeCallDoc.\$id,'reneg-offer',callPc.localDescription);
     flushLocalMetaQueue();
   }catch(e){xlog('call_reneg_fail',{msg:(e&&e.message)||String(e)});}
@@ -3586,7 +3606,8 @@ async function toggleCamera(){
     applyEncodingBitrate(camSender,q.bitrate);
     \$('cb-cam').classList.add('on');
     renderVideoGrid();
-  }catch(e){alert('Caméra refusée ou indisponible');}
+    xlog('cam_toggled_on',{callLive:callLive,signalingState:callPc.signalingState,trackState:track.readyState});
+  }catch(e){alert('Caméra refusée ou indisponible');xlog('cam_toggle_fail',{msg:(e&&e.message)||String(e)});}
 }
 function stopScreenShare(){
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
@@ -3807,6 +3828,7 @@ function subscribeIceForCall(callId){
       } else if(msg.kind==='reneg-offer'){
         const offerCollision=(callPc.signalingState!=='stable')||makingOffer;
         ignoreOffer=!isPolite()&&offerCollision;
+        xlog('reneg_offer_received',{signalingState:callPc.signalingState,offerCollision:offerCollision,ignored:ignoreOffer});
         if(ignoreOffer)return;
         if(offerCollision){
           await Promise.all([
@@ -3819,7 +3841,9 @@ function subscribeIceForCall(callId){
         const answer=await callPc.createAnswer();
         await callPc.setLocalDescription(answer);
         sendSignal(callId,'reneg-answer',answer);
+        xlog('reneg_answer_sent',{});
       } else if(msg.kind==='reneg-answer'){
+        xlog('reneg_answer_received',{signalingState:callPc.signalingState});
         if(callPc.signalingState==='have-local-offer'){
           await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
         }
