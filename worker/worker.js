@@ -1221,12 +1221,19 @@ async function serverLogin(email,pass){
   if(rr.ok&&jj&&jj.ok&&jj.secret)return jj;
   throw new Error((jj&&jj.error)||('Connexion refusée ('+rr.status+')'));
 }
-function applySession(secret){
+function applySession(secret,jwt){
   try{client.setSession(String(secret));}catch(e){}
   try{localStorage.setItem('xultra_session',String(secret));}catch(e){}
+  if(jwt){
+    try{client.setJWT(String(jwt));}catch(e){}
+    try{localStorage.setItem('xultra_jwt',String(jwt));}catch(e){}
+  }
 }
 function readSession(){
   try{return localStorage.getItem('xultra_session');}catch(e){return null}
+}
+function readStoredJwt(){
+  try{return localStorage.getItem('xultra_jwt');}catch(e){return null}
 }
 
 let me=null, meProfile=null;
@@ -1256,7 +1263,21 @@ async function enterApp(){
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
+  startJwtRefreshLoop();
   showView('dms');
+}
+let jwtRefreshTimerId=null;
+function startJwtRefreshLoop(){
+  if(jwtRefreshTimerId)return;
+  jwtRefreshTimerId=setInterval(async function(){
+    try{
+      const j=await account.createJWT();
+      if(j&&j.jwt){
+        client.setJWT(j.jwt);
+        try{localStorage.setItem('xultra_jwt',j.jwt);}catch(e){}
+      }
+    }catch(e){}
+  },8*60*1000);
 }
 
 async function doLogin(){
@@ -1269,7 +1290,7 @@ async function doLogin(){
   \$('btn-login').disabled=true;\$('btn-login').textContent='Connexion…';
   try{
     const jj=await serverLogin(email,pass);
-    applySession(jj.secret);
+    applySession(jj.secret,jj.jwt);
     xlog('login_server_ok',{});
     await enterApp();
   }catch(e){
@@ -1308,7 +1329,7 @@ async function doRegister(){
   try{
     await account.create(Appwrite.ID.unique(),email,pass,name);
     const jj=await serverLogin(email,pass);
-    applySession(jj.secret);
+    applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
     let avatarUrl='';
     if(regAvatarFile){
@@ -3267,7 +3288,7 @@ function boot(){
     const s=readSession();
     if(!s){xlog('boot_no_session',{});return}
     try{
-      applySession(s);
+      applySession(s,readStoredJwt());
       await enterApp();
       xlog('boot_restore_ok',{});
     }catch(e){
