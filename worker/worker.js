@@ -525,6 +525,10 @@ button{cursor:pointer;border:0;background:0}
 .row .act{display:flex;gap:4px;flex-shrink:0}
 .row .act button{height:26px;padding:0 8px;border-radius:6px;font-size:.7rem;font-weight:700;background:#7c3aed;color:#fff}
 .row .act button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
+.row-time{flex-shrink:0;font-size:.66rem;color:var(--muted);align-self:flex-start;margin-top:1px;white-space:nowrap}
+.row-swipe{position:relative;overflow:hidden;border-radius:8px}
+.row-del-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;background:linear-gradient(90deg,transparent 30%,rgba(239,68,68,.92));color:#fff;font-size:1.15rem;cursor:pointer}
+.row-swipe .row{position:relative;background:var(--bg,#0b0614);will-change:transform}
 .userbar{flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
 .userbar .av{position:relative;width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.82rem;overflow:hidden}
 .userbar .av img{width:100%;height:100%;object-fit:cover}
@@ -596,6 +600,26 @@ button{cursor:pointer;border:0;background:0}
 .toast{background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#f2ebff;padding:11px 18px;border-radius:12px;font-size:.85rem;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:min(380px,100%);text-align:center}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast-error{border-color:rgba(239,68,68,.5);background:#2a1015}
+.slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(5,3,10,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px 24px;animation:scFade .15s ease}
+@keyframes scFade{from{opacity:0}to{opacity:1}}
+.slide-confirm-card{width:100%;max-width:400px;background:#1a1030;border:1px solid rgba(239,68,68,.35);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.sc-label{font-size:.88rem;font-weight:700;color:#f2ebff;margin-bottom:14px;text-align:center;line-height:1.4}
+.sc-track{position:relative;height:48px;border-radius:24px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35);overflow:hidden;display:flex;align-items:center}
+.sc-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,rgba(239,68,68,.5),rgba(239,68,68,.85));transition:width .05s linear}
+.sc-hint{position:relative;flex:1;text-align:center;font-size:.74rem;font-weight:700;color:#fca5a5;pointer-events:none;z-index:1}
+.sc-handle{position:absolute;left:3px;top:3px;width:42px;height:42px;border-radius:50%;background:#ef4444;color:#fff;display:grid;place-items:center;font-size:1rem;cursor:grab;touch-action:none;transition:background .15s ease;z-index:2}
+.sc-handle.done{background:#22c55e}
+.sc-handle:active{cursor:grabbing}
+.sc-cancel{width:100%;margin-top:12px;height:38px;border-radius:10px;background:rgba(255,255,255,.06);color:#f2ebff;font-weight:700;font-size:.82rem}
+.sc-cancel:hover{background:rgba(255,255,255,.12)}
+.action-sheet-overlay{position:fixed;inset:0;z-index:5400;background:rgba(5,3,10,.6);display:flex;align-items:flex-end;justify-content:center;padding:0 12px 12px;opacity:0;transition:opacity .16s ease}
+.action-sheet-overlay.show{opacity:1}
+.action-sheet-card{width:100%;max-width:400px;background:#1a1030;border:1px solid rgba(167,139,250,.25);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:2px;transform:translateY(12px);transition:transform .16s ease;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+.action-sheet-overlay.show .action-sheet-card{transform:translateY(0)}
+.action-sheet-card button{text-align:left;padding:13px 14px;border-radius:10px;font-size:.85rem;font-weight:700;color:#f2ebff;background:transparent}
+.action-sheet-card button:hover{background:rgba(255,255,255,.06)}
+.action-sheet-card button[data-act="delall"]{color:#fca5a5}
+.action-sheet-card button.as-cancel{margin-top:4px;text-align:center;color:var(--muted);border-top:1px solid rgba(255,255,255,.08);padding-top:12px;border-radius:0}
 .vm-play{width:30px;height:30px;border-radius:50%;background:rgba(167,139,250,.25);color:#c4b5fd;font-size:.75rem;flex-shrink:0;display:grid;place-items:center}
 .msg.mine .vm-play{background:rgba(255,255,255,.18);color:#fff}
 .vm-wave{flex:1;display:flex;align-items:center;gap:2px;height:24px}
@@ -1099,6 +1123,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="pm-badges" id="pm-badges"></div>
       <div class="pm-btn-row">
         <button type="button" class="btn-main" id="pm-message">Message</button>
+        <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre">⛔</button>
         <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
       </div>
       <div class="pm-section">
@@ -1335,6 +1360,50 @@ function waitSdk(cb){
 }
 function xlog(event,data){
   try{fetch('/api/note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
+}
+function showSlideConfirm(label,onConfirm){
+  const overlay=document.createElement('div');
+  overlay.className='slide-confirm-overlay';
+  overlay.innerHTML='<div class="slide-confirm-card"><div class="sc-label"></div>'
+    +'<div class="sc-track"><div class="sc-fill"></div><span class="sc-hint">Glisser pour confirmer →</span><div class="sc-handle">➜</div></div>'
+    +'<button type="button" class="sc-cancel">Annuler</button></div>';
+  overlay.querySelector('.sc-label').textContent=label||'Confirmer ?';
+  document.body.appendChild(overlay);
+  const track=overlay.querySelector('.sc-track');
+  const handle=overlay.querySelector('.sc-handle');
+  const fill=overlay.querySelector('.sc-fill');
+  let dragging=false,startX=0,base=0,done=false;
+  function close(){overlay.remove();}
+  overlay.querySelector('.sc-cancel').addEventListener('click',close);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  function maxX(){return Math.max(0,track.clientWidth-handle.offsetWidth-6);}
+  function setPos(x){
+    const m=maxX();
+    const clamped=Math.max(0,Math.min(m,x));
+    handle.style.transform='translateX('+clamped+'px)';
+    fill.style.width=(clamped+handle.offsetWidth)+'px';
+    return clamped;
+  }
+  handle.addEventListener('pointerdown',function(e){
+    if(done)return;
+    dragging=true;base=0;startX=e.clientX;
+    try{handle.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  handle.addEventListener('pointermove',function(e){
+    if(!dragging||done)return;
+    const x=setPos(base+(e.clientX-startX));
+    if(x>=maxX()-1){
+      done=true;dragging=false;
+      handle.classList.add('done');
+      setTimeout(function(){close();onConfirm();},180);
+    }
+  });
+  function endDrag(){
+    if(!dragging||done)return;
+    dragging=false;setPos(0);
+  }
+  handle.addEventListener('pointerup',endDrag);
+  handle.addEventListener('pointercancel',endDrag);
 }
 function showToast(msg,kind){
   let wrap=document.getElementById('toast-wrap');
@@ -1717,6 +1786,7 @@ async function enterApp(){
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeCallBadgeWatcher();}catch(e){}
+  try{subscribeDmDeleteWatcher();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
@@ -1965,12 +2035,46 @@ function renderMembers(){
 }
 
 let friendsCache=[];
+let blockedUids=[];
 async function loadFriends(){
   if(!me)return[];
   const r=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',me.\$id),Appwrite.Query.limit(100)]);
   friendsCache=r.documents||[];
+  blockedUids=friendsCache.filter(function(f){return f.status==='blocked'}).map(function(f){return String(f.friendId)});
   updateFriendBadge();
   return friendsCache;
+}
+function confirmBlockUser(uid,name){
+  showSlideConfirm('Bloquer '+(name||'cet utilisateur')+' ? Tu ne recevras plus ses messages.',function(){blockUser(uid);});
+}
+async function blockUser(uid){
+  if(!uid||!me)return;
+  try{
+    const row=friendsCache.find(function(f){return String(f.userId)===String(me.\$id)&&String(f.friendId)===String(uid)});
+    if(row)await db.updateDocument(DB,'ultravoc_friends',row.\$id,{status:'blocked'});
+    else await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:uid,status:'blocked',name:'—'});
+    await loadFriends();
+    if(view==='friends')renderFriends();
+    if(view==='dms')renderDms();
+    if(activeDmPeerUid===uid){
+      activeDm=null;activeDmPeerUid=null;
+      if(\$('chat-active'))\$('chat-active').classList.add('hidden');
+      if(\$('chat-empty'))\$('chat-empty').classList.remove('hidden');
+    }
+    showToast('Utilisateur bloqué.');
+  }catch(e){showToast('Blocage impossible','error');}
+}
+async function unblockUser(uid){
+  if(!uid||!me)return;
+  try{
+    const row=friendsCache.find(function(f){return String(f.userId)===String(me.\$id)&&String(f.friendId)===String(uid)});
+    if(row)await db.updateDocument(DB,'ultravoc_friends',row.\$id,{status:'accepted'});
+    await loadFriends();
+    if(view==='friends')renderFriends();
+    if(view==='dms')renderDms();
+    showToast('Utilisateur débloqué.');
+    \$('modal-profile').classList.add('hidden');
+  }catch(e){showToast('Action impossible','error');}
 }
 function updateFriendBadge(){
   const n=friendsCache.filter(function(f){return f.status==='pending_in'}).length;
@@ -2052,23 +2156,49 @@ function dmIsGroup(dm){
 }
 async function loadDms(){
   if(!me)return[];
-  const r=await db.listDocuments(DB,'dms',[Appwrite.Query.limit(100)]);
+  const r=await db.listDocuments(DB,'dms',[Appwrite.Query.orderDesc('\$updatedAt'),Appwrite.Query.limit(100)]);
   dmsCache=(r.documents||[]).filter(function(d){return (d.members||[]).map(String).indexOf(me.\$id)>=0});
   return dmsCache;
 }
+function fmtRelTime(dateStr){
+  if(!dateStr)return '';
+  const diff=Math.max(0,(Date.now()-new Date(dateStr).getTime())/1000);
+  if(diff<60)return Math.floor(diff)+'s';
+  if(diff<3600)return Math.floor(diff/60)+'min';
+  if(diff<86400)return Math.floor(diff/3600)+'h';
+  if(diff<604800)return Math.floor(diff/86400)+'j';
+  if(diff<2629800)return Math.floor(diff/604800)+'sem';
+  if(diff<31557600)return Math.floor(diff/2629800)+'mois';
+  return Math.floor(diff/31557600)+'an';
+}
+let dmTimeRefreshId=null;
+function startDmTimeRefresh(){
+  if(dmTimeRefreshId)return;
+  dmTimeRefreshId=setInterval(function(){
+    document.querySelectorAll('.row-time[data-ts]').forEach(function(el){
+      el.textContent=fmtRelTime(el.getAttribute('data-ts'));
+    });
+  },30000);
+}
 function renderDms(){
   const box=\$('list-body');if(!box)return;
-  \$('list-sub-txt').textContent=dmsCache.length+' conversation'+(dmsCache.length!==1?'s':'');
-  if(!dmsCache.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
-  box.innerHTML=dmsCache.map(function(d){
+  const visible=dmsCache.filter(function(d){return dmIsGroup(d)||blockedUids.indexOf(dmPeerId(d))<0});
+  \$('list-sub-txt').textContent=visible.length+' conversation'+(visible.length!==1?'s':'');
+  if(!visible.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
+  box.innerHTML=visible.map(function(d){
     const title=d.displayName||'Conversation';
     const group=dmIsGroup(d);
     const avInner=group?'👥':esc(ini(title));
     const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+'</div>';
     const sub=group?((d.members||[]).length+' membres'+(d.lastMessage?' · '+d.lastMessage:'')):(d.lastMessage||'');
-    return '<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
+    const ts=d.\$updatedAt||d.\$createdAt;
+    return '<div class="row-swipe" data-dm-wrap="'+esc(d.\$id)+'">'
+      +'<div class="row-del-action" data-del="'+esc(d.\$id)+'"><span>🗑</span></div>'
+      +'<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
       +av
-      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':'')+'</div><div class="p">'+esc(sub)+'</div></div></div>';
+      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':'')+'</div><div class="p">'+esc(sub)+'</div></div>'
+      +'<div class="row-time" data-ts="'+esc(ts||'')+'">'+esc(fmtRelTime(ts))+'</div>'
+      +'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -2081,6 +2211,50 @@ function renderDms(){
       openDm(id,el.getAttribute('data-title'),dm?dmPeerId(dm):null);
     };
   });
+  box.querySelectorAll('[data-dm-wrap]').forEach(function(wrap){
+    attachRowSwipe(wrap);
+  });
+  box.querySelectorAll('[data-del]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const id=el.getAttribute('data-del');
+      const dm=dmsCache.find(function(d){return d.\$id===id});
+      showSlideConfirm('Supprimer définitivement cette conversation pour tout le monde ? Tous les messages seront effacés.',function(){deleteConversationConfirmed(id);});
+    });
+  });
+  startDmTimeRefresh();
+}
+function attachRowSwipe(wrap){
+  const row=wrap.querySelector('.row');if(!row)return;
+  const MAXSWIPE=64;
+  let startX=0,dragging=false,base=0,open=false;
+  row.style.touchAction='pan-y';
+  function setX(x){row.style.transform=x?'translateX('+x+'px)':'';}
+  row.addEventListener('pointerdown',function(e){
+    dragging=true;base=open?-MAXSWIPE:0;startX=e.clientX;
+    row.style.transition='none';
+    try{row.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  row.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    const dx=e.clientX-startX;
+    const x=Math.max(-MAXSWIPE,Math.min(0,base+dx));
+    setX(x);
+  });
+  function endDrag(e){
+    if(!dragging)return;
+    dragging=false;
+    row.style.transition='transform .18s ease';
+    const dx=e.clientX-startX;
+    const finalX=Math.max(-MAXSWIPE,Math.min(0,base+dx));
+    open=finalX<=-MAXSWIPE/2;
+    setX(open?-MAXSWIPE:0);
+  }
+  row.addEventListener('pointerup',endDrag);
+  row.addEventListener('pointercancel',endDrag);
+  row.addEventListener('click',function(e){
+    if(open){e.stopPropagation();e.preventDefault();open=false;row.style.transition='transform .18s ease';setX(0);}
+  },true);
 }
 async function startDmWith(peerUid,peerName){
   if(!me||!peerUid)return;
@@ -2094,6 +2268,35 @@ async function startDmWith(peerUid,peerName){
     showView('dms');
     await openDm(dm.\$id,dm.displayName||peerName||'Conversation',peerUid);
   }catch(e){xlog('start_dm_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function deleteConversationConfirmed(dmId){
+  try{
+    await authPost('/api/dm/delete',{threadId:dmId});
+    dmsCache=dmsCache.filter(function(d){return d.\$id!==dmId});
+    if(activeDm===dmId){
+      activeDm=null;activeDmPeerUid=null;
+      if(\$('chat-active'))\$('chat-active').classList.add('hidden');
+      if(\$('chat-empty'))\$('chat-empty').classList.remove('hidden');
+    }
+    renderDms();
+    showToast('Conversation supprimée.');
+  }catch(e){showToast('Suppression impossible : '+((e&&e.message)||e),'error');}
+}
+function subscribeDmDeleteWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.dms.documents',function(res){
+      if(!eventIs(res.events,'.delete'))return;
+      const p=res.payload;if(!p)return;
+      dmsCache=dmsCache.filter(function(d){return d.\$id!==p.\$id});
+      if(activeDm===p.\$id){
+        activeDm=null;activeDmPeerUid=null;
+        if(\$('chat-active'))\$('chat-active').classList.add('hidden');
+        if(\$('chat-empty'))\$('chat-empty').classList.remove('hidden');
+        showToast('Cette conversation a été supprimée.');
+      }
+      if(view==='dms')renderDms();
+    });
+  }catch(e){}
 }
 
 async function openProfileModal(uid){
@@ -2133,6 +2336,17 @@ async function openProfileModal(uid){
   const reportBtn=\$('pm-report');
   reportBtn.classList.toggle('hidden',!!isSelf);
   reportBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openReportModal(uid,name);};
+  const blockBtn=\$('pm-block');
+  if(blockBtn){
+    blockBtn.classList.toggle('hidden',!!isSelf);
+    const isBlocked=blockedUids.indexOf(String(uid))>=0;
+    blockBtn.textContent=isBlocked?'✅':'⛔';
+    blockBtn.title=isBlocked?'Débloquer ce membre':'Bloquer ce membre';
+    blockBtn.onclick=function(){
+      if(isBlocked)unblockUser(uid);
+      else confirmBlockUser(uid,name);
+    };
+  }
   \$('modal-profile').classList.remove('hidden');
 }
 if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){\$('modal-profile').classList.add('hidden')});
@@ -2287,7 +2501,12 @@ function repositionCallPanel(){
 async function loadMessages(threadId){
   try{
     const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',threadId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
-    msgsCache=(r.documents||[]).slice().reverse();
+    msgsCache=(r.documents||[]).slice().reverse().filter(function(m){
+      const hidden=(m.hiddenFor||[]).map(String);
+      if(hidden.indexOf(me.\$id)>=0)return false;
+      if(blockedUids.indexOf(String(m.uid))>=0)return false;
+      return true;
+    });
   }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];}
   renderMessages();
 }
@@ -2434,7 +2653,85 @@ function renderMessages(){
   });
   hydrateEncryptedMessages();
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  box.querySelectorAll('.msg[data-mid]').forEach(function(el){
+    const m=msgsCache.find(function(x){return x.\$id===el.getAttribute('data-mid')});
+    if(m)attachMsgSwipe(el,m);
+  });
   box.scrollTop=box.scrollHeight;
+}
+function attachMsgSwipe(el,m){
+  const bub=el.querySelector('.bub');if(!bub)return;
+  let startX=0,dragging=false,triggered=false;
+  bub.style.touchAction='pan-y';
+  el.addEventListener('pointerdown',function(e){
+    if(e.target.closest('a,button,.voice-msg,.msg-media img'))return;
+    dragging=true;triggered=false;startX=e.clientX;
+    bub.style.transition='none';
+    try{el.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    const dx=e.clientX-startX;
+    const clamped=Math.max(-64,Math.min(64,dx));
+    bub.style.transform='translateX('+clamped+'px)';
+    if(!triggered&&Math.abs(dx)>56){
+      triggered=true;
+      openMessageActionSheet(m);
+    }
+  });
+  function reset(){
+    if(!dragging)return;
+    dragging=false;
+    bub.style.transition='transform .16s ease';
+    bub.style.transform='';
+  }
+  el.addEventListener('pointerup',reset);
+  el.addEventListener('pointercancel',reset);
+}
+function openMessageActionSheet(m){
+  const mine=String(m.uid)===(me&&String(me.\$id));
+  const name=esc(m.displayName||'cet utilisateur');
+  const sheet=document.createElement('div');
+  sheet.className='action-sheet-overlay';
+  let items='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
+  if(mine)items+='<button type="button" data-act="delall">🗑 Supprimer pour tout le monde</button>';
+  if(!mine){
+    items+='<button type="button" data-act="report">🚩 Signaler '+name+'</button>';
+    items+='<button type="button" data-act="block">⛔ Bloquer '+name+'</button>';
+  }
+  items+='<button type="button" data-act="cancel" class="as-cancel">Annuler</button>';
+  sheet.innerHTML='<div class="action-sheet-card">'+items+'</div>';
+  document.body.appendChild(sheet);
+  requestAnimationFrame(function(){sheet.classList.add('show')});
+  function close(){sheet.classList.remove('show');setTimeout(function(){sheet.remove()},160);}
+  sheet.addEventListener('click',function(e){
+    if(e.target===sheet){close();return}
+    const act=e.target.closest('[data-act]');if(!act)return;
+    const kind=act.getAttribute('data-act');
+    close();
+    if(kind==='delme')deleteMessageForMe(m);
+    else if(kind==='delall')confirmDeleteMessageForAll(m);
+    else if(kind==='report')openReportModal(m.uid,m.displayName||'User');
+    else if(kind==='block')confirmBlockUser(m.uid,m.displayName||'User');
+  });
+}
+async function deleteMessageForMe(m){
+  try{
+    const hidden=(m.hiddenFor||[]).map(String);
+    if(hidden.indexOf(me.\$id)<0)hidden.push(me.\$id);
+    await db.updateDocument(DB,'dms_messages',m.\$id,{hiddenFor:hidden});
+    msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
+    renderMessages();
+  }catch(e){showToast('Action impossible','error');}
+}
+function confirmDeleteMessageForAll(m){
+  showSlideConfirm('Supprimer ce message pour tout le monde ? Action irréversible.',async function(){
+    try{
+      await db.deleteDocument(DB,'dms_messages',m.\$id);
+      msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
+      renderMessages();
+    }catch(e){showToast('Suppression impossible','error');}
+  });
 }
 async function postMessage(data,lastMessagePreview,keyCtx){
   if(!activeDm||!me)return;
@@ -5111,6 +5408,50 @@ async function handle(request) {
     }
   }
 
+  if (path === "/api/dm/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const threadId = String((body && body.threadId) || "");
+      if (!threadId) throw new Error("threadId manquant");
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { asAdmin: true });
+      const members = (dm.members || []).map(String);
+      if (members.indexOf(acc.$id) < 0) {
+        return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+          status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
+      let cursor = null;
+      for (let page = 0; page < 200; page++) {
+        const queries = [
+          JSON.stringify({ method: "equal", attribute: "threadId", values: [threadId] }),
+          JSON.stringify({ method: "limit", values: [100] })
+        ];
+        if (cursor) queries.push(JSON.stringify({ method: "cursorAfter", values: [cursor] }));
+        const qs = queries.map(function(q) { return "queries[]=" + encodeURIComponent(q); }).join("&");
+        const listed = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents?" + qs, { asAdmin: true });
+        const docs = listed.documents || [];
+        if (!docs.length) break;
+        for (const d of docs) {
+          await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + d.$id, { method: "DELETE", asAdmin: true }).catch(function(){});
+        }
+        cursor = docs[docs.length - 1].$id;
+        if (docs.length < 100) break;
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
   if (path === "/api/push/vapid-key") {
     return new Response(JSON.stringify({ ok: true, key: VAPID_PUBLIC_KEY }), {
       headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, cors)
@@ -5407,7 +5748,7 @@ async function handle(request) {
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "DENY",
       "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=()",
+      "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(self), payment=()",
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       "X-DNS-Prefetch-Control": "off",
       "X-Xultra-Version": "β2.8.10"
