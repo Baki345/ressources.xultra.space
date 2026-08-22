@@ -13,6 +13,33 @@ const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"u
 
 const DEFAULT_MAINT_MESSAGE = "Des améliorations de sécurité et de stabilité sont en cours.\nLe service est temporairement inaccessible pour tout le monde.";
 
+const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();});\n" +
+  "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n" +
+  "self.addEventListener('push',function(event){\n" +
+  "  var data={};\n" +
+  "  try{data=event.data?event.data.json():{};}catch(e){}\n" +
+  "  var title=data.title||'XULTRA';\n" +
+  "  var options={\n" +
+  "    body:data.body||'',\n" +
+  "    tag:data.tag||undefined,\n" +
+  "    renotify:!!data.tag,\n" +
+  "    requireInteraction:data.type==='call',\n" +
+  "    data:{url:data.url||'/',type:data.type||''}\n" +
+  "  };\n" +
+  "  event.waitUntil(self.registration.showNotification(title,options));\n" +
+  "});\n" +
+  "self.addEventListener('notificationclick',function(event){\n" +
+  "  event.notification.close();\n" +
+  "  var url=(event.notification.data&&event.notification.data.url)||'/';\n" +
+  "  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){\n" +
+  "    for(var i=0;i<list.length;i++){\n" +
+  "      var c=list[i];\n" +
+  "      if('focus' in c){try{c.navigate(url);}catch(e){} return c.focus();}\n" +
+  "    }\n" +
+  "    if(self.clients.openWindow)return self.clients.openWindow(url);\n" +
+  "  }));\n" +
+  "});\n";
+
 function escHtml(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -121,6 +148,127 @@ function hasValidGate(request) {
     const p = c.trim().split("=");
     return p[0] === "xultra_gate" && p.slice(1).join("=") === MAINT_GATE;
   });
+}
+
+/* ===== Web Push (RFC 8291 aes128gcm + RFC 8292 VAPID) — pas de dépendance npm ===== */
+const VAPID_PUBLIC_KEY = "BPQRcbillO4iiZpFCjNrODu71DFChLPpzEAvJLrEfKWb_65gec0ZnvSeQjnBTeSfEcLPBTP0-iIbhbqS7fTJYsQ";
+const VAPID_SUBJECT = "mailto:contact@xultra.space";
+
+function b64urlToBytes(s) {
+  s = String(s || "").replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToB64url(bytes) {
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function strToBytes(s) { return new TextEncoder().encode(s); }
+function concatBytes() {
+  const parts = Array.prototype.slice.call(arguments);
+  const total = parts.reduce(function (n, p) { return n + p.length; }, 0);
+  const out = new Uint8Array(total);
+  let off = 0;
+  parts.forEach(function (p) { out.set(p, off); off += p.length; });
+  return out;
+}
+async function hmacSha256(keyBytes, dataBytes) {
+  const key = await crypto.subtle.importKey("raw", keyBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, dataBytes);
+  return new Uint8Array(sig);
+}
+function hkdfExtract(salt, ikm) { return hmacSha256(salt, ikm); }
+async function hkdfExpand(prk, info, length) {
+  const t1 = await hmacSha256(prk, concatBytes(info, new Uint8Array([1])));
+  return t1.slice(0, length);
+}
+let _vapidKeyCache = null;
+async function getVapidPrivateKey() {
+  if (_vapidKeyCache) return _vapidKeyCache;
+  const jwkStr = typeof VAPID_PRIVATE_KEY !== "undefined" ? VAPID_PRIVATE_KEY : null;
+  if (!jwkStr) throw new Error("VAPID non configuré");
+  const jwk = JSON.parse(jwkStr);
+  _vapidKeyCache = await crypto.subtle.importKey("jwk", jwk, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  return _vapidKeyCache;
+}
+async function generateVapidJwt(audience) {
+  const header = { typ: "JWT", alg: "ES256" };
+  const payload = { aud: audience, exp: Math.floor(Date.now() / 1000) + 12 * 3600, sub: VAPID_SUBJECT };
+  const encHeader = bytesToB64url(strToBytes(JSON.stringify(header)));
+  const encPayload = bytesToB64url(strToBytes(JSON.stringify(payload)));
+  const signingInput = encHeader + "." + encPayload;
+  const privateKey = await getVapidPrivateKey();
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, privateKey, strToBytes(signingInput));
+  return signingInput + "." + bytesToB64url(new Uint8Array(sig));
+}
+async function encryptWebPushPayload(payloadBytes, p256dhB64, authB64) {
+  const uaPublicRaw = b64urlToBytes(p256dhB64);
+  const authSecret = b64urlToBytes(authB64);
+  const asKeyPair = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const asPublicRaw = new Uint8Array(await crypto.subtle.exportKey("raw", asKeyPair.publicKey));
+  const uaPublicKey = await crypto.subtle.importKey("raw", uaPublicRaw, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const ecdhSecret = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: uaPublicKey }, asKeyPair.privateKey, 256));
+
+  const prkKey = await hkdfExtract(authSecret, ecdhSecret);
+  const keyInfo = concatBytes(strToBytes("WebPush: info\0"), uaPublicRaw, asPublicRaw);
+  const ikm = await hkdfExpand(prkKey, keyInfo, 32);
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const prk = await hkdfExtract(salt, ikm);
+  const cek = await hkdfExpand(prk, strToBytes("Content-Encoding: aes128gcm\0"), 16);
+  const nonce = await hkdfExpand(prk, strToBytes("Content-Encoding: nonce\0"), 12);
+
+  const cekKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
+  const recordPlain = concatBytes(payloadBytes, new Uint8Array([2]));
+  const encrypted = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, cekKey, recordPlain));
+
+  const rs = 4096;
+  const header = concatBytes(
+    salt,
+    new Uint8Array([(rs >>> 24) & 255, (rs >>> 16) & 255, (rs >>> 8) & 255, rs & 255]),
+    new Uint8Array([asPublicRaw.length]),
+    asPublicRaw
+  );
+  return concatBytes(header, encrypted);
+}
+async function sendWebPush(sub, payloadObj) {
+  const endpoint = sub.endpoint;
+  const u = new URL(endpoint);
+  const audience = u.protocol + "//" + u.host;
+  const jwt = await generateVapidJwt(audience);
+  const body = await encryptWebPushPayload(strToBytes(JSON.stringify(payloadObj)), sub.p256dh, sub.auth);
+  return fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Encoding": "aes128gcm",
+      "TTL": "86400",
+      "Urgency": "normal",
+      "Authorization": "vapid t=" + jwt + ", k=" + VAPID_PUBLIC_KEY
+    },
+    body: body
+  });
+}
+async function pushToUid(uid, payloadObj) {
+  try {
+    const url = "/databases/" + AW_DB + "/collections/push_subs/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+    const data = await awFetch(url, { asAdmin: true });
+    const subs = (data && data.documents) || [];
+    await Promise.all(subs.map(async function (sub) {
+      try {
+        const resp = await sendWebPush(sub, payloadObj);
+        if (resp.status === 404 || resp.status === 410) {
+          try { await awFetch("/databases/" + AW_DB + "/collections/push_subs/documents/" + sub.$id, { method: "DELETE", asAdmin: true }); } catch (e2) {}
+        }
+      } catch (e) {}
+    }));
+  } catch (e) {}
 }
 
 async function listActiveDmCalls() {
@@ -321,6 +469,7 @@ button{cursor:pointer;border:0;background:0}
 .ub-badge{position:absolute;top:-2px;right:-2px;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:800;display:grid;place-items:center;line-height:1}
 .ub-badge.hidden{display:none}
 .ub-btn:hover{background:var(--elev);color:#f2ebff}
+.ub-btn.on{color:#c4b5fd;background:rgba(124,58,237,.18)}
 .chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#110a1a}
 .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
 .empty h3{color:#f2ebff;margin:8px 0 4px;font-size:1rem}
@@ -607,6 +756,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="av" id="ub-av">?</div>
       <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
       <button type="button" class="ub-btn" id="ub-bell" title="Demandes d'amis">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
+      <button type="button" class="ub-btn" id="ub-push" title="Activer les notifications">🔕</button>
       <button type="button" class="ub-btn hidden" id="ub-hunter" title="Panneau Bug Hunter">🐛</button>
       <button type="button" class="ub-btn" id="btn-report-bug" title="Signaler un bug">🐞</button>
       <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
@@ -969,6 +1119,7 @@ async function enterApp(){
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+  try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   showView('dms');
 }
 
@@ -1239,6 +1390,7 @@ async function sendFriendRequest(targetUid,targetName){
   try{
     await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:targetUid,status:'pending_out',name:targetName||'Ami'});
     try{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:targetUid,friendId:me.\$id,status:'pending_in',name:myName});}catch(e){}
+    authPost('/api/push/notify',{type:'friend_request',toUid:targetUid}).catch(function(){});
     xlog('friend_request_sent',{to:targetUid});
     return true;
   }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
@@ -1391,6 +1543,7 @@ async function sendMessage(){
     const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
     await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),{threadId:activeDm,uid:me.\$id,text:text.slice(0,2000),displayName:name,type:'text'});
     try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:text.slice(0,100)});}catch(e){}
+    if(activeDmPeerUid)authPost('/api/push/notify',{type:'message',toUid:activeDmPeerUid,threadId:activeDm,preview:text.slice(0,140)}).catch(function(){});
     await loadMessages(activeDm);
     await loadDms();if(view==='dms')renderDms();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
@@ -1446,6 +1599,71 @@ async function authPost(path,body){
   if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
   return j;
 }
+
+/* ===== Notifications push (Web Push) ===== */
+let pushSubscribed=false;
+async function registerServiceWorker(){
+  if(!('serviceWorker' in navigator))return null;
+  try{return await navigator.serviceWorker.register('/sw.js');}catch(e){xlog('sw_register_fail',{msg:(e&&e.message)||String(e)});return null}
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4);
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/');
+  const raw=atob(base64);
+  const arr=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);
+  return arr;
+}
+function pushSupported(){
+  return ('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window);
+}
+async function refreshPushButtonState(){
+  const btn=\$('ub-push');if(!btn)return;
+  if(!pushSupported()){btn.classList.add('hidden');return}
+  let subscribed=false;
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    if(reg){const sub=await reg.pushManager.getSubscription();subscribed=!!sub;}
+  }catch(e){}
+  pushSubscribed=subscribed;
+  btn.classList.toggle('on',subscribed);
+  btn.textContent=subscribed?'🔔':'🔕';
+  btn.title=subscribed?'Notifications activées':'Activer les notifications';
+}
+async function enablePushNotifications(){
+  if(!pushSupported()){alert('Les notifications ne sont pas supportées sur ce navigateur.');return}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=='granted'){alert('Notifications refusées. Tu peux les réactiver dans les réglages du navigateur.');return}
+    const reg=await registerServiceWorker();
+    if(!reg)throw new Error('Service worker indisponible');
+    await navigator.serviceWorker.ready;
+    const keyRes=await fetch('/api/push/vapid-key');
+    const keyJson=await keyRes.json();
+    const appKey=urlBase64ToUint8Array(keyJson.key);
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:appKey});
+    await authPost('/api/push/subscribe',{subscription:sub.toJSON()});
+    xlog('push_subscribed',{});
+  }catch(e){xlog('push_subscribe_fail',{msg:(e&&e.message)||String(e)});alert('Impossible d\\'activer les notifications : '+((e&&e.message)||e));}
+  await refreshPushButtonState();
+}
+async function disablePushNotifications(){
+  try{
+    const reg=await navigator.serviceWorker.getRegistration('/sw.js');
+    if(reg){
+      const sub=await reg.pushManager.getSubscription();
+      if(sub){
+        await authPost('/api/push/unsubscribe',{endpoint:sub.endpoint}).catch(function(){});
+        await sub.unsubscribe();
+      }
+    }
+  }catch(e){}
+  await refreshPushButtonState();
+}
+if(\$('ub-push'))\$('ub-push').addEventListener('click',async function(){
+  if(pushSubscribed)await disablePushNotifications();else await enablePushNotifications();
+});
 async function checkAdmin(){
   try{
     const jwt=await authJwt();
@@ -3162,6 +3380,12 @@ async function handle(request) {
           permissions: perms
         }
       });
+      try {
+        await pushToUid(calleeId, {
+          type: "call", title: callerName, body: "Appel vocal entrant…",
+          tag: "call-" + doc.$id, url: "/", callId: doc.$id
+        });
+      } catch (e2) {}
       return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
@@ -3210,7 +3434,127 @@ async function handle(request) {
     }
   }
 
-
+  if (path === "/api/push/vapid-key") {
+    return new Response(JSON.stringify({ ok: true, key: VAPID_PUBLIC_KEY }), {
+      headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, cors)
+    });
+  }
+  if (path === "/api/push/subscribe" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const sub = (body && body.subscription) || {};
+      const endpoint = String(sub.endpoint || "");
+      const keys = sub.keys || {};
+      const p256dh = String(keys.p256dh || "");
+      const authKey = String(keys.auth || "");
+      const ua = (request.headers.get("User-Agent") || "").slice(0, 300);
+      if (!endpoint || !p256dh || !authKey) throw new Error("abonnement invalide");
+      const existingUrl = "/databases/" + AW_DB + "/collections/push_subs/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+      const existing = await awFetch(existingUrl, { asAdmin: true });
+      const dup = ((existing && existing.documents) || []).find(function (d) { return d.endpoint === endpoint; });
+      const perms = ["read(\"user:" + acc.$id + "\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"];
+      if (dup) {
+        await awFetch("/databases/" + AW_DB + "/collections/push_subs/documents/" + dup.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { p256dh: p256dh, auth: authKey, ua: ua } }
+        });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/push_subs/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { uid: acc.$id, endpoint: endpoint, p256dh: p256dh, auth: authKey, ua: ua }, permissions: perms }
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/push/unsubscribe" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const endpoint = String((body && body.endpoint) || "");
+      const url = "/databases/" + AW_DB + "/collections/push_subs/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+      const existing = await awFetch(url, { asAdmin: true });
+      const docs = ((existing && existing.documents) || []).filter(function (d) { return !endpoint || d.endpoint === endpoint; });
+      await Promise.all(docs.map(function (d) {
+        return awFetch("/databases/" + AW_DB + "/collections/push_subs/documents/" + d.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }));
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/push/notify" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const type = String((body && body.type) || "");
+      const toUid = String((body && body.toUid) || "");
+      if (!toUid || toUid === acc.$id) throw new Error("paramètres invalides");
+      const senderName = (await resolveProfile(acc.$id) || {}).displayName || acc.name || "Quelqu'un";
+      if (type === "message") {
+        const threadId = String((body && body.threadId) || "");
+        if (!threadId) throw new Error("paramètres invalides");
+        let thread = null;
+        try { thread = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { asAdmin: true }); } catch (e3) {}
+        const members = ((thread && thread.members) || []).map(String);
+        if (members.indexOf(acc.$id) < 0 || members.indexOf(toUid) < 0) {
+          return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+            status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+          });
+        }
+        const preview = String((body && body.preview) || "").slice(0, 140);
+        await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, url: "/", threadId: threadId });
+      } else if (type === "friend_request") {
+        const fUrl = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [toUid] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "friendId", values: [acc.$id] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["pending_in"] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+        const fReq = await awFetch(fUrl, { asAdmin: true });
+        if (!((fReq && fReq.documents) || []).length) {
+          return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+            status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+          });
+        }
+        await pushToUid(toUid, { type: "friend_request", title: senderName, body: "T'a envoyé une demande d'ami", tag: "friend-" + acc.$id, url: "/" });
+      } else {
+        throw new Error("type inconnu");
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/sw.js") {
+    return new Response(SW_JS, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-cache", "Service-Worker-Allowed": "/" } });
+  }
 
   if (path === "/api/auth/login" && request.method === "POST") {
     try {
