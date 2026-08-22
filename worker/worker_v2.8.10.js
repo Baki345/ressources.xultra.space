@@ -4404,10 +4404,23 @@ function openBugModal(doc){
   \$('bug-desc').value=doc?(doc.description||''):'';
   \$('bug-err').textContent='';
   \$('bug-modal-title').textContent=doc?'✏️ Éditer mon rapport':'🐞 Signaler un bug';
+  /* modal-hunter partage le même z-index que tous les .overlay : s'il
+     est déjà ouvert (on vient de son bouton "+ Nouveau rapport"), il
+     passe devant modal-bug puisqu'il est plus loin dans le DOM. On le
+     masque le temps du formulaire, il sera rouvert en fermant celui-ci. */
+  const hunterWasOpen=\$('modal-hunter')&&!\$('modal-hunter').classList.contains('hidden');
+  if(hunterWasOpen)\$('modal-hunter').classList.add('hidden');
+  \$('modal-bug').dataset.reopenHunter=hunterWasOpen?'1':'';
   \$('modal-bug').classList.remove('hidden');
 }
+function closeBugModal(){
+  const reopenHunter=\$('modal-bug').dataset.reopenHunter==='1';
+  \$('modal-bug').classList.add('hidden');
+  \$('modal-bug').dataset.reopenHunter='';
+  if(reopenHunter)\$('modal-hunter').classList.remove('hidden');
+}
 if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){openBugModal(null)});
-if(\$('mb-close'))\$('mb-close').addEventListener('click',function(){\$('modal-bug').classList.add('hidden')});
+if(\$('mb-close'))\$('mb-close').addEventListener('click',closeBugModal);
 if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
   const title=(\$('bug-title').value||'').trim();
   const desc=(\$('bug-desc').value||'').trim();
@@ -4427,10 +4440,10 @@ if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
         Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
       ]);
       xlog('bug_report_sent',{});
-      alert('Merci ! Ton rapport a été envoyé à l\\'équipe.');
+      showToast('Merci ! Ton rapport a été envoyé à l\\'équipe.');
     }
     editBugId=null;
-    \$('modal-bug').classList.add('hidden');
+    closeBugModal();
     try{await refreshHunterEligibility();}catch(e){}
     if(!\$('modal-hunter').classList.contains('hidden'))await loadMyBugs();
   }catch(e){\$('bug-err').textContent=(e&&e.message)||'Erreur';xlog('bug_report_fail',{msg:(e&&e.message)||String(e)});}
