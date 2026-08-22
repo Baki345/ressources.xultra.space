@@ -2237,6 +2237,10 @@ async function loadMessages(threadId){
 }
 function safeUrl(u){
   u=String(u||'');
+  /* Une URL blob: locale (créée par URL.createObjectURL après déchiffrement
+     d'un média) est déjà sûre par construction — jamais fournie par le
+     serveur, générée uniquement par le navigateur lui-même. */
+  if(/^blob:/i.test(u))return u;
   if(!/^https?:\\/\\//i.test(u))return '';
   if(u.indexOf(EP)===0)u=PROXY_EP+u.slice(EP.length);
   return u;
