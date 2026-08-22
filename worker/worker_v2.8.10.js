@@ -485,9 +485,11 @@ button{cursor:pointer;border:0;background:0}
 .empty h3{color:#f2ebff;margin:8px 0 4px;font-size:1rem}
 .empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0}
-.chat-top{height:52px;padding:0 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chat-top{min-height:52px;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
 .chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
 .chat-top .t{font-weight:800;font-size:.9rem}
+.ch-e2e{font-size:.66rem;color:#4ade80;font-weight:700;margin-top:1px}
+.ch-e2e.hidden{display:none}
 .chat-back{display:none;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
 .msg{display:flex;gap:10px;max-width:80%}
@@ -541,6 +543,11 @@ button{cursor:pointer;border:0;background:0}
 .msg.mine .vm-bar.played{background:#fff}
 .vm-dur{font-size:.68rem;color:var(--muted);flex-shrink:0}
 .msg.mine .vm-dur{color:rgba(255,255,255,.7)}
+.enc-loading{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:.85rem;font-style:italic}
+.enc-loading-media{width:180px;height:130px;border-radius:10px;background:rgba(167,139,250,.08);display:grid;place-items:center}
+.enc-spin{display:inline-block;animation:encPulse 1.2s ease-in-out infinite}
+@keyframes encPulse{0%,100%{opacity:.45;transform:scale(1)}50%{opacity:1;transform:scale(1.15)}}
+.msg-file.enc-loading{background:rgba(255,255,255,.06);border-radius:12px;padding:9px 12px}
 .gif-picker{width:min(420px,100%);max-height:80dvh;display:flex;flex-direction:column}
 .gif-grid{margin-top:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;overflow-y:auto;max-height:60dvh}
 .gif-grid img{width:100%;border-radius:10px;cursor:pointer;display:block;background:var(--elev)}
@@ -843,7 +850,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
-        <div class="titles"><div class="t" id="ch-title">—</div></div>
+        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</div></div>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
       <div id="call-panel-anchor"></div>
@@ -1258,6 +1265,111 @@ async function fetchMe(){
 }
 
 let me=null, meProfile=null;
+
+/* ===== Chiffrement de bout en bout (E2E) — ECDH P-256 + AES-256-GCM ===== */
+/* La clé privée n'est jamais transmise au serveur ; elle vit uniquement   */
+/* dans le localStorage du navigateur. Le serveur ne voit que du texte    */
+/* chiffré et des octets chiffrés pour les médias.                        */
+function b64enc(bytes){let s='';bytes=new Uint8Array(bytes);for(let i=0;i<bytes.length;i++)s+=String.fromCharCode(bytes[i]);return btoa(s)}
+function b64dec(str){const bin=atob(str);const out=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);return out}
+let myPrivKeyCache=null;
+async function e2eMyPrivateKey(){
+  if(myPrivKeyCache)return myPrivKeyCache;
+  let jwk=null;
+  try{jwk=JSON.parse(localStorage.getItem('xultra_e2e_priv')||'null');}catch(e){}
+  if(!jwk)return null;
+  try{myPrivKeyCache=await crypto.subtle.importKey('jwk',jwk,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);}catch(e){return null}
+  return myPrivKeyCache;
+}
+async function ensureE2EKeys(){
+  try{
+    let jwk=null,pub=null;
+    try{jwk=JSON.parse(localStorage.getItem('xultra_e2e_priv')||'null');pub=localStorage.getItem('xultra_e2e_pub');}catch(e){}
+    if(!jwk||!pub){
+      const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+      jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
+      pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
+      localStorage.setItem('xultra_e2e_priv',JSON.stringify(jwk));
+      localStorage.setItem('xultra_e2e_pub',pub);
+      myPrivKeyCache=null;
+    }
+    if(!me||!me.\$id)return;
+    let existing=null;
+    try{
+      const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
+      existing=(r.documents&&r.documents[0])||null;
+    }catch(e){}
+    if(!existing){
+      try{await db.createDocument(DB,'e2e_keys',Appwrite.ID.unique(),{uid:me.\$id,pubKey:pub},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);}catch(e){}
+    }else if(existing.pubKey!==pub){
+      try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
+    }
+  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});}
+}
+const peerPubKeyCache={};
+async function e2ePeerPubKey(peerUid){
+  if(!peerUid)return null;
+  if(peerPubKeyCache[peerUid]!==undefined)return peerPubKeyCache[peerUid];
+  try{
+    const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',peerUid),Appwrite.Query.limit(1)]);
+    const doc=(r.documents&&r.documents[0])||null;
+    if(!doc||!doc.pubKey){peerPubKeyCache[peerUid]=null;return null}
+    const key=await crypto.subtle.importKey('raw',b64dec(doc.pubKey),{name:'ECDH',namedCurve:'P-256'},false,[]);
+    peerPubKeyCache[peerUid]=key;
+    return key;
+  }catch(e){peerPubKeyCache[peerUid]=null;return null}
+}
+const threadKeyCache={};
+async function e2eThreadKey(peerUid){
+  if(!peerUid||!me)return null;
+  if(threadKeyCache[peerUid]!==undefined)return threadKeyCache[peerUid];
+  const myPriv=await e2eMyPrivateKey();
+  const peerPub=await e2ePeerPubKey(peerUid);
+  if(!myPriv||!peerPub){threadKeyCache[peerUid]=null;return null}
+  try{
+    const sharedBits=await crypto.subtle.deriveBits({name:'ECDH',public:peerPub},myPriv,256);
+    const baseKey=await crypto.subtle.importKey('raw',sharedBits,'HKDF',false,['deriveKey']);
+    const info=new TextEncoder().encode([String(me.\$id),String(peerUid)].sort().join(':'));
+    const aesKey=await crypto.subtle.deriveKey({name:'HKDF',hash:'SHA-256',salt:new TextEncoder().encode('xultra-e2e-v1'),info:info},baseKey,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    threadKeyCache[peerUid]=aesKey;
+    return aesKey;
+  }catch(e){threadKeyCache[peerUid]=null;return null}
+}
+async function e2eEncryptText(peerUid,text){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)return null;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text)));
+  return b64enc(iv)+'.'+b64enc(ct);
+}
+async function e2eDecryptText(peerUid,payload){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)throw new Error('Pas de clé de session');
+  const parts=String(payload).split('.');
+  const iv=b64dec(parts[0]),ct=b64dec(parts[1]);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return new TextDecoder().decode(pt);
+}
+async function e2eEncryptBlob(peerUid,blob){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)return null;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const buf=await blob.arrayBuffer();
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,buf));
+  const out=new Uint8Array(iv.length+ct.length);
+  out.set(iv,0);out.set(ct,iv.length);
+  return new Blob([out],{type:'application/octet-stream'});
+}
+async function e2eDecryptBlob(peerUid,url,mime){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)throw new Error('Pas de clé de session');
+  const r=await fetch(url);
+  const buf=new Uint8Array(await r.arrayBuffer());
+  const iv=buf.slice(0,12),ct=buf.slice(12);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+  return new Blob([pt],{type:mime||'application/octet-stream'});
+}
+
 async function enterApp(){
   xlog('show_dash_start',{});
   let acc=null;
@@ -1268,6 +1380,7 @@ async function enterApp(){
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
+  ensureE2EKeys().catch(function(){});
   const name=(profile&&(profile.displayName||profile.username))||acc.name||acc.email||'Compte';
   \$('ub-name').textContent=name;
   const av=\$('ub-av');
@@ -1699,6 +1812,13 @@ async function openDm(threadId,title,peerUid){
   \$('ch-title').onclick=openPeerProfile;
   document.getElementById('app').classList.add('chat-open');
   repositionCallPanel();
+  const e2eEl=\$('ch-e2e');
+  if(e2eEl){
+    e2eEl.classList.add('hidden');
+    if(peerUid){
+      e2eThreadKey(peerUid).then(function(k){if(activeDmPeerUid===peerUid&&k)e2eEl.classList.remove('hidden');}).catch(function(){});
+    }
+  }
   await loadMessages(threadId);
 }
 function repositionCallPanel(){
@@ -1736,28 +1856,63 @@ function fmtDur(sec){
   sec=Math.max(0,Math.round(Number(sec)||0));
   return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
 }
-function renderMsgBody(m){
+function renderMsgBody(m,text,mediaUrl){
   const t=m.type||'text';
-  const url=safeUrl(m.mediaUrl);
-  if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(m.text?'<div class="msg-caption">'+linkify(esc(m.text))+'</div>':'');
+  const url=safeUrl(mediaUrl);
+  if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
   if(t==='gif'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>';
   if(t==='file'&&url){
-    let meta={};try{meta=JSON.parse(m.text||'{}');}catch(e){}
+    let meta={};try{meta=JSON.parse(text||'{}');}catch(e){}
     return '<a class="msg-file" href="'+esc(url)+'" target="_blank" rel="noopener"><span>📄</span><div class="mf-info"><div class="mf-name">'+esc(meta.name||'Fichier')+'</div><div class="mf-size">'+esc(fmtSize(meta.size))+'</div></div></a>';
   }
   if(t==='audio'&&url){
-    let meta={};try{meta=JSON.parse(m.text||'{}');}catch(e){}
+    let meta={};try{meta=JSON.parse(text||'{}');}catch(e){}
     return '<div class="voice-msg" data-src="'+esc(url)+'" data-mid="'+esc(m.\$id||'')+'"><button type="button" class="vm-play">▶</button><div class="vm-wave"></div><div class="vm-dur">'+esc(fmtDur(meta.duration))+'</div></div>';
   }
   if(t==='location'){
-    let meta={};try{meta=JSON.parse(m.text||'{}');}catch(e){}
+    let meta={};try{meta=JSON.parse(text||'{}');}catch(e){}
     if(meta.lat!=null&&meta.lng!=null){
       const mapUrl='https://www.google.com/maps?q='+encodeURIComponent(meta.lat+','+meta.lng);
       return '<a class="msg-location" href="'+esc(mapUrl)+'" target="_blank" rel="noopener">📍 Position partagée<span>Ouvrir dans Maps</span></a>';
     }
   }
-  return linkify(esc(m.text||''));
+  return linkify(esc(text||''));
+}
+function renderEncPlaceholder(m){
+  const t=m.type||'text';
+  if(t==='image'||t==='video')return '<div class="msg-media enc-loading-media"><div class="enc-spin">🔒</div></div>';
+  if(t==='audio')return '<div class="voice-msg enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
+  if(t==='file')return '<div class="msg-file enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
+  return '<span class="enc-loading"><span class="enc-spin">🔒</span> Déchiffrement…</span>';
+}
+async function hydrateEncryptedMessages(){
+  const peerUid=activeDmPeerUid;
+  const forDm=activeDm;
+  if(!peerUid)return;
+  const targets=msgsCache.filter(function(m){return m.enc});
+  for(const m of targets){
+    if(activeDm!==forDm)return;
+    let text=m.text||'',ok=true;
+    if(text){
+      try{text=await e2eDecryptText(peerUid,text);}catch(e){ok=false;text='';}
+    }
+    let mediaUrl='';
+    if(ok&&safeUrl(m.mediaUrl)){
+      try{
+        const blob=await e2eDecryptBlob(peerUid,m.mediaUrl,m.mime||'application/octet-stream');
+        mediaUrl=URL.createObjectURL(blob);
+      }catch(e){ok=false;}
+    }
+    if(activeDm!==forDm)return;
+    const box=\$('msgs');if(!box)return;
+    const wrap=box.querySelector('.msg[data-mid="'+m.\$id+'"] .bub');
+    if(!wrap)continue;
+    if(!ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';continue}
+    wrap.innerHTML=renderMsgBody(m,text,mediaUrl);
+    wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
+    wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  }
 }
 function initVoiceMsgPlayer(el){
   if(el.dataset.wired)return;
@@ -1805,8 +1960,9 @@ function renderMessages(){
   box.innerHTML=msgsCache.map(function(m){
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
-    return '<div class="msg'+(mine?' mine':'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
-      +'<div><div class="bub">'+renderMsgBody(m)+'</div><div class="meta">'+esc(mine?'':name)+'</div></div></div>';
+    const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
+      +'<div><div class="bub">'+body+'</div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div></div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -1815,15 +1971,23 @@ function renderMessages(){
   box.querySelectorAll('.msg-media img').forEach(function(el){
     el.addEventListener('click',function(){window.open(el.src,'_blank')});
   });
+  hydrateEncryptedMessages();
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
   box.scrollTop=box.scrollHeight;
 }
 async function postMessage(data,lastMessagePreview){
   if(!activeDm||!me)return;
   const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
-  await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,text:'',type:'text',mediaUrl:''},data));
-  try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:lastMessagePreview.slice(0,100)});}catch(e){}
-  if(activeDmPeerUid)authPost('/api/push/notify',{type:'message',toUid:activeDmPeerUid,threadId:activeDm,preview:lastMessagePreview.slice(0,140)}).catch(function(){});
+  let enc=!!data.enc;
+  let text=data.text||'';
+  if(activeDmPeerUid&&text){
+    try{const encText=await e2eEncryptText(activeDmPeerUid,text);if(encText){text=encText;enc=true;}}catch(e){}
+  }
+  const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:''},data,{text:text,enc:enc});
+  await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),payload);
+  const previewPub=enc?'🔒 Message chiffré':lastMessagePreview;
+  try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:previewPub.slice(0,100)});}catch(e){}
+  if(activeDmPeerUid)authPost('/api/push/notify',{type:'message',toUid:activeDmPeerUid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
   await loadMessages(activeDm);
   await loadDms();if(view==='dms')renderDms();
 }
@@ -1873,9 +2037,14 @@ async function handleFileAttach(file,kindHint){
     else type='file';
   }
   try{
-    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+    let uploadBlob=file,enc=false;
+    if(activeDmPeerUid){
+      const encBlob=await e2eEncryptBlob(activeDmPeerUid,file);
+      if(encBlob){uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});enc=true;}
+    }
+    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-    const data={type:type,mediaUrl:fileUrl};
+    const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type};
     let preview='📎 Pièce jointe';
     if(type==='image'){preview='📷 Photo';}
     else if(type==='video'){preview='🎬 Vidéo';}
@@ -2019,10 +2188,15 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
   try{
     const blob=new Blob(chunks,{type:mimeType});
     const ext=mimeType.indexOf('ogg')>=0?'ogg':(mimeType.indexOf('mp4')>=0?'m4a':'webm');
-    const file=new File([blob],'voice-'+Date.now()+'.'+ext,{type:mimeType});
+    let uploadBlob=blob,enc=false;
+    if(activeDmPeerUid){
+      const encBlob=await e2eEncryptBlob(activeDmPeerUid,blob);
+      if(encBlob){uploadBlob=encBlob;enc=true;}
+    }
+    const file=new File([uploadBlob],'voice-'+Date.now()+'.'+(enc?'bin':ext),{type:enc?'application/octet-stream':mimeType});
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-    await postMessage({type:'audio',mediaUrl:fileUrl,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal');
+    await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal');
   }catch(e){alert('Envoi du message vocal impossible : '+((e&&e.message)||e));xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
 }
 (function wireVoiceButton(){
