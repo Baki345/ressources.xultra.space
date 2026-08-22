@@ -1131,7 +1131,7 @@ let regShownAt=Date.now();
 let regAvatarFile=null, regAvatarUrl='';
 
 /* ===== Turnstile anti-bot (inscription) ===== */
-const TURNSTILE_SITE_KEY='';
+const TURNSTILE_SITE_KEY='0x4AAAAAAEYe1BBAtdJkZkA0';
 let turnstileWidgetId=null;
 function renderTurnstile(){
   const wrap=\$('turnstile-wrap');if(!wrap)return;
