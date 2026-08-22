@@ -655,6 +655,15 @@ button{cursor:pointer;border:0;background:0}
 .pm-section{text-align:left;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03)}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
+.au-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-top:14px}
+.au-label{font-size:.62rem;font-weight:800;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
+.au-value{font-size:.82rem;word-break:break-all}
+#au-notes{width:100%;border-radius:10px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25);color:#f2ebff;padding:10px 12px;font:inherit;resize:vertical;outline:0}
+#au-notes:focus{border-color:#8b5cf6}
+.au-notes-meta{font-size:.68rem;color:var(--muted);margin-top:6px}
+.admin-search-row{margin-bottom:12px}
+.admin-search-row input{width:100%;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.25);color:#f2ebff;padding:0 14px;outline:0;font:inherit}
+.admin-search-row input:focus{border-color:#8b5cf6}
 .badge-info-card{width:min(340px,100%);position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.12)}
 .badge-info-card::before{content:'';position:absolute;inset:0;opacity:.25;pointer-events:none}
 .badge-info-card.badge-base{background:linear-gradient(160deg,#10081c,#2a1548 40%,#10081c);border-color:rgba(167,139,250,.4)}
@@ -1026,6 +1035,33 @@ button{cursor:pointer;border:0;background:0}
       <div class="pm-section">
         <div class="pm-section-label">Membre depuis</div>
         <div class="pm-section-body" id="pm-since">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-admin-user">
+  <div class="modal-box profile-card">
+    <button type="button" class="modal-close" id="au-close">✕</button>
+    <div class="pm-av" id="au-av">?</div>
+    <div class="pm-body">
+      <h3 id="au-name">—</h3>
+      <div class="pm-tag" id="au-tag">#0000</div>
+      <div class="au-grid">
+        <div><div class="au-label">Email</div><div class="au-value" id="au-email">—</div></div>
+        <div><div class="au-label">UID</div><div class="au-value" id="au-uid">—</div></div>
+        <div><div class="au-label">Membre depuis</div><div class="au-value" id="au-since">—</div></div>
+        <div><div class="au-label">Vu pour la dernière fois</div><div class="au-value" id="au-lastseen">—</div></div>
+      </div>
+      <div class="pm-section">
+        <div class="pm-section-label">Bio</div>
+        <div class="pm-section-body" id="au-bio">—</div>
+      </div>
+      <div class="pm-section">
+        <div class="pm-section-label">Notes internes (staff uniquement)</div>
+        <textarea id="au-notes" rows="4" placeholder="Notes visibles uniquement par le staff…"></textarea>
+        <button type="button" class="btn-main" id="au-notes-save" style="margin-top:8px">Enregistrer la note</button>
+        <div class="au-notes-meta" id="au-notes-meta"></div>
       </div>
     </div>
   </div>
@@ -1915,6 +1951,44 @@ async function openProfileModal(uid){
 if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){\$('modal-profile').classList.add('hidden')});
 if(\$('modal-profile'))\$('modal-profile').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
+async function openAdminUserModal(uid){
+  const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  if(!p){alert('Profil introuvable');return}
+  const name=p.displayName||p.username||'User';
+  \$('au-name').textContent=name;
+  \$('au-tag').textContent='#'+esc(p.tag||'');
+  const av=\$('au-av');
+  if(safeUrl(p.avatar))av.innerHTML='<img src="'+esc(safeUrl(p.avatar))+'" alt=""/>';
+  else av.textContent=ini(name);
+  \$('au-email').textContent=p.email||'—';
+  \$('au-uid').textContent=uid;
+  const since=p.createdAt||p.\$createdAt;
+  \$('au-since').textContent=since?new Date(since).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  \$('au-lastseen').textContent=p.lastSeen?new Date(p.lastSeen).toLocaleString('fr-FR'):'—';
+  \$('au-bio').textContent=p.bio||'Aucune bio';
+  \$('au-notes').value='Chargement…';
+  \$('au-notes').disabled=true;
+  \$('au-notes-meta').textContent='';
+  \$('modal-admin-user').classList.remove('hidden');
+  try{
+    const r=await authGet('/api/admin/notes?uid='+encodeURIComponent(uid));
+    \$('au-notes').value=(r.note&&r.note.note)||'';
+    \$('au-notes-meta').textContent=r.note?('Dernière modif par '+esc(r.note.updatedBy||'?')+' — '+new Date(r.note.updatedAt).toLocaleString('fr-FR')):'';
+  }catch(e){\$('au-notes').value='';}
+  \$('au-notes').disabled=false;
+  \$('au-notes-save').onclick=async function(){
+    const btn=this;
+    btn.disabled=true;btn.textContent='Enregistrement…';
+    try{
+      await authPost('/api/admin/notes',{uid:uid,note:\$('au-notes').value,targetName:name});
+      \$('au-notes-meta').textContent='Enregistré à l\\'instant.';
+    }catch(e){alert('Erreur : '+((e&&e.message)||e));}
+    btn.disabled=false;btn.textContent='Enregistrer la note';
+  };
+}
+if(\$('au-close'))\$('au-close').addEventListener('click',function(){\$('modal-admin-user').classList.add('hidden')});
+if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+
 let activeDm=null, activeDmPeerUid=null, msgsCache=[];
 async function openDm(threadId,title,peerUid){
   activeDm=threadId;
@@ -2411,6 +2485,13 @@ async function authPost(path,body){
   if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
   return j;
 }
+async function authGet(path){
+  const jwt=await authJwt();
+  const r=await fetch(path,{headers:{'Authorization':'Bearer '+jwt}});
+  const j=await r.json().catch(function(){return {ok:false,error:'Réponse invalide'}});
+  if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
+  return j;
+}
 
 /* ===== Notifications push (Web Push) ===== */
 let pushSubscribed=false;
@@ -2584,10 +2665,21 @@ async function loadAdminMembers(){
   return membersCache;
 }
 const TOGGLEABLE_BADGES=['dev','hunter','early'];
-function renderAdminMembers(list){
+let adminMembersQuery='';
+function renderAdminMembers(list,focusSearch){
   const box=\$('admin-body');if(!box)return;
-  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun membre.</div>';return}
-  box.innerHTML=list.map(function(p){
+  const q=adminMembersQuery.trim().toLowerCase();
+  const filtered=q?list.filter(function(p){
+    const uid=p.authUserId||p.\$id;
+    return [p.displayName,p.username,p.email,p.tag,uid].some(function(v){return v&&String(v).toLowerCase().indexOf(q)>=0});
+  }):list;
+  const searchHtml='<div class="admin-search-row"><input type="text" id="admin-members-search" placeholder="Rechercher par pseudo, email, UID…" value="'+esc(adminMembersQuery)+'"/></div>';
+  if(!filtered.length){
+    box.innerHTML=searchHtml+'<div class="empty-hint">Aucun membre'+(q?' pour cette recherche':'')+'.</div>';
+    wireAdminMembersSearch(list,focusSearch);
+    return;
+  }
+  box.innerHTML=searchHtml+filtered.map(function(p){
     const name=p.displayName||p.username||'User';
     const uid=p.authUserId||p.\$id;
     const self=uid===(me&&me.\$id);
@@ -2600,7 +2692,7 @@ function renderAdminMembers(list){
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +'<span data-profile="'+esc(uid)+'" style="display:contents;cursor:pointer">'+rowAvatar(p,name,uid)+'</span>'
       +'<div class="info"><div class="n" data-profile="'+esc(uid)+'" style="cursor:pointer">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
-      +'<div class="acts" style="margin-top:6px">'+badgeBtns+'</div></div>'
+      +'<div class="acts" style="margin-top:6px">'+badgeBtns+'<button type="button" data-adminfiche="'+esc(uid)+'">📋 Fiche</button></div></div>'
       +(self?'':'<div class="acts">'
         +'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>'
         +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
@@ -2608,8 +2700,12 @@ function renderAdminMembers(list){
         +'</div>')
       +'</div>';
   }).join('');
+  wireAdminMembersSearch(list,focusSearch);
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
+  });
+  box.querySelectorAll('[data-adminfiche]').forEach(function(el){
+    el.onclick=function(e){e.stopPropagation();openAdminUserModal(el.getAttribute('data-adminfiche'))};
   });
   box.querySelectorAll('[data-badgetoggle]').forEach(function(el){
     el.onclick=async function(){
@@ -2630,7 +2726,7 @@ function renderAdminMembers(list){
       this.disabled=true;
       try{
         await authPost('/api/admin/mod',{profileId:el.getAttribute('data-modtoggle'),isMod:el.getAttribute('data-mod')!=='1',targetName:el.getAttribute('data-name')});
-        membersCache=[];await loadAdminMembers().then(renderAdminMembers);
+        membersCache=[];await loadAdminMembers().then(function(l){renderAdminMembers(l)});
       }catch(e){adminErr(e)}
     };
   });
@@ -2655,6 +2751,15 @@ function renderAdminMembers(list){
       this.disabled=false;
     };
   });
+}
+function wireAdminMembersSearch(list,focusSearch){
+  const input=\$('admin-members-search');
+  if(!input)return;
+  if(focusSearch){
+    input.focus();
+    const v=input.value;input.setSelectionRange(v.length,v.length);
+  }
+  input.oninput=function(){adminMembersQuery=this.value;renderAdminMembers(list,true);};
 }
 
 async function loadAdminBans(){
@@ -4220,6 +4325,69 @@ async function handle(request) {
         body: { documentId: "unique()", data: { action: "set_badges", detail: (targetName || authUserId) + " -> " + badges.join(","), by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true, badges }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/notes" && request.method === "GET") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const uid = String(url.searchParams.get("uid") || "");
+      if (!uid) throw new Error("uid requis");
+      const q = "/databases/" + AW_DB + "/collections/admin_notes/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uid] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const data = await awFetch(q, { asAdmin: true });
+      const note = (data.documents && data.documents[0]) || null;
+      return new Response(JSON.stringify({ ok: true, note }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/notes" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      const note = String((body && body.note) || "").slice(0, 2000);
+      const targetName = String((body && body.targetName) || "");
+      if (!uid) throw new Error("uid requis");
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const nowIso = new Date().toISOString();
+      const q = "/databases/" + AW_DB + "/collections/admin_notes/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uid] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const existing = await awFetch(q, { asAdmin: true });
+      const doc = (existing.documents && existing.documents[0]) || null;
+      if (doc) {
+        await awFetch("/databases/" + AW_DB + "/collections/admin_notes/documents/" + doc.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { note, updatedBy: by, updatedAt: nowIso } }
+        });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/admin_notes/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { uid, note, updatedBy: by, updatedAt: nowIso } }
+        });
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "note", detail: targetName || uid, by, byId: gate.acc.$id, at: nowIso } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
