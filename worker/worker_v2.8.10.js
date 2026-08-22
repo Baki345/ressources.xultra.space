@@ -517,7 +517,9 @@ button{cursor:pointer;border:0;background:0}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
 .row:hover,.row.active{background:rgba(167,139,250,.1)}
-.row .av{width:36px;height:36px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.85rem;overflow:hidden}
+.row .av{width:36px;height:36px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.85rem;overflow:hidden;position:relative}
+.pr-dot{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;border:2.5px solid var(--bg,#0b0614);z-index:1}
+.pr-label{font-size:.68rem !important;opacity:.7}
 .row .av img{width:100%;height:100%;object-fit:cover}
 .row .info{flex:1;min-width:0}
 .row .info .n{font-weight:700;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -533,7 +535,16 @@ button{cursor:pointer;border:0;background:0}
 .row-swipe.hover-reveal:hover .row-del-action{opacity:1;pointer-events:auto}
 .row-swipe.hover-reveal:hover .row{transform:translateX(-64px);transition:transform .15s ease}
 .row-swipe.hover-reveal .row{transition:transform .15s ease}
-.userbar{flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
+.userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
+.ub-presence-btn{display:flex;align-items:center;gap:5px;background:transparent;padding:0;font-size:.66rem;color:var(--muted);font-weight:600;cursor:pointer}
+.ub-presence-btn:hover{color:#e9d5ff}
+.ub-static-dot{position:static;width:8px;height:8px;border:0;flex-shrink:0}
+.ub-popover{position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);z-index:20;background:#1a1030;border:1px solid rgba(167,139,250,.3);border-radius:12px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:2px;animation:ubPopIn .12s ease}
+@keyframes ubPopIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.ub-popover button{text-align:left;padding:9px 10px;border-radius:8px;font-size:.8rem;font-weight:700;color:#f2ebff;background:transparent;display:flex;align-items:center;gap:8px}
+.ub-popover button:hover{background:rgba(255,255,255,.07)}
+.ub-popover button.hidden{display:none}
+.ub-popover .pr-dot{position:static;width:9px;height:9px;border:0;flex-shrink:0}
 .userbar .av{position:relative;width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.82rem;overflow:hidden}
 .userbar .av img{width:100%;height:100%;object-fit:cover}
 .userbar .av .dot{position:absolute;bottom:-1px;right:-1px;width:10px;height:10px;border-radius:50%;background:var(--online);border:2px solid #150e21}
@@ -554,6 +565,10 @@ button{cursor:pointer;border:0;background:0}
 .chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
 .chat-top .t{font-weight:800;font-size:.9rem}
 .ch-e2e{font-size:.66rem;color:#4ade80;font-weight:700;margin-top:1px}
+.ch-sub-row{display:flex;align-items:center;gap:8px;margin-top:1px}
+.ch-presence{display:flex;align-items:center;gap:5px;font-size:.66rem;color:var(--muted);font-weight:600}
+.ch-presence.hidden{display:none}
+.ch-presence .pr-dot{position:static}
 .ch-e2e.hidden{display:none}
 .chat-back{display:none;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -726,7 +741,7 @@ button{cursor:pointer;border:0;background:0}
 .pm-section{text-align:left;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03)}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
-.pc-card{position:relative}
+.pc-card{position:relative;transition:transform .1s ease;will-change:transform}
 .pc-banner{height:120px;position:relative;overflow:hidden}
 .pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .pc-avwrap{display:flex;justify-content:center}
@@ -735,6 +750,13 @@ button{cursor:pointer;border:0;background:0}
 .pc-av img.pc-av-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:0;transition:opacity .5s ease}
 .pc-av img.pc-av-img.on{opacity:1}
 .pc-presence-dot{position:absolute;right:1px;bottom:1px;width:18px;height:18px;border-radius:50%;border:3px solid #15101f;z-index:2}
+.pc-edit-btn{position:absolute;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:.78rem;display:grid;place-items:center;opacity:0;transition:opacity .15s ease,transform .15s ease;z-index:3;backdrop-filter:blur(3px)}
+.pc-edit-btn:hover{transform:scale(1.1);background:rgba(0,0,0,.75)}
+.pc-banner:hover .pc-edit-banner-btn,.pc-av-frame:hover .pc-edit-avatar-btn{opacity:1}
+@media (hover:none){.pc-edit-btn{opacity:.85}}
+.pc-edit-banner-btn{top:8px;right:8px}
+.pc-edit-avatar-btn{right:-2px;bottom:-2px;width:24px;height:24px}
+.pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
 .pc-card.pc-centered .pc-banner{height:74px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
 .pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before{
@@ -759,6 +781,10 @@ button{cursor:pointer;border:0;background:0}
 .pc-social-btn:hover{transform:translateY(-2px) scale(1.06)}
 .pc-spotify{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:999px;background:rgba(30,215,96,.16);border:1px solid rgba(30,215,96,.4);color:#6ee7a0;font-size:.76rem;font-weight:800;text-decoration:none}
 .pc-since{margin-top:16px;font-size:.68rem;opacity:.55}
+.pc-mutual{margin-top:10px;font-size:.72rem;opacity:.75;font-weight:700}
+.pc-card.border-glow{box-shadow:0 0 0 1px var(--pc-glow,#7c3aed),0 0 28px 2px color-mix(in srgb,var(--pc-glow,#7c3aed) 55%,transparent)}
+.pc-card.border-gradient{position:relative;isolation:isolate}
+.pc-card.border-gradient::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;background:linear-gradient(135deg,var(--pc-grad-a,#7c3aed),var(--pc-grad-b,#22c55e));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2}
 .pcp{position:absolute;pointer-events:none}
 .pcp-stars{width:3px;height:3px;border-radius:50%;background:#fff;animation:pcpTwinkle linear infinite}
 @keyframes pcpTwinkle{0%,100%{opacity:.15}50%{opacity:1}}
@@ -1097,12 +1123,19 @@ button{cursor:pointer;border:0;background:0}
     <div class="list-body" id="list-body"></div>
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
-      <div class="meta"><div class="n" id="ub-name">—</div><div class="s" id="ub-status">En ligne</div></div>
+      <div class="meta">
+        <div class="n" id="ub-name">—</div>
+        <button type="button" class="ub-presence-btn" id="ub-presence-btn"><span class="pr-dot ub-static-dot" id="ub-presence-dot"></span><span id="ub-status">En ligne</span></button>
+      </div>
       <button type="button" class="ub-btn" id="ub-bell" title="Demandes d'amis">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
-      <button type="button" class="ub-btn" id="ub-push" title="Activer les notifications">🔕</button>
-      <button type="button" class="ub-btn hidden" id="ub-hunter" title="Panneau Bug Hunter">🐛</button>
-      <button type="button" class="ub-btn" id="btn-report-bug" title="Signaler un bug">🐞</button>
-      <button type="button" class="ub-btn" id="btn-logout" title="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg></button>
+      <button type="button" class="ub-btn" id="ub-more" title="Plus d'options">⋯</button>
+    </div>
+    <div class="ub-popover hidden" id="ub-presence-popover"></div>
+    <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
+      <button type="button" id="ub-push">🔕 Activer les notifications</button>
+      <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
+      <button type="button" id="btn-report-bug">🐞 Signaler un bug</button>
+      <button type="button" id="btn-logout">🚪 Déconnexion</button>
     </div>
   </aside>
   <section class="chat-col" id="chat-col">
@@ -1115,7 +1148,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
-        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</div></div>
+        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
@@ -1220,6 +1253,7 @@ button{cursor:pointer;border:0;background:0}
     <div class="pm-btn-row">
       <button type="button" class="btn-main" id="pm-message">Message</button>
       <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
+      <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
       <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre">⛔</button>
       <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
     </div>
@@ -1241,12 +1275,13 @@ button{cursor:pointer;border:0;background:0}
           <button type="button" class="pe-tab" data-tab="social">Réseaux</button>
         </div>
         <div class="pe-pane" data-pane="general">
-          <label class="pe-field"><span>Photo de profil</span><input type="file" id="pe-avatar-file" accept="image/*"/></label>
+          <input type="file" id="pe-avatar-file" accept="image/*" hidden/>
+          <input type="file" id="pe-banner-file" accept="image/*" hidden/>
+          <div class="pe-hint">📷 Survole ta photo ou ta bannière dans l'aperçu pour les changer</div>
           <div class="pe-field"><span>Galerie de photos (façon Telegram, défilement auto)</span>
             <div class="pe-gallery" id="pe-gallery"></div>
             <label class="pe-mini-upload"><input type="file" id="pe-gallery-file" accept="image/*" hidden/>➕ Ajouter une photo</label>
           </div>
-          <label class="pe-field"><span>Bannière</span><input type="file" id="pe-banner-file" accept="image/*"/></label>
           <label class="pe-field"><span>Nom affiché</span><input type="text" id="pe-name" maxlength="64" class="field-input"/></label>
           <label class="pe-field"><span>Tag <button type="button" class="pe-mini-btn" id="pe-tag-random" title="Randomiser">🎲</button></span><input type="text" id="pe-tag" maxlength="4" class="field-input" placeholder="0000"/></label>
           <label class="pe-field"><span>Pronoms</span><input type="text" id="pe-pronouns" maxlength="24" class="field-input" placeholder="il/lui, elle/elle, iel…"/></label>
@@ -1280,6 +1315,9 @@ button{cursor:pointer;border:0;background:0}
             <select id="pe-particles" class="field-input"><option value="none">Aucun</option><option value="stars">Étoiles</option><option value="snow">Neige</option><option value="matrix">Code (matrix)</option><option value="confetti">Confettis</option></select>
           </label>
           <div class="pe-field"><span>Contour d'avatar</span><div class="pe-swatches" id="pe-frame-swatches"></div></div>
+          <label class="pe-field"><span>Bordure de la carte</span>
+            <select id="pe-card-border" class="field-input"><option value="none">Aucune</option><option value="glow">Halo lumineux</option><option value="gradient">Dégradé animé</option></select>
+          </label>
           <label class="pe-field"><span>Police</span>
             <select id="pe-font" class="field-input"><option value="system">Système</option><option value="serif">Élégante (serif)</option><option value="mono">Mono (technique)</option><option value="rounded">Arrondie</option><option value="elegant">Raffinée</option></select>
           </label>
@@ -1985,17 +2023,20 @@ async function enterApp(){
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
   ensureE2EKeys().catch(function(){});
-  const name=(profile&&(profile.displayName||profile.username))||acc.name||acc.email||'Compte';
-  \$('ub-name').textContent=name;
-  const av=\$('ub-av');
-  if(profile&&safeUrl(profile.avatar)){av.innerHTML='<img src="'+esc(safeUrl(profile.avatar))+'" alt=""/><span class="dot"></span>';}
-  else{av.innerHTML=esc(ini(name))+'<span class="dot"></span>';}
+  if(profile)refreshSelfBar();
+  else{
+    const name=acc.name||acc.email||'Compte';
+    \$('ub-name').textContent=name;
+    \$('ub-av').innerHTML=esc(ini(name));
+  }
   \$('auth').classList.add('hidden');
   \$('stage').classList.add('hidden');
   \$('app').classList.remove('hidden');
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{subscribePresenceWatcher();}catch(e){}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
@@ -2006,11 +2047,19 @@ async function enterApp(){
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
+  try{
+    const sharedUid=new URLSearchParams(location.search).get('profile');
+    if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
+  }catch(e){}
 }
 let presenceTimerId=null;
 async function updateLastSeen(){
   if(!meProfile||!meProfile.\$id)return;
-  try{await db.updateDocument(DB,'users',meProfile.\$id,{lastSeen:new Date().toISOString(),statusManual:'online'});}catch(e){}
+  /* On ne touche plus statusManual ici : c'est désormais un choix
+     explicite de l'utilisateur (En ligne/Absent/DND/Invisible), pas
+     un simple accusé de présence — sinon ce battement de coeur
+     écrasait le statut choisi toutes les 2 minutes. */
+  try{await db.updateDocument(DB,'users',meProfile.\$id,{lastSeen:new Date().toISOString()});}catch(e){}
 }
 function startPresenceLoop(){
   if(presenceTimerId)return;
@@ -2233,7 +2282,7 @@ function showBadgeInfo(key){
 if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-badge-info').classList.add('hidden')});
 if(\$('modal-badge-info'))\$('modal-badge-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
-let membersCache=[], memberMetaByUid={};
+let membersCache=[], memberMetaByUid={}, presenceByUid={};
 async function loadMembers(){
   const r=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]);
   membersCache=r.documents||[];
@@ -2242,12 +2291,50 @@ async function loadMembers(){
     memberMetaByUid={};
     (m.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d});
   }catch(e){memberMetaByUid={}}
+  refreshPresenceMap();
   return membersCache;
+}
+const PRESENCE_STALE_MS=3*60*1000;
+function computePresence(p){
+  if(!p)return 'offline';
+  const manual=p.statusManual||'online';
+  if(manual==='invisible')return 'offline';
+  const last=p.lastSeen?new Date(p.lastSeen).getTime():0;
+  if(!last||Date.now()-last>PRESENCE_STALE_MS)return 'offline';
+  return manual;
+}
+function refreshPresenceMap(){
+  const next={};
+  membersCache.forEach(function(p){next[String(p.authUserId||p.\$id)]=computePresence(p);});
+  presenceByUid=next;
+}
+function presenceDotHtml(uid,extraClass){
+  const st=presenceByUid[String(uid)]||'offline';
+  const d=PRESENCE_DEFS[st]||PRESENCE_DEFS.online;
+  const color=st==='offline'?'#4b5563':d.dot;
+  return '<span class="pr-dot'+(extraClass?' '+extraClass:'')+'" style="background:'+color+'" title="'+esc(st==='offline'?'Hors ligne':d.label)+'"></span>';
+}
+function subscribePresenceWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.users.documents',function(res){
+      if(!eventIs(res.events,'.update'))return;
+      const p=res.payload;if(!p)return;
+      const uid=String(p.authUserId||p.\$id);
+      const idx=membersCache.findIndex(function(x){return String(x.authUserId||x.\$id)===uid});
+      if(idx>=0)membersCache[idx]=p;else membersCache.push(p);
+      presenceByUid[uid]=computePresence(p);
+      if(view==='dms')renderDms();
+      else if(view==='friends')renderFriends();
+      else if(view==='members')renderMembers();
+      if(activeDmPeerUid===uid&&\$('ch-presence'))updateChatHeaderPresence();
+    });
+  }catch(e){}
 }
 function rowAvatar(p,name,uid){
   const av=safeUrl(p&&p.avatar);
-  if(av)return '<div class="av" data-uid="'+esc(uid)+'"><img src="'+esc(av)+'" alt=""/></div>';
-  return '<div class="av" data-uid="'+esc(uid)+'">'+esc(ini(name))+'</div>';
+  const dot=presenceDotHtml(uid);
+  if(av)return '<div class="av" data-uid="'+esc(uid)+'"><img src="'+esc(av)+'" alt=""/>'+dot+'</div>';
+  return '<div class="av" data-uid="'+esc(uid)+'">'+esc(ini(name))+dot+'</div>';
 }
 function renderMembers(){
   const box=\$('list-body');if(!box)return;
@@ -2352,8 +2439,8 @@ function renderFriends(){
     h+='<div class="empty-hint" style="padding:8px 8px 2px">Amis</div>';
     h+=accepted.map(function(f){
       return '<div class="row" data-profile="'+esc(f.friendId)+'">'
-        +'<div class="av">'+esc(ini(f.name||'?'))+'</div>'
-        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div></div></div>';
+        +'<div class="av">'+esc(ini(f.name||'?'))+presenceDotHtml(f.friendId)+'</div>'
+        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div>';
     }).join('');
   }
   box.innerHTML=h;
@@ -2435,7 +2522,7 @@ function renderDms(){
     const title=d.displayName||'Conversation';
     const group=dmIsGroup(d);
     const avInner=group?'👥':esc(ini(title));
-    const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+'</div>';
+    const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+presenceDotHtml(dmPeerId(d))+'</div>';
     const sub=group?((d.members||[]).length+' membres'+(d.lastMessage?' · '+d.lastMessage:'')):(d.lastMessage||'');
     const ts=d.\$updatedAt||d.\$createdAt;
     return '<div class="row-swipe" data-dm-wrap="'+esc(d.\$id)+'">'
@@ -2598,7 +2685,7 @@ const PRESENCE_DEFS={
   online:{dot:'#22c55e',label:'En ligne'},
   idle:{dot:'#f59e0b',label:'Absent'},
   dnd:{dot:'#ef4444',label:'Ne pas déranger'},
-  invisible:{dot:'transparent',label:'Invisible'}
+  invisible:{dot:'#6b7280',label:'Invisible'}
 };
 const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon'];
 function parseProfileExtra(json){
@@ -2644,9 +2731,18 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const avatarInner=avatarUrls.length
     ? avatarUrls.map(function(u,i){return '<img src="'+esc(u)+'" alt="" class="pc-av-img'+(i===0?' on':'')+'"/>';}).join('')
     : esc(ini(name));
-  return '<div class="pc-card '+layout+'" data-avatar-count="'+avatarUrls.length+'">'
-    +'<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div></div>'
+  const border=['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none';
+  let lastSeenTxt='';
+  if(p.lastSeen){
+    const stale=Date.now()-new Date(p.lastSeen).getTime()>PRESENCE_STALE_MS;
+    if(stale||p.statusManual==='invisible')lastSeenTxt='Vu il y a '+fmtRelTime(p.lastSeen);
+  }
+  return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
+    +'<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
+      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière">📷</button>':'')
+    +'</div>'
     +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"><div class="pc-av">'+avatarInner+'</div>'
+      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo">📷</button>':'')
       +(p.statusManual&&p.statusManual!=='invisible'?'<span class="pc-presence-dot" style="background:'+presence.dot+'" title="'+esc(presence.label)+'"></span>':'')
     +'</div></div>'
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
@@ -2657,7 +2753,8 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
-      +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+'</div>')
+      +(opts.mutualCount!=null&&opts.mutualCount>0?'<div class="pc-mutual">👥 '+opts.mutualCount+' ami'+(opts.mutualCount>1?'s':'')+' en commun</div>':'')
+      +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+(opts.showLastSeen&&lastSeenTxt?' · '+esc(lastSeenTxt):'')+'</div>')
     +'</div>'
   +'</div>';
 }
@@ -2678,6 +2775,14 @@ function mountProfileCardExtras(container){
         imgs[idx].classList.add('on');
       },3000);
     }
+    if(typeof IS_HOVER_DEVICE!=='undefined'&&IS_HOVER_DEVICE){
+      card.addEventListener('mousemove',function(e){
+        const r=card.getBoundingClientRect();
+        const px=(e.clientX-r.left)/r.width-0.5,py=(e.clientY-r.top)/r.height-0.5;
+        card.style.transform='perspective(700px) rotateY('+(px*6)+'deg) rotateX('+(py*-6)+'deg)';
+      });
+      card.addEventListener('mouseleave',function(){card.style.transform='';});
+    }
   }
 }
 async function openProfileModal(uid){
@@ -2695,13 +2800,31 @@ async function openProfileModal(uid){
   }
   const badges=parseBadges(meta);
   const name=p.displayName||p.username||'User';
+  const isSelf=me&&uid===me.\$id;
+  let mutualCount=null;
+  if(!isSelf&&me){
+    try{
+      const theirs=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',uid),Appwrite.Query.equal('status','accepted'),Appwrite.Query.limit(100)]);
+      const theirIds=(theirs.documents||[]).map(function(f){return String(f.friendId)});
+      const mineIds=friendsCache.filter(function(f){return f.status==='accepted'}).map(function(f){return String(f.friendId)});
+      mutualCount=mineIds.filter(function(id){return theirIds.indexOf(id)>=0}).length;
+    }catch(e){mutualCount=null;}
+  }
   const renderEl=\$('pm-render');
   if(renderEl){
-    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges);
+    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{mutualCount:mutualCount,showLastSeen:!isSelf});
     wireBadgeChips(renderEl.querySelector('.pc-badges'));
     mountProfileCardExtras(renderEl);
   }
-  const isSelf=me&&uid===me.\$id;
+  const shareBtn=\$('pm-share');
+  if(shareBtn){
+    shareBtn.onclick=function(){
+      const url=location.origin+'/?profile='+encodeURIComponent(uid);
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject())
+        .then(function(){showToast('Lien du profil copié !');})
+        .catch(function(){showToast(url,'error');});
+    };
+  }
   const msgBtn=\$('pm-message');
   msgBtn.classList.toggle('hidden',!!isSelf);
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
@@ -2735,9 +2858,53 @@ function refreshSelfBar(){
   const name=meProfile.displayName||meProfile.username||(me&&me.name)||'Compte';
   \$('ub-name').textContent=name;
   const av=\$('ub-av');
-  if(safeUrl(meProfile.avatar))av.innerHTML='<img src="'+esc(safeUrl(meProfile.avatar))+'" alt=""/><span class="dot"></span>';
-  else av.innerHTML=esc(ini(name))+'<span class="dot"></span>';
+  const myStatus=meProfile.statusManual||'online';
+  const myDef=PRESENCE_DEFS[myStatus]||PRESENCE_DEFS.online;
+  if(safeUrl(meProfile.avatar))av.innerHTML='<img src="'+esc(safeUrl(meProfile.avatar))+'" alt=""/><span class="dot" style="background:'+myDef.dot+'"></span>';
+  else av.innerHTML=esc(ini(name))+'<span class="dot" style="background:'+myDef.dot+'"></span>';
+  const dotEl=\$('ub-presence-dot');if(dotEl)dotEl.style.background=myDef.dot;
+  const statusEl=\$('ub-status');if(statusEl)statusEl.textContent=myDef.label;
+  if(me)presenceByUid[String(me.\$id)]=myStatus==='invisible'?'offline':myStatus;
 }
+function closeUbPopovers(){
+  \$('ub-presence-popover').classList.add('hidden');
+  \$('ub-more-menu').classList.add('hidden');
+}
+function toggleUbPresencePopover(){
+  const pop=\$('ub-presence-popover');
+  const wasHidden=pop.classList.contains('hidden');
+  closeUbPopovers();
+  if(!wasHidden)return;
+  pop.innerHTML=Object.keys(PRESENCE_DEFS).map(function(k){
+    const d=PRESENCE_DEFS[k];
+    return '<button type="button" data-set-presence="'+k+'"><span class="pr-dot" style="background:'+d.dot+'"></span>'+esc(d.label)+'</button>';
+  }).join('');
+  pop.querySelectorAll('[data-set-presence]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      const st=b.getAttribute('data-set-presence');
+      closeUbPopovers();
+      if(!meProfile)return;
+      try{
+        await db.updateDocument(DB,'users',meProfile.\$id,{statusManual:st});
+        meProfile.statusManual=st;
+        refreshSelfBar();
+        showToast('Statut : '+(PRESENCE_DEFS[st]&&PRESENCE_DEFS[st].label));
+      }catch(e){showToast('Changement de statut impossible','error');}
+    });
+  });
+  pop.classList.remove('hidden');
+}
+if(\$('ub-presence-btn'))\$('ub-presence-btn').addEventListener('click',function(e){e.stopPropagation();toggleUbPresencePopover();});
+if(\$('ub-more'))\$('ub-more').addEventListener('click',function(e){
+  e.stopPropagation();
+  const menu=\$('ub-more-menu');
+  const wasHidden=menu.classList.contains('hidden');
+  closeUbPopovers();
+  if(wasHidden)menu.classList.remove('hidden');
+});
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.ub-popover')&&!e.target.closest('#ub-presence-btn')&&!e.target.closest('#ub-more'))closeUbPopovers();
+});
 
 let peDraft=null,peOriginalMeta=null;
 function openProfileEditPanel(p,meta){
@@ -2770,7 +2937,8 @@ function openProfileEditPanel(p,meta){
     pronouns:extra.pronouns||'',
     customStatus:extra.customStatus||'',
     avatarFrame:AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none',
-    avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[]
+    avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
+    cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none'
   };
   \$('pe-name').value=peDraft.displayName;
   \$('pe-tag').value=peDraft.tag;
@@ -2788,6 +2956,7 @@ function openProfileEditPanel(p,meta){
   \$('pe-titlesize').value=peDraft.titleSize;
   \$('pe-particles').value=peDraft.particles;
   \$('pe-font').value=peDraft.font;
+  \$('pe-card-border').value=peDraft.cardBorder;
   \$('pe-spotify').value=peDraft.spotify;
   SOCIAL_DEFS.forEach(function(def){
     const el=\$('pe-social-'+def.key);
@@ -2864,11 +3033,19 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
   });
   const badges=parseBadges(peOriginalMeta);
-  el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges);
+  el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
   mountProfileCardExtras(el);
+  el.querySelectorAll('[data-edit]').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      const which=b.getAttribute('data-edit');
+      const input=\$(which==='avatar'?'pe-avatar-file':'pe-banner-file');
+      if(input)input.click();
+    });
+  });
 }
 function wirePeInputs(){
   function bindInput(id,field,transform){
@@ -2897,6 +3074,7 @@ function wirePeInputs(){
   bindChange('pe-titlesize','titleSize');
   bindChange('pe-particles','particles');
   bindChange('pe-font','font');
+  bindChange('pe-card-border','cardBorder');
   bindInput('pe-spotify','spotify');
   bindInput('pe-pronouns','pronouns');
   bindInput('pe-custom-status','customStatus');
@@ -2917,10 +3095,11 @@ function wirePeInputs(){
     peDraft.headerLayout=['overlap','centered'][Math.floor(Math.random()*2)];
     peDraft.particles=['none','stars','snow','matrix','confetti'][Math.floor(Math.random()*5)];
     peDraft.avatarFrame=AVATAR_FRAMES[Math.floor(Math.random()*AVATAR_FRAMES.length)];
+    peDraft.cardBorder=['none','glow','gradient'][Math.floor(Math.random()*3)];
     \$('pe-bgcolor').value=peDraft.bgColor;\$('pe-btncolor').value=peDraft.btnColor;
     \$('pe-bgtype').value=peDraft.bgType;\$('pe-btnstyle').value=peDraft.btnStyle;
     \$('pe-btnshape').value=peDraft.btnShape;\$('pe-layout').value=peDraft.headerLayout;
-    \$('pe-particles').value=peDraft.particles;
+    \$('pe-particles').value=peDraft.particles;\$('pe-card-border').value=peDraft.cardBorder;
     renderThemeSwatches();renderFrameSwatches();updatePePreview();
   });
   if(\$('pe-gallery-file'))\$('pe-gallery-file').addEventListener('change',async function(){
@@ -2999,7 +3178,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
     try{
       await db.updateDocument(DB,'user_meta',me.\$id,{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
-        profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery})
+        profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
       });
     }catch(e){}
     refreshSelfBar();
@@ -3107,6 +3286,21 @@ async function openDm(threadId,title,peerUid){
   }
   await loadMessages(threadId);
   refreshCallBadge(activeDmPeerUid);
+  updateChatHeaderPresence();
+}
+function updateChatHeaderPresence(){
+  const el=\$('ch-presence');if(!el)return;
+  if(activeDmIsGroup||!activeDmPeerUid){el.classList.add('hidden');return}
+  const st=presenceByUid[String(activeDmPeerUid)]||'offline';
+  const d=PRESENCE_DEFS[st]||PRESENCE_DEFS.online;
+  const color=st==='offline'?'#4b5563':d.dot;
+  let label=st==='offline'?'Hors ligne':d.label;
+  if(st==='offline'){
+    const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(activeDmPeerUid)});
+    if(p&&p.lastSeen)label='Vu il y a '+fmtRelTime(p.lastSeen);
+  }
+  el.innerHTML='<span class="pr-dot" style="background:'+color+'"></span>'+esc(label);
+  el.classList.remove('hidden');
 }
 async function refreshCallBadge(peerUid){
   const badge=\$('dm-call-badge');if(!badge)return;
