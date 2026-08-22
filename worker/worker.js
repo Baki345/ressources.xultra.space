@@ -397,6 +397,14 @@ button{cursor:pointer;border:0;background:0}
 .remember-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px;cursor:pointer;user-select:none}
 .remember-row input{flex-shrink:0;width:18px;height:18px;accent-color:#7c3aed;cursor:pointer}
 .remember-row span{color:#c4b5fd;font-size:.88rem;font-weight:600}
+.pw-strength{margin:-3px 0 11px}
+.pw-strength-track{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.pw-strength-fill{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#ef4444,#ef4444);transition:width .35s cubic-bezier(.4,0,.2,1),background .35s ease;background-size:200% 100%;animation:pwShimmer 2.4s linear infinite}
+@keyframes pwShimmer{0%{background-position:0% 0}100%{background-position:200% 0}}
+.pw-strength-row{display:flex;align-items:center;gap:6px;margin-top:5px}
+.pw-strength-emoji{font-size:.9rem;transition:transform .25s ease;display:inline-block}
+.pw-strength-emoji.bump{transform:scale(1.35)}
+.pw-strength-label{font-size:.7rem;color:var(--muted);font-weight:700}
 .btn-main{width:100%;height:44px;border-radius:12px;font-weight:800;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;margin-top:4px;transition:transform .1s,box-shadow .15s}
 .btn-main:hover{box-shadow:0 6px 20px rgba(124,58,237,.35)}
 .btn-main:active{transform:scale(.98)}
@@ -414,6 +422,8 @@ button{cursor:pointer;border:0;background:0}
 .color-swatches button:hover{transform:scale(1.12)}
 .color-swatches button.on{border-color:#fff;box-shadow:0 0 0 2px #7c3aed}
 .hp-field{position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.turnstile-wrap{margin:10px 0 4px;display:flex;justify-content:center;min-height:0}
+.turnstile-wrap.hidden{display:none}
 
 /* Post-login confirmation dashboard (Phase 1) */
 .dash{position:relative;z-index:1;width:min(420px,100%);background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:28px 24px;box-shadow:0 26px 70px rgba(0,0,0,.5)}
@@ -730,16 +740,16 @@ button{cursor:pointer;border:0;background:0}
       <button type="button" class="on" data-tab="login">Connexion</button>
       <button type="button" data-tab="register">Inscription</button>
     </div>
-    <div id="pane-login">
-      <div class="field"><label>Email</label><input id="in-email" type="email" autocomplete="email"/></div>
-      <div class="field"><label>Mot de passe</label><input id="in-pass" type="password" autocomplete="current-password"/></div>
+    <form id="pane-login" autocomplete="on">
+      <div class="field"><label>Email</label><input id="in-email" type="email" name="email" autocomplete="username"/></div>
+      <div class="field"><label>Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
       <label class="remember-row" for="in-remember">
         <input type="checkbox" id="in-remember" checked/>
         <span>Rester connecté</span>
       </label>
-      <button type="button" class="btn-main" id="btn-login">Entrer</button>
-    </div>
-    <div id="pane-register" class="hidden">
+      <button type="submit" class="btn-main" id="btn-login">Entrer</button>
+    </form>
+    <form id="pane-register" class="hidden" autocomplete="on">
       <div class="reg-preview">
         <div class="rp-av" id="rp-av" title="Choisir un avatar">?</div>
         <div class="rp-meta">
@@ -749,8 +759,13 @@ button{cursor:pointer;border:0;background:0}
       </div>
       <input type="file" id="reg-file-av" accept="image/*" class="hidden"/>
       <div class="field"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
-      <div class="field"><label>Email</label><input id="in-email2" type="email" autocomplete="email"/></div>
-      <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" minlength="8" autocomplete="new-password"/></div>
+      <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
+      <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/></div>
+      <div class="pw-strength" id="pw-strength">
+        <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+        <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
+      </div>
+      <div class="field"><label>Confirmer le mot de passe</label><input id="in-pass2-confirm" type="password" name="confirm-password" autocomplete="new-password"/></div>
       <div class="field">
         <label>Couleur du profil</label>
         <div class="color-swatches" id="reg-swatches">
@@ -763,8 +778,9 @@ button{cursor:pointer;border:0;background:0}
         </div>
       </div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
-      <button type="button" class="btn-main" id="btn-register">Créer mon compte</button>
-    </div>
+      <div class="turnstile-wrap" id="turnstile-wrap"></div>
+      <button type="submit" class="btn-main" id="btn-register">Créer mon compte</button>
+    </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
   </div>
@@ -1106,13 +1122,64 @@ document.querySelectorAll('.tabs button').forEach(function(b){
       \$('pane-login').classList.toggle('hidden',reg);
       \$('pane-register').classList.toggle('hidden',!reg);
       showErrTxt('');
-      if(reg){regShownAt=Date.now();updateRegPreview();}
+      if(reg){regShownAt=Date.now();updateRegPreview();renderTurnstile();}
     }catch(e){xlog('tab_click_error',{msg:(e&&e.message)||String(e)});}
   });
 });
 
 let regShownAt=Date.now();
 let regAvatarFile=null, regAvatarUrl='';
+
+/* ===== Turnstile anti-bot (inscription) ===== */
+const TURNSTILE_SITE_KEY='';
+let turnstileWidgetId=null;
+function renderTurnstile(){
+  const wrap=\$('turnstile-wrap');if(!wrap)return;
+  if(!TURNSTILE_SITE_KEY){wrap.classList.add('hidden');return}
+  wrap.classList.remove('hidden');
+  if(turnstileWidgetId!=null||typeof turnstile==='undefined')return;
+  try{turnstileWidgetId=turnstile.render(wrap,{sitekey:TURNSTILE_SITE_KEY,theme:'dark'});}catch(e){}
+}
+if(TURNSTILE_SITE_KEY){
+  const tsScript=document.createElement('script');
+  tsScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js';
+  tsScript.async=true;tsScript.defer=true;
+  tsScript.onload=renderTurnstile;
+  document.head.appendChild(tsScript);
+}
+
+/* ===== Jauge de robustesse du mot de passe ===== */
+function passwordStrength(pw){
+  if(!pw)return 0;
+  let score=0;
+  score+=Math.min(40,pw.length*4);
+  if(/[a-z]/.test(pw))score+=10;
+  if(/[A-Z]/.test(pw))score+=15;
+  if(/[0-9]/.test(pw))score+=15;
+  if(/[^a-zA-Z0-9]/.test(pw))score+=20;
+  return Math.min(100,score);
+}
+function updatePasswordStrength(){
+  const pw=(\$('in-pass2')&&\$('in-pass2').value)||'';
+  const fill=\$('pw-strength-fill'),emoji=\$('pw-strength-emoji'),label=\$('pw-strength-label');
+  if(!fill)return;
+  const score=passwordStrength(pw);
+  fill.style.width=score+'%';
+  let color1,color2,em,txt;
+  if(!pw){color1='#ef4444';color2='#ef4444';em='😐';txt='Mot de passe';}
+  else if(score<40){color1='#ef4444';color2='#f87171';em='😢';txt='Faible';}
+  else if(score<70){color1='#f59e0b';color2='#fbbf24';em='😐';txt='Moyen';}
+  else{color1='#22c55e';color2='#4ade80';em='😊';txt='Robuste';}
+  fill.style.background='linear-gradient(90deg,'+color1+','+color2+')';
+  if(label)label.textContent=txt;
+  if(emoji&&emoji.textContent!==em){
+    emoji.textContent=em;
+    emoji.classList.remove('bump');
+    void emoji.offsetWidth;
+    emoji.classList.add('bump');
+  }
+}
+if(\$('in-pass2'))\$('in-pass2').addEventListener('input',updatePasswordStrength);
 function updateRegPreview(){
   const n=((\$('in-user')&&\$('in-user').value)||'').trim()||'Nouveau membre';
   const swOn=document.querySelector('#reg-swatches button.on');
@@ -1219,13 +1286,24 @@ async function doRegister(){
   const name=((\$('in-user')&&\$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\\- ]/g,'').slice(0,24);
   const email=((\$('in-email2')&&\$('in-email2').value)||'').trim();
   const pass=(\$('in-pass2')&&\$('in-pass2').value)||'';
+  const passConfirm=(\$('in-pass2-confirm')&&\$('in-pass2-confirm').value)||'';
   const swOn=document.querySelector('#reg-swatches button.on');
   const accent=(swOn&&swOn.dataset.c)||'#7c3aed';
   showErrTxt('');
   if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
   if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
+  if(pass!==passConfirm){showErrTxt('Les mots de passe ne correspondent pas');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
+  if(TURNSTILE_SITE_KEY){
+    const tsToken=(typeof turnstile!=='undefined'&&turnstileWidgetId!=null)?turnstile.getResponse(turnstileWidgetId):'';
+    if(!tsToken){showErrTxt('Merci de valider la vérification anti-robot');return}
+    try{
+      const tv=await fetch('/api/turnstile/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tsToken})});
+      const tvj=await tv.json().catch(function(){return {ok:false}});
+      if(!tv.ok||!tvj.ok){showErrTxt('Vérification anti-robot échouée, réessaie');if(typeof turnstile!=='undefined'&&turnstileWidgetId!=null)turnstile.reset(turnstileWidgetId);return}
+    }catch(e){showErrTxt('Vérification anti-robot indisponible, réessaie');return}
+  }
   \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
   try{
     await account.create(Appwrite.ID.unique(),email,pass,name);
@@ -1251,12 +1329,8 @@ async function doRegister(){
   \$('btn-register').disabled=false;\$('btn-register').textContent='Créer mon compte';
 }
 
-if(\$('btn-login'))\$('btn-login').addEventListener('click',doLogin);
-if(\$('btn-register'))\$('btn-register').addEventListener('click',doRegister);
-['in-email','in-pass'].forEach(function(id){
-  const el=\$(id);
-  if(el)el.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();doLogin();}});
-});
+if(\$('pane-login'))\$('pane-login').addEventListener('submit',function(e){e.preventDefault();doLogin();});
+if(\$('pane-register'))\$('pane-register').addEventListener('submit',function(e){e.preventDefault();doRegister();});
 if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
   xlog('logout_click',{});
   try{if(ensureSdk())await account.deleteSession('current');}catch(e){}
@@ -3818,6 +3892,29 @@ async function handle(request) {
     return new Response(JSON.stringify({ ok: true, key: VAPID_PUBLIC_KEY }), {
       headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, cors)
     });
+  }
+  if (path === "/api/turnstile/verify" && request.method === "POST") {
+    try {
+      const secretKey = typeof TURNSTILE_SECRET_KEY !== "undefined" ? TURNSTILE_SECRET_KEY : null;
+      if (!secretKey) throw new Error("Turnstile non configuré");
+      const body = await request.json();
+      const token = String((body && body.token) || "");
+      if (!token) throw new Error("token requis");
+      const ip = request.headers.get("CF-Connecting-IP") || "";
+      const form = new URLSearchParams();
+      form.set("secret", secretKey);
+      form.set("response", token);
+      if (ip) form.set("remoteip", ip);
+      const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+      const d = await r.json();
+      return new Response(JSON.stringify({ ok: !!d.success }), {
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
   }
   if (path === "/api/push/subscribe" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
