@@ -1129,13 +1129,13 @@ button{cursor:pointer;border:0;background:0}
       </div>
       <button type="button" class="ub-btn" id="ub-bell" title="Demandes d'amis">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
       <button type="button" class="ub-btn" id="ub-more" title="Plus d'options">⋯</button>
-    </div>
-    <div class="ub-popover hidden" id="ub-presence-popover"></div>
-    <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
-      <button type="button" id="ub-push">🔕 Activer les notifications</button>
-      <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
-      <button type="button" id="btn-report-bug">🐞 Signaler un bug</button>
-      <button type="button" id="btn-logout">🚪 Déconnexion</button>
+      <div class="ub-popover hidden" id="ub-presence-popover"></div>
+      <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
+        <button type="button" id="ub-push">🔕 Activer les notifications</button>
+        <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
+        <button type="button" id="btn-report-bug">🐞 Signaler un bug</button>
+        <button type="button" id="btn-logout">🚪 Déconnexion</button>
+      </div>
     </div>
   </aside>
   <section class="chat-col" id="chat-col">
