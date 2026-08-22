@@ -468,8 +468,14 @@ button{cursor:pointer;border:0;background:0}
 .btn-main:disabled{opacity:.6;cursor:wait}
 .err{min-height:1.2em;color:#fca5a5;font-size:.85rem;margin-top:10px;text-align:center}
 .hint{text-align:center;color:#9a8fb0;font-size:.7rem;margin-top:12px}
-.reg-preview{display:flex;align-items:center;gap:12px;padding:11px;border-radius:16px;margin-bottom:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
-.reg-preview .rp-av{width:50px;height:50px;border-radius:50%;flex-shrink:0;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);cursor:pointer;position:relative;box-shadow:0 4px 14px rgba(124,58,237,.35)}
+.reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
+.rp-banner{height:52px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
+.rp-banner-btn{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#f2ebff;font-size:.62rem;font-weight:700;backdrop-filter:blur(3px)}
+.rp-banner:hover .rp-banner-btn{background:rgba(0,0,0,.65)}
+.rp-row{display:flex;align-items:center;gap:12px;padding:11px;margin-top:-22px}
+.reg-preview .rp-av{width:50px;height:50px;border-radius:50%;flex-shrink:0;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);cursor:pointer;position:relative;box-shadow:0 4px 14px rgba(124,58,237,.35);border:3px solid #1a1030}
+.rp-av-cam{position:absolute;right:-2px;bottom:-2px;width:19px;height:19px;border-radius:50%;background:#1a1030;border:1px solid rgba(255,255,255,.25);display:grid;place-items:center;font-size:.58rem}
+.rp-hint{font-size:.64rem;color:#8a7ba5;margin-top:3px}
 .reg-preview .rp-av img{width:100%;height:100%;object-fit:cover}
 .reg-preview .rp-meta{min-width:0;flex:1}
 .reg-preview .rp-name{font-weight:800;font-size:.95rem;color:#f3e8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -956,6 +962,24 @@ button{cursor:pointer;border:0;background:0}
 .ntf-actions button{padding:6px 12px;border-radius:8px;font-size:.72rem;font-weight:700;background:#7c3aed;color:#fff}
 .ntf-actions button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
 .ntf-actions button:hover{filter:brightness(1.1)}
+.changelog-panel{width:min(480px,100%);max-height:85dvh;display:flex;flex-direction:column}
+.changelog-panel h3{margin-bottom:4px}
+.cl-sub{font-size:.78rem;color:var(--muted);margin-bottom:16px;flex-shrink:0}
+.cl-list{overflow-y:auto;position:relative;padding-left:22px}
+.cl-list::before{content:'';position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:linear-gradient(180deg,#a78bfa,rgba(167,139,250,.08))}
+.cl-entry{position:relative;margin-bottom:20px;opacity:0;animation:clFadeIn .4s ease forwards}
+.cl-entry:last-child{margin-bottom:4px}
+@keyframes clFadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.cl-dot{position:absolute;left:-22px;top:4px;width:12px;height:12px;border-radius:50%;background:#4c1d95;border:2px solid #1a1030;z-index:1}
+.cl-dot.cl-dot-new{background:#a78bfa;box-shadow:0 0 0 4px rgba(167,139,250,.25);animation:cbPulse 1.8s ease-in-out infinite}
+.cl-card{background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14);border-radius:14px;padding:13px 15px;transition:background .15s ease,border-color .15s ease}
+.cl-card:hover{background:rgba(255,255,255,.05);border-color:rgba(167,139,250,.3)}
+.cl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.cl-version{font-size:.68rem;font-weight:800;color:#c4b5fd;background:rgba(124,58,237,.2);padding:2px 8px;border-radius:999px;font-family:monospace}
+.cl-new-badge{font-size:.62rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,.14);padding:2px 8px;border-radius:999px}
+.cl-date{font-size:.66rem;color:var(--muted);margin-left:auto}
+.cl-title{font-size:.9rem;font-weight:800;margin-bottom:5px;color:#f2ebff}
+.cl-body{font-size:.8rem;line-height:1.5;color:rgba(242,235,255,.75)}
 .status-panel{width:min(460px,100%);max-height:88dvh;padding:0;overflow:hidden;position:relative;background:#050308;border:1px solid rgba(167,139,250,.3)}
 .status-rain{position:absolute;inset:0;filter:blur(2px) brightness(.7);opacity:.55}
 .status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(5,3,10,.4),rgba(5,3,10,.88) 30%)}
@@ -1040,13 +1064,20 @@ button{cursor:pointer;border:0;background:0}
     </form>
     <form id="pane-register" class="hidden" autocomplete="on">
       <div class="reg-preview">
-        <div class="rp-av" id="rp-av" title="Choisir un avatar">?</div>
-        <div class="rp-meta">
-          <div class="rp-name" id="rp-name">Nouveau membre</div>
-          <div class="rp-tag" id="rp-tag">@pseudo#····</div>
+        <div class="rp-banner" id="rp-banner" title="Ajouter une bannière (optionnel)">
+          <span class="rp-banner-btn">📷 Bannière</span>
+        </div>
+        <div class="rp-row">
+          <div class="rp-av" id="rp-av" title="Choisir un avatar (optionnel)">?<span class="rp-av-cam">📷</span></div>
+          <div class="rp-meta">
+            <div class="rp-name" id="rp-name">Nouveau membre</div>
+            <div class="rp-tag" id="rp-tag">@pseudo#····</div>
+            <div class="rp-hint">Photo et bannière optionnelles</div>
+          </div>
         </div>
       </div>
       <input type="file" id="reg-file-av" accept="image/*" class="hidden"/>
+      <input type="file" id="reg-file-banner" accept="image/*" class="hidden"/>
       <div class="field"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
       <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
       <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/></div>
@@ -1118,6 +1149,7 @@ button{cursor:pointer;border:0;background:0}
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
+    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
@@ -1553,6 +1585,15 @@ button{cursor:pointer;border:0;background:0}
   </div>
 </div>
 
+<div class="overlay hidden" id="modal-changelog">
+  <div class="modal-box changelog-panel">
+    <button type="button" class="modal-close" id="cl-close">✕</button>
+    <h3>📋 Nouveautés</h3>
+    <div class="cl-sub">Tout ce qui a changé récemment sur XULTRA</div>
+    <div class="cl-list" id="cl-list"></div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-status">
   <div class="modal-box status-panel">
     <button type="button" class="modal-close" id="stp-close">✕</button>
@@ -1765,7 +1806,7 @@ document.querySelectorAll('.tabs button').forEach(function(b){
 });
 
 let regShownAt=Date.now();
-let regAvatarFile=null, regAvatarUrl='';
+let regAvatarFile=null, regAvatarUrl='', regBannerFile=null, regBannerUrl='';
 
 /* ===== Turnstile anti-bot (connexion + inscription) ===== */
 const TURNSTILE_SITE_KEY='0x4AAAAAAEYe1BBAtdJkZkA0';
@@ -1825,8 +1866,12 @@ function updateRegPreview(){
   if(\$('rp-tag'))\$('rp-tag').textContent='@'+slugUsername(n)+'#····';
   const av=\$('rp-av');
   if(av){
-    av.innerHTML=regAvatarUrl?('<img src="'+esc(regAvatarUrl)+'" alt=""/>'):esc(ini(n));
+    av.innerHTML=(regAvatarUrl?('<img src="'+esc(regAvatarUrl)+'" alt=""/>'):esc(ini(n)))+'<span class="rp-av-cam">📷</span>';
     av.style.background='linear-gradient(135deg,'+c+',#4c1d95)';
+  }
+  const banner=\$('rp-banner');
+  if(banner){
+    banner.style.backgroundImage=regBannerUrl?('url("'+regBannerUrl.replace(/"/g,'')+'")'):'';
   }
 }
 if(\$('in-user'))\$('in-user').addEventListener('input',updateRegPreview);
@@ -1849,6 +1894,17 @@ if(\$('reg-file-av'))\$('reg-file-av').addEventListener('change',function(){
   regAvatarFile=file;
   const r=new FileReader();
   r.onload=function(){regAvatarUrl=r.result;updateRegPreview()};
+  r.readAsDataURL(file);
+});
+if(\$('rp-banner'))\$('rp-banner').addEventListener('click',function(){if(\$('reg-file-banner'))\$('reg-file-banner').click()});
+if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',function(){
+  const file=this.files&&this.files[0];this.value='';
+  if(!file)return;
+  if(file.size>8*1024*1024){showErrTxt('Bannière max 8 Mo');return}
+  if(file.type.indexOf('image/')!==0){showErrTxt('Choisis une image');return}
+  regBannerFile=file;
+  const r=new FileReader();
+  r.onload=function(){regBannerUrl=r.result;updateRegPreview()};
   r.readAsDataURL(file);
 });
 
@@ -2169,9 +2225,12 @@ async function doRegister(){
     const jj=await serverLogin(email,pass);
     applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
-    let avatarUrl='';
+    let avatarUrl='',bannerUrl='';
     if(regAvatarFile){
       try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
+    }
+    if(regBannerFile){
+      try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regBannerFile,[Appwrite.Permission.read(Appwrite.Role.any())]);bannerUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
     }
     let acc;
     try{
@@ -2182,7 +2241,7 @@ async function doRegister(){
     }
     const tag=String(Math.floor(1000+Math.random()*9000));
     const uname=slugUsername(name);
-    const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bgColor:accent,btnColor:accent,statusManual:'online'};
+    const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bg:bannerUrl,bgType:bannerUrl?'image':'gradient',bgColor:accent,btnColor:accent,statusManual:'online'};
     try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
     catch(e){await db.createDocument(DB,'users',Appwrite.ID.unique(),{authUserId:acc.\$id,email:acc.email||email,username:uname,displayName:name,tag:tag});}
     xlog('register_success',{uid:acc.\$id});
@@ -2269,6 +2328,45 @@ async function refreshStatusPanel(){
 if(\$('nav-status'))\$('nav-status').addEventListener('click',openStatusPanel);
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
+
+/* Journal des nouveautés — le plus récent en premier. À chaque grosse
+   mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
+   quelqu'un qui ne connaît rien à la technique derrière. */
+const CHANGELOG=[
+  {version:'2.13.1',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
+    body:'Tu es justement en train de le découvrir ! Il y a maintenant un endroit pour voir tout ce qui change sur XULTRA. On a aussi rendu beaucoup plus visible la possibilité d\\'ajouter une photo de profil et une bannière dès l\\'inscription — toujours facultatif, bien sûr.'},
+  {version:'2.13.0',date:'22 août 2026',time:'23:46',title:'Un vrai centre de notifications',
+    body:'La cloche en bas à gauche ouvre maintenant un vrai panneau avec tes demandes d\\'ami, tes messages non lus et plus encore. Tu peux tout accepter ou refuser en un clic, et supprimer une notification d\\'un simple geste.'},
+  {version:'2.12.0',date:'22 août 2026',time:'23:22',title:'Ton statut est visible partout, en direct',
+    body:'En ligne, absent, ne pas déranger ou invisible : choisis ton statut depuis ta barre de profil et il s\\'affiche maintenant en temps réel partout sur le site. La barre de profil a aussi été simplifiée pour prendre moins de place.'},
+  {version:'2.11.0',date:'22 août 2026',time:'23:08',title:'Personnalise complètement ton profil',
+    body:'Nouveau panneau pour transformer ton profil de fond en comble : couleurs, dégradés, formes de boutons, effets de particules (étoiles, neige, confettis...), plusieurs photos qui défilent, réseaux sociaux et bien plus. Tu peux aussi changer ton tag à 4 chiffres ou le randomiser.'},
+  {version:'2.10.0',date:'22 août 2026',time:'22:44',title:'Trie tes discussions, supprime-les d\\'un geste, bloque qui tu veux',
+    body:'Tes conversations sont maintenant triées selon le dernier message reçu, avec l\\'heure affichée simplement. Tu peux supprimer une conversation ou un message d\\'un simple glissement, et bloquer quelqu\\'un directement depuis une discussion. Le partage de position fonctionne aussi de nouveau.'},
+  {version:'2.9.1',date:'22 août 2026',time:'22:35',title:'Le salon vocal reste ouvert, et la barre d\\'appel a un nouveau look',
+    body:'Si la personne que tu appelles ne répond pas tout de suite, tu peux rester dans le salon — elle pourra te rejoindre plus tard. La barre d\\'appel change maintenant de couleur selon que ça sonne ou que vous êtes connectés.'},
+  {version:'2.9.0',date:'22 août 2026',time:'22:16',title:'Les appels vocaux et vidéo marchent enfin des deux côtés',
+    body:'On a corrigé plusieurs bugs qui empêchaient parfois de bien s\\'entendre ou de se voir en appel. Le son, la caméra et le partage d\\'écran sont maintenant bien plus fiables, même entre mobile et ordinateur.'}
+];
+function renderChangelog(){
+  const list=\$('cl-list');if(!list)return;
+  list.innerHTML=CHANGELOG.map(function(e,i){
+    return '<div class="cl-entry" style="animation-delay:'+(i*0.05)+'s">'
+      +'<div class="cl-dot'+(i===0?' cl-dot-new':'')+'"></div>'
+      +'<div class="cl-card">'
+        +'<div class="cl-head"><span class="cl-version">v'+esc(e.version)+'</span>'+(i===0?'<span class="cl-new-badge">🆕 Nouveau</span>':'')+'<span class="cl-date">'+esc(e.date)+' · '+esc(e.time)+'</span></div>'
+        +'<h4 class="cl-title">'+esc(e.title)+'</h4>'
+        +'<p class="cl-body">'+esc(e.body)+'</p>'
+      +'</div></div>';
+  }).join('');
+}
+function openChangelogPanel(){
+  \$('modal-changelog').classList.remove('hidden');
+  renderChangelog();
+}
+if(\$('nav-changelog'))\$('nav-changelog').addEventListener('click',openChangelogPanel);
+if(\$('cl-close'))\$('cl-close').addEventListener('click',function(){\$('modal-changelog').classList.add('hidden')});
+if(\$('modal-changelog'))\$('modal-changelog').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 const BADGE_DEFS={
   base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
