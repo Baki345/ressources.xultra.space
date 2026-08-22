@@ -424,6 +424,13 @@ button{cursor:pointer;border:0;background:0}
 .field label{display:block;font-size:.68rem;font-weight:700;color:#9a8fb0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
 .field input{width:100%;height:42px;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2ebff;padding:0 14px;outline:0;transition:border-color .15s}
 .field input:focus{border-color:#8b5cf6}
+.field select,.field textarea{width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2ebff;padding:10px 14px;outline:0;transition:border-color .15s;font:inherit;resize:vertical}
+.field select{height:42px}
+.field select:focus,.field textarea:focus{border-color:#8b5cf6}
+.pm-btn-row{display:flex;gap:8px;align-items:stretch}
+.pm-btn-row .btn-main{flex:1}
+.btn-flag{width:44px;flex-shrink:0;border-radius:12px;background:rgba(239,68,68,.14);color:#fca5a5;font-size:1rem;transition:background .15s}
+.btn-flag:hover{background:rgba(239,68,68,.26)}
 .remember-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px;cursor:pointer;user-select:none}
 .remember-row input{flex-shrink:0;width:18px;height:18px;accent-color:#7c3aed;cursor:pointer}
 .remember-row span{color:#c4b5fd;font-size:.88rem;font-weight:600}
@@ -967,6 +974,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="admin-subtabs">
         <button type="button" class="admin-subtab on" data-atab="dashboard">Dashboard</button>
         <button type="button" class="admin-subtab" data-atab="members">Membres</button>
+        <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
         <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
@@ -1027,7 +1035,10 @@ button{cursor:pointer;border:0;background:0}
       <div class="pm-tag" id="pm-tag">#0000</div>
       <div class="pm-grade" id="pm-grade">membre</div>
       <div class="pm-badges" id="pm-badges"></div>
-      <button type="button" class="btn-main" id="pm-message">Message</button>
+      <div class="pm-btn-row">
+        <button type="button" class="btn-main" id="pm-message">Message</button>
+        <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
+      </div>
       <div class="pm-section">
         <div class="pm-section-label">Bio</div>
         <div class="pm-section-body" id="pm-bio">—</div>
@@ -1037,6 +1048,30 @@ button{cursor:pointer;border:0;background:0}
         <div class="pm-section-body" id="pm-since">—</div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-report">
+  <div class="modal-box" style="width:min(380px,100%)">
+    <button type="button" class="modal-close" id="rp-close">✕</button>
+    <h3 style="margin-bottom:4px">🚩 Signaler <span id="rp-target-name"></span></h3>
+    <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ton signalement est envoyé à l'équipe de modération. Elle seule peut le consulter.</p>
+    <div class="field">
+      <label>Raison</label>
+      <select id="rp-reason">
+        <option value="harcelement">Harcèlement</option>
+        <option value="contenu_inapproprie">Contenu inapproprié</option>
+        <option value="spam">Spam</option>
+        <option value="usurpation">Usurpation d'identité</option>
+        <option value="autre">Autre</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Détails (optionnel)</label>
+      <textarea id="rp-details" rows="4" placeholder="Explique ce qui s'est passé…"></textarea>
+    </div>
+    <div class="err" id="rp-err"></div>
+    <button type="button" class="btn-main" id="rp-submit">Envoyer le signalement</button>
   </div>
 </div>
 
@@ -1946,13 +1981,46 @@ async function openProfileModal(uid){
   const isSelf=me&&uid===me.\$id;
   msgBtn.classList.toggle('hidden',!!isSelf);
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
+  const reportBtn=\$('pm-report');
+  reportBtn.classList.toggle('hidden',!!isSelf);
+  reportBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openReportModal(uid,name);};
   \$('modal-profile').classList.remove('hidden');
 }
 if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){\$('modal-profile').classList.add('hidden')});
+
+let reportTargetUid=null;
+function openReportModal(uid,name){
+  reportTargetUid=uid;
+  \$('rp-target-name').textContent=name||'';
+  \$('rp-reason').value='harcelement';
+  \$('rp-details').value='';
+  \$('rp-err').textContent='';
+  \$('modal-report').classList.remove('hidden');
+}
+if(\$('rp-close'))\$('rp-close').addEventListener('click',function(){\$('modal-report').classList.add('hidden')});
+if(\$('modal-report'))\$('modal-report').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('rp-submit'))\$('rp-submit').addEventListener('click',async function(){
+  const btn=this;
+  if(!reportTargetUid)return;
+  \$('rp-err').textContent='';
+  btn.disabled=true;btn.textContent='Envoi…';
+  try{
+    const targetP=membersCache.find(function(x){return (x.authUserId||x.\$id)===reportTargetUid});
+    const targetName=(targetP&&(targetP.displayName||targetP.username))||'';
+    await authPost('/api/report',{targetUid:reportTargetUid,targetName:targetName,reason:\$('rp-reason').value,details:\$('rp-details').value.slice(0,1000)});
+    \$('modal-report').classList.add('hidden');
+    alert('Signalement envoyé. Merci, l\\'équipe de modération va l\\'examiner.');
+  }catch(e){\$('rp-err').textContent=(e&&e.message)||'Erreur lors de l\\'envoi';}
+  btn.disabled=false;btn.textContent='Envoyer le signalement';
+});
 if(\$('modal-profile'))\$('modal-profile').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 async function openAdminUserModal(uid){
-  const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  if(!p){
+    try{await loadAdminMembers();}catch(e){}
+    p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  }
   if(!p){alert('Profil introuvable');return}
   const name=p.displayName||p.username||'User';
   \$('au-name').textContent=name;
@@ -2578,6 +2646,7 @@ function showAdminTab(tab){
   box.innerHTML='<div class="empty-hint">Chargement…</div>';
   if(tab==='dashboard')loadAdminDashboard().then(renderAdminDashboard).catch(adminErr);
   else if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
+  else if(tab==='reports')loadAdminReports().then(renderAdminReports).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
   else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
@@ -2627,10 +2696,16 @@ async function loadAdminDashboard(){
     pendingBugs=bugsRes.total!=null?bugsRes.total:0;
   }catch(e){}
 
+  let pendingReports=0;
+  try{
+    const reports=await loadAdminReports();
+    pendingReports=reports.filter(function(r){return r.status==='pending'}).length;
+  }catch(e){}
+
   let recentLogs=[];
   try{recentLogs=(await loadAdminLogs()).slice(0,6);}catch(e){}
 
-  return {totalUsers,newToday,onlineNow,msgs24h,msgs7d,days,activeCalls,pendingBugs,recentLogs};
+  return {totalUsers,newToday,onlineNow,msgs24h,msgs7d,days,activeCalls,pendingBugs,pendingReports,recentLogs};
 }
 function renderAdminDashboard(d){
   const box=\$('admin-body');if(!box)return;
@@ -2652,6 +2727,7 @@ function renderAdminDashboard(d){
     +dashCard('📈','Messages 7j',d.msgs7d)
     +dashCard('📞','Appels actifs',d.activeCalls)
     +dashCard('🐞','Bugs en attente',d.pendingBugs)
+    +dashCard('🚩','Signalements en attente',d.pendingReports)
     +'</div>'
     +'<div class="dash-section"><div class="dash-section-title">Messages — 7 derniers jours</div><div class="dash-chart">'+chartBars+'</div></div>'
     +'<div class="dash-section"><div class="dash-section-title">Activité récente</div>'+logsHtml+'</div>';
@@ -2763,8 +2839,8 @@ function wireAdminMembersSearch(list,focusSearch){
 }
 
 async function loadAdminBans(){
-  const r=await db.listDocuments(DB,'bans',[Appwrite.Query.limit(100)]);
-  return r.documents||[];
+  const r=await authGet('/api/admin/bans');
+  return r.bans||[];
 }
 function renderAdminBans(list){
   const box=\$('admin-body');if(!box)return;
@@ -2783,6 +2859,51 @@ function renderAdminBans(list){
       try{
         await authPost('/api/admin/unban',{banId:el.getAttribute('data-unban')});
         await loadAdminBans().then(renderAdminBans);
+      }catch(e){adminErr(e)}
+    };
+  });
+}
+
+const REPORT_REASON_LABELS={harcelement:'Harcèlement',contenu_inapproprie:'Contenu inapproprié',spam:'Spam',usurpation:'Usurpation d\\'identité',autre:'Autre'};
+const REPORT_STATUS_LABELS={pending:'En attente',reviewed:'Traité',dismissed:'Rejeté'};
+async function loadAdminReports(){
+  const r=await authGet('/api/admin/reports');
+  return r.reports||[];
+}
+function renderAdminReports(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun signalement.</div>';return}
+  const sorted=list.slice().sort(function(a,b){
+    if(a.status==='pending'&&b.status!=='pending')return -1;
+    if(a.status!=='pending'&&b.status==='pending')return 1;
+    return 0;
+  });
+  box.innerHTML=sorted.map(function(r){
+    const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
+    const statusCls=r.status==='pending'?'':(r.status==='dismissed'?'danger':'ok');
+    return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
+      +'<div class="av">🚩</div>'
+      +'<div class="info">'
+        +'<div class="n">'+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+' — <span class="'+(r.status==='pending'?'tag-mod':'')+'">'+esc(REPORT_STATUS_LABELS[r.status]||r.status)+'</span></div>'
+        +'<div class="p">Visé : '+esc(r.targetName||r.targetUid)+' · Par : '+esc(r.reporterName||r.reporterUid)+' · '+esc(when)+'</div>'
+        +(r.details?'<div class="p" style="margin-top:4px">'+esc(r.details)+'</div>':'')
+      +'</div>'
+      +'<div class="acts">'
+        +'<button type="button" data-reportfiche="'+esc(r.targetUid)+'">📋 Fiche</button>'
+        +(r.status!=='reviewed'?'<button type="button" data-reportstatus="'+esc(r.\$id)+'" data-status="reviewed" class="ok">Marquer traité</button>':'')
+        +(r.status!=='dismissed'?'<button type="button" data-reportstatus="'+esc(r.\$id)+'" data-status="dismissed" class="danger">Rejeter</button>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-reportfiche]').forEach(function(el){
+    el.onclick=function(){openAdminUserModal(el.getAttribute('data-reportfiche'))};
+  });
+  box.querySelectorAll('[data-reportstatus]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await authPost('/api/admin/reports/status',{reportId:el.getAttribute('data-reportstatus'),status:el.getAttribute('data-status')});
+        await loadAdminReports().then(renderAdminReports);
       }catch(e){adminErr(e)}
     };
   });
@@ -4187,6 +4308,24 @@ async function handle(request) {
       });
     }
   }
+  if (path === "/api/admin/bans" && request.method === "GET") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const q = "/databases/" + AW_DB + "/collections/bans/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
+      const data = await awFetch(q, { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, bans: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
   if (path === "/api/admin/unban" && request.method === "POST") {
     const gate = await requireShaman(request);
     if (!gate.ok) {
@@ -4258,6 +4397,85 @@ async function handle(request) {
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/report" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const targetUid = String((body && body.targetUid) || "");
+      const targetName = String((body && body.targetName) || "").slice(0, 64);
+      const reason = String((body && body.reason) || "").slice(0, 32);
+      const details = String((body && body.details) || "").slice(0, 1000);
+      const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "autre"];
+      if (!targetUid) throw new Error("targetUid requis");
+      if (validReasons.indexOf(reason) === -1) throw new Error("raison invalide");
+      if (targetUid === acc.$id) throw new Error("Impossible de se signaler soi-même");
+      const profile = await resolveProfile(acc.$id);
+      const reporterName = (profile && (profile.displayName || profile.username)) || acc.name || "Anonyme";
+      await awFetch("/databases/" + AW_DB + "/collections/reports/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { reporterUid: acc.$id, reporterName, targetUid, targetName, reason, details, status: "pending", at: new Date().toISOString() }
+        }
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/reports" && request.method === "GET") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const q = "/databases/" + AW_DB + "/collections/reports/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
+      const data = await awFetch(q, { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, reports: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/reports/status" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const reportId = String((body && body.reportId) || "");
+      const status = String((body && body.status) || "");
+      if (!reportId || ["pending", "reviewed", "dismissed"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
+        method: "PATCH", asAdmin: true, body: { data: { status } }
+      });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "report_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
