@@ -1247,12 +1247,21 @@ function readSession(){
 function readStoredJwt(){
   try{return localStorage.getItem('xultra_jwt');}catch(e){return null}
 }
+async function fetchMe(){
+  const secret=readSession();
+  const jwt=readStoredJwt();
+  if(!secret&&!jwt){const e=new Error('Aucune session');e.authError=true;throw e}
+  const r=await fetch('/api/auth/me',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session:secret,jwt:jwt})});
+  const j=await r.json().catch(function(){return {}});
+  if(!r.ok||!j.ok||!j.account){const e=new Error((j&&j.error)||('Session invalide ('+r.status+')'));e.authError=(r.status===401);throw e}
+  return j.account;
+}
 
 let me=null, meProfile=null;
 async function enterApp(){
   xlog('show_dash_start',{});
   let acc=null;
-  try{acc=await account.get();}catch(e){xlog('dash_account_fail',{msg:(e&&e.message)||String(e)});throw e}
+  try{acc=await fetchMe();}catch(e){xlog('dash_account_fail',{msg:(e&&e.message)||String(e)});throw e}
   let profile=null;
   try{
     const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',acc.\$id),Appwrite.Query.limit(1)]);
@@ -1359,29 +1368,11 @@ async function doRegister(){
     if(regAvatarFile){
       try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
     }
-    try{
-      const hdrSession=client.headers&&client.headers['X-Appwrite-Session'];
-      xlog('pre_account_get_debug',{
-        hdrLen:hdrSession?hdrSession.length:0,
-        hdrPrefix:hdrSession?hdrSession.slice(0,12):'',
-        hdrSuffix:hdrSession?hdrSession.slice(-8):'',
-        jjSecretLen:(jj.secret||'').length,
-        jjJwtLen:(jj.jwt||'').length,
-        cfgSessionLen:(client.config&&client.config.session)?client.config.session.length:0
-      });
-    }catch(eDbg){}
     let acc;
     try{
-      acc=await account.get();
+      acc=await fetchMe();
     }catch(eGet){
-      try{
-        xlog('account_get_error_detail',{
-          msg:(eGet&&eGet.message)||String(eGet),
-          code:eGet&&eGet.code,
-          type:eGet&&eGet.type,
-          response:eGet&&eGet.response?JSON.stringify(eGet.response).slice(0,500):''
-        });
-      }catch(eDbg2){}
+      xlog('account_get_error_detail',{msg:(eGet&&eGet.message)||String(eGet)});
       throw eGet;
     }
     const tag=String(Math.floor(1000+Math.random()*9000));
@@ -3388,8 +3379,9 @@ function boot(){
       await enterApp();
       xlog('boot_restore_ok',{});
     }catch(e){
-      xlog('boot_restore_fail',{msg:(e&&e.message)||String(e)});
-      try{localStorage.removeItem('xultra_session');}catch(e2){}
+      xlog('boot_restore_fail',{msg:(e&&e.message)||String(e),authError:!!(e&&e.authError)});
+      if(e&&e.authError){try{localStorage.removeItem('xultra_session');}catch(e2){}}
+      else{try{\$('auth-err')&&(\$('auth-err').textContent='Connexion au serveur impossible, vérifie ta connexion et réessaie.');}catch(e3){}}
     }
   });
 }
@@ -4225,6 +4217,31 @@ async function handle(request) {
         ok: false,
         error: (e && e.message) || "Identifiants invalides"
       }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/auth/me" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const secret = (body && body.session) ? String(body.session) : null;
+      const jwt = (body && body.jwt) ? String(body.jwt) : null;
+      if (!secret && !jwt) {
+        return new Response(JSON.stringify({ ok: false, error: "Session manquante" }), {
+          status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
+      const acc = await awFetch("/account", {
+        headers: secret ? { "X-Appwrite-Session": secret } : { "X-Appwrite-JWT": jwt }
+      });
+      return new Response(JSON.stringify({ ok: true, account: acc }), {
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: (e && e.message) || "Session invalide",
+        status: (e && e.status) || 401
+      }), { status: (e && e.status) || 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
