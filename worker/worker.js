@@ -503,7 +503,9 @@ button{cursor:pointer;border:0;background:0}
 .composer.recording textarea,.composer.recording #btn-attach,.composer.recording #btn-send,.composer.recording #btn-voice{visibility:hidden}
 .voice-record{display:none;position:absolute;inset:0 0 0 0;align-items:center;gap:10px;padding:0 14px;background:#110a1a}
 .composer.recording .voice-record{display:flex}
-.vr-cancel-hint{font-size:.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0}
+.vr-cancel-hint{font-size:.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;transition:color .15s}
+.voice-record.will-cancel .vr-cancel-hint{color:#fca5a5;font-weight:800}
+.voice-record.will-cancel .vr-timer{color:#ef4444}
 .vr-live-wave{flex:1;display:flex;align-items:center;gap:2px;height:30px;overflow:hidden}
 .vr-live-wave span{width:3px;min-height:3px;border-radius:2px;background:#a78bfa;flex-shrink:0}
 .vr-timer{font-size:.8rem;font-weight:800;color:#fca5a5;flex-shrink:0;font-variant-numeric:tabular-nums}
@@ -1800,8 +1802,12 @@ function vrBuildLiveWave(){
   el.innerHTML='';
   for(let i=0;i<40;i++){const b=document.createElement('span');b.style.height='10%';el.appendChild(b);}
 }
+let vrLastTickAt=0;
 function vrTick(){
   if(!vrState||!vrAnalyser){vrRafId=null;return}
+  const now=Date.now();
+  if(now-vrLastTickAt<90){vrRafId=requestAnimationFrame(vrTick);return}
+  vrLastTickAt=now;
   const data=new Uint8Array(vrAnalyser.frequencyBinCount);
   vrAnalyser.getByteFrequencyData(data);
   let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];
@@ -1827,7 +1833,7 @@ function startVoiceRecording(clientX){
       \$('composer').classList.remove('recording');
       return;
     }
-    vrState={stream:stream,chunks:[],startX:clientX,startTime:Date.now(),canceled:false};
+    vrState={stream:stream,chunks:[],startX:clientX,startTime:Date.now(),canceled:false,dragDx:0};
     let rec;
     try{rec=new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(function(t){t.stop()});vrState=null;\$('composer').classList.remove('recording');alert('Enregistrement vocal indisponible sur ce navigateur');return}
     vrState.recorder=rec;
@@ -1850,6 +1856,7 @@ function startVoiceRecording(clientX){
     rec.start();
     \$('composer').classList.add('recording');
     \$('voice-record').style.transform='';
+    \$('voice-record').classList.remove('will-cancel');
     vrBuildLiveWave();
     vrUpdateTimer();
     vrTimerId=setInterval(vrUpdateTimer,200);
@@ -1904,14 +1911,18 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
   btn.addEventListener('pointermove',function(e){
     if(!vrState||e.pointerId!==pid)return;
     const dx=Math.min(0,e.clientX-vrState.startX);
-    \$('voice-record').style.transform='translateX('+dx+'px)';
-    if(dx<-90)cancelVoiceRecording();
+    vrState.dragDx=dx;
+    \$('voice-record').style.transform='translateX('+(Math.max(dx,-140))+'px)';
+    \$('voice-record').classList.toggle('will-cancel',dx<-100);
   });
   btn.addEventListener('pointerup',function(e){
     if(e.pointerId!==pid)return;
     pid=null;
     vrStopRequested=true;
-    if(vrState)stopVoiceRecording();
+    if(vrState){
+      if(vrState.dragDx<-100)cancelVoiceRecording();
+      else stopVoiceRecording();
+    }
   });
   btn.addEventListener('pointercancel',function(e){
     if(e.pointerId!==pid)return;
