@@ -570,6 +570,17 @@ button{cursor:pointer;border:0;background:0}
 .log-line{padding:9px 4px;border-bottom:1px solid var(--line);font-size:.8rem;line-height:1.4}
 .log-line b{color:#c4b5fd}
 .log-line .when{color:var(--muted);font-size:.68rem;margin-top:2px}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px}
+.dash-card{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:14px}
+.dash-card-icon{font-size:1.1rem;margin-bottom:6px}
+.dash-card-value{font-size:1.5rem;font-weight:900;color:#f2ebff;line-height:1.1}
+.dash-card-label{font-size:.7rem;color:var(--muted);font-weight:700;margin-top:4px}
+.dash-section{margin-bottom:22px}
+.dash-section-title{font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.dash-chart{display:flex;align-items:flex-end;gap:8px;height:120px;background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:12px}
+.dash-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px}
+.dash-bar{width:100%;max-width:28px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#a78bfa,#7c3aed);min-height:3px;transition:height .3s ease}
+.dash-bar-label{font-size:.62rem;color:var(--muted);font-weight:700;flex-shrink:0}
 .maint-panel{max-width:420px}
 .maint-toggle-row{display:flex;align-items:flex-start;gap:10px;font-size:.85rem;font-weight:600;line-height:1.4;margin-bottom:16px;cursor:pointer}
 .maint-toggle-row input{width:18px;height:18px;flex-shrink:0;margin-top:2px;accent-color:#7c3aed;cursor:pointer}
@@ -864,7 +875,8 @@ button{cursor:pointer;border:0;background:0}
         <div class="titles"><div class="t">🛡️ Panneau admin</div></div>
       </div>
       <div class="admin-subtabs">
-        <button type="button" class="admin-subtab on" data-atab="members">Membres</button>
+        <button type="button" class="admin-subtab on" data-atab="dashboard">Dashboard</button>
+        <button type="button" class="admin-subtab" data-atab="members">Membres</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
         <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
@@ -1264,7 +1276,19 @@ async function enterApp(){
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
+  startPresenceLoop();
   showView('dms');
+}
+let presenceTimerId=null;
+async function updateLastSeen(){
+  if(!meProfile||!meProfile.\$id)return;
+  try{await db.updateDocument(DB,'users',meProfile.\$id,{lastSeen:new Date().toISOString(),statusManual:'online'});}catch(e){}
+}
+function startPresenceLoop(){
+  if(presenceTimerId)return;
+  updateLastSeen();
+  presenceTimerId=setInterval(updateLastSeen,2*60*1000);
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')updateLastSeen();});
 }
 let jwtRefreshTimerId=null;
 function startJwtRefreshLoop(){
@@ -2082,7 +2106,7 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
   }catch(e){xlog('friend_search_fail',{msg:(e&&e.message)||String(e)});}
 });
 
-let isAdmin=false, adminTab='members';
+let isAdmin=false, adminTab='dashboard';
 async function authJwt(){
   const j=await account.createJWT();
   return j&&j.jwt;
@@ -2182,7 +2206,8 @@ function showAdminTab(tab){
   document.querySelectorAll('.admin-subtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-atab')===tab)});
   const box=\$('admin-body');if(!box)return;
   box.innerHTML='<div class="empty-hint">Chargement…</div>';
-  if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
+  if(tab==='dashboard')loadAdminDashboard().then(renderAdminDashboard).catch(adminErr);
+  else if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
   else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
@@ -2192,6 +2217,77 @@ function showAdminTab(tab){
 function adminErr(e){
   const box=\$('admin-body');if(box)box.innerHTML='<div class="empty-hint">Erreur : '+esc((e&&e.message)||String(e))+'</div>';
   xlog('admin_tab_error',{tab:adminTab,msg:(e&&e.message)||String(e)});
+}
+
+async function loadAdminDashboard(){
+  const now=Date.now();
+  const dayMs=86400000;
+  const todayStart=new Date();todayStart.setHours(0,0,0,0);
+
+  const usersRes=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100),Appwrite.Query.orderDesc('\$createdAt')]);
+  const allUsers=usersRes.documents||[];
+  const totalUsers=usersRes.total!=null?usersRes.total:allUsers.length;
+  const newToday=allUsers.filter(function(u){return new Date(u.\$createdAt)>=todayStart}).length;
+  const onlineNow=allUsers.filter(function(u){return u.lastSeen&&(now-new Date(u.lastSeen).getTime())<3*60*1000}).length;
+
+  let msgs=[];
+  try{
+    const msgsRes=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.limit(200),Appwrite.Query.orderDesc('\$createdAt')]);
+    msgs=msgsRes.documents||[];
+  }catch(e){}
+  const msgs24h=msgs.filter(function(m){return now-new Date(m.\$createdAt).getTime()<dayMs}).length;
+  const msgs7d=msgs.filter(function(m){return now-new Date(m.\$createdAt).getTime()<7*dayMs}).length;
+
+  const days=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-i);
+    const next=new Date(d);next.setDate(d.getDate()+1);
+    const label=d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+    const msgCount=msgs.filter(function(m){const t=new Date(m.\$createdAt);return t>=d&&t<next}).length;
+    const userCount=allUsers.filter(function(u){const t=new Date(u.\$createdAt);return t>=d&&t<next}).length;
+    days.push({label:label,msgCount:msgCount,userCount:userCount});
+  }
+
+  let activeCalls=0;
+  try{const calls=await loadAdminCalls();activeCalls=calls.length;}catch(e){}
+
+  let pendingBugs=0;
+  try{
+    const bugsRes=await db.listDocuments(DB,'bug_reports',[Appwrite.Query.equal('status','pending'),Appwrite.Query.limit(1)]);
+    pendingBugs=bugsRes.total!=null?bugsRes.total:0;
+  }catch(e){}
+
+  let recentLogs=[];
+  try{recentLogs=(await loadAdminLogs()).slice(0,6);}catch(e){}
+
+  return {totalUsers,newToday,onlineNow,msgs24h,msgs7d,days,activeCalls,pendingBugs,recentLogs};
+}
+function renderAdminDashboard(d){
+  const box=\$('admin-body');if(!box)return;
+  const maxMsg=Math.max(1,Math.max.apply(null,d.days.map(function(x){return x.msgCount})));
+  const chartBars=d.days.map(function(x){
+    const h=Math.round((x.msgCount/maxMsg)*100);
+    return '<div class="dash-bar-col"><div class="dash-bar" style="height:'+Math.max(3,h)+'%" title="'+x.msgCount+' message(s)"></div><div class="dash-bar-label">'+esc(x.label)+'</div></div>';
+  }).join('');
+  const logsHtml=d.recentLogs.length?d.recentLogs.map(function(l){
+    const when=l.at?new Date(l.at).toLocaleString('fr-FR'):'';
+    return '<div class="log-line"><b>'+esc(l.by||'?')+'</b> — '+esc(l.action||'')+' — '+esc(l.detail||'')+'<div class="when">'+esc(when)+'</div></div>';
+  }).join(''):'<div class="empty-hint">Aucune activité récente.</div>';
+  box.innerHTML=
+    '<div class="dash-grid">'
+    +dashCard('🟢','En ligne',d.onlineNow)
+    +dashCard('👥','Utilisateurs',d.totalUsers)
+    +dashCard('✨','Nouveaux aujourd\\'hui',d.newToday)
+    +dashCard('💬','Messages 24h',d.msgs24h)
+    +dashCard('📈','Messages 7j',d.msgs7d)
+    +dashCard('📞','Appels actifs',d.activeCalls)
+    +dashCard('🐞','Bugs en attente',d.pendingBugs)
+    +'</div>'
+    +'<div class="dash-section"><div class="dash-section-title">Messages — 7 derniers jours</div><div class="dash-chart">'+chartBars+'</div></div>'
+    +'<div class="dash-section"><div class="dash-section-title">Activité récente</div>'+logsHtml+'</div>';
+}
+function dashCard(icon,label,value){
+  return '<div class="dash-card"><div class="dash-card-icon">'+icon+'</div><div class="dash-card-value">'+esc(String(value))+'</div><div class="dash-card-label">'+esc(label)+'</div></div>';
 }
 
 async function loadAdminMembers(){
