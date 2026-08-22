@@ -759,12 +759,17 @@ button{cursor:pointer;border:0;background:0}
 @keyframes cbPulse{0%,100%{opacity:1}50%{opacity:.35}}
 .cb-gear{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#c4b5fd;font-size:.95rem;display:grid;place-items:center;flex-shrink:0;align-self:flex-start}
 .cb-gear:hover{background:rgba(255,255,255,.14)}
-.cb-controls{display:flex;gap:6px;margin-top:12px}
-.cb-ctl{flex:1;height:38px;border-radius:10px;background:var(--elev);color:#f2ebff;font-size:1rem;display:grid;place-items:center}
+.cb-peer-badges{display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle}
+.cb-badge{display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:rgba(239,68,68,.25);font-size:.6rem;vertical-align:middle}
+.cb-controls{display:flex;gap:9px;margin-top:14px;justify-content:center}
+.cb-ctl{flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:var(--elev);color:#f2ebff;font-size:1.05rem;display:grid;place-items:center;transition:background .15s ease,transform .1s ease,color .15s ease}
+.cb-ctl .cb-ico{pointer-events:none}
 .cb-ctl:hover{background:var(--hover)}
-.cb-ctl.on{background:rgba(124,58,237,.4);color:#e9d5ff}
-.cb-ctl.hangup{flex:1.6;background:rgba(239,68,68,.22);color:#fca5a5;font-size:.8rem;font-weight:800}
-.cb-ctl.hangup:hover{background:rgba(239,68,68,.32)}
+.cb-ctl:active{transform:scale(.92)}
+.cb-ctl.on{background:rgba(34,197,94,.22);color:#86efac}
+#cb-mute.on,#cb-deafen.on{background:rgba(239,68,68,.25);color:#fca5a5}
+.cb-ctl.hangup{width:56px;background:linear-gradient(160deg,#ef4444,#b91c1c);color:#fff;font-size:1.1rem}
+.cb-ctl.hangup:hover{background:linear-gradient(160deg,#f87171,#dc2626)}
 .cb-ctl:disabled{opacity:.35;pointer-events:none}
 .cb-video{margin-top:12px;border-radius:12px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15)}
 .cb-video.hidden{display:none}
@@ -777,7 +782,8 @@ button{cursor:pointer;border:0;background:0}
 .vgrid{display:grid;gap:6px;padding:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));grid-auto-rows:140px}
 .vgrid.n1{grid-template-columns:1fr;grid-auto-rows:220px}
 .vgrid.cinema{flex:1;min-height:0;padding:0 14px 14px;grid-auto-rows:1fr}
-.vtile{position:relative;border-radius:10px;overflow:hidden;background:#000;cursor:pointer;min-height:0}
+.vtile{position:relative;border-radius:12px;overflow:hidden;background:#000;cursor:pointer;min-height:0;animation:vtileIn .18s ease;border:1px solid rgba(167,139,250,.12)}
+@keyframes vtileIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 .vtile video{width:100%;height:100%;object-fit:cover;display:block}
 .vtile .vlabel{position:absolute;left:6px;bottom:6px;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.6);font-size:.66rem;font-weight:700;color:#f2ebff}
 .vtile.enlarged{grid-column:1/-1;grid-row:span 2}
@@ -788,6 +794,13 @@ button{cursor:pointer;border:0;background:0}
 .live-pill{display:none;align-items:center;gap:7px;margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:.76rem;font-weight:800;cursor:pointer}
 .live-pill.show{display:flex}
 .live-pill .lp-dot{width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;animation:cbPulse 1.2s ease-in-out infinite}
+.live-pill.screen-pill{display:flex;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.4);color:#e9d5ff}
+.live-pill.screen-pill.hidden{display:none}
+.live-pill.screen-pill .lp-dot{background:#a78bfa}
+.dm-call-badge{display:none;align-items:center;gap:6px;margin-left:auto;padding:5px 11px;border-radius:999px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.4);color:#86efac;font-size:.72rem;font-weight:800;cursor:pointer;flex-shrink:0;white-space:nowrap}
+.dm-call-badge:not(.hidden){display:inline-flex}
+.dm-call-badge:hover{background:rgba(34,197,94,.24)}
+.dcb-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:cbPulse 1.4s ease-in-out infinite}
 .settings-modal{width:min(400px,100%);max-height:88dvh;overflow-y:auto;text-align:left}
 .settings-modal h3{margin-bottom:14px}
 .set-section{margin-bottom:18px}
@@ -974,6 +987,7 @@ button{cursor:pointer;border:0;background:0}
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</div></div>
+        <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
       <div id="call-panel-anchor"></div>
@@ -1247,17 +1261,17 @@ button{cursor:pointer;border:0;background:0}
   <div class="cb-top">
     <div class="av" id="cb-av" data-profile="">?</div>
     <div class="cb-info">
-      <div class="cb-name" id="cb-name">En appel · 1 participant</div>
+      <div class="cb-name" id="cb-name">En appel · 1 participant<span class="cb-peer-badges" id="cb-peer-badges"></span></div>
       <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
     </div>
     <button type="button" class="cb-gear" id="cb-settings" title="Paramètres audio/vidéo">⚙️</button>
   </div>
   <div class="cb-controls">
-    <button type="button" class="cb-ctl" id="cb-mute" title="Muet">🎤</button>
-    <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir">🎧</button>
-    <button type="button" class="cb-ctl" id="cb-cam" title="Caméra">📷</button>
-    <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran">🖥️</button>
-    <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher">Quitter</button>
+    <button type="button" class="cb-ctl" id="cb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
+    <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir"><span class="cb-ico">🎧</span></button>
+    <button type="button" class="cb-ctl" id="cb-cam" title="Caméra"><span class="cb-ico">📷</span></button>
+    <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
+    <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher"><span class="cb-ico">✕</span></button>
   </div>
   <div class="cb-video hidden" id="cb-video">
     <div class="cbv-top">
@@ -1268,6 +1282,9 @@ button{cursor:pointer;border:0;background:0}
   </div>
   <div class="live-pill" id="live-pill">
     <span class="lp-dot"></span><span id="lp-label">Webcam active</span>
+  </div>
+  <div class="live-pill screen-pill hidden" id="screen-reveal-pill">
+    <span class="lp-dot"></span><span id="screen-reveal-label">Voir la diffusion</span>
   </div>
   <audio id="call-remote-audio" autoplay playsinline></audio>
 </div>
@@ -1696,6 +1713,7 @@ async function enterApp(){
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
+  try{subscribeCallBadgeWatcher();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
@@ -2213,6 +2231,41 @@ async function openDm(threadId,title,peerUid){
     }
   }
   await loadMessages(threadId);
+  refreshCallBadge(activeDmPeerUid);
+}
+async function refreshCallBadge(peerUid){
+  const badge=\$('dm-call-badge');if(!badge)return;
+  const forDm=activeDm;
+  if(!peerUid||activeDmIsGroup){badge.classList.add('hidden');return}
+  if(activeCallDoc&&String(callPeerUid)===String(peerUid)){badge.classList.add('hidden');return}
+  try{
+    const r=await db.listDocuments(DB,'direct_calls',[Appwrite.Query.limit(25),Appwrite.Query.orderDesc('\$createdAt')]);
+    if(activeDm!==forDm)return;
+    const doc=(r.documents||[]).find(function(d){
+      const involves=(String(d.callerId)===String(me.\$id)&&String(d.calleeId)===String(peerUid))||(String(d.calleeId)===String(me.\$id)&&String(d.callerId)===String(peerUid));
+      return involves&&['ringing','accepted'].indexOf(d.status)>=0;
+    });
+    if(doc){
+      badge.classList.remove('hidden');
+      badge.onclick=function(){
+        if(activeCallDoc||incomingCallDoc){showToast('Un appel est déjà en cours.','error');return}
+        if(String(doc.calleeId)===String(me.\$id))showIncomingCall(doc);
+      };
+    } else {
+      badge.classList.add('hidden');
+    }
+  }catch(e){badge.classList.add('hidden');}
+}
+function subscribeCallBadgeWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.direct_calls.documents',function(res){
+      const p=res.payload;if(!p||!me)return;
+      const involvesMe=(String(p.callerId)===String(me.\$id)||String(p.calleeId)===String(me.\$id));
+      if(!involvesMe)return;
+      const otherUid=String(p.callerId)===String(me.\$id)?p.calleeId:p.callerId;
+      if(activeDmPeerUid&&!activeDmIsGroup&&String(otherUid)===String(activeDmPeerUid))refreshCallBadge(activeDmPeerUid);
+    });
+  }catch(e){}
 }
 function repositionCallPanel(){
   const bar=\$('call-bar');if(!bar||bar.classList.contains('hidden'))return;
@@ -3337,6 +3390,7 @@ let camStream=null, screenStream=null, camSender=null, screenSender=null;
 let makingOffer=false, ignoreOffer=false, callLive=false;
 let remoteTiles={cam:null,screen:null};
 let remoteMetaByMid={}, pendingRemoteTracksByMid={}, localMetaQueue=[];
+let remoteMicMuted=false, remoteDeafened=false, screenShareRevealed=false;
 let videoMasked=false, cinemaMode=false, enlargedTileKey=null, videoEls={};
 let camQualityKey='720p30', screenQualityKey='1080p60';
 let micVolumePct=100, outVolumePct=100;
@@ -3484,10 +3538,14 @@ function flushLocalMetaQueue(){
 
 function computeActiveTiles(){
   const tiles=[];
+  const micIcon=remoteMicMuted?' 🔇':'';
   if(camStream)tiles.push({key:'local-cam',stream:camStream,label:'Toi · Caméra',isLocal:true});
   if(screenStream)tiles.push({key:'local-screen',stream:screenStream,label:'Toi · Écran',isLocal:true});
-  if(remoteTiles.cam)tiles.push({key:'remote-cam',stream:remoteTiles.cam.stream,label:(callPeerName||'Correspondant')+' · Caméra',isLocal:false});
-  if(remoteTiles.screen)tiles.push({key:'remote-screen',stream:remoteTiles.screen.stream,label:(callPeerName||'Correspondant')+' · Écran',isLocal:false});
+  if(remoteTiles.cam)tiles.push({key:'remote-cam',stream:remoteTiles.cam.stream,label:(callPeerName||'Correspondant')+' · Caméra'+micIcon,isLocal:false});
+  /* Le partage d'écran distant ne s'affiche pas automatiquement : par
+     défaut on montre juste un bandeau "Voir la diffusion", pour éviter
+     qu'un écran partagé s'impose brusquement à l'écran de l'autre. */
+  if(remoteTiles.screen&&screenShareRevealed)tiles.push({key:'remote-screen',stream:remoteTiles.screen.stream,label:(callPeerName||'Correspondant')+' · Écran'+micIcon,isLocal:false});
   return tiles;
 }
 function renderVideoGrid(){
@@ -3535,9 +3593,18 @@ function renderVideoGrid(){
     }
   });
   grid.classList.toggle('n1',tiles.length===1);
+  const revealPill=\$('screen-reveal-pill');
+  if(revealPill){
+    const pending=!!remoteTiles.screen&&!screenShareRevealed;
+    revealPill.classList.toggle('hidden',!pending);
+    if(pending){
+      \$('screen-reveal-label').textContent='Voir la diffusion de '+(callPeerName||'Correspondant');
+      revealPill.onclick=function(){screenShareRevealed=true;renderVideoGrid();};
+    }
+  }
   const cbv=\$('cb-video');if(cbv)cbv.classList.toggle('hidden',!hasVideo||videoMasked);
   const camActive=!!camStream||!!remoteTiles.cam;
-  const screenActive=!!screenStream||!!remoteTiles.screen;
+  const screenActive=!!screenStream||(!!remoteTiles.screen&&screenShareRevealed);
   let pillLabel='';
   if(camActive&&screenActive)pillLabel='Webcam & écran actifs';
   else if(screenActive)pillLabel='Partage d\\'écran actif';
@@ -3614,43 +3681,60 @@ async function onNegotiationNeeded(){
   }catch(e){xlog('call_reneg_fail',{msg:(e&&e.message)||String(e)});}
   finally{makingOffer=false;}
 }
+function stopLocalCam(){
+  if(!camSender&&!camStream)return;
+  try{if(camSender)callPc.removeTrack(camSender);}catch(e){}
+  camSender=null;
+  if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
+  \$('cb-cam').classList.remove('on');
+  if(enlargedTileKey==='local-cam')enlargedTileKey=null;
+  renderVideoGrid();
+  /* Signal explicite plutôt que de compter sur track.onended côté distant :
+     après un removeTrack(), le récepteur ne reçoit pas forcément un onended
+     natif (Unified Plan renégocie juste le m-line en inactif) — sans ce
+     signal, la vidéo de l'autre reste figée sur la dernière image au lieu
+     de disparaître. */
+  if(activeCallDoc)sendSignal(activeCallDoc.\$id,'video-off',{type:'cam'});
+}
+let camToggleBusy=false;
 async function toggleCamera(){
-  if(!callPc)return;
-  if(camSender){
-    try{callPc.removeTrack(camSender);}catch(e){}
-    camSender=null;
-    if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
-    \$('cb-cam').classList.remove('on');
-    if(enlargedTileKey==='local-cam')enlargedTileKey=null;
-    renderVideoGrid();
-    return;
-  }
+  if(!callPc||camToggleBusy)return;
+  if(camSender){stopLocalCam();return;}
+  camToggleBusy=true;
   try{
     const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
     camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}}});
     const track=camStream.getVideoTracks()[0];
+    if(!callPc){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;return}
     camSender=callPc.addTrack(track,camStream);
     localMetaQueue.push({sender:camSender,type:'cam'});
     applyEncodingBitrate(camSender,q.bitrate);
+    track.onended=function(){if(camStream&&camStream.getVideoTracks()[0]===track)stopLocalCam();};
     \$('cb-cam').classList.add('on');
     renderVideoGrid();
     xlog('cam_toggled_on',{callLive:callLive,signalingState:callPc.signalingState,trackState:track.readyState});
-  }catch(e){alert('Caméra refusée ou indisponible');xlog('cam_toggle_fail',{msg:(e&&e.message)||String(e)});}
+  }catch(e){showToast('Caméra refusée ou indisponible','error');xlog('cam_toggle_fail',{msg:(e&&e.message)||String(e)});}
+  finally{camToggleBusy=false;}
 }
 function stopScreenShare(){
+  if(!screenSender&&!screenStream)return;
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
   if(screenSender){try{callPc.removeTrack(screenSender);}catch(e){}screenSender=null;}
   \$('cb-screen').classList.remove('on');
   if(enlargedTileKey==='local-screen')enlargedTileKey=null;
   renderVideoGrid();
+  if(activeCallDoc)sendSignal(activeCallDoc.\$id,'video-off',{type:'screen'});
 }
+let screenToggleBusy=false;
 async function toggleScreenShare(){
-  if(!callPc)return;
+  if(!callPc||screenToggleBusy)return;
   if(screenSender){stopScreenShare();return;}
+  screenToggleBusy=true;
   try{
     const q=AV_QUALITY[screenQualityKey]||AV_QUALITY['1080p60'];
     screenStream=await navigator.mediaDevices.getDisplayMedia({video:{width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}},audio:false});
     const track=screenStream.getVideoTracks()[0];
+    if(!callPc){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;return}
     screenSender=callPc.addTrack(track,screenStream);
     localMetaQueue.push({sender:screenSender,type:'screen'});
     applyEncodingBitrate(screenSender,q.bitrate);
@@ -3658,8 +3742,9 @@ async function toggleScreenShare(){
     renderVideoGrid();
     track.onended=function(){stopScreenShare();};
   }catch(e){
-    if(e&&e.name!=='NotAllowedError')alert('Partage d\\'écran indisponible');
+    if(e&&e.name!=='NotAllowedError')showToast('Partage d\\'écran indisponible','error');
   }
+  finally{screenToggleBusy=false;}
 }
 
 function callUnsubAll(){
@@ -3753,6 +3838,7 @@ async function acceptIncomingCall(){
     callLive=true;
     rebuildMicChain();
     showCallBar(callPeerName,'En appel…',new Date(doc.\$createdAt).getTime());
+    broadcastCallState();
   }catch(e){
     xlog('call_accept_fail',{msg:(e&&e.message)||String(e)});
     endCall('ended');
@@ -3824,6 +3910,7 @@ function subscribeCallAnswer(callId){
            "live") n'ont pas pu être renégociés à ce moment-là (callPc n'avait
            pas encore de description distante) : on rattrape maintenant. */
         if(camSender||screenSender)onNegotiationNeeded();
+        broadcastCallState();
       }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
     } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
       endCall('ended',true);
@@ -3887,6 +3974,17 @@ function subscribeIceForCall(callId){
           delete pendingRemoteTracksByMid[mid];
           renderVideoGrid();
         }
+      } else if(msg.kind==='video-off'){
+        const type=msg.data&&msg.data.type;
+        if(type&&remoteTiles[type]){
+          remoteTiles[type]=null;
+          if(type==='screen')screenShareRevealed=false;
+          renderVideoGrid();
+        }
+      } else if(msg.kind==='call-state'){
+        remoteMicMuted=!!(msg.data&&msg.data.muted);
+        remoteDeafened=!!(msg.data&&msg.data.deafened);
+        renderPeerCallState();
       }
     }catch(e){xlog('call_signal_fail',{kind:msg.kind,msg:(e&&e.message)||String(e)});}
   });
@@ -3897,6 +3995,22 @@ async function sendSignal(callId,kind,data){
   try{
     await authPost('/api/calls/ice',{callId:callId,candidate:JSON.stringify({kind:kind,data:data})});
   }catch(e){xlog('send_signal_fail',{kind:kind,msg:(e&&e.message)||String(e)});}
+}
+function broadcastCallState(){
+  if(!activeCallDoc)return;
+  const muted=\$('cb-mute')&&\$('cb-mute').classList.contains('on');
+  const deafened=\$('cb-deafen')&&\$('cb-deafen').classList.contains('on');
+  sendSignal(activeCallDoc.\$id,'call-state',{muted:!!muted,deafened:!!deafened});
+}
+function renderPeerCallState(){
+  const badges=\$('cb-peer-badges');
+  if(badges){
+    let html='';
+    if(remoteMicMuted)html+='<span class="cb-badge" title="Micro coupé chez '+esc(callPeerName||'')+'">🔇</span>';
+    if(remoteDeafened)html+='<span class="cb-badge" title="Casque coupé chez '+esc(callPeerName||'')+'">🎧</span>';
+    badges.innerHTML=html;
+  }
+  renderVideoGrid();
 }
 
 function showCallBar(name,label,startedAtMs){
@@ -3941,6 +4055,10 @@ function cleanupCallLocal(){
   activeCallDoc=null;incomingCallDoc=null;callPeerUid=null;callPeerName=null;callIsCaller=false;
   remoteTiles={cam:null,screen:null};
   pendingRemoteTracksByMid={};remoteMetaByMid={};localMetaQueue=[];
+  remoteMicMuted=false;remoteDeafened=false;screenShareRevealed=false;
+  camToggleBusy=false;screenToggleBusy=false;
+  if(\$('cb-peer-badges'))\$('cb-peer-badges').innerHTML='';
+  if(\$('screen-reveal-pill'))\$('screen-reveal-pill').classList.add('hidden');
   if(cinemaMode)exitCinema();
   videoMasked=false;enlargedTileKey=null;
   Object.keys(videoEls).forEach(function(k){
@@ -3998,6 +4116,7 @@ if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
     callPc.getSenders().forEach(function(s){if(s.track&&s.track.kind==='audio')s.track.enabled=!willMute;});
   }
   this.classList.toggle('on',willMute);
+  broadcastCallState();
 });
 if(\$('cb-cam'))\$('cb-cam').addEventListener('click',toggleCamera);
 if(\$('cb-screen'))\$('cb-screen').addEventListener('click',toggleScreenShare);
@@ -4007,6 +4126,7 @@ if(\$('cb-deafen'))\$('cb-deafen').addEventListener('click',function(){
   if(outGainNode)outGainNode.gain.value=deafened?0:(outVolumePct/100);
   const a=\$('call-remote-audio');
   if(a)a.muted=deafened;
+  broadcastCallState();
 });
 if(\$('cb-cinema'))\$('cb-cinema').addEventListener('click',function(){
   if(cinemaMode)exitCinema();else enterCinema();
