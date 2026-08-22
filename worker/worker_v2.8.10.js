@@ -615,6 +615,13 @@ button{cursor:pointer;border:0;background:0}
 .modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
 .field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
 .fr-results{max-height:220px;overflow-y:auto}
+.mg-hint{font-size:.72rem;color:var(--muted);margin-bottom:8px}
+.mg-friend-list{max-height:240px;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.mg-friend-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
+.mg-friend-row:hover{background:var(--elev)}
+.mg-friend-row input{width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;flex-shrink:0}
+.mg-friend-row .av{width:32px;height:32px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.75rem;flex-shrink:0}
+.mg-friend-row .n{font-size:.85rem;font-weight:700}
 .admin-subtabs{display:flex;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
 .admin-subtab{flex-shrink:0;padding:7px 12px;border-radius:8px;font-size:.78rem;font-weight:700;color:var(--muted);background:var(--elev)}
 .admin-subtab.on{background:#7c3aed;color:#fff}
@@ -936,6 +943,7 @@ button{cursor:pointer;border:0;background:0}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
+        <button type="button" class="icon-btn hidden" id="btn-new-group" title="Créer un groupe">👥+</button>
         <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
       </div>
     </div>
@@ -1012,6 +1020,18 @@ button{cursor:pointer;border:0;background:0}
     <h3>Ajouter un ami</h3>
     <input id="fq" class="field-input" placeholder="Nom d'utilisateur" autocomplete="off"/>
     <div id="fr" class="fr-results"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-group">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="mg-close">✕</button>
+    <h3>👥 Nouveau groupe</h3>
+    <input id="mg-name" class="field-input" placeholder="Nom du groupe" autocomplete="off" maxlength="64"/>
+    <div class="mg-hint">Choisis au moins 2 amis (6 max)</div>
+    <div id="mg-friends" class="mg-friend-list"></div>
+    <div class="err" id="mg-err"></div>
+    <button type="button" class="btn-main" id="mg-create" style="margin-top:12px">Créer le groupe</button>
   </div>
 </div>
 
@@ -1537,24 +1557,20 @@ async function e2eThreadKey(peerUid){
     return aesKey;
   }catch(e){threadKeyCache[peerUid]=null;return null}
 }
-async function e2eEncryptText(peerUid,text){
-  const key=await e2eThreadKey(peerUid);
-  if(!key)return null;
+/* Primitives génériques opérant sur une CryptoKey déjà résolue (clé de session
+   pairwise pour un DM 1:1, ou clé éphémère de message pour un groupe). */
+async function e2eEncryptTextWithKey(key,text){
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(text)));
   return b64enc(iv)+'.'+b64enc(ct);
 }
-async function e2eDecryptText(peerUid,payload){
-  const key=await e2eThreadKey(peerUid);
-  if(!key)throw new Error('Pas de clé de session');
+async function e2eDecryptTextWithKey(key,payload){
   const parts=String(payload).split('.');
   const iv=b64dec(parts[0]),ct=b64dec(parts[1]);
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
   return new TextDecoder().decode(pt);
 }
-async function e2eEncryptBlob(peerUid,blob){
-  const key=await e2eThreadKey(peerUid);
-  if(!key)return null;
+async function e2eEncryptBlobWithKey(key,blob){
   const iv=crypto.getRandomValues(new Uint8Array(12));
   const buf=await blob.arrayBuffer();
   const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},key,buf));
@@ -1562,14 +1578,65 @@ async function e2eEncryptBlob(peerUid,blob){
   out.set(iv,0);out.set(ct,iv.length);
   return new Blob([out],{type:'application/octet-stream'});
 }
-async function e2eDecryptBlob(peerUid,url,mime){
-  const key=await e2eThreadKey(peerUid);
-  if(!key)throw new Error('Pas de clé de session');
+async function e2eDecryptBlobWithKey(key,url,mime){
   const r=await fetch(url);
   const buf=new Uint8Array(await r.arrayBuffer());
   const iv=buf.slice(0,12),ct=buf.slice(12);
   const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
   return new Blob([pt],{type:mime||'application/octet-stream'});
+}
+/* Wrappers pairwise (DM 1:1) — dérivent la clé de session via ECDH puis délèguent. */
+async function e2eEncryptText(peerUid,text){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)return null;
+  return e2eEncryptTextWithKey(key,text);
+}
+async function e2eDecryptText(peerUid,payload){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)throw new Error('Pas de clé de session');
+  return e2eDecryptTextWithKey(key,payload);
+}
+async function e2eEncryptBlob(peerUid,blob){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)return null;
+  return e2eEncryptBlobWithKey(key,blob);
+}
+async function e2eDecryptBlob(peerUid,url,mime){
+  const key=await e2eThreadKey(peerUid);
+  if(!key)throw new Error('Pas de clé de session');
+  return e2eDecryptBlobWithKey(key,url,mime);
+}
+/* Groupe (>2 membres) — clé AES éphémère par message, enveloppée pour chaque
+   membre (soi-même inclus) via sa clé de session pairwise avec l'expéditeur. */
+async function e2eGetMessageKeyContext(){
+  if(activeDmIsGroup&&activeDmMembers.length){
+    const rawKey=crypto.getRandomValues(new Uint8Array(32));
+    let aesKey;
+    try{aesKey=await crypto.subtle.importKey('raw',rawKey,{name:'AES-GCM'},false,['encrypt']);}catch(e){return null}
+    const rawKeyB64=b64enc(rawKey);
+    const keysJson={};
+    for(const uid of activeDmMembers){
+      try{const wrapped=await e2eEncryptText(uid,rawKeyB64);if(wrapped)keysJson[uid]=wrapped;}catch(e){}
+    }
+    if(!Object.keys(keysJson).length)return null;
+    return {aesKey:aesKey,keysJson:JSON.stringify(keysJson)};
+  }
+  if(activeDmPeerUid){
+    const aesKey=await e2eThreadKey(activeDmPeerUid);
+    if(!aesKey)return null;
+    return {aesKey:aesKey,keysJson:''};
+  }
+  return null;
+}
+async function e2eResolveIncomingKey(m){
+  if(m.keysJson){
+    let map={};try{map=JSON.parse(m.keysJson);}catch(e){}
+    const mine=map[me.\$id];
+    if(!mine)return null;
+    const rawB64=await e2eDecryptText(m.uid,mine);
+    return crypto.subtle.importKey('raw',b64dec(rawB64),{name:'AES-GCM'},false,['decrypt']);
+  }
+  return e2eThreadKey(activeDmPeerUid);
 }
 
 async function enterApp(){
@@ -1738,6 +1805,7 @@ function showView(v){
   \$('admin-active').classList.add('hidden');
   \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
   \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':'Membres');
+  if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
   app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
@@ -1925,6 +1993,9 @@ function dmPeerId(dm){
   const members=(dm.members||[]).map(String);
   return members.find(function(m){return m!==me.\$id})||'';
 }
+function dmIsGroup(dm){
+  return (dm.members||[]).length>2;
+}
 async function loadDms(){
   if(!me)return[];
   const r=await db.listDocuments(DB,'dms',[Appwrite.Query.limit(100)]);
@@ -1937,9 +2008,13 @@ function renderDms(){
   if(!dmsCache.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
   box.innerHTML=dmsCache.map(function(d){
     const title=d.displayName||'Conversation';
+    const group=dmIsGroup(d);
+    const avInner=group?'👥':esc(ini(title));
+    const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+'</div>';
+    const sub=group?((d.members||[]).length+' membres'+(d.lastMessage?' · '+d.lastMessage:'')):(d.lastMessage||'');
     return '<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
-      +'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+esc(ini(title))+'</div>'
-      +'<div class="info"><div class="n">'+esc(title)+'</div><div class="p">'+esc(d.lastMessage||'')+'</div></div></div>';
+      +av
+      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':'')+'</div><div class="p">'+esc(sub)+'</div></div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -2077,15 +2152,19 @@ async function openAdminUserModal(uid){
 if(\$('au-close'))\$('au-close').addEventListener('click',function(){\$('modal-admin-user').classList.add('hidden')});
 if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
-let activeDm=null, activeDmPeerUid=null, msgsCache=[];
+let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=false, msgsCache=[];
 async function openDm(threadId,title,peerUid){
   activeDm=threadId;
-  activeDmPeerUid=peerUid||null;
+  const dm=dmsCache.find(function(d){return d.\$id===threadId});
+  const members=(dm&&dm.members)?dm.members.map(String):(peerUid?[String(me.\$id),String(peerUid)]:[]);
+  activeDmMembers=members;
+  activeDmIsGroup=members.length>2;
+  activeDmPeerUid=activeDmIsGroup?null:(peerUid||members.find(function(m){return m!==(me&&me.\$id)})||null);
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
   \$('ch-av').textContent=ini(title||'?');
-  const openPeerProfile=peerUid?function(){openProfileModal(peerUid)}:null;
+  const openPeerProfile=(!activeDmIsGroup&&activeDmPeerUid)?function(){openProfileModal(activeDmPeerUid)}:null;
   \$('ch-av').style.cursor=openPeerProfile?'pointer':'';
   \$('ch-av').onclick=openPeerProfile;
   \$('ch-title').style.cursor=openPeerProfile?'pointer':'';
@@ -2094,9 +2173,10 @@ async function openDm(threadId,title,peerUid){
   repositionCallPanel();
   const e2eEl=\$('ch-e2e');
   if(e2eEl){
-    e2eEl.classList.add('hidden');
-    if(peerUid){
-      e2eThreadKey(peerUid).then(function(k){if(activeDmPeerUid===peerUid&&k)e2eEl.classList.remove('hidden');}).catch(function(){});
+    e2eEl.classList.toggle('hidden',!activeDmIsGroup);
+    if(!activeDmIsGroup&&activeDmPeerUid){
+      const forPeer=activeDmPeerUid;
+      e2eThreadKey(forPeer).then(function(k){if(activeDmPeerUid===forPeer&&k)e2eEl.classList.remove('hidden');}).catch(function(){});
     }
   }
   await loadMessages(threadId);
@@ -2172,21 +2252,22 @@ function renderEncPlaceholder(m){
   return '<span class="enc-loading"><span class="enc-spin">🔒</span> Déchiffrement…</span>';
 }
 async function hydrateEncryptedMessages(){
-  const peerUid=activeDmPeerUid;
   const forDm=activeDm;
-  if(!peerUid)return;
+  if(!forDm)return;
   const targets=msgsCache.filter(function(m){return m.enc});
   for(const m of targets){
     if(activeDm!==forDm)return;
-    let text=m.text||'',ok=true;
-    if(text){
-      try{text=await e2eDecryptText(peerUid,text);}catch(e){ok=false;text='';}
+    let text=m.text||'',ok=true,key=null;
+    try{key=await e2eResolveIncomingKey(m);}catch(e){key=null}
+    if(!key)ok=false;
+    if(ok&&text){
+      try{text=await e2eDecryptTextWithKey(key,text);}catch(e){ok=false;text='';}
     }
     let mediaUrl='';
     const srcUrl=safeUrl(m.mediaUrl);
     if(ok&&srcUrl){
       try{
-        const blob=await e2eDecryptBlob(peerUid,srcUrl,m.mime||'application/octet-stream');
+        const blob=await e2eDecryptBlobWithKey(key,srcUrl,m.mime||'application/octet-stream');
         mediaUrl=URL.createObjectURL(blob);
       }catch(e){ok=false;}
     }
@@ -2261,19 +2342,23 @@ function renderMessages(){
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
   box.scrollTop=box.scrollHeight;
 }
-async function postMessage(data,lastMessagePreview){
+async function postMessage(data,lastMessagePreview,keyCtx){
   if(!activeDm||!me)return;
   const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
   let enc=!!data.enc;
   let text=data.text||'';
-  if(activeDmPeerUid&&text){
-    try{const encText=await e2eEncryptText(activeDmPeerUid,text);if(encText){text=encText;enc=true;}}catch(e){}
+  let keysJson=(keyCtx&&keyCtx.keysJson)||'';
+  if(keyCtx&&keyCtx.aesKey&&text){
+    try{text=await e2eEncryptTextWithKey(keyCtx.aesKey,text);enc=true;}catch(e){}
   }
-  const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:''},data,{text:text,enc:enc});
+  const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:''},data,{text:text,enc:enc,keysJson:keysJson});
   await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),payload);
   const previewPub=enc?'🔒 Message chiffré':lastMessagePreview;
   try{await db.updateDocument(DB,'dms',activeDm,{lastMessage:previewPub.slice(0,100)});}catch(e){}
-  if(activeDmPeerUid)authPost('/api/push/notify',{type:'message',toUid:activeDmPeerUid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
+  const recipients=activeDmIsGroup?activeDmMembers.filter(function(u){return u!==me.\$id}):(activeDmPeerUid?[activeDmPeerUid]:[]);
+  recipients.forEach(function(uid){
+    authPost('/api/push/notify',{type:'message',toUid:uid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
+  });
   await loadMessages(activeDm);
   await loadDms();if(view==='dms')renderDms();
 }
@@ -2284,7 +2369,8 @@ async function sendMessage(){
   input.value='';
   \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
   try{
-    await postMessage({text:text.slice(0,2000),type:'text'},text);
+    const keyCtx=await e2eGetMessageKeyContext();
+    await postMessage({text:text.slice(0,2000),type:'text'},text,keyCtx);
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
 }
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
@@ -2323,10 +2409,11 @@ async function handleFileAttach(file,kindHint){
     else type='file';
   }
   try{
+    const keyCtx=await e2eGetMessageKeyContext();
     let uploadBlob=file,enc=false;
-    if(activeDmPeerUid){
-      const encBlob=await e2eEncryptBlob(activeDmPeerUid,file);
-      if(encBlob){uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});enc=true;}
+    if(keyCtx&&keyCtx.aesKey){
+      const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,file);
+      uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});enc=true;
     }
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
@@ -2335,7 +2422,7 @@ async function handleFileAttach(file,kindHint){
     if(type==='image'){preview='📷 Photo';}
     else if(type==='video'){preview='🎬 Vidéo';}
     else{data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});preview='📄 '+file.name;}
-    await postMessage(data,preview);
+    await postMessage(data,preview,keyCtx);
   }catch(e){alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});}
 }
 if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto');this.value='';});
@@ -2474,15 +2561,16 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
   try{
     const blob=new Blob(chunks,{type:mimeType});
     const ext=mimeType.indexOf('ogg')>=0?'ogg':(mimeType.indexOf('mp4')>=0?'m4a':'webm');
+    const keyCtx=await e2eGetMessageKeyContext();
     let uploadBlob=blob,enc=false;
-    if(activeDmPeerUid){
-      const encBlob=await e2eEncryptBlob(activeDmPeerUid,blob);
-      if(encBlob){uploadBlob=encBlob;enc=true;}
+    if(keyCtx&&keyCtx.aesKey){
+      const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,blob);
+      uploadBlob=encBlob;enc=true;
     }
     const file=new File([uploadBlob],'voice-'+Date.now()+'.'+(enc?'bin':ext),{type:enc?'application/octet-stream':mimeType});
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-    await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal');
+    await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal',keyCtx);
   }catch(e){alert('Envoi du message vocal impossible : '+((e&&e.message)||e));xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
 }
 (function wireVoiceButton(){
@@ -2528,6 +2616,41 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
 
 if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function(){
   \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
+});
+const MAX_GROUP_MEMBERS=6;
+if(\$('btn-new-group'))\$('btn-new-group').addEventListener('click',function(){
+  \$('mg-name').value='';\$('mg-err').textContent='';
+  const accepted=friendsCache.filter(function(f){return f.status==='accepted'});
+  const box=\$('mg-friends');
+  if(!accepted.length){
+    box.innerHTML='<div class="empty-hint">Ajoute des amis avant de créer un groupe.</div>';
+  }else{
+    box.innerHTML=accepted.map(function(f){
+      return '<label class="mg-friend-row"><input type="checkbox" value="'+esc(f.friendId)+'" data-name="'+esc(f.name||'Ami')+'"/><div class="av">'+esc(ini(f.name||'?'))+'</div><div class="n">'+esc(f.name||'Ami')+'</div></label>';
+    }).join('');
+  }
+  \$('modal-group').classList.remove('hidden');
+});
+if(\$('mg-close'))\$('mg-close').addEventListener('click',function(){\$('modal-group').classList.add('hidden')});
+if(\$('modal-group'))\$('modal-group').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('mg-create'))\$('mg-create').addEventListener('click',async function(){
+  const btn=this;
+  \$('mg-err').textContent='';
+  const name=\$('mg-name').value.trim();
+  const checked=Array.from(\$('mg-friends').querySelectorAll('input[type="checkbox"]:checked'));
+  if(!name){\$('mg-err').textContent='Donne un nom au groupe';return}
+  if(checked.length<2){\$('mg-err').textContent='Choisis au moins 2 amis';return}
+  if(checked.length>MAX_GROUP_MEMBERS-1){\$('mg-err').textContent='Maximum '+MAX_GROUP_MEMBERS+' membres (toi compris)';return}
+  btn.disabled=true;btn.textContent='Création…';
+  try{
+    const members=[String(me.\$id)].concat(checked.map(function(c){return c.value}));
+    const dm=await db.createDocument(DB,'dms',Appwrite.ID.unique(),{members:members,displayName:name,lastMessage:'Groupe créé'});
+    dmsCache.unshift(dm);
+    \$('modal-group').classList.add('hidden');
+    showView('dms');
+    await openDm(dm.\$id,name,null);
+  }catch(e){\$('mg-err').textContent=(e&&e.message)||'Erreur lors de la création';}
+  btn.disabled=false;btn.textContent='Créer le groupe';
 });
 if(\$('mf-close'))\$('mf-close').addEventListener('click',function(){\$('modal-friend').classList.add('hidden')});
 if(\$('fq'))\$('fq').addEventListener('input',async function(){
@@ -3787,6 +3910,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
 }
 
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
+  if(activeDmIsGroup){alert('Les appels de groupe arrivent bientôt.');return}
   if(!activeDmPeerUid){alert('Ouvre une conversation directe pour lancer un appel.');return}
   const title=\$('ch-title')?\$('ch-title').textContent:'Appel';
   startCall(activeDmPeerUid,title);
