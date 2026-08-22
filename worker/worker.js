@@ -1356,7 +1356,6 @@ function applySession(secret,jwt){
   try{client.setSession(String(secret));}catch(e){}
   try{localStorage.setItem('xultra_session',String(secret));}catch(e){}
   if(jwt){
-    try{client.setJWT(String(jwt));}catch(e){}
     try{localStorage.setItem('xultra_jwt',String(jwt));}catch(e){}
   }
 }
@@ -1531,7 +1530,6 @@ function startJwtRefreshLoop(){
     try{
       const j=await account.createJWT();
       if(j&&j.jwt){
-        client.setJWT(j.jwt);
         try{localStorage.setItem('xultra_jwt',j.jwt);}catch(e){}
       }
     }catch(e){}
