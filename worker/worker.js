@@ -447,16 +447,24 @@ button{cursor:pointer;border:0;background:0}
 .call-act{width:52px;height:52px;border-radius:50%;font-size:1.2rem;display:grid;place-items:center}
 .call-act.accept{background:#22c55e;color:#052e16}
 .call-act.decline{background:#ef4444;color:#450a0a}
-.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;display:flex;align-items:center;gap:6px;padding:10px 10px;border-radius:14px;background:rgba(21,16,31,.96);backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto}
-.call-bar .av{width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden}
+.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto}
+.call-bar.embedded{position:static;max-width:none;margin:10px 14px 0;box-shadow:none}
+.cb-top{display:flex;align-items:center;gap:10px}
+.call-bar .av{width:38px;height:38px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden;cursor:pointer}
 .call-bar .av img{width:100%;height:100%;object-fit:cover}
-.call-bar .ub-btn{width:28px;height:28px;font-size:.85rem;flex-shrink:0}
 .cb-info{flex:1;min-width:0}
-.cb-name{font-weight:700;font-size:.82rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cb-status{font-size:.7rem;color:var(--muted)}
-.cb-status.live{color:var(--online)}
-#cb-mute.on,#cb-cam.on,#cb-screen.on{background:rgba(124,58,237,.35);color:#e9d5ff}
-.call-bar .call-act{width:28px;height:28px;font-size:.85rem}
+.cb-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
+.cb-dot{width:7px;height:7px;border-radius:50%;background:#7c3aed;flex-shrink:0;animation:cbPulse 1.6s ease-in-out infinite}
+.cb-status.live .cb-dot{background:var(--online)}
+@keyframes cbPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.cb-controls{display:flex;gap:6px;margin-top:12px}
+.cb-ctl{flex:1;height:38px;border-radius:10px;background:var(--elev);color:#f2ebff;font-size:1rem;display:grid;place-items:center}
+.cb-ctl:hover{background:var(--hover)}
+.cb-ctl.on{background:rgba(124,58,237,.4);color:#e9d5ff}
+.cb-ctl.hangup{flex:1.6;background:rgba(239,68,68,.22);color:#fca5a5;font-size:.8rem;font-weight:800}
+.cb-ctl.hangup:hover{background:rgba(239,68,68,.32)}
+.cb-ctl:disabled{opacity:.35;pointer-events:none}
 .call-video-stage{position:fixed;inset:0;z-index:2900;background:#050308;display:flex}
 .call-video-stage.hidden{display:none}
 #call-remote-video{width:100%;height:100%;object-fit:contain;background:#050308}
@@ -574,6 +582,7 @@ button{cursor:pointer;border:0;background:0}
         <div class="titles"><div class="t" id="ch-title">—</div></div>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
+      <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
       <div class="composer">
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
@@ -676,15 +685,21 @@ button{cursor:pointer;border:0;background:0}
   <video id="call-local-video" autoplay playsinline muted></video>
 </div>
 <div class="call-bar hidden" id="call-bar">
-  <div class="av" id="cb-av">?</div>
-  <div class="cb-info">
-    <div class="cb-name" id="cb-name">—</div>
-    <div class="cb-status" id="cb-status">Appel…</div>
+  <div class="cb-top">
+    <div class="av" id="cb-av" data-profile="">?</div>
+    <div class="cb-info">
+      <div class="cb-name" id="cb-name">En appel · 1 participant</div>
+      <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
+    </div>
   </div>
-  <button type="button" class="ub-btn" id="cb-mute" title="Muet">🎤</button>
-  <button type="button" class="ub-btn" id="cb-cam" title="Caméra">🎥</button>
-  <button type="button" class="ub-btn" id="cb-screen" title="Partager l'écran">🖥️</button>
-  <button type="button" class="ub-btn call-act decline" id="cb-hangup" title="Raccrocher">✕</button>
+  <div class="cb-controls">
+    <button type="button" class="cb-ctl" id="cb-mute" title="Muet">🎤</button>
+    <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir">🎧</button>
+    <button type="button" class="cb-ctl" id="cb-cam" title="Caméra">📷</button>
+    <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran">🖥️</button>
+    <button type="button" class="cb-ctl" id="cb-fullscreen" title="Plein écran" disabled>⛶</button>
+    <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher">Quitter</button>
+  </div>
   <audio id="call-remote-audio" autoplay playsinline></audio>
 </div>
 
@@ -917,6 +932,7 @@ function showView(v){
     \$('chat-active').classList.add('hidden');
     \$('admin-active').classList.remove('hidden');
     showAdminTab(adminTab);
+    repositionCallPanel();
     return;
   }
   \$('admin-active').classList.add('hidden');
@@ -926,6 +942,7 @@ function showView(v){
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
   else{loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})});}
+  repositionCallPanel();
 }
 document.querySelectorAll('.rail-btn').forEach(function(b){
   b.addEventListener('click',function(){
@@ -1053,8 +1070,8 @@ function renderFriends(){
   if(incoming.length){
     h+='<div class="empty-hint" style="padding:8px 8px 2px">Demandes reçues</div>';
     h+=incoming.map(function(f){
-      return '<div class="row"><div class="av">'+esc(ini(f.name||'?'))+'</div>'
-        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
+      return '<div class="row"><div class="av" data-profile="'+esc(f.friendId)+'">'+esc(ini(f.name||'?'))+'</div>'
+        +'<div class="info" data-profile="'+esc(f.friendId)+'"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
         +'<div class="act"><button type="button" data-accept="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'" data-fname="'+esc(f.name||'')+'">Accepter</button>'
         +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'">✕</button></div></div>';
     }).join('');
@@ -1062,14 +1079,15 @@ function renderFriends(){
   if(accepted.length){
     h+='<div class="empty-hint" style="padding:8px 8px 2px">Amis</div>';
     h+=accepted.map(function(f){
-      return '<div class="row" data-open-dm="'+esc(f.friendId)+'" data-name="'+esc(f.name||'Ami')+'">'
+      return '<div class="row" data-profile="'+esc(f.friendId)+'">'
         +'<div class="av">'+esc(ini(f.name||'?'))+'</div>'
         +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div></div></div>';
     }).join('');
   }
   box.innerHTML=h;
-  box.querySelectorAll('[data-open-dm]').forEach(function(el){
-    el.onclick=function(){startDmWith(el.getAttribute('data-open-dm'),el.getAttribute('data-name'))};
+  box.querySelectorAll('[data-profile]').forEach(function(el){
+    el.style.cursor='pointer';
+    el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
   });
   box.querySelectorAll('[data-accept]').forEach(function(el){
     el.onclick=async function(){
@@ -1119,9 +1137,13 @@ function renderDms(){
   box.innerHTML=dmsCache.map(function(d){
     const title=d.displayName||'Conversation';
     return '<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
-      +'<div class="av">'+esc(ini(title))+'</div>'
+      +'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+esc(ini(title))+'</div>'
       +'<div class="info"><div class="n">'+esc(title)+'</div><div class="p">'+esc(d.lastMessage||'')+'</div></div></div>';
   }).join('');
+  box.querySelectorAll('[data-profile]').forEach(function(el){
+    el.style.cursor='pointer';
+    el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
+  });
   box.querySelectorAll('[data-dm]').forEach(function(el){
     el.onclick=function(){
       const id=el.getAttribute('data-dm');
@@ -1190,8 +1212,28 @@ async function openDm(threadId,title,peerUid){
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
   \$('ch-av').textContent=ini(title||'?');
+  const openPeerProfile=peerUid?function(){openProfileModal(peerUid)}:null;
+  \$('ch-av').style.cursor=openPeerProfile?'pointer':'';
+  \$('ch-av').onclick=openPeerProfile;
+  \$('ch-title').style.cursor=openPeerProfile?'pointer':'';
+  \$('ch-title').onclick=openPeerProfile;
   document.getElementById('app').classList.add('chat-open');
+  repositionCallPanel();
   await loadMessages(threadId);
+}
+function repositionCallPanel(){
+  const bar=\$('call-bar');if(!bar||bar.classList.contains('hidden'))return;
+  const anchor=\$('call-panel-anchor');
+  const app=document.getElementById('app');
+  const chatVisible=window.innerWidth>640||app.classList.contains('chat-open');
+  const viewingCallDm=chatVisible&&view==='dms'&&activeDm&&callPeerUid&&activeDmPeerUid===callPeerUid;
+  if(viewingCallDm&&anchor){
+    anchor.appendChild(bar);
+    bar.classList.add('embedded');
+  } else {
+    document.body.appendChild(bar);
+    bar.classList.remove('embedded');
+  }
 }
 async function loadMessages(threadId){
   try{
@@ -1206,9 +1248,13 @@ function renderMessages(){
   box.innerHTML=msgsCache.map(function(m){
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
-    return '<div class="msg'+(mine?' mine':'')+'"><div class="av">'+esc(ini(name))+'</div>'
+    return '<div class="msg'+(mine?' mine':'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
       +'<div><div class="bub">'+esc(m.text||'')+'</div><div class="meta">'+esc(mine?'':name)+'</div></div></div>';
   }).join('');
+  box.querySelectorAll('[data-profile]').forEach(function(el){
+    el.style.cursor='pointer';
+    el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
+  });
   box.scrollTop=box.scrollHeight;
 }
 async function sendMessage(){
@@ -1226,7 +1272,7 @@ async function sendMessage(){
 }
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
-if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
+if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
 
 if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function(){
   \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
@@ -1325,8 +1371,8 @@ function renderAdminMembers(list){
       return '<button type="button" data-badgetoggle="'+b+'" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'" class="'+(on?'ok':'')+'" title="'+esc(BADGE_DEFS[b].label)+'">'+BADGE_DEFS[b].icon+(on?' ✓':'')+'</button>';
     }).join('');
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
-      +rowAvatar(p,name,uid)
-      +'<div class="info"><div class="n">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
+      +'<span data-profile="'+esc(uid)+'" style="display:contents;cursor:pointer">'+rowAvatar(p,name,uid)+'</span>'
+      +'<div class="info"><div class="n" data-profile="'+esc(uid)+'" style="cursor:pointer">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
       +'<div class="acts" style="margin-top:6px">'+badgeBtns+'</div></div>'
       +(self?'':'<div class="acts">'
         +'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>'
@@ -1335,6 +1381,9 @@ function renderAdminMembers(list){
         +'</div>')
       +'</div>';
   }).join('');
+  box.querySelectorAll('[data-profile]').forEach(function(el){
+    el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
+  });
   box.querySelectorAll('[data-badgetoggle]').forEach(function(el){
     el.onclick=async function(){
       this.disabled=true;
@@ -1664,8 +1713,10 @@ async function onNegotiationNeeded(){
 }
 function updateVideoStage(){
   const stage=\$('call-video-stage');if(!stage)return;
-  stage.classList.toggle('hidden',!(remoteVideoActive||!!videoSender));
+  const hasVideo=remoteVideoActive||!!videoSender;
+  stage.classList.toggle('hidden',!hasVideo);
   const lv=\$('call-local-video');if(lv)lv.classList.toggle('hidden',!videoSender);
+  const fs=\$('cb-fullscreen');if(fs)fs.disabled=!hasVideo;
 }
 async function toggleCamera(){
   if(!callPc||!callLive)return;
@@ -1753,6 +1804,10 @@ function showIncomingCall(doc){
   if(doc.callerAvatar&&/^https?:/i.test(doc.callerAvatar))av.innerHTML='<img src="'+esc(doc.callerAvatar)+'" alt=""/>';
   else av.textContent=ini(doc.callerName||'?');
   av.classList.remove('settled');
+  av.style.cursor='pointer';
+  av.onclick=function(){openProfileModal(doc.callerId)};
+  \$('ic-name').style.cursor='pointer';
+  \$('ic-name').onclick=function(){openProfileModal(doc.callerId)};
   \$('modal-incoming-call').classList.remove('hidden');
   const ringElapsed=Date.now()-new Date(doc.\$createdAt).getTime();
   const ringRemaining=Math.max(0,60000-ringElapsed);
@@ -1926,11 +1981,12 @@ async function sendSignal(callId,kind,data){
 }
 
 function showCallBar(name,label,startedAtMs){
-  \$('cb-name').textContent=name||'Appel';
   \$('cb-av').textContent=ini(name||'?');
+  \$('cb-av').onclick=function(){if(callPeerUid)openProfileModal(callPeerUid)};
   \$('call-bar').classList.remove('hidden');
   if(startedAtMs)callStartedAt=startedAtMs;
   setCallStatusLabel(label);
+  repositionCallPanel();
   if(!callTimerId){
     callTimerId=setInterval(function(){renderCallStatus()},1000);
   }
@@ -1940,12 +1996,15 @@ function setCallStatusLabel(label){
   renderCallStatus();
 }
 function renderCallStatus(){
-  const el=\$('cb-status');if(!el)return;
+  const timeEl=\$('cb-status'),subEl=\$('cb-sub'),nameEl=\$('cb-name');if(!timeEl)return;
   const elapsed=callStartedAt?Math.max(0,Math.floor((Date.now()-callStartedAt)/1000)):0;
   const m=String(Math.floor(elapsed/60)).padStart(2,'0');
   const s=String(elapsed%60).padStart(2,'0');
-  el.textContent=currentCallLabel+' '+m+':'+s;
-  el.classList.toggle('live',currentCallLabel==='En appel…');
+  timeEl.textContent=m+':'+s;
+  subEl.textContent=currentCallLabel;
+  const n=callLive?2:1;
+  nameEl.textContent='En appel · '+n+' participant'+(n>1?'s':'');
+  timeEl.parentElement.classList.toggle('live',currentCallLabel==='En appel…');
 }
 function cleanupCallLocal(){
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
@@ -1968,6 +2027,10 @@ function cleanupCallLocal(){
   \$('cb-mute').classList.remove('on');
   \$('cb-cam').classList.remove('on');
   \$('cb-screen').classList.remove('on');
+  \$('cb-deafen').classList.remove('on');
+  if(audioEl)audioEl.muted=false;
+  if(rv)rv.muted=false;
+  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
   subscribeIncomingCalls();
 }
 async function endCall(finalStatus,skipRemoteUpdate){
@@ -1996,6 +2059,21 @@ if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
 });
 if(\$('cb-cam'))\$('cb-cam').addEventListener('click',toggleCamera);
 if(\$('cb-screen'))\$('cb-screen').addEventListener('click',toggleScreenShare);
+if(\$('cb-deafen'))\$('cb-deafen').addEventListener('click',function(){
+  const deafened=!this.classList.contains('on');
+  this.classList.toggle('on',deafened);
+  const a=\$('call-remote-audio'),v=\$('call-remote-video');
+  if(a)a.muted=deafened;
+  if(v)v.muted=deafened;
+});
+if(\$('cb-fullscreen'))\$('cb-fullscreen').addEventListener('click',function(){
+  const stage=\$('call-video-stage');
+  if(!stage||stage.classList.contains('hidden'))return;
+  try{
+    if(document.fullscreenElement)document.exitFullscreen();
+    else if(stage.requestFullscreen)stage.requestFullscreen();
+  }catch(e){}
+});
 
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
