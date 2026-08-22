@@ -591,6 +591,11 @@ button{cursor:pointer;border:0;background:0}
 .msg-location span{font-size:.7rem;color:var(--muted);font-weight:600}
 .msg.mine .msg-location span{color:rgba(255,255,255,.7)}
 .voice-msg{display:flex;align-items:center;gap:8px;min-width:180px}
+.voice-msg-loading{display:flex;align-items:center;gap:8px;min-width:180px}
+.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
+.toast{background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#f2ebff;padding:11px 18px;border-radius:12px;font-size:.85rem;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:min(380px,100%);text-align:center}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast-error{border-color:rgba(239,68,68,.5);background:#2a1015}
 .vm-play{width:30px;height:30px;border-radius:50%;background:rgba(167,139,250,.25);color:#c4b5fd;font-size:.75rem;flex-shrink:0;display:grid;place-items:center}
 .msg.mine .vm-play{background:rgba(255,255,255,.18);color:#fff}
 .vm-wave{flex:1;display:flex;align-items:center;gap:2px;height:24px}
@@ -1310,6 +1315,24 @@ function waitSdk(cb){
 }
 function xlog(event,data){
   try{fetch('/api/note',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({event:event,data:data||{}})}).catch(function(){});}catch(e){}
+}
+function showToast(msg,kind){
+  let wrap=document.getElementById('toast-wrap');
+  if(!wrap){
+    wrap=document.createElement('div');
+    wrap.id='toast-wrap';
+    wrap.className='toast-wrap';
+    document.body.appendChild(wrap);
+  }
+  const t=document.createElement('div');
+  t.className='toast'+(kind==='error'?' toast-error':'');
+  t.textContent=msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(function(){t.classList.add('show')});
+  setTimeout(function(){
+    t.classList.remove('show');
+    setTimeout(function(){t.remove()},300);
+  },4500);
 }
 </script>
 <script>
@@ -2257,7 +2280,7 @@ function renderMsgBody(m,text,mediaUrl){
 function renderEncPlaceholder(m){
   const t=m.type||'text';
   if(t==='image'||t==='video')return '<div class="msg-media enc-loading-media"><div class="enc-spin">🔒</div></div>';
-  if(t==='audio')return '<div class="voice-msg enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
+  if(t==='audio')return '<div class="voice-msg-loading enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
   if(t==='file')return '<div class="msg-file enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
   return '<span class="enc-loading"><span class="enc-spin">🔒</span> Déchiffrement…</span>';
 }
@@ -2293,12 +2316,13 @@ async function hydrateEncryptedMessages(){
 }
 function initVoiceMsgPlayer(el){
   if(el.dataset.wired)return;
-  el.dataset.wired='1';
   const src=el.getAttribute('data-src');
   const mid=el.getAttribute('data-mid')||'x';
   const playBtn=el.querySelector('.vm-play');
   const waveEl=el.querySelector('.vm-wave');
   const durEl=el.querySelector('.vm-dur');
+  if(!playBtn||!waveEl||!durEl)return;
+  el.dataset.wired='1';
   const origDur=durEl.textContent;
   let seed=0;for(let i=0;i<mid.length;i++)seed=(seed*31+mid.charCodeAt(i))>>>0;
   function rnd(){seed=(seed*1103515245+12345)>>>0;return (seed>>>8)/16777216}
@@ -2581,7 +2605,7 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal',keyCtx);
-  }catch(e){alert('Envoi du message vocal impossible : '+((e&&e.message)||e));xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
+  }catch(e){showToast('Envoi du message vocal impossible : '+((e&&e.message)||e),'error');xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
 }
 (function wireVoiceButton(){
   const btn=\$('btn-voice');if(!btn)return;
