@@ -2883,6 +2883,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.30.2',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
+    body:'La vraie cause des appels sans son trouvée : les tout premiers "candidats" de connexion envoyés par la personne qui appelle (en quelques millisecondes) pouvaient arriver avant que la personne qui décroche ne soit prête à les recevoir (le temps d\\'accepter le micro) — et étaient alors perdus pour de bon, ce qui bloquait la connexion indéfiniment. XULTRA rattrape maintenant ces candidats manqués dès la connexion.'},
   {version:'2.30.1',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
     body:'Dans un appel privé, il fallait parfois activer sa caméra pour que le son commence enfin à passer des deux côtés — le navigateur bloquait silencieusement la lecture audio si la négociation de connexion prenait quelques secondes de trop après le clic sur "Décrocher". Corrigé : le son démarre maintenant correctement dès la connexion, avec un rattrapage automatique dès la première interaction si jamais le navigateur bloque quand même.'},
   {version:'2.30.0',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
@@ -7777,6 +7779,30 @@ function subscribeIceForCall(callId){
     }catch(e){xlog('call_signal_fail',{kind:msg.kind,msg:(e&&e.message)||String(e)});}
   });
   callUnsubs.push(unsub);
+  /* Rattrape les candidats ICE déjà écrits AVANT que cet abonnement temps
+     réel ne démarre : ceux de l'appelant partent en quelques millisecondes
+     après la création de l'offre, alors que côté appelé on est encore en
+     train d'attendre la permission micro / le clic "Décrocher" — un
+     événement realtime ".create" n'est jamais rétroactif, ces tout premiers
+     candidats (souvent les plus rapides à établir une connexion directe)
+     étaient donc perdus pour de bon, ce qui pouvait laisser la connexion
+     ICE bloquée en "checking" indéfiniment jusqu'à l'échec. */
+  (async function(){
+    try{
+      const r=await db.listDocuments(DB,'direct_call_ice',[Appwrite.Query.equal('callId',callId),Appwrite.Query.orderAsc('\$createdAt'),Appwrite.Query.limit(100)]);
+      let found=0,added=0;
+      for(const doc of (r.documents||[])){
+        if(String(doc.fromUid)===String(me.\$id))continue;
+        found++;
+        if(!callPc)break;
+        let msg=null;
+        try{msg=JSON.parse(doc.candidate);}catch(e){continue}
+        if(!msg||msg.kind!=='ice')continue;
+        try{await callPc.addIceCandidate(new RTCIceCandidate(msg.data));added++;}catch(e){}
+      }
+      xlog('ice_catchup',{found:found,added:added});
+    }catch(e){xlog('ice_catchup_fail',{msg:(e&&e.message)||String(e)});}
+  })();
 }
 async function sendSignal(callId,kind,data){
   if(!callPeerUid||!me)return;
