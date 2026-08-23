@@ -517,7 +517,7 @@ button{cursor:pointer;border:0;background:0}
 
 /* Phase 2: app shell */
 :root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e}
-#app{display:none;height:100dvh;position:relative;z-index:1}
+#app{display:none;height:calc(100dvh / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:8px;flex-shrink:0}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
@@ -1875,6 +1875,15 @@ function showToast(msg,kind){
 xlog('page_loaded',{ready:document.readyState});
 
 function showErrTxt(msg){if(\$('auth-err'))\$('auth-err').textContent=msg||''}
+function translateAuthError(msg){
+  const m=String(msg||'');
+  if(!m)return '';
+  if(/rate limit/i.test(m))return 'Trop de tentatives en peu de temps, réessaie dans quelques minutes.';
+  if(/already exists/i.test(m))return 'Un compte existe déjà avec cet e-mail.';
+  if(/unique attribute constraint/i.test(m))return 'Ce pseudo#tag est déjà pris, réessaie.';
+  if(/invalid credentials/i.test(m))return 'Identifiant ou mot de passe incorrect.';
+  return m;
+}
 
 /* ===== Carrousel de présentation (page de connexion) ===== */
 (function initLogoParticles(){
@@ -2429,7 +2438,7 @@ async function doLogin(){
     await enterApp();
   }catch(e){
     xlog('login_fail',{msg:(e&&e.message)||String(e)});
-    showErrTxt((e&&e.message)||'Connexion impossible');
+    showErrTxt(translateAuthError(e&&e.message)||'Connexion impossible');
     if(typeof turnstile!=='undefined'&&turnstileWidgetIds.login!=null)turnstile.reset(turnstileWidgetIds.login);
   }
   \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
@@ -2564,7 +2573,7 @@ async function doRegister(){
       try{localStorage.clear();}catch(e2){}
       clearCookieFallback();
     }
-    showErrTxt((e&&e.message)||'Inscription impossible, réessaie.');
+    showErrTxt(translateAuthError(e&&e.message)||'Inscription impossible, réessaie.');
     if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
   }
   \$('btn-register').disabled=false;\$('btn-register').textContent='Créer mon compte';
@@ -2649,6 +2658,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
+    body:'Merci pour vos rapports de bugs, très utiles ! Corrigés aujourd\\'hui : le titre d\\'une conversation privée pouvait afficher ton propre pseudo au lieu de celui de la personne en face ; le bouton « Accepter » d\\'une demande d\\'ami pouvait rester bloqué à cause du bouton supprimer juste à côté ; une barre noire apparaissait en bas de l\\'écran en dézoomant depuis les paramètres ; et cliquer sur son propre profil pouvait parfois afficher « Profil introuvable » par erreur. Les messages d\\'erreur d\\'inscription/connexion sont aussi plus clairs qu\\'avant.'},
   {version:'2.22.0',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
     body:'Deux bugs corrigés aujourd\\'hui. D\\'abord, un souci de longue date empêchait parfois deux personnes différentes de choisir le même pseudo (même avec des tags différents), ce qui pouvait laisser des comptes à moitié créés — c\\'est réparé, et l\\'inscription nettoie maintenant automatiquement les tentatives ratées. Ensuite, les appels en messages privés : le son ne passait parfois ni d\\'un côté ni de l\\'autre, et la caméra pouvait afficher un écran noir chez la personne en face — corrigé en fiabilisant le démarrage audio et l\\'affichage vidéo.'},
   {version:'2.21.0',date:'23 août 2026',time:'16:35',title:'Confirme ton adresse e-mail',
@@ -2735,7 +2746,18 @@ function applyAppPrefs(){
   try{document.documentElement.style.setProperty('--msg-font-size',appPrefs.msgFontSize+'px');}catch(e){}
   try{document.documentElement.style.setProperty('--msg-gap',appPrefs.msgSpacing==='compact'?'4px':'10px');}catch(e){}
   if(document.body){
-    try{document.body.style.zoom=(appPrefs.zoomScale||100)/100;}catch(e){}
+    try{
+      const zf=(appPrefs.zoomScale||100)/100;
+      document.body.style.zoom=zf;
+      /* #app a une hauteur fixe de 100dvh : la propriété CSS zoom() la
+         rétrécit visuellement avec tout le reste (contrairement à un
+         transform:scale, mais les unités dvh restent calculées sur le
+         vrai viewport), ce qui laisse une bande noire en bas dès qu'on
+         dézoome (<100%). On compense en gonflant la hauteur avant zoom
+         d'un facteur inverse, pour qu'elle retombe pile sur 100dvh une
+         fois le zoom appliqué. */
+      document.documentElement.style.setProperty('--zoom-factor',String(zf||1));
+    }catch(e){}
     document.body.classList.toggle('compact-mode',appPrefs.displayMode==='compact');
     document.body.classList.toggle('no-emoji-anim',!appPrefs.animateEmoji);
     document.body.classList.toggle('reduce-motion',!!appPrefs.reduceMotion);
@@ -3984,6 +4006,19 @@ function dmPeerId(dm){
 function dmIsGroup(dm){
   return (dm.members||[]).length>2;
 }
+function dmTitleFor(dm){
+  /* dm.displayName est un champ UNIQUE stocké sur le document, fixé une
+     fois pour toutes par la personne qui a démarré la conversation (au nom
+     de LA PERSONNE EN FACE D'ELLE) : pour une conversation à deux, ça veut
+     dire que l'autre participant voit... son PROPRE pseudo comme titre.
+     Pour un 1:1, le titre doit toujours être recalculé par rapport à qui
+     regarde ; displayName ne fait sens que pour un vrai nom de groupe. */
+  if(dmIsGroup(dm))return dm.displayName||'Groupe';
+  const peerUid=dmPeerId(dm);
+  const peer=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(peerUid)});
+  if(peer)return peer.displayName||peer.username||'Conversation';
+  return dm.displayName||'Conversation';
+}
 async function loadDms(){
   if(!me)return[];
   const r=await db.listDocuments(DB,'dms',[Appwrite.Query.orderDesc('\$updatedAt'),Appwrite.Query.limit(100)]);
@@ -4016,7 +4051,7 @@ function renderDms(){
   \$('list-sub-txt').textContent=visible.length+' conversation'+(visible.length!==1?'s':'');
   if(!visible.length){box.innerHTML='<div class="empty-hint">Aucune conversation. Ouvre l\\'onglet Amis pour en démarrer une.</div>';return}
   box.innerHTML=visible.map(function(d){
-    const title=d.displayName||'Conversation';
+    const title=dmTitleFor(d);
     const group=dmIsGroup(d);
     const avInner=group?'👥':esc(ini(title));
     const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+presenceDotHtml(dmPeerId(d))+'</div>';
@@ -4085,7 +4120,15 @@ function attachRowSwipe(wrap){
   row.addEventListener('pointerup',endDrag);
   row.addEventListener('pointercancel',endDrag);
   row.addEventListener('click',function(e){
-    if(open){e.stopPropagation();e.preventDefault();open=false;row.style.transition='transform .18s ease';setX(0);}
+    if(!open)return;
+    /* Ne pas avaler le clic si c'est un vrai bouton d'action à l'intérieur de
+       la ligne (Accepter/Refuser/Bloquer...) : sinon, une fois la ligne
+       "ouverte" (glissée pour révéler la suppression), CE handler capture
+       le clic avant même que le bouton ne reçoive le sien, et il devient
+       impossible de cliquer sur ces boutons — on ne fait que refermer le
+       glissement encore et encore. */
+    if(e.target.closest('button'))return;
+    e.stopPropagation();e.preventDefault();open=false;row.style.transition='transform .18s ease';setX(0);
   },true);
 }
 async function startDmWith(peerUid,peerName){
@@ -4354,6 +4397,12 @@ function mountProfileCardExtras(container){
 }
 async function openProfileModal(uid){
   let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+  /* Pour son PROPRE profil, meProfile est déjà en mémoire dès qu'on est
+     connecté : pas besoin de compter sur le cache des membres (pas encore
+     chargé au tout début, ou limité à 100 résultats) ni sur une requête
+     réseau qui peut échouer/timeout — ce qui affichait "Profil introuvable"
+     de façon intermittente en cliquant sur son propre avatar/pseudo. */
+  if(!p&&me&&uid===me.\$id&&meProfile)p=meProfile;
   if(!p){
     try{
       const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',uid),Appwrite.Query.limit(1)]);
@@ -4838,6 +4887,7 @@ async function openDm(threadId,title,peerUid){
   activeDmMembers=members;
   activeDmIsGroup=members.length>2;
   activeDmPeerUid=activeDmIsGroup?null:(peerUid||members.find(function(m){return m!==(me&&me.\$id)})||null);
+  if(dm)title=dmTitleFor(dm);
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
@@ -6289,6 +6339,18 @@ if(\$('hp-close'))\$('hp-close').addEventListener('click',function(){\$('modal-h
 if(\$('hp-new'))\$('hp-new').addEventListener('click',function(){openBugModal(null)});
 
 /* ===== Appels vocaux (WebRTC) ===== */
+function wireCallDiagnostics(pc){
+  /* Le signaling (offre/réponse via Appwrite) peut parfaitement réussir alors
+     que la connexion ICE réelle échoue derrière (relais TURN gratuit
+     surchargé, NAT symétrique...) : dans ce cas l'appel a l'air "connecté"
+     côté UI mais aucun son/vidéo ne circule, des deux côtés à la fois. Ces
+     logs permettent de faire la différence la prochaine fois plutôt que de
+     deviner : si iceConnectionState reste sur "checking" ou passe à "failed"
+     malgré tout, c'est le relais TURN qui est en cause, pas l'app. */
+  pc.oniceconnectionstatechange=function(){xlog('call_ice_state',{state:pc.iceConnectionState});};
+  pc.onconnectionstatechange=function(){xlog('call_conn_state',{state:pc.connectionState});};
+  pc.onicegatheringstatechange=function(){xlog('call_ice_gathering',{state:pc.iceGatheringState});};
+}
 const ICE_SERVERS={iceServers:[
   {urls:'stun:stun.l.google.com:19302'},
   {urls:'stun:stun1.l.google.com:19302'},
@@ -6782,6 +6844,7 @@ async function acceptIncomingCall(){
     pc.ontrack=onRemoteTrack;
     pc.onicecandidate=function(e){if(e.candidate)sendSignal(doc.\$id,'ice',e.candidate)};
     pc.onnegotiationneeded=onNegotiationNeeded;
+    wireCallDiagnostics(pc);
     await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(doc.offer)));
     const answer=await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -6823,6 +6886,7 @@ async function startCall(peerUid,peerName){
       else pendingLocalIce.push(e.candidate);
     };
     pc.onnegotiationneeded=onNegotiationNeeded;
+    wireCallDiagnostics(pc);
     const offer=await pc.createOffer();
     await pc.setLocalDescription(offer);
     const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
