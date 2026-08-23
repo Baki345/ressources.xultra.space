@@ -2868,6 +2868,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.27.2',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
+    body:'Cliquer sur la cloche 🔔 ouvrait bien le panneau de notifications, mais te renvoyait aussitôt sur la liste d\\'amis derrière, à cause d\\'un vieux bout de code en double resté par erreur. Corrigé : la cloche ouvre maintenant seulement tes notifications, sans changer d\\'onglet.'},
   {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
     body:'Dans l\\'onglet Badges & paliers, un palier Bug Hunter déjà largement dépassé (par exemple Chasseur Novice pour quelqu\\'un qui a déjà 10 bugs résolus) pouvait s\\'afficher à tort comme "en cours" au lieu de "Débloqué". Corrigé.'},
   {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe XULTRA et débloque tous les badges',
@@ -6962,7 +6964,6 @@ if(\$('ub-hunter'))\$('ub-hunter').addEventListener('click',function(){
   \$('modal-hunter').classList.remove('hidden');
   loadMyBugs();
 });
-if(\$('ub-bell'))\$('ub-bell').addEventListener('click',function(){showView('friends')});
 if(\$('hp-close'))\$('hp-close').addEventListener('click',function(){\$('modal-hunter').classList.add('hidden')});
 if(\$('hp-new'))\$('hp-new').addEventListener('click',function(){openBugModal(null)});
 
