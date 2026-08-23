@@ -3287,6 +3287,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.36.2',date:'23 août 2026',time:'23:00',title:'Correctif : impossible de créer un salon vocal ou textuel',
+    body:'Le bouton "+ Salon" appelait la fonction d\\'ouverture de l\\'éditeur directement comme gestionnaire de clic — le navigateur lui passait alors l\\'événement du clic à la place d\\'un salon, ce qui faisait croire à l\\'éditeur qu\\'il modifiait un salon existant au lieu d\\'en créer un nouveau. Résultat : la création échouait silencieusement et le salon n\\'apparaissait jamais dans la liste. Corrigé.'},
   {version:'2.36.1',date:'23 août 2026',time:'22:45',title:'Corrections suite à vos signalements (encore !)',
     body:'Plusieurs correctifs suite à des rapports de bugs : (1) sur un nouvel appareil connecté par clé d\\'accès (passkey), tes anciens messages chiffrés restaient "illisibles" même si une sauvegarde existait déjà — un nouveau bandeau te propose maintenant de saisir ton mot de passe pour les restaurer. (2) Dans l\\'éditeur de profil, si l\\'enregistrement des pronoms/statut/effets échouait (réseau), l\\'appli affichait quand même "Profil mis à jour" — l\\'erreur est maintenant visible et rien n\\'est perdu côté pseudo/bio/couleurs. (3) Quand deux personnes s\\'envoyaient une demande d\\'ami en même temps, elles devenaient amies en double (la même personne apparaissait deux fois) — les demandes croisées sont désormais fusionnées automatiquement, refuser une demande prévient aussi l\\'autre personne, et les doublons déjà présents en base ont été nettoyés.'},
   {version:'2.36.0',date:'23 août 2026',time:'22:15',title:'Hiérarchie des rôles et permissions par salon dans les Serveurs',
@@ -8899,7 +8901,7 @@ function renderServerChannelList(){
     try{const r=await authPost('/api/servers/regenerate-invite',{serverId:activeServer.\$id});activeServer.inviteCode=r.inviteCode;renderServerChannelList();showToast('Nouveau code généré !');}catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
   const addChanBtn=\$('srv-add-channel');
-  if(addChanBtn)addChanBtn.onclick=openServerChannelEditor;
+  if(addChanBtn)addChanBtn.onclick=function(){openServerChannelEditor(null);};
   box.querySelectorAll('[data-srv-chan]').forEach(function(el){
     el.addEventListener('click',function(){openServerChannel(el.getAttribute('data-srv-chan'));});
   });
