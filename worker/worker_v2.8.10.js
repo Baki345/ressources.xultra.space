@@ -3163,6 +3163,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.34.2',date:'24 août 2026',time:'04:20',title:'Correctif : les caméras envahissaient le chat pendant un appel privé',
+    body:'Quand un appel vidéo était actif dans la conversation que tu regardais, les caméras s\\'affichaient en grand directement au-dessus des messages, poussant toute la conversation hors de vue. Elles démarrent maintenant réduites en une petite pastille discrète ("Webcam active · toucher pour afficher") — un simple tap suffit pour les afficher en grand quand tu veux vraiment les voir.'},
   {version:'2.34.1',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
     body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de XULTRA.'},
   {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
@@ -7452,7 +7454,7 @@ let makingOffer=false, ignoreOffer=false, callLive=false;
 let remoteTiles={cam:null,screen:null};
 let remoteMetaByMid={}, pendingRemoteTracksByMid={}, localMetaQueue=[];
 let remoteMicMuted=false, remoteDeafened=false, screenShareRevealed=false;
-let videoMasked=false, cinemaMode=false, enlargedTileKey=null, videoEls={};
+let videoMasked=true, cinemaMode=false, enlargedTileKey=null, videoEls={};
 let camQualityKey='720p30', screenQualityKey='1080p60';
 let micVolumePct=100, outVolumePct=100;
 let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='mono';
@@ -7739,9 +7741,9 @@ function renderVideoGrid(){
   const camActive=!!camStream||!!remoteTiles.cam;
   const screenActive=!!screenStream||(!!remoteTiles.screen&&screenShareRevealed);
   let pillLabel='';
-  if(camActive&&screenActive)pillLabel='Webcam & écran actifs';
-  else if(screenActive)pillLabel='Partage d\\'écran actif';
-  else if(camActive)pillLabel='Webcam active';
+  if(camActive&&screenActive)pillLabel='Webcam & écran actifs · toucher pour afficher';
+  else if(screenActive)pillLabel='Partage d\\'écran actif · toucher pour afficher';
+  else if(camActive)pillLabel='Webcam active · toucher pour afficher';
   const lp=\$('lp-label');if(lp)lp.textContent=pillLabel;
   const pill=\$('live-pill');if(pill)pill.classList.toggle('show',hasVideo&&videoMasked);
   const cin=\$('cb-cinema');if(cin)cin.disabled=!hasVideo;
@@ -8257,7 +8259,7 @@ function cleanupCallLocal(){
   if(\$('cb-peer-badges'))\$('cb-peer-badges').innerHTML='';
   if(\$('screen-reveal-pill'))\$('screen-reveal-pill').classList.add('hidden');
   if(cinemaMode)exitCinema();
-  videoMasked=false;enlargedTileKey=null;
+  videoMasked=true;enlargedTileKey=null;
   Object.keys(videoEls).forEach(function(k){
     const el=videoEls[k];
     if(el.parentElement)el.parentElement.removeChild(el);
