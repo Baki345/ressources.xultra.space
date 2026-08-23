@@ -952,6 +952,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .bug-item .actions button.done{background:rgba(34,197,94,.25);border-color:rgba(34,197,94,.4)}
 .bug-item .actions button.del{color:#fca5a5}
 .call-btn{margin-left:auto}
+.call-btn-maintenance{opacity:.4;filter:grayscale(1)}
 .call-modal{text-align:center;width:min(320px,100%)}
 .call-ring-av{width:76px;height:76px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);overflow:hidden;box-shadow:0 0 0 0 rgba(124,58,237,.5);animation:callPulse 1.6s ease-out infinite}
 .call-ring-av img{width:100%;height:100%;object-fit:cover}
@@ -1533,6 +1534,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="modal-close" id="pm-close">✕</button>
     <div id="pm-render"></div>
     <div class="pm-btn-row">
+      <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
       <button type="button" class="btn-main" id="pm-message">Message</button>
       <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
       <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
@@ -2881,6 +2883,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.30.0',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
+    body:'Un bouton « Ajouter en ami » apparaît maintenant directement sur la fiche de profil de quelqu\\'un (il s\\'adapte automatiquement : demande déjà envoyée, demande reçue à accepter, ou déjà amis). Les appels de groupe, encore instables, sont mis en maintenance le temps d\\'être fiabilisés — le bouton d\\'appel apparaît grisé dans les conversations de groupe en attendant.'},
   {version:'2.29.0',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
     body:'Les appels vocaux et vidéo (en privé comme en groupe) passaient jusqu\\'ici par un relai gratuit tiers, souvent saturé — d\\'où les cas où la caméra restait noire ou le son ne passait pas chez l\\'un des deux. XULTRA a maintenant son propre serveur dédié pour relayer les appels quand une connexion directe entre deux appareils n\\'est pas possible (réseaux mobiles, certains routeurs). Ça devrait nettement améliorer la fiabilité des appels pour tout le monde.'},
   {version:'2.28.0',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
@@ -5018,6 +5022,47 @@ async function openProfileModal(uid){
   const msgBtn=\$('pm-message');
   msgBtn.classList.toggle('hidden',!!isSelf);
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
+  const friendBtn=\$('pm-friend');
+  if(friendBtn){
+    const rel=isSelf?null:friendsCache.find(function(f){return String(f.friendId)===String(uid)});
+    if(isSelf||!me){
+      friendBtn.classList.add('hidden');
+    }else if(rel&&rel.status==='accepted'){
+      friendBtn.classList.remove('hidden');
+      friendBtn.disabled=true;
+      friendBtn.textContent='✅ Ami';
+      friendBtn.onclick=null;
+    }else if(rel&&rel.status==='pending_out'){
+      friendBtn.classList.remove('hidden');
+      friendBtn.disabled=true;
+      friendBtn.textContent='📨 Demande envoyée';
+      friendBtn.onclick=null;
+    }else if(rel&&rel.status==='pending_in'){
+      friendBtn.classList.remove('hidden');
+      friendBtn.disabled=false;
+      friendBtn.textContent='✅ Accepter sa demande';
+      friendBtn.onclick=async function(){
+        friendBtn.disabled=true;
+        try{
+          await acceptFriendRequest(rel.\$id,uid);
+          friendBtn.textContent='✅ Ami';
+          showToast('Vous êtes maintenant amis !');
+        }catch(e){friendBtn.disabled=false;friendBtn.textContent='✅ Accepter sa demande';showToast('Action impossible','error');}
+      };
+    }else{
+      friendBtn.classList.remove('hidden');
+      friendBtn.disabled=false;
+      friendBtn.textContent='➕ Ajouter en ami';
+      friendBtn.onclick=async function(){
+        friendBtn.disabled=true;friendBtn.textContent='…';
+        try{
+          const ok=await sendFriendRequest(uid,name);
+          if(ok){friendBtn.textContent='📨 Demande envoyée';}
+          else{friendBtn.disabled=false;friendBtn.textContent='➕ Ajouter en ami';}
+        }catch(e){friendBtn.disabled=false;friendBtn.textContent='➕ Ajouter en ami';showToast('Action impossible','error');}
+      };
+    }
+  }
   const reportBtn=\$('pm-report');
   reportBtn.classList.toggle('hidden',!!isSelf);
   reportBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openReportModal(uid,name);};
@@ -5474,6 +5519,11 @@ async function openDm(threadId,title,peerUid){
   \$('ch-title').onclick=openHeaderAction;
   document.getElementById('app').classList.add('chat-open');
   repositionCallPanel();
+  const callBtn=\$('btn-call-start');
+  if(callBtn){
+    callBtn.classList.toggle('call-btn-maintenance',activeDmIsGroup);
+    callBtn.title=activeDmIsGroup?'Appels de groupe — en maintenance':'Appel vocal';
+  }
   const e2eEl=\$('ch-e2e');
   if(e2eEl){
     e2eEl.classList.toggle('hidden',!activeDmIsGroup);
@@ -7807,7 +7857,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
 }
 
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
-  if(activeDmIsGroup){alert('Les appels de groupe arrivent bientôt.');return}
+  if(activeDmIsGroup){showToast('🛠️ Les appels de groupe sont en maintenance pour le moment.','error');return}
   if(!activeDmPeerUid){alert('Ouvre une conversation directe pour lancer un appel.');return}
   /* Créer/relancer l'AudioContext ici, en tout premier, pendant que le clic
      est encore un vrai geste utilisateur direct : plus on attend (après des
