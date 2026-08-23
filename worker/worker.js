@@ -1154,6 +1154,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       </label>
       <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
       <button type="submit" class="btn-main" id="btn-login">Entrer</button>
+      <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔑 Se connecter avec une clé d’accès</button>
     </form>
     <form id="pane-register" class="hidden" autocomplete="on">
       <div class="reg-preview">
@@ -2044,6 +2045,76 @@ async function serverMfaVerify(mfaToken,otp,useRecoveryCode){
   if(rr.ok&&jj&&jj.ok&&jj.secret)return jj;
   throw new Error((jj&&jj.error)||('Code invalide ('+rr.status+')'));
 }
+/* ===== Clés de sécurité / passkeys (WebAuthn) — flexible : Face ID, Touch ID,
+   Windows Hello, empreinte Android, clé USB... tout ce que le navigateur/OS
+   propose. Vérification cryptographique réelle côté serveur (jamais un simple
+   "on fait semblant"). ===== */
+function b64urlEnc(buf){
+  const bytes=new Uint8Array(buf);
+  let bin='';
+  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\\+/g,'-').replace(/\\//g,'_').replace(/=+$/,'');
+}
+function b64urlDec(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/');
+  while(s.length%4)s+='=';
+  const bin=atob(s);
+  const out=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
+  return out.buffer;
+}
+function passkeysSupported(){
+  try{return !!(window.PublicKeyCredential&&navigator.credentials&&navigator.credentials.create);}catch(e){return false}
+}
+async function registerPasskey(label){
+  if(!passkeysSupported())throw new Error('Les clés d’accès ne sont pas prises en charge par ce navigateur.');
+  const opts=await authPost('/api/passkey/register-options',{});
+  const publicKey={
+    challenge:b64urlDec(opts.challenge),
+    rp:{id:opts.rpId,name:opts.rpName},
+    user:{id:new TextEncoder().encode(opts.userId),name:opts.userName,displayName:opts.userDisplayName},
+    pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+    authenticatorSelection:{userVerification:'preferred'},
+    timeout:60000,
+    attestation:'none'
+  };
+  const cred=await navigator.credentials.create({publicKey:publicKey});
+  if(!cred)throw new Error('Création annulée.');
+  const res=cred.response;
+  await authPost('/api/passkey/register-verify',{
+    registrationToken:opts.registrationToken,
+    credentialId:b64urlEnc(cred.rawId),
+    attestationObject:b64urlEnc(res.attestationObject),
+    clientDataJSON:b64urlEnc(res.clientDataJSON),
+    label:label||'Clé d’accès'
+  });
+}
+async function loginWithPasskey(email){
+  if(!passkeysSupported())throw new Error('Les clés d’accès ne sont pas prises en charge par ce navigateur.');
+  const r1=await fetch('/api/passkey/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+  const opts=await r1.json().catch(function(){return {}});
+  if(!r1.ok||!opts.ok)throw new Error((opts&&opts.error)||'Aucune clé d’accès trouvée pour cet e-mail.');
+  const publicKey={
+    challenge:b64urlDec(opts.challenge),
+    rpId:opts.rpId,
+    allowCredentials:(opts.allowCredentials||[]).map(function(c){return {id:b64urlDec(c.id),type:'public-key'};}),
+    userVerification:'preferred',
+    timeout:60000
+  };
+  const cred=await navigator.credentials.get({publicKey:publicKey});
+  if(!cred)throw new Error('Connexion annulée.');
+  const res=cred.response;
+  const r2=await fetch('/api/passkey/login-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    loginToken:opts.loginToken,
+    credentialId:b64urlEnc(cred.rawId),
+    authenticatorData:b64urlEnc(res.authenticatorData),
+    clientDataJSON:b64urlEnc(res.clientDataJSON),
+    signature:b64urlEnc(res.signature)
+  })});
+  const jj=await r2.json().catch(function(){return {}});
+  if(!r2.ok||!jj.ok)throw new Error((jj&&jj.error)||'Connexion refusée.');
+  return jj;
+}
 function applySession(secret,jwt){
   try{client.setSession(String(secret));}catch(e){}
   try{localStorage.setItem('xultra_session',String(secret));}catch(e){}
@@ -2349,6 +2420,28 @@ async function doLogin(){
   }
   \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
 }
+if(passkeysSupported()&&\$('btn-login-passkey'))\$('btn-login-passkey').classList.remove('hidden');
+if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',async function(){
+  const email=((\$('in-email')&&\$('in-email').value)||'').trim();
+  if(!email){showErrTxt('Entre ton e-mail ci-dessus, puis réessaie.');return}
+  showErrTxt('');
+  const btn=\$('btn-login-passkey');
+  btn.disabled=true;btn.textContent='🔑 Vérification…';
+  try{
+    const jj=await loginWithPasskey(email);
+    if(jj.mfaRequired){
+      openMfaVerifyPanel(jj.mfaToken);
+    }else{
+      applySession(jj.secret,jj.jwt);
+      xlog('login_passkey_ok',{});
+      await enterApp();
+    }
+  }catch(e){
+    xlog('login_passkey_fail',{msg:(e&&e.message)||String(e)});
+    showErrTxt((e&&e.message)||'Connexion impossible avec cette clé d’accès.');
+  }
+  btn.disabled=false;btn.textContent='🔑 Se connecter avec une clé d’accès';
+});
 let mfaPendingToken=null,mfaUseRecovery=false;
 function openMfaVerifyPanel(mfaToken){
   mfaPendingToken=mfaToken;mfaUseRecovery=false;
@@ -2525,6 +2618,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.18.0',date:'23 août 2026',time:'14:10',title:'Connecte-toi avec Face ID, Windows Hello ou ton empreinte digitale',
+    body:'Fini de taper ton mot de passe : dans Paramètres → Mon compte, ajoute une clé d’accès et connecte-toi ensuite avec ce que ton téléphone ou ton ordinateur propose déjà — reconnaissance faciale, empreinte digitale, code Windows Hello, ou une clé de sécurité physique. Tu peux en ajouter plusieurs (une par appareil) et les gérer à tout moment.'},
   {version:'2.17.0',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
     body:'Rends-toi dans Paramètres → Mon compte pour activer la vérification en deux étapes : associe une application comme Google Authenticator ou Authy, et XULTRA te demandera un code en plus de ton mot de passe à chaque connexion. Des codes de secours te sont donnés pour ne jamais rester bloqué dehors si tu perds ton téléphone.'},
   {version:'2.16.1',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
@@ -2783,7 +2878,8 @@ function renderSetAccount(box){
       +'<div class="set-section-label">Sécurité</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">'+((me&&me.mfa)?'Activée — ton compte est protégé par un code à usage unique.':'Ajoute une couche de sécurité à ton compte.')+'</div></div><button type="button" class="set-mini-btn'+((me&&me.mfa)?' danger':'')+'" id="acc-mfa-toggle">'+((me&&me.mfa)?'Désactiver':'Activer')+'</button></div>'
       +((me&&me.mfa)?'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours</div><div class="scr-sub">Régénère tes codes si tu les as perdus ou déjà utilisés.</div></div><button type="button" class="set-mini-btn" id="acc-mfa-recovery">Régénérer</button></div>':'')
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Clés de sécurité / passkeys</div><div class="scr-sub">Connecte-toi sans mot de passe.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Clés de sécurité / passkeys</div><div class="scr-sub">Face ID, Windows Hello, empreinte digitale, clé USB… connecte-toi sans mot de passe.</div></div><button type="button" class="set-mini-btn" id="acc-passkey-add">Ajouter</button></div>'
+      +'<div id="acc-passkey-list"></div>'
     +'</div>'
     +'<div class="set-card hidden" id="acc-mfa-enroll"></div>'
     +'<div class="set-card settings-danger">'
@@ -2793,6 +2889,7 @@ function renderSetAccount(box){
       +'<div class="set-card hidden" id="acc-delete-form"><div class="scr-sub" style="margin-bottom:10px">Tape ton pseudo <b>'+esc(name)+'</b> pour confirmer, puis glisse pour valider. Cette action est irréversible.</div><input type="text" id="acc-delete-confirm-input" class="field-input" placeholder="'+esc(name)+'" style="margin-bottom:10px"><div id="acc-delete-slide-anchor"></div><button type="button" class="set-mini-btn" id="acc-delete-cancel" style="margin-top:8px">Annuler</button></div>'
     +'</div>';
   wireSetAccount(box,name);
+  loadPasskeyList(box);
 }
 function wireSetAccount(box,name){
   const copyIdBtn=\$('acc-copy-id');
@@ -2920,6 +3017,42 @@ function wireSetAccount(box,name){
     }catch(e){showToast((e&&e.message)||'Action impossible pour le moment, reconnecte-toi puis réessaie.','error');}
     mfaRecoveryBtn.disabled=false;
   };
+  const passkeyAddBtn=\$('acc-passkey-add');
+  if(passkeyAddBtn)passkeyAddBtn.onclick=async function(){
+    if(!passkeysSupported()){showToast('Les clés d’accès ne sont pas prises en charge par ce navigateur.','error');return}
+    const label=prompt('Nom de cette clé (ex. « Face ID iPhone », « Windows Hello »)','')||'Clé d’accès';
+    passkeyAddBtn.disabled=true;passkeyAddBtn.textContent='Suivre les instructions…';
+    try{
+      await registerPasskey(label.slice(0,100));
+      showToast('Clé d’accès ajoutée !');
+      loadPasskeyList(box);
+    }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+    passkeyAddBtn.disabled=false;passkeyAddBtn.textContent='Ajouter';
+  };
+}
+async function loadPasskeyList(box){
+  const list=\$('acc-passkey-list');if(!list)return;
+  if(!passkeysSupported()){
+    list.innerHTML='<div class="scr-sub" style="padding:8px 0">Les clés d’accès ne sont pas prises en charge par ce navigateur.</div>';
+    return;
+  }
+  try{
+    const res=await authPost('/api/passkey/list',{});
+    const items=res.passkeys||[];
+    if(!items.length){list.innerHTML='<div class="scr-sub" style="padding:8px 0">Aucune clé d’accès enregistrée.</div>';return}
+    list.innerHTML=items.map(function(p){
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(p.label)+'</div><div class="scr-sub">Ajoutée le '+esc(new Date(p.createdAt).toLocaleDateString('fr-FR'))+'</div></div><button type="button" class="set-mini-btn danger" data-passkey-del="'+esc(p.id)+'">Supprimer</button></div>';
+    }).join('');
+    list.querySelectorAll('[data-passkey-del]').forEach(function(btn){
+      btn.onclick=async function(){
+        btn.disabled=true;
+        try{
+          await authPost('/api/passkey/delete',{passkeyId:btn.getAttribute('data-passkey-del')});
+          loadPasskeyList(box);
+        }catch(e){showToast((e&&e.message)||'Action impossible','error');btn.disabled=false;}
+      };
+    });
+  }catch(e){list.innerHTML='<div class="scr-sub" style="padding:8px 0">Impossible de charger tes clés d’accès.</div>';}
 }
 async function startMfaEnrollment(box){
   const panel=\$('acc-mfa-enroll');if(!panel)return;
@@ -6967,6 +7100,176 @@ if(document.readyState==='loading'){
 </html>`;
 
 
+/* ===== WebAuthn (clés de sécurité / passkeys) — vérification côté serveur =====
+   Décodeur CBOR minimal (scopé exactement aux besoins de WebAuthn : entiers,
+   chaînes d'octets/texte, tableaux, maps), extraction de clé publique COSE,
+   et vérification de signature via Web Crypto (jamais de maths crypto
+   maison — seule la primitive native crypto.subtle.verify est utilisée).
+   Couvre ES256 (Face ID, Touch ID, Windows Hello, empreinte Android — tous
+   les authenticateurs de plateforme testés utilisent cet algorithme) et
+   RS256 pour les clés de sécurité USB plus anciennes. */
+function b64urlToBuf(s) {
+  s = s.replace(/-/g, "+").replace(/_/g, "/");
+  while (s.length % 4) s += "=";
+  const bin = atob(s);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
+}
+function bufToB64url(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+function cborDecodeAt(bytes, offset) {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const first = bytes[offset];
+  const major = first >> 5;
+  const info = first & 0x1f;
+  offset += 1;
+  let length;
+  if (info < 24) { length = info; }
+  else if (info === 24) { length = view.getUint8(offset); offset += 1; }
+  else if (info === 25) { length = view.getUint16(offset); offset += 2; }
+  else if (info === 26) { length = view.getUint32(offset); offset += 4; }
+  else if (info === 27) { length = Number(view.getBigUint64(offset)); offset += 8; }
+  else throw new Error("CBOR: unsupported length encoding");
+  if (major === 0) return { value: length, offset };
+  if (major === 1) return { value: -1 - length, offset };
+  if (major === 2) return { value: bytes.slice(offset, offset + length), offset: offset + length };
+  if (major === 3) return { value: new TextDecoder().decode(bytes.slice(offset, offset + length)), offset: offset + length };
+  if (major === 4) {
+    const arr = [];
+    for (let i = 0; i < length; i++) { const r = cborDecodeAt(bytes, offset); arr.push(r.value); offset = r.offset; }
+    return { value: arr, offset };
+  }
+  if (major === 5) {
+    const map = new Map();
+    for (let i = 0; i < length; i++) {
+      const k = cborDecodeAt(bytes, offset); offset = k.offset;
+      const v = cborDecodeAt(bytes, offset); offset = v.offset;
+      map.set(k.value, v.value);
+    }
+    return { value: map, offset };
+  }
+  if (major === 7) {
+    if (info === 20) return { value: false, offset };
+    if (info === 21) return { value: true, offset };
+    if (info === 22) return { value: null, offset };
+    throw new Error("CBOR: unsupported major 7 subtype " + info);
+  }
+  throw new Error("CBOR: unsupported major type " + major);
+}
+function cborDecodeOne(buf) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  return cborDecodeAt(bytes, 0);
+}
+function parseAuthData(authData) {
+  const bytes = authData instanceof Uint8Array ? authData : new Uint8Array(authData);
+  if (bytes.length < 37) throw new Error("authData trop court");
+  const rpIdHash = bytes.slice(0, 32);
+  const flags = bytes[32];
+  const view = new DataView(bytes.buffer, bytes.byteOffset + 33, 4);
+  const signCount = view.getUint32(0);
+  let offset = 37;
+  const result = { rpIdHash, flags, signCount, up: !!(flags & 0x01), uv: !!(flags & 0x04), at: !!(flags & 0x40) };
+  if (result.at) {
+    offset += 16; // aaguid
+    const credIdLen = (bytes[offset] << 8) | bytes[offset + 1]; offset += 2;
+    const credentialId = bytes.slice(offset, offset + credIdLen); offset += credIdLen;
+    const coseR = cborDecodeOne(bytes.slice(offset));
+    result.credentialId = credentialId;
+    result.coseKeyMap = coseR.value;
+  }
+  return result;
+}
+function coseKeyToJwk(coseMap) {
+  const kty = coseMap.get(1);
+  if (kty === 2) {
+    const crv = coseMap.get(-1);
+    const crvName = crv === 1 ? "P-256" : (crv === 2 ? "P-384" : (crv === 3 ? "P-521" : null));
+    if (!crvName) throw new Error("Courbe EC non supportée : " + crv);
+    return {
+      jwk: { kty: "EC", crv: crvName, x: bufToB64url(coseMap.get(-2)), y: bufToB64url(coseMap.get(-3)) },
+      algo: { name: "ECDSA", namedCurve: crvName },
+      verifyAlgo: { name: "ECDSA", hash: "SHA-256" }
+    };
+  }
+  if (kty === 3) {
+    return {
+      jwk: { kty: "RSA", n: bufToB64url(coseMap.get(-1)), e: bufToB64url(coseMap.get(-2)) },
+      algo: { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      verifyAlgo: { name: "RSASSA-PKCS1-v1_5" }
+    };
+  }
+  throw new Error("Type de clé COSE non supporté : " + kty);
+}
+async function importPasskeyPublicKey(jwkInfo) {
+  return await crypto.subtle.importKey("jwk", Object.assign({ ext: true, key_ops: ["verify"] }, jwkInfo.jwk), jwkInfo.algo, false, ["verify"]);
+}
+function derToRawEcdsaSig(der, coordLen) {
+  coordLen = coordLen || 32;
+  let offset = 0;
+  if (der[offset++] !== 0x30) throw new Error("DER: SEQUENCE attendue");
+  let seqLen = der[offset++];
+  if (seqLen & 0x80) { const n = seqLen & 0x7f; seqLen = 0; for (let i = 0; i < n; i++) seqLen = (seqLen << 8) | der[offset++]; }
+  if (der[offset++] !== 0x02) throw new Error("DER: INTEGER (r) attendu");
+  let rLen = der[offset++];
+  let r = der.slice(offset, offset + rLen); offset += rLen;
+  if (der[offset++] !== 0x02) throw new Error("DER: INTEGER (s) attendu");
+  let sLen = der[offset++];
+  let s = der.slice(offset, offset + sLen); offset += sLen;
+  function toFixed(bytes) {
+    bytes = (bytes[0] === 0x00 && bytes.length > coordLen) ? bytes.slice(1) : bytes;
+    if (bytes.length > coordLen) throw new Error("DER: entier trop grand");
+    const out = new Uint8Array(coordLen);
+    out.set(bytes, coordLen - bytes.length);
+    return out;
+  }
+  const out = new Uint8Array(coordLen * 2);
+  out.set(toFixed(r), 0);
+  out.set(toFixed(s), coordLen);
+  return out.buffer;
+}
+async function verifyWebauthnSignature(jwkInfo, authenticatorDataBuf, clientDataJSONBuf, signatureBuf) {
+  const key = await importPasskeyPublicKey(jwkInfo);
+  const clientDataHash = await crypto.subtle.digest("SHA-256", clientDataJSONBuf);
+  const authBytes = new Uint8Array(authenticatorDataBuf);
+  const hashBytes = new Uint8Array(clientDataHash);
+  const signedData = new Uint8Array(authBytes.length + hashBytes.length);
+  signedData.set(authBytes, 0);
+  signedData.set(hashBytes, authBytes.length);
+  const sig = jwkInfo.jwk.kty === "EC" ? derToRawEcdsaSig(new Uint8Array(signatureBuf)) : signatureBuf;
+  return await crypto.subtle.verify(jwkInfo.verifyAlgo, key, sig, signedData.buffer);
+}
+const WEBAUTHN_RP_ID = "xultra.space";
+const WEBAUTHN_ORIGIN = "https://xultra.space";
+async function finishLoginSession(secret, sessionId, userId) {
+  let jwt = null;
+  let mfaErr = null;
+  try {
+    const jwtRes = await awFetch("/account/jwts", { method: "POST", body: {}, headers: { "X-Appwrite-Session": secret } });
+    jwt = (jwtRes && (jwtRes.jwt || jwtRes.$id)) || null;
+  } catch (eJwt) {
+    mfaErr = eJwt;
+  }
+  const cors2 = { "Access-Control-Allow-Origin": "*" };
+  if (!jwt && mfaErr && mfaErr.data && mfaErr.data.type === "user_more_factors_required") {
+    const mfaToken = crypto.randomUUID();
+    if (typeof SITE_KV !== "undefined" && SITE_KV) {
+      await SITE_KV.put("mfa_pending:" + mfaToken, JSON.stringify({ secret, sessionId, userId }), { expirationTtl: 600 });
+    }
+    return new Response(JSON.stringify({ ok: true, mfaRequired: true, mfaToken }), {
+      headers: Object.assign({ "Content-Type": "application/json" }, cors2)
+    });
+  }
+  if (!jwt) throw new Error("Connexion impossible, réessaie.");
+  const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors2);
+  cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+  return new Response(JSON.stringify({ ok: true, secret, jwt, sessionId, userId }), { headers: cookieHeaders });
+}
+
 async function handle(request) {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/+$/, "") || "/";
@@ -8164,6 +8467,217 @@ async function handle(request) {
         ok: false,
         error: (e && e.message) === "Invalid token passed in the request." ? "Code invalide" : ((e && e.message) || "Code invalide")
       }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/passkey/register-options" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const challenge = bufToB64url(crypto.getRandomValues(new Uint8Array(32)).buffer);
+      const registrationToken = crypto.randomUUID();
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      await SITE_KV.put("passkey_reg:" + registrationToken, JSON.stringify({ uid: acc.$id, challenge }), { expirationTtl: 300 });
+      const profile = await resolveProfile(acc.$id);
+      const displayName = (profile && (profile.displayName || profile.username)) || acc.name || acc.email;
+      return new Response(JSON.stringify({
+        ok: true, registrationToken, challenge,
+        rpId: WEBAUTHN_RP_ID, rpName: "XULTRA",
+        userId: acc.$id, userName: acc.email, userDisplayName: displayName
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/passkey/register-verify" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const registrationToken = String((body && body.registrationToken) || "");
+      const credentialId = String((body && body.credentialId) || "");
+      const attestationObjectB64 = String((body && body.attestationObject) || "");
+      const clientDataJSONB64 = String((body && body.clientDataJSON) || "");
+      const label = String((body && body.label) || "Clé d'accès").slice(0, 100);
+      if (!registrationToken || !credentialId || !attestationObjectB64 || !clientDataJSONB64) throw new Error("Données manquantes");
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      const raw = await SITE_KV.get("passkey_reg:" + registrationToken);
+      if (!raw) throw new Error("Session d'enregistrement expirée, réessaie.");
+      const pending = JSON.parse(raw);
+      if (pending.uid !== acc.$id) throw new Error("Session invalide");
+
+      const clientDataJSONBuf = b64urlToBuf(clientDataJSONB64);
+      const clientData = JSON.parse(new TextDecoder().decode(clientDataJSONBuf));
+      if (clientData.type !== "webauthn.create") throw new Error("Type de cérémonie invalide");
+      if (clientData.challenge !== pending.challenge) throw new Error("Challenge invalide");
+      if (clientData.origin !== WEBAUTHN_ORIGIN) throw new Error("Origine invalide");
+
+      const attestationObjectBuf = b64urlToBuf(attestationObjectB64);
+      const attObj = cborDecodeOne(attestationObjectBuf).value;
+      const authDataBytes = attObj.get("authData");
+      const parsed = parseAuthData(authDataBytes);
+      const expectedRpIdHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(WEBAUTHN_RP_ID)));
+      const actualRpIdHash = new Uint8Array(parsed.rpIdHash);
+      for (let i = 0; i < 32; i++) if (expectedRpIdHash[i] !== actualRpIdHash[i]) throw new Error("RP ID invalide");
+      if (!parsed.up) throw new Error("Vérification utilisateur manquante");
+      if (!parsed.coseKeyMap) throw new Error("Clé publique manquante dans la réponse");
+
+      const jwkInfo = coseKeyToJwk(parsed.coseKeyMap);
+      await importPasskeyPublicKey(jwkInfo); // échoue si la clé est malformée/inutilisable — on refuse plutôt que de stocker une clé douteuse
+
+      const actualCredentialId = bufToB64url(parsed.credentialId.buffer || parsed.credentialId);
+      if (actualCredentialId !== credentialId) throw new Error("Identifiant de clé incohérent");
+
+      await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { uid: acc.$id, credentialId: credentialId, publicKeyJwk: JSON.stringify(jwkInfo), signCount: parsed.signCount || 0, label: label }
+        }
+      });
+      await SITE_KV.delete("passkey_reg:" + registrationToken).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/passkey/list" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const q = JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] });
+      const list = await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents?queries[]=" + encodeURIComponent(q), { asAdmin: true });
+      const items = (list.documents || []).map(function (d) { return { id: d.$id, label: d.label || "Clé d'accès", createdAt: d.$createdAt }; });
+      return new Response(JSON.stringify({ ok: true, passkeys: items }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/passkey/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const passkeyId = String((body && body.passkeyId) || "");
+      if (!passkeyId) throw new Error("ID manquant");
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents/" + passkeyId, { asAdmin: true });
+      if (doc.uid !== acc.$id) throw new Error("forbidden");
+      await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents/" + passkeyId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/passkey/login-options" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const email = String((body && body.email) || "").trim();
+      if (!email) throw new Error("E-mail requis");
+      const q = JSON.stringify({ method: "equal", attribute: "email", values: [email] });
+      const users = await awFetch("/users?queries[]=" + encodeURIComponent(q), { asAdmin: true });
+      const u = (users.users || [])[0];
+      if (!u) throw new Error("Aucune clé d'accès trouvée pour cet e-mail");
+      const q2 = JSON.stringify({ method: "equal", attribute: "uid", values: [u.$id] });
+      const list = await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents?queries[]=" + encodeURIComponent(q2), { asAdmin: true });
+      const docs = list.documents || [];
+      if (!docs.length) throw new Error("Aucune clé d'accès associée à ce compte");
+      const challenge = bufToB64url(crypto.getRandomValues(new Uint8Array(32)).buffer);
+      const loginToken = crypto.randomUUID();
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      await SITE_KV.put("passkey_login:" + loginToken, JSON.stringify({ userId: u.$id, challenge }), { expirationTtl: 300 });
+      return new Response(JSON.stringify({
+        ok: true, loginToken, challenge, rpId: WEBAUTHN_RP_ID,
+        allowCredentials: docs.map(function (d) { return { id: d.credentialId, type: "public-key" }; })
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/passkey/login-verify" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const loginToken = String((body && body.loginToken) || "");
+      const credentialId = String((body && body.credentialId) || "");
+      const authenticatorDataB64 = String((body && body.authenticatorData) || "");
+      const clientDataJSONB64 = String((body && body.clientDataJSON) || "");
+      const signatureB64 = String((body && body.signature) || "");
+      if (!loginToken || !credentialId || !authenticatorDataB64 || !clientDataJSONB64 || !signatureB64) throw new Error("Données manquantes");
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      const raw = await SITE_KV.get("passkey_login:" + loginToken);
+      if (!raw) throw new Error("Session expirée, réessaie.");
+      const pending = JSON.parse(raw);
+
+      const clientDataJSONBuf = b64urlToBuf(clientDataJSONB64);
+      const clientData = JSON.parse(new TextDecoder().decode(clientDataJSONBuf));
+      if (clientData.type !== "webauthn.get") throw new Error("Type de cérémonie invalide");
+      if (clientData.challenge !== pending.challenge) throw new Error("Challenge invalide");
+      if (clientData.origin !== WEBAUTHN_ORIGIN) throw new Error("Origine invalide");
+
+      const q = JSON.stringify({ method: "equal", attribute: "uid", values: [pending.userId] });
+      const list = await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents?queries[]=" + encodeURIComponent(q), { asAdmin: true });
+      const doc = (list.documents || []).find(function (d) { return d.credentialId === credentialId; });
+      if (!doc) throw new Error("Clé d'accès inconnue");
+
+      const jwkInfo = JSON.parse(doc.publicKeyJwk);
+      const authenticatorDataBuf = b64urlToBuf(authenticatorDataB64);
+      const signatureBuf = b64urlToBuf(signatureB64);
+
+      const expectedRpIdHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(WEBAUTHN_RP_ID)));
+      const actualRpIdHash = new Uint8Array(authenticatorDataBuf.slice(0, 32));
+      for (let i = 0; i < 32; i++) if (expectedRpIdHash[i] !== actualRpIdHash[i]) throw new Error("RP ID invalide");
+      const flags = new Uint8Array(authenticatorDataBuf)[32];
+      if (!(flags & 0x01)) throw new Error("Présence utilisateur manquante");
+      const newSignCount = new DataView(authenticatorDataBuf, 33, 4).getUint32(0);
+
+      const validSig = await verifyWebauthnSignature(jwkInfo, authenticatorDataBuf, clientDataJSONBuf, signatureBuf);
+      if (!validSig) throw new Error("Signature invalide");
+
+      const storedCount = doc.signCount || 0;
+      if (!(storedCount === 0 && newSignCount === 0) && newSignCount <= storedCount) {
+        throw new Error("Cette clé d'accès semble avoir été clonée (compteur invalide). Connexion refusée par précaution.");
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents/" + doc.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { signCount: newSignCount } }
+      });
+      await SITE_KV.delete("passkey_login:" + loginToken).catch(function () {});
+
+      const sess = await awFetch("/users/" + pending.userId + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, pending.userId);
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
     }
   }
 
