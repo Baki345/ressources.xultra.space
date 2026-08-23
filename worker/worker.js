@@ -1083,6 +1083,7 @@ button{cursor:pointer;border:0;background:0}
       <input type="file" id="reg-file-av" accept="image/*" class="hidden"/>
       <input type="file" id="reg-file-banner" accept="image/*" class="hidden"/>
       <div class="field"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
+      <div class="field"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
       <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
       <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/></div>
       <div class="pw-strength" id="pw-strength">
@@ -1867,7 +1868,8 @@ function updateRegPreview(){
   const swOn=document.querySelector('#reg-swatches button.on');
   const c=(swOn&&swOn.dataset.c)||'#7c3aed';
   if(\$('rp-name'))\$('rp-name').textContent=n;
-  if(\$('rp-tag'))\$('rp-tag').textContent='@'+slugUsername(n)+'#····';
+  const tagVal=(\$('in-tag')&&\$('in-tag').value)||'····';
+  if(\$('rp-tag'))\$('rp-tag').textContent='@'+slugUsername(n)+'#'+tagVal;
   const av=\$('rp-av');
   if(av){
     av.innerHTML=regAvatarUrl?('<img src="'+esc(regAvatarUrl)+'" alt=""/>'):esc(ini(n));
@@ -1879,6 +1881,17 @@ function updateRegPreview(){
   }
 }
 if(\$('in-user'))\$('in-user').addEventListener('input',updateRegPreview);
+function randomizeRegTag(){
+  if(\$('in-tag')){\$('in-tag').value=String(Math.floor(1000+Math.random()*9000));updateRegPreview();}
+}
+if(\$('in-tag')){
+  \$('in-tag').value=String(Math.floor(1000+Math.random()*9000));
+  \$('in-tag').addEventListener('input',function(){
+    this.value=this.value.replace(/[^0-9]/g,'').slice(0,4);
+    updateRegPreview();
+  });
+}
+if(\$('reg-tag-random'))\$('reg-tag-random').addEventListener('click',function(e){e.preventDefault();randomizeRegTag();});
 if(\$('reg-swatches')){
   \$('reg-swatches').querySelectorAll('button').forEach(function(b){
     b.addEventListener('click',function(e){
@@ -2243,7 +2256,8 @@ async function doRegister(){
       xlog('account_get_error_detail',{msg:(eGet&&eGet.message)||String(eGet)});
       throw eGet;
     }
-    const tag=String(Math.floor(1000+Math.random()*9000));
+    const chosenTag=(\$('in-tag')&&\$('in-tag').value)||'';
+    const tag=/^[0-9]{4}\$/.test(chosenTag)?chosenTag:String(Math.floor(1000+Math.random()*9000));
     const uname=slugUsername(name);
     const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bg:bannerUrl,bgType:bannerUrl?'image':'gradient',bgColor:accent,btnColor:accent,statusManual:'online'};
     try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
