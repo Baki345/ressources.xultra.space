@@ -613,6 +613,7 @@ body.high-contrast{filter:contrast(1.18) saturate(1.12)}
 .msg-menu-btn:hover{background:#2a1a45}
 .msg.mine .bub{background:#7c3aed}
 .msg .meta{font-size:.65rem;color:var(--muted);margin-top:3px}
+.msg-seen{font-size:.62rem;color:var(--muted);margin-top:2px;text-align:right}
 .composer{position:relative;padding:10px 14px;display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line);flex-shrink:0}
 .composer textarea{flex:1;background:var(--elev);border:1px solid transparent;border-radius:10px;padding:9px 12px;outline:0;resize:none;max-height:100px;font-size:.85rem;color:#f2ebff}
 .composer textarea:focus{border-color:#8b5cf6}
@@ -2450,6 +2451,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.15.2',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
+    body:'Un petit « Vu » apparaît maintenant sous ton dernier message envoyé dès que la personne a ouvert la conversation et l’a lu — en temps réel, sans avoir à rafraîchir quoi que ce soit. Pour l’instant disponible sur les conversations à deux ; les groupes arriveront ensuite.'},
   {version:'2.15.1',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
     body:'Un petit indicateur « en train d’écrire… » apparaît maintenant en haut de la conversation dès que la personne en face tape un message — comme sur les grandes messageries. Il disparaît tout seul si elle s’arrête ou envoie son message.'},
   {version:'2.15.0',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
@@ -3698,8 +3701,12 @@ function subscribeDmDeleteWatcher(){
         const idx=dmsCache.findIndex(function(d){return d.\$id===p.\$id});
         const prev=idx>=0?dmsCache[idx]:null;
         const contentChanged=!prev||prev.lastMessage!==p.lastMessage||prev.unreadJson!==p.unreadJson;
+        const readChanged=prev&&prev.lastReadJson!==p.lastReadJson;
         if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
-        if(p.\$id===activeDm)updateTypingIndicator();
+        if(p.\$id===activeDm){
+          updateTypingIndicator();
+          if(readChanged&&!activeDmIsGroup)renderMessages();
+        }
         if(contentChanged){
           dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
           updateNotifBadge();
@@ -4414,10 +4421,15 @@ async function markDmRead(threadId){
   const dm=dmsCache.find(function(d){return d.\$id===threadId});
   if(!dm||!me)return;
   const unread=parseJsonSafe(dm.unreadJson,{});
-  if(!unread[me.\$id])return;
+  const lastRead=parseJsonSafe(dm.lastReadJson,{});
+  const hadUnread=!!unread[me.\$id];
+  const recentlyRead=lastRead[me.\$id]&&(Date.now()-new Date(lastRead[me.\$id]).getTime())<10000;
+  if(!hadUnread&&recentlyRead)return;
   unread[me.\$id]=0;
+  lastRead[me.\$id]=new Date().toISOString();
   dm.unreadJson=JSON.stringify(unread);
-  try{await db.updateDocument(DB,'dms',threadId,{unreadJson:dm.unreadJson});}catch(e){}
+  dm.lastReadJson=JSON.stringify(lastRead);
+  try{await db.updateDocument(DB,'dms',threadId,{unreadJson:dm.unreadJson,lastReadJson:dm.lastReadJson});}catch(e){}
   updateNotifBadge();
 }
 let lastTypingSentAt=0;
@@ -4713,15 +4725,28 @@ function initVoiceMsgPlayer(el){
     audio.play();playing=true;playBtn.textContent='⏸';
   });
 }
+function computeSeenInfo(){
+  if(activeDmIsGroup||!activeDmPeerUid||!me)return {lastMineId:null,seen:false};
+  let lastMine=null;
+  for(let i=msgsCache.length-1;i>=0;i--){if(msgsCache[i].uid===me.\$id){lastMine=msgsCache[i];break}}
+  if(!lastMine)return {lastMineId:null,seen:false};
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const lastRead=parseJsonSafe(dm&&dm.lastReadJson,{});
+  const peerRead=lastRead[activeDmPeerUid];
+  const seen=!!(peerRead&&new Date(peerRead).getTime()>=new Date(lastMine.\$createdAt).getTime());
+  return {lastMineId:lastMine.\$id,seen:seen};
+}
 function renderMessages(){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
+  const seenInfo=computeSeenInfo();
   box.innerHTML=msgsCache.map(function(m){
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
+    const seenTag=(mine&&seenInfo.seen&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">Vu</div>':'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
-      +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div></div></div>';
+      +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
