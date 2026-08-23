@@ -777,7 +777,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-chip.sm{width:20px;height:20px;font-size:.7rem}
 .badge-base{background-image:linear-gradient(125deg,#6d28d9,#a78bfa,#7c3aed,#c084fc,#6d28d9);color:#fff;border-color:rgba(167,139,250,.5);box-shadow:0 0 10px rgba(124,58,237,.45)}
 .badge-dev{background-image:linear-gradient(125deg,#7f1d1d,#ef4444,#991b1b,#f87171,#7f1d1d);color:#fff;border-color:rgba(239,68,68,.55);box-shadow:0 0 10px rgba(220,38,38,.5)}
-.badge-hunter{background-image:linear-gradient(125deg,#78350f,#fbbf24,#a16207,#fde68a,#78350f);color:#1a1005;border-color:rgba(251,191,36,.65);box-shadow:0 0 12px rgba(245,158,11,.55)}
+.badge-hunter1{background-image:linear-gradient(125deg,#475569,#94a3b8,#64748b,#cbd5e1,#475569);color:#0f172a;border-color:rgba(148,163,184,.55);box-shadow:0 0 8px rgba(148,163,184,.4)}
+.badge-hunter2{background-image:linear-gradient(125deg,#14532d,#22c55e,#166534,#86efac,#14532d);color:#052e12;border-color:rgba(34,197,94,.6);box-shadow:0 0 10px rgba(34,197,94,.5)}
+.badge-hunter3{background-image:linear-gradient(125deg,#78350f,#fbbf24,#a16207,#fde68a,#78350f);color:#1a1005;border-color:rgba(251,191,36,.65);box-shadow:0 0 12px rgba(245,158,11,.55)}
+.badge-hunter4{background-image:linear-gradient(125deg,#7f1d1d,#ef4444,#a855f7,#f87171,#7f1d1d);color:#fff;border-color:rgba(239,68,68,.7);box-shadow:0 0 16px rgba(239,68,68,.6),0 0 28px rgba(168,85,247,.35);animation:badgeShift 5s ease infinite,badgePulse 2s ease-in-out infinite}
+.badge-hunter5{background-image:linear-gradient(125deg,#78350f,#facc15,#fff7cc,#f59e0b,#facc15,#78350f);color:#1a1005;border-color:rgba(250,204,21,.85);box-shadow:0 0 18px rgba(250,204,21,.75),0 0 34px rgba(250,204,21,.4);animation:badgeShift 3.2s ease infinite,badgePulse 1.6s ease-in-out infinite}
+.badge-hunter5::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(250,204,21,.6);animation:frameSpin 4s linear infinite;pointer-events:none}
 .badge-early{background-image:linear-gradient(125deg,#cbd5e1,#ffffff,#e2e8f0,#f8fafc,#cbd5e1);color:#0f172a;border-color:rgba(255,255,255,.75);box-shadow:0 0 10px rgba(255,255,255,.45)}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -829,6 +834,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-badges{display:flex;justify-content:center;gap:8px;margin:14px 0}
 .pc-badges .badge-chip{width:36px;height:36px;font-size:1.1rem}
 .pc-bio{font-size:.85rem;line-height:1.45;margin-top:10px;opacity:.92;white-space:pre-wrap}
+.pc-xultraplus{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:999px;font-size:.68rem;font-weight:900;letter-spacing:.04em;color:#1a1005;background-image:linear-gradient(125deg,#78350f,#facc15,#fff7cc,#f59e0b,#facc15,#78350f);background-size:220% 220%;box-shadow:0 0 12px rgba(250,204,21,.55);animation:badgeShift 3.2s ease infinite}
 .pc-socials{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:14px}
 .pc-social-btn{width:38px;height:38px;display:grid;place-items:center;font-size:1rem;text-decoration:none;transition:transform .12s ease}
 .pc-social-btn:hover{transform:translateY(-2px) scale(1.06)}
@@ -895,14 +901,26 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-base::before{background:radial-gradient(circle at 30% 20%,#a78bfa,transparent 55%)}
 .badge-info-card.badge-dev{background:linear-gradient(160deg,#1a0505,#3f0a0a 40%,#1a0505);border-color:rgba(239,68,68,.4)}
 .badge-info-card.badge-dev::before{background:radial-gradient(circle at 30% 20%,#ef4444,transparent 55%)}
-.badge-info-card.badge-hunter{background:linear-gradient(160deg,#1a1205,#3d2e0a 40%,#1a1205);border-color:rgba(251,191,36,.45)}
-.badge-info-card.badge-hunter::before{background:radial-gradient(circle at 30% 20%,#fbbf24,transparent 55%)}
+.badge-info-card.badge-hunter1{background:linear-gradient(160deg,#0f172a,#334155 40%,#0f172a);border-color:rgba(148,163,184,.4)}
+.badge-info-card.badge-hunter1::before{background:radial-gradient(circle at 30% 20%,#94a3b8,transparent 55%)}
+.badge-info-card.badge-hunter2{background:linear-gradient(160deg,#052e12,#14532d 40%,#052e12);border-color:rgba(34,197,94,.4)}
+.badge-info-card.badge-hunter2::before{background:radial-gradient(circle at 30% 20%,#22c55e,transparent 55%)}
+.badge-info-card.badge-hunter3{background:linear-gradient(160deg,#1a1205,#3d2e0a 40%,#1a1205);border-color:rgba(251,191,36,.45)}
+.badge-info-card.badge-hunter3::before{background:radial-gradient(circle at 30% 20%,#fbbf24,transparent 55%)}
+.badge-info-card.badge-hunter4{background:linear-gradient(160deg,#1a0505,#3f0a0a 40%,#1a0505);border-color:rgba(239,68,68,.5)}
+.badge-info-card.badge-hunter4::before{background:radial-gradient(circle at 30% 20%,#ef4444,transparent 40%,#a855f7 75%,transparent);opacity:.35}
+.badge-info-card.badge-hunter5{background:linear-gradient(160deg,#1a1205,#4a3505 40%,#1a1205);border-color:rgba(250,204,21,.6)}
+.badge-info-card.badge-hunter5::before{background:radial-gradient(circle at 30% 20%,#facc15,transparent 60%);opacity:.4}
 .badge-info-card.badge-early{background:linear-gradient(160deg,#0f1218,#1e293b 40%,#0f1218);border-color:rgba(255,255,255,.35)}
 .badge-info-card.badge-early::before{background:radial-gradient(circle at 30% 20%,#fff,transparent 55%)}
 .bi-head{font-size:1.15rem;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative}
 .badge-info-card.badge-base .bi-head{color:#e9d5ff}
 .badge-info-card.badge-dev .bi-head{color:#fca5a5}
-.badge-info-card.badge-hunter .bi-head{color:#fde68a}
+.badge-info-card.badge-hunter1 .bi-head{color:#cbd5e1}
+.badge-info-card.badge-hunter2 .bi-head{color:#86efac}
+.badge-info-card.badge-hunter3 .bi-head{color:#fde68a}
+.badge-info-card.badge-hunter4 .bi-head{color:#fca5a5}
+.badge-info-card.badge-hunter5 .bi-head{color:#fde68a}
 .badge-info-card.badge-early .bi-head{color:#fff}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
@@ -2270,29 +2288,70 @@ async function e2eMyPrivateKey(){
   try{myPrivKeyCache=await crypto.subtle.importKey('jwk',jwk,{name:'ECDH',namedCurve:'P-256'},false,['deriveBits']);}catch(e){return null}
   return myPrivKeyCache;
 }
-async function ensureE2EKeys(){
+async function deriveE2EBackupKey(password,saltBytes){
+  const enc=new TextEncoder();
+  const keyMaterial=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:saltBytes,iterations:100000,hash:'SHA-256'},keyMaterial,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function restoreE2EPrivateKeyFromBackup(password,doc){
+  try{
+    if(!password||!doc||!doc.encPrivB64||!doc.saltB64||!doc.ivB64)return null;
+    const salt=b64dec(doc.saltB64),iv=b64dec(doc.ivB64),cipher=b64dec(doc.encPrivB64);
+    const aesKey=await deriveE2EBackupKey(password,salt);
+    const plainBuf=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},aesKey,cipher);
+    return JSON.parse(new TextDecoder().decode(plainBuf));
+  }catch(e){return null}
+}
+async function backupE2EPrivateKeyIfNeeded(password,jwk,doc){
+  /* Sans cette sauvegarde (chiffrée avec le mot de passe, jamais en clair),
+     la clé privée E2E ne vivait QUE dans le localStorage de l'appareil qui
+     l'avait générée : changer de navigateur ou d'appareil en générait une
+     toute nouvelle, rendant tous les anciens messages chiffrés illisibles
+     pour toujours ("Message illisible sur cet appareil"). Best-effort : si
+     ça échoue, le comportement reste celui d'avant (pas de régression). */
+  if(!password||!doc||doc.encPrivB64)return;
+  try{
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const aesKey=await deriveE2EBackupKey(password,salt);
+    const plain=new TextEncoder().encode(JSON.stringify(jwk));
+    const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},aesKey,plain);
+    await db.updateDocument(DB,'e2e_keys',doc.\$id,{encPrivB64:b64enc(new Uint8Array(cipher)),saltB64:b64enc(salt),ivB64:b64enc(iv)});
+  }catch(e){xlog('e2e_backup_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function ensureE2EKeys(password){
   try{
     let jwk=null,pub=null;
     try{jwk=JSON.parse(localStorage.getItem('xultra_e2e_priv')||'null');pub=localStorage.getItem('xultra_e2e_pub');}catch(e){}
-    if(!jwk||!pub){
-      const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
-      jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
-      pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
-      localStorage.setItem('xultra_e2e_priv',JSON.stringify(jwk));
-      localStorage.setItem('xultra_e2e_pub',pub);
-      myPrivKeyCache=null;
-    }
     if(!me||!me.\$id)return;
     let existing=null;
     try{
       const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
       existing=(r.documents&&r.documents[0])||null;
     }catch(e){}
+    if(!jwk||!pub){
+      const restored=await restoreE2EPrivateKeyFromBackup(password,existing);
+      if(restored){
+        jwk=restored;
+        const pubJwk=Object.assign({},jwk);delete pubJwk.d;pubJwk.key_ops=[];
+        const pubKeyObj=await crypto.subtle.importKey('jwk',pubJwk,{name:'ECDH',namedCurve:'P-256'},true,[]);
+        pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',pubKeyObj)));
+        xlog('e2e_key_restored',{});
+      }else{
+        const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
+        jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
+        pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
+      }
+      localStorage.setItem('xultra_e2e_priv',JSON.stringify(jwk));
+      localStorage.setItem('xultra_e2e_pub',pub);
+      myPrivKeyCache=null;
+    }
     if(!existing){
-      try{await db.createDocument(DB,'e2e_keys',Appwrite.ID.unique(),{uid:me.\$id,pubKey:pub},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);}catch(e){}
+      try{existing=await db.createDocument(DB,'e2e_keys',Appwrite.ID.unique(),{uid:me.\$id,pubKey:pub},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);}catch(e){}
     }else if(existing.pubKey!==pub){
       try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
     }
+    if(existing)await backupE2EPrivateKeyIfNeeded(password,jwk,existing);
   }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});}
 }
 const peerPubKeyCache={};
@@ -2406,7 +2465,7 @@ async function e2eResolveIncomingKey(m){
   return e2eThreadKey(activeDmPeerUid);
 }
 
-async function enterApp(){
+async function enterApp(e2ePassword){
   xlog('show_dash_start',{});
   let acc=null;
   try{acc=await fetchMe();}catch(e){xlog('dash_account_fail',{msg:(e&&e.message)||String(e)});throw e}
@@ -2416,15 +2475,16 @@ async function enterApp(){
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
-  ensureE2EKeys().catch(function(){});
+  ensureE2EKeys(e2ePassword).catch(function(){});
   authPost('/api/account/grant-early-badge',{}).catch(function(){});
+  authPost('/api/account/refresh-hunter-tier',{}).catch(function(){});
   (async function(){
     try{
       const meta=await db.getDocument(DB,'user_meta',acc.\$id);
       const extra=parseProfileExtra(meta&&meta.profileExtraJson);
       if(extra.disabled){
         extra.disabled=false;
-        await db.updateDocument(DB,'user_meta',acc.\$id,{profileExtraJson:JSON.stringify(extra)});
+        await authPost('/api/account/update-meta',{profileExtraJson:JSON.stringify(extra)});
         showToast('Ton compte a été réactivé, content de te revoir !');
       }
     }catch(e){}
@@ -2513,13 +2573,13 @@ async function doLogin(){
     const jj=await serverLogin(identifier,pass);
     if(jj.mfaRequired){
       xlog('login_mfa_required',{});
-      openMfaVerifyPanel(jj.mfaToken);
+      openMfaVerifyPanel(jj.mfaToken,pass);
       \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
       return;
     }
     applySession(jj.secret,jj.jwt);
     xlog('login_server_ok',{});
-    await enterApp();
+    await enterApp(pass);
   }catch(e){
     xlog('login_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt(translateAuthError(e&&e.message)||'Connexion impossible');
@@ -2549,9 +2609,9 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
   }
   btn.disabled=false;btn.textContent='🔑 Se connecter avec une clé d’accès';
 });
-let mfaPendingToken=null,mfaUseRecovery=false;
-function openMfaVerifyPanel(mfaToken){
-  mfaPendingToken=mfaToken;mfaUseRecovery=false;
+let mfaPendingToken=null,mfaUseRecovery=false,mfaPendingPassword=null;
+function openMfaVerifyPanel(mfaToken,password){
+  mfaPendingToken=mfaToken;mfaUseRecovery=false;mfaPendingPassword=password||null;
   \$('mfa-otp-input').value='';
   \$('mfa-err').textContent='';
   \$('mfa-desc').textContent='Entre le code à 6 chiffres de ton application d’authentification.';
@@ -2560,7 +2620,7 @@ function openMfaVerifyPanel(mfaToken){
   \$('modal-mfa').classList.remove('hidden');
   setTimeout(function(){\$('mfa-otp-input').focus();},50);
 }
-function closeMfaVerifyPanel(){\$('modal-mfa').classList.add('hidden');mfaPendingToken=null;}
+function closeMfaVerifyPanel(){\$('modal-mfa').classList.add('hidden');mfaPendingToken=null;mfaPendingPassword=null;}
 async function submitMfaVerify(){
   if(!mfaPendingToken)return;
   const otp=(\$('mfa-otp-input').value||'').trim();
@@ -2571,8 +2631,9 @@ async function submitMfaVerify(){
     const jj=await serverMfaVerify(mfaPendingToken,otp,mfaUseRecovery);
     applySession(jj.secret,jj.jwt);
     xlog('login_mfa_ok',{});
+    const pendingPass=mfaPendingPassword;
     closeMfaVerifyPanel();
-    await enterApp();
+    await enterApp(pendingPass);
   }catch(e){
     \$('mfa-err').textContent=(e&&e.message)||'Code invalide';
     btn.disabled=false;btn.textContent='Vérifier';
@@ -2647,7 +2708,7 @@ async function doRegister(){
     try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
     catch(e){await db.createDocument(DB,'users',Appwrite.ID.unique(),{authUserId:acc.\$id,email:acc.email||email,username:uname,displayName:name,tag:tag});}
     xlog('register_success',{uid:acc.\$id});
-    await enterApp();
+    await enterApp(pass);
   }catch(e){
     xlog('register_fail',{msg:(e&&e.message)||String(e)});
     if(accountCreated){
@@ -2743,6 +2804,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
+    body:'Cinq nouveaux bugs corrigés grâce à vos rapports. Les photos de profil manquaient aussi dans les messages privés (en plus de la liste d\\'amis) — corrigé. Les pronoms, le cadre de photo de profil et les préférences de confidentialité ne s\\'enregistraient plus depuis peu à cause d\\'un souci de permissions côté serveur — corrigé. Les clés d\\'accès ne se retrouvaient qu\\'avec l\\'e-mail exact et non le pseudo#tag, à cause d\\'un e-mail mal synchronisé après un changement d\\'adresse — corrigé. Et surtout : tes messages privés chiffrés ne sont plus perdus quand tu changes d\\'appareil ou de navigateur — ta clé de déchiffrement est maintenant sauvegardée (chiffrée avec ton mot de passe, jamais en clair) pour être restaurée automatiquement à ta prochaine connexion ailleurs.'},
+  {version:'2.25.0',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
+    body:'Le badge 🐛 Bug Hunter a maintenant 5 paliers, du plus petit au plus grand : 🔍 Chasseur Novice (1 bug résolu), 🐛 Chasseur Confirmé (5), 🕷️ Chasseur Expert (10, débloque un accès en avant-première à certaines nouveautés), ⚔️ Exterminateur (25, accès en avant-première prioritaire), et 👑 Légende du Bug (50 — le sommet, avec XULTRA+ offert à vie). Chaque palier est plus stylé que le précédent, calculé automatiquement selon tes rapports de bugs résolus. Suis ta progression dans le panneau Bug Hunter.'},
   {version:'2.24.0',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
     body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour XULTRA, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
   {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
@@ -3209,6 +3274,14 @@ function wireSetAccount(box,name){
     try{
       await account.updateEmail(newEmail,pass);
       if(me){me.email=newEmail;me.emailVerification=false;}
+      /* Le document du profil (collection "users") garde sa propre copie de
+         l'e-mail, utilisée par la connexion par pseudo#tag et par les clés
+         d'accès pour retrouver le compte — sans cette synchro, ces deux
+         fonctionnalités continuent de chercher l'ANCIEN e-mail après un
+         changement et ne trouvent plus rien. */
+      if(meProfile&&meProfile.\$id){
+        try{await db.updateDocument(DB,'users',meProfile.\$id,{email:newEmail});meProfile.email=newEmail;}catch(e){}
+      }
       account.createVerification(location.origin+'/').catch(function(e){});
       showToast('E-mail mis à jour ! Vérifie ta boîte de réception pour le confirmer.');
       renderSetAccount(box);
@@ -3246,7 +3319,7 @@ function wireSetAccount(box,name){
     try{
       const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
       extra.disabled=willDisable;
-      await db.updateDocument(DB,'user_meta',me.\$id,{profileExtraJson:JSON.stringify(extra)});
+      await authPost('/api/account/update-meta',{profileExtraJson:JSON.stringify(extra)});
       settingsMeta=settingsMeta||{};settingsMeta.profileExtraJson=JSON.stringify(extra);
       if(willDisable){
         showToast('Compte désactivé. Reconnecte-toi pour le réactiver.');
@@ -3427,7 +3500,7 @@ function wireSetPrivacy(box,privacy){
     const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
     extra.privacy=next;
     try{
-      await db.updateDocument(DB,'user_meta',me.\$id,{profileExtraJson:JSON.stringify(extra)});
+      await authPost('/api/account/update-meta',{profileExtraJson:JSON.stringify(extra)});
       settingsMeta=settingsMeta||{};settingsMeta.profileExtraJson=JSON.stringify(extra);
       showToast('Préférences enregistrées.');
     }catch(e){showToast('Action impossible','error');}
@@ -3786,11 +3859,27 @@ document.addEventListener('keydown',function(e){
 const BADGE_DEFS={
   base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
   dev:{icon:'🛠️',label:'DEV',color:'#ef4444',desc:"Le grade le plus rare. Réservé aux créateurs qui bâtissent XULTRA. Accès total, outils internes, décision technique. Tu ne le demandes pas : tu le mérites en construisant le futur de la plateforme. Rouge, brûlant, impossible à ignorer."},
-  hunter:{icon:'🐛',label:'BUG HUNTER',color:'#f59e0b',desc:"Les yeux de la plateforme. Tu traques les failles, tu envoies des rapports, tu forces le code à devenir plus solide. 10 bugs validés et résolus = ce badge or qui brille pour de vrai. Chaque rapport te rapproche du graal. Les chasseurs ne dorment jamais."},
+  hunter1:{icon:'🔍',label:'CHASSEUR NOVICE',color:'#94a3b8',desc:"1 bug signalé et résolu, ton tout premier. Le début de la chasse — tout grand chasseur a commencé exactement ici."},
+  hunter2:{icon:'🐛',label:'CHASSEUR CONFIRMÉ',color:'#22c55e',desc:"5 bugs traqués et corrigés grâce à toi. Tu commences vraiment à avoir l'œil pour repérer ce qui cloche."},
+  hunter3:{icon:'🕷️',label:'CHASSEUR EXPERT',color:'#f59e0b',desc:"10 bugs validés et résolus — ce badge or qui brille pour de vrai. À partir de ce niveau, tu débloques un accès en avant-première à certaines nouvelles fonctionnalités avant tout le monde."},
+  hunter4:{icon:'⚔️',label:'EXTERMINATEUR',color:'#ef4444',desc:"25 bugs éliminés. Un vrai fléau pour les failles de XULTRA. Ton accès en avant-première devient prioritaire : tu testes les nouveautés parmi les tout premiers."},
+  hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et XULTRA+ offert à vie en reconnaissance. Un immense merci."},
   early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."}
 };
-const BADGE_GROUP_ORDER=['dev','hunter','early','base'];
-const BADGE_GROUP_LABEL={dev:'STAFF / DEV',hunter:'BUG HUNTERS',early:'EARLY USERS',base:'MEMBRES'};
+const HUNTER_TIERS=[
+  {tier:1,min:1,key:'hunter1'},
+  {tier:2,min:5,key:'hunter2'},
+  {tier:3,min:10,key:'hunter3'},
+  {tier:4,min:25,key:'hunter4'},
+  {tier:5,min:50,key:'hunter5'}
+];
+function hunterTierForCount(count){
+  let best=null;
+  for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
+  return best;
+}
+const BADGE_GROUP_ORDER=['dev','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
+const BADGE_GROUP_LABEL={dev:'STAFF / DEV',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
@@ -4579,6 +4668,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
       +(extra.customStatus?'<div class="pc-custom-status">'+esc(extra.customStatus)+'</div>':'')
       +(badges?'<div class="pc-badges">'+badgeChipsHtml(badges)+'</div>':'')
+      +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ XULTRA+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
@@ -5017,7 +5107,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
       font:peDraft.font,statusManual:peDraft.statusManual,spotify:peDraft.spotify
     });
     try{
-      await db.updateDocument(DB,'user_meta',me.\$id,{
+      await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
         profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
       });
@@ -5474,7 +5564,10 @@ function renderMessages(){
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
     const seenTag=(mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
+    const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
+    const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
+    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
       +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -6178,7 +6271,7 @@ async function loadAdminMembers(){
   if(!membersCache.length)await loadMembers();
   return membersCache;
 }
-const TOGGLEABLE_BADGES=['dev','hunter','early'];
+const TOGGLEABLE_BADGES=['dev','early'];
 let adminMembersQuery='';
 function renderAdminMembers(list,focusSearch){
   const box=\$('admin-body');if(!box)return;
@@ -6540,9 +6633,17 @@ async function refreshHunterEligibility(){
     try{meta=await db.getDocument(DB,'user_meta',me.\$id);memberMetaByUid[me.\$id]=meta;}catch(e){}
   }
   const badges=parseBadges(meta);
-  const eligible=badges.indexOf('hunter')>=0||badges.indexOf('dev')>=0||resolvedBugCount>=10;
+  const eligible=badges.indexOf('dev')>=0||HUNTER_TIERS.some(function(t){return badges.indexOf(t.key)>=0})||resolvedBugCount>=1;
   const btn=\$('ub-hunter');
   if(btn)btn.classList.toggle('hidden',!eligible);
+}
+function hunterProgressText(count){
+  const current=hunterTierForCount(count);
+  const next=HUNTER_TIERS.find(function(t){return t.min>count;});
+  const currentLabel=current?(BADGE_DEFS[current.key].icon+' '+BADGE_DEFS[current.key].label):'Aucun palier pour l\\'instant';
+  if(!next)return currentLabel+' — palier maximum atteint ! 🎉';
+  const nextDef=BADGE_DEFS[next.key];
+  return currentLabel+' — '+count+'/'+next.min+' vers '+nextDef.icon+' '+nextDef.label;
 }
 
 let myBugsCache=[];
@@ -6553,7 +6654,7 @@ async function loadMyBugs(){
     myBugsCache=r.documents||[];
   }catch(e){myBugsCache=[]}
   const resolved=myBugsCache.filter(function(b){return b.status==='resolved'}).length;
-  \$('hunter-stats').textContent=resolved+'/10 résolus';
+  \$('hunter-stats').textContent=hunterProgressText(resolved);
   renderMyBugs();
 }
 const BUG_STATUS_LABEL={pending:'En attente',approved:'En cours',resolved:'Résolu'};
@@ -7774,6 +7875,75 @@ async function resolveLoginEmail(identifier) {
   return docs[0].email;
 }
 
+// 5 paliers du badge Bug Hunter, calculés à partir du nombre de rapports de
+// bugs "resolved" appartenant à l'utilisateur. Le palier 5 (Légende du bug)
+// offre XULTRA+ à vie (user_meta.plan). Doit rester synchronisé avec
+// HUNTER_TIERS côté client (dans le template APP) — même seuils, mêmes clés.
+const HUNTER_TIER_THRESHOLDS = [
+  { tier: 1, min: 1, key: "hunter1" },
+  { tier: 2, min: 5, key: "hunter2" },
+  { tier: 3, min: 10, key: "hunter3" },
+  { tier: 4, min: 25, key: "hunter4" },
+  { tier: 5, min: 50, key: "hunter5" }
+];
+const HUNTER_TIER_KEYS = HUNTER_TIER_THRESHOLDS.map(function (t) { return t.key; });
+async function recomputeHunterBadge(uid) {
+  if (!uid) return;
+  try {
+    const q = JSON.stringify({ method: "equal", attribute: "uid", values: [uid] });
+    const q2 = JSON.stringify({ method: "equal", attribute: "status", values: ["resolved"] });
+    const q3 = JSON.stringify({ method: "limit", values: [100] });
+    const qs = [q, q2, q3].map(function (v) { return "queries[]=" + encodeURIComponent(v); }).join("&");
+    const list = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents?" + qs, { asAdmin: true });
+    const resolvedCount = (list.documents || []).length;
+    let targetTier = null;
+    for (let i = 0; i < HUNTER_TIER_THRESHOLDS.length; i++) {
+      if (resolvedCount >= HUNTER_TIER_THRESHOLDS[i].min) targetTier = HUNTER_TIER_THRESHOLDS[i];
+    }
+    let existing = [];
+    let hadMeta = true;
+    try {
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, { asAdmin: true });
+      existing = JSON.parse(meta.badgesJson || "[]");
+      if (!Array.isArray(existing)) existing = [];
+    } catch (e) { existing = []; hadMeta = false; }
+    // Retire toute ancienne trace (l'ex-badge "hunter" plat + les autres paliers)
+    // et ne garde que le palier actuel, s'il y en a un.
+    let next = existing.filter(function (b) { return b !== "hunter" && HUNTER_TIER_KEYS.indexOf(b) === -1; });
+    if (targetTier) next = next.concat([targetTier.key]);
+    const changed = JSON.stringify(next.slice().sort()) !== JSON.stringify(existing.slice().sort());
+    if (changed) {
+      const badgesJson = JSON.stringify(next);
+      const lockedPerms = ["read(\"any\")"];
+      if (hadMeta) {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
+          method: "PATCH", asAdmin: true, body: { data: { badgesJson }, permissions: lockedPerms }
+        });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+          method: "POST", asAdmin: true, body: { documentId: uid, data: { badgesJson }, permissions: lockedPerms }
+        });
+      }
+    }
+    if (targetTier && targetTier.tier === 5) {
+      // XULTRA+ à vie : pas de billing ni d'expiration dans cette appli, donc un
+      // simple champ permanent suffit. Idempotent, jamais écrasé une fois posé.
+      try {
+        const meta2 = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, { asAdmin: true });
+        if (meta2.plan !== "plus") {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
+            method: "PATCH", asAdmin: true,
+            body: { data: { plan: "plus", planAssignedBy: "hunter_tier5", planAssignedAt: new Date().toISOString() } }
+          });
+        }
+      } catch (e) {}
+    }
+    return { resolvedCount: resolvedCount, tier: targetTier ? targetTier.tier : 0 };
+  } catch (e) {
+    return null;
+  }
+}
+
 async function handle(request) {
   const url = new URL(request.url);
   // Force HTTPS : le compte Cloudflare de ce projet n'a pas les droits d'édition
@@ -8340,9 +8510,12 @@ async function handle(request) {
       const reportId = String((body && body.reportId) || "");
       const status = String((body && body.status) || "");
       if (!reportId || ["pending", "approved", "resolved"].indexOf(status) === -1) throw new Error("paramètres invalides");
-      await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
+      const updatedReport = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
         method: "PATCH", asAdmin: true, body: { data: { status } }
       });
+      if (updatedReport && updatedReport.uid) {
+        await recomputeHunterBadge(updatedReport.uid).catch(function () {});
+      }
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
         method: "POST", asAdmin: true,
@@ -8466,7 +8639,7 @@ async function handle(request) {
     try {
       const body = await request.json();
       const authUserId = String((body && body.authUserId) || "");
-      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter", "early"].indexOf(b) >= 0; }) : [];
+      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early"].indexOf(b) >= 0; }) : [];
       const targetName = String((body && body.targetName) || "");
       if (!authUserId) throw new Error("authUserId requis");
       const badgesJson = JSON.stringify(badges);
@@ -8789,6 +8962,63 @@ async function handle(request) {
         } else throw e;
       }
       return new Response(JSON.stringify({ ok: true, granted: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/refresh-hunter-tier" && request.method === "POST") {
+    // Auto-heal appelé (best-effort) à chaque connexion : recalcule le palier
+    // Bug Hunter de l'utilisateur d'après son nombre réel de rapports résolus,
+    // au cas où un changement de statut ailleurs n'aurait pas déjà déclenché
+    // recomputeHunterBadge (ex: statut changé par un autre biais).
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    const result = await recomputeHunterBadge(acc.$id);
+    return new Response(JSON.stringify({ ok: true, result: result }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+  }
+
+  if (path === "/api/account/update-meta" && request.method === "POST") {
+    // user_meta est verrouillé en écriture admin-only (voir /api/admin/badges,
+    // grant-early-badge, recomputeHunterBadge) pour empêcher un utilisateur de
+    // s'auto-attribuer un badge/plan via le SDK client — mais ce même
+    // verrouillage empêchait aussi les gens de sauvegarder leurs pronoms, le
+    // cadre de leur avatar, leurs réseaux sociaux ou de désactiver leur compte,
+    // puisque ces écritures passaient jusqu'ici directement par le SDK client.
+    // Cette route ne touche jamais qu'à une liste blanche de champs sans danger.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const ALLOWED_FIELDS = ["profileExtraJson", "socialLinksJson"];
+      const data = {};
+      for (const k of ALLOWED_FIELDS) {
+        if (body && typeof body[k] === "string") data[k] = body[k].slice(0, 5000);
+      }
+      if (!Object.keys(data).length) throw new Error("Aucune donnée à mettre à jour");
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: acc.$id, data, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
