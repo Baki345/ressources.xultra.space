@@ -1733,6 +1733,12 @@ function slugUsername(name){
   s=s.toLowerCase().replace(/[^a-z0-9_]+/g,'').slice(0,24);
   return s||'user';
 }
+async function isUsernameTagTaken(uname,tag,excludeId){
+  try{
+    const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('username',uname),Appwrite.Query.equal('tag',tag),Appwrite.Query.limit(5)]);
+    return (r.documents||[]).some(function(d){return d.\$id!==excludeId});
+  }catch(e){return false}
+}
 const EP='https://fra.cloud.appwrite.io/v1', PID='6a73b975002f14dc6b91', DB='xultra', BUCKET='ultravoc_media';
 const PROXY_EP=location.origin+'/api/aw';
 let client=null, account=null, db=null, storage=null, sdkReady=false;
@@ -2523,9 +2529,15 @@ async function doRegister(){
       xlog('account_get_error_detail',{msg:(eGet&&eGet.message)||String(eGet)});
       throw eGet;
     }
-    const chosenTag=(\$('in-tag')&&\$('in-tag').value)||'';
-    const tag=/^[0-9]{4}\$/.test(chosenTag)?chosenTag:String(Math.floor(1000+Math.random()*9000));
     const uname=slugUsername(name);
+    const chosenTag=(\$('in-tag')&&\$('in-tag').value)||'';
+    let tag=/^[0-9]{4}\$/.test(chosenTag)?chosenTag:'';
+    if(tag&&await isUsernameTagTaken(uname,tag,null))tag='';
+    if(!tag){
+      tag=String(Math.floor(1000+Math.random()*9000));
+      let tries=0;
+      while(tries<30&&await isUsernameTagTaken(uname,tag,null)){tag=String(Math.floor(1000+Math.random()*9000));tries++}
+    }
     const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bg:bannerUrl,bgType:bannerUrl?'image':'gradient',bgColor:accent,btnColor:accent,statusManual:'online'};
     try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
     catch(e){await db.createDocument(DB,'users',Appwrite.ID.unique(),{authUserId:acc.\$id,email:acc.email||email,username:uname,displayName:name,tag:tag});}
@@ -2618,6 +2630,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.19.0',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
+    body:'On a corrigé un bug qui permettait à deux personnes d’avoir exactement le même pseudo et le même tag à 4 chiffres, ce qui pouvait semer la confusion (par exemple pour ajouter le bon ami). Maintenant, XULTRA vérifie que ton pseudo#tag est unique à l’inscription et si tu changes ton tag depuis Paramètres → Mon compte, il te propose automatiquement un tag libre en cas de doublon. On en a profité pour afficher le tag dans les résultats de recherche d’amis, pour mieux distinguer les personnes qui portent le même pseudo.'},
+  {version:'2.18.1',date:'23 août 2026',time:'14:50',title:'Le site passe en HTTPS de force',
+    body:'Si jamais tu arrives sur XULTRA en http:// (sans le petit cadenas), tu es maintenant redirigé automatiquement vers la version sécurisée https://, pour que ta connexion soit toujours chiffrée.'},
   {version:'2.18.0',date:'23 août 2026',time:'14:10',title:'Connecte-toi avec Face ID, Windows Hello ou ton empreinte digitale',
     body:'Fini de taper ton mot de passe : dans Paramètres → Mon compte, ajoute une clé d’accès et connecte-toi ensuite avec ce que ton téléphone ou ton ordinateur propose déjà — reconnaissance faciale, empreinte digitale, code Windows Hello, ou une clé de sécurité physique. Tu peux en ajouter plusieurs (une par appareil) et les gérer à tout moment.'},
   {version:'2.17.0',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
@@ -4659,6 +4675,9 @@ if(\$('modal-profile-edit'))\$('modal-profile-edit').addEventListener('click',fu
 if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
   if(!peDraft||!me||!meProfile)return;
   if(!/^[0-9]{4}\$/.test(peDraft.tag)){\$('pe-err').textContent='Le tag doit être 4 chiffres.';return}
+  if(peDraft.tag!==meProfile.tag&&await isUsernameTagTaken(meProfile.username||meProfile.baseUsername||'',peDraft.tag,meProfile.\$id)){
+    \$('pe-err').textContent='Ce tag est déjà pris pour ton pseudo, choisis-en un autre.';return
+  }
   const btn=this;btn.disabled=true;btn.textContent='Enregistrement…';\$('pe-err').textContent='';
   try{
     await db.updateDocument(DB,'users',meProfile.\$id,{
@@ -5579,7 +5598,7 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
       const uid=p.authUserId||p.\$id;
       return '<div class="row" data-add="'+esc(uid)+'" data-name="'+esc(name)+'">'
         +'<div class="av">'+esc(ini(name))+'</div>'
-        +'<div class="info"><div class="n">'+esc(name)+'</div></div>'
+        +'<div class="info"><div class="n">'+esc(name)+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
         +'<div class="act"><button type="button">Ajouter</button></div></div>';
     }).join('')||'<div class="empty-hint">Aucun résultat</div>';
     \$('fr').querySelectorAll('[data-add]').forEach(function(el){
