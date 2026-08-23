@@ -53,7 +53,15 @@ function mintLiveKitParticipantToken(identity, name, room) {
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
-const SERVER_PERMISSIONS = ["manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice"];
+const SERVER_PERMISSIONS = ["manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log"];
+async function logServerAudit(serverId, actorUid, actorName, action, targetName, details) {
+  try {
+    await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents", {
+      method: "POST", asAdmin: true,
+      body: { documentId: "unique()", data: { serverId: String(serverId), actorUid: String(actorUid || ""), actorName: String(actorName || "").slice(0, 80), action: String(action).slice(0, 40), targetName: String(targetName || "").slice(0, 120), detailsJson: JSON.stringify(details || {}).slice(0, 2000) } }
+    });
+  } catch (e) {}
+}
 function randomInviteCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let s = "";
@@ -145,8 +153,15 @@ async function serverResolveChannelAccess(serverId, uid, channelId) {
     return perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
   });
   const access = computeChannelAccess(channel, roleIds);
-  if (!hasManage && !access.view) throw new Error("Tu n'as pas accès à ce salon");
-  return { server: server, channel: channel, member: member, hasManage: hasManage, access: hasManage ? { view: true, send: true } : access };
+  let view = hasManage || access.view;
+  let send = hasManage || access.send;
+  if (!view) throw new Error("Tu n'as pas accès à ce salon");
+  // Un membre en timeout (mis en sourdine temporairement par la modération) peut
+  // toujours LIRE le salon mais plus y écrire, même s'il a par ailleurs un rôle
+  // qui donnerait normalement accès à l'écriture — le timeout prime.
+  const timedOut = !!(member.timeoutUntil && new Date(member.timeoutUntil).getTime() > Date.now());
+  if (timedOut) send = false;
+  return { server: server, channel: channel, member: member, hasManage: hasManage, access: { view: view, send: send }, timedOut: timedOut };
 }
 // Position = rang hiérarchique d'un rôle (plus grand = plus haut placé). Sert à
 // empêcher un détenteur de "manage_roles" de créer/modifier/attribuer un rôle
@@ -1165,10 +1180,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:min(40vh,320px);overflow-y:auto;padding-right:4px}
-.srv-chan-msg{background:rgba(255,255,255,.03);border-radius:10px;padding:8px 11px;font-size:.84rem}
+.srv-chan-msg{background:rgba(255,255,255,.03);border-radius:10px;padding:8px 11px;font-size:.84rem;position:relative}
 .srv-chan-msg.mine{background:rgba(124,58,237,.12)}
 .srv-chan-msg-author{font-weight:800;color:#c4b5fd;margin-right:6px;font-size:.78rem}
 .srv-chan-msg-text{color:#f2ebff;word-break:break-word}
+.srv-chan-msg-del{background:transparent;border:0;color:var(--muted);font-size:.72rem;opacity:.5;float:right;cursor:pointer;padding:0 2px}
+.srv-chan-msg-del:hover{opacity:1;color:#f87171}
 .srv-chan-composer{display:flex;gap:8px}
 .srv-chan-composer .field-input{flex:1}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
@@ -1664,6 +1681,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
         <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
+        <button type="button" class="srv-tab hidden" id="srv-tab-audit-btn" data-srv-tab="audit">Journal</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
       </div>
       <div class="admin-body" id="srv-detail-body"></div>
@@ -3287,6 +3305,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.37.0',date:'23 août 2026',time:'23:20',title:'Modération et journal d\\'audit dans les Serveurs',
+    body:'Les modérateurs (nouvelle permission "Modérer les membres") peuvent maintenant mettre un membre en timeout (silence temporaire, de 5 minutes à 1 semaine : il peut toujours lire mais plus écrire ni rejoindre le vocal) et supprimer les messages des autres, pas seulement les leurs. Un nouvel onglet "Journal" liste toutes les actions de modération et d\\'administration (expulsions, bannissements, timeouts, suppressions, changements de rôles et de salons…) avec qui a fait quoi et quand — visible par le propriétaire et les rôles avec la permission "Voir le journal d\\'audit". Au passage, la permission "Gérer les salons" — jamais assignable depuis l\\'éditeur de rôle depuis son ajout — est maintenant bien dans la liste.'},
   {version:'2.36.2',date:'23 août 2026',time:'23:00',title:'Correctif : impossible de créer un salon vocal ou textuel',
     body:'Le bouton "+ Salon" appelait la fonction d\\'ouverture de l\\'éditeur directement comme gestionnaire de clic — le navigateur lui passait alors l\\'événement du clic à la place d\\'un salon, ce qui faisait croire à l\\'éditeur qu\\'il modifiait un salon existant au lieu d\\'en créer un nouveau. Résultat : la création échouait silencieusement et le salon n\\'apparaissait jamais dans la liste. Corrigé.'},
   {version:'2.36.1',date:'23 août 2026',time:'22:45',title:'Corrections suite à vos signalements (encore !)',
@@ -8686,11 +8706,14 @@ window.addEventListener('pagehide',function(){
 /* ===== Serveurs (communautés) : rôles, permissions, salon vocal, branding ===== */
 const SERVER_PERM_DEFS=[
   {key:'manage_server',icon:'⚙️',label:'Gérer le serveur',desc:'Modifier le nom, la description, l\\'icône, la bannière et la qualité audio/vidéo.'},
+  {key:'manage_channels',icon:'📁',label:'Gérer les salons',desc:'Créer, modifier, supprimer des salons et des catégories.'},
   {key:'manage_roles',icon:'🎭',label:'Gérer les rôles',desc:'Créer, modifier, supprimer des rôles et les attribuer aux membres.'},
   {key:'manage_invites',icon:'🔗',label:'Gérer les invitations',desc:'Voir et régénérer le code d\\'invitation.'},
   {key:'mute_members',icon:'🔇',label:'Rendre muet',desc:'Couper le micro d\\'un membre dans le salon vocal.'},
+  {key:'moderate_members',icon:'⏱️',label:'Modérer les membres',desc:'Mettre en timeout (silence temporaire) et supprimer les messages des autres.'},
   {key:'kick_members',icon:'👢',label:'Expulser des membres',desc:'Retirer un membre du serveur (il peut revenir avec un code d\\'invitation).'},
-  {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'}
+  {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'},
+  {key:'view_audit_log',icon:'📜',label:'Voir le journal d\\'audit',desc:'Consulter l\\'historique des actions de modération du serveur.'}
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
@@ -8827,7 +8850,9 @@ async function openServerDetail(serverId){
   \$('srv-detail-banner').style.backgroundImage=bannerUrl?'url('+JSON.stringify(bannerUrl)+')':'';
   const canRoles=serverHasPermission('manage_roles');
   const canSettings=serverHasPermission('manage_server');
+  const canAudit=serverHasPermission('view_audit_log')||canSettings;
   \$('srv-tab-roles-btn').classList.toggle('hidden',!canRoles);
+  \$('srv-tab-audit-btn').classList.toggle('hidden',!canAudit);
   \$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
   activeServerTab='overview';
   switchServerTab('overview');
@@ -8844,6 +8869,7 @@ function switchServerTab(tab){
   if(tab==='overview')renderServerOverviewTab();
   else if(tab==='members')renderServerMembersTab();
   else if(tab==='roles')renderServerRolesTab();
+  else if(tab==='audit')renderServerAuditTab();
   else if(tab==='settings')renderServerSettingsTab();
 }
 document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){
@@ -8962,22 +8988,39 @@ async function loadChannelMessages(){
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   const forChannel=activeChannel.\$id;
   channelMsgUnsub=client.subscribe('databases.'+DB+'.collections.server_channel_messages.documents',function(res){
-    if(!eventIs(res.events,'.create'))return;
     const payload=res.payload;
     if(!payload||String(payload.channelId)!==String(forChannel))return;
-    activeChannelMessages.push(payload);
-    renderChannelMessages();
+    if(eventIs(res.events,'.create')){
+      activeChannelMessages.push(payload);
+      renderChannelMessages();
+    }else if(eventIs(res.events,'.delete')){
+      activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==payload.\$id});
+      renderChannelMessages();
+    }
   });
 }
 function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
+  const canModerate=serverHasPermission('moderate_members')||serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   box.innerHTML=activeChannelMessages.map(function(m){
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
-    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span></div>';
+    const canDel=mine||canModerate;
+    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span>'+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
   }).join('')||'<div class="empty-hint">Aucun message pour l\\'instant. Sois le premier à écrire !</div>';
   box.scrollTop=box.scrollHeight;
+  box.querySelectorAll('[data-srv-msg-del]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      const messageId=b.getAttribute('data-srv-msg-del');
+      if(!confirm('Supprimer ce message ?'))return;
+      try{
+        await authPost('/api/servers/channels/messages/delete',{serverId:activeServer.\$id,messageId:messageId});
+        activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==messageId});
+        renderChannelMessages();
+      }catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
 }
 async function sendServerChannelMessage(){
   const input=\$('srv-chan-input');if(!input||!activeChannel)return;
@@ -9023,21 +9066,24 @@ function renderServerMembersTab(){
   const canKick=serverHasPermission('kick_members');
   const canBan=serverHasPermission('ban_members');
   const canRoles=serverHasPermission('manage_roles');
+  const canModerate=serverHasPermission('moderate_members');
   box.innerHTML=activeServerMembers.map(function(m){
     const isOwnerRow=String(activeServer.ownerId)===String(m.uid);
     const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(m.uid)});
     const avatarUrl=safeUrl(prof&&prof.avatar);
+    const timedOut=m.timeoutUntil&&new Date(m.timeoutUntil).getTime()>Date.now();
     let actions='';
     if(!isOwnerRow){
       if(canRoles)actions+='<button type="button" class="set-mini-btn" data-srv-role-assign="'+esc(m.uid)+'">Rôles</button>';
+      if(canModerate)actions+='<button type="button" class="set-mini-btn'+(timedOut?' danger':'')+'" data-srv-timeout="'+esc(m.uid)+'">'+(timedOut?'⏱️ En timeout':'Timeout')+'</button>';
       if(canKick)actions+='<button type="button" class="set-mini-btn danger" data-srv-kick="'+esc(m.uid)+'">Expulser</button>';
       if(canBan)actions+='<button type="button" class="set-mini-btn danger" data-srv-ban="'+esc(m.uid)+'">Bannir</button>';
     }
     const nameColor=serverTopRoleColor(m);
     return '<div class="srv-member-row">'
       +'<div class="av" style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:var(--elev)">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(m.username||'?')))+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(m.username||'Membre')+(isOwnerRow?' 👑':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
-      +'<div style="display:flex;gap:6px;flex-shrink:0">'+actions+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(m.username||'Membre')+(isOwnerRow?' 👑':'')+(timedOut?' <span class="scr-sub">⏱️ jusqu\\'au '+esc(new Date(m.timeoutUntil).toLocaleString('fr-FR'))+'</span>':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">'+actions+'</div>'
       +'</div>';
   }).join('')||'<div class="empty-hint">Aucun membre.</div>';
   box.querySelectorAll('[data-srv-kick]').forEach(function(b){
@@ -9054,6 +9100,36 @@ function renderServerMembersTab(){
   });
   box.querySelectorAll('[data-srv-role-assign]').forEach(function(b){
     b.addEventListener('click',function(){openServerRoleAssign(b.getAttribute('data-srv-role-assign'));});
+  });
+  box.querySelectorAll('[data-srv-timeout]').forEach(function(b){
+    b.addEventListener('click',function(){openServerTimeoutPicker(b.getAttribute('data-srv-timeout'));});
+  });
+}
+const TIMEOUT_PRESETS=[{label:'5 minutes',minutes:5},{label:'10 minutes',minutes:10},{label:'1 heure',minutes:60},{label:'1 jour',minutes:1440},{label:'1 semaine',minutes:10080}];
+function openServerTimeoutPicker(uid){
+  const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
+  if(!member)return;
+  const timedOut=member.timeoutUntil&&new Date(member.timeoutUntil).getTime()>Date.now();
+  const box=\$('srv-detail-body');if(!box)return;
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-section-label">Timeout de '+esc(member.username||'ce membre')+'</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Le membre pourra toujours lire les salons mais ne pourra plus écrire ni rejoindre le vocal pendant la durée choisie.</div>'
+    +TIMEOUT_PRESETS.map(function(p){return '<button type="button" class="set-mini-btn" data-srv-to-mins="'+p.minutes+'" style="margin:0 6px 8px 0">'+p.label+'</button>';}).join('')
+    +(timedOut?'<button type="button" class="set-mini-btn danger" data-srv-to-mins="0" style="margin:0 6px 8px 0">Lever le timeout</button>':'')
+    +'<div style="margin-top:10px"><button type="button" class="set-mini-btn" id="srv-to-cancel">Annuler</button></div>'
+    +'<div class="err" id="srv-to-err"></div>'
+    +'</div>';
+  \$('srv-to-cancel').onclick=function(){switchServerTab('members');};
+  box.querySelectorAll('[data-srv-to-mins]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      const minutes=parseInt(b.getAttribute('data-srv-to-mins'),10);
+      b.disabled=true;
+      try{
+        await authPost('/api/servers/members/timeout',{serverId:activeServer.\$id,uid:uid,minutes:minutes});
+        await openServerDetail(activeServer.\$id);switchServerTab('members');
+        showToast(minutes?'Membre mis en timeout.':'Timeout levé.');
+      }catch(e){\$('srv-to-err').textContent=(e&&e.message)||'Erreur';b.disabled=false;}
+    });
   });
 }
 function openServerRoleAssign(uid){
@@ -9117,6 +9193,35 @@ function renderServerRolesTab(){
       try{await authPost('/api/servers/roles/reorder',{serverId:activeServer.\$id,roleId:roleId,direction:direction});await openServerDetail(activeServer.\$id);switchServerTab('roles');}catch(e){showToast((e&&e.message)||'Erreur','error');}
     });
   });
+}
+const AUDIT_ACTION_LABELS={
+  kick:{icon:'👢',label:'a expulsé'},ban:{icon:'🔨',label:'a banni'},unban:{icon:'🔓',label:'a débanni'},
+  timeout:{icon:'⏱️',label:'a mis en timeout'},timeout_clear:{icon:'⏱️',label:'a levé le timeout de'},
+  message_delete:{icon:'🗑️',label:'a supprimé un message de'},
+  role_create:{icon:'🎭',label:'a créé le rôle'},role_update:{icon:'🎭',label:'a modifié le rôle'},role_delete:{icon:'🎭',label:'a supprimé le rôle'},role_assign:{icon:'🎭',label:'a changé les rôles de'},
+  channel_create:{icon:'📁',label:'a créé le salon'},channel_delete:{icon:'📁',label:'a supprimé le salon'},
+  category_create:{icon:'🗂️',label:'a créé la catégorie'},category_delete:{icon:'🗂️',label:'a supprimé la catégorie'},
+  invite_regenerate:{icon:'🔗',label:'a régénéré l\\'invitation'},server_update:{icon:'⚙️',label:'a modifié les paramètres du serveur'}
+};
+async function renderServerAuditTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  box.innerHTML='<div class="empty-hint">Chargement…</div>';
+  let entries=[];
+  try{const r=await authPost('/api/servers/audit/list',{serverId:activeServer.\$id});entries=r.entries||[];}catch(e){box.innerHTML='<div class="empty-hint">Impossible de charger le journal.</div>';return}
+  if(!entries.length){box.innerHTML='<div class="empty-hint">Aucune action de modération pour l\\'instant.</div>';return}
+  box.innerHTML='<div class="scr-sub" style="margin-bottom:10px">Historique des actions de modération et d\\'administration sur ce serveur.</div>'
+    +entries.map(function(e){
+      const def=AUDIT_ACTION_LABELS[e.action]||{icon:'📋',label:e.action};
+      let extra='';
+      try{
+        const d=JSON.parse(e.detailsJson||'{}');
+        if(e.action==='timeout'&&d.minutes)extra=' ('+d.minutes+' min)';
+      }catch(err){}
+      return '<div class="set-card" style="padding:10px 12px;margin-bottom:6px">'
+        +'<div style="font-size:.85rem"><span style="margin-right:6px">'+def.icon+'</span><b>'+esc(e.actorName||'Quelqu\\'un')+'</b> '+esc(def.label)+' <b>'+esc(e.targetName||'')+'</b>'+extra+'</div>'
+        +'<div class="scr-sub" style="margin-top:2px">'+esc(fmtRelTime(e.\$createdAt))+'</div>'
+        +'</div>';
+    }).join('');
 }
 function openServerChannelEditor(channel){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
@@ -11181,6 +11286,8 @@ async function handle(request) {
       if (typeof body.banner === "string") data.banner = body.banner.slice(0, 500);
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      const actorProfile5 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile5 && (actorProfile5.displayName || actorProfile5.username)) || acc.name, "server_update", updated.name, { fields: Object.keys(data) });
       return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11197,6 +11304,8 @@ async function handle(request) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const inviteCode = randomInviteCode();
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { inviteCode: inviteCode } } });
+      const actorProfile6 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile6 && (actorProfile6.displayName || actorProfile6.username)) || acc.name, "invite_regenerate", updated.inviteCode, {});
       return new Response(JSON.stringify({ ok: true, inviteCode: updated.inviteCode }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11261,6 +11370,8 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { serverId: serverId, name: name, color: color, permissionsJson: JSON.stringify(perms), position: position, mentionable: mentionable } }
       });
+      const actorProfile1 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile1 && (actorProfile1.displayName || actorProfile1.username)) || acc.name, "role_create", name, { permissions: perms });
       return new Response(JSON.stringify({ ok: true, role: role }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11288,6 +11399,8 @@ async function handle(request) {
       if (Array.isArray(body.permissions)) data.permissionsJson = JSON.stringify(body.permissions.filter(function (p) { return SERVER_PERMISSIONS.indexOf(p) >= 0; }));
       if (typeof body.mentionable === "boolean") data.mentionable = body.mentionable;
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      const actorProfile2 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile2 && (actorProfile2.displayName || actorProfile2.username)) || acc.name, "role_update", updated.name, data);
       return new Response(JSON.stringify({ ok: true, role: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11304,8 +11417,8 @@ async function handle(request) {
       const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const isOwner = String(gate.server.ownerId) === String(acc.$id);
+      const targetRole = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { asAdmin: true });
       if (!isOwner) {
-        const targetRole = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { asAdmin: true });
         const authority = await getMemberAuthorityPosition(serverId, acc.$id, gate.server);
         if ((Number(targetRole.position) || 0) >= authority) throw new Error("Tu ne peux pas gérer un rôle égal ou supérieur au tien");
       }
@@ -11319,6 +11432,8 @@ async function handle(request) {
           await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + m.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } }).catch(function () {});
         }
       }
+      const actorProfile3 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile3 && (actorProfile3.displayName || actorProfile3.username)) || acc.name, "role_delete", targetRole.name, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11350,6 +11465,8 @@ async function handle(request) {
       const member = await getServerMembership(serverId, targetUid);
       if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
+      const actorProfile4 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile4 && (actorProfile4.displayName || actorProfile4.username)) || acc.name, "role_assign", member.username || targetUid, { roleIds: roleIds });
       return new Response(JSON.stringify({ ok: true, member: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11401,6 +11518,8 @@ async function handle(request) {
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible d'expulser le propriétaire");
       const member = await getServerMembership(serverId, targetUid);
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      const actorProfile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "kick", (member && member.username) || targetUid, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11420,14 +11539,48 @@ async function handle(request) {
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de bannir le propriétaire");
       let banned = [];
       try { banned = JSON.parse(gate.server.bannedUidsJson || "[]"); } catch (e) {}
+      let member = null;
       if (unban) {
         banned = banned.filter(function (u) { return u !== targetUid; });
       } else {
         if (banned.indexOf(targetUid) < 0) banned.push(targetUid);
-        const member = await getServerMembership(serverId, targetUid);
+        member = await getServerMembership(serverId, targetUid);
         if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
       }
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
+      const actorProfile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && member.username) || targetUid, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/members/timeout" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const minutes = Math.max(0, Math.min(43200, Number(body.minutes) || 0)); // max 30 jours, 0 = lever le timeout
+      const gate = await serverCheckPermission(serverId, acc.$id, "moderate_members");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de mettre en timeout le propriétaire");
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
+      if (!minutes) {
+        // Empêcher un modérateur de timeout un autre membre disposant lui-même
+        // de manage_roles/manage_server serait plus complet, mais on applique
+        // déjà la hiérarchie de rôles ailleurs (rôles) ; ici on garde simple :
+        // n'importe quel détenteur de moderate_members peut lever un timeout.
+        await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: "" } } });
+      } else {
+        const until = new Date(Date.now() + minutes * 60000).toISOString();
+        await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: until } } });
+      }
+      const actorProfile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, minutes ? "timeout" : "timeout_clear", member.username || targetUid, { minutes: minutes });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11445,6 +11598,7 @@ async function handle(request) {
       if (channelId) {
         const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
         if (access.channel.type !== "voice") throw new Error("Ce salon n'est pas un salon vocal");
+        if (access.timedOut) throw new Error("Tu es en timeout, tu ne peux pas rejoindre le vocal pour le moment");
         server = access.server;
         room = "xu-channel-" + channelId;
       } else {
@@ -11453,6 +11607,7 @@ async function handle(request) {
         if (!isOwner) {
           const member = await getServerMembership(serverId, acc.$id);
           if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+          if (member.timeoutUntil && new Date(member.timeoutUntil).getTime() > Date.now()) throw new Error("Tu es en timeout, tu ne peux pas rejoindre le vocal pour le moment");
         }
         room = "xu-server-" + serverId;
       }
@@ -11499,6 +11654,8 @@ async function handle(request) {
       const cat = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents", {
         method: "POST", asAdmin: true, body: { documentId: "unique()", data: { serverId: serverId, name: name, position: Number(body.position) || 0 } }
       });
+      const actorProfile7 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile7 && (actorProfile7.displayName || actorProfile7.username)) || acc.name, "category_create", name, {});
       return new Response(JSON.stringify({ ok: true, category: cat }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11533,6 +11690,7 @@ async function handle(request) {
       const categoryId = String((body && body.categoryId) || "");
       const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server", "manage_channels"]);
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const catDoc = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { asAdmin: true }).catch(function () { return null; });
       const chans = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "categoryId", values: [categoryId] })) +
@@ -11541,6 +11699,8 @@ async function handle(request) {
         await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + c.$id, { method: "PATCH", asAdmin: true, body: { data: { categoryId: "" } } }).catch(function () {});
       }
       await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { method: "DELETE", asAdmin: true });
+      const actorProfile8 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile8 && (actorProfile8.displayName || actorProfile8.username)) || acc.name, "category_delete", (catDoc && catDoc.name) || categoryId, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11564,6 +11724,8 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson } }
       });
+      const actorProfile9 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile9 && (actorProfile9.displayName || actorProfile9.username)) || acc.name, "channel_create", name, { type: type });
       return new Response(JSON.stringify({ ok: true, channel: chan }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11601,11 +11763,14 @@ async function handle(request) {
       const channelId = String((body && body.channelId) || "");
       const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server", "manage_channels"]);
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const chanDoc = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true }).catch(function () { return null; });
       const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       for (const m of (msgs.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
       await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "DELETE", asAdmin: true });
+      const actorProfile10 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfile10 && (actorProfile10.displayName || actorProfile10.username)) || acc.name, "channel_delete", (chanDoc && chanDoc.name) || channelId, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -11675,7 +11840,7 @@ async function handle(request) {
       if (!text) throw new Error("Message vide");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
-      if (!access.access.send) throw new Error("Tu ne peux pas écrire dans ce salon");
+      if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
@@ -11683,6 +11848,51 @@ async function handle(request) {
         body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text } }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/messages/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const messageId = String((body && body.messageId) || "");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.serverId) !== String(serverId)) throw new Error("Message introuvable dans ce serveur");
+      const isAuthor = String(msg.uid) === String(acc.$id);
+      let isModerator = false;
+      if (!isAuthor) {
+        const gate = await serverCheckPermission(serverId, acc.$id, ["moderate_members", "manage_channels", "manage_server"]);
+        isModerator = gate.ok;
+        if (!isModerator) throw new Error("Tu ne peux pas supprimer ce message");
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { method: "DELETE", asAdmin: true });
+      if (isModerator) {
+        const actorProfile = await resolveProfile(acc.$id);
+        await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "message_delete", msg.username || msg.uid, { text: String(msg.text || "").slice(0, 200) });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/audit/list" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, ["view_audit_log", "manage_server"]);
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const entries = await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [150] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, entries: entries.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
