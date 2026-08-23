@@ -1382,6 +1382,14 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <h3 id="bug-modal-title">🐞 Signaler un bug</h3>
     <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
     <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
+    <div id="bug-shot-wrap" style="margin-top:8px">
+      <div id="bug-shot-preview" class="hidden" style="position:relative;margin-bottom:8px">
+        <img id="bug-shot-img" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid rgba(167,139,250,.25);display:block"/>
+        <button type="button" id="bug-shot-remove" title="Retirer la capture" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer">✕</button>
+      </div>
+      <label for="bug-shot-input" class="pe-mini-btn" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">📎 Joindre une capture d'écran</label>
+      <input type="file" id="bug-shot-input" accept="image/*" class="hidden"/>
+    </div>
     <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
     <div class="err" id="bug-err"></div>
   </div>
@@ -2630,6 +2638,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.19.1',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
+    body:'Dans le panneau de signalement de bug, tu peux maintenant joindre une image (par exemple une capture d’écran du problème) grâce au bouton « Joindre une capture d’écran ». Elle s’affiche ensuite dans tes rapports et dans le panneau de l’équipe, pour aider à comprendre le bug beaucoup plus vite.'},
   {version:'2.19.0',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
     body:'On a corrigé un bug qui permettait à deux personnes d’avoir exactement le même pseudo et le même tag à 4 chiffres, ce qui pouvait semer la confusion (par exemple pour ajouter le bon ami). Maintenant, XULTRA vérifie que ton pseudo#tag est unique à l’inscription et si tu changes ton tag depuis Paramètres → Mon compte, il te propose automatiquement un tag libre en cas de doublon. On en a profité pour afficher le tag dans les résultats de recherche d’amis, pour mieux distinguer les personnes qui portent le même pseudo.'},
   {version:'2.18.1',date:'23 août 2026',time:'14:50',title:'Le site passe en HTTPS de force',
@@ -6000,6 +6010,7 @@ function renderAdminBugs(list){
       +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
       +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+'</div>'
       +'<div class="p">'+esc(b.description||'')+'</div>'
+      +(b.screenshot?'<a href="'+esc(b.screenshot)+'" target="_blank" rel="noopener"><img src="'+esc(b.screenshot)+'" style="max-width:220px;max-height:130px;border-radius:8px;margin-top:6px;display:block;border:1px solid rgba(167,139,250,.25)"/></a>':'')
       +'<div class="p">par '+esc(b.username||'?')+' — '+esc(BUG_STATUS_LABEL[st]||st)+' · 👍 '+(b.upvotes||0)+'</div></div>'
       +'<div class="acts">'
       +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
@@ -6076,13 +6087,21 @@ function renderAdminMaintenance(state){
   };
 }
 
-let editBugId=null;
+let editBugId=null,bugShotFile=null,bugShotUrl='',bugShotRemoved=false;
+function updateBugShotPreview(){
+  const wrap=\$('bug-shot-preview'),img=\$('bug-shot-img');
+  if(bugShotUrl){wrap.classList.remove('hidden');img.src=bugShotUrl;}
+  else{wrap.classList.add('hidden');img.src='';}
+}
 function openBugModal(doc){
   editBugId=doc?doc.\$id:null;
   \$('bug-title').value=doc?(doc.title||''):'';
   \$('bug-desc').value=doc?(doc.description||''):'';
   \$('bug-err').textContent='';
   \$('bug-modal-title').textContent=doc?'✏️ Éditer mon rapport':'🐞 Signaler un bug';
+  bugShotFile=null;bugShotRemoved=false;
+  bugShotUrl=doc?(doc.screenshot||''):'';
+  updateBugShotPreview();
   /* modal-hunter partage le même z-index que tous les .overlay : s'il
      est déjà ouvert (on vient de son bouton "+ Nouveau rapport"), il
      passe devant modal-bug puisqu'il est plus loin dans le DOM. On le
@@ -6100,19 +6119,44 @@ function closeBugModal(){
 }
 if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){openBugModal(null)});
 if(\$('mb-close'))\$('mb-close').addEventListener('click',closeBugModal);
+if(\$('bug-shot-input'))\$('bug-shot-input').addEventListener('change',function(){
+  const file=this.files&&this.files[0];this.value='';
+  if(!file)return;
+  if(file.size>8*1024*1024){\$('bug-err').textContent='Capture max 8 Mo';return}
+  if(file.type.indexOf('image/')!==0){\$('bug-err').textContent='Choisis une image';return}
+  \$('bug-err').textContent='';
+  bugShotFile=file;bugShotRemoved=false;
+  const r=new FileReader();
+  r.onload=function(){bugShotUrl=r.result;updateBugShotPreview()};
+  r.readAsDataURL(file);
+});
+if(\$('bug-shot-remove'))\$('bug-shot-remove').addEventListener('click',function(){
+  bugShotFile=null;bugShotUrl='';bugShotRemoved=true;
+  updateBugShotPreview();
+});
 if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
   const title=(\$('bug-title').value||'').trim();
   const desc=(\$('bug-desc').value||'').trim();
   if(!title||!desc){\$('bug-err').textContent='Titre et description requis';return}
   this.disabled=true;this.textContent=editBugId?'Mise à jour…':'Envoi…';
   try{
+    let screenshotUrl='';
+    if(bugShotFile){
+      try{
+        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),bugShotFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        screenshotUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      }catch(e){\$('bug-err').textContent='Envoi de la capture impossible, réessaie.';this.disabled=false;this.textContent=editBugId?'Mise à jour…':'Envoyer le rapport';return}
+    }
     if(editBugId){
-      await db.updateDocument(DB,'bug_reports',editBugId,{title:title.slice(0,120),description:desc.slice(0,2000)});
+      const patch={title:title.slice(0,120),description:desc.slice(0,2000)};
+      if(bugShotFile)patch.screenshot=screenshotUrl;
+      else if(bugShotRemoved)patch.screenshot='';
+      await db.updateDocument(DB,'bug_reports',editBugId,patch);
       xlog('bug_report_edited',{});
     } else {
       const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
       await db.createDocument(DB,'bug_reports',Appwrite.ID.unique(),{
-        uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),status:'pending',upvotes:0
+        uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),screenshot:screenshotUrl,status:'pending',upvotes:0
       },[
         Appwrite.Permission.read(Appwrite.Role.any()),
         Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
@@ -6121,7 +6165,7 @@ if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
       xlog('bug_report_sent',{});
       showToast('Merci ! Ton rapport a été envoyé à l\\'équipe.');
     }
-    editBugId=null;
+    editBugId=null;bugShotFile=null;bugShotUrl='';bugShotRemoved=false;
     closeBugModal();
     try{await refreshHunterEligibility();}catch(e){}
     if(!\$('modal-hunter').classList.contains('hidden'))await loadMyBugs();
@@ -6169,6 +6213,7 @@ function renderMyBugs(){
     const st=b.status||'pending';
     return '<div class="bug-item"><div class="bt">'+esc(b.title||'Sans titre')+'</div>'
       +'<div class="bd">'+esc(b.description||'')+'</div>'
+      +(b.screenshot?'<a href="'+esc(b.screenshot)+'" target="_blank" rel="noopener"><img src="'+esc(b.screenshot)+'" style="max-width:200px;max-height:120px;border-radius:8px;margin:6px 0;display:block;border:1px solid rgba(167,139,250,.25)"/></a>':'')
       +'<div class="meta"><span class="st st-'+esc(st)+'">'+esc(BUG_STATUS_LABEL[st]||st)+'</span>'
       +'<span>👍 '+(b.upvotes||0)+'</span>'
       +'<span>'+esc((b.\$createdAt||'').toString().slice(0,10))+'</span></div>'
