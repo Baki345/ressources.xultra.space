@@ -2523,6 +2523,7 @@ async function doRegister(){
     const jj=await serverLogin(email,pass);
     applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
+    account.createVerification(location.origin+'/').catch(function(e){xlog('verify_email_send_fail',{msg:(e&&e.message)||String(e)});});
     let avatarUrl='',bannerUrl='';
     if(regAvatarFile){
       try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
@@ -2638,6 +2639,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.21.0',date:'23 août 2026',time:'16:35',title:'Confirme ton adresse e-mail',
+    body:'Un e-mail de vérification t\\'est maintenant envoyé automatiquement à l\\'inscription : clique simplement sur le lien qu\\'il contient pour confirmer ton adresse. Tu peux voir le statut et renvoyer l\\'e-mail à tout moment depuis Paramètres → Mon compte.'},
   {version:'2.20.0',date:'23 août 2026',time:'16:10',title:'Connecte-toi avec ton pseudo#tag, plus seulement ton e-mail',
     body:'Le champ de connexion accepte maintenant aussi bien ton e-mail que ton pseudo#tag (par exemple « shaman#7777 »), au choix — pratique si tu as oublié quel e-mail tu as utilisé pour t’inscrire. Ça marche aussi bien pour la connexion classique que pour les clés d’accès (Face ID, Windows Hello, empreinte…).'},
   {version:'2.19.1',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
@@ -2895,7 +2898,8 @@ function renderSetAccount(box){
     +'<div class="settings-account-head"><div class="av">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc((name||'?').slice(0,1).toUpperCase()))+'</div><div><div class="sah-name">'+esc(name)+'</div><div class="sah-tag">#'+esc(tag)+'</div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Pseudo</div><div class="scr-sub">'+esc(name)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-name">Modifier</button></div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+' '+((me&&me.emailVerification)?'<span style="color:#22c55e">✓ vérifié</span>':'<span style="color:#f59e0b">⚠ non vérifié</span>')+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
+      +(!(me&&me.emailVerification)?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">Vérifie ton adresse e-mail</div><div class="scr-sub">Un lien de vérification t\\'a été envoyé par e-mail à l\\'inscription. Tu ne l\\'as pas reçu ?</div></div><button type="button" class="set-mini-btn" id="acc-resend-verify">Renvoyer</button></div>'):'')
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Mot de passe</div><div class="scr-sub">••••••••</div></div><button type="button" class="set-mini-btn" id="acc-edit-pass">Modifier</button></div>'
       +(appPrefs.devMode?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">ID utilisateur</div><div class="scr-sub">'+esc((me&&me.\$id)||'')+'</div></div><button type="button" class="set-mini-btn" id="acc-copy-id">Copier</button></div>'):'')
     +'</div>'
@@ -2957,10 +2961,20 @@ function wireSetAccount(box,name){
     emailSave.disabled=true;err.textContent='';
     try{
       await account.updateEmail(newEmail,pass);
-      if(me)me.email=newEmail;
-      showToast('E-mail mis à jour !');
+      if(me){me.email=newEmail;me.emailVerification=false;}
+      account.createVerification(location.origin+'/').catch(function(e){});
+      showToast('E-mail mis à jour ! Vérifie ta boîte de réception pour le confirmer.');
       renderSetAccount(box);
     }catch(e){err.textContent=(e&&e.message)||'Action impossible';emailSave.disabled=false;}
+  };
+  const resendBtn=\$('acc-resend-verify');
+  if(resendBtn)resendBtn.onclick=async function(){
+    resendBtn.disabled=true;resendBtn.textContent='Envoi…';
+    try{
+      await account.createVerification(location.origin+'/');
+      showToast('E-mail de vérification renvoyé !');
+    }catch(e){showToast((e&&e.message)||'Envoi impossible, réessaie plus tard.','error');}
+    resendBtn.disabled=false;resendBtn.textContent='Renvoyer';
   };
   const passBtn=\$('acc-edit-pass');
   if(passBtn)passBtn.onclick=function(){\$('acc-pass-form').classList.remove('hidden');};
@@ -7139,10 +7153,27 @@ if(\$('cs-screen-quality'))\$('cs-screen-quality').addEventListener('change',fun
   applyScreenQualityLive();
 });
 
+async function handleEmailVerificationLink(){
+  let vUserId='',vSecret='';
+  try{
+    const params=new URLSearchParams(location.search);
+    vUserId=params.get('userId')||'';vSecret=params.get('secret')||'';
+  }catch(e){}
+  if(!vUserId||!vSecret)return;
+  try{
+    await account.updateVerification(vUserId,vSecret);
+    if(me&&me.\$id===vUserId)me.emailVerification=true;
+    showToast('Adresse e-mail vérifiée, merci ! ✅');
+  }catch(e){
+    showToast('Lien de vérification invalide ou expiré.','error');
+  }
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+}
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
   waitSdk(async function(){
     xlog('sdk_ready',{});
+    await handleEmailVerificationLink();
     const s=readSession();
     if(!s){xlog('boot_no_session',{});return}
     try{
