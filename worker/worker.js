@@ -593,6 +593,8 @@ button{cursor:pointer;border:0;background:0}
 .ch-presence.hidden{display:none}
 .ch-presence .pr-dot{position:static}
 .ch-e2e.hidden{display:none}
+.ch-typing{font-size:.66rem;color:#a78bfa;font-weight:700}
+.ch-typing.hidden{display:none}
 .chat-back{display:none;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:var(--msg-gap,10px)}
 .msg{display:flex;gap:10px;max-width:80%}
@@ -1279,7 +1281,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
-        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span></div></div>
+        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
@@ -2448,6 +2450,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.15.1',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
+    body:'Un petit indicateur « en train d’écrire… » apparaît maintenant en haut de la conversation dès que la personne en face tape un message — comme sur les grandes messageries. Il disparaît tout seul si elle s’arrête ou envoie son message.'},
   {version:'2.15.0',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
     body:'Gros morceau technique aujourd’hui : jusqu’ici, tes messages ne se mettaient à jour que quand tu rouvrais une conversation. Ce n’est plus le cas ! Les nouveaux messages apparaissent maintenant instantanément dans la conversation ouverte, avec un petit son, et ta liste de conversations se réorganise et se met à jour toute seule dès que quelqu’un t’écrit. La synthèse vocale peut aussi lire à voix haute les nouveaux messages de la conversation que tu regardes.'},
   {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'XULTRA peut maintenant te lire tes notifications à voix haute',
@@ -3692,10 +3696,15 @@ function subscribeDmDeleteWatcher(){
         const members=(p.members||[]).map(String);
         if(members.indexOf(String(me.\$id))<0)return;
         const idx=dmsCache.findIndex(function(d){return d.\$id===p.\$id});
+        const prev=idx>=0?dmsCache[idx]:null;
+        const contentChanged=!prev||prev.lastMessage!==p.lastMessage||prev.unreadJson!==p.unreadJson;
         if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
-        dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
-        updateNotifBadge();
-        if(view==='dms')renderDms();
+        if(p.\$id===activeDm)updateTypingIndicator();
+        if(contentChanged){
+          dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
+          updateNotifBadge();
+          if(view==='dms')renderDms();
+        }
       }
     });
   }catch(e){}
@@ -4398,6 +4407,7 @@ async function openDm(threadId,title,peerUid){
   await loadMessages(threadId);
   refreshCallBadge(activeDmPeerUid);
   updateChatHeaderPresence();
+  updateTypingIndicator();
   markDmRead(threadId);
 }
 async function markDmRead(threadId){
@@ -4410,6 +4420,55 @@ async function markDmRead(threadId){
   try{await db.updateDocument(DB,'dms',threadId,{unreadJson:dm.unreadJson});}catch(e){}
   updateNotifBadge();
 }
+let lastTypingSentAt=0;
+function notifyTyping(){
+  if(!activeDm||!me)return;
+  const now=Date.now();
+  if(now-lastTypingSentAt<3000)return;
+  lastTypingSentAt=now;
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const typing=parseJsonSafe(dm&&dm.typingJson,{});
+  typing[me.\$id]=now;
+  if(dm)dm.typingJson=JSON.stringify(typing);
+  db.updateDocument(DB,'dms',activeDm,{typingJson:JSON.stringify(typing)}).catch(function(){});
+}
+function clearTypingState(){
+  if(!activeDm||!me)return;
+  lastTypingSentAt=0;
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const typing=parseJsonSafe(dm&&dm.typingJson,{});
+  if(!typing[me.\$id])return;
+  delete typing[me.\$id];
+  if(dm)dm.typingJson=JSON.stringify(typing);
+  db.updateDocument(DB,'dms',activeDm,{typingJson:JSON.stringify(typing)}).catch(function(){});
+}
+function updateTypingIndicator(){
+  const el=\$('ch-typing'),presEl=\$('ch-presence');
+  if(!el||!activeDm)return;
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const typing=parseJsonSafe(dm&&dm.typingJson,{});
+  const now=Date.now();
+  const others=Object.keys(typing).filter(function(uid){return uid!==String(me&&me.\$id)&&(now-(typing[uid]||0))<6000;});
+  if(others.length){
+    let label;
+    if(activeDmIsGroup){
+      const names=others.map(function(uid){
+        const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
+        return (p&&(p.displayName||p.username))||'Quelqu’un';
+      });
+      label=(names.length>1?names.join(', ')+' écrivent':names[0]+' écrit')+'…';
+    }else{
+      label='En train d’écrire…';
+    }
+    el.textContent='✏️ '+label;
+    el.classList.remove('hidden');
+    if(presEl)presEl.classList.add('hidden');
+  }else{
+    el.classList.add('hidden');
+    updateChatHeaderPresence();
+  }
+}
+setInterval(updateTypingIndicator,2000);
 function updateChatHeaderPresence(){
   const el=\$('ch-presence');if(!el)return;
   if(activeDmIsGroup||!activeDmPeerUid){el.classList.add('hidden');return}
@@ -4796,6 +4855,7 @@ async function sendMessage(){
   try{
     const keyCtx=await e2eGetMessageKeyContext();
     await postMessage({text:text.slice(0,2000),type:'text'},text,keyCtx);
+    clearTypingState();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
 }
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
@@ -4804,6 +4864,7 @@ if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
   const has=this.value.trim().length>0;
   \$('btn-send').classList.toggle('hidden',!has);
   \$('btn-voice').classList.toggle('hidden',has);
+  if(has)notifyTyping();else clearTypingState();
 });
 if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
 
