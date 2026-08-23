@@ -2703,7 +2703,7 @@ function wireSetAccount(box,name){
     const newEmail=(\$('acc-email-input').value||'').trim();
     const pass=\$('acc-email-pass').value||'';
     const err=\$('acc-email-err');
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(newEmail)){err.textContent='E-mail invalide';return}
+    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(newEmail)){err.textContent='E-mail invalide';return}
     if(!pass){err.textContent='Mot de passe requis';return}
     emailSave.disabled=true;err.textContent='';
     try{
@@ -4446,7 +4446,7 @@ function renderMsgBody(m,text,mediaUrl){
   return linkedText+'<div class="link-preview-card" data-lp-url="'+esc(firstLink)+'"></div>';
 }
 function firstUrl(text){
-  const m=String(text||'').match(/https?:\/\/[^\s<]+/);
+  const m=String(text||'').match(/https?:\\/\\/[^\\s<]+/);
   return m?m[0]:'';
 }
 function mountLinkPreviews(container){
