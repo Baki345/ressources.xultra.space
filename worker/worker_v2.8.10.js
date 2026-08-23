@@ -838,11 +838,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .lp-desc{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .voice-msg{display:flex;align-items:center;gap:8px;min-width:180px}
 .voice-msg-loading{display:flex;align-items:center;gap:8px;min-width:180px}
-.toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
+.toast-wrap{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
 .toast{background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#f2ebff;padding:11px 18px;border-radius:12px;font-size:.85rem;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:min(380px,100%);text-align:center}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast-error{border-color:rgba(239,68,68,.5);background:#2a1015}
-.slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(5,3,10,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px 24px;animation:scFade .15s ease}
+.slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(5,3,10,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(24px + env(safe-area-inset-bottom));animation:scFade .15s ease}
 @keyframes scFade{from{opacity:0}to{opacity:1}}
 .slide-confirm-card{width:100%;max-width:400px;background:#1a1030;border:1px solid rgba(239,68,68,.35);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .sc-label{font-size:.88rem;font-weight:700;color:#f2ebff;margin-bottom:14px;text-align:center;line-height:1.4}
@@ -854,7 +854,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .sc-handle:active{cursor:grabbing}
 .sc-cancel{width:100%;margin-top:12px;height:38px;border-radius:10px;background:rgba(255,255,255,.06);color:#f2ebff;font-weight:700;font-size:.82rem}
 .sc-cancel:hover{background:rgba(255,255,255,.12)}
-.action-sheet-overlay{position:fixed;inset:0;z-index:5400;background:rgba(5,3,10,.6);display:flex;align-items:flex-end;justify-content:center;padding:0 12px 12px;opacity:0;transition:opacity .16s ease}
+.action-sheet-overlay{position:fixed;inset:0;z-index:5400;background:rgba(5,3,10,.6);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(12px + env(safe-area-inset-bottom));opacity:0;transition:opacity .16s ease}
 .action-sheet-overlay.show{opacity:1}
 .action-sheet-card{width:100%;max-width:400px;background:#1a1030;border:1px solid rgba(167,139,250,.25);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:2px;transform:translateY(12px);transition:transform .16s ease;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .action-sheet-overlay.show .action-sheet-card{transform:translateY(0)}
@@ -1117,7 +1117,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .call-act{width:52px;height:52px;border-radius:50%;font-size:1.2rem;display:grid;place-items:center}
 .call-act.accept{background:#22c55e;color:#052e16}
 .call-act.decline{background:#ef4444;color:#450a0a}
-.call-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
+.call-bar{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
 .call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(124,58,237,.85),rgba(76,29,149,.95),rgba(15,9,25,.98));animation:moodShift 7s ease infinite;border-color:rgba(167,139,250,.4)}
 .call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(76,29,149,.9),rgba(15,9,25,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -1140,7 +1140,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .gcb-p .cb-av-wave{width:88px;height:88px}
 .gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
-.e2e-backup-banner{position:fixed;left:12px;right:12px;top:12px;z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .e2e-bb-row{display:flex;align-items:center;gap:8px}
 .e2e-bb-row.hidden{display:none}
 .e2e-bb-text{flex:1;font-size:.78rem;color:#e9d5ff;line-height:1.3}
@@ -1455,9 +1455,9 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   #app:not(.chat-open) .chat-col{display:none}
   .rail{display:none}
   #app.chat-open .rail{display:none}
-  .tabbar{display:flex;order:3;height:56px;flex-shrink:0;background:#0a0610;border-top:1px solid var(--line)}
+  .tabbar{display:flex;order:3;height:calc(56px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;background:#0a0610;border-top:1px solid var(--line)}
   #app.chat-open .tabbar{display:none}
-  .tabbar .rail-btn{flex:1;width:auto;height:100%;border-radius:0;background:transparent}
+  .tabbar .rail-btn{flex:1;width:auto;height:56px;border-radius:0;background:transparent}
   .tabbar .rail-btn.on{border-radius:0;background:rgba(124,58,237,.18)}
   .chat-back{display:grid;place-items:center}
 }
@@ -3305,6 +3305,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.37.1',date:'23 août 2026',time:'23:35',title:'Correctif d\\'affichage : zone encoche/barre du bas sur iPhone',
+    body:'La barre d\\'onglets du bas, la pastille d\\'appel flottante, les notifications toast, le bandeau de restauration E2E et les feuilles de confirmation glissantes pouvaient chevaucher l\\'encoche ou la barre de balayage en bas de l\\'écran sur iPhone (et appareils Android équivalents) — l\\'appli ne réservait jamais cet espace. Corrigé partout.'},
   {version:'2.37.0',date:'23 août 2026',time:'23:20',title:'Modération et journal d\\'audit dans les Serveurs',
     body:'Les modérateurs (nouvelle permission "Modérer les membres") peuvent maintenant mettre un membre en timeout (silence temporaire, de 5 minutes à 1 semaine : il peut toujours lire mais plus écrire ni rejoindre le vocal) et supprimer les messages des autres, pas seulement les leurs. Un nouvel onglet "Journal" liste toutes les actions de modération et d\\'administration (expulsions, bannissements, timeouts, suppressions, changements de rôles et de salons…) avec qui a fait quoi et quand — visible par le propriétaire et les rôles avec la permission "Voir le journal d\\'audit". Au passage, la permission "Gérer les salons" — jamais assignable depuis l\\'éditeur de rôle depuis son ajout — est maintenant bien dans la liste.'},
   {version:'2.36.2',date:'23 août 2026',time:'23:00',title:'Correctif : impossible de créer un salon vocal ou textuel',
