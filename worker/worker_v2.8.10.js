@@ -1075,6 +1075,45 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .sg-vote-btn.bump .n{animation:sgBump .3s ease}
 @keyframes sgBump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
 .sg-admin-acts{margin-left:auto;display:flex;gap:6px}
+.team-panel{width:min(680px,100%);max-height:88dvh;display:flex;flex-direction:column}
+.team-panel h3{margin-bottom:10px}
+.tm-tabs{display:flex;gap:6px;margin-bottom:14px;flex-shrink:0}
+.tm-tab{flex:1;font-size:.82rem;font-weight:800;padding:9px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.16);color:var(--muted);cursor:pointer;transition:all .15s ease}
+.tm-tab:hover{background:rgba(255,255,255,.09);color:#e9d5ff}
+.tm-tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+.tm-body{overflow-y:auto;padding-bottom:4px}
+.tm-intro{font-size:.8rem;color:var(--muted);line-height:1.5;margin-bottom:14px}
+.tr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.tr-card{position:relative;border-radius:18px;padding:16px;overflow:hidden;background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1px solid rgba(167,139,250,.18);transition:transform .18s ease,border-color .18s ease}
+.tr-card:hover{transform:translateY(-3px);border-color:var(--tr-accent,#7c3aed)}
+.tr-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 0%,var(--tr-accent,#7c3aed),transparent 60%);opacity:.16;pointer-events:none}
+.tr-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:1.4rem;background:var(--tr-accent,#7c3aed);box-shadow:0 6px 16px color-mix(in srgb,var(--tr-accent,#7c3aed) 55%,transparent);margin-bottom:10px}
+.tr-role-label{font-weight:900;font-size:1rem;color:#f2ebff;margin-bottom:2px}
+.tr-role-desc{font-size:.74rem;color:var(--muted);line-height:1.4;margin-bottom:12px;min-height:2.6em}
+.tr-member{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:10px;background:rgba(255,255,255,.04);cursor:pointer;margin-bottom:6px;transition:background .15s ease}
+.tr-member:hover{background:rgba(255,255,255,.09)}
+.tr-member .av{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.8rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.tr-member .av img{width:100%;height:100%;object-fit:cover}
+.tr-member-name{font-size:.83rem;font-weight:700;color:#f2ebff}
+.tr-vacant{border:1.5px dashed rgba(167,139,250,.35);border-radius:12px;padding:14px 10px;text-align:center;font-size:.78rem;color:var(--muted);margin-bottom:10px}
+.tr-apply-btn{width:100%;padding:9px;border-radius:10px;border:0;font-weight:800;font-size:.8rem;color:#fff;background:var(--tr-accent,#7c3aed);cursor:pointer;transition:filter .15s ease}
+.tr-apply-btn:hover{filter:brightness(1.15)}
+.tw-section-title{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px}
+.tw-section-title:first-child{margin-top:0}
+.tw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+.tw-path{display:flex;align-items:stretch;gap:0;overflow-x:auto;padding:6px 2px 14px}
+.tw-card{position:relative;flex-shrink:0;width:150px;border-radius:16px;padding:14px 12px;text-align:center;background:linear-gradient(165deg,rgba(255,255,255,.05),rgba(255,255,255,.015));border:1.5px solid rgba(255,255,255,.1);transition:transform .18s ease}
+.tw-card:hover{transform:translateY(-3px)}
+.tw-card.locked{opacity:.5;filter:grayscale(.6)}
+.tw-path .tw-card{margin-right:22px}
+.tw-path .tw-card:not(:last-child)::after{content:'';position:absolute;top:50%;left:100%;width:22px;height:3px;background:linear-gradient(90deg,var(--tw-accent,#7c3aed),rgba(255,255,255,.12));transform:translateY(-50%)}
+.tw-icon-ring{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:1.55rem;background-size:220% 220%;animation:badgeShift 5s ease infinite;box-shadow:0 0 14px var(--tw-accent,#7c3aed)}
+.tw-label{font-weight:900;font-size:.76rem;color:#f2ebff;margin-bottom:4px;letter-spacing:.01em}
+.tw-req{font-size:.68rem;color:var(--muted);line-height:1.4;margin-bottom:6px;min-height:2.6em}
+.tw-status{font-size:.66rem;font-weight:800;padding:3px 9px;border-radius:999px;display:inline-block}
+.tw-status.unlocked{background:rgba(34,197,94,.18);color:#4ade80}
+.tw-status.locked{background:rgba(255,255,255,.08);color:var(--muted)}
+.tw-status.progress{background:rgba(245,158,11,.18);color:#fbbf24}
 .status-panel{width:min(460px,100%);max-height:88dvh;padding:0;overflow:hidden;position:relative;background:#050308;border:1px solid rgba(167,139,250,.3)}
 .status-rain{position:absolute;inset:0;filter:blur(2px) brightness(.7);opacity:.55}
 .status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(5,3,10,.4),rgba(5,3,10,.88) 30%)}
@@ -1292,6 +1331,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
     <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
     <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées">💡</button>
+    <button type="button" class="rail-btn" id="nav-team" title="Équipe & Badges">🏅</button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
@@ -1379,6 +1419,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
+        <button type="button" class="admin-subtab" data-atab="team">Candidatures</button>
         <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
         <button type="button" class="admin-subtab" data-atab="logs">Logs</button>
         <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance">Maintenance</button>
@@ -1801,6 +1842,29 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <div class="err" id="sg-err"></div>
     </div>
     <div class="sg-list" id="sg-list"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-team">
+  <div class="modal-box team-panel">
+    <button type="button" class="modal-close" id="tm-close">✕</button>
+    <h3>🏅 Équipe & Badges</h3>
+    <div class="tm-tabs" id="tm-tabs">
+      <button type="button" class="tm-tab on" data-ttab="crew">👥 L'équipe</button>
+      <button type="button" class="tm-tab" data-ttab="badges">🏆 Badges &amp; paliers</button>
+    </div>
+    <div class="tm-body" id="tm-body"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-team-apply">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="ta-close">✕</button>
+    <h3 id="ta-title">🚀 Postuler</h3>
+    <div class="cl-sub" id="ta-sub">Envoie ta candidature pour ce poste.</div>
+    <textarea id="ta-message" class="field-input" placeholder="Pourquoi toi ? Qu'est-ce que tu apportes à l'équipe ?" maxlength="1000" style="height:110px;padding-top:9px;resize:vertical"></textarea>
+    <div class="err" id="ta-err"></div>
+    <button type="button" class="btn-main" id="ta-submit" style="margin-top:10px">Envoyer ma candidature</button>
   </div>
 </div>
 
@@ -2804,6 +2868,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe XULTRA et débloque tous les badges',
+    body:'Nouveau bouton 🏅 dans la barre latérale, avec deux onglets. « L\\'équipe » présente qui fait tourner XULTRA par poste (Fondateur, Marketing, Modération, Gestion API & IA, Support) — un poste vacant ? Postule directement depuis l\\'app ! « Badges & paliers » est ta salle des trophées personnelle : tous les badges de la plateforme, leurs paliers, et exactement ce qu\\'il te reste à faire pour les débloquer, y compris ta progression en temps réel vers le prochain palier Bug Hunter.'},
   {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
     body:'Cinq nouveaux bugs corrigés grâce à vos rapports. Les photos de profil manquaient aussi dans les messages privés (en plus de la liste d\\'amis) — corrigé. Les pronoms, le cadre de photo de profil et les préférences de confidentialité ne s\\'enregistraient plus depuis peu à cause d\\'un souci de permissions côté serveur — corrigé. Les clés d\\'accès ne se retrouvaient qu\\'avec l\\'e-mail exact et non le pseudo#tag, à cause d\\'un e-mail mal synchronisé après un changement d\\'adresse — corrigé. Et surtout : tes messages privés chiffrés ne sont plus perdus quand tu changes d\\'appareil ou de navigateur — ta clé de déchiffrement est maintenant sauvegardée (chiffrée avec ton mot de passe, jamais en clair) pour être restaurée automatiquement à ta prochaine connexion ailleurs.'},
   {version:'2.25.0',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
@@ -3003,6 +3069,146 @@ if(\$('sg-submit'))\$('sg-submit').addEventListener('click',async function(){
     await loadSuggestions();renderSuggestions();
   }catch(e){\$('sg-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Envoyer';
+});
+
+/* ===== Équipe & Badges ===== */
+const TEAM_ROLES=[
+  {key:'founder',icon:'👑',label:'Fondateur / Dev',color:'#ef4444',desc:'Construit et pilote XULTRA au quotidien : vision, code, décisions techniques.'},
+  {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître XULTRA au monde entier : réseaux, contenus, communauté.'},
+  {key:'moderation',icon:'🛡️',label:'Modération',color:'#22c55e',desc:'Veille sur la communauté et fait respecter les règles avec justesse.'},
+  {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
+  {key:'support',icon:'💬',label:'Support',color:'#f59e0b',desc:'Aide les membres, répond à leurs questions, résout leurs soucis.'}
+];
+let teamTab='crew',myTeamApplications=[];
+function teamRoleOf(uid){
+  const meta=memberMetaByUid[uid];
+  return (meta&&meta.teamRole)||null;
+}
+async function renderCrewTab(){
+  const box=\$('tm-body');if(!box)return;
+  box.innerHTML='<div class="empty-hint">Chargement…</div>';
+  if(!membersCache.length){try{await loadMembers();}catch(e){}}
+  if(me){
+    try{
+      const r=await db.listDocuments(DB,'team_applications',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(50)]);
+      myTeamApplications=r.documents||[];
+    }catch(e){myTeamApplications=[];}
+  }
+  box.innerHTML='<div class="tm-intro">Voici les personnes qui font tourner XULTRA. Un poste est vacant ? Tente ta chance !</div>'
+    +'<div class="tr-grid">'+TEAM_ROLES.map(function(role){
+      const members=membersCache.filter(function(p){return teamRoleOf(p.authUserId||p.\$id)===role.key});
+      const myPending=myTeamApplications.find(function(a){return a.role===role.key&&a.status==='pending'});
+      let inner='<div class="tr-icon" style="background:'+role.color+'">'+role.icon+'</div>'
+        +'<div class="tr-role-label">'+esc(role.label)+'</div>'
+        +'<div class="tr-role-desc">'+esc(role.desc)+'</div>';
+      if(members.length){
+        inner+=members.map(function(p){
+          const uid=p.authUserId||p.\$id;
+          const name=p.displayName||p.username||'?';
+          const av=safeUrl(p.avatar);
+          return '<div class="tr-member" data-profile="'+esc(uid)+'"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div class="tr-member-name">'+esc(name)+'</div></div>';
+        }).join('');
+      }else if(myPending){
+        inner+='<div class="tr-vacant">📨 Ta candidature est en attente de réponse.</div>';
+      }else{
+        inner+='<div class="tr-vacant">Poste vacant</div>'
+          +(me?'<button type="button" class="tr-apply-btn" data-apply="'+esc(role.key)+'" style="--tr-accent:'+role.color+'">🚀 Postuler</button>':'');
+      }
+      return '<div class="tr-card" style="--tr-accent:'+role.color+'">'+inner+'</div>';
+    }).join('')+'</div>';
+  box.querySelectorAll('[data-profile]').forEach(function(el){
+    el.onclick=function(){openProfileModal(el.getAttribute('data-profile'))};
+  });
+  box.querySelectorAll('[data-apply]').forEach(function(el){
+    el.onclick=function(){openTeamApplyModal(el.getAttribute('data-apply'))};
+  });
+}
+function badgeUnlockStatus(key,myBadges,resolvedCount){
+  if(myBadges.indexOf(key)>=0)return {state:'unlocked',text:'✅ Débloqué'};
+  const tierDef=HUNTER_TIERS.find(function(t){return t.key===key});
+  if(tierDef){
+    if(!me)return {state:'locked',text:tierDef.min+' bug'+(tierDef.min>1?'s':'')+' résolu'+(tierDef.min>1?'s':'')};
+    return {state:'progress',text:resolvedCount+'/'+tierDef.min+' bugs résolus'};
+  }
+  if(key==='dev')return {state:'locked',text:'Réservé à l\\'équipe technique'};
+  if(key==='early')return {state:'locked',text:'Inscription avant le 30/08/2027'};
+  if(key==='base')return {state:'unlocked',text:'✅ Automatique'};
+  return {state:'locked',text:''};
+}
+function trophyCardHtml(key,myBadges,resolvedCount,pathMode){
+  const d=BADGE_DEFS[key];if(!d)return '';
+  const st=badgeUnlockStatus(key,myBadges,resolvedCount);
+  return '<div class="tw-card'+(st.state==='locked'?' locked':'')+'" style="--tw-accent:'+esc(d.color)+'">'
+    +'<div class="tw-icon-ring badge-'+key+'">'+d.icon+'</div>'
+    +'<div class="tw-label">'+esc(d.label)+'</div>'
+    +'<div class="tw-req">'+esc(d.desc.split('.')[0])+'.</div>'
+    +'<div class="tw-status '+st.state+'">'+esc(st.text)+'</div>'
+  +'</div>';
+}
+async function renderBadgesTab(){
+  const box=\$('tm-body');if(!box)return;
+  box.innerHTML='<div class="empty-hint">Chargement…</div>';
+  let myBadges=['base'];
+  let resolvedCount=0;
+  if(me){
+    let meta=memberMetaByUid[me.\$id];
+    if(!meta){try{meta=await db.getDocument(DB,'user_meta',me.\$id);}catch(e){meta=null}}
+    myBadges=parseBadges(meta);
+    resolvedCount=await countResolvedBugs();
+  }
+  box.innerHTML='<div class="tm-intro">Chaque badge raconte un morceau de ton histoire sur XULTRA. Certains s\\'obtiennent automatiquement, d\\'autres se méritent bug après bug — jusqu\\'au sommet.</div>'
+    +'<div class="tw-section-title">🎖️ Statut</div>'
+    +'<div class="tw-grid">'+trophyCardHtml('base',myBadges,resolvedCount)+trophyCardHtml('dev',myBadges,resolvedCount)+trophyCardHtml('early',myBadges,resolvedCount)+'</div>'
+    +'<div class="tw-section-title">🐛 Bug Hunter — la progression</div>'
+    +'<div class="tw-path">'+HUNTER_TIERS.map(function(t){return trophyCardHtml(t.key,myBadges,resolvedCount,true);}).join('')+'</div>';
+}
+function openTeamTab(tab){
+  teamTab=tab;
+  \$('tm-tabs').querySelectorAll('.tm-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-ttab')===tab)});
+  if(tab==='crew')renderCrewTab();else renderBadgesTab();
+}
+async function openTeamPanel(){
+  \$('modal-team').classList.remove('hidden');
+  openTeamTab(teamTab);
+}
+if(\$('nav-team'))\$('nav-team').addEventListener('click',openTeamPanel);
+if(\$('tm-close'))\$('tm-close').addEventListener('click',function(){\$('modal-team').classList.add('hidden')});
+if(\$('modal-team'))\$('modal-team').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('tm-tabs'))\$('tm-tabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.tm-tab');if(!btn)return;
+  openTeamTab(btn.getAttribute('data-ttab'));
+});
+let teamApplyRole=null;
+function openTeamApplyModal(roleKey){
+  teamApplyRole=roleKey;
+  const role=TEAM_ROLES.find(function(r){return r.key===roleKey});
+  if(!role)return;
+  \$('ta-title').textContent=role.icon+' Postuler — '+role.label;
+  \$('ta-sub').textContent=role.desc;
+  \$('ta-message').value='';
+  \$('ta-err').textContent='';
+  \$('modal-team-apply').classList.remove('hidden');
+}
+if(\$('ta-close'))\$('ta-close').addEventListener('click',function(){\$('modal-team-apply').classList.add('hidden')});
+if(\$('modal-team-apply'))\$('modal-team-apply').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('ta-submit'))\$('ta-submit').addEventListener('click',async function(){
+  if(!me||!teamApplyRole)return;
+  const message=(\$('ta-message').value||'').trim();
+  if(!message){\$('ta-err').textContent='Dis-nous-en un peu plus avant d\\'envoyer';return}
+  this.disabled=true;this.textContent='Envoi…';
+  try{
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    await db.createDocument(DB,'team_applications',Appwrite.ID.unique(),{
+      uid:me.\$id,username:name,role:teamApplyRole,message:message.slice(0,1000),status:'pending'
+    },[
+      Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
+    ]);
+    \$('modal-team-apply').classList.add('hidden');
+    showToast('Candidature envoyée ! On revient vers toi bientôt. 🚀');
+    renderCrewTab();
+  }catch(e){\$('ta-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Envoyer ma candidature';
 });
 
 /* ===== Paramètres de l’application ===== */
@@ -6180,6 +6386,7 @@ function showAdminTab(tab){
   else if(tab==='reports')loadAdminReports().then(renderAdminReports).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
+  else if(tab==='team')loadAdminTeamApplications().then(renderAdminTeamApplications).catch(adminErr);
   else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
   else if(tab==='logs')loadAdminLogs().then(renderAdminLogs).catch(adminErr);
   else if(tab==='maintenance')loadAdminMaintenance().then(renderAdminMaintenance).catch(adminErr);
@@ -6468,6 +6675,44 @@ function renderAdminBugs(list){
       try{
         await authPost('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
         await loadAdminBugs().then(renderAdminBugs);
+      }catch(e){adminErr(e)}
+    };
+  });
+}
+
+async function loadAdminTeamApplications(){
+  const jwt=await authJwt();
+  const r=await fetch('/api/admin/team-applications',{method:'POST',headers:{'Authorization':'Bearer '+jwt}});
+  const j=await r.json().catch(function(){return {ok:false}});
+  if(!r.ok||!j.ok)throw new Error((j&&j.error)||('Erreur '+r.status));
+  return j.applications||[];
+}
+const TEAM_APP_STATUS_LABEL={pending:'En attente',accepted:'Acceptée',rejected:'Refusée'};
+function renderAdminTeamApplications(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucune candidature.</div>';return}
+  const canDecide=staffRole==='owner';
+  box.innerHTML=list.map(function(a){
+    const role=TEAM_ROLES.find(function(r){return r.key===a.role});
+    const roleLabel=role?(role.icon+' '+role.label):(a.role||'?');
+    const st=a.status||'pending';
+    return '<div class="admin-row" style="align-items:flex-start">'
+      +'<div class="av">'+esc(ini(a.username||'?'))+'</div>'
+      +'<div class="info"><div class="n">'+esc(a.username||'?')+' — '+esc(roleLabel)+'</div>'
+      +'<div class="p">'+esc(a.message||'')+'</div>'
+      +'<div class="p">'+esc(TEAM_APP_STATUS_LABEL[st]||st)+' · '+esc((a.\$createdAt||'').toString().slice(0,10))+'</div></div>'
+      +(canDecide?('<div class="acts">'
+      +(st!=='accepted'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="accepted" class="ok">Accepter</button>':'')
+      +(st!=='rejected'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="rejected">Refuser</button>':'')
+      +'</div>'):'')
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-teamapp]').forEach(function(el){
+    el.onclick=async function(){
+      this.disabled=true;
+      try{
+        await authPost('/api/admin/team-application-status',{applicationId:el.getAttribute('data-teamapp'),status:el.getAttribute('data-status')});
+        await loadAdminTeamApplications().then(renderAdminTeamApplications);
       }catch(e){adminErr(e)}
     };
   });
@@ -8491,6 +8736,109 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "suggestion_status", detail: suggestionId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/team-applications" && request.method === "POST") {
+    const gate = await requireStaff(request, "view");
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const qs = [
+        JSON.stringify({ method: "orderDesc", values: ["$createdAt"] }),
+        JSON.stringify({ method: "limit", values: [100] })
+      ].map(function (q) { return "queries[]=" + encodeURIComponent(q); }).join("&");
+      const list = await awFetch("/databases/" + AW_DB + "/collections/team_applications/documents?" + qs, { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, applications: list.documents || [] }), {
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/team-application-status" && request.method === "POST") {
+    // Volontairement réservé au owner (capacité "team_role" absente de
+    // MOD_CAPABILITIES) : accepter une candidature accorde un rôle d'équipe
+    // (comme un badge), une décision qui ne devrait pas être déléguée aux mods.
+    const gate = await requireStaff(request, "team_role");
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const applicationId = String((body && body.applicationId) || "");
+      const status = String((body && body.status) || "");
+      if (!applicationId || ["pending", "accepted", "rejected"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      const appDoc = await awFetch("/databases/" + AW_DB + "/collections/team_applications/documents/" + applicationId, { asAdmin: true });
+      await awFetch("/databases/" + AW_DB + "/collections/team_applications/documents/" + applicationId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { status, resolvedBy: gate.acc.$id, resolvedAt: new Date().toISOString() } }
+      });
+      if (status === "accepted" && appDoc.uid && appDoc.role) {
+        const lockedPerms = ["read(\"any\")"];
+        try {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + appDoc.uid, {
+            method: "PATCH", asAdmin: true, body: { data: { teamRole: appDoc.role }, permissions: lockedPerms }
+          });
+        } catch (e) {
+          if (e && e.status === 404) {
+            await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+              method: "POST", asAdmin: true, body: { documentId: appDoc.uid, data: { teamRole: appDoc.role }, permissions: lockedPerms }
+            });
+          } else throw e;
+        }
+      }
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "team_application_status", detail: (appDoc.username || applicationId) + " (" + (appDoc.role || "?") + ") -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/team-role" && request.method === "POST") {
+    // Assignation/retrait manuel d'un rôle d'équipe, indépendamment d'une
+    // candidature (ex: le owner s'assigne "founder" directement).
+    const gate = await requireStaff(request, "team_role");
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const targetUid = String((body && body.uid) || "");
+      const role = body && body.role ? String(body.role) : "";
+      const validRoles = ["founder", "marketing", "moderation", "api_ai", "support"];
+      if (!targetUid) throw new Error("uid requis");
+      if (role && validRoles.indexOf(role) === -1) throw new Error("rôle invalide");
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + targetUid, {
+          method: "PATCH", asAdmin: true, body: { data: { teamRole: role }, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: targetUid, data: { teamRole: role }, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
