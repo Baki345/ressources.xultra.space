@@ -1062,31 +1062,26 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .e2e-bb-x:hover{background:rgba(239,68,68,.15);color:#fca5a5}
 .e2e-bb-input{flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1px solid rgba(167,139,250,.3);background:#0d0818;color:#f3e8ff;font-size:.85rem;outline:none}
 .e2e-bb-input:focus{border-color:#7c3aed}
-.servers-panel{width:min(480px,100%)}
-.srv-list-actions{display:flex;gap:8px;margin:14px 0}
+.srv-list-actions{display:flex;gap:8px;margin:0 0 14px}
 .srv-list-actions .btn-main{flex:1}
 .srv-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8);margin-bottom:8px;cursor:pointer;transition:background .15s ease}
 .srv-item:hover{background:rgba(124,58,237,.1)}
+.srv-item.on{background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.4)}
 .srv-item-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;font-size:1.1rem}
 .srv-item-icon img{width:100%;height:100%;object-fit:cover}
 .srv-item-info{flex:1;min-width:0}
 .srv-item-name{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-item-sub{font-size:.72rem;color:var(--muted)}
 .srv-item-owner{font-size:.62rem;font-weight:800;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);padding:2px 7px;border-radius:999px;flex-shrink:0}
-.server-detail-panel{width:min(560px,100%);padding:0;overflow:hidden}
-.server-detail-panel .modal-close{z-index:5}
-.srv-detail-banner{height:110px;background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center}
-.srv-detail-head{display:flex;align-items:flex-end;gap:14px;padding:0 20px;margin-top:-32px}
-.srv-detail-icon{width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #150c26;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;overflow:hidden;flex-shrink:0}
+.srv-detail-banner{height:90px;background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center;flex-shrink:0}
+.srv-detail-icon{width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;overflow:hidden;flex-shrink:0}
 .srv-detail-icon img{width:100%;height:100%;object-fit:cover}
-.srv-detail-titles{padding-bottom:6px;min-width:0}
-.srv-detail-titles h3{font-size:1.15rem;font-weight:900}
-.srv-detail-desc{font-size:.78rem;color:var(--muted);margin-top:2px}
-.srv-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(42,31,61,.9);overflow-x:auto}
+.srv-detail-icon-sm{width:32px;height:32px;border-radius:9px;font-size:.85rem}
+.srv-detail-desc{font-size:.78rem;color:var(--muted);padding:10px 20px 0;flex-shrink:0}
+.srv-tabs{display:flex;gap:4px;padding:14px 20px 0;border-bottom:1px solid rgba(42,31,61,.9);overflow-x:auto;flex-shrink:0}
 .srv-tab{padding:9px 4px;font-size:.8rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;margin-right:14px}
 .srv-tab.on{color:#e9d5ff;border-color:#7c3aed}
 .srv-tab.hidden{display:none}
-#srv-detail-body{padding:16px 20px 20px;max-height:min(55vh,440px);overflow:auto}
 .srv-invite-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(42,31,61,.8);border-radius:12px;padding:10px 12px;margin-bottom:14px}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
@@ -1465,7 +1460,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
-    <button type="button" class="rail-btn" id="nav-servers" title="Serveurs">🏘️</button>
+    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
     <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
@@ -1476,6 +1471,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
   <aside class="list-col">
@@ -1488,6 +1484,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
         <button type="button" class="icon-btn hidden" id="btn-new-group" title="Créer un groupe">👥+</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un serveur">🏘️+</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un serveur">🔗</button>
         <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
       </div>
     </div>
@@ -1564,6 +1562,22 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance">Maintenance</button>
       </div>
       <div class="admin-body" id="admin-body"></div>
+    </div>
+    <div class="chat-active hidden" id="server-active">
+      <div class="chat-top">
+        <button type="button" class="ub-btn chat-back" id="btn-server-back" title="Retour">←</button>
+        <div class="srv-detail-icon srv-detail-icon-sm" id="srv-detail-icon">?</div>
+        <div class="titles"><div class="t" id="srv-detail-name">—</div></div>
+      </div>
+      <div class="srv-detail-banner" id="srv-detail-banner"></div>
+      <div class="srv-detail-desc" id="srv-detail-desc"></div>
+      <div class="srv-tabs" id="srv-tabs">
+        <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
+        <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
+        <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
+        <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
+      </div>
+      <div class="admin-body" id="srv-detail-body"></div>
     </div>
   </section>
 </div>
@@ -1960,18 +1974,6 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   </div>
 </div>
 
-<div class="overlay hidden" id="modal-servers">
-  <div class="modal-box servers-panel">
-    <button type="button" class="modal-close" id="srv-list-close">✕</button>
-    <h3>🏘️ Serveurs</h3>
-    <div class="srv-list-actions">
-      <button type="button" class="btn-main" id="srv-create-open">+ Créer un serveur</button>
-      <button type="button" class="btn-flag" id="srv-join-open">🔗 Rejoindre</button>
-    </div>
-    <div id="srv-list-body"></div>
-  </div>
-</div>
-
 <div class="overlay hidden" id="modal-server-create">
   <div class="modal-box">
     <button type="button" class="modal-close" id="srv-create-close">✕</button>
@@ -1994,26 +1996,6 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   </div>
 </div>
 
-<div class="overlay hidden" id="modal-server-detail">
-  <div class="modal-box server-detail-panel">
-    <button type="button" class="modal-close" id="srv-detail-close">✕</button>
-    <div class="srv-detail-banner" id="srv-detail-banner"></div>
-    <div class="srv-detail-head">
-      <div class="srv-detail-icon" id="srv-detail-icon">?</div>
-      <div class="srv-detail-titles">
-        <h3 id="srv-detail-name"></h3>
-        <div class="srv-detail-desc" id="srv-detail-desc"></div>
-      </div>
-    </div>
-    <div class="srv-tabs" id="srv-tabs">
-      <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
-      <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
-      <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
-      <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
-    </div>
-    <div id="srv-detail-body"></div>
-  </div>
-</div>
 
 <div class="overlay hidden" id="modal-notifications">
   <div class="modal-box notif-panel">
@@ -3108,9 +3090,30 @@ function showView(v){
     return;
   }
   \$('admin-active').classList.add('hidden');
-  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':'Membres');
-  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':'Membres');
+  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'Serveurs':'Membres'));
+  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Tes communautés':'Membres'));
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
+  if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
+  if(\$('btn-server-join'))\$('btn-server-join').classList.toggle('hidden',v!=='servers');
+  if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
+  if(v==='servers'){
+    \$('chat-active').classList.add('hidden');
+    if(activeServer){
+      \$('server-active').classList.remove('hidden');
+      \$('chat-empty').classList.add('hidden');
+      app.classList.add('chat-open');
+    }else{
+      \$('server-active').classList.add('hidden');
+      \$('chat-empty').classList.remove('hidden');
+      \$('chat-empty').innerHTML='<div style="font-size:2rem">🏘️</div><h3>Sélectionne un serveur</h3><p>Ou crée le tien avec le bouton 🏘️+ ci-dessus.</p>';
+      app.classList.remove('chat-open');
+    }
+    loadMyServers().then(renderServersListView).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})});
+    repositionCallPanel();
+    return;
+  }
+  \$('server-active').classList.add('hidden');
+  \$('chat-empty').innerHTML='<div style="font-size:2rem">💬</div><h3>Sélectionne une conversation</h3><p>Ou ouvre l\\'onglet Amis pour en démarrer une.</p>';
   app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
@@ -3160,6 +3163,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.34.1',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
+    body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de XULTRA.'},
   {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
     body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…) — comme sur Discord. Chaque serveur a son propre salon vocal persistant. Et si tu es XULTRA+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
   {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
@@ -8515,18 +8520,13 @@ function serverIconHtml(s,sizeClass){
   const url=safeUrl(s&&s.icon);
   return url?'<img src="'+esc(url)+'" alt="">':esc(ini((s&&s.name)||'?'));
 }
-async function openServersPanel(){
-  \$('modal-servers').classList.remove('hidden');
-  \$('srv-list-body').innerHTML='<div class="empty-hint">Chargement…</div>';
-  await loadMyServers();
-  renderServersList();
-}
-function renderServersList(){
-  const box=\$('srv-list-body');if(!box)return;
-  if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu ne fais partie d\\'aucun serveur pour l\\'instant. Crée le tien ou rejoins-en un avec un code !</div>';return}
+function renderServersListView(){
+  const box=\$('list-body');if(!box||view!=='servers')return;
+  if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu ne fais partie d\\'aucun serveur pour l\\'instant. Crée le tien ou rejoins-en un avec un code (boutons en haut) !</div>';return}
   box.innerHTML=myServers.map(function(s){
     const isOwner=me&&String(s.ownerId)===String(me.\$id);
-    return '<div class="srv-item" data-srv-open="'+esc(s.\$id)+'">'
+    const isActive=activeServer&&activeServer.\$id===s.\$id;
+    return '<div class="srv-item'+(isActive?' on':'')+'" data-srv-open="'+esc(s.\$id)+'">'
       +'<div class="srv-item-icon">'+serverIconHtml(s)+'</div>'
       +'<div class="srv-item-info"><div class="srv-item-name">'+esc(s.name)+'</div><div class="srv-item-sub">'+esc((s.description||'').slice(0,60)||'Aucune description')+'</div></div>'
       +(isOwner?'<span class="srv-item-owner">👑 Toi</span>':'')
@@ -8536,11 +8536,17 @@ function renderServersList(){
     el.addEventListener('click',function(){openServerDetail(el.getAttribute('data-srv-open'));});
   });
 }
-if(\$('nav-servers'))\$('nav-servers').addEventListener('click',openServersPanel);
-if(\$('srv-list-close'))\$('srv-list-close').addEventListener('click',function(){\$('modal-servers').classList.add('hidden');});
-if(\$('modal-servers'))\$('modal-servers').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+function closeServerDetail(){
+  activeServer=null;
+  document.getElementById('app').classList.remove('chat-open');
+  \$('server-active').classList.add('hidden');
+  \$('chat-empty').classList.remove('hidden');
+  renderServersListView();
+  repositionCallPanel();
+}
+if(\$('btn-server-back'))\$('btn-server-back').addEventListener('click',closeServerDetail);
 
-if(\$('srv-create-open'))\$('srv-create-open').addEventListener('click',function(){
+if(\$('btn-server-create'))\$('btn-server-create').addEventListener('click',function(){
   \$('srv-create-name').value='';\$('srv-create-desc').value='';\$('srv-create-err').textContent='';
   \$('modal-server-create').classList.remove('hidden');
 });
@@ -8554,13 +8560,13 @@ if(\$('srv-create-submit'))\$('srv-create-submit').addEventListener('click',asyn
     const res=await authPost('/api/servers/create',{name:name,description:(\$('srv-create-desc').value||'').trim()});
     \$('modal-server-create').classList.add('hidden');
     showToast('Serveur créé ! 🎉');
-    await loadMyServers();renderServersList();
+    await loadMyServers();
     openServerDetail(res.server.\$id);
   }catch(e){\$('srv-create-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Créer mon serveur';
 });
 
-if(\$('srv-join-open'))\$('srv-join-open').addEventListener('click',function(){
+if(\$('btn-server-join'))\$('btn-server-join').addEventListener('click',function(){
   \$('srv-join-code').value='';\$('srv-join-preview').innerHTML='';\$('srv-join-err').textContent='';
   \$('modal-server-join').classList.remove('hidden');
 });
@@ -8590,7 +8596,7 @@ if(\$('srv-join-submit'))\$('srv-join-submit').addEventListener('click',async fu
     const res=await authPost('/api/servers/join',{inviteCode:code});
     \$('modal-server-join').classList.add('hidden');
     showToast(res.alreadyMember?'Tu es déjà membre de ce serveur !':'Bienvenue dans le serveur ! 🎉');
-    await loadMyServers();renderServersList();
+    await loadMyServers();
     openServerDetail(res.server.\$id);
   }catch(e){\$('srv-join-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Rejoindre';
@@ -8609,7 +8615,6 @@ async function openServerDetail(serverId){
     activeServerMembers=membersList.documents||[];
     activeServerMembership=me?activeServerMembers.find(function(m){return String(m.uid)===String(me.\$id)}):null;
   }catch(e){activeServerMembers=[];activeServerMembership=null;}
-  \$('modal-servers').classList.add('hidden');
   \$('srv-detail-name').textContent=activeServer.name;
   \$('srv-detail-desc').textContent=activeServer.description||'';
   \$('srv-detail-icon').innerHTML=serverIconHtml(activeServer);
@@ -8621,7 +8626,12 @@ async function openServerDetail(serverId){
   \$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
   activeServerTab='overview';
   switchServerTab('overview');
-  \$('modal-server-detail').classList.remove('hidden');
+  \$('chat-empty').classList.add('hidden');
+  \$('chat-active').classList.add('hidden');
+  \$('server-active').classList.remove('hidden');
+  document.getElementById('app').classList.add('chat-open');
+  renderServersListView();
+  repositionCallPanel();
 }
 function switchServerTab(tab){
   activeServerTab=tab;
@@ -8634,12 +8644,6 @@ function switchServerTab(tab){
 document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){
   b.addEventListener('click',function(){switchServerTab(b.getAttribute('data-srv-tab'));});
 });
-if(\$('srv-detail-close'))\$('srv-detail-close').addEventListener('click',function(){
-  \$('modal-server-detail').classList.add('hidden');
-  activeServer=null;
-});
-if(\$('modal-server-detail'))\$('modal-server-detail').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
-
 const SERVER_QUALITY_LABELS={standard:'Standard (64 kbps)',high:'Haute fidélité XULTRA+ (256 kbps)','720p60':'720p · 60 img/s',"1080p60":'1080p · 60 img/s'};
 function renderServerOverviewTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
@@ -8672,7 +8676,7 @@ function renderServerOverviewTab(){
   const leaveBtn=\$('srv-leave-btn');
   if(leaveBtn)leaveBtn.onclick=async function(){
     if(!confirm('Quitter ce serveur ?'))return;
-    try{await authPost('/api/servers/leave',{serverId:activeServer.\$id});\$('modal-server-detail').classList.add('hidden');await loadMyServers();showToast('Tu as quitté le serveur.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    try{await authPost('/api/servers/leave',{serverId:activeServer.\$id});closeServerDetail();await loadMyServers();renderServersListView();showToast('Tu as quitté le serveur.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
 }
 function serverRoleBadgesHtml(member){
@@ -8873,7 +8877,7 @@ async function renderServerSettingsTab(){
   const delBtn=\$('srv-delete-btn');
   if(delBtn)delBtn.onclick=async function(){
     if(!confirm('Supprimer définitivement ce serveur ? Cette action est irréversible.'))return;
-    try{await authPost('/api/servers/delete',{serverId:activeServer.\$id});\$('modal-server-detail').classList.add('hidden');await loadMyServers();showToast('Serveur supprimé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    try{await authPost('/api/servers/delete',{serverId:activeServer.\$id});closeServerDetail();await loadMyServers();renderServersListView();showToast('Serveur supprimé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
 }
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
