@@ -2052,7 +2052,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 
 <div class="e2e-backup-banner hidden" id="e2e-backup-banner">
   <div class="e2e-bb-row" id="e2e-bb-ask">
-    <span class="e2e-bb-text">🔒 Sécurise l'accès à tes messages chiffrés sur tes autres appareils.</span>
+    <span class="e2e-bb-text" id="e2e-bb-ask-text">🔒 Sécurise l'accès à tes messages chiffrés sur tes autres appareils.</span>
     <button type="button" class="e2e-bb-btn" id="e2e-backup-confirm">Confirmer mon mot de passe</button>
     <button type="button" class="e2e-bb-x" id="e2e-backup-later" title="Plus tard">✕</button>
   </div>
@@ -2696,6 +2696,7 @@ async function ensureE2EKeys(password){
       const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
       existing=(r.documents&&r.documents[0])||null;
     }catch(e){}
+    let needsRestore=false;
     if(!jwk||!pub){
       const restored=await restoreE2EPrivateKeyFromBackup(password,existing);
       if(restored){
@@ -2705,6 +2706,15 @@ async function ensureE2EKeys(password){
         pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',pubKeyObj)));
         xlog('e2e_key_restored',{});
       }else{
+        /* Un compte peut se connecter sans jamais fournir son mot de passe
+           (clé d'accès/passkey, session restaurée) — dans ce cas on ne peut
+           pas déchiffrer une sauvegarde existante même si elle existe bel et
+           bien côté serveur. On génère quand même une clé locale temporaire
+           pour que l'appli reste utilisable (envoyer/recevoir de nouveaux
+           messages), mais on signale qu'une vraie restauration (avec mot de
+           passe) reste possible et souhaitable, plutôt que de laisser croire
+           que le problème est réglé pour de bon. */
+        if(existing&&existing.encPrivB64)needsRestore=true;
         const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
         jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
         pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
@@ -2719,8 +2729,8 @@ async function ensureE2EKeys(password){
       try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
     }
     const backedUp=existing?await backupE2EPrivateKeyIfNeeded(password,jwk,existing):false;
-    return {hasKey:!!jwk,backedUp:backedUp};
-  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});return {hasKey:false,backedUp:false};}
+    return {hasKey:!!jwk,backedUp:backedUp,needsRestore:needsRestore};
+  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});return {hasKey:false,backedUp:false,needsRestore:false};}
 }
 const peerPubKeyCache={};
 async function e2ePeerPubKey(peerUid){
@@ -2851,8 +2861,10 @@ async function enterApp(e2ePassword){
        ne le transporte jamais), on propose de confirmer son mot de passe pour
        l'activer, plutôt que de laisser le risque silencieux de perdre l'accès
        aux messages en cas de changement d'appareil. */
-    if(status&&status.hasKey&&!status.backedUp&&!e2eBackupPromptDismissed){
-      \$('e2e-backup-banner').classList.remove('hidden');
+    if(status&&status.needsRestore&&!e2eBackupPromptDismissed){
+      showE2EBanner('restore');
+    }else if(status&&status.hasKey&&!status.backedUp&&!e2eBackupPromptDismissed){
+      showE2EBanner('activate');
     }
   }).catch(function(){});
   authPost('/api/account/grant-early-badge',{}).catch(function(){});
@@ -2899,6 +2911,18 @@ async function enterApp(e2ePassword){
     if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
   }catch(e){}
 }
+let e2eBannerMode='activate';
+function showE2EBanner(mode){
+  e2eBannerMode=mode;
+  if(mode==='restore'){
+    \$('e2e-bb-ask-text').textContent='🔓 Cet appareil ne peut pas encore lire tes anciens messages chiffrés. Entre ton mot de passe pour les restaurer.';
+    \$('e2e-backup-confirm').textContent='Restaurer mes messages';
+  }else{
+    \$('e2e-bb-ask-text').textContent='🔒 Sécurise l\\'accès à tes messages chiffrés sur tes autres appareils.';
+    \$('e2e-backup-confirm').textContent='Confirmer mon mot de passe';
+  }
+  \$('e2e-backup-banner').classList.remove('hidden');
+}
 function hideE2EBackupBanner(){
   \$('e2e-backup-banner').classList.add('hidden');
   \$('e2e-bb-ask').classList.remove('hidden');
@@ -2935,9 +2959,20 @@ async function submitE2EBackupPassword(){
        connexion (ouvre une session de plus, sans conséquence : l'app gère
        déjà plusieurs sessions par appareil). */
     await account.createEmailPasswordSession(me.email,pass);
+    const wasRestoreMode=e2eBannerMode==='restore';
     const status=await ensureE2EKeys(pass);
     if(status&&status.backedUp){
-      showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
+      if(wasRestoreMode){
+        /* La clé restaurée peut différer de celle générée temporairement au
+           démarrage — sans vider ce cache, e2eThreadKey() continuerait de
+           renvoyer la clé (fausse) déjà résolue cette session, et les
+           messages resteraient "illisibles" jusqu'au prochain rechargement. */
+        Object.keys(threadKeyCache).forEach(function(k){delete threadKeyCache[k];});
+        showToast('Messages restaurés — tu peux à nouveau les lire sur cet appareil. 🔓');
+        hydrateEncryptedMessages().catch(function(){});
+      }else{
+        showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
+      }
       hideE2EBackupBanner();
     }else{
       showToast('Erreur réseau, réessaie.','error');
@@ -3252,6 +3287,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.36.1',date:'23 août 2026',time:'22:45',title:'Corrections suite à vos signalements (encore !)',
+    body:'Plusieurs correctifs suite à des rapports de bugs : (1) sur un nouvel appareil connecté par clé d\\'accès (passkey), tes anciens messages chiffrés restaient "illisibles" même si une sauvegarde existait déjà — un nouveau bandeau te propose maintenant de saisir ton mot de passe pour les restaurer. (2) Dans l\\'éditeur de profil, si l\\'enregistrement des pronoms/statut/effets échouait (réseau), l\\'appli affichait quand même "Profil mis à jour" — l\\'erreur est maintenant visible et rien n\\'est perdu côté pseudo/bio/couleurs. (3) Quand deux personnes s\\'envoyaient une demande d\\'ami en même temps, elles devenaient amies en double (la même personne apparaissait deux fois) — les demandes croisées sont désormais fusionnées automatiquement, refuser une demande prévient aussi l\\'autre personne, et les doublons déjà présents en base ont été nettoyés.'},
   {version:'2.36.0',date:'23 août 2026',time:'22:15',title:'Hiérarchie des rôles et permissions par salon dans les Serveurs',
     body:'Les rôles ont maintenant une position : ceux du haut de la liste sont plus puissants (leur couleur prime sur le pseudo, et un membre ne peut plus créer, modifier, supprimer ou attribuer un rôle égal ou supérieur au sien — seul le propriétaire y échappe). Boutons ▲▼ pour réorganiser. Chaque salon accepte désormais des permissions avancées par rôle (Voir / Écrire : autoriser ou refuser), en plus de la visibilité simple. Les rôles marqués "mentionnable" sont surlignés quand on écrit @NomDuRôle dans un salon texte.'},
   {version:'2.35.0',date:'24 août 2026',time:'05:15',title:'Salons multiples et catégories dans les Serveurs',
@@ -4734,7 +4771,7 @@ function renderFriends(){
       return '<div class="row">'+rowAvatar(friendProfile(f.friendId),f.name||'?',f.friendId)
         +'<div class="info" data-profile="'+esc(f.friendId)+'"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
         +'<div class="act"><button type="button" data-accept="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'" data-fname="'+esc(f.name||'')+'">Accepter</button>'
-        +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'">✕</button></div></div>';
+        +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'">✕</button></div></div>';
     }).join('');
   }
   if(accepted.length){
@@ -4756,7 +4793,7 @@ function renderFriends(){
     el.onclick=function(){acceptFriendRequest(el.getAttribute('data-accept'),el.getAttribute('data-from'));};
   });
   box.querySelectorAll('[data-reject]').forEach(function(el){
-    el.onclick=function(){rejectFriendRequest(el.getAttribute('data-reject'));};
+    el.onclick=function(){rejectFriendRequest(el.getAttribute('data-reject'),el.getAttribute('data-from'));};
   });
   box.querySelectorAll('[data-friend-wrap]').forEach(function(wrap){attachRowSwipe(wrap);});
   box.querySelectorAll('[data-del-friend]').forEach(function(el){
@@ -4770,17 +4807,56 @@ function renderFriends(){
 async function acceptFriendRequest(reqDocId,fromUid){
   try{
     await db.updateDocument(DB,'ultravoc_friends',reqDocId,{status:'accepted'});
-    const mine=friendsCache.find(function(f){return f.friendId===fromUid&&f.status==='pending_out'});
     const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
-    if(mine){await db.updateDocument(DB,'ultravoc_friends',mine.\$id,{status:'accepted'});}
-    else{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:fromUid,friendId:me.\$id,status:'accepted',name:myName});}
+    /* Si je leur avais MOI AUSSI envoyé une demande avant de recevoir la
+       leur (double demande simultanée), ce doublon ne doit pas devenir un
+       second document "accepted" de mon côté — d'où le même ami affiché
+       deux fois, signalé par plusieurs joueurs. On le supprime au lieu de
+       l'accepter en plus : reqDocId ci-dessus fait déjà foi. */
+    const mineDup=friendsCache.find(function(f){return String(f.friendId)===String(fromUid)&&f.status==='pending_out'&&f.\$id!==reqDocId;});
+    if(mineDup)await db.deleteDocument(DB,'ultravoc_friends',mineDup.\$id).catch(function(){});
+    /* Fait aussi passer LEUR copie de la relation (leur propre pending_out
+       envoyé de leur côté) à "accepted" — sans ça, seule ma moitié se met à
+       jour et sa liste d'amis à lui continue d'afficher "en attente" pour
+       toujours, même une fois que j'ai accepté. On interroge directement
+       ses documents (la collection est lisible par tous) plutôt que de
+       deviner : ça corrige aussi tout doublon déjà existant côté serveur. */
+    try{
+      const theirs=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',fromUid),Appwrite.Query.equal('friendId',me.\$id),Appwrite.Query.limit(10)]);
+      const theirDocs=theirs.documents||[];
+      if(theirDocs.length){
+        /* Même double-demande simultanée que ci-dessus, mais vue de LEUR
+           côté à eux cette fois (leur pending_out d'origine + un pending_in
+           créé pour eux quand j'ai moi-même envoyé une demande) : deux
+           documents au lieu d'un seul. On n'en garde qu'un — accepté — et
+           on supprime le reste, plutôt que d'accepter les deux. */
+        const theirKeep=theirDocs.find(function(d){return d.status==='accepted';})||theirDocs[0];
+        for(const d of theirDocs){
+          if(d.\$id===theirKeep.\$id){if(d.status!=='accepted')await db.updateDocument(DB,'ultravoc_friends',d.\$id,{status:'accepted'}).catch(function(){});}
+          else await db.deleteDocument(DB,'ultravoc_friends',d.\$id).catch(function(){});
+        }
+      }else{
+        await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:fromUid,friendId:me.\$id,status:'accepted',name:myName});
+      }
+    }catch(e){}
     sendNotification(fromUid,'friend_accepted',me.\$id,myName,myName+' a accepté ta demande d\\'ami');
     await loadFriends();if(view==='friends')renderFriends();
   }catch(e){xlog('friend_accept_fail',{msg:(e&&e.message)||String(e)});}
 }
-async function rejectFriendRequest(reqDocId){
-  try{await db.deleteDocument(DB,'ultravoc_friends',reqDocId);await loadFriends();if(view==='friends')renderFriends();}
-  catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
+async function rejectFriendRequest(reqDocId,fromUid){
+  try{
+    await db.deleteDocument(DB,'ultravoc_friends',reqDocId);
+    /* Sans ça, leur pending_out reste éternellement "en attente" de leur
+       côté — ils ne sauraient jamais que la demande a été refusée, et
+       renvoyer une demande plus tard retomberait dans le même état bloqué. */
+    if(fromUid){
+      try{
+        const theirs=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',fromUid),Appwrite.Query.equal('friendId',me.\$id),Appwrite.Query.equal('status','pending_out'),Appwrite.Query.limit(10)]);
+        for(const d of (theirs.documents||[]))await db.deleteDocument(DB,'ultravoc_friends',d.\$id).catch(function(){});
+      }catch(e){}
+    }
+    await loadFriends();if(view==='friends')renderFriends();
+  }catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
 }
 async function removeFriend(uid,name){
   try{
@@ -4807,6 +4883,20 @@ async function sendFriendRequest(targetUid,targetName){
       return false;
     }
   }catch(e){}
+  /* Si cette personne t'a DÉJÀ envoyé une demande (visible dans ton propre
+     friendsCache comme 'pending_in'), créer une nouvelle paire pending_out/
+     pending_in en double au lieu de simplement accepter la sienne aboutissait
+     à DEUX relations "acceptées" distinctes entre les deux mêmes comptes une
+     fois que chacun cliquait "Accepter" de son côté — d'où le même ami
+     apparaissant deux fois. Signalé par plusieurs joueurs. */
+  const existing=friendsCache.find(function(f){return String(f.friendId)===String(targetUid);});
+  if(existing&&existing.status==='accepted'){showToast('Vous êtes déjà amis !');return true;}
+  if(existing&&existing.status==='pending_out'){showToast('Demande déjà envoyée.');return true;}
+  if(existing&&existing.status==='pending_in'){
+    await acceptFriendRequest(existing.\$id,targetUid);
+    showToast('Vous étiez déjà en attente l\\'un de l\\'autre — amis directement ! 🎉');
+    return true;
+  }
   try{
     await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:targetUid,status:'pending_out',name:targetName||'Ami'});
     try{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:targetUid,friendId:me.\$id,status:'pending_in',name:myName});}catch(e){}
@@ -4878,7 +4968,7 @@ function renderNotifications(){
     if(e.kind==='friend_request'){
       body='<div class="ntf-text"><b>'+esc(e.name||'Quelqu\\'un')+'</b> t\\'a envoyé une demande d\\'ami</div>'
         +'<div class="ntf-actions"><button type="button" data-ntf-accept="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Accepter</button>'
-        +'<button type="button" class="rej" data-ntf-decline="'+esc(e.id)+'">Refuser</button>'
+        +'<button type="button" class="rej" data-ntf-decline="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Refuser</button>'
         +'<button type="button" class="rej" data-ntf-block="'+esc(e.fromUid)+'" data-ntf-blockname="'+esc(e.name||'')+'">Bloquer</button></div>';
     } else if(e.kind==='dm'){
       clickable=true;
@@ -4888,7 +4978,7 @@ function renderNotifications(){
       clickable=!!e.fromUid;
     }
     return '<div class="row-swipe" data-notif-wrap>'
-      +'<div class="row-del-action" data-ntf-del="'+esc(e.kind==='dm'?e.dmId:e.id||'')+'" data-ntf-del-kind="'+esc(e.kind)+'"><span>🗑</span></div>'
+      +'<div class="row-del-action" data-ntf-del="'+esc(e.kind==='dm'?e.dmId:e.id||'')+'" data-ntf-del-kind="'+esc(e.kind)+'" data-ntf-del-from="'+esc(e.fromUid||'')+'"><span>🗑</span></div>'
       +'<div class="row notif-row'+(clickable?' clickable':'')+'" data-notif-kind="'+esc(e.kind)+'" data-notif-dm="'+esc(e.dmId||'')+'" data-notif-uid="'+esc(e.fromUid||'')+'">'
       +'<span class="ntf-icon">'+(NOTIF_ICONS[e.kind]||'🔔')+'</span>'
       +'<div class="ntf-body">'+body+'<div class="ntf-time">'+esc(fmtRelTime(e.ts))+'</div></div>'
@@ -4910,7 +5000,7 @@ function renderNotifications(){
     el.addEventListener('click',function(e){e.stopPropagation();acceptFriendRequest(el.getAttribute('data-ntf-accept'),el.getAttribute('data-ntf-from')).then(renderNotifications);});
   });
   list.querySelectorAll('[data-ntf-decline]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();rejectFriendRequest(el.getAttribute('data-ntf-decline')).then(renderNotifications);});
+    el.addEventListener('click',function(e){e.stopPropagation();rejectFriendRequest(el.getAttribute('data-ntf-decline'),el.getAttribute('data-ntf-from')).then(renderNotifications);});
   });
   list.querySelectorAll('[data-ntf-block]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();confirmBlockUser(el.getAttribute('data-ntf-block'),el.getAttribute('data-ntf-blockname'));});
@@ -4920,7 +5010,7 @@ function renderNotifications(){
       e.stopPropagation();
       const kind=el.getAttribute('data-ntf-del-kind');
       const id=el.getAttribute('data-ntf-del');
-      if(kind==='friend_request'){await rejectFriendRequest(id);}
+      if(kind==='friend_request'){await rejectFriendRequest(id,el.getAttribute('data-ntf-del-from'));}
       else if(kind==='dm'){await markDmRead(id);}
       else if(id){try{await db.deleteDocument(DB,'notifications',id);notifCache=notifCache.filter(function(n){return n.\$id!==id});}catch(err){}}
       renderNotifications();updateNotifBadge();
@@ -4934,7 +5024,7 @@ if(\$('ntf-accept-all'))\$('ntf-accept-all').addEventListener('click',async func
 });
 if(\$('ntf-decline-all'))\$('ntf-decline-all').addEventListener('click',async function(){
   const pend=friendsCache.filter(function(f){return f.status==='pending_in'});
-  for(const f of pend)await rejectFriendRequest(f.\$id);
+  for(const f of pend)await rejectFriendRequest(f.\$id,f.friendId);
   renderNotifications();
 });
 if(\$('ntf-clear-all'))\$('ntf-clear-all').addEventListener('click',function(){
@@ -5807,15 +5897,28 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
       headerLayout:peDraft.headerLayout,titleSize:peDraft.titleSize,particles:peDraft.particles,
       font:peDraft.font,statusManual:peDraft.statusManual,spotify:peDraft.spotify
     });
+    /* Ce second appel enregistre pronoms, statut personnalisé, cadre d'avatar,
+       galerie et bordure de carte — des champs verrouillés admin-only sur
+       user_meta (voir /api/account/update-meta) donc à part du premier appel
+       ci-dessus. Avaler son échec en silence affichait "Profil mis à jour !"
+       même quand ces champs précis n'avaient PAS été sauvegardés — signalé
+       par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
+       qu'aucune erreur ne soit jamais visible. */
+    let extraSaveFailed=false;
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
         profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
       });
-    }catch(e){}
+    }catch(e){extraSaveFailed=true;xlog('profile_extra_save_fail',{msg:(e&&e.message)||String(e)});}
     refreshSelfBar();
-    showToast('Profil mis à jour !');
-    \$('modal-profile-edit').classList.add('hidden');
+    if(extraSaveFailed){
+      \$('pe-err').textContent='Pseudo, bio et couleurs enregistrés, mais pronoms/statut/effets n\\'ont pas pu être sauvegardés (réseau). Réessaie.';
+      showToast('Sauvegarde partielle — réessaie pour les effets de profil.','error');
+    }else{
+      showToast('Profil mis à jour !');
+      \$('modal-profile-edit').classList.add('hidden');
+    }
   }catch(e){\$('pe-err').textContent='Enregistrement impossible : '+((e&&e.message)||e);}
   finally{btn.disabled=false;btn.textContent='Enregistrer';}
 });
