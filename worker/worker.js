@@ -2868,6 +2868,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
+    body:'Dans l\\'onglet Badges & paliers, un palier Bug Hunter déjà largement dépassé (par exemple Chasseur Novice pour quelqu\\'un qui a déjà 10 bugs résolus) pouvait s\\'afficher à tort comme "en cours" au lieu de "Débloqué". Corrigé.'},
   {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe XULTRA et débloque tous les badges',
     body:'Nouveau bouton 🏅 dans la barre latérale, avec deux onglets. « L\\'équipe » présente qui fait tourner XULTRA par poste (Fondateur, Marketing, Modération, Gestion API & IA, Support) — un poste vacant ? Postule directement depuis l\\'app ! « Badges & paliers » est ta salle des trophées personnelle : tous les badges de la plateforme, leurs paliers, et exactement ce qu\\'il te reste à faire pour les débloquer, y compris ta progression en temps réel vers le prochain palier Bug Hunter.'},
   {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
@@ -3124,12 +3126,19 @@ async function renderCrewTab(){
   });
 }
 function badgeUnlockStatus(key,myBadges,resolvedCount){
-  if(myBadges.indexOf(key)>=0)return {state:'unlocked',text:'✅ Débloqué'};
+  /* badgesJson ne garde QUE le palier Bug Hunter le plus haut atteint (pas
+     tous les paliers déjà dépassés) : se fier à myBadges.indexOf(key) pour
+     un palier ferait donc apparaître les paliers déjà largement dépassés
+     comme "en cours" (ex: "10/1 bugs résolus" pour quelqu'un qui a déjà
+     10 résolus et le badge Chasseur Expert). On compare resolvedCount
+     directement au seuil du palier à la place. */
   const tierDef=HUNTER_TIERS.find(function(t){return t.key===key});
   if(tierDef){
     if(!me)return {state:'locked',text:tierDef.min+' bug'+(tierDef.min>1?'s':'')+' résolu'+(tierDef.min>1?'s':'')};
+    if(resolvedCount>=tierDef.min)return {state:'unlocked',text:'✅ Débloqué'};
     return {state:'progress',text:resolvedCount+'/'+tierDef.min+' bugs résolus'};
   }
+  if(myBadges.indexOf(key)>=0)return {state:'unlocked',text:'✅ Débloqué'};
   if(key==='dev')return {state:'locked',text:'Réservé à l\\'équipe technique'};
   if(key==='early')return {state:'locked',text:'Inscription avant le 30/08/2027'};
   if(key==='base')return {state:'unlocked',text:'✅ Automatique'};
