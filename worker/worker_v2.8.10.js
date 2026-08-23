@@ -406,9 +406,20 @@ button{cursor:pointer;border:0;background:0}
   border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:18px 22px 20px;
   box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.08) inset;
 }
-.logo{font-size:1.9rem;font-weight:900;text-align:center;letter-spacing:.04em;background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;animation:logoGlow 4s ease-in-out infinite}
+.logo-wrap{position:relative}
+.logo-particles{position:absolute;inset:-14px;pointer-events:none;overflow:visible;z-index:0}
+.logo-particle{position:absolute;border-radius:50%;background:radial-gradient(circle,#c4b5fd,#7c3aed);opacity:0;animation:logoParticleFloat 4.5s ease-in-out infinite}
+@keyframes logoParticleFloat{
+  0%{opacity:0;transform:translateY(6px) scale(.5)}
+  15%{opacity:.9}
+  50%{opacity:.6;transform:translateY(-16px) scale(1)}
+  85%{opacity:.2}
+  100%{opacity:0;transform:translateY(-26px) scale(.4)}
+}
+.logo{position:relative;z-index:1;font-size:1.9rem;font-weight:900;text-align:center;letter-spacing:.04em;background:linear-gradient(100deg,#7c3aed,#c4b5fd,#a78bfa,#5b21b6,#c4b5fd,#7c3aed);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:logoGlow 4s ease-in-out infinite,logoGradient 5s linear infinite}
 @keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(167,139,250,0))}50%{filter:drop-shadow(0 0 14px rgba(167,139,250,.55))}}
-@media (prefers-reduced-motion:reduce){.logo{animation:none}}
+@keyframes logoGradient{from{background-position:0% 50%}to{background-position:300% 50%}}
+@media (prefers-reduced-motion:reduce){.logo,.logo-particle{animation:none}}
 
 /* ===== Showcase / présentation du site (sous la carte de connexion) ===== */
 .showcase{
@@ -1052,7 +1063,10 @@ button{cursor:pointer;border:0;background:0}
 <div id="stage">
  <div class="stage-inner">
   <div id="auth" class="card">
-    <div class="logo">XULTRA</div>
+    <div class="logo-wrap">
+      <div class="logo-particles" id="logo-particles"></div>
+      <div class="logo">XULTRA</div>
+    </div>
     <div class="logo-sub">Messages · Amis · Profils</div>
     <div class="tabs">
       <button type="button" class="on" data-tab="login">Connexion</button>
@@ -1096,17 +1110,6 @@ button{cursor:pointer;border:0;background:0}
       <div class="pw-strength" id="pw-strength">
         <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
         <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
-      </div>
-      <div class="field">
-        <label>Couleur du profil</label>
-        <div class="color-swatches" id="reg-swatches">
-          <button type="button" data-c="#7c3aed" class="on" style="background:#7c3aed" aria-label="Violet"></button>
-          <button type="button" data-c="#a78bfa" style="background:#a78bfa" aria-label="Mauve"></button>
-          <button type="button" data-c="#c026d3" style="background:#c026d3" aria-label="Magenta"></button>
-          <button type="button" data-c="#0ea5e9" style="background:#0ea5e9" aria-label="Bleu"></button>
-          <button type="button" data-c="#22c55e" style="background:#22c55e" aria-label="Vert"></button>
-          <button type="button" data-c="#f59e0b" style="background:#f59e0b" aria-label="Ambre"></button>
-        </div>
       </div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
       <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
@@ -1765,6 +1768,21 @@ xlog('page_loaded',{ready:document.readyState});
 function showErrTxt(msg){if(\$('auth-err'))\$('auth-err').textContent=msg||''}
 
 /* ===== Carrousel de présentation (page de connexion) ===== */
+(function initLogoParticles(){
+  const wrap=\$('logo-particles');if(!wrap)return;
+  const n=14;
+  for(let i=0;i<n;i++){
+    const s=document.createElement('span');
+    s.className='logo-particle';
+    const size=2+Math.random()*3;
+    s.style.width=size+'px';s.style.height=size+'px';
+    s.style.left=(Math.random()*100)+'%';
+    s.style.top=(20+Math.random()*60)+'%';
+    s.style.animationDelay=(Math.random()*4.5)+'s';
+    s.style.animationDuration=(3.5+Math.random()*2.5)+'s';
+    wrap.appendChild(s);
+  }
+})();
 (function initShowcase(){
   const track=\$('showcase-track'),dotsWrap=\$('showcase-dots');
   if(!track||!dotsWrap)return;
@@ -1871,8 +1889,7 @@ function updatePasswordStrength(){
 if(\$('in-pass2'))\$('in-pass2').addEventListener('input',updatePasswordStrength);
 function updateRegPreview(){
   const n=((\$('in-user')&&\$('in-user').value)||'').trim()||'Nouveau membre';
-  const swOn=document.querySelector('#reg-swatches button.on');
-  const c=(swOn&&swOn.dataset.c)||'#7c3aed';
+  const c='#7c3aed';
   if(\$('rp-name'))\$('rp-name').textContent=n;
   const tagVal=(\$('in-tag')&&\$('in-tag').value)||'····';
   if(\$('rp-tag'))\$('rp-tag').textContent='@'+slugUsername(n)+'#'+tagVal;
@@ -1898,16 +1915,6 @@ if(\$('in-tag')){
   });
 }
 if(\$('reg-tag-random'))\$('reg-tag-random').addEventListener('click',function(e){e.preventDefault();randomizeRegTag();});
-if(\$('reg-swatches')){
-  \$('reg-swatches').querySelectorAll('button').forEach(function(b){
-    b.addEventListener('click',function(e){
-      e.preventDefault();
-      \$('reg-swatches').querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
-      b.classList.add('on');
-      updateRegPreview();
-    });
-  });
-}
 if(\$('rp-av-wrap'))\$('rp-av-wrap').addEventListener('click',function(){if(\$('reg-file-av'))\$('reg-file-av').click()});
 if(\$('reg-file-av'))\$('reg-file-av').addEventListener('change',function(){
   const file=this.files&&this.files[0];this.value='';
@@ -2232,8 +2239,7 @@ async function doRegister(){
   const name=((\$('in-user')&&\$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\\- ]/g,'').slice(0,24);
   const email=((\$('in-email2')&&\$('in-email2').value)||'').trim();
   const pass=(\$('in-pass2')&&\$('in-pass2').value)||'';
-  const swOn=document.querySelector('#reg-swatches button.on');
-  const accent=(swOn&&swOn.dataset.c)||'#7c3aed';
+  const accent='#7c3aed';
   showErrTxt('');
   if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
