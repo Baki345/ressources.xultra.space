@@ -472,7 +472,7 @@ button{cursor:pointer;border:0;background:0}
 .rp-banner{height:52px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
 .rp-banner-btn{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#f2ebff;font-size:.62rem;font-weight:700;backdrop-filter:blur(3px)}
 .rp-banner:hover .rp-banner-btn{background:rgba(0,0,0,.65)}
-.rp-row{display:flex;align-items:center;gap:12px;padding:11px;margin-top:-22px}
+.rp-row{display:flex;align-items:center;gap:12px;padding:11px}
 .rp-av-wrap{position:relative;flex-shrink:0;cursor:pointer;width:50px;height:50px}
 .reg-preview .rp-av{width:50px;height:50px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 4px 14px rgba(124,58,237,.35),0 0 0 3px rgba(10,6,16,.55)}
 .rp-av-cam{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:rgba(10,6,16,.75);border:1.5px solid rgba(255,255,255,.5);display:grid;place-items:center;font-size:.62rem;backdrop-filter:blur(3px);box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
