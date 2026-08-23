@@ -970,8 +970,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .call-bar.embedded{position:static;max-width:none;margin:10px 14px 0;box-shadow:none}
 .cb-top{display:flex;align-items:center;gap:10px}
-.call-bar .av{width:38px;height:38px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden;cursor:pointer}
+.cb-av-wrap{position:relative;width:38px;height:38px;flex-shrink:0}
+.cb-av-wave{position:absolute;top:50%;left:50%;width:76px;height:76px;transform:translate(-50%,-50%);pointer-events:none}
+.call-bar .av{position:relative;z-index:1;width:38px;height:38px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;overflow:hidden;cursor:pointer}
 .call-bar .av img{width:100%;height:100%;object-fit:cover}
+.cb-av-mute{position:absolute;z-index:2;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #1a0f2e;display:grid;place-items:center;font-size:8px;line-height:1}
+.cb-av-mute.hidden{display:none}
 .cb-info{flex:1;min-width:0}
 .cb-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
@@ -1776,7 +1780,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 </div>
 <div class="call-bar hidden" id="call-bar">
   <div class="cb-top">
-    <div class="av" id="cb-av" data-profile="">?</div>
+    <div class="cb-av-wrap">
+      <canvas class="cb-av-wave" id="cb-av-wave" width="76" height="76"></canvas>
+      <div class="av" id="cb-av" data-profile="">?</div>
+      <div class="cb-av-mute hidden" id="cb-av-mute" title="Micro coupé chez l'interlocuteur">🔇</div>
+    </div>
     <div class="cb-info">
       <div class="cb-name" id="cb-name">En appel · 1 participant<span class="cb-peer-badges" id="cb-peer-badges"></span></div>
       <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
@@ -2883,6 +2891,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.31.0',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
+    body:'Pendant un appel privé, la photo de profil de l\\'interlocuteur affiche maintenant un léger halo animé qui réagit à sa voix en temps réel — épuré, discret, mais bien visible dès qu\\'il parle. Un petit badge 🔇 apparaît directement sur sa photo s\\'il coupe son micro, plus facile à repérer que l\\'ancien indicateur texte.'},
   {version:'2.30.2',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
     body:'La vraie cause des appels sans son trouvée : les tout premiers "candidats" de connexion envoyés par la personne qui appelle (en quelques millisecondes) pouvaient arriver avant que la personne qui décroche ne soit prête à les recevoir (le temps d\\'accepter le micro) — et étaient alors perdus pour de bon, ce qui bloquait la connexion indéfiniment. XULTRA rattrape maintenant ces candidats manqués dès la connexion.'},
   {version:'2.30.1',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
@@ -7132,6 +7142,7 @@ let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='m
 let audioCtx=null;
 let micSourceNode=null, micGainNode=null, micDestNode=null, micAnalyser=null, micMeterRaf=null;
 let outSourceNode=null, outGainNode=null, outPanner=null, outLfo=null, outLfoGain=null, outConnected=false;
+let outAnalyser=null, waveRaf=null;
 function isPolite(){return !callIsCaller}
 
 function ensureAudioCtx(){
@@ -7174,10 +7185,56 @@ function ensureOutputAudioGraph(){
     outGainNode=ctx.createGain();
     outGainNode.gain.value=outVolumePct/100;
     outSourceNode.connect(outPanner).connect(outGainNode).connect(ctx.destination);
+    outAnalyser=ctx.createAnalyser();
+    outAnalyser.fftSize=64;
+    outAnalyser.smoothingTimeConstant=0.75;
+    outGainNode.connect(outAnalyser);
     outConnected=true;
     xlog('out_chain_ready',{ctxState:ctx.state});
     applyChannelMode();
+    startRemoteWaveform();
   }catch(e){xlog('out_chain_fail',{msg:(e&&e.message)||String(e)});}
+}
+function startRemoteWaveform(){
+  const canvas=\$('cb-av-wave');
+  if(!canvas||!outAnalyser||waveRaf)return;
+  const ctx2d=canvas.getContext('2d');
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const cssSize=76;
+  canvas.width=cssSize*dpr;canvas.height=cssSize*dpr;
+  ctx2d.scale(dpr,dpr);
+  const data=new Uint8Array(outAnalyser.frequencyBinCount);
+  const bars=20;
+  const cx=cssSize/2,cy=cssSize/2,innerR=21,maxExtra=14;
+  let smoothed=new Array(bars).fill(0);
+  function draw(){
+    const bar=\$('call-bar');
+    if(!outAnalyser||!bar||bar.classList.contains('hidden')){waveRaf=null;return}
+    outAnalyser.getByteFrequencyData(data);
+    ctx2d.clearRect(0,0,cssSize,cssSize);
+    for(let i=0;i<bars;i++){
+      const bin=data[Math.floor((i/bars)*data.length*0.7)]||0;
+      const level=bin/255;
+      smoothed[i]+=(level-smoothed[i])*0.35;
+      const len=smoothed[i]*maxExtra;
+      const angle=(i/bars)*Math.PI*2-Math.PI/2;
+      const x1=cx+Math.cos(angle)*innerR,y1=cy+Math.sin(angle)*innerR;
+      const x2=cx+Math.cos(angle)*(innerR+2+len),y2=cy+Math.sin(angle)*(innerR+2+len);
+      ctx2d.beginPath();
+      ctx2d.moveTo(x1,y1);ctx2d.lineTo(x2,y2);
+      ctx2d.lineWidth=2.2;
+      ctx2d.lineCap='round';
+      ctx2d.strokeStyle='rgba(167,139,250,'+(0.25+smoothed[i]*0.65)+')';
+      ctx2d.stroke();
+    }
+    waveRaf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function stopRemoteWaveform(){
+  if(waveRaf){cancelAnimationFrame(waveRaf);waveRaf=null;}
+  const canvas=\$('cb-av-wave');
+  if(canvas){const c=canvas.getContext('2d');c.clearRect(0,0,canvas.width,canvas.height);}
 }
 function rebuildMicChain(){
   if(!localStream||!callPc)return;
@@ -7820,9 +7877,13 @@ function renderPeerCallState(){
   const badges=\$('cb-peer-badges');
   if(badges){
     let html='';
-    if(remoteMicMuted)html+='<span class="cb-badge" title="Micro coupé chez '+esc(callPeerName||'')+'">🔇</span>';
     if(remoteDeafened)html+='<span class="cb-badge" title="Casque coupé chez '+esc(callPeerName||'')+'">🎧</span>';
     badges.innerHTML=html;
+  }
+  const muteBadge=\$('cb-av-mute');
+  if(muteBadge){
+    muteBadge.classList.toggle('hidden',!remoteMicMuted);
+    muteBadge.title='Micro coupé chez '+(callPeerName||'l\\'interlocuteur');
   }
   renderVideoGrid();
 }
@@ -7897,6 +7958,9 @@ function cleanupCallLocal(){
   if(micGainNode){try{micGainNode.disconnect();}catch(e){}micGainNode=null;}
   micDestNode=null;
   if(outGainNode)outGainNode.gain.value=outVolumePct/100;
+  stopRemoteWaveform();
+  if(outAnalyser){try{outAnalyser.disconnect();}catch(e){}outAnalyser=null;}
+  if(\$('cb-av-mute'))\$('cb-av-mute').classList.add('hidden');
   const audioEl=\$('call-remote-audio');if(audioEl){audioEl.srcObject=null;audioEl.muted=false;}
   \$('cb-mute').classList.remove('on');
   \$('cb-cam').classList.remove('on');
