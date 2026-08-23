@@ -403,7 +403,7 @@ button{cursor:pointer;border:0;background:0}
 .card{
   position:relative;z-index:1;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
   background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
-  border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:24px 22px;
+  border:1px solid rgba(167,139,250,.22);border-radius:20px;padding:18px 22px 20px;
   box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(124,58,237,.08) inset;
 }
 .logo{font-size:1.9rem;font-weight:900;text-align:center;letter-spacing:.04em;background:linear-gradient(135deg,#ede9fe,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;animation:logoGlow 4s ease-in-out infinite}
@@ -436,13 +436,13 @@ button{cursor:pointer;border:0;background:0}
 .showcase-dots{display:flex;justify-content:center;gap:7px;padding:0 0 20px}
 .sc-dot{width:7px;height:7px;border-radius:50%;background:rgba(167,139,250,.28);transition:background .25s,transform .25s;cursor:pointer}
 .sc-dot.on{background:#a78bfa;transform:scale(1.35)}
-.logo-sub{text-align:center;color:#9a8fb0;font-size:.8rem;margin:4px 0 16px}
-.tabs{display:flex;gap:4px;background:rgba(0,0,0,.25);padding:4px;border-radius:12px;margin-bottom:14px}
+.logo-sub{text-align:center;color:#9a8fb0;font-size:.8rem;margin:3px 0 11px}
+.tabs{display:flex;gap:4px;background:rgba(0,0,0,.25);padding:4px;border-radius:12px;margin-bottom:10px}
 .tabs button{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:.9rem;color:#9a8fb0;transition:background .15s,color .15s}
 .tabs button.on{background:#7c3aed;color:#fff}
-.field{margin-bottom:11px}
+.field{margin-bottom:8px}
 .field-row{display:flex;gap:10px}
-.field-row .field{margin-bottom:11px}
+.field-row .field{margin-bottom:8px}
 .field-grow{flex:1;min-width:0}
 .field-tag{width:82px;flex-shrink:0}
 .field-tag input{padding:0 10px;text-align:center;letter-spacing:.05em}
@@ -459,7 +459,7 @@ button{cursor:pointer;border:0;background:0}
 .remember-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px;cursor:pointer;user-select:none}
 .remember-row input{flex-shrink:0;width:18px;height:18px;accent-color:#7c3aed;cursor:pointer}
 .remember-row span{color:#c4b5fd;font-size:.88rem;font-weight:600}
-.pw-strength{margin:-3px 0 11px}
+.pw-strength{margin:-3px 0 8px}
 .pw-strength-track{height:6px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
 .pw-strength-fill{height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#ef4444,#ef4444);transition:width .35s cubic-bezier(.4,0,.2,1),background .35s ease;background-size:200% 100%;animation:pwShimmer 2.4s linear infinite}
 @keyframes pwShimmer{0%{background-position:0% 0}100%{background-position:200% 0}}
@@ -472,12 +472,12 @@ button{cursor:pointer;border:0;background:0}
 .btn-main:active{transform:scale(.98)}
 .btn-main:disabled{opacity:.6;cursor:wait}
 .err{min-height:1.2em;color:#fca5a5;font-size:.85rem;margin-top:10px;text-align:center}
-.hint{text-align:center;color:#9a8fb0;font-size:.7rem;margin-top:12px}
-.reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:14px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
-.rp-banner{height:52px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
+.hint{text-align:center;color:#9a8fb0;font-size:.7rem;margin-top:8px}
+.reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:10px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
+.rp-banner{height:36px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
 .rp-banner-btn{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#f2ebff;font-size:.62rem;font-weight:700;backdrop-filter:blur(3px)}
 .rp-banner:hover .rp-banner-btn{background:rgba(0,0,0,.65)}
-.rp-row{display:flex;align-items:center;gap:12px;padding:11px}
+.rp-row{display:flex;align-items:center;gap:10px;padding:8px 11px}
 .rp-av-wrap{position:relative;flex-shrink:0;cursor:pointer;width:50px;height:50px}
 .reg-preview .rp-av{width:50px;height:50px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 4px 14px rgba(124,58,237,.35),0 0 0 3px rgba(10,6,16,.55)}
 .rp-av-cam{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:rgba(10,6,16,.75);border:1.5px solid rgba(255,255,255,.5);display:grid;place-items:center;font-size:.62rem;backdrop-filter:blur(3px);box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
@@ -491,7 +491,7 @@ button{cursor:pointer;border:0;background:0}
 .color-swatches button:hover{transform:scale(1.12)}
 .color-swatches button.on{border-color:#fff;box-shadow:0 0 0 2px #7c3aed}
 .hp-field{position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
-.turnstile-wrap{margin:10px 0 4px;display:flex;justify-content:center;min-height:0}
+.turnstile-wrap{margin:6px 0 2px;display:flex;justify-content:center;min-height:0}
 .turnstile-wrap.hidden{display:none}
 
 /* Post-login confirmation dashboard (Phase 1) */
