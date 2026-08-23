@@ -441,6 +441,11 @@ button{cursor:pointer;border:0;background:0}
 .tabs button{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:.9rem;color:#9a8fb0;transition:background .15s,color .15s}
 .tabs button.on{background:#7c3aed;color:#fff}
 .field{margin-bottom:11px}
+.field-row{display:flex;gap:10px}
+.field-row .field{margin-bottom:11px}
+.field-grow{flex:1;min-width:0}
+.field-tag{width:82px;flex-shrink:0}
+.field-tag input{padding:0 10px;text-align:center;letter-spacing:.05em}
 .field label{display:block;font-size:.68rem;font-weight:700;color:#9a8fb0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
 .field input{width:100%;height:42px;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2ebff;padding:0 14px;outline:0;transition:border-color .15s}
 .field input:focus{border-color:#8b5cf6}
@@ -1082,15 +1087,16 @@ button{cursor:pointer;border:0;background:0}
       </div>
       <input type="file" id="reg-file-av" accept="image/*" class="hidden"/>
       <input type="file" id="reg-file-banner" accept="image/*" class="hidden"/>
-      <div class="field"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
-      <div class="field"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
+      <div class="field-row">
+        <div class="field field-grow"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
+        <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
+      </div>
       <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
       <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/></div>
       <div class="pw-strength" id="pw-strength">
         <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
         <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
       </div>
-      <div class="field"><label>Confirmer le mot de passe</label><input id="in-pass2-confirm" type="password" name="confirm-password" autocomplete="new-password"/></div>
       <div class="field">
         <label>Couleur du profil</label>
         <div class="color-swatches" id="reg-swatches">
@@ -2226,14 +2232,12 @@ async function doRegister(){
   const name=((\$('in-user')&&\$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\\- ]/g,'').slice(0,24);
   const email=((\$('in-email2')&&\$('in-email2').value)||'').trim();
   const pass=(\$('in-pass2')&&\$('in-pass2').value)||'';
-  const passConfirm=(\$('in-pass2-confirm')&&\$('in-pass2-confirm').value)||'';
   const swOn=document.querySelector('#reg-swatches button.on');
   const accent=(swOn&&swOn.dataset.c)||'#7c3aed';
   showErrTxt('');
   if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
   if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
-  if(pass!==passConfirm){showErrTxt('Les mots de passe ne correspondent pas');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
   if(!(await verifyTurnstile('register')))return;
   \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
