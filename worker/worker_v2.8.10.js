@@ -1146,7 +1146,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <button type="button" data-tab="register">Inscription</button>
     </div>
     <form id="pane-login" autocomplete="on">
-      <div class="field"><label>Email</label><input id="in-email" type="email" name="email" autocomplete="username"/></div>
+      <div class="field"><label>Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" placeholder="toi@exemple.com ou pseudo#1234"/></div>
       <div class="field"><label>Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
       <label class="remember-row" for="in-remember">
         <input type="checkbox" id="in-remember" checked/>
@@ -2047,8 +2047,8 @@ if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',functio
   r.readAsDataURL(file);
 });
 
-async function serverLogin(email,pass){
-  const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
+async function serverLogin(identifier,pass){
+  const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifier,password:pass})});
   const jj=await rr.json().catch(function(){return {}});
   if(rr.ok&&jj&&jj.ok&&(jj.secret||jj.mfaRequired))return jj;
   throw new Error((jj&&jj.error)||('Connexion refusée ('+rr.status+')'));
@@ -2103,11 +2103,11 @@ async function registerPasskey(label){
     label:label||'Clé d’accès'
   });
 }
-async function loginWithPasskey(email){
+async function loginWithPasskey(identifier){
   if(!passkeysSupported())throw new Error('Les clés d’accès ne sont pas prises en charge par ce navigateur.');
-  const r1=await fetch('/api/passkey/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})});
+  const r1=await fetch('/api/passkey/login-options',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifier})});
   const opts=await r1.json().catch(function(){return {}});
-  if(!r1.ok||!opts.ok)throw new Error((opts&&opts.error)||'Aucune clé d’accès trouvée pour cet e-mail.');
+  if(!r1.ok||!opts.ok)throw new Error((opts&&opts.error)||'Aucune clé d’accès trouvée pour ce compte.');
   const publicKey={
     challenge:b64urlDec(opts.challenge),
     rpId:opts.rpId,
@@ -2410,14 +2410,14 @@ async function verifyTurnstile(which){
 async function doLogin(){
   xlog('login_click',{});
   showErrTxt('');
-  const email=((\$('in-email')&&\$('in-email').value)||'').trim();
+  const identifier=((\$('in-email')&&\$('in-email').value)||'').trim();
   const pass=(\$('in-pass')&&\$('in-pass').value)||'';
-  if(!email||!pass){showErrTxt('Email et mot de passe requis');return}
+  if(!identifier||!pass){showErrTxt('Email (ou pseudo#tag) et mot de passe requis');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
   if(!(await verifyTurnstile('login')))return;
   \$('btn-login').disabled=true;\$('btn-login').textContent='Connexion…';
   try{
-    const jj=await serverLogin(email,pass);
+    const jj=await serverLogin(identifier,pass);
     if(jj.mfaRequired){
       xlog('login_mfa_required',{});
       openMfaVerifyPanel(jj.mfaToken);
@@ -2436,13 +2436,13 @@ async function doLogin(){
 }
 if(passkeysSupported()&&\$('btn-login-passkey'))\$('btn-login-passkey').classList.remove('hidden');
 if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',async function(){
-  const email=((\$('in-email')&&\$('in-email').value)||'').trim();
-  if(!email){showErrTxt('Entre ton e-mail ci-dessus, puis réessaie.');return}
+  const identifier=((\$('in-email')&&\$('in-email').value)||'').trim();
+  if(!identifier){showErrTxt('Entre ton e-mail ou pseudo#tag ci-dessus, puis réessaie.');return}
   showErrTxt('');
   const btn=\$('btn-login-passkey');
   btn.disabled=true;btn.textContent='🔑 Vérification…';
   try{
-    const jj=await loginWithPasskey(email);
+    const jj=await loginWithPasskey(identifier);
     if(jj.mfaRequired){
       openMfaVerifyPanel(jj.mfaToken);
     }else{
@@ -2638,6 +2638,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.20.0',date:'23 août 2026',time:'16:10',title:'Connecte-toi avec ton pseudo#tag, plus seulement ton e-mail',
+    body:'Le champ de connexion accepte maintenant aussi bien ton e-mail que ton pseudo#tag (par exemple « shaman#7777 »), au choix — pratique si tu as oublié quel e-mail tu as utilisé pour t’inscrire. Ça marche aussi bien pour la connexion classique que pour les clés d’accès (Face ID, Windows Hello, empreinte…).'},
   {version:'2.19.1',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
     body:'Dans le panneau de signalement de bug, tu peux maintenant joindre une image (par exemple une capture d’écran du problème) grâce au bouton « Joindre une capture d’écran ». Elle s’affiche ensuite dans tes rapports et dans le panneau de l’équipe, pour aider à comprendre le bug beaucoup plus vite.'},
   {version:'2.19.0',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
@@ -7334,6 +7336,31 @@ async function finishLoginSession(secret, sessionId, userId) {
   return new Response(JSON.stringify({ ok: true, secret, jwt, sessionId, userId }), { headers: cookieHeaders });
 }
 
+// Résout un identifiant de connexion (e-mail OU pseudo#tag) vers l'e-mail réel du
+// compte, pour permettre la connexion par les deux moyens. Lève une erreur générique
+// si rien ne correspond (on ne précise jamais si c'est l'identifiant ou le mot de
+// passe qui est faux, pour ne pas aider à l'énumération de comptes).
+async function resolveLoginEmail(identifier) {
+  const raw = String(identifier || "").trim();
+  if (!raw) throw new Error("Identifiants invalides");
+  if (raw.indexOf("@") !== -1) return raw;
+  let s = raw.replace(/^@/, "").toLowerCase();
+  let uname = s, tag = "";
+  const hashIdx = s.indexOf("#");
+  if (hashIdx !== -1) { uname = s.slice(0, hashIdx); tag = s.slice(hashIdx + 1); }
+  if (!uname) throw new Error("Identifiants invalides");
+  const queries = [JSON.stringify({ method: "equal", attribute: "username", values: [uname] })];
+  if (tag) queries.push(JSON.stringify({ method: "equal", attribute: "tag", values: [tag] }));
+  queries.push(JSON.stringify({ method: "limit", values: [5] }));
+  const qs = queries.map(function (q) { return "queries[]=" + encodeURIComponent(q); }).join("&");
+  const list = await awFetch("/databases/" + AW_DB + "/collections/users/documents?" + qs, { asAdmin: true });
+  const docs = list.documents || [];
+  if (!docs.length) throw new Error("Identifiants invalides");
+  if (docs.length > 1) throw new Error("Plusieurs comptes ont ce pseudo, précise le tag complet (pseudo#1234)");
+  if (!docs[0].email) throw new Error("Identifiants invalides");
+  return docs[0].email;
+}
+
 async function handle(request) {
   const url = new URL(request.url);
   // Force HTTPS : le compte Cloudflare de ce projet n'a pas les droits d'édition
@@ -8438,13 +8465,14 @@ async function handle(request) {
   if (path === "/api/auth/login" && request.method === "POST") {
     try {
       const body = await request.json();
-      const email = String((body && body.email) || "").trim();
+      const identifier = String((body && (body.identifier || body.email)) || "").trim();
       const password = String((body && body.password) || "");
-      if (!email || !password) {
-        return new Response(JSON.stringify({ ok: false, error: "Email et mot de passe requis" }), {
+      if (!identifier || !password) {
+        return new Response(JSON.stringify({ ok: false, error: "Identifiant et mot de passe requis" }), {
           status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
         });
       }
+      const email = await resolveLoginEmail(identifier);
       const data = await awFetch("/account/sessions/email", {
         method: "POST",
         body: { email: email, password: password },
@@ -8670,8 +8698,9 @@ async function handle(request) {
   if (path === "/api/passkey/login-options" && request.method === "POST") {
     try {
       const body = await request.json();
-      const email = String((body && body.email) || "").trim();
-      if (!email) throw new Error("E-mail requis");
+      const identifier = String((body && (body.identifier || body.email)) || "").trim();
+      if (!identifier) throw new Error("E-mail ou pseudo#tag requis");
+      const email = await resolveLoginEmail(identifier);
       const q = JSON.stringify({ method: "equal", attribute: "email", values: [email] });
       const users = await awFetch("/users?queries[]=" + encodeURIComponent(q), { asAdmin: true });
       const u = (users.users || [])[0];
