@@ -2883,6 +2883,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.30.1',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
+    body:'Dans un appel privé, il fallait parfois activer sa caméra pour que le son commence enfin à passer des deux côtés — le navigateur bloquait silencieusement la lecture audio si la négociation de connexion prenait quelques secondes de trop après le clic sur "Décrocher". Corrigé : le son démarre maintenant correctement dès la connexion, avec un rattrapage automatique dès la première interaction si jamais le navigateur bloque quand même.'},
   {version:'2.30.0',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
     body:'Un bouton « Ajouter en ami » apparaît maintenant directement sur la fiche de profil de quelqu\\'un (il s\\'adapte automatiquement : demande déjà envoyée, demande reçue à accepter, ou déjà amis). Les appels de groupe, encore instables, sont mis en maintenance le temps d\\'être fiabilisés — le bouton d\\'appel apparaît grisé dans les conversations de groupe en attendant.'},
   {version:'2.29.0',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
@@ -7418,9 +7420,37 @@ function onRemoteTrack(e){
     renderVideoGrid();
   } else {
     const a=\$('call-remote-audio');
-    if(a)a.srcObject=e.streams[0]||new MediaStream([e.track]);
+    if(a){
+      a.srcObject=e.streams[0]||new MediaStream([e.track]);
+      const playPromise=a.play();
+      if(playPromise&&playPromise.catch)playPromise.catch(function(err){
+        /* Le geste utilisateur qui a lancé/accepté l'appel a pu expirer le
+           temps que la négociation ICE/SDP se termine (quelques secondes) :
+           le navigateur bloque alors silencieusement la lecture, sans
+           erreur visible — jusqu'ici il fallait un clic "par chance"
+           (typiquement en activant la caméra) pour que le son démarre. */
+        xlog('remote_audio_play_blocked',{msg:(err&&err.message)||String(err)});
+        armRemoteAudioUnlock();
+      });
+    }
     ensureOutputAudioGraph();
   }
+}
+let remoteAudioUnlockArmed=false;
+function armRemoteAudioUnlock(){
+  if(remoteAudioUnlockArmed)return;
+  remoteAudioUnlockArmed=true;
+  function tryUnlock(){
+    remoteAudioUnlockArmed=false;
+    document.removeEventListener('pointerdown',tryUnlock,true);
+    document.removeEventListener('keydown',tryUnlock,true);
+    const a=\$('call-remote-audio');
+    if(a&&a.srcObject)a.play().catch(function(){});
+    const ctx=ensureAudioCtx();
+    if(ctx&&ctx.state==='suspended')ctx.resume().catch(function(){});
+  }
+  document.addEventListener('pointerdown',tryUnlock,true);
+  document.addEventListener('keydown',tryUnlock,true);
 }
 async function onNegotiationNeeded(){
   if(!callLive||!activeCallDoc||!callPc){
