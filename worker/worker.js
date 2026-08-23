@@ -2455,6 +2455,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.16.1',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
+    body:'Dans Paramètres → Raccourcis clavier, tu peux maintenant choisir toi-même les combinaisons de touches pour la recherche, les paramètres et l’ajout d’ami. Et le petit « Vu » sous tes messages fonctionne désormais aussi dans les conversations de groupe, avec le nom des personnes qui ont lu.'},
   {version:'2.16.0',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
     body:'XULTRA n’est plus obligé d’être tout sombre : rends-toi dans Paramètres → Apparence pour choisir « Clair » ou « Système » (l’app suit alors automatiquement le réglage de ton téléphone ou ordinateur). C’est une toute première version, encore un peu jeune — si une couleur ou un emoji te paraît bizarre en mode clair, dis-le-nous, on ajustera au fil des retours.'},
   {version:'2.15.2',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
@@ -2514,7 +2516,7 @@ function loadAppPrefs(){
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
-    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',_prevStatus:null
+    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null
   },p);
 }
 let appPrefs=loadAppPrefs();
@@ -3044,17 +3046,74 @@ function renderSetNotifications(box){
 function isMacPlatform(){
   try{return /Mac|iPhone|iPad|iPod/.test(navigator.platform||navigator.userAgent||'');}catch(e){return false}
 }
-const SHORTCUTS_LIST=[
-  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + K'},desc:'Aller à la recherche'},
-  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + ,'},desc:'Ouvrir les paramètres'},
-  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + Maj + A'},desc:'Ajouter un ami'},
-  {combo:function(){return 'Échap'},desc:'Fermer la fenêtre ouverte'},
-  {combo:function(){return 'Maj + Entrée'},desc:'Retour à la ligne dans un message'},
-  {combo:function(){return 'Entrée'},desc:'Envoyer le message'}
+const SHORTCUT_DEFS=[
+  {key:'search',label:'Aller à la recherche'},
+  {key:'settings',label:'Ouvrir les paramètres'},
+  {key:'addFriend',label:'Ajouter un ami'}
 ];
 function renderSetShortcuts(box){
-  box.innerHTML='<h2>Raccourcis clavier</h2><div class="sc-desc">Les raccourcis déjà disponibles sur XULTRA. La personnalisation arrive bientôt.</div>'
-    +'<div class="set-card">'+SHORTCUTS_LIST.map(function(s){return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(s.desc)+'</div></div><span class="soon-badge" style="color:#c4b5fd;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.3)">'+esc(s.combo())+'</span></div>';}).join('')+'</div>';
+  const sc=Object.assign({},DEFAULT_SHORTCUTS,appPrefs.shortcuts||{});
+  box.innerHTML='<h2>Raccourcis clavier</h2><div class="sc-desc">Clique sur « Modifier » puis appuie sur la combinaison de ton choix (avec Ctrl/⌘ ou Alt).</div>'
+    +'<div class="set-card">'+SHORTCUT_DEFS.map(function(s){
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(s.label)+'</div></div>'
+        +'<span class="soon-badge" id="sc-combo-'+s.key+'" style="color:#c4b5fd;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.3)">'+esc(comboLabel(sc[s.key]))+'</span>'
+        +'<button type="button" class="set-mini-btn" data-sc-edit="'+s.key+'" style="margin-left:8px">Modifier</button>'
+        +(sc[s.key]!==DEFAULT_SHORTCUTS[s.key]?'<button type="button" class="set-mini-btn" data-sc-reset="'+s.key+'" style="margin-left:6px" title="Réinitialiser">↺</button>':'')
+      +'</div>';
+    }).join('')+'</div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Échap</div><div class="scr-sub">Fermer la fenêtre ouverte — toujours actif, non modifiable.</div></div></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Maj + Entrée</div><div class="scr-sub">Retour à la ligne dans un message.</div></div></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Entrée</div><div class="scr-sub">Envoyer le message.</div></div></div>'
+    +'</div>';
+  wireSetShortcuts(box);
+}
+function wireSetShortcuts(box){
+  box.querySelectorAll('[data-sc-edit]').forEach(function(btn){
+    btn.onclick=function(){
+      const key=btn.getAttribute('data-sc-edit');
+      const badge=\$('sc-combo-'+key);
+      if(!badge)return;
+      const prevText=badge.textContent;
+      badge.textContent='Appuie sur une touche…';
+      btn.disabled=true;
+      function capture(e){
+        if(e.key==='Escape'){
+          e.preventDefault();e.stopPropagation();
+          document.removeEventListener('keydown',capture,true);
+          badge.textContent=prevText;btn.disabled=false;
+          return;
+        }
+        const combo=comboFromEvent(e);
+        if(!combo)return;
+        e.preventDefault();e.stopPropagation();
+        document.removeEventListener('keydown',capture,true);
+        const current=Object.assign({},DEFAULT_SHORTCUTS,appPrefs.shortcuts||{});
+        const usedElsewhere=SHORTCUT_DEFS.some(function(s){return s.key!==key&&current[s.key]===combo;});
+        if(usedElsewhere){
+          showToast('Cette combinaison est déjà utilisée par un autre raccourci.','error');
+          badge.textContent=prevText;btn.disabled=false;
+          return;
+        }
+        current[key]=combo;
+        appPrefs.shortcuts=current;
+        saveAppPrefs();
+        showToast('Raccourci mis à jour !');
+        renderSetShortcuts(box);
+      }
+      document.addEventListener('keydown',capture,true);
+    };
+  });
+  box.querySelectorAll('[data-sc-reset]').forEach(function(btn){
+    btn.onclick=function(){
+      const key=btn.getAttribute('data-sc-reset');
+      const current=Object.assign({},DEFAULT_SHORTCUTS,appPrefs.shortcuts||{});
+      current[key]=DEFAULT_SHORTCUTS[key];
+      appPrefs.shortcuts=current;
+      saveAppPrefs();
+      renderSetShortcuts(box);
+    };
+  });
 }
 function renderSetLanguage(box){
   box.innerHTML='<h2>Langue</h2><div class="sc-desc">La langue de l’interface XULTRA.</div>'
@@ -3106,19 +3165,43 @@ function closeTopmostOverlay(){
   if(open.length){open[open.length-1].classList.add('hidden');return true}
   return false;
 }
+const DEFAULT_SHORTCUTS={search:'ctrl+k',settings:'ctrl+,',addFriend:'ctrl+shift+a'};
+function comboFromEvent(e){
+  if(!(e.ctrlKey||e.metaKey||e.altKey))return null;
+  const parts=[];
+  if(e.ctrlKey||e.metaKey)parts.push('ctrl');
+  if(e.altKey)parts.push('alt');
+  if(e.shiftKey)parts.push('shift');
+  let k=e.key.toLowerCase();
+  if(k===' ')k='space';
+  if(['control','meta','alt','shift'].indexOf(k)>=0)return null;
+  parts.push(k);
+  return parts.join('+');
+}
+function comboLabel(combo){
+  if(!combo)return '';
+  const mac=isMacPlatform();
+  return combo.split('+').map(function(p){
+    if(p==='ctrl')return mac?'⌘':'Ctrl';
+    if(p==='alt')return mac?'⌥':'Alt';
+    if(p==='shift')return mac?'⇧':'Maj';
+    return p.length===1?p.toUpperCase():(p.charAt(0).toUpperCase()+p.slice(1));
+  }).join(' + ');
+}
 document.addEventListener('keydown',function(e){
-  const mod=e.ctrlKey||e.metaKey;
-  if(mod&&!e.shiftKey&&e.key.toLowerCase()==='k'){
+  const combo=comboFromEvent(e);
+  const sc=Object.assign({},DEFAULT_SHORTCUTS,appPrefs.shortcuts||{});
+  if(combo&&combo===sc.search){
     e.preventDefault();
     const s=\$('search');if(s){s.focus();s.select();}
     return;
   }
-  if(mod&&!e.shiftKey&&e.key===','){
+  if(combo&&combo===sc.settings){
     e.preventDefault();
     if(me)openSettingsPanel();
     return;
   }
-  if(mod&&e.shiftKey&&e.key.toLowerCase()==='a'){
+  if(combo&&combo===sc.addFriend){
     e.preventDefault();
     if(\$('btn-add-friend'))\$('btn-add-friend').click();
     return;
@@ -3729,7 +3812,7 @@ function subscribeDmDeleteWatcher(){
         if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
         if(p.\$id===activeDm){
           updateTypingIndicator();
-          if(readChanged&&!activeDmIsGroup)renderMessages();
+          if(readChanged)renderMessages();
         }
         if(contentChanged){
           dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
@@ -4750,15 +4833,28 @@ function initVoiceMsgPlayer(el){
   });
 }
 function computeSeenInfo(){
-  if(activeDmIsGroup||!activeDmPeerUid||!me)return {lastMineId:null,seen:false};
+  if(!activeDm||!me)return {lastMineId:null,seenLabel:''};
   let lastMine=null;
   for(let i=msgsCache.length-1;i>=0;i--){if(msgsCache[i].uid===me.\$id){lastMine=msgsCache[i];break}}
-  if(!lastMine)return {lastMineId:null,seen:false};
+  if(!lastMine)return {lastMineId:null,seenLabel:''};
   const dm=dmsCache.find(function(d){return d.\$id===activeDm});
   const lastRead=parseJsonSafe(dm&&dm.lastReadJson,{});
+  const createdAt=new Date(lastMine.\$createdAt).getTime();
+  if(activeDmIsGroup){
+    const others=activeDmMembers.filter(function(u){return u!==String(me.\$id);});
+    const seenBy=others.filter(function(uid){const t=lastRead[uid];return t&&new Date(t).getTime()>=createdAt;});
+    if(!seenBy.length)return {lastMineId:lastMine.\$id,seenLabel:''};
+    const names=seenBy.map(function(uid){
+      const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid;});
+      return (p&&(p.displayName||p.username))||'Quelqu’un';
+    });
+    const label=names.length<=2?('Vu par '+names.join(' et ')):('Vu par '+names.length+' personnes');
+    return {lastMineId:lastMine.\$id,seenLabel:label};
+  }
+  if(!activeDmPeerUid)return {lastMineId:lastMine.\$id,seenLabel:''};
   const peerRead=lastRead[activeDmPeerUid];
-  const seen=!!(peerRead&&new Date(peerRead).getTime()>=new Date(lastMine.\$createdAt).getTime());
-  return {lastMineId:lastMine.\$id,seen:seen};
+  const seen=!!(peerRead&&new Date(peerRead).getTime()>=createdAt);
+  return {lastMineId:lastMine.\$id,seenLabel:seen?'Vu':''};
 }
 function renderMessages(){
   const box=\$('msgs');if(!box)return;
@@ -4768,7 +4864,7 @@ function renderMessages(){
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
-    const seenTag=(mine&&seenInfo.seen&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">Vu</div>':'';
+    const seenTag=(mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+esc(ini(name))+'</div>'
       +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
