@@ -607,6 +607,10 @@ body.compact-mode .msg .bub{padding:5px 10px}
 body.no-emoji-anim .pc-av-frame::before,body.no-emoji-anim .logo-particle,body.no-emoji-anim .logo{animation:none!important}
 body.reduce-motion *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 body.high-contrast{filter:contrast(1.18) saturate(1.12)}
+body.theme-light{filter:invert(1) hue-rotate(180deg);background:#fff}
+body.theme-light img,body.theme-light video,body.theme-light canvas,body.theme-light [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
+body.theme-light.high-contrast{filter:invert(1) hue-rotate(180deg) contrast(1.18) saturate(1.12)}
+body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.theme-light.high-contrast canvas,body.theme-light.high-contrast [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
 .msg-menu-btn{display:none;position:absolute;top:-10px;right:-10px;width:24px;height:24px;border-radius:50%;background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#c4b5fd;font-size:.85rem;line-height:1;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .msg.mine .msg-menu-btn{right:auto;left:-10px}
 .msg.hover-reveal .bub:hover .msg-menu-btn{display:flex}
@@ -2451,6 +2455,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.16.0',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
+    body:'XULTRA n’est plus obligé d’être tout sombre : rends-toi dans Paramètres → Apparence pour choisir « Clair » ou « Système » (l’app suit alors automatiquement le réglage de ton téléphone ou ordinateur). C’est une toute première version, encore un peu jeune — si une couleur ou un emoji te paraît bizarre en mode clair, dis-le-nous, on ajustera au fil des retours.'},
   {version:'2.15.2',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
     body:'Un petit « Vu » apparaît maintenant sous ton dernier message envoyé dès que la personne a ouvert la conversation et l’a lu — en temps réel, sans avoir à rafraîchir quoi que ce soit. Pour l’instant disponible sur les conversations à deux ; les groupes arriveront ensuite.'},
   {version:'2.15.1',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
@@ -2508,7 +2514,7 @@ function loadAppPrefs(){
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
-    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,_prevStatus:null
+    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',_prevStatus:null
   },p);
 }
 let appPrefs=loadAppPrefs();
@@ -2523,8 +2529,22 @@ function applyAppPrefs(){
     document.body.classList.toggle('reduce-motion',!!appPrefs.reduceMotion);
     document.body.classList.toggle('high-contrast',!!appPrefs.highContrast);
     document.body.classList.toggle('gif-hover-mode',!!appPrefs.gifHoverPlay);
+    applyThemeMode();
   }
 }
+function applyThemeMode(){
+  if(!document.body)return;
+  const mode=appPrefs.theme||'dark';
+  let isLight=false;
+  if(mode==='light')isLight=true;
+  else if(mode==='system'){
+    try{isLight=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){isLight=false;}
+  }
+  document.body.classList.toggle('theme-light',isLight);
+}
+try{
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(appPrefs.theme==='system')applyThemeMode();});
+}catch(e){}
 applyAppPrefs();
 function playNotifSound(kind){
   if(kind==='message'&&!appPrefs.soundMessage)return;
@@ -2909,7 +2929,7 @@ function renderSetFamily(box){
 
 function renderSetAppearance(box){
   box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte XULTRA à ton goût.</div>'
-    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn on">🌙 Sombre</button><button type="button" class="seg-btn" id="app-theme-light">☀️ Clair</button><button type="button" class="seg-btn" id="app-theme-system">🖥️ Système</button></div></div></div>'
+    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-row"><label>Mode d’affichage</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.displayMode==='modern'?' on':'')+'" data-app-val="displayMode:modern">Moderne</button><button type="button" class="seg-btn'+(appPrefs.displayMode==='compact'?' on':'')+'" data-app-val="displayMode:compact">Compact</button></div></div>'
       +'<div class="set-row"><label>Taille de police <span class="val" id="app-font-val">'+appPrefs.msgFontSize+'px</span></label><input type="range" id="app-font-range" min="12" max="20" value="'+appPrefs.msgFontSize+'"></div>'
@@ -2924,9 +2944,13 @@ function renderSetAppearance(box){
   wireGenericToggles(box);
 }
 function wireSetAppearance(box){
-  const lightBtn=\$('app-theme-light'),sysBtn=\$('app-theme-system');
-  if(lightBtn)lightBtn.onclick=function(){showToast('Le thème clair arrive bientôt !');};
-  if(sysBtn)sysBtn.onclick=function(){showToast('La synchro avec le système arrive bientôt !');};
+  box.querySelectorAll('[data-theme-mode]').forEach(function(b){
+    b.onclick=function(){
+      appPrefs.theme=b.getAttribute('data-theme-mode');
+      saveAppPrefs();applyAppPrefs();
+      renderSetAppearance(box);
+    };
+  });
   box.querySelectorAll('[data-app-val]').forEach(function(b){
     b.onclick=function(){
       const parts=b.getAttribute('data-app-val').split(':');
