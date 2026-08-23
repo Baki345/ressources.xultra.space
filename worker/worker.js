@@ -52,6 +52,41 @@ function mintLiveKitParticipantToken(identity, name, room) {
     video: { room: room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true }
   });
 }
+// ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
+const SERVER_PERMISSIONS = ["manage_server", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice"];
+function randomInviteCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  for (let i = 0; i < 8; i++) s += chars[bytes[i] % chars.length];
+  return s;
+}
+async function getServerMembership(serverId, uid) {
+  const q = "/databases/" + AW_DB + "/collections/server_members/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+  const data = await awFetch(q, { asAdmin: true });
+  return (data.documents || [])[0] || null;
+}
+async function serverCheckPermission(serverId, uid, permission) {
+  const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+  if (String(server.ownerId) === String(uid)) return { ok: true, server: server };
+  const member = await getServerMembership(serverId, uid);
+  if (!member) return { ok: false, server: server, error: "Tu n'es pas membre de ce serveur" };
+  const roleIds = member.roleIds || [];
+  if (!roleIds.length) return { ok: false, server: server, member: member, error: "Permission refusée" };
+  const rolesData = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+  const roles = (rolesData.documents || []).filter(function (r) { return roleIds.indexOf(r.$id) >= 0; });
+  for (const role of roles) {
+    let perms = [];
+    try { perms = JSON.parse(role.permissionsJson || "[]"); } catch (e) {}
+    if (perms.indexOf(permission) >= 0) return { ok: true, server: server, member: member, role: role };
+  }
+  return { ok: false, server: server, member: member, error: "Permission refusée" };
+}
 const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<meta name=\"robots\" content=\"noindex,nofollow\"/>\n<title>XULTRA \u2014 Maintenance</title>\n<style>\n:root{--bg:#0b0614;--accent:#a78bfa;--muted:#9ca3af;--line:#2a1f3d;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{min-height:100dvh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),var(--bg);color:#f3e8ff;padding:24px}\n.card{width:min(420px,100%);background:linear-gradient(180deg,rgba(30,16,50,.95),rgba(15,8,28,.98));border:1px solid var(--line);border-radius:20px;padding:32px 26px;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center;position:relative}\n.logo{font-size:2rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}\n.badge{display:inline-block;margin:12px 0 18px;padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28);color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}\nh1{font-size:1.2rem;margin-bottom:8px;font-weight:800}\np{color:var(--muted);font-size:.92rem;line-height:1.55;margin-bottom:8px}\n.pulse{width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;margin-right:8px;box-shadow:0 0 0 0 rgba(167,139,250,.6);animation:p 1.6s infinite}\n@keyframes p{0%{box-shadow:0 0 0 0 rgba(167,139,250,.55)}70%{box-shadow:0 0 0 12px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}\n.foot{margin-top:18px;font-size:.72rem;color:#6b7280}\n.dev-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:left}\n.dev-box h2{font-size:.78rem;color:#a78bfa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:700}\nlabel{display:block;font-size:.72rem;color:#9ca3af;margin:0 0 6px;font-weight:600}\ninput{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.95rem;margin-bottom:12px;outline:none}\ninput:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}\n.btn-main{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer}\n.btn-main:disabled{opacity:.6;cursor:wait}\n.btn-status{margin-top:14px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#e9d5ff;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}\n.btn-status:hover{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.55)}\n.err{color:#f87171;font-size:.82rem;min-height:1.2em;margin-top:8px;text-align:center}\n.ov{position:fixed;inset:0;background:rgba(5,2,12,.72);backdrop-filter:blur(10px);display:none;place-items:center;z-index:100;padding:20px}\n.ov.on{display:grid}\n.modal{width:min(440px,100%);background:linear-gradient(165deg,#1a1030 0%,#10081c 100%);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:0;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 0 1px rgba(124,58,237,.15),0 0 60px rgba(124,58,237,.12);animation:pop .28s ease}\n@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}\n.modal-head{padding:22px 22px 14px;border-bottom:1px solid rgba(42,31,61,.9);position:relative}\n.modal-head h3{font-size:1.05rem;font-weight:800;letter-spacing:.02em}\n.modal-head .sub{font-size:.78rem;color:var(--muted);margin-top:4px}\n.modal-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e9d5ff;font-size:1.1rem;cursor:pointer;display:grid;place-items:center}\n.modal-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}\n.modal-body{padding:12px 16px 20px;max-height:min(60vh,420px);overflow:auto}\n.svc{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8)}\n.svc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}\n.svc-dot.ok{background:var(--ok);color:rgba(34,197,94,.5)}\n.svc-dot.bad{background:var(--bad);color:rgba(239,68,68,.45)}\n.svc-dot.warn{background:var(--warn);color:rgba(245,158,11,.45)}\n.svc-dot.load{background:#a78bfa;animation:blink 1s infinite}\n@keyframes blink{50%{opacity:.35}}\n.svc-name{font-weight:700;font-size:.9rem}\n.svc-desc{font-size:.72rem;color:var(--muted);margin-top:2px}\n.svc-state{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}\n.svc-state.ok{color:var(--ok)}.svc-state.bad{color:var(--bad)}.svc-state.warn{color:var(--warn)}.svc-state.load{color:#a78bfa}\n.modal-foot{padding:0 16px 18px;font-size:.7rem;color:#6b7280;text-align:center}\n</style></head><body>\n<div class=\"card\">\n<div class=\"logo\">XULTRA</div>\n<div class=\"badge\"><span class=\"pulse\"></span>Maintenance</div>\n<h1>Nous revenons tr\u00e8s bient\u00f4t</h1>\n__MAINT_MESSAGE__\n<button type=\"button\" class=\"btn-status\" id=\"btn-status\">\ud83d\udce1 Statut des services</button>\n<div class=\"dev-box\">\n<h2>Acc\u00e8s d\u00e9veloppeur</h2>\n<label for=\"dev-email\">Email</label>\n<input id=\"dev-email\" type=\"email\" autocomplete=\"username\" placeholder=\"email@exemple.com\"/>\n<label for=\"dev-pass\">Mot de passe</label>\n<input id=\"dev-pass\" type=\"password\" autocomplete=\"current-password\" placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\"/>\n<button type=\"button\" class=\"btn-main\" id=\"dev-btn\">Entrer (dev)</button>\n<div class=\"err\" id=\"dev-err\"></div>\n</div>\n<div class=\"foot\">xultra.space</div>\n</div>\n<div class=\"ov\" id=\"status-ov\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal\">\n    <div class=\"modal-head\">\n      <h3>\ud83d\udce1 Statut des services</h3>\n      <div class=\"sub\">Infrastructure XULTRA en temps r\u00e9el</div>\n      <button type=\"button\" class=\"modal-x\" id=\"status-x\" aria-label=\"Fermer\">\u2715</button>\n    </div>\n    <div class=\"modal-body\" id=\"status-body\"></div>\n    <div class=\"modal-foot\">Mis \u00e0 jour \u00e0 l\u2019ouverture \u00b7 \u03b22.8.8</div>\n  </div>\n</div>\n<script>\n(function(){\n  var btn=document.getElementById('dev-btn');\n  var err=document.getElementById('dev-err');\n  function show(m){err.textContent=m||'';}\n  async function go(){\n    show('');\n    var email=(document.getElementById('dev-email').value||'').trim();\n    var pass=document.getElementById('dev-pass').value||'';\n    if(!email||!pass){show('Email et mot de passe requis');return;}\n    btn.disabled=true;btn.textContent='V\u00e9rification\u2026';\n    try{\n      var r=await fetch('/api/maint/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:email,password:pass})});\n      var j=await r.json().catch(function(){return {};});\n      if(!r.ok||!j.ok){show((j&&j.error)||('Acc\u00e8s refus\u00e9 ('+r.status+')'));btn.disabled=false;btn.textContent='Entrer (dev)';return;}\n      btn.textContent='OK \u2014 redirection\u2026';location.href='/?dev=1';\n    }catch(e){show('Erreur r\u00e9seau');btn.disabled=false;btn.textContent='Entrer (dev)';}\n  }\n  btn.onclick=go;\n  document.getElementById('dev-pass').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  document.getElementById('dev-email').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  var ov=document.getElementById('status-ov');\n  var body=document.getElementById('status-body');\n  document.getElementById('btn-status').onclick=function(){ov.classList.add('on');loadStatus();};\n  document.getElementById('status-x').onclick=function(){ov.classList.remove('on');};\n  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});\n  function row(name,desc,state,label){\n    return '<div class=\"svc\"><div class=\"svc-dot '+state+'\"></div><div><div class=\"svc-name\">'+name+'</div><div class=\"svc-desc\">'+desc+'</div></div><div class=\"svc-state '+state+'\">'+label+'</div></div>';\n  }\n  async function loadStatus(){\n    body.innerHTML=row('Chargement','V\u00e9rification des services','load','\u2026');\n    try{\n      var r=await fetch('/api/maint/status',{cache:'no-store'});\n      var j=await r.json();\n      if(j&&j.services&&j.services.length){\n        body.innerHTML=j.services.map(function(s){return row(s.name,s.desc||'',s.state||'warn',s.label||'?');}).join('');\n        return;\n      }\n    }catch(e){}\n    body.innerHTML=row('Cloudflare Worker','Edge xultra.space','ok','OK')+row('Mode maintenance','Acc\u00e8s public bloqu\u00e9','ok','ACTIF')+row('Appwrite API','Statut indisponible','warn','N/A');\n  }\n})();\n</script>\n</body></html>";;;
 
 
@@ -1027,6 +1062,40 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .e2e-bb-x:hover{background:rgba(239,68,68,.15);color:#fca5a5}
 .e2e-bb-input{flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1px solid rgba(167,139,250,.3);background:#0d0818;color:#f3e8ff;font-size:.85rem;outline:none}
 .e2e-bb-input:focus{border-color:#7c3aed}
+.servers-panel{width:min(480px,100%)}
+.srv-list-actions{display:flex;gap:8px;margin:14px 0}
+.srv-list-actions .btn-main{flex:1}
+.srv-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8);margin-bottom:8px;cursor:pointer;transition:background .15s ease}
+.srv-item:hover{background:rgba(124,58,237,.1)}
+.srv-item-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;font-size:1.1rem}
+.srv-item-icon img{width:100%;height:100%;object-fit:cover}
+.srv-item-info{flex:1;min-width:0}
+.srv-item-name{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srv-item-sub{font-size:.72rem;color:var(--muted)}
+.srv-item-owner{font-size:.62rem;font-weight:800;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);padding:2px 7px;border-radius:999px;flex-shrink:0}
+.server-detail-panel{width:min(560px,100%);padding:0;overflow:hidden}
+.server-detail-panel .modal-close{z-index:5}
+.srv-detail-banner{height:110px;background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center}
+.srv-detail-head{display:flex;align-items:flex-end;gap:14px;padding:0 20px;margin-top:-32px}
+.srv-detail-icon{width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #150c26;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;overflow:hidden;flex-shrink:0}
+.srv-detail-icon img{width:100%;height:100%;object-fit:cover}
+.srv-detail-titles{padding-bottom:6px;min-width:0}
+.srv-detail-titles h3{font-size:1.15rem;font-weight:900}
+.srv-detail-desc{font-size:.78rem;color:var(--muted);margin-top:2px}
+.srv-tabs{display:flex;gap:4px;padding:16px 20px 0;border-bottom:1px solid rgba(42,31,61,.9);overflow-x:auto}
+.srv-tab{padding:9px 4px;font-size:.8rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;margin-right:14px}
+.srv-tab.on{color:#e9d5ff;border-color:#7c3aed}
+.srv-tab.hidden{display:none}
+#srv-detail-body{padding:16px 20px 20px;max-height:min(55vh,440px);overflow:auto}
+.srv-invite-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(42,31,61,.8);border-radius:12px;padding:10px 12px;margin-bottom:14px}
+.srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
+.srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+.srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
+.srv-member-row:last-child{border-bottom:none}
+.srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
+.srv-perm-check{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:.82rem}
+.srv-quality-locked{opacity:.55}
+.srv-upsell{font-size:.7rem;color:#facc15;margin-top:4px}
 .cb-info{flex:1;min-width:0}
 .cb-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
@@ -1396,6 +1465,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn" id="nav-servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
     <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
@@ -1887,6 +1957,61 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <input type="password" class="e2e-bb-input" id="e2e-bb-pass" placeholder="Ton mot de passe" autocomplete="current-password">
     <button type="button" class="e2e-bb-btn" id="e2e-bb-submit">Valider</button>
     <button type="button" class="e2e-bb-x" id="e2e-bb-cancel" title="Annuler">✕</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-servers">
+  <div class="modal-box servers-panel">
+    <button type="button" class="modal-close" id="srv-list-close">✕</button>
+    <h3>🏘️ Serveurs</h3>
+    <div class="srv-list-actions">
+      <button type="button" class="btn-main" id="srv-create-open">+ Créer un serveur</button>
+      <button type="button" class="btn-flag" id="srv-join-open">🔗 Rejoindre</button>
+    </div>
+    <div id="srv-list-body"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-server-create">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="srv-create-close">✕</button>
+    <h3>Créer un serveur</h3>
+    <div class="set-row"><label>Nom</label><input type="text" id="srv-create-name" class="field-input" maxlength="100" placeholder="Ma communauté"></div>
+    <div class="set-row"><label>Description (optionnel)</label><textarea id="srv-create-desc" class="field-input" maxlength="500" rows="3" placeholder="De quoi ça parle ?"></textarea></div>
+    <button type="button" class="btn-main" id="srv-create-submit">Créer mon serveur</button>
+    <div class="err" id="srv-create-err"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-server-join">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="srv-join-close">✕</button>
+    <h3>Rejoindre un serveur</h3>
+    <div class="set-row"><label>Code d'invitation</label><input type="text" id="srv-join-code" class="field-input" maxlength="16" placeholder="Ex : A1B2C3D4" style="text-transform:uppercase"></div>
+    <div id="srv-join-preview"></div>
+    <button type="button" class="btn-main" id="srv-join-submit">Rejoindre</button>
+    <div class="err" id="srv-join-err"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-server-detail">
+  <div class="modal-box server-detail-panel">
+    <button type="button" class="modal-close" id="srv-detail-close">✕</button>
+    <div class="srv-detail-banner" id="srv-detail-banner"></div>
+    <div class="srv-detail-head">
+      <div class="srv-detail-icon" id="srv-detail-icon">?</div>
+      <div class="srv-detail-titles">
+        <h3 id="srv-detail-name"></h3>
+        <div class="srv-detail-desc" id="srv-detail-desc"></div>
+      </div>
+    </div>
+    <div class="srv-tabs" id="srv-tabs">
+      <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
+      <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
+      <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
+      <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
+    </div>
+    <div id="srv-detail-body"></div>
   </div>
 </div>
 
@@ -3035,6 +3160,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
+    body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…) — comme sur Discord. Chaque serveur a son propre salon vocal persistant. Et si tu es XULTRA+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
   {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
     body:'Corrigé : la photo de profil de l\\'interlocuteur n\\'apparaissait jamais dans l\\'en-tête d\\'une conversation privée (seulement ses initiales) — elle s\\'affiche maintenant correctement. Autre correctif plus important : la sauvegarde chiffrée qui permet de lire ses anciens messages en changeant d\\'appareil ne se déclenchait que lors d\\'une vraie reconnexion avec mot de passe — une session simplement restaurée à la réouverture de l\\'app (le cas le plus courant) ne l\\'activait jamais. Un petit bandeau propose maintenant de confirmer son mot de passe pour l\\'activer si ce n\\'est pas déjà fait, avec vérification du mot de passe avant de sauvegarder quoi que ce soit.'},
   {version:'2.32.1',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
@@ -5815,7 +5942,7 @@ async function refreshGroupCallBadge(dmId){
   const badge=\$('dm-call-badge');if(!badge)return;
   const forDm=activeDm;
   if(!dmId||!activeDmIsGroup){return}
-  if(groupRoom&&groupCallDmId===dmId){badge.classList.add('hidden');return}
+  if(groupRoom&&groupCallContextType==='dm'&&groupCallContextId===dmId){badge.classList.add('hidden');return}
   try{
     const r=await db.listDocuments(DB,'group_call_presence',[Appwrite.Query.equal('dmId',dmId),Appwrite.Query.limit(25)]);
     if(activeDm!==forDm)return;
@@ -8165,7 +8292,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
    Chaque participant n'envoie qu'un seul flux au serveur, qui le redistribue
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
-let groupRoom=null, groupCallDmId=null, groupCallGroupName='', groupWaveRaf=null;
+let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallGroupName='', groupWaveRaf=null;
 let groupPresenceDocId=null, groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
@@ -8263,39 +8390,48 @@ function wireGroupRoomEvents(room){
     cleanupGroupCall();
   });
 }
-async function joinGroupCall(dmId,groupName){
+const AUDIO_BITRATE_PRESETS={standard:64000,high:256000};
+async function joinVoiceRoom(contextType,contextId,roomLabel){
   if(!me)return;
   if(groupRoom){showToast('Tu es déjà dans un salon vocal.','error');return}
   if(typeof LivekitClient==='undefined'){showToast('Module d\\'appel indisponible, réessaie plus tard','error');xlog('livekit_sdk_missing',{});return}
   if(activeCallDoc||incomingCallDoc){showToast('Termine ton appel privé en cours d\\'abord.','error');return}
   const ctx0=ensureAudioCtx();if(ctx0&&ctx0.state==='suspended')ctx0.resume().catch(function(){});
   try{
-    const res=await authPost('/api/call/group-token',{dmId:dmId});
+    const isServer=contextType==='server';
+    const endpoint=isServer?'/api/servers/voice-token':'/api/call/group-token';
+    const payload=isServer?{serverId:contextId}:{dmId:contextId};
+    const res=await authPost(endpoint,payload);
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
-    groupRoom=room;groupCallDmId=dmId;groupCallGroupName=groupName||'Groupe';
+    groupRoom=room;groupCallContextType=contextType;groupCallContextId=contextId;groupCallGroupName=roomLabel||'Groupe';
     wireGroupRoomEvents(room);
     await room.connect(res.wsUrl,res.token);
-    await room.localParticipant.setMicrophoneEnabled(true);
-    try{
-      const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
-        {dmId:dmId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'},
-        [Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
-      );
-      groupPresenceDocId=pres.\$id;
-    }catch(e){groupPresenceDocId=null;}
-    startGroupHeartbeat();
+    const audioBitrate=isServer?(AUDIO_BITRATE_PRESETS[res.audioQualityKey]||AUDIO_BITRATE_PRESETS.standard):AUDIO_BITRATE_PRESETS.standard;
+    await room.localParticipant.setMicrophoneEnabled(true,{audioPreset:{maxBitrate:audioBitrate}});
+    if(!isServer){
+      try{
+        const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
+          {dmId:contextId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'},
+          [Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
+        );
+        groupPresenceDocId=pres.\$id;
+      }catch(e){groupPresenceDocId=null;}
+      startGroupHeartbeat();
+    }
     \$('group-call-bar').classList.remove('hidden');
     \$('gcb-group-name').textContent=groupCallGroupName;
     \$('gcb-mute').classList.remove('on');
     renderGroupParticipants();
-    xlog('group_call_joined',{dmId:dmId});
+    xlog('group_call_joined',{contextType:contextType,contextId:contextId});
   }catch(e){
     showToast('Impossible de rejoindre le salon vocal','error');
     xlog('group_call_join_fail',{msg:(e&&e.message)||String(e)});
     if(groupRoom){try{groupRoom.disconnect();}catch(e2){}}
-    groupRoom=null;groupCallDmId=null;
+    groupRoom=null;groupCallContextType=null;groupCallContextId=null;
   }
 }
+function joinGroupCall(dmId,groupName){return joinVoiceRoom('dm',dmId,groupName);}
+function joinServerVoice(serverId,serverName){return joinVoiceRoom('server',serverId,serverName);}
 function startGroupHeartbeat(){
   stopGroupHeartbeat();
   groupHeartbeatId=setInterval(function(){
@@ -8314,7 +8450,7 @@ function cleanupGroupCall(){
     db.deleteDocument(DB,'group_call_presence',groupPresenceDocId).catch(function(){});
     groupPresenceDocId=null;
   }
-  groupRoom=null;groupCallDmId=null;groupCallGroupName='';
+  groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
 }
@@ -8342,6 +8478,404 @@ window.addEventListener('pagehide',function(){
   }
 });
 
+/* ===== Serveurs (communautés) : rôles, permissions, salon vocal, branding ===== */
+const SERVER_PERM_DEFS=[
+  {key:'manage_server',icon:'⚙️',label:'Gérer le serveur',desc:'Modifier le nom, la description, l\\'icône, la bannière et la qualité audio/vidéo.'},
+  {key:'manage_roles',icon:'🎭',label:'Gérer les rôles',desc:'Créer, modifier, supprimer des rôles et les attribuer aux membres.'},
+  {key:'manage_invites',icon:'🔗',label:'Gérer les invitations',desc:'Voir et régénérer le code d\\'invitation.'},
+  {key:'mute_members',icon:'🔇',label:'Rendre muet',desc:'Couper le micro d\\'un membre dans le salon vocal.'},
+  {key:'kick_members',icon:'👢',label:'Expulser des membres',desc:'Retirer un membre du serveur (il peut revenir avec un code d\\'invitation).'},
+  {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'}
+];
+let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
+function serverHasPermission(permission){
+  if(!activeServer||!me)return false;
+  if(String(activeServer.ownerId)===String(me.\$id))return true;
+  if(!activeServerMembership)return false;
+  const roleIds=activeServerMembership.roleIds||[];
+  return activeServerRoles.some(function(r){
+    if(roleIds.indexOf(r.\$id)<0)return false;
+    let perms=[];try{perms=JSON.parse(r.permissionsJson||'[]');}catch(e){}
+    return perms.indexOf(permission)>=0;
+  });
+}
+async function loadMyServers(){
+  if(!me)return [];
+  try{
+    const memList=await db.listDocuments(DB,'server_members',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(100)]);
+    const servers=[];
+    for(const m of (memList.documents||[])){
+      try{const s=await db.getDocument(DB,'servers',m.serverId);servers.push(s);}catch(e){}
+    }
+    myServers=servers;
+  }catch(e){myServers=[];}
+  return myServers;
+}
+function serverIconHtml(s,sizeClass){
+  const url=safeUrl(s&&s.icon);
+  return url?'<img src="'+esc(url)+'" alt="">':esc(ini((s&&s.name)||'?'));
+}
+async function openServersPanel(){
+  \$('modal-servers').classList.remove('hidden');
+  \$('srv-list-body').innerHTML='<div class="empty-hint">Chargement…</div>';
+  await loadMyServers();
+  renderServersList();
+}
+function renderServersList(){
+  const box=\$('srv-list-body');if(!box)return;
+  if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu ne fais partie d\\'aucun serveur pour l\\'instant. Crée le tien ou rejoins-en un avec un code !</div>';return}
+  box.innerHTML=myServers.map(function(s){
+    const isOwner=me&&String(s.ownerId)===String(me.\$id);
+    return '<div class="srv-item" data-srv-open="'+esc(s.\$id)+'">'
+      +'<div class="srv-item-icon">'+serverIconHtml(s)+'</div>'
+      +'<div class="srv-item-info"><div class="srv-item-name">'+esc(s.name)+'</div><div class="srv-item-sub">'+esc((s.description||'').slice(0,60)||'Aucune description')+'</div></div>'
+      +(isOwner?'<span class="srv-item-owner">👑 Toi</span>':'')
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-srv-open]').forEach(function(el){
+    el.addEventListener('click',function(){openServerDetail(el.getAttribute('data-srv-open'));});
+  });
+}
+if(\$('nav-servers'))\$('nav-servers').addEventListener('click',openServersPanel);
+if(\$('srv-list-close'))\$('srv-list-close').addEventListener('click',function(){\$('modal-servers').classList.add('hidden');});
+if(\$('modal-servers'))\$('modal-servers').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+
+if(\$('srv-create-open'))\$('srv-create-open').addEventListener('click',function(){
+  \$('srv-create-name').value='';\$('srv-create-desc').value='';\$('srv-create-err').textContent='';
+  \$('modal-server-create').classList.remove('hidden');
+});
+if(\$('srv-create-close'))\$('srv-create-close').addEventListener('click',function(){\$('modal-server-create').classList.add('hidden');});
+if(\$('modal-server-create'))\$('modal-server-create').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+if(\$('srv-create-submit'))\$('srv-create-submit').addEventListener('click',async function(){
+  const name=(\$('srv-create-name').value||'').trim();
+  if(name.length<2){\$('srv-create-err').textContent='Le nom doit faire au moins 2 caractères';return}
+  this.disabled=true;this.textContent='Création…';\$('srv-create-err').textContent='';
+  try{
+    const res=await authPost('/api/servers/create',{name:name,description:(\$('srv-create-desc').value||'').trim()});
+    \$('modal-server-create').classList.add('hidden');
+    showToast('Serveur créé ! 🎉');
+    await loadMyServers();renderServersList();
+    openServerDetail(res.server.\$id);
+  }catch(e){\$('srv-create-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Créer mon serveur';
+});
+
+if(\$('srv-join-open'))\$('srv-join-open').addEventListener('click',function(){
+  \$('srv-join-code').value='';\$('srv-join-preview').innerHTML='';\$('srv-join-err').textContent='';
+  \$('modal-server-join').classList.remove('hidden');
+});
+if(\$('srv-join-close'))\$('srv-join-close').addEventListener('click',function(){\$('modal-server-join').classList.add('hidden');});
+if(\$('modal-server-join'))\$('modal-server-join').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+let srvJoinPreviewTimer=null;
+if(\$('srv-join-code'))\$('srv-join-code').addEventListener('input',function(){
+  const code=this.value.trim().toUpperCase();
+  if(srvJoinPreviewTimer)clearTimeout(srvJoinPreviewTimer);
+  \$('srv-join-preview').innerHTML='';
+  if(code.length<4)return;
+  srvJoinPreviewTimer=setTimeout(async function(){
+    try{
+      const r=await fetch('/api/servers/preview?code='+encodeURIComponent(code));
+      const j=await r.json();
+      if(j.ok){
+        \$('srv-join-preview').innerHTML='<div class="srv-item" style="cursor:default"><div class="srv-item-icon">'+serverIconHtml(j.server)+'</div><div class="srv-item-info"><div class="srv-item-name">'+esc(j.server.name)+'</div><div class="srv-item-sub">'+(j.server.memberCount||0)+' membre(s)</div></div></div>';
+      }
+    }catch(e){}
+  },400);
+});
+if(\$('srv-join-submit'))\$('srv-join-submit').addEventListener('click',async function(){
+  const code=(\$('srv-join-code').value||'').trim();
+  if(!code){\$('srv-join-err').textContent='Code requis';return}
+  this.disabled=true;this.textContent='Connexion…';\$('srv-join-err').textContent='';
+  try{
+    const res=await authPost('/api/servers/join',{inviteCode:code});
+    \$('modal-server-join').classList.add('hidden');
+    showToast(res.alreadyMember?'Tu es déjà membre de ce serveur !':'Bienvenue dans le serveur ! 🎉');
+    await loadMyServers();renderServersList();
+    openServerDetail(res.server.\$id);
+  }catch(e){\$('srv-join-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Rejoindre';
+});
+
+async function openServerDetail(serverId){
+  try{
+    activeServer=await db.getDocument(DB,'servers',serverId);
+  }catch(e){showToast('Serveur introuvable','error');return}
+  try{
+    const rolesList=await db.listDocuments(DB,'server_roles',[Appwrite.Query.equal('serverId',serverId),Appwrite.Query.limit(100)]);
+    activeServerRoles=rolesList.documents||[];
+  }catch(e){activeServerRoles=[];}
+  try{
+    const membersList=await db.listDocuments(DB,'server_members',[Appwrite.Query.equal('serverId',serverId),Appwrite.Query.limit(200)]);
+    activeServerMembers=membersList.documents||[];
+    activeServerMembership=me?activeServerMembers.find(function(m){return String(m.uid)===String(me.\$id)}):null;
+  }catch(e){activeServerMembers=[];activeServerMembership=null;}
+  \$('modal-servers').classList.add('hidden');
+  \$('srv-detail-name').textContent=activeServer.name;
+  \$('srv-detail-desc').textContent=activeServer.description||'';
+  \$('srv-detail-icon').innerHTML=serverIconHtml(activeServer);
+  const bannerUrl=safeUrl(activeServer.banner);
+  \$('srv-detail-banner').style.backgroundImage=bannerUrl?'url('+JSON.stringify(bannerUrl)+')':'';
+  const canRoles=serverHasPermission('manage_roles');
+  const canSettings=serverHasPermission('manage_server');
+  \$('srv-tab-roles-btn').classList.toggle('hidden',!canRoles);
+  \$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
+  activeServerTab='overview';
+  switchServerTab('overview');
+  \$('modal-server-detail').classList.remove('hidden');
+}
+function switchServerTab(tab){
+  activeServerTab=tab;
+  document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-srv-tab')===tab);});
+  if(tab==='overview')renderServerOverviewTab();
+  else if(tab==='members')renderServerMembersTab();
+  else if(tab==='roles')renderServerRolesTab();
+  else if(tab==='settings')renderServerSettingsTab();
+}
+document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){
+  b.addEventListener('click',function(){switchServerTab(b.getAttribute('data-srv-tab'));});
+});
+if(\$('srv-detail-close'))\$('srv-detail-close').addEventListener('click',function(){
+  \$('modal-server-detail').classList.add('hidden');
+  activeServer=null;
+});
+if(\$('modal-server-detail'))\$('modal-server-detail').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+
+const SERVER_QUALITY_LABELS={standard:'Standard (64 kbps)',high:'Haute fidélité XULTRA+ (256 kbps)','720p60':'720p · 60 img/s',"1080p60":'1080p · 60 img/s'};
+function renderServerOverviewTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
+  const canInvite=serverHasPermission('manage_invites');
+  const inVoiceHere=groupRoom&&groupCallContextType==='server'&&groupCallContextId===activeServer.\$id;
+  let html='';
+  if(canInvite){
+    html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
+  }
+  html+='<div class="srv-voice-card"><div style="font-weight:800;margin-bottom:6px">🎙️ Salon vocal</div>'
+    +'<div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
+    +'<button type="button" class="btn-main" id="srv-voice-join"'+(inVoiceHere?' disabled':'')+'>'+(inVoiceHere?'✅ Tu es dans le salon':'🎙️ Rejoindre le salon vocal')+'</button></div>';
+  html+='<div class="scr-sub">'+ (activeServerMembers.length)+' membre(s)</div>';
+  if(!isOwner){
+    html+='<button type="button" class="set-mini-btn danger" id="srv-leave-btn" style="margin-top:14px">Quitter le serveur</button>';
+  }
+  box.innerHTML=html;
+  const copyBtn=\$('srv-copy-invite');
+  if(copyBtn)copyBtn.onclick=function(){
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(activeServer.inviteCode):Promise.reject())
+      .then(function(){showToast('Code copié !');}).catch(function(){});
+  };
+  const regenBtn=\$('srv-regen-invite');
+  if(regenBtn)regenBtn.onclick=async function(){
+    try{const r=await authPost('/api/servers/regenerate-invite',{serverId:activeServer.\$id});activeServer.inviteCode=r.inviteCode;renderServerOverviewTab();showToast('Nouveau code généré !');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  const voiceBtn=\$('srv-voice-join');
+  if(voiceBtn)voiceBtn.onclick=function(){joinServerVoice(activeServer.\$id,activeServer.name);};
+  const leaveBtn=\$('srv-leave-btn');
+  if(leaveBtn)leaveBtn.onclick=async function(){
+    if(!confirm('Quitter ce serveur ?'))return;
+    try{await authPost('/api/servers/leave',{serverId:activeServer.\$id});\$('modal-server-detail').classList.add('hidden');await loadMyServers();showToast('Tu as quitté le serveur.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+}
+function serverRoleBadgesHtml(member){
+  const roleIds=member.roleIds||[];
+  return roleIds.map(function(rid){
+    const role=activeServerRoles.find(function(r){return r.\$id===rid});
+    if(!role)return '';
+    return '<span class="srv-role-pill" style="background:'+esc(role.color||'#7c3aed')+'22;color:'+esc(role.color||'#a78bfa')+'">'+esc(role.name)+'</span>';
+  }).join('');
+}
+function renderServerMembersTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  const canKick=serverHasPermission('kick_members');
+  const canBan=serverHasPermission('ban_members');
+  const canRoles=serverHasPermission('manage_roles');
+  box.innerHTML=activeServerMembers.map(function(m){
+    const isOwnerRow=String(activeServer.ownerId)===String(m.uid);
+    const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(m.uid)});
+    const avatarUrl=safeUrl(prof&&prof.avatar);
+    let actions='';
+    if(!isOwnerRow){
+      if(canRoles)actions+='<button type="button" class="set-mini-btn" data-srv-role-assign="'+esc(m.uid)+'">Rôles</button>';
+      if(canKick)actions+='<button type="button" class="set-mini-btn danger" data-srv-kick="'+esc(m.uid)+'">Expulser</button>';
+      if(canBan)actions+='<button type="button" class="set-mini-btn danger" data-srv-ban="'+esc(m.uid)+'">Bannir</button>';
+    }
+    return '<div class="srv-member-row">'
+      +'<div class="av" style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:var(--elev)">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(m.username||'?')))+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem">'+esc(m.username||'Membre')+(isOwnerRow?' 👑':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
+      +'<div style="display:flex;gap:6px;flex-shrink:0">'+actions+'</div>'
+      +'</div>';
+  }).join('')||'<div class="empty-hint">Aucun membre.</div>';
+  box.querySelectorAll('[data-srv-kick]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Expulser ce membre ?'))return;
+      try{await authPost('/api/servers/members/kick',{serverId:activeServer.\$id,uid:b.getAttribute('data-srv-kick')});await openServerDetail(activeServer.\$id);switchServerTab('members');showToast('Membre expulsé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+  box.querySelectorAll('[data-srv-ban]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Bannir définitivement ce membre ?'))return;
+      try{await authPost('/api/servers/members/ban',{serverId:activeServer.\$id,uid:b.getAttribute('data-srv-ban')});await openServerDetail(activeServer.\$id);switchServerTab('members');showToast('Membre banni.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+  box.querySelectorAll('[data-srv-role-assign]').forEach(function(b){
+    b.addEventListener('click',function(){openServerRoleAssign(b.getAttribute('data-srv-role-assign'));});
+  });
+}
+function openServerRoleAssign(uid){
+  const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
+  if(!member)return;
+  if(!activeServerRoles.length){showToast('Crée d\\'abord un rôle dans l\\'onglet Rôles.','error');return}
+  const current=member.roleIds||[];
+  const box=\$('srv-detail-body');if(!box)return;
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-section-label">Rôles de '+esc(member.username||'ce membre')+'</div>'
+    +activeServerRoles.map(function(r){
+      return '<label class="srv-perm-check"><input type="checkbox" data-srv-assign-role="'+esc(r.\$id)+'"'+(current.indexOf(r.\$id)>=0?' checked':'')+'> <span style="width:10px;height:10px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';display:inline-block"></span> <b>'+esc(r.name)+'</b></label>';
+    }).join('')
+    +'<div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="btn-main" id="srv-assign-save">Enregistrer</button><button type="button" class="set-mini-btn" id="srv-assign-cancel">Annuler</button></div>'
+    +'<div class="err" id="srv-assign-err"></div>'
+    +'</div>';
+  \$('srv-assign-cancel').onclick=function(){switchServerTab('members');};
+  \$('srv-assign-save').onclick=async function(){
+    const roleIds=Array.from(box.querySelectorAll('[data-srv-assign-role]')).filter(function(c){return c.checked;}).map(function(c){return c.getAttribute('data-srv-assign-role');});
+    this.disabled=true;this.textContent='...';
+    try{
+      await authPost('/api/servers/roles/assign',{serverId:activeServer.\$id,uid:uid,roleIds:roleIds});
+      await openServerDetail(activeServer.\$id);switchServerTab('members');showToast('Rôles mis à jour.');
+    }catch(e){\$('srv-assign-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+}
+function renderServerRolesTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  let html='<button type="button" class="btn-main" id="srv-role-create-btn" style="margin-bottom:14px">+ Créer un rôle</button>';
+  html+=activeServerRoles.map(function(r){
+    let perms=[];try{perms=JSON.parse(r.permissionsJson||'[]');}catch(e){}
+    return '<div class="set-card" data-srv-role-id="'+esc(r.\$id)+'">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';flex-shrink:0"></span><b>'+esc(r.name)+'</b></div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">'+(perms.length?perms.map(function(p){const d=SERVER_PERM_DEFS.find(function(x){return x.key===p});return d?d.icon+' '+d.label:p;}).join(', '):'Aucune permission')+'</div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" data-srv-role-edit="'+esc(r.\$id)+'">Modifier</button><button type="button" class="set-mini-btn danger" data-srv-role-del="'+esc(r.\$id)+'">Supprimer</button></div>'
+      +'</div>';
+  }).join('');
+  box.innerHTML=html||'<div class="empty-hint">Aucun rôle pour l\\'instant.</div>';
+  const createBtn=\$('srv-role-create-btn');
+  if(createBtn)createBtn.onclick=function(){openServerRoleEditor(null);};
+  box.querySelectorAll('[data-srv-role-edit]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const role=activeServerRoles.find(function(r){return r.\$id===b.getAttribute('data-srv-role-edit')});
+      openServerRoleEditor(role);
+    });
+  });
+  box.querySelectorAll('[data-srv-role-del]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Supprimer ce rôle ?'))return;
+      try{await authPost('/api/servers/roles/delete',{serverId:activeServer.\$id,roleId:b.getAttribute('data-srv-role-del')});await openServerDetail(activeServer.\$id);switchServerTab('roles');showToast('Rôle supprimé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+}
+function openServerRoleEditor(role){
+  const box=\$('srv-detail-body');if(!box)return;
+  const isNew=!role;
+  let currentPerms=[];
+  if(role){try{currentPerms=JSON.parse(role.permissionsJson||'[]');}catch(e){}}
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-row"><label>Nom du rôle</label><input type="text" id="srv-role-name" class="field-input" maxlength="64" value="'+esc(role?role.name:'')+'"></div>'
+    +'<div class="set-row"><label>Couleur</label><input type="color" id="srv-role-color" value="'+esc(role?(role.color||'#a78bfa'):'#a78bfa')+'" style="width:60px;height:36px;border-radius:8px;border:1px solid var(--line);background:transparent"></div>'
+    +'<div class="set-section-label">Permissions</div>'
+    +SERVER_PERM_DEFS.map(function(p){
+      return '<label class="srv-perm-check"><input type="checkbox" data-srv-perm="'+p.key+'"'+(currentPerms.indexOf(p.key)>=0?' checked':'')+'> '+p.icon+' <b>'+esc(p.label)+'</b> — <span class="scr-sub">'+esc(p.desc)+'</span></label>';
+    }).join('')
+    +'<div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="btn-main" id="srv-role-save">'+(isNew?'Créer le rôle':'Enregistrer')+'</button><button type="button" class="set-mini-btn" id="srv-role-cancel">Annuler</button></div>'
+    +'<div class="err" id="srv-role-err"></div>'
+    +'</div>';
+  \$('srv-role-cancel').onclick=function(){switchServerTab('roles');};
+  \$('srv-role-save').onclick=async function(){
+    const name=(\$('srv-role-name').value||'').trim();
+    if(!name){\$('srv-role-err').textContent='Nom requis';return}
+    const color=\$('srv-role-color').value;
+    const perms=Array.from(box.querySelectorAll('[data-srv-perm]')).filter(function(c){return c.checked;}).map(function(c){return c.getAttribute('data-srv-perm');});
+    this.disabled=true;this.textContent='...';
+    try{
+      if(isNew){
+        await authPost('/api/servers/roles/create',{serverId:activeServer.\$id,name:name,color:color,permissions:perms});
+      }else{
+        await authPost('/api/servers/roles/update',{serverId:activeServer.\$id,roleId:role.\$id,name:name,color:color,permissions:perms});
+      }
+      await openServerDetail(activeServer.\$id);switchServerTab('roles');showToast('Rôle enregistré.');
+    }catch(e){\$('srv-role-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent=isNew?'Créer le rôle':'Enregistrer';}
+  };
+}
+let srvIconFile=null,srvBannerFile=null;
+async function renderServerSettingsTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  srvIconFile=null;srvBannerFile=null;
+  const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
+  let isPlus=false;
+  if(isOwner){
+    try{const ownerMeta=await db.getDocument(DB,'user_meta',me.\$id);isPlus=ownerMeta&&ownerMeta.plan==='plus';}catch(e){}
+  }
+  const upsell='<div class="srv-upsell">⭐ Nécessite XULTRA+ — voir Paramètres → Abonnement</div>';
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-row"><label>Nom</label><input type="text" id="srv-set-name" class="field-input" maxlength="100" value="'+esc(activeServer.name)+'"></div>'
+    +'<div class="set-row"><label>Description</label><textarea id="srv-set-desc" class="field-input" maxlength="500" rows="3">'+esc(activeServer.description||'')+'</textarea></div>'
+    +'<div class="set-row"><label>Icône</label><div class="srv-item-icon" id="srv-set-icon-preview" style="cursor:pointer">'+serverIconHtml(activeServer)+'</div><input type="file" id="srv-set-icon-file" accept="image/*" class="hidden"></div>'
+    +'<div class="set-row"><label>Bannière</label><div class="srv-detail-banner" id="srv-set-banner-preview" style="height:70px;border-radius:10px;cursor:pointer'+(safeUrl(activeServer.banner)?';background-image:url('+JSON.stringify(safeUrl(activeServer.banner))+')':'')+'"></div><input type="file" id="srv-set-banner-file" accept="image/*" class="hidden"></div>'
+    +'<button type="button" class="btn-main" id="srv-set-save">Enregistrer</button>'
+    +'<div class="err" id="srv-set-err"></div>'
+    +'</div>'
+    +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité XULTRA+</div>'
+      +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
+      +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité du partage d\\'écran</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.screenQualityKey||'720p60')==='720p60'?' on':'')+'" data-srv-quality-screen="720p60">720p60</button><button type="button" class="seg-btn'+(activeServer.screenQualityKey==='1080p60'?' on':'')+'" data-srv-quality-screen="1080p60"'+(isPlus?'':' disabled')+'>1080p60</button></div>'+(isPlus?'':upsell)+'</div>'
+      +'</div>'
+      +'<div class="set-card settings-danger"><div class="set-section-label">Zone dangereuse</div><button type="button" class="set-mini-btn danger" id="srv-delete-btn">Supprimer le serveur</button></div>'):'');
+  const iconPrev=\$('srv-set-icon-preview'),iconFile=\$('srv-set-icon-file');
+  if(iconPrev)iconPrev.onclick=function(){iconFile.click();};
+  if(iconFile)iconFile.addEventListener('change',function(){
+    const f=this.files&&this.files[0];this.value='';if(!f)return;
+    if(f.size>6*1024*1024){\$('srv-set-err').textContent='Image max 6 Mo';return}
+    srvIconFile=f;
+    const r=new FileReader();r.onload=function(){iconPrev.innerHTML='<img src="'+r.result+'" alt="">';};r.readAsDataURL(f);
+  });
+  const bannerPrev=\$('srv-set-banner-preview'),bannerFile=\$('srv-set-banner-file');
+  if(bannerPrev)bannerPrev.onclick=function(){bannerFile.click();};
+  if(bannerFile)bannerFile.addEventListener('change',function(){
+    const f=this.files&&this.files[0];this.value='';if(!f)return;
+    if(f.size>8*1024*1024){\$('srv-set-err').textContent='Image max 8 Mo';return}
+    srvBannerFile=f;
+    const r=new FileReader();r.onload=function(){bannerPrev.style.backgroundImage='url('+JSON.stringify(r.result)+')';};r.readAsDataURL(f);
+  });
+  \$('srv-set-save').onclick=async function(){
+    this.disabled=true;this.textContent='Enregistrement…';\$('srv-set-err').textContent='';
+    try{
+      const patch={name:(\$('srv-set-name').value||'').trim(),description:(\$('srv-set-desc').value||'').trim()};
+      if(srvIconFile){
+        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),srvIconFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        patch.icon=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      }
+      if(srvBannerFile){
+        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),srvBannerFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        patch.banner=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      }
+      await authPost('/api/servers/update',Object.assign({serverId:activeServer.\$id},patch));
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Serveur mis à jour !');
+    }catch(e){\$('srv-set-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+  box.querySelectorAll('[data-srv-quality-audio]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(b.disabled)return;
+      try{await authPost('/api/servers/quality',{serverId:activeServer.\$id,audioQualityKey:b.getAttribute('data-srv-quality-audio')});await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Qualité audio mise à jour.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+  box.querySelectorAll('[data-srv-quality-screen]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(b.disabled)return;
+      try{await authPost('/api/servers/quality',{serverId:activeServer.\$id,screenQualityKey:b.getAttribute('data-srv-quality-screen')});await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Qualité vidéo mise à jour.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+  const delBtn=\$('srv-delete-btn');
+  if(delBtn)delBtn.onclick=async function(){
+    if(!confirm('Supprimer définitivement ce serveur ? Cette action est irréversible.'))return;
+    try{await authPost('/api/servers/delete',{serverId:activeServer.\$id});\$('modal-server-detail').classList.add('hidden');await loadMyServers();showToast('Serveur supprimé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+}
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){
     if(!activeDm){showToast('Ouvre une conversation de groupe pour lancer un salon vocal.','error');return}
@@ -10096,6 +10630,345 @@ async function handle(request) {
       }
     } catch (e) {}
     return new Response("ok", { headers: cors });
+  }
+
+  if (path === "/api/servers/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const name = String((body && body.name) || "").trim().slice(0, 100);
+      const description = String((body && body.description) || "").trim().slice(0, 500);
+      if (name.length < 2) throw new Error("Le nom du serveur doit faire au moins 2 caractères");
+      let inviteCode = randomInviteCode();
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { name: name, description: description, icon: "", banner: "", ownerId: String(acc.$id), inviteCode: inviteCode, audioQualityKey: "standard", screenQualityKey: "720p60", bannedUidsJson: "[]" },
+          permissions: ["read(\"any\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+        }
+      });
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
+      });
+      return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const inviteCode = String((body && body.inviteCode) || "").trim().toUpperCase().slice(0, 32);
+      if (!inviteCode) throw new Error("Code d'invitation requis");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "inviteCode", values: [inviteCode] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const server = (found.documents || [])[0];
+      if (!server) throw new Error("Code d'invitation invalide");
+      let banned = [];
+      try { banned = JSON.parse(server.bannedUidsJson || "[]"); } catch (e) {}
+      if (banned.indexOf(String(acc.$id)) >= 0) throw new Error("Tu as été banni de ce serveur");
+      const already = await getServerMembership(server.$id, acc.$id);
+      if (already) return new Response(JSON.stringify({ ok: true, server: server, alreadyMember: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
+      });
+      return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/leave" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (String(server.ownerId) === String(acc.$id)) throw new Error("Le propriétaire ne peut pas quitter son propre serveur — supprime-le plutôt.");
+      const member = await getServerMembership(serverId, acc.$id);
+      if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire peut supprimer le serveur");
+      const members = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const m of (members.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      const roles = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      for (const r of (roles.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + r.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const data = {};
+      if (typeof body.name === "string") data.name = body.name.trim().slice(0, 100);
+      if (typeof body.description === "string") data.description = body.description.trim().slice(0, 500);
+      if (typeof body.icon === "string") data.icon = body.icon.slice(0, 500);
+      if (typeof body.banner === "string") data.banner = body.banner.slice(0, 500);
+      if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/regenerate-invite" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_invites");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const inviteCode = randomInviteCode();
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { inviteCode: inviteCode } } });
+      return new Response(JSON.stringify({ ok: true, inviteCode: updated.inviteCode }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/quality" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire peut changer la qualité");
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      const isPlus = meta && meta.plan === "plus";
+      const AUDIO_OK = ["standard", "high"];
+      const SCREEN_OK = ["720p60", "1080p60"];
+      const data = {};
+      if (typeof body.audioQualityKey === "string") {
+        if (AUDIO_OK.indexOf(body.audioQualityKey) < 0) throw new Error("Qualité audio inconnue");
+        if (body.audioQualityKey !== "standard" && !isPlus) throw new Error("Cette qualité audio nécessite XULTRA+");
+        data.audioQualityKey = body.audioQualityKey;
+      }
+      if (typeof body.screenQualityKey === "string") {
+        if (SCREEN_OK.indexOf(body.screenQualityKey) < 0) throw new Error("Qualité d'écran inconnue");
+        if (body.screenQualityKey !== "720p60" && !isPlus) throw new Error("Cette qualité de partage d'écran nécessite XULTRA+");
+        data.screenQualityKey = body.screenQualityKey;
+      }
+      if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/roles/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const name = String((body && body.name) || "").trim().slice(0, 64);
+      if (!name) throw new Error("Nom du rôle requis");
+      const color = String((body && body.color) || "#a78bfa").slice(0, 16);
+      const perms = Array.isArray(body.permissions) ? body.permissions.filter(function (p) { return SERVER_PERMISSIONS.indexOf(p) >= 0; }) : [];
+      const role = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, name: name, color: color, permissionsJson: JSON.stringify(perms) } }
+      });
+      return new Response(JSON.stringify({ ok: true, role: role }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/roles/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const roleId = String((body && body.roleId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const data = {};
+      if (typeof body.name === "string") data.name = body.name.trim().slice(0, 64);
+      if (typeof body.color === "string") data.color = body.color.slice(0, 16);
+      if (Array.isArray(body.permissions)) data.permissionsJson = JSON.stringify(body.permissions.filter(function (p) { return SERVER_PERMISSIONS.indexOf(p) >= 0; }));
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, role: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/roles/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const roleId = String((body && body.roleId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { method: "DELETE", asAdmin: true });
+      const members = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const m of (members.documents || [])) {
+        const roleIds = (m.roleIds || []).filter(function (id) { return id !== roleId; });
+        if (roleIds.length !== (m.roleIds || []).length) {
+          await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + m.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } }).catch(function () {});
+        }
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/roles/assign" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const roleIds = Array.isArray(body.roleIds) ? body.roleIds.map(String) : [];
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
+      return new Response(JSON.stringify({ ok: true, member: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/members/kick" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "kick_members");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible d'expulser le propriétaire");
+      const member = await getServerMembership(serverId, targetUid);
+      if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/members/ban" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const unban = !!body.unban;
+      const gate = await serverCheckPermission(serverId, acc.$id, "ban_members");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de bannir le propriétaire");
+      let banned = [];
+      try { banned = JSON.parse(gate.server.bannedUidsJson || "[]"); } catch (e) {}
+      if (unban) {
+        banned = banned.filter(function (u) { return u !== targetUid; });
+      } else {
+        if (banned.indexOf(targetUid) < 0) banned.push(targetUid);
+        const member = await getServerMembership(serverId, targetUid);
+        if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/voice-token" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!isOwner) {
+        const member = await getServerMembership(serverId, acc.$id);
+        if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      }
+      const profile = await resolveProfile(acc.$id);
+      const name = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const room = "xu-server-" + serverId;
+      const token = await mintLiveKitParticipantToken(String(acc.$id), name, room);
+      return new Response(JSON.stringify({
+        ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room,
+        audioQualityKey: server.audioQualityKey || "standard", screenQualityKey: server.screenQualityKey || "720p60"
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/preview" && request.method === "GET") {
+    try {
+      const inviteCode = String(url.searchParams.get("code") || "").trim().toUpperCase().slice(0, 32);
+      if (!inviteCode) throw new Error("Code requis");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "inviteCode", values: [inviteCode] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const server = (found.documents || [])[0];
+      if (!server) throw new Error("Code d'invitation invalide");
+      const members = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [server.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, server: { $id: server.$id, name: server.name, description: server.description, icon: server.icon, banner: server.banner, memberCount: members.total || 0 } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
 
   if (path === "/api/dm/delete" && request.method === "POST") {
