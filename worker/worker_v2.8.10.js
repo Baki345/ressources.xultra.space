@@ -646,6 +646,14 @@ body.high-contrast{filter:contrast(1.18) saturate(1.12)}
 .msg.mine .msg-location{background:rgba(255,255,255,.16)}
 .msg-location span{font-size:.7rem;color:var(--muted);font-weight:600}
 .msg.mine .msg-location span{color:rgba(255,255,255,.7)}
+.link-preview-card{margin-top:6px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);max-width:280px}
+.link-preview-card:empty{display:none}
+.lp-inner{display:block;color:inherit;text-decoration:none}
+.lp-img{width:100%;height:110px;background-size:cover;background-position:center;background-color:rgba(255,255,255,.03)}
+.lp-text{padding:8px 10px}
+.lp-site{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.lp-title{font-size:.8rem;font-weight:700;line-height:1.3}
+.lp-desc{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .voice-msg{display:flex;align-items:center;gap:8px;min-width:180px}
 .voice-msg-loading{display:flex;align-items:center;gap:8px;min-width:180px}
 .toast-wrap{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
@@ -2435,6 +2443,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.14.1',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
+    body:'Tape Ctrl (ou ⌘ sur Mac) + K pour sauter directement à la recherche, Ctrl/⌘ + virgule pour ouvrir les paramètres, et Échap pour fermer n’importe quelle fenêtre ouverte. Et quand quelqu’un partage un lien dans une conversation, une petite carte avec l’image et le titre du site s’affiche maintenant automatiquement (tu peux la désactiver dans Paramètres → Apparence).'},
   {version:'2.14.0',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
     body:'Un nouveau ⚙️ « Paramètres » est apparu dans le menu ⋯ à côté de ton pseudo. Tu peux maintenant changer ton pseudo, ton e-mail et ton mot de passe, gérer qui peut t’ajouter en ami ou t’écrire, voir tes appareils connectés, régler tes sons de notification, activer des heures calmes automatiques, et bien plus encore. Certaines options marquées « Bientôt disponible » arriveront dans les prochaines mises à jour.'},
   {version:'2.13.1',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
@@ -2482,7 +2492,7 @@ function loadAppPrefs(){
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
-    analyticsShare:false,adsPersonalization:false,_prevStatus:null
+    analyticsShare:false,adsPersonalization:false,linkPreview:true,_prevStatus:null
   },p);
 }
 let appPrefs=loadAppPrefs();
@@ -2549,6 +2559,7 @@ function wireGenericToggles(box){
       sw.setAttribute('data-on',on?'1':'0');
       sw.classList.toggle('on',on);
       appPrefs[key]=on;saveAppPrefs();applyAppPrefs();
+      if(key==='linkPreview'&&typeof renderMessages==='function'&&typeof activeDm!=='undefined'&&activeDm)renderMessages();
     };
   });
 }
@@ -2878,7 +2889,7 @@ function renderSetAppearance(box){
     +'</div>'
     +'<div class="set-card">'
       +toggleRow('Animer les emojis, autocollants et avatars','animateEmoji',appPrefs.animateEmoji)
-      +'<div class="set-toggle-row"><span>Aperçu des liens dans les messages</span>'+soonBadge()+'</div>'
+      +toggleRow('Aperçu des liens dans les messages','linkPreview',appPrefs.linkPreview)
     +'</div>';
   wireSetAppearance(box);
   wireGenericToggles(box);
@@ -2958,8 +2969,20 @@ function renderSetNotifications(box){
   if(dndEnd)dndEnd.addEventListener('change',function(){appPrefs.dndEnd=dndEnd.value;saveAppPrefs();});
 }
 
+function isMacPlatform(){
+  try{return /Mac|iPhone|iPad|iPod/.test(navigator.platform||navigator.userAgent||'');}catch(e){return false}
+}
+const SHORTCUTS_LIST=[
+  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + K'},desc:'Aller à la recherche'},
+  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + ,'},desc:'Ouvrir les paramètres'},
+  {combo:function(){return (isMacPlatform()?'⌘':'Ctrl')+' + Maj + A'},desc:'Ajouter un ami'},
+  {combo:function(){return 'Échap'},desc:'Fermer la fenêtre ouverte'},
+  {combo:function(){return 'Maj + Entrée'},desc:'Retour à la ligne dans un message'},
+  {combo:function(){return 'Entrée'},desc:'Envoyer le message'}
+];
 function renderSetShortcuts(box){
-  box.innerHTML='<h2>Raccourcis clavier</h2><div class="sc-desc">Personnalise tes propres raccourcis pour aller plus vite.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur XULTRA.</div></div>';
+  box.innerHTML='<h2>Raccourcis clavier</h2><div class="sc-desc">Les raccourcis déjà disponibles sur XULTRA. La personnalisation arrive bientôt.</div>'
+    +'<div class="set-card">'+SHORTCUTS_LIST.map(function(s){return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(s.desc)+'</div></div><span class="soon-badge" style="color:#c4b5fd;background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.3)">'+esc(s.combo())+'</span></div>';}).join('')+'</div>';
 }
 function renderSetLanguage(box){
   box.innerHTML='<h2>Langue</h2><div class="sc-desc">La langue de l’interface XULTRA.</div>'
@@ -3001,6 +3024,38 @@ function renderSetActivity(box){
 if(\$('ub-settings'))\$('ub-settings').addEventListener('click',function(){closeUbPopovers();openSettingsPanel();});
 if(\$('set-close'))\$('set-close').addEventListener('click',closeSettingsPanel);
 if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e){if(e.target===this)closeSettingsPanel();});
+
+/* ===== Raccourcis clavier globaux ===== */
+function closeTopmostOverlay(){
+  if(\$('modal-status')&&!\$('modal-status').classList.contains('hidden')){closeStatusPanel();return true}
+  if(\$('modal-bug')&&!\$('modal-bug').classList.contains('hidden')){closeBugModal();return true}
+  if(\$('modal-settings')&&!\$('modal-settings').classList.contains('hidden')){closeSettingsPanel();return true}
+  const open=document.querySelectorAll('.overlay:not(.hidden)');
+  if(open.length){open[open.length-1].classList.add('hidden');return true}
+  return false;
+}
+document.addEventListener('keydown',function(e){
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&!e.shiftKey&&e.key.toLowerCase()==='k'){
+    e.preventDefault();
+    const s=\$('search');if(s){s.focus();s.select();}
+    return;
+  }
+  if(mod&&!e.shiftKey&&e.key===','){
+    e.preventDefault();
+    if(me)openSettingsPanel();
+    return;
+  }
+  if(mod&&e.shiftKey&&e.key.toLowerCase()==='a'){
+    e.preventDefault();
+    if(\$('btn-add-friend'))\$('btn-add-friend').click();
+    return;
+  }
+  if(e.key==='Escape'){
+    if(closeTopmostOverlay())return;
+    closeUbPopovers();
+  }
+});
 
 const BADGE_DEFS={
   base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
@@ -4384,7 +4439,32 @@ function renderMsgBody(m,text,mediaUrl){
       return '<a class="msg-location" href="'+esc(mapUrl)+'" target="_blank" rel="noopener">📍 Position partagée<span>Ouvrir dans Maps</span></a>';
     }
   }
-  return linkify(esc(text||''));
+  const linkedText=linkify(esc(text||''));
+  if(appPrefs&&appPrefs.linkPreview===false)return linkedText;
+  const firstLink=firstUrl(text);
+  if(!firstLink)return linkedText;
+  return linkedText+'<div class="link-preview-card" data-lp-url="'+esc(firstLink)+'"></div>';
+}
+function firstUrl(text){
+  const m=String(text||'').match(/https?:\/\/[^\s<]+/);
+  return m?m[0]:'';
+}
+function mountLinkPreviews(container){
+  if(!container)return;
+  const cards=container.querySelectorAll('.link-preview-card[data-lp-url]:not([data-lp-done])');
+  let n=0;
+  cards.forEach(function(card){
+    if(n>=8)return;
+    n++;
+    card.setAttribute('data-lp-done','1');
+    const u=card.getAttribute('data-lp-url');
+    fetch('/api/link-preview?url='+encodeURIComponent(u)).then(function(r){return r.json()}).then(function(j){
+      if(!j||!j.ok||(!j.title&&!j.description&&!j.image)){card.remove();return}
+      card.innerHTML='<a href="'+esc(j.url)+'" target="_blank" rel="noopener noreferrer" class="lp-inner">'
+        +(j.image?'<div class="lp-img" style="background-image:url(\\''+esc(j.image).replace(/'/g,'%27')+'\\')"></div>':'')
+        +'<div class="lp-text"><div class="lp-site">'+esc(j.siteName||'')+'</div><div class="lp-title">'+esc(j.title||'')+'</div>'+(j.description?'<div class="lp-desc">'+esc(j.description)+'</div>':'')+'</div></a>';
+    }).catch(function(){card.remove();});
+  });
 }
 function renderEncPlaceholder(m){
   const t=m.type||'text';
@@ -4421,6 +4501,7 @@ async function hydrateEncryptedMessages(){
     wrap.innerHTML=renderMsgBody(m,text,mediaUrl);
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+    mountLinkPreviews(wrap);
   }
 }
 function initVoiceMsgPlayer(el){
@@ -4494,6 +4575,7 @@ function renderMessages(){
       attachMsgSwipe(el,m);
     }
   });
+  mountLinkPreviews(box);
   box.scrollTop=box.scrollHeight;
 }
 function attachMsgSwipe(el,m){
@@ -7623,6 +7705,84 @@ async function handle(request) {
       headers: Object.assign({ "Content-Type": "application/json" }, cors)
     });
   }
+  if (path === "/api/link-preview") {
+    try {
+      const target = url.searchParams.get("url") || "";
+      let parsed;
+      try { parsed = new URL(target); } catch (e) { throw new Error("URL invalide"); }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("URL invalide");
+      const host = parsed.hostname.toLowerCase();
+      if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0" || host === "::1" || host.endsWith(".local") ||
+          /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^169\.254\./.test(host)) {
+        throw new Error("URL non autorisée");
+      }
+      const cacheKey = "linkprev:" + target.slice(0, 400);
+      if (typeof SITE_KV !== "undefined" && SITE_KV) {
+        const cached = await SITE_KV.get(cacheKey);
+        if (cached) return new Response(cached, { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const ctrl = new AbortController();
+      const timeoutId = setTimeout(function () { ctrl.abort(); }, 5000);
+      let html = "";
+      try {
+        const r = await fetch(target, { signal: ctrl.signal, headers: { "User-Agent": "Mozilla/5.0 (compatible; XultraLinkPreview/1.0)" } });
+        const reader = r.body.getReader();
+        const decoder = new TextDecoder();
+        let total = 0;
+        while (total < 65536) {
+          const chunk = await reader.read();
+          if (chunk.done) break;
+          html += decoder.decode(chunk.value, { stream: true });
+          total += chunk.value.length;
+        }
+        try { reader.cancel(); } catch (e) {}
+      } finally {
+        clearTimeout(timeoutId);
+      }
+      function decodeHtmlEntities(s) {
+        return String(s || "")
+          .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+          .replace(/&quot;/g, "\"").replace(/&#0?39;/g, "'").replace(/&apos;/g, "'")
+          .replace(/&#(\d+);/g, function (m, n) { return String.fromCodePoint(parseInt(n, 10)); })
+          .trim();
+      }
+      function metaMatch(prop) {
+        const re1 = new RegExp("<meta[^>]+property=[\"']" + prop + "[\"'][^>]+content=[\"']([^\"']*)[\"']", "i");
+        const re2 = new RegExp("<meta[^>]+content=[\"']([^\"']*)[\"'][^>]+property=[\"']" + prop + "[\"']", "i");
+        const m1 = html.match(re1); if (m1) return m1[1];
+        const m2 = html.match(re2); if (m2) return m2[1];
+        return "";
+      }
+      function metaName(name) {
+        const re1 = new RegExp("<meta[^>]+name=[\"']" + name + "[\"'][^>]+content=[\"']([^\"']*)[\"']", "i");
+        const re2 = new RegExp("<meta[^>]+content=[\"']([^\"']*)[\"'][^>]+name=[\"']" + name + "[\"']", "i");
+        const m1 = html.match(re1); if (m1) return m1[1];
+        const m2 = html.match(re2); if (m2) return m2[1];
+        return "";
+      }
+      const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+      const title = decodeHtmlEntities(metaMatch("og:title") || (titleMatch ? titleMatch[1] : "") || host);
+      const description = decodeHtmlEntities(metaMatch("og:description") || metaName("description") || "");
+      let image = metaMatch("og:image") || "";
+      if (image) {
+        image = decodeHtmlEntities(image);
+        if (!/^https?:\/\//i.test(image)) {
+          try { image = new URL(image, target).href; } catch (e) { image = ""; }
+        }
+      }
+      const result = { ok: true, url: target, title: title.slice(0, 200), description: description.slice(0, 300), image, siteName: host };
+      const body = JSON.stringify(result);
+      if (typeof SITE_KV !== "undefined" && SITE_KV) {
+        await SITE_KV.put(cacheKey, body, { expirationTtl: 21600 }).catch(function () {});
+      }
+      return new Response(body, { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
   if (path === "/api/gifs") {
     const q = (url.searchParams.get("q") || "funny").slice(0, 64);
     const limit = Math.min(parseInt(url.searchParams.get("limit") || "20", 10) || 20, 30);
