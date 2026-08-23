@@ -493,6 +493,11 @@ button{cursor:pointer;border:0;background:0}
 .reg-preview .rp-av{width:50px;height:50px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.05rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 4px 14px rgba(124,58,237,.35),0 0 0 3px rgba(10,6,16,.55)}
 .rp-av-cam{position:absolute;right:-3px;bottom:-3px;width:20px;height:20px;border-radius:50%;background:rgba(10,6,16,.75);border:1.5px solid rgba(255,255,255,.5);display:grid;place-items:center;font-size:.62rem;backdrop-filter:blur(3px);box-shadow:0 2px 6px rgba(0,0,0,.4);pointer-events:none}
 .rp-hint{font-size:.64rem;color:#8a7ba5;margin-top:3px}
+.ge-av-wrap{position:relative;width:88px;height:88px;margin:0 auto;cursor:pointer;border-radius:50%}
+.ge-av{width:88px;height:88px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-size:2rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);box-shadow:0 6px 20px rgba(124,58,237,.35)}
+.ge-av img{width:100%;height:100%;object-fit:cover}
+.ge-av-edit{position:absolute;inset:0;border-radius:50%;background:rgba(5,2,12,.72);color:#fff;font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;opacity:0;transition:opacity .15s ease}
+.ge-av-wrap:hover .ge-av-edit{opacity:1}
 .reg-preview .rp-av img{width:100%;height:100%;object-fit:cover}
 .reg-preview .rp-meta{min-width:0;flex:1}
 .reg-preview .rp-name{font-weight:800;font-size:.95rem;color:#f3e8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1022,6 +1027,36 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .cl-date{font-size:.66rem;color:var(--muted);margin-left:auto}
 .cl-title{font-size:.9rem;font-weight:800;margin-bottom:5px;color:#f2ebff}
 .cl-body{font-size:.8rem;line-height:1.5;color:rgba(242,235,255,.75)}
+.suggestions-panel{width:min(560px,100%);max-height:88dvh;display:flex;flex-direction:column}
+.suggestions-panel h3{margin-bottom:4px}
+.sg-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px;flex-shrink:0;-webkit-overflow-scrolling:touch}
+.sg-tab{flex-shrink:0;font-size:.76rem;font-weight:700;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.16);color:var(--muted);cursor:pointer;transition:all .15s ease;white-space:nowrap}
+.sg-tab:hover{background:rgba(255,255,255,.09);color:#e9d5ff}
+.sg-tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35)}
+#sg-new-btn{flex-shrink:0;margin-bottom:10px}
+.sg-form{flex-shrink:0;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.16);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
+.sg-list{overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
+.sg-card{position:relative;background:linear-gradient(165deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(167,139,250,.16);border-radius:16px;padding:14px 16px;overflow:hidden;opacity:0;transform:translateY(10px);animation:sgIn .35s ease forwards;transition:border-color .18s ease,transform .18s ease}
+.sg-card:hover{border-color:rgba(167,139,250,.4);transform:translateY(-2px)}
+@keyframes sgIn{to{opacity:1;transform:translateY(0)}}
+.sg-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sg-accent,#7c3aed)}
+.sg-card.sg-implemented{border-color:rgba(34,197,94,.4);background:linear-gradient(165deg,rgba(34,197,94,.08),rgba(255,255,255,.015))}
+.sg-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.sg-cat-chip{font-size:.64rem;font-weight:800;padding:3px 9px;border-radius:999px;color:#fff;background:var(--sg-accent,#7c3aed);letter-spacing:.02em}
+.sg-implemented-chip{font-size:.64rem;font-weight:800;padding:3px 9px;border-radius:999px;color:#052e12;background:linear-gradient(135deg,#4ade80,#22c55e);display:inline-flex;align-items:center;gap:3px}
+.sg-author{font-size:.72rem;color:var(--muted);margin-left:auto;display:flex;align-items:center;gap:5px}
+.sg-title{font-size:.94rem;font-weight:800;color:#f2ebff;margin-bottom:4px}
+.sg-desc{font-size:.82rem;line-height:1.5;color:rgba(242,235,255,.75);margin-bottom:10px;white-space:pre-wrap}
+.sg-credit{font-size:.74rem;color:#86efac;margin-bottom:10px;font-weight:600}
+.sg-actions{display:flex;align-items:center;gap:8px}
+.sg-vote-btn{display:flex;align-items:center;gap:5px;font-size:.8rem;font-weight:700;padding:6px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(167,139,250,.16);color:var(--muted);cursor:pointer;transition:all .15s ease}
+.sg-vote-btn:hover{background:rgba(255,255,255,.09);color:#e9d5ff;transform:scale(1.04)}
+.sg-vote-btn.on.like{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5);color:#4ade80}
+.sg-vote-btn.on.dislike{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.5);color:#fca5a5}
+.sg-vote-btn .n{transition:transform .2s ease}
+.sg-vote-btn.bump .n{animation:sgBump .3s ease}
+@keyframes sgBump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+.sg-admin-acts{margin-left:auto;display:flex;gap:6px}
 .status-panel{width:min(460px,100%);max-height:88dvh;padding:0;overflow:hidden;position:relative;background:#050308;border:1px solid rgba(167,139,250,.3)}
 .status-rain{position:absolute;inset:0;filter:blur(2px) brightness(.7);opacity:.55}
 .status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(5,3,10,.4),rgba(5,3,10,.88) 30%)}
@@ -1238,6 +1273,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
     <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
+    <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées">💡</button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
@@ -1364,6 +1400,21 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <div id="mg-friends" class="mg-friend-list"></div>
     <div class="err" id="mg-err"></div>
     <button type="button" class="btn-main" id="mg-create" style="margin-top:12px">Créer le groupe</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-group-edit">
+  <div class="modal-box">
+    <button type="button" class="modal-close" id="ge-close">✕</button>
+    <h3>👥 Modifier le groupe</h3>
+    <div class="ge-av-wrap" id="ge-av-wrap">
+      <div class="ge-av" id="ge-av">👥</div>
+      <div class="ge-av-edit">✏️ Changer la photo</div>
+    </div>
+    <input type="file" id="ge-file" accept="image/*" class="hidden"/>
+    <input id="ge-name" class="field-input" placeholder="Nom du groupe" autocomplete="off" maxlength="64" style="margin-top:14px"/>
+    <div class="err" id="ge-err"></div>
+    <button type="button" class="btn-main" id="ge-save" style="margin-top:12px">Enregistrer</button>
   </div>
 </div>
 
@@ -1700,6 +1751,38 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <h3>📋 Nouveautés</h3>
     <div class="cl-sub">Tout ce qui a changé récemment sur XULTRA</div>
     <div class="cl-list" id="cl-list"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-suggestions">
+  <div class="modal-box suggestions-panel">
+    <button type="button" class="modal-close" id="sg-close">✕</button>
+    <h3>💡 Boîte à idées</h3>
+    <div class="cl-sub">Propose une idée pour XULTRA, vote pour tes préférées — les plus populaires ont plus de chances d'être développées !</div>
+    <div class="sg-tabs" id="sg-tabs">
+      <button type="button" class="sg-tab on" data-cat="all">Tout</button>
+      <button type="button" class="sg-tab" data-cat="feature">⚙️ Fonctionnalité</button>
+      <button type="button" class="sg-tab" data-cat="design">🎨 Design</button>
+      <button type="button" class="sg-tab" data-cat="marketing">📣 Marketing</button>
+      <button type="button" class="sg-tab" data-cat="other">💭 Autre</button>
+    </div>
+    <button type="button" class="btn-main" id="sg-new-btn">✨ Proposer une idée</button>
+    <div class="sg-form hidden" id="sg-form">
+      <input type="text" id="sg-title" class="field-input" placeholder="Titre court" maxlength="120">
+      <select id="sg-category" class="field-input">
+        <option value="feature">⚙️ Fonctionnalité</option>
+        <option value="design">🎨 Design</option>
+        <option value="marketing">📣 Marketing</option>
+        <option value="other">💭 Autre</option>
+      </select>
+      <textarea id="sg-desc" class="field-input" placeholder="Décris ton idée : à quoi elle sert, comment tu l'imagines…" maxlength="1000" style="height:90px;padding-top:9px;resize:vertical"></textarea>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button type="button" class="btn-main" id="sg-submit">Envoyer</button>
+        <button type="button" class="set-mini-btn" id="sg-cancel">Annuler</button>
+      </div>
+      <div class="err" id="sg-err"></div>
+    </div>
+    <div class="sg-list" id="sg-list"></div>
   </div>
 </div>
 
@@ -2334,6 +2417,7 @@ async function enterApp(){
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
   ensureE2EKeys().catch(function(){});
+  authPost('/api/account/grant-early-badge',{}).catch(function(){});
   (async function(){
     try{
       const meta=await db.getDocument(DB,'user_meta',acc.\$id);
@@ -2535,6 +2619,7 @@ async function doRegister(){
     applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
     account.createVerification(location.origin+'/').catch(function(e){xlog('verify_email_send_fail',{msg:(e&&e.message)||String(e)});});
+    authPost('/api/account/grant-early-badge',{}).catch(function(e){xlog('early_badge_grant_fail',{msg:(e&&e.message)||String(e)});});
     let avatarUrl='',bannerUrl='';
     if(regAvatarFile){
       try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
@@ -2658,6 +2743,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.24.0',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
+    body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour XULTRA, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
   {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
     body:'Merci pour vos rapports de bugs, très utiles ! Corrigés aujourd\\'hui : le titre d\\'une conversation privée pouvait afficher ton propre pseudo au lieu de celui de la personne en face ; le bouton « Accepter » d\\'une demande d\\'ami pouvait rester bloqué à cause du bouton supprimer juste à côté ; une barre noire apparaissait en bas de l\\'écran en dézoomant depuis les paramètres ; et cliquer sur son propre profil pouvait parfois afficher « Profil introuvable » par erreur. Les messages d\\'erreur d\\'inscription/connexion sont aussi plus clairs qu\\'avant.'},
   {version:'2.22.0',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
@@ -2726,6 +2813,132 @@ function openChangelogPanel(){
 if(\$('nav-changelog'))\$('nav-changelog').addEventListener('click',openChangelogPanel);
 if(\$('cl-close'))\$('cl-close').addEventListener('click',function(){\$('modal-changelog').classList.add('hidden')});
 if(\$('modal-changelog'))\$('modal-changelog').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+
+/* ===== Boîte à idées (suggestions) ===== */
+const SUGGESTION_CATEGORIES={
+  feature:{icon:'⚙️',label:'Fonctionnalité',color:'#7c3aed'},
+  design:{icon:'🎨',label:'Design',color:'#ec4899'},
+  marketing:{icon:'📣',label:'Marketing',color:'#06b6d4'},
+  other:{icon:'💭',label:'Autre',color:'#9a8fb0'}
+};
+let suggestionsCache=[],suggestionFilter='all';
+function safeJsonArr(s){try{const a=JSON.parse(s||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
+function suggestionScore(s){return safeJsonArr(s.likedByJson).length-safeJsonArr(s.dislikedByJson).length;}
+async function loadSuggestions(){
+  try{
+    const r=await db.listDocuments(DB,'suggestions',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    suggestionsCache=r.documents||[];
+  }catch(e){suggestionsCache=[];xlog('suggestions_load_fail',{msg:(e&&e.message)||String(e)});}
+}
+function renderSuggestions(){
+  const box=\$('sg-list');if(!box)return;
+  let list=suggestionsCache.slice();
+  if(suggestionFilter!=='all')list=list.filter(function(s){return s.category===suggestionFilter});
+  list.sort(function(a,b){
+    const sa=suggestionScore(a),sb=suggestionScore(b);
+    if(sb!==sa)return sb-sa;
+    return new Date(b.\$createdAt)-new Date(a.\$createdAt);
+  });
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucune idée pour l\\'instant. Sois le premier à en proposer une !</div>';return}
+  const myUid=me&&me.\$id;
+  const isStaff=!!staffRole;
+  box.innerHTML=list.map(function(s){
+    const cat=SUGGESTION_CATEGORIES[s.category]||SUGGESTION_CATEGORIES.other;
+    const likes=safeJsonArr(s.likedByJson),dislikes=safeJsonArr(s.dislikedByJson);
+    const iLike=myUid&&likes.indexOf(myUid)>=0,iDislike=myUid&&dislikes.indexOf(myUid)>=0;
+    const implemented=s.status==='implemented';
+    return '<div class="sg-card'+(implemented?' sg-implemented':'')+'" style="--sg-accent:'+cat.color+'">'
+      +'<div class="sg-top">'
+        +'<span class="sg-cat-chip">'+cat.icon+' '+esc(cat.label)+'</span>'
+        +(implemented?'<span class="sg-implemented-chip">✅ Implémentée</span>':'')
+        +'<span class="sg-author">👤 '+esc(s.username||'Anonyme')+'</span>'
+        +(isStaff?('<div class="sg-admin-acts">'
+          +(s.status!=='implemented'?'<button type="button" class="set-mini-btn" data-sgstatus="implemented" data-sgid="'+esc(s.\$id)+'">✅ Implémentée</button>':'')
+          +(s.status!=='open'?'<button type="button" class="set-mini-btn" data-sgstatus="open" data-sgid="'+esc(s.\$id)+'">Réinitialiser</button>':'')
+          +'</div>'):'')
+      +'</div>'
+      +'<div class="sg-title">'+esc(s.title||'')+'</div>'
+      +'<div class="sg-desc">'+esc(s.description||'')+'</div>'
+      +(implemented?'<div class="sg-credit">💡 Idée proposée par '+esc(s.username||'quelqu\\'un')+', devenue réalité !</div>':'')
+      +'<div class="sg-actions">'
+        +'<button type="button" class="sg-vote-btn'+(iLike?' on like':'')+'" data-vote="like" data-sgid="'+esc(s.\$id)+'">👍 <span class="n">'+likes.length+'</span></button>'
+        +'<button type="button" class="sg-vote-btn'+(iDislike?' on dislike':'')+'" data-vote="dislike" data-sgid="'+esc(s.\$id)+'">👎 <span class="n">'+dislikes.length+'</span></button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  wireSuggestionActions(box);
+}
+function wireSuggestionActions(box){
+  box.querySelectorAll('[data-vote]').forEach(function(el){
+    el.onclick=async function(){
+      if(!me){showToast('Connecte-toi pour voter','error');return}
+      const sgid=el.getAttribute('data-sgid'),vote=el.getAttribute('data-vote');
+      el.disabled=true;
+      try{
+        const j=await authPost('/api/suggestions/vote',{suggestionId:sgid,vote:vote});
+        const s=suggestionsCache.find(function(x){return x.\$id===sgid});
+        if(s){s.likedByJson=JSON.stringify(j.likedBy||[]);s.dislikedByJson=JSON.stringify(j.dislikedBy||[]);}
+        renderSuggestions();
+        const btn=box.querySelector('[data-vote="'+vote+'"][data-sgid="'+sgid+'"]');
+        if(btn){btn.classList.add('bump');setTimeout(function(){btn.classList.remove('bump')},300);}
+      }catch(e){showToast((e&&e.message)||'Action impossible','error');el.disabled=false;}
+    };
+  });
+  box.querySelectorAll('[data-sgstatus]').forEach(function(el){
+    el.onclick=async function(){
+      el.disabled=true;
+      try{
+        await authPost('/api/admin/suggestion-status',{suggestionId:el.getAttribute('data-sgid'),status:el.getAttribute('data-sgstatus')});
+        await loadSuggestions();renderSuggestions();
+        showToast('Statut mis à jour !');
+      }catch(e){showToast((e&&e.message)||'Action impossible','error');el.disabled=false;}
+    };
+  });
+}
+async function openSuggestionsPanel(){
+  \$('modal-suggestions').classList.remove('hidden');
+  \$('sg-list').innerHTML='<div class="empty-hint">Chargement…</div>';
+  await loadSuggestions();
+  renderSuggestions();
+}
+if(\$('nav-suggestions'))\$('nav-suggestions').addEventListener('click',openSuggestionsPanel);
+if(\$('sg-close'))\$('sg-close').addEventListener('click',function(){\$('modal-suggestions').classList.add('hidden')});
+if(\$('modal-suggestions'))\$('modal-suggestions').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('sg-tabs'))\$('sg-tabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.sg-tab');if(!btn)return;
+  \$('sg-tabs').querySelectorAll('.sg-tab').forEach(function(b){b.classList.toggle('on',b===btn)});
+  suggestionFilter=btn.getAttribute('data-cat');
+  renderSuggestions();
+});
+if(\$('sg-new-btn'))\$('sg-new-btn').addEventListener('click',function(){
+  if(!me){showToast('Connecte-toi pour proposer une idée','error');return}
+  \$('sg-form').classList.toggle('hidden');
+  if(!\$('sg-form').classList.contains('hidden')){\$('sg-title').value='';\$('sg-desc').value='';\$('sg-err').textContent='';\$('sg-title').focus();}
+});
+if(\$('sg-cancel'))\$('sg-cancel').addEventListener('click',function(){\$('sg-form').classList.add('hidden');});
+if(\$('sg-submit'))\$('sg-submit').addEventListener('click',async function(){
+  if(!me){\$('sg-err').textContent='Connecte-toi pour proposer une idée';return}
+  const title=(\$('sg-title').value||'').trim();
+  const desc=(\$('sg-desc').value||'').trim();
+  const category=\$('sg-category').value||'other';
+  if(!title||!desc){\$('sg-err').textContent='Titre et description requis';return}
+  this.disabled=true;this.textContent='Envoi…';
+  try{
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    await db.createDocument(DB,'suggestions',Appwrite.ID.unique(),{
+      uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,1000),category:category,
+      likedByJson:'[]',dislikedByJson:'[]',status:'open'
+    },[
+      Appwrite.Permission.read(Appwrite.Role.any()),
+      Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
+    ]);
+    \$('sg-form').classList.add('hidden');
+    showToast('Merci pour ton idée ! 💡');
+    await loadSuggestions();renderSuggestions();
+  }catch(e){\$('sg-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Envoyer';
+});
 
 /* ===== Paramètres de l’application ===== */
 function loadAppPrefs(){
@@ -3574,7 +3787,7 @@ const BADGE_DEFS={
   base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
   dev:{icon:'🛠️',label:'DEV',color:'#ef4444',desc:"Le grade le plus rare. Réservé aux créateurs qui bâtissent XULTRA. Accès total, outils internes, décision technique. Tu ne le demandes pas : tu le mérites en construisant le futur de la plateforme. Rouge, brûlant, impossible à ignorer."},
   hunter:{icon:'🐛',label:'BUG HUNTER',color:'#f59e0b',desc:"Les yeux de la plateforme. Tu traques les failles, tu envoies des rapports, tu forces le code à devenir plus solide. 10 bugs validés et résolus = ce badge or qui brille pour de vrai. Chaque rapport te rapproche du graal. Les chasseurs ne dorment jamais."},
-  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Parmi les tout premiers membres à rejoindre XULTRA, quand la plateforme n'était encore qu'une idée. Ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."}
+  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."}
 };
 const BADGE_GROUP_ORDER=['dev','hunter','early','base'];
 const BADGE_GROUP_LABEL={dev:'STAFF / DEV',hunter:'BUG HUNTERS',early:'EARLY USERS',base:'MEMBRES'};
@@ -3763,10 +3976,13 @@ function renderFriends(){
   updateFriendBadge();
   if(!accepted.length&&!incoming.length){box.innerHTML='<div class="empty-hint">Aucun ami pour l\\'instant. Utilise le bouton 👤+ pour en ajouter.</div>';return}
   let h='';
+  function friendProfile(uid){
+    return membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(uid)});
+  }
   if(incoming.length){
     h+='<div class="empty-hint" style="padding:8px 8px 2px">Demandes reçues</div>';
     h+=incoming.map(function(f){
-      return '<div class="row"><div class="av" data-profile="'+esc(f.friendId)+'">'+esc(ini(f.name||'?'))+'</div>'
+      return '<div class="row">'+rowAvatar(friendProfile(f.friendId),f.name||'?',f.friendId)
         +'<div class="info" data-profile="'+esc(f.friendId)+'"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
         +'<div class="act"><button type="button" data-accept="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'" data-fname="'+esc(f.name||'')+'">Accepter</button>'
         +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'">✕</button></div></div>';
@@ -3778,7 +3994,7 @@ function renderFriends(){
       return '<div class="row-swipe" data-friend-wrap="'+esc(f.friendId)+'">'
         +'<div class="row-del-action" data-del-friend="'+esc(f.friendId)+'" data-del-name="'+esc(f.name||'')+'"><span>🗑</span></div>'
         +'<div class="row" data-profile="'+esc(f.friendId)+'">'
-        +'<div class="av">'+esc(ini(f.name||'?'))+presenceDotHtml(f.friendId)+'</div>'
+        +rowAvatar(friendProfile(f.friendId),f.name||'?',f.friendId)
         +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div></div>';
     }).join('');
   }
@@ -4053,8 +4269,11 @@ function renderDms(){
   box.innerHTML=visible.map(function(d){
     const title=dmTitleFor(d);
     const group=dmIsGroup(d);
-    const avInner=group?'👥':esc(ini(title));
-    const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(dmPeerId(d))+'">'+avInner+presenceDotHtml(dmPeerId(d))+'</div>';
+    const peerUid=dmPeerId(d);
+    const peerProfile=group?null:membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(peerUid)});
+    const avImg=group?safeUrl(d.avatar):safeUrl(peerProfile&&peerProfile.avatar);
+    const avInner=avImg?'<img src="'+esc(avImg)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':(group?'👥':esc(ini(title)));
+    const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(peerUid)+'">'+avInner+presenceDotHtml(peerUid)+'</div>';
     const sub=group?((d.members||[]).length+' membres'+(d.lastMessage?' · '+d.lastMessage:'')):(d.lastMessage||'');
     const ts=d.\$updatedAt||d.\$createdAt;
     return '<div class="row-swipe" data-dm-wrap="'+esc(d.\$id)+'">'
@@ -4891,12 +5110,13 @@ async function openDm(threadId,title,peerUid){
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
-  \$('ch-av').textContent=ini(title||'?');
-  const openPeerProfile=(!activeDmIsGroup&&activeDmPeerUid)?function(){openProfileModal(activeDmPeerUid)}:null;
-  \$('ch-av').style.cursor=openPeerProfile?'pointer':'';
-  \$('ch-av').onclick=openPeerProfile;
-  \$('ch-title').style.cursor=openPeerProfile?'pointer':'';
-  \$('ch-title').onclick=openPeerProfile;
+  const groupAv=activeDmIsGroup&&dm?safeUrl(dm.avatar):'';
+  \$('ch-av').innerHTML=groupAv?'<img src="'+esc(groupAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(title||'?'));
+  const openHeaderAction=activeDmIsGroup?function(){openGroupEditModal(dm);}:((activeDmPeerUid)?function(){openProfileModal(activeDmPeerUid)}:null);
+  \$('ch-av').style.cursor=openHeaderAction?'pointer':'';
+  \$('ch-av').onclick=openHeaderAction;
+  \$('ch-title').style.cursor=openHeaderAction?'pointer':'';
+  \$('ch-title').onclick=openHeaderAction;
   document.getElementById('app').classList.add('chat-open');
   repositionCallPanel();
   const e2eEl=\$('ch-e2e');
@@ -5671,6 +5891,59 @@ if(\$('mg-create'))\$('mg-create').addEventListener('click',async function(){
     await openDm(dm.\$id,name,null);
   }catch(e){\$('mg-err').textContent=(e&&e.message)||'Erreur lors de la création';}
   btn.disabled=false;btn.textContent='Créer le groupe';
+});
+let geGroupId=null,geAvatarFile=null,geAvatarUrl='';
+function updateGeAvPreview(){
+  \$('ge-av').innerHTML=geAvatarUrl?'<img src="'+esc(geAvatarUrl)+'" alt="">':'👥';
+}
+function openGroupEditModal(dm){
+  if(!dm)return;
+  geGroupId=dm.\$id;geAvatarFile=null;geAvatarUrl=safeUrl(dm.avatar)||'';
+  \$('ge-name').value=dm.displayName||'';
+  \$('ge-err').textContent='';
+  updateGeAvPreview();
+  \$('modal-group-edit').classList.remove('hidden');
+}
+if(\$('ge-close'))\$('ge-close').addEventListener('click',function(){\$('modal-group-edit').classList.add('hidden')});
+if(\$('modal-group-edit'))\$('modal-group-edit').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('ge-av-wrap'))\$('ge-av-wrap').addEventListener('click',function(){if(\$('ge-file'))\$('ge-file').click()});
+if(\$('ge-file'))\$('ge-file').addEventListener('change',function(){
+  const file=this.files&&this.files[0];this.value='';
+  if(!file)return;
+  if(file.size>8*1024*1024){\$('ge-err').textContent='Image max 8 Mo';return}
+  if(file.type.indexOf('image/')!==0){\$('ge-err').textContent='Choisis une image';return}
+  \$('ge-err').textContent='';
+  geAvatarFile=file;
+  const r=new FileReader();
+  r.onload=function(){geAvatarUrl=r.result;updateGeAvPreview();};
+  r.readAsDataURL(file);
+});
+if(\$('ge-save'))\$('ge-save').addEventListener('click',async function(){
+  if(!geGroupId)return;
+  const name=(\$('ge-name').value||'').trim();
+  if(!name){\$('ge-err').textContent='Donne un nom au groupe';return}
+  this.disabled=true;this.textContent='Enregistrement…';\$('ge-err').textContent='';
+  try{
+    let avatarUrl=geAvatarUrl&&geAvatarUrl.indexOf('data:')===0?'':geAvatarUrl;
+    if(geAvatarFile){
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),geAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    }
+    const patch={displayName:name.slice(0,64)};
+    if(geAvatarFile)patch.avatar=avatarUrl;
+    await db.updateDocument(DB,'dms',geGroupId,patch);
+    const dm=dmsCache.find(function(d){return d.\$id===geGroupId});
+    if(dm){dm.displayName=patch.displayName;if(patch.avatar!==undefined)dm.avatar=patch.avatar;}
+    if(activeDm===geGroupId){
+      \$('ch-title').textContent=patch.displayName;
+      const av=safeUrl(patch.avatar!==undefined?patch.avatar:(dm&&dm.avatar));
+      \$('ch-av').innerHTML=av?'<img src="'+esc(av)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(patch.displayName));
+    }
+    renderDms();
+    \$('modal-group-edit').classList.add('hidden');
+    showToast('Groupe mis à jour !');
+  }catch(e){\$('ge-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Enregistrer';
 });
 if(\$('mf-close'))\$('mf-close').addEventListener('click',function(){\$('modal-friend').classList.add('hidden')});
 if(\$('fq'))\$('fq').addEventListener('input',async function(){
@@ -7991,6 +8264,70 @@ async function handle(request) {
       });
     }
   }
+  if (path === "/api/suggestions/vote" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const suggestionId = String((body && body.suggestionId) || "");
+      const vote = String((body && body.vote) || "");
+      if (!suggestionId || ["like", "dislike", "none"].indexOf(vote) === -1) throw new Error("paramètres invalides");
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/suggestions/documents/" + suggestionId, { asAdmin: true });
+      let liked = [];
+      let disliked = [];
+      try { liked = JSON.parse(doc.likedByJson || "[]"); } catch (e) {}
+      try { disliked = JSON.parse(doc.dislikedByJson || "[]"); } catch (e) {}
+      if (!Array.isArray(liked)) liked = [];
+      if (!Array.isArray(disliked)) disliked = [];
+      const uid = acc.$id;
+      liked = liked.filter(function (u) { return u !== uid; });
+      disliked = disliked.filter(function (u) { return u !== uid; });
+      if (vote === "like") liked.push(uid);
+      else if (vote === "dislike") disliked.push(uid);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/suggestions/documents/" + suggestionId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { likedByJson: JSON.stringify(liked), dislikedByJson: JSON.stringify(disliked) } }
+      });
+      return new Response(JSON.stringify({ ok: true, likedBy: liked, dislikedBy: disliked }), {
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/admin/suggestion-status" && request.method === "POST") {
+    const gate = await requireStaff(request, "suggestion_status");
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const suggestionId = String((body && body.suggestionId) || "");
+      const status = String((body && body.status) || "");
+      if (!suggestionId || ["open", "implemented", "rejected"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      await awFetch("/databases/" + AW_DB + "/collections/suggestions/documents/" + suggestionId, {
+        method: "PATCH", asAdmin: true, body: { data: { status } }
+      });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "suggestion_status", detail: suggestionId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
   if (path === "/api/admin/bugstatus" && request.method === "POST") {
     const gate = await requireStaff(request, "bug_status");
     if (!gate.ok) {
@@ -8402,6 +8739,59 @@ async function handle(request) {
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/grant-early-badge" && request.method === "POST") {
+    // Auto-attribution du badge "early" : accordé à toute personne inscrite
+    // avant le 30 août 2027. badgesJson est verrouillé en écriture admin
+    // uniquement (voir /api/admin/badges), donc cette route doit passer par
+    // la clé admin même si c'est l'utilisateur lui-même qui déclenche l'appel
+    // (juste après inscription/connexion) — appelée en best-effort, jamais
+    // bloquante pour le reste du flux.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const CUTOFF = Date.parse("2027-08-30T00:00:00Z");
+      if (Date.now() >= CUTOFF) {
+        return new Response(JSON.stringify({ ok: true, granted: false, reason: "past_cutoff" }), {
+          headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
+      let existing = [];
+      try {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+        existing = JSON.parse(meta.badgesJson || "[]");
+        if (!Array.isArray(existing)) existing = [];
+      } catch (e) { existing = []; }
+      if (existing.indexOf("early") >= 0) {
+        return new Response(JSON.stringify({ ok: true, granted: false, reason: "already_has" }), {
+          headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
+      const badgesJson = JSON.stringify(existing.concat(["early"]));
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { badgesJson }, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true,
+            body: { documentId: acc.$id, data: { badgesJson }, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, granted: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
   }
