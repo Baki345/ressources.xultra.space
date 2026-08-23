@@ -636,6 +636,10 @@ body.high-contrast{filter:contrast(1.18) saturate(1.12)}
 .vr-timer{font-size:.8rem;font-weight:800;color:#fca5a5;flex-shrink:0;font-variant-numeric:tabular-nums}
 .vr-mic{font-size:1.15rem;flex-shrink:0;animation:cbPulse 1s ease-in-out infinite}
 .msg-media img,.msg-media video{max-width:220px;max-height:260px;border-radius:10px;display:block;cursor:pointer;object-fit:cover}
+.gif-media{position:relative;display:inline-block}
+.gif-freeze{position:absolute;inset:0;width:100%;height:100%;display:none;border-radius:10px;cursor:pointer;object-fit:cover}
+body.gif-hover-mode .gif-freeze.ready{display:block}
+body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .msg-caption{margin-top:4px;font-size:.85rem}
 .msg-file{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border-radius:12px;padding:9px 12px;text-decoration:none;color:#f2ebff;min-width:160px}
 .msg.mine .msg-file{background:rgba(255,255,255,.16)}
@@ -2443,6 +2447,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'XULTRA peut maintenant te lire tes notifications à voix haute',
+    body:'Dans Paramètres → Accessibilité, tu peux activer la synthèse vocale pour que tes notifications te soient lues à voix haute, avec un réglage de vitesse. On a aussi ajouté un vrai badge sur l’icône de l’app pour voir tes messages non lus d’un coup d’œil, et les GIF peuvent maintenant rester figés jusqu’à ce que tu passes ta souris dessus (pratique pour ne pas être distrait en pleine conversation).'},
   {version:'2.14.1',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
     body:'Tape Ctrl (ou ⌘ sur Mac) + K pour sauter directement à la recherche, Ctrl/⌘ + virgule pour ouvrir les paramètres, et Échap pour fermer n’importe quelle fenêtre ouverte. Et quand quelqu’un partage un lien dans une conversation, une petite carte avec l’image et le titre du site s’affiche maintenant automatiquement (tu peux la désactiver dans Paramètres → Apparence).'},
   {version:'2.14.0',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
@@ -2492,7 +2498,7 @@ function loadAppPrefs(){
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
-    analyticsShare:false,adsPersonalization:false,linkPreview:true,_prevStatus:null
+    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,_prevStatus:null
   },p);
 }
 let appPrefs=loadAppPrefs();
@@ -2506,6 +2512,7 @@ function applyAppPrefs(){
     document.body.classList.toggle('no-emoji-anim',!appPrefs.animateEmoji);
     document.body.classList.toggle('reduce-motion',!!appPrefs.reduceMotion);
     document.body.classList.toggle('high-contrast',!!appPrefs.highContrast);
+    document.body.classList.toggle('gif-hover-mode',!!appPrefs.gifHoverPlay);
   }
 }
 applyAppPrefs();
@@ -2526,6 +2533,16 @@ function playNotifSound(kind){
     g.gain.exponentialRampToValueAtTime(0.0001,now+(kind==='call'?0.5:0.28));
     o.start(now);o.stop(now+(kind==='call'?0.55:0.32));
     o.onended=function(){try{ctx.close();}catch(e){}};
+  }catch(e){}
+}
+function speakText(text){
+  if(!appPrefs||!appPrefs.ttsEnabled||!text)return;
+  try{
+    if(!('speechSynthesis' in window))return;
+    const u=new SpeechSynthesisUtterance(String(text).slice(0,300));
+    u.lang='fr-FR';
+    u.rate=Math.max(0.5,Math.min(2,appPrefs.ttsRate||1));
+    speechSynthesis.speak(u);
   }catch(e){}
 }
 function checkScheduledDnd(){
@@ -2560,6 +2577,8 @@ function wireGenericToggles(box){
       sw.classList.toggle('on',on);
       appPrefs[key]=on;saveAppPrefs();applyAppPrefs();
       if(key==='linkPreview'&&typeof renderMessages==='function'&&typeof activeDm!=='undefined'&&activeDm)renderMessages();
+      if(key==='notifBadge'&&typeof updateNotifBadge==='function')updateNotifBadge();
+      if(key==='gifHoverPlay'&&typeof renderMessages==='function'&&typeof activeDm!=='undefined'&&activeDm)renderMessages();
     };
   });
 }
@@ -2928,11 +2947,30 @@ function renderSetAccessibility(box){
       +toggleRow('Contraste élevé','highContrast',appPrefs.highContrast)
     +'</div>'
     +'<div class="set-card">'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Synthèse vocale (TTS)</div><div class="scr-sub">Lit les messages et notifications à voix haute.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-section-label">Synthèse vocale (TTS)</div>'
+      +toggleRow('Lire tes notifications à voix haute','ttsEnabled',appPrefs.ttsEnabled)
+      +'<div class="set-row"><label>Vitesse de lecture <span class="val" id="tts-rate-val">'+(appPrefs.ttsRate||1).toFixed(1)+'x</span></label><input type="range" id="tts-rate-range" min="0.5" max="2" step="0.1" value="'+(appPrefs.ttsRate||1)+'"></div>'
+      +'<button type="button" class="set-mini-btn" id="tts-test-btn">🔊 Tester</button>'
+      +'<div class="scr-sub" style="margin-top:8px">Pour l’instant, la lecture concerne les notifications (demandes d’ami, etc.) — la lecture des messages arrive avec la messagerie en temps réel, bientôt.</div>'
+    +'</div>'
+    +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Sous-titres pour les appels</div><div class="scr-sub">Transcription en direct pendant les appels.</div></div>'+soonBadge()+'</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Grossissement du chat au clavier</div></div>'+soonBadge()+'</div>'
     +'</div>';
   wireGenericToggles(box);
+  const rateRange=\$('tts-rate-range');
+  if(rateRange)rateRange.addEventListener('input',function(){
+    appPrefs.ttsRate=parseFloat(rateRange.value);
+    \$('tts-rate-val').textContent=appPrefs.ttsRate.toFixed(1)+'x';
+    saveAppPrefs();
+  });
+  const testBtn=\$('tts-test-btn');
+  if(testBtn)testBtn.onclick=function(){
+    const was=appPrefs.ttsEnabled;
+    appPrefs.ttsEnabled=true;
+    speakText('Ceci est un test de la synthèse vocale XULTRA.');
+    appPrefs.ttsEnabled=was;
+  };
 }
 
 function renderSetVoice(box){
@@ -3365,6 +3403,12 @@ function updateNotifBadge(){
   const total=pendingCount+unreadNotif+unreadDm;
   const badge=\$('ub-bell-badge');
   if(badge){badge.textContent=total>9?'9+':String(total);badge.classList.toggle('hidden',total===0);}
+  try{
+    if(navigator.setAppBadge){
+      if(appPrefs&&appPrefs.notifBadge&&total>0)navigator.setAppBadge(total).catch(function(){});
+      else if(navigator.clearAppBadge)navigator.clearAppBadge().catch(function(){});
+    }
+  }catch(e){}
 }
 async function openNotificationsPanel(){
   \$('modal-notifications').classList.remove('hidden');
@@ -3472,6 +3516,7 @@ function subscribeNotifWatcher(){
         if(!notifCache.find(function(n){return n.\$id===p.\$id}))notifCache.unshift(p);
         updateNotifBadge();
         playNotifSound(p.type==='friend_request'?'mention':'message');
+        speakText(p.text);
         if(!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
       }
     });
@@ -4423,7 +4468,7 @@ function renderMsgBody(m,text,mediaUrl){
   const url=safeUrl(mediaUrl);
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
-  if(t==='gif'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>';
+  if(t==='gif'&&url)return '<div class="msg-media gif-media"><img class="gif-img" src="'+esc(url)+'" loading="lazy"/><canvas class="gif-freeze"></canvas></div>';
   if(t==='file'&&url){
     let meta={};try{meta=JSON.parse(text||'{}');}catch(e){}
     return '<a class="msg-file" href="'+esc(url)+'" target="_blank" rel="noopener"><span>📄</span><div class="mf-info"><div class="mf-name">'+esc(meta.name||'Fichier')+'</div><div class="mf-size">'+esc(fmtSize(meta.size))+'</div></div></a>';
@@ -4466,6 +4511,25 @@ function mountLinkPreviews(container){
     }).catch(function(){card.remove();});
   });
 }
+function mountGifFreeze(container){
+  if(!container||!appPrefs.gifHoverPlay)return;
+  container.querySelectorAll('.gif-media:not([data-gif-wired])').forEach(function(wrap){
+    wrap.setAttribute('data-gif-wired','1');
+    const img=wrap.querySelector('.gif-img');
+    const canvas=wrap.querySelector('.gif-freeze');
+    if(!img||!canvas)return;
+    function draw(){
+      try{
+        canvas.width=img.naturalWidth||img.width||1;
+        canvas.height=img.naturalHeight||img.height||1;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        canvas.classList.add('ready');
+      }catch(e){}
+    }
+    if(img.complete&&img.naturalWidth)draw();
+    else img.addEventListener('load',draw,{once:true});
+  });
+}
 function renderEncPlaceholder(m){
   const t=m.type||'text';
   if(t==='image'||t==='video')return '<div class="msg-media enc-loading-media"><div class="enc-spin">🔒</div></div>';
@@ -4502,6 +4566,7 @@ async function hydrateEncryptedMessages(){
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     mountLinkPreviews(wrap);
+    mountGifFreeze(wrap);
   }
 }
 function initVoiceMsgPlayer(el){
@@ -4576,6 +4641,7 @@ function renderMessages(){
     }
   });
   mountLinkPreviews(box);
+  mountGifFreeze(box);
   box.scrollTop=box.scrollHeight;
 }
 function attachMsgSwipe(el,m){
