@@ -1333,6 +1333,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   </section>
 </div>
 
+<div class="overlay hidden" id="modal-mfa">
+  <div class="modal-box" style="width:min(360px,100%)">
+    <button type="button" class="modal-close" id="mfa-close">✕</button>
+    <h3>🔐 Vérification en deux étapes</h3>
+    <div class="sc-desc" id="mfa-desc">Entre le code à 6 chiffres de ton application d’authentification.</div>
+    <div class="field"><label>Code</label><input id="mfa-otp-input" inputmode="numeric" maxlength="8" autocomplete="one-time-code" placeholder="000000"/></div>
+    <div class="err" id="mfa-err" style="min-height:1.2em;margin:4px 0 8px"></div>
+    <button type="button" class="btn-main" id="mfa-verify-btn" style="width:100%">Vérifier</button>
+    <button type="button" id="mfa-toggle-recovery" style="margin-top:10px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer">Utiliser un code de secours</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-friend">
   <div class="modal-box">
     <button type="button" class="modal-close" id="mf-close">✕</button>
@@ -2023,8 +2035,14 @@ if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',functio
 async function serverLogin(email,pass){
   const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});
   const jj=await rr.json().catch(function(){return {}});
-  if(rr.ok&&jj&&jj.ok&&jj.secret)return jj;
+  if(rr.ok&&jj&&jj.ok&&(jj.secret||jj.mfaRequired))return jj;
   throw new Error((jj&&jj.error)||('Connexion refusée ('+rr.status+')'));
+}
+async function serverMfaVerify(mfaToken,otp,useRecoveryCode){
+  const rr=await fetch('/api/auth/mfa-verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mfaToken:mfaToken,otp:otp,useRecoveryCode:!!useRecoveryCode})});
+  const jj=await rr.json().catch(function(){return {}});
+  if(rr.ok&&jj&&jj.ok&&jj.secret)return jj;
+  throw new Error((jj&&jj.error)||('Code invalide ('+rr.status+')'));
 }
 function applySession(secret,jwt){
   try{client.setSession(String(secret));}catch(e){}
@@ -2315,6 +2333,12 @@ async function doLogin(){
   \$('btn-login').disabled=true;\$('btn-login').textContent='Connexion…';
   try{
     const jj=await serverLogin(email,pass);
+    if(jj.mfaRequired){
+      xlog('login_mfa_required',{});
+      openMfaVerifyPanel(jj.mfaToken);
+      \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
+      return;
+    }
     applySession(jj.secret,jj.jwt);
     xlog('login_server_ok',{});
     await enterApp();
@@ -2325,6 +2349,52 @@ async function doLogin(){
   }
   \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
 }
+let mfaPendingToken=null,mfaUseRecovery=false;
+function openMfaVerifyPanel(mfaToken){
+  mfaPendingToken=mfaToken;mfaUseRecovery=false;
+  \$('mfa-otp-input').value='';
+  \$('mfa-err').textContent='';
+  \$('mfa-desc').textContent='Entre le code à 6 chiffres de ton application d’authentification.';
+  \$('mfa-toggle-recovery').textContent='Utiliser un code de secours';
+  \$('mfa-verify-btn').disabled=false;\$('mfa-verify-btn').textContent='Vérifier';
+  \$('modal-mfa').classList.remove('hidden');
+  setTimeout(function(){\$('mfa-otp-input').focus();},50);
+}
+function closeMfaVerifyPanel(){\$('modal-mfa').classList.add('hidden');mfaPendingToken=null;}
+async function submitMfaVerify(){
+  if(!mfaPendingToken)return;
+  const otp=(\$('mfa-otp-input').value||'').trim();
+  if(!otp){\$('mfa-err').textContent='Code requis';return}
+  const btn=\$('mfa-verify-btn');
+  btn.disabled=true;btn.textContent='Vérification…';\$('mfa-err').textContent='';
+  try{
+    const jj=await serverMfaVerify(mfaPendingToken,otp,mfaUseRecovery);
+    applySession(jj.secret,jj.jwt);
+    xlog('login_mfa_ok',{});
+    closeMfaVerifyPanel();
+    await enterApp();
+  }catch(e){
+    \$('mfa-err').textContent=(e&&e.message)||'Code invalide';
+    btn.disabled=false;btn.textContent='Vérifier';
+  }
+}
+if(\$('mfa-verify-btn'))\$('mfa-verify-btn').addEventListener('click',submitMfaVerify);
+if(\$('mfa-otp-input'))\$('mfa-otp-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();submitMfaVerify();}});
+if(\$('mfa-close'))\$('mfa-close').addEventListener('click',closeMfaVerifyPanel);
+if(\$('modal-mfa'))\$('modal-mfa').addEventListener('click',function(e){if(e.target===this)closeMfaVerifyPanel();});
+if(\$('mfa-toggle-recovery'))\$('mfa-toggle-recovery').addEventListener('click',function(){
+  mfaUseRecovery=!mfaUseRecovery;
+  \$('mfa-otp-input').value='';
+  if(mfaUseRecovery){
+    \$('mfa-desc').textContent='Entre l’un de tes codes de secours.';
+    \$('mfa-otp-input').setAttribute('placeholder','xxxxxxxx');
+    \$('mfa-toggle-recovery').textContent='Utiliser mon application d’authentification';
+  }else{
+    \$('mfa-desc').textContent='Entre le code à 6 chiffres de ton application d’authentification.';
+    \$('mfa-otp-input').setAttribute('placeholder','000000');
+    \$('mfa-toggle-recovery').textContent='Utiliser un code de secours';
+  }
+});
 
 async function doRegister(){
   xlog('register_click',{hp:!!(\$('in-hp')&&\$('in-hp').value)});
@@ -2455,6 +2525,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.17.0',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
+    body:'Rends-toi dans Paramètres → Mon compte pour activer la vérification en deux étapes : associe une application comme Google Authenticator ou Authy, et XULTRA te demandera un code en plus de ton mot de passe à chaque connexion. Des codes de secours te sont donnés pour ne jamais rester bloqué dehors si tu perds ton téléphone.'},
   {version:'2.16.1',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
     body:'Dans Paramètres → Raccourcis clavier, tu peux maintenant choisir toi-même les combinaisons de touches pour la recherche, les paramètres et l’ajout d’ami. Et le petit « Vu » sous tes messages fonctionne désormais aussi dans les conversations de groupe, avec le nom des personnes qui ont lu.'},
   {version:'2.16.0',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
@@ -2709,10 +2781,11 @@ function renderSetAccount(box){
     +'<div class="set-card hidden" id="acc-pass-form"><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-pass-old" class="field-input"></div><div class="set-row"><label>Nouveau mot de passe</label><input type="password" id="acc-pass-new" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-pass-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-pass-cancel">Annuler</button></div><div class="err" id="acc-pass-err" style="min-height:1em;margin-top:6px"></div></div>'
     +'<div class="set-card">'
       +'<div class="set-section-label">Sécurité</div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">Ajoute une couche de sécurité à ton compte.</div></div>'+soonBadge()+'</div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours</div><div class="scr-sub">Récupère ton compte si tu perds l’accès.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">'+((me&&me.mfa)?'Activée — ton compte est protégé par un code à usage unique.':'Ajoute une couche de sécurité à ton compte.')+'</div></div><button type="button" class="set-mini-btn'+((me&&me.mfa)?' danger':'')+'" id="acc-mfa-toggle">'+((me&&me.mfa)?'Désactiver':'Activer')+'</button></div>'
+      +((me&&me.mfa)?'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours</div><div class="scr-sub">Régénère tes codes si tu les as perdus ou déjà utilisés.</div></div><button type="button" class="set-mini-btn" id="acc-mfa-recovery">Régénérer</button></div>':'')
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Clés de sécurité / passkeys</div><div class="scr-sub">Connecte-toi sans mot de passe.</div></div>'+soonBadge()+'</div>'
     +'</div>'
+    +'<div class="set-card hidden" id="acc-mfa-enroll"></div>'
     +'<div class="set-card settings-danger">'
       +'<div class="set-section-label">Zone dangereuse</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Désactiver mon compte</div><div class="scr-sub">Masque ton profil. Reconnecte-toi pour le réactiver à tout moment.</div></div><div class="set-switch'+(disabled?' on':'')+'" id="acc-disable-switch" data-on="'+(disabled?'1':'0')+'"></div></div>'
@@ -2823,6 +2896,82 @@ function wireSetAccount(box,name){
       });
     };
   }
+  const mfaToggleBtn=\$('acc-mfa-toggle');
+  if(mfaToggleBtn)mfaToggleBtn.onclick=function(){
+    if(me&&me.mfa){
+      showSlideConfirm('Glisse pour désactiver la vérification en deux étapes',async function(){
+        try{
+          await account.updateMFA(false);
+          if(me)me.mfa=false;
+          showToast('Vérification en deux étapes désactivée.');
+          renderSetAccount(box);
+        }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+      });
+    }else{
+      startMfaEnrollment(box);
+    }
+  };
+  const mfaRecoveryBtn=\$('acc-mfa-recovery');
+  if(mfaRecoveryBtn)mfaRecoveryBtn.onclick=async function(){
+    mfaRecoveryBtn.disabled=true;
+    try{
+      const res=await account.updateMfaRecoveryCodes();
+      showMfaRecoveryCodes(box,res.recoveryCodes||[],false);
+    }catch(e){showToast((e&&e.message)||'Action impossible pour le moment, reconnecte-toi puis réessaie.','error');}
+    mfaRecoveryBtn.disabled=false;
+  };
+}
+async function startMfaEnrollment(box){
+  const panel=\$('acc-mfa-enroll');if(!panel)return;
+  panel.classList.remove('hidden');
+  panel.innerHTML='<div class="scr-sub">Préparation…</div>';
+  try{
+    const res=await account.createMfaAuthenticator('totp');
+    const secret=res.secret;
+    panel.innerHTML=
+      '<div class="set-section-label">Activer la vérification en deux étapes</div>'
+      +'<div class="scr-sub" style="margin-bottom:8px">1. Ouvre Google Authenticator, Authy ou une app similaire, et ajoute un compte manuellement avec cette clé :</div>'
+      +'<div class="set-row"><input type="text" readonly value="'+esc(secret)+'" class="field-input" id="mfa-secret-display" style="font-family:monospace;font-size:.8rem"></div>'
+      +'<button type="button" class="set-mini-btn" id="mfa-copy-secret" style="margin-bottom:12px">Copier la clé</button>'
+      +'<div class="scr-sub" style="margin-bottom:8px">2. Entre le code à 6 chiffres généré par l’application :</div>'
+      +'<div class="set-row"><input type="text" id="mfa-enroll-otp" class="field-input" inputmode="numeric" maxlength="6" placeholder="000000"></div>'
+      +'<div class="err" id="mfa-enroll-err" style="min-height:1em;margin-bottom:8px"></div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="mfa-enroll-confirm">Vérifier et activer</button><button type="button" class="set-mini-btn" id="mfa-enroll-cancel">Annuler</button></div>';
+    \$('mfa-copy-secret').onclick=function(){
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(secret):Promise.reject()).then(function(){showToast('Clé copiée !');}).catch(function(){});
+    };
+    \$('mfa-enroll-cancel').onclick=function(){panel.classList.add('hidden');panel.innerHTML='';};
+    \$('mfa-enroll-confirm').onclick=async function(){
+      const code=(\$('mfa-enroll-otp').value||'').trim();
+      if(!/^[0-9]{6}\$/.test(code)){\$('mfa-enroll-err').textContent='Entre les 6 chiffres du code.';return}
+      const btn=\$('mfa-enroll-confirm');btn.disabled=true;btn.textContent='Vérification…';
+      try{
+        await account.updateMfaAuthenticator('totp',code);
+        const rec=await account.createMfaRecoveryCodes();
+        await account.updateMFA(true);
+        if(me)me.mfa=true;
+        showMfaRecoveryCodes(box,rec.recoveryCodes||[],true);
+      }catch(e){
+        \$('mfa-enroll-err').textContent=(e&&e.message)||'Code invalide';
+        btn.disabled=false;btn.textContent='Vérifier et activer';
+      }
+    };
+  }catch(e){
+    panel.innerHTML='<div class="scr-sub">'+esc((e&&e.message)||'Action impossible pour le moment.')+'</div>';
+  }
+}
+function showMfaRecoveryCodes(box,codes,justEnabled){
+  const panel=\$('acc-mfa-enroll');if(!panel)return;
+  panel.classList.remove('hidden');
+  panel.innerHTML=
+    '<div class="set-section-label">'+(justEnabled?'✅ Vérification en deux étapes activée !':'Nouveaux codes de secours')+'</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Note ces codes dans un endroit sûr — chacun ne peut être utilisé qu’une fois pour te reconnecter si tu perds l’accès à ton application d’authentification.</div>'
+    +'<div style="font-family:monospace;font-size:.82rem;background:rgba(255,255,255,.04);border-radius:10px;padding:10px;margin-bottom:10px;line-height:1.8">'+codes.map(function(c){return esc(c);}).join('<br>')+'</div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="mfa-copy-codes">Copier les codes</button><button type="button" class="set-mini-btn" id="mfa-codes-done">J’ai noté mes codes</button></div>';
+  \$('mfa-copy-codes').onclick=function(){
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(codes.join('\\n')):Promise.reject()).then(function(){showToast('Codes copiés !');}).catch(function(){});
+  };
+  \$('mfa-codes-done').onclick=function(){renderSetAccount(box);};
 }
 
 function renderSetProfiles(box){
@@ -7930,26 +8079,37 @@ async function handle(request) {
       const secret = data.secret || null;
       const sessionId = data.$id || null;
       const userId = data.userId || null;
+      if (!secret) throw new Error("Identifiants invalides");
       let jwt = null;
+      let mfaErr = null;
       // Create JWT bound to this session for client use
-      if (secret) {
-        try {
-          const jwtRes = await awFetch("/account/jwts", {
-            method: "POST",
-            body: {},
-            headers: { "X-Appwrite-Session": secret }
-          });
-          jwt = (jwtRes && (jwtRes.jwt || jwtRes.$id)) || null;
-        } catch (eJwt) {
-          try {
-            // alternate: JWT with session header via asAdmin + userId is not valid; ignore
-          } catch (e2) {}
+      try {
+        const jwtRes = await awFetch("/account/jwts", {
+          method: "POST",
+          body: {},
+          headers: { "X-Appwrite-Session": secret }
+        });
+        jwt = (jwtRes && (jwtRes.jwt || jwtRes.$id)) || null;
+      } catch (eJwt) {
+        mfaErr = eJwt;
+      }
+      if (!jwt && mfaErr && mfaErr.data && mfaErr.data.type === "user_more_factors_required") {
+        // Compte protégé par la 2FA : la session existe mais Appwrite refuse toute
+        // opération authentifiée (y compris la création de JWT) tant que le
+        // facteur MFA n'est pas validé — même avec la clé API admin. On garde la
+        // session en attente côté serveur (jamais exposée au client) et on
+        // renvoie juste un jeton temporaire pour l'étape de vérification.
+        const mfaToken = crypto.randomUUID();
+        if (typeof SITE_KV !== "undefined" && SITE_KV) {
+          await SITE_KV.put("mfa_pending:" + mfaToken, JSON.stringify({ secret, sessionId, userId }), { expirationTtl: 600 });
         }
+        return new Response(JSON.stringify({ ok: true, mfaRequired: true, mfaToken }), {
+          headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
       }
+      if (!jwt) throw new Error("Connexion impossible, réessaie.");
       const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors);
-      if (secret) {
-        cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
-      }
+      cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
       return new Response(JSON.stringify({
         ok: true,
         secret: secret,
@@ -7962,6 +8122,47 @@ async function handle(request) {
       return new Response(JSON.stringify({
         ok: false,
         error: (e && e.message) || "Identifiants invalides"
+      }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/auth/mfa-verify" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const mfaToken = String((body && body.mfaToken) || "");
+      const otp = String((body && body.otp) || "").trim();
+      const useRecoveryCode = !!(body && body.useRecoveryCode);
+      if (!mfaToken || !otp) throw new Error("Code requis");
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      const raw = await SITE_KV.get("mfa_pending:" + mfaToken);
+      if (!raw) throw new Error("Session expirée, reconnecte-toi.");
+      const pending = JSON.parse(raw);
+      const challenge = await awFetch("/account/mfa/challenge", {
+        method: "POST",
+        body: { factor: useRecoveryCode ? "recoverycode" : "totp" },
+        headers: { "X-Appwrite-Session": pending.secret }
+      });
+      await awFetch("/account/mfa/challenge", {
+        method: "PUT",
+        body: { challengeId: challenge.$id, otp: otp },
+        headers: { "X-Appwrite-Session": pending.secret }
+      });
+      const jwtRes = await awFetch("/account/jwts", {
+        method: "POST",
+        body: {},
+        headers: { "X-Appwrite-Session": pending.secret }
+      });
+      const jwt = (jwtRes && (jwtRes.jwt || jwtRes.$id)) || null;
+      await SITE_KV.delete("mfa_pending:" + mfaToken).catch(function () {});
+      const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors);
+      cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(pending.secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+      return new Response(JSON.stringify({
+        ok: true, secret: pending.secret, jwt: jwt, sessionId: pending.sessionId, userId: pending.userId
+      }), { headers: cookieHeaders });
+    } catch (e) {
+      return new Response(JSON.stringify({
+        ok: false,
+        error: (e && e.message) === "Invalid token passed in the request." ? "Code invalide" : ((e && e.message) || "Code invalide")
       }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
