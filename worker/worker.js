@@ -7272,6 +7272,13 @@ async function finishLoginSession(secret, sessionId, userId) {
 
 async function handle(request) {
   const url = new URL(request.url);
+  // Force HTTPS : le compte Cloudflare de ce projet n'a pas les droits d'édition
+  // de zone nécessaires pour activer "Always Use HTTPS" au niveau du compte, donc
+  // la redirection est appliquée ici, au niveau du Worker, pour TOUTES les routes.
+  if (url.protocol === "http:") {
+    url.protocol = "https:";
+    return Response.redirect(url.toString(), 301);
+  }
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const cors = {
     "Access-Control-Allow-Origin": "*",
@@ -8859,6 +8866,7 @@ async function handle(request) {
       "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(self), payment=()",
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       "X-DNS-Prefetch-Control": "off",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
       "X-Xultra-Version": "β2.8.10"
     }
   });
