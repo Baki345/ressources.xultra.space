@@ -2946,6 +2946,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.32.1',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
+    body:'Un souci de permissions empêchait parfois la suppression propre de la présence en salon vocal en quittant un appel de groupe, ce qui pouvait laisser le badge « Salon vocal actif » affiché à tort. Corrigé, avec en plus un battement de coeur toutes les 60 secondes et un nettoyage automatique en cas de fermeture d\\'onglet — le badge se met désormais à jour de façon fiable, même en cas de coupure brutale (batterie, crash…).'},
   {version:'2.32.0',date:'24 août 2026',time:'01:10',title:'Les appels de groupe sont de retour — salons vocaux',
     body:'Fini la maintenance : les conversations de groupe ont maintenant un vrai salon vocal, propulsé par un serveur dédié qui redistribue le son à tout le monde (au lieu de connecter chaque personne à chaque autre, plus lourd). Rejoins-le depuis le bouton 📞 d\\'une conversation de groupe — chaque participant apparaît avec sa photo, une onde qui réagit à sa voix, et un badge si son micro est coupé. Voix uniquement pour cette première version.'},
   {version:'2.31.0',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
@@ -5720,7 +5722,12 @@ async function refreshGroupCallBadge(dmId){
   try{
     const r=await db.listDocuments(DB,'group_call_presence',[Appwrite.Query.equal('dmId',dmId),Appwrite.Query.limit(25)]);
     if(activeDm!==forDm)return;
-    const docs=r.documents||[];
+    /* Filet de sécurité final : une présence non rafraîchie par le battement
+       de coeur (toutes les 60s) depuis plus de 2 minutes est considérée
+       comme abandonnée (onglet fermé brutalement, batterie à plat…) même si
+       le nettoyage via sendBeacon a échoué. */
+    const staleCutoff=Date.now()-120000;
+    const docs=(r.documents||[]).filter(function(d){return new Date(d.\$updatedAt).getTime()>staleCutoff;});
     if(docs.length){
       badge.classList.remove('hidden');
       badge.innerHTML='<span class="dcb-dot"></span>🎙️ Salon vocal actif ('+docs.length+') — Rejoindre';
@@ -8062,6 +8069,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
 let groupRoom=null, groupCallDmId=null, groupCallGroupName='', groupWaveRaf=null;
+let groupPresenceDocId=null, groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
     +'<div class="cb-av-wrap"><canvas class="cb-av-wave"></canvas>'
@@ -8171,7 +8179,14 @@ async function joinGroupCall(dmId,groupName){
     wireGroupRoomEvents(room);
     await room.connect(res.wsUrl,res.token);
     await room.localParticipant.setMicrophoneEnabled(true);
-    try{await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),{dmId:dmId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'});}catch(e){}
+    try{
+      const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
+        {dmId:dmId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'},
+        [Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
+      );
+      groupPresenceDocId=pres.\$id;
+    }catch(e){groupPresenceDocId=null;}
+    startGroupHeartbeat();
     \$('group-call-bar').classList.remove('hidden');
     \$('gcb-group-name').textContent=groupCallGroupName;
     \$('gcb-mute').classList.remove('on');
@@ -8184,13 +8199,23 @@ async function joinGroupCall(dmId,groupName){
     groupRoom=null;groupCallDmId=null;
   }
 }
+function startGroupHeartbeat(){
+  stopGroupHeartbeat();
+  groupHeartbeatId=setInterval(function(){
+    if(!groupPresenceDocId)return;
+    db.updateDocument(DB,'group_call_presence',groupPresenceDocId,{username:(meProfile&&(meProfile.displayName||meProfile.username))||(me&&me.name)||'Membre'}).catch(function(){});
+  },60000);
+}
+function stopGroupHeartbeat(){
+  if(groupHeartbeatId){clearInterval(groupHeartbeatId);groupHeartbeatId=null;}
+}
 function cleanupGroupCall(){
   if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
+  stopGroupHeartbeat();
   document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
-  if(groupCallDmId&&me){
-    db.listDocuments(DB,'group_call_presence',[Appwrite.Query.equal('dmId',groupCallDmId),Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(5)])
-      .then(function(r){(r.documents||[]).forEach(function(d){db.deleteDocument(DB,'group_call_presence',d.\$id).catch(function(){});});})
-      .catch(function(){});
+  if(groupPresenceDocId){
+    db.deleteDocument(DB,'group_call_presence',groupPresenceDocId).catch(function(){});
+    groupPresenceDocId=null;
   }
   groupRoom=null;groupCallDmId=null;groupCallGroupName='';
   \$('group-call-bar').classList.add('hidden');
@@ -8208,6 +8233,17 @@ if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
   \$('gcb-mute').classList.toggle('on',enabledNow);
 });
 if(\$('gcb-leave'))\$('gcb-leave').addEventListener('click',leaveGroupCall);
+window.addEventListener('pagehide',function(){
+  /* Filet de sécurité en plus du battement de coeur (heartbeat) : en cas de
+     fermeture propre de l'onglet, on tente un nettoyage immédiat plutôt que
+     d'attendre jusqu'à 60s. sendBeacon() est la seule requête réseau fiable
+     à ce stade du cycle de vie de la page (fetch classique est souvent
+     annulé). Le heartbeat reste le vrai filet pour les cas plus brutaux
+     (crash, coupure réseau, batterie à plat…). */
+  if(groupPresenceDocId&&navigator.sendBeacon){
+    try{navigator.sendBeacon('/api/call/group-leave-beacon',new Blob([JSON.stringify({docId:groupPresenceDocId})],{type:'application/json'}));}catch(e){}
+  }
+});
 
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){
@@ -9946,6 +9982,23 @@ async function handle(request) {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
+  }
+
+  if (path === "/api/call/group-leave-beacon" && request.method === "POST") {
+    // Nettoyage "best effort" envoyé via navigator.sendBeacon() à la fermeture
+    // d'un onglet pendant un salon vocal de groupe — sendBeacon ne permet pas
+    // d'en-tête Authorization, donc pas de vérification de session ici : le
+    // risque est minime (supprimer un document de présence dont l'ID aléatoire
+    // a été deviné n'a aucune valeur d'attaque), et le battement de coeur
+    // périodique reste le vrai filet de sécurité si ce nettoyage échoue.
+    try {
+      const body = await request.json().catch(function () { return {}; });
+      const docId = String((body && body.docId) || "").slice(0, 64);
+      if (docId) {
+        await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents/" + docId, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+    } catch (e) {}
+    return new Response("ok", { headers: cors });
   }
 
   if (path === "/api/dm/delete" && request.method === "POST") {
