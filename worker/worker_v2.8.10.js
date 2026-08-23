@@ -21,6 +21,37 @@ async function generateTurnCredential(secret, username) {
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(username));
   return btoa(String.fromCharCode.apply(null, new Uint8Array(sig)));
 }
+// Serveur SFU LiveKit (auto-hébergé sur le même VPS que coturn, derrière nginx +
+// Cloudflare sur voice.xultra.space) pour les appels de groupe : chaque
+// participant n'envoie qu'un flux au serveur, qui le redistribue aux autres —
+// contrairement aux appels privés (1:1) en maillage direct, ça reste léger même
+// à plusieurs. Les jetons d'accès (JWT signés HS256) sont générés ici, jamais le
+// secret lui-même n'est envoyé au navigateur.
+const LIVEKIT_WS_URL = "wss://voice.xultra.space";
+const LIVEKIT_API_KEY = "API51792402caf597ed";
+const LIVEKIT_API_SECRET = "c42e2c1881c2db44aec27002acbc8d8a019cff224719368af7de17f3ee514aac";
+function b64urlEncode(bytes) {
+  let str = "";
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+async function signLiveKitJwt(payload) {
+  const enc = new TextEncoder();
+  const header = { alg: "HS256", typ: "JWT" };
+  const headerB64 = b64urlEncode(enc.encode(JSON.stringify(header)));
+  const payloadB64 = b64urlEncode(enc.encode(JSON.stringify(payload)));
+  const signingInput = headerB64 + "." + payloadB64;
+  const key = await crypto.subtle.importKey("raw", enc.encode(LIVEKIT_API_SECRET), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(signingInput));
+  return signingInput + "." + b64urlEncode(new Uint8Array(sig));
+}
+function mintLiveKitParticipantToken(identity, name, room) {
+  const now = Math.floor(Date.now() / 1000);
+  return signLiveKitJwt({
+    iss: LIVEKIT_API_KEY, sub: identity, name: name, iat: now, nbf: now, exp: now + 6 * 3600,
+    video: { room: room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true }
+  });
+}
 const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<meta name=\"robots\" content=\"noindex,nofollow\"/>\n<title>XULTRA \u2014 Maintenance</title>\n<style>\n:root{--bg:#0b0614;--accent:#a78bfa;--muted:#9ca3af;--line:#2a1f3d;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{min-height:100dvh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),var(--bg);color:#f3e8ff;padding:24px}\n.card{width:min(420px,100%);background:linear-gradient(180deg,rgba(30,16,50,.95),rgba(15,8,28,.98));border:1px solid var(--line);border-radius:20px;padding:32px 26px;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center;position:relative}\n.logo{font-size:2rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}\n.badge{display:inline-block;margin:12px 0 18px;padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28);color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}\nh1{font-size:1.2rem;margin-bottom:8px;font-weight:800}\np{color:var(--muted);font-size:.92rem;line-height:1.55;margin-bottom:8px}\n.pulse{width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;margin-right:8px;box-shadow:0 0 0 0 rgba(167,139,250,.6);animation:p 1.6s infinite}\n@keyframes p{0%{box-shadow:0 0 0 0 rgba(167,139,250,.55)}70%{box-shadow:0 0 0 12px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}\n.foot{margin-top:18px;font-size:.72rem;color:#6b7280}\n.dev-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:left}\n.dev-box h2{font-size:.78rem;color:#a78bfa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:700}\nlabel{display:block;font-size:.72rem;color:#9ca3af;margin:0 0 6px;font-weight:600}\ninput{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.95rem;margin-bottom:12px;outline:none}\ninput:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}\n.btn-main{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer}\n.btn-main:disabled{opacity:.6;cursor:wait}\n.btn-status{margin-top:14px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#e9d5ff;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}\n.btn-status:hover{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.55)}\n.err{color:#f87171;font-size:.82rem;min-height:1.2em;margin-top:8px;text-align:center}\n.ov{position:fixed;inset:0;background:rgba(5,2,12,.72);backdrop-filter:blur(10px);display:none;place-items:center;z-index:100;padding:20px}\n.ov.on{display:grid}\n.modal{width:min(440px,100%);background:linear-gradient(165deg,#1a1030 0%,#10081c 100%);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:0;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 0 1px rgba(124,58,237,.15),0 0 60px rgba(124,58,237,.12);animation:pop .28s ease}\n@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}\n.modal-head{padding:22px 22px 14px;border-bottom:1px solid rgba(42,31,61,.9);position:relative}\n.modal-head h3{font-size:1.05rem;font-weight:800;letter-spacing:.02em}\n.modal-head .sub{font-size:.78rem;color:var(--muted);margin-top:4px}\n.modal-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e9d5ff;font-size:1.1rem;cursor:pointer;display:grid;place-items:center}\n.modal-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}\n.modal-body{padding:12px 16px 20px;max-height:min(60vh,420px);overflow:auto}\n.svc{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8)}\n.svc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}\n.svc-dot.ok{background:var(--ok);color:rgba(34,197,94,.5)}\n.svc-dot.bad{background:var(--bad);color:rgba(239,68,68,.45)}\n.svc-dot.warn{background:var(--warn);color:rgba(245,158,11,.45)}\n.svc-dot.load{background:#a78bfa;animation:blink 1s infinite}\n@keyframes blink{50%{opacity:.35}}\n.svc-name{font-weight:700;font-size:.9rem}\n.svc-desc{font-size:.72rem;color:var(--muted);margin-top:2px}\n.svc-state{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}\n.svc-state.ok{color:var(--ok)}.svc-state.bad{color:var(--bad)}.svc-state.warn{color:var(--warn)}.svc-state.load{color:#a78bfa}\n.modal-foot{padding:0 16px 18px;font-size:.7rem;color:#6b7280;text-align:center}\n</style></head><body>\n<div class=\"card\">\n<div class=\"logo\">XULTRA</div>\n<div class=\"badge\"><span class=\"pulse\"></span>Maintenance</div>\n<h1>Nous revenons tr\u00e8s bient\u00f4t</h1>\n__MAINT_MESSAGE__\n<button type=\"button\" class=\"btn-status\" id=\"btn-status\">\ud83d\udce1 Statut des services</button>\n<div class=\"dev-box\">\n<h2>Acc\u00e8s d\u00e9veloppeur</h2>\n<label for=\"dev-email\">Email</label>\n<input id=\"dev-email\" type=\"email\" autocomplete=\"username\" placeholder=\"email@exemple.com\"/>\n<label for=\"dev-pass\">Mot de passe</label>\n<input id=\"dev-pass\" type=\"password\" autocomplete=\"current-password\" placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\"/>\n<button type=\"button\" class=\"btn-main\" id=\"dev-btn\">Entrer (dev)</button>\n<div class=\"err\" id=\"dev-err\"></div>\n</div>\n<div class=\"foot\">xultra.space</div>\n</div>\n<div class=\"ov\" id=\"status-ov\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal\">\n    <div class=\"modal-head\">\n      <h3>\ud83d\udce1 Statut des services</h3>\n      <div class=\"sub\">Infrastructure XULTRA en temps r\u00e9el</div>\n      <button type=\"button\" class=\"modal-x\" id=\"status-x\" aria-label=\"Fermer\">\u2715</button>\n    </div>\n    <div class=\"modal-body\" id=\"status-body\"></div>\n    <div class=\"modal-foot\">Mis \u00e0 jour \u00e0 l\u2019ouverture \u00b7 \u03b22.8.8</div>\n  </div>\n</div>\n<script>\n(function(){\n  var btn=document.getElementById('dev-btn');\n  var err=document.getElementById('dev-err');\n  function show(m){err.textContent=m||'';}\n  async function go(){\n    show('');\n    var email=(document.getElementById('dev-email').value||'').trim();\n    var pass=document.getElementById('dev-pass').value||'';\n    if(!email||!pass){show('Email et mot de passe requis');return;}\n    btn.disabled=true;btn.textContent='V\u00e9rification\u2026';\n    try{\n      var r=await fetch('/api/maint/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:email,password:pass})});\n      var j=await r.json().catch(function(){return {};});\n      if(!r.ok||!j.ok){show((j&&j.error)||('Acc\u00e8s refus\u00e9 ('+r.status+')'));btn.disabled=false;btn.textContent='Entrer (dev)';return;}\n      btn.textContent='OK \u2014 redirection\u2026';location.href='/?dev=1';\n    }catch(e){show('Erreur r\u00e9seau');btn.disabled=false;btn.textContent='Entrer (dev)';}\n  }\n  btn.onclick=go;\n  document.getElementById('dev-pass').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  document.getElementById('dev-email').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  var ov=document.getElementById('status-ov');\n  var body=document.getElementById('status-body');\n  document.getElementById('btn-status').onclick=function(){ov.classList.add('on');loadStatus();};\n  document.getElementById('status-x').onclick=function(){ov.classList.remove('on');};\n  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});\n  function row(name,desc,state,label){\n    return '<div class=\"svc\"><div class=\"svc-dot '+state+'\"></div><div><div class=\"svc-name\">'+name+'</div><div class=\"svc-desc\">'+desc+'</div></div><div class=\"svc-state '+state+'\">'+label+'</div></div>';\n  }\n  async function loadStatus(){\n    body.innerHTML=row('Chargement','V\u00e9rification des services','load','\u2026');\n    try{\n      var r=await fetch('/api/maint/status',{cache:'no-store'});\n      var j=await r.json();\n      if(j&&j.services&&j.services.length){\n        body.innerHTML=j.services.map(function(s){return row(s.name,s.desc||'',s.state||'warn',s.label||'?');}).join('');\n        return;\n      }\n    }catch(e){}\n    body.innerHTML=row('Cloudflare Worker','Edge xultra.space','ok','OK')+row('Mode maintenance','Acc\u00e8s public bloqu\u00e9','ok','ACTIF')+row('Appwrite API','Statut indisponible','warn','N/A');\n  }\n})();\n</script>\n</body></html>";;;
 
 
@@ -976,6 +1007,17 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .call-bar .av img{width:100%;height:100%;object-fit:cover}
 .cb-av-mute{position:absolute;z-index:2;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #1a0f2e;display:grid;place-items:center;font-size:8px;line-height:1}
 .cb-av-mute.hidden{display:none}
+.group-call-bar{max-width:520px;padding-top:14px}
+.gcb-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.gcb-title{font-weight:800;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcb-count{font-size:.72rem;color:var(--muted);font-weight:700;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:999px;flex-shrink:0}
+.gcb-participants{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;padding:4px 4px 6px}
+.gcb-p{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px}
+.gcb-p .cb-av-wrap{width:52px;height:52px}
+.gcb-p .av{width:52px;height:52px;font-size:1rem}
+.gcb-p .cb-av-wave{width:88px;height:88px}
+.gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
+.gcb-p.speaking .gcb-p-name{color:#c4b5fd}
 .cb-info{flex:1;min-width:0}
 .cb-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
@@ -1814,6 +1856,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   <audio id="call-remote-audio" autoplay playsinline></audio>
 </div>
 
+<div class="call-bar group-call-bar hidden" id="group-call-bar">
+  <div class="gcb-top">
+    <div class="gcb-title">🎙️ Salon vocal · <span id="gcb-group-name"></span></div>
+    <span class="gcb-count" id="gcb-count"></span>
+  </div>
+  <div class="gcb-participants" id="gcb-participants"></div>
+  <div class="cb-controls">
+    <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
+    <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-notifications">
   <div class="modal-box notif-panel">
     <button type="button" class="modal-close" id="ntf-close">✕</button>
@@ -1912,6 +1966,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
 <script>
 window.__awReady=false;
 (function poll(){
@@ -2891,6 +2946,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.32.0',date:'24 août 2026',time:'01:10',title:'Les appels de groupe sont de retour — salons vocaux',
+    body:'Fini la maintenance : les conversations de groupe ont maintenant un vrai salon vocal, propulsé par un serveur dédié qui redistribue le son à tout le monde (au lieu de connecter chaque personne à chaque autre, plus lourd). Rejoins-le depuis le bouton 📞 d\\'une conversation de groupe — chaque participant apparaît avec sa photo, une onde qui réagit à sa voix, et un badge si son micro est coupé. Voix uniquement pour cette première version.'},
   {version:'2.31.0',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
     body:'Pendant un appel privé, la photo de profil de l\\'interlocuteur affiche maintenant un léger halo animé qui réagit à sa voix en temps réel — épuré, discret, mais bien visible dès qu\\'il parle. Un petit badge 🔇 apparaît directement sur sa photo s\\'il coupe son micro, plus facile à repérer que l\\'ancien indicateur texte.'},
   {version:'2.30.2',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
@@ -5535,8 +5592,8 @@ async function openDm(threadId,title,peerUid){
   repositionCallPanel();
   const callBtn=\$('btn-call-start');
   if(callBtn){
-    callBtn.classList.toggle('call-btn-maintenance',activeDmIsGroup);
-    callBtn.title=activeDmIsGroup?'Appels de groupe — en maintenance':'Appel vocal';
+    callBtn.classList.remove('call-btn-maintenance');
+    callBtn.title=activeDmIsGroup?'Rejoindre le salon vocal':'Appel vocal';
   }
   const e2eEl=\$('ch-e2e');
   if(e2eEl){
@@ -5548,6 +5605,7 @@ async function openDm(threadId,title,peerUid){
   }
   await loadMessages(threadId);
   refreshCallBadge(activeDmPeerUid);
+  refreshGroupCallBadge(threadId);
   updateChatHeaderPresence();
   updateTypingIndicator();
   markDmRead(threadId);
@@ -5644,9 +5702,32 @@ async function refreshCallBadge(peerUid){
     });
     if(doc){
       badge.classList.remove('hidden');
+      badge.innerHTML='<span class="dcb-dot"></span>Salon vocal actif — Rejoindre';
       badge.onclick=function(){
         if(activeCallDoc||incomingCallDoc){showToast('Un appel est déjà en cours.','error');return}
         if(String(doc.calleeId)===String(me.\$id))showIncomingCall(doc);
+      };
+    } else {
+      badge.classList.add('hidden');
+    }
+  }catch(e){badge.classList.add('hidden');}
+}
+async function refreshGroupCallBadge(dmId){
+  const badge=\$('dm-call-badge');if(!badge)return;
+  const forDm=activeDm;
+  if(!dmId||!activeDmIsGroup){return}
+  if(groupRoom&&groupCallDmId===dmId){badge.classList.add('hidden');return}
+  try{
+    const r=await db.listDocuments(DB,'group_call_presence',[Appwrite.Query.equal('dmId',dmId),Appwrite.Query.limit(25)]);
+    if(activeDm!==forDm)return;
+    const docs=r.documents||[];
+    if(docs.length){
+      badge.classList.remove('hidden');
+      badge.innerHTML='<span class="dcb-dot"></span>🎙️ Salon vocal actif ('+docs.length+') — Rejoindre';
+      badge.onclick=function(){
+        if(groupRoom){showToast('Tu es déjà dans un salon vocal.','error');return}
+        const dm=dmsCache.find(function(d){return d.\$id===dmId});
+        joinGroupCall(dmId,dm?dmTitleFor(dm):'Groupe');
       };
     } else {
       badge.classList.add('hidden');
@@ -7976,8 +8057,165 @@ async function endCall(finalStatus,skipRemoteUpdate){
   }
 }
 
+/* ===== Appels de groupe (salons vocaux) via LiveKit (SFU auto-hébergé) =====
+   Chaque participant n'envoie qu'un seul flux au serveur, qui le redistribue
+   aux autres — contrairement aux appels privés en maillage direct, ça reste
+   léger même à plusieurs. Voix uniquement pour cette première version. */
+let groupRoom=null, groupCallDmId=null, groupCallGroupName='', groupWaveRaf=null;
+function groupParticipantTileHtml(uid,name,avatarUrl){
+  return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
+    +'<div class="cb-av-wrap"><canvas class="cb-av-wave"></canvas>'
+    +'<div class="av">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name||'?')))+'</div>'
+    +'<div class="cb-av-mute hidden">🔇</div></div>'
+    +'<div class="gcb-p-name">'+esc(name||'Membre')+'</div>'
+    +'</div>';
+}
+function renderGroupParticipants(){
+  const box=\$('gcb-participants');if(!box||!groupRoom||!me)return;
+  const list=[{identity:String(me.\$id),isLocal:true}];
+  groupRoom.remoteParticipants.forEach(function(p){list.push({identity:p.identity,isLocal:false});});
+  const countEl=\$('gcb-count');
+  if(countEl)countEl.textContent=list.length+(list.length>1?' personnes':' personne');
+  box.innerHTML=list.map(function(item){
+    const uid=item.identity;
+    const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
+    const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
+    const avatarUrl=safeUrl(prof&&prof.avatar);
+    return groupParticipantTileHtml(uid,name,avatarUrl);
+  }).join('');
+  startGroupWaveformLoop();
+}
+function drawParticipantWave(canvas,level){
+  if(!canvas)return;
+  if(!canvas._wctx){
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const cssSize=canvas.clientWidth||64;
+    canvas.width=cssSize*dpr;canvas.height=cssSize*dpr;
+    const ctx2d=canvas.getContext('2d');ctx2d.scale(dpr,dpr);
+    canvas._wctx=ctx2d;canvas._wsize=cssSize;canvas._wsmoothed=new Array(16).fill(0);canvas._wphase=Math.random()*10;
+  }
+  const ctx2d=canvas._wctx,cssSize=canvas._wsize,bars=16,smoothed=canvas._wsmoothed;
+  canvas._wphase+=0.05;
+  const cx=cssSize/2,cy=cssSize/2,innerR=cssSize*0.34,maxExtra=cssSize*0.22;
+  ctx2d.clearRect(0,0,cssSize,cssSize);
+  for(let i=0;i<bars;i++){
+    const wobble=0.65+0.35*Math.sin(canvas._wphase+i*1.3);
+    const target=level*wobble;
+    smoothed[i]+=(target-smoothed[i])*0.3;
+    const len=smoothed[i]*maxExtra;
+    const angle=(i/bars)*Math.PI*2-Math.PI/2;
+    const x1=cx+Math.cos(angle)*innerR,y1=cy+Math.sin(angle)*innerR;
+    const x2=cx+Math.cos(angle)*(innerR+2+len),y2=cy+Math.sin(angle)*(innerR+2+len);
+    ctx2d.beginPath();ctx2d.moveTo(x1,y1);ctx2d.lineTo(x2,y2);
+    ctx2d.lineWidth=2;ctx2d.lineCap='round';
+    ctx2d.strokeStyle='rgba(167,139,250,'+(0.25+smoothed[i]*0.65)+')';
+    ctx2d.stroke();
+  }
+}
+function startGroupWaveformLoop(){
+  if(groupWaveRaf)return;
+  function draw(){
+    const bar=\$('group-call-bar');
+    if(!groupRoom||!bar||bar.classList.contains('hidden')){groupWaveRaf=null;return}
+    const box=\$('gcb-participants');
+    if(box){
+      box.querySelectorAll('.gcb-p').forEach(function(tile){
+        const uid=tile.getAttribute('data-uid');
+        let level=0,muted=false;
+        if(me&&uid===String(me.\$id)){
+          level=groupRoom.localParticipant.audioLevel||0;
+          muted=!groupRoom.localParticipant.isMicrophoneEnabled;
+        }else{
+          const p=groupRoom.remoteParticipants.get(uid);
+          if(p){level=p.audioLevel||0;muted=!p.isMicrophoneEnabled;}
+        }
+        tile.classList.toggle('speaking',level>0.04);
+        const muteEl=tile.querySelector('.cb-av-mute');
+        if(muteEl)muteEl.classList.toggle('hidden',!muted);
+        drawParticipantWave(tile.querySelector('canvas'),level);
+      });
+    }
+    groupWaveRaf=requestAnimationFrame(draw);
+  }
+  draw();
+}
+function wireGroupRoomEvents(room){
+  room.on(LivekitClient.RoomEvent.ParticipantConnected,function(){renderGroupParticipants();});
+  room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){renderGroupParticipants();});
+  room.on(LivekitClient.RoomEvent.TrackSubscribed,function(track,pub,participant){
+    if(track.kind==='audio'){
+      const el=track.attach();
+      el.dataset.participantIdentity=participant.identity;
+      el.style.display='none';
+      document.body.appendChild(el);
+    }
+  });
+  room.on(LivekitClient.RoomEvent.TrackUnsubscribed,function(track){
+    track.detach().forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
+  });
+  room.on(LivekitClient.RoomEvent.Disconnected,function(){
+    showToast('Salon vocal terminé.','error');
+    cleanupGroupCall();
+  });
+}
+async function joinGroupCall(dmId,groupName){
+  if(!me)return;
+  if(groupRoom){showToast('Tu es déjà dans un salon vocal.','error');return}
+  if(typeof LivekitClient==='undefined'){showToast('Module d\\'appel indisponible, réessaie plus tard','error');xlog('livekit_sdk_missing',{});return}
+  if(activeCallDoc||incomingCallDoc){showToast('Termine ton appel privé en cours d\\'abord.','error');return}
+  const ctx0=ensureAudioCtx();if(ctx0&&ctx0.state==='suspended')ctx0.resume().catch(function(){});
+  try{
+    const res=await authPost('/api/call/group-token',{dmId:dmId});
+    const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
+    groupRoom=room;groupCallDmId=dmId;groupCallGroupName=groupName||'Groupe';
+    wireGroupRoomEvents(room);
+    await room.connect(res.wsUrl,res.token);
+    await room.localParticipant.setMicrophoneEnabled(true);
+    try{await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),{dmId:dmId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'});}catch(e){}
+    \$('group-call-bar').classList.remove('hidden');
+    \$('gcb-group-name').textContent=groupCallGroupName;
+    \$('gcb-mute').classList.remove('on');
+    renderGroupParticipants();
+    xlog('group_call_joined',{dmId:dmId});
+  }catch(e){
+    showToast('Impossible de rejoindre le salon vocal','error');
+    xlog('group_call_join_fail',{msg:(e&&e.message)||String(e)});
+    if(groupRoom){try{groupRoom.disconnect();}catch(e2){}}
+    groupRoom=null;groupCallDmId=null;
+  }
+}
+function cleanupGroupCall(){
+  if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
+  document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
+  if(groupCallDmId&&me){
+    db.listDocuments(DB,'group_call_presence',[Appwrite.Query.equal('dmId',groupCallDmId),Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(5)])
+      .then(function(r){(r.documents||[]).forEach(function(d){db.deleteDocument(DB,'group_call_presence',d.\$id).catch(function(){});});})
+      .catch(function(){});
+  }
+  groupRoom=null;groupCallDmId=null;groupCallGroupName='';
+  \$('group-call-bar').classList.add('hidden');
+  \$('gcb-participants').innerHTML='';
+}
+async function leaveGroupCall(){
+  if(!groupRoom)return;
+  try{await groupRoom.disconnect();}catch(e){}
+  cleanupGroupCall();
+}
+if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
+  if(!groupRoom)return;
+  const enabledNow=groupRoom.localParticipant.isMicrophoneEnabled;
+  await groupRoom.localParticipant.setMicrophoneEnabled(!enabledNow);
+  \$('gcb-mute').classList.toggle('on',enabledNow);
+});
+if(\$('gcb-leave'))\$('gcb-leave').addEventListener('click',leaveGroupCall);
+
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
-  if(activeDmIsGroup){showToast('🛠️ Les appels de groupe sont en maintenance pour le moment.','error');return}
+  if(activeDmIsGroup){
+    if(!activeDm){showToast('Ouvre une conversation de groupe pour lancer un salon vocal.','error');return}
+    const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+    joinGroupCall(activeDm,dm?dmTitleFor(dm):'Groupe');
+    return;
+  }
   if(!activeDmPeerUid){alert('Ouvre une conversation directe pour lancer un appel.');return}
   /* Créer/relancer l'AudioContext ici, en tout premier, pendant que le clic
      est encore un vrai geste utilisateur direct : plus on attend (après des
@@ -9670,6 +9908,39 @@ async function handle(request) {
           { urls: "turn:" + TURN_HOST + ":3478?transport=tcp", username, credential }
         ]
       }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/call/group-token" && request.method === "POST") {
+    // Jeton d'accès LiveKit pour rejoindre le salon vocal d'un groupe. Vérifie
+    // que l'appelant est bien membre de ce groupe avant de signer le jeton —
+    // sans ça n'importe qui pourrait rejoindre le salon vocal de n'importe
+    // quel groupe en devinant son identifiant.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const dmId = String((body && body.dmId) || "").slice(0, 64);
+      if (!dmId) throw new Error("dmId requis");
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmId, { asAdmin: true });
+      const members = (dm.members || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu n'es pas membre de ce groupe");
+      if (members.length <= 2) throw new Error("Cette conversation n'est pas un groupe");
+      const profile = await resolveProfile(acc.$id);
+      const name = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const room = "xu-dm-" + dmId;
+      const token = await mintLiveKitParticipantToken(String(acc.$id), name, room);
+      return new Response(JSON.stringify({ ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room }), {
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
