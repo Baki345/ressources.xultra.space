@@ -2868,6 +2868,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.28.0',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
+    body:'Un nouvel onglet ⭐ Abonnement apparaît dans Paramètres → Mon compte. Si tu as XULTRA+ à vie (en devenant 👑 Légende du Bug, palier ultime du Bug Hunter), tu y retrouves ton statut et la date d\\'obtention. Sinon, un simple bouton « Je suis intéressé(e) » permet de nous faire savoir que XULTRA+ t\\'intéresse — ça nous aide à savoir si ça vaut le coup de le développer davantage.'},
   {version:'2.27.2',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
     body:'Cliquer sur la cloche 🔔 ouvrait bien le panneau de notifications, mais te renvoyait aussitôt sur la liste d\\'amis derrière, à cause d\\'un vieux bout de code en double resté par erreur. Corrigé : la cloche ouvre maintenant seulement tes notifications, sans changer d\\'onglet.'},
   {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
@@ -3345,6 +3347,7 @@ function wireGenericToggles(box){
 const SETTINGS_GROUPS=[
   {label:'Compte',items:[
     {key:'account',icon:'👤',title:'Mon compte'},
+    {key:'subscription',icon:'⭐',title:'Abonnement'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
     {key:'devices',icon:'💻',title:'Appareils'},
@@ -3406,7 +3409,7 @@ function handleSettingsNavClick(key){
 function renderSettingsSection(key){
   const box=\$('settings-content');if(!box)return;
   const renderers={
-    account:renderSetAccount,profiles:renderSetProfiles,privacy:renderSetPrivacy,
+    account:renderSetAccount,subscription:renderSetSubscription,profiles:renderSetProfiles,privacy:renderSetPrivacy,
     devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
@@ -3686,6 +3689,36 @@ function showMfaRecoveryCodes(box,codes,justEnabled){
   \$('mfa-codes-done').onclick=function(){renderSetAccount(box);};
 }
 
+function renderSetSubscription(box){
+  const meta=settingsMeta||{};
+  const isPlus=meta.plan==='plus';
+  const interested=!!meta.planInterest;
+  const grantedDate=meta.planAssignedAt?new Date(meta.planAssignedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
+  const grantedByLabel=meta.planAssignedBy==='hunter_tier5'?'👑 Palier Bug Hunter ultime — Légende du Bug (50 bugs résolus)':(meta.planAssignedBy||'');
+  box.innerHTML='<h2>Abonnement</h2><div class="sc-desc">Ton statut sur XULTRA.</div>'
+    +(isPlus?
+      ('<div class="set-card"><div class="pc-xultraplus" style="font-size:.85rem;padding:8px 16px">⭐ XULTRA+ À VIE</div>'
+        +'<div class="scr-sub" style="margin-top:12px">Obtenu'+(grantedDate?(' le '+grantedDate):'')+' — '+esc(grantedByLabel)+'.</div>'
+        +'<div class="scr-sub" style="margin-top:8px">Merci infiniment pour ton aide à améliorer XULTRA. Ce statut est permanent et ne te sera jamais retiré.</div></div>')
+      :
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">XULTRA+ n\\'est pas encore en vente — mais tu peux l\\'obtenir gratuitement à vie en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div>'
+        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Envie de XULTRA+ ?</div><div class="scr-sub">'+(interested?'Merci ! On te préviendra dès que ce sera disponible.':'Dis-le-nous : ça nous aide à savoir si ça vaut le coup.')+'</div></div><button type="button" class="set-mini-btn" id="sub-interest-btn"'+(interested?' disabled':'')+'>'+(interested?'✓ Merci !':'Je suis intéressé(e)')+'</button></div>'
+        +'</div>'));
+  wireSetSubscription(box);
+}
+function wireSetSubscription(box){
+  const btn=\$('sub-interest-btn');
+  if(btn)btn.onclick=async function(){
+    btn.disabled=true;btn.textContent='...';
+    try{
+      await authPost('/api/account/plan-interest',{});
+      settingsMeta=settingsMeta||{};
+      settingsMeta.planInterest=true;
+      showToast('Merci, on te tient au courant !');
+      renderSetSubscription(box);
+    }catch(e){showToast('Action impossible','error');btn.disabled=false;btn.textContent='Je suis intéressé(e)';}
+  };
+}
 function renderSetProfiles(box){
   box.innerHTML='<h2>Profils</h2><div class="sc-desc">Personnalise ton avatar, ta bannière, ta bio, tes couleurs et bien plus.</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Éditeur de profil</div><div class="scr-sub">Avatar, bannière, effets, couleurs, bio, pronoms…</div></div><button type="button" class="set-mini-btn" id="prof-open-editor">Ouvrir</button></div></div>';
@@ -9364,6 +9397,38 @@ async function handle(request) {
         if (body && typeof body[k] === "string") data[k] = body[k].slice(0, 5000);
       }
       if (!Object.keys(data).length) throw new Error("Aucune donnée à mettre à jour");
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: acc.$id, data, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/plan-interest" && request.method === "POST") {
+    // Enregistre qu'un utilisateur a manifesté son intérêt pour XULTRA+ (bouton
+    // dans Paramètres > Abonnement, pour un compte standard). Ne débloque rien :
+    // sert uniquement à mesurer la demande. Même verrouillage que user_meta ailleurs.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const data = { planInterest: "true", planInterestAt: new Date().toISOString() };
       const lockedPerms = ["read(\"any\")"];
       try {
         await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
