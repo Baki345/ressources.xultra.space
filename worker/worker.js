@@ -2518,8 +2518,10 @@ async function doRegister(){
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
   if(!(await verifyTurnstile('register')))return;
   \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
+  let accountCreated=false;
   try{
     await account.create(Appwrite.ID.unique(),email,pass,name);
+    accountCreated=true;
     const jj=await serverLogin(email,pass);
     applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
@@ -2554,7 +2556,15 @@ async function doRegister(){
     await enterApp();
   }catch(e){
     xlog('register_fail',{msg:(e&&e.message)||String(e)});
-    showErrTxt((e&&e.message)||'Inscription impossible');
+    if(accountCreated){
+      /* Le compte Appwrite a été créé mais l'inscription n'a pas pu être finalisée
+         (profil, contrainte d'unicité, réseau...) : on nettoie tout de suite pour
+         qu'un nouvel essai ne laisse pas un compte fantôme sans profil derrière lui. */
+      try{await fetch('/api/account/rollback-registration',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});}catch(eRb){}
+      try{localStorage.clear();}catch(e2){}
+      clearCookieFallback();
+    }
+    showErrTxt((e&&e.message)||'Inscription impossible, réessaie.');
     if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
   }
   \$('btn-register').disabled=false;\$('btn-register').textContent='Créer mon compte';
@@ -2639,6 +2649,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.22.0',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
+    body:'Deux bugs corrigés aujourd\\'hui. D\\'abord, un souci de longue date empêchait parfois deux personnes différentes de choisir le même pseudo (même avec des tags différents), ce qui pouvait laisser des comptes à moitié créés — c\\'est réparé, et l\\'inscription nettoie maintenant automatiquement les tentatives ratées. Ensuite, les appels en messages privés : le son ne passait parfois ni d\\'un côté ni de l\\'autre, et la caméra pouvait afficher un écran noir chez la personne en face — corrigé en fiabilisant le démarrage audio et l\\'affichage vidéo.'},
   {version:'2.21.0',date:'23 août 2026',time:'16:35',title:'Confirme ton adresse e-mail',
     body:'Un e-mail de vérification t\\'est maintenant envoyé automatiquement à l\\'inscription : clique simplement sur le lien qu\\'il contient pour confirmer ton adresse. Tu peux voir le statut et renvoyer l\\'e-mail à tout moment depuis Paramètres → Mon compte.'},
   {version:'2.20.0',date:'23 août 2026',time:'16:10',title:'Connecte-toi avec ton pseudo#tag, plus seulement ton e-mail',
@@ -6338,6 +6350,17 @@ function ensureOutputAudioGraph(){
   const el=\$('call-remote-audio');if(!el)return;
   const ctx=ensureAudioCtx();if(!ctx)return;
   if(outConnected)return;
+  if(ctx.state!=='running'){
+    /* createMediaElementSource() coupe DÉFINITIVEMENT la sortie audio native
+       de l'élément dès qu'on l'appelle, même si le contexte est suspendu et
+       qu'aucun son ne peut donc circuler dans le graphe : construire le
+       graphe maintenant rendrait l'appel silencieux sans la moindre erreur
+       visible tant que le contexte ne se relance pas. On laisse l'élément
+       jouer nativement (son basique garanti) et on retente dès que le
+       contexte a pu démarrer. */
+    ctx.resume().then(function(){if(ctx.state==='running')ensureOutputAudioGraph();}).catch(function(){});
+    return;
+  }
   try{
     outSourceNode=ctx.createMediaElementSource(el);
     outPanner=ctx.createStereoPanner();
@@ -6352,6 +6375,15 @@ function ensureOutputAudioGraph(){
 function rebuildMicChain(){
   if(!localStream||!callPc)return;
   const ctx=ensureAudioCtx();if(!ctx)return;
+  if(ctx.state!=='running'){
+    /* Idem sortie : remplacer la piste micro envoyée par une piste issue d'un
+       graphe WebAudio suspendu enverrait du silence total à l'autre personne.
+       On garde la piste brute du micro (déjà envoyée via addTrack, donc le
+       son de base marche) et on ne bascule sur le graphe (volume réglable,
+       etc.) qu'une fois le contexte réellement démarré. */
+    ctx.resume().then(function(){if(ctx.state==='running')rebuildMicChain();}).catch(function(){});
+    return;
+  }
   try{
     if(micAnalyser){try{micAnalyser.disconnect();}catch(e){}micAnalyser=null;}
     if(micSourceNode){try{micSourceNode.disconnect();}catch(e){}}
@@ -6482,7 +6514,12 @@ function renderVideoGrid(){
       wrap.className='vtile';
       const video=document.createElement('video');
       video.autoplay=true;video.playsInline=true;
-      if(t.isLocal)video.muted=true;
+      /* Toujours muet : le son passe uniquement par #call-remote-audio, donc
+         couper le son de CES éléments <video> (même pour le flux distant)
+         évite tout risque que la politique autoplay du navigateur bloque la
+         lecture d'une vidéo non muette créée hors d'un geste utilisateur
+         direct — ce qui se traduirait par un écran noir côté distant. */
+      video.muted=true;
       wrap.appendChild(video);
       const lbl=document.createElement('div');
       lbl.className='vlabel';
@@ -6494,7 +6531,7 @@ function renderVideoGrid(){
       videoEls[t.key]=wrap;
     }
     const video=wrap.querySelector('video');
-    if(video.srcObject!==t.stream)video.srcObject=t.stream;
+    if(video.srcObject!==t.stream){video.srcObject=t.stream;video.play().catch(function(){});}
     wrap.querySelector('.vlabel').textContent=t.label;
     wrap.classList.toggle('enlarged',enlargedTileKey===t.key);
     if(grid!==wrap.parentElement)grid.appendChild(wrap);
@@ -7017,10 +7054,18 @@ async function endCall(finalStatus,skipRemoteUpdate){
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){alert('Les appels de groupe arrivent bientôt.');return}
   if(!activeDmPeerUid){alert('Ouvre une conversation directe pour lancer un appel.');return}
+  /* Créer/relancer l'AudioContext ici, en tout premier, pendant que le clic
+     est encore un vrai geste utilisateur direct : plus on attend (après des
+     await réseau), plus certains navigateurs (Safari surtout) refusent de le
+     démarrer, ce qui coupait tout le son de l'appel sans erreur visible. */
+  const ctx0=ensureAudioCtx();if(ctx0&&ctx0.state==='suspended')ctx0.resume().catch(function(){});
   const title=\$('ch-title')?\$('ch-title').textContent:'Appel';
   startCall(activeDmPeerUid,title);
 });
-if(\$('ic-accept'))\$('ic-accept').addEventListener('click',acceptIncomingCall);
+if(\$('ic-accept'))\$('ic-accept').addEventListener('click',function(){
+  const ctx0=ensureAudioCtx();if(ctx0&&ctx0.state==='suspended')ctx0.resume().catch(function(){});
+  acceptIncomingCall();
+});
 if(\$('ic-decline'))\$('ic-decline').addEventListener('click',declineIncomingCall);
 if(\$('cb-hangup'))\$('cb-hangup').addEventListener('click',function(){endCall('ended')});
 if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
@@ -8261,6 +8306,38 @@ async function handle(request) {
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/rollback-registration" && request.method === "POST") {
+    // Nettoyage best-effort d'une inscription qui a échoué APRÈS la création du
+    // compte Appwrite (ex: erreur réseau, contrainte d'unicité...) pour éviter
+    // d'accumuler des comptes "fantômes" sans profil quand l'utilisateur réessaie.
+    // On ne fait confiance à aucune session existante (elle a pu échouer à se
+    // créer) : la preuve de propriété est le mot de passe lui-même, comme pour
+    // /api/auth/login. Double garde-fou : on ne supprime que si AUCUN profil
+    // n'existe encore pour ce compte, et seulement s'il a été créé il y a moins
+    // de 15 minutes.
+    try {
+      const body = await request.json();
+      const email = String((body && body.email) || "").trim();
+      const password = String((body && body.password) || "");
+      if (!email || !password) throw new Error("missing");
+      const data = await awFetch("/account/sessions/email", { method: "POST", body: { email, password }, asAdmin: true });
+      const userId = data.userId;
+      if (!userId) throw new Error("no user");
+      const q = encodeURIComponent(JSON.stringify({ method: "equal", attribute: "authUserId", values: [userId] }));
+      const profiles = await awFetch("/databases/" + AW_DB + "/collections/users/documents?queries[]=" + q, { asAdmin: true });
+      if ((profiles.documents || []).length > 0) throw new Error("has profile, refusing");
+      const userInfo = await awFetch("/users/" + userId, { asAdmin: true });
+      const createdAt = new Date(userInfo.registration || 0).getTime();
+      if (!createdAt || Date.now() - createdAt > 15 * 60 * 1000) throw new Error("too old, refusing");
+      await awFetch("/users/" + userId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
   }
