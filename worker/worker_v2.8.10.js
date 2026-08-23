@@ -594,11 +594,17 @@ button{cursor:pointer;border:0;background:0}
 .ch-presence .pr-dot{position:static}
 .ch-e2e.hidden{display:none}
 .chat-back{display:none;flex-shrink:0}
-.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:var(--msg-gap,10px)}
 .msg{display:flex;gap:10px;max-width:80%}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
-.msg .bub{position:relative;background:var(--elev);border-radius:12px;padding:8px 12px;font-size:.85rem;line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.msg .bub{position:relative;background:var(--elev);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
+body.compact-mode .msg .av{display:none}
+body.compact-mode .msg{gap:6px}
+body.compact-mode .msg .bub{padding:5px 10px}
+body.no-emoji-anim .pc-av-frame::before,body.no-emoji-anim .logo-particle,body.no-emoji-anim .logo{animation:none!important}
+body.reduce-motion *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+body.high-contrast{filter:contrast(1.18) saturate(1.12)}
 .msg-menu-btn{display:none;position:absolute;top:-10px;right:-10px;width:24px;height:24px;border-radius:50%;background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#c4b5fd;font-size:.85rem;line-height:1;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .msg.mine .msg-menu-btn{right:auto;left:-10px}
 .msg.hover-reveal .bub:hover .msg-menu-btn{display:flex}
@@ -1037,6 +1043,54 @@ button{cursor:pointer;border:0;background:0}
 .seg-group{display:flex;gap:6px;margin-top:4px}
 .seg-btn{flex:1;height:34px;border-radius:8px;background:var(--elev);border:1px solid var(--line);color:var(--muted);font-size:.72rem;font-weight:700}
 .seg-btn.on{background:rgba(124,58,237,.35);border-color:rgba(167,139,250,.5);color:#e9d5ff}
+.settings-shell{width:min(920px,95vw);max-height:90dvh;display:flex;padding:0;overflow:hidden}
+.settings-sidebar{width:240px;flex-shrink:0;background:#0d0814;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:16px 10px}
+.settings-sidebar-group{margin-bottom:14px}
+.settings-sidebar-label{font-size:.66rem;font-weight:800;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;padding:0 10px;margin-bottom:6px}
+.settings-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:8px;font-size:.82rem;font-weight:700;color:rgba(242,235,255,.72);text-align:left;margin-bottom:2px}
+.settings-nav-btn:hover{background:rgba(255,255,255,.05);color:#f2ebff}
+.settings-nav-btn.on{background:rgba(124,58,237,.22);color:#e9d5ff}
+.settings-nav-btn .snb-ico{width:18px;text-align:center;flex-shrink:0}
+.settings-content{flex:1;min-width:0;overflow-y:auto;padding:26px 30px;position:relative}
+.settings-content h2{font-size:1.15rem;margin-bottom:4px}
+.settings-content .sc-desc{font-size:.8rem;color:var(--muted);margin-bottom:20px}
+.settings-close{position:absolute;top:14px;right:16px;z-index:2}
+.soon-badge{font-size:.6rem;font-weight:800;letter-spacing:.04em;color:#fcd34d;background:rgba(245,158,11,.14);border:1px solid rgba(245,158,11,.3);padding:2px 7px;border-radius:999px;margin-left:auto;flex-shrink:0;white-space:nowrap}
+.set-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+.set-card-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.set-card-row:last-child{border-bottom:0}
+.set-card-row .scr-info{flex:1;min-width:0}
+.set-card-row .scr-label{font-size:.84rem;font-weight:700}
+.set-card-row .scr-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
+.set-mini-btn{padding:6px 12px;border-radius:8px;background:rgba(124,58,237,.18);border:1px solid rgba(167,139,250,.35);color:#e9d5ff;font-size:.74rem;font-weight:700;flex-shrink:0}
+.set-mini-btn:hover{background:rgba(124,58,237,.3)}
+.set-mini-btn.danger{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.4);color:#fca5a5}
+.set-mini-btn.danger:hover{background:rgba(239,68,68,.24)}
+.set-mini-btn[disabled]{opacity:.45;cursor:not-allowed}
+.settings-account-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.settings-account-head .av{width:56px;height:56px;font-size:1.3rem}
+.settings-account-head .sah-name{font-size:1.05rem;font-weight:800}
+.settings-account-head .sah-tag{font-size:.78rem;color:var(--muted)}
+.settings-danger{border-color:rgba(239,68,68,.25)!important}
+.settings-danger .set-section-label{color:#fca5a5}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.conn-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);opacity:.6}
+.conn-item .ci-ico{font-size:1.15rem}
+.conn-item .ci-name{font-size:.78rem;font-weight:700;flex:1}
+.session-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+.session-row .sr-ico{font-size:1.3rem}
+.session-row .sr-info{flex:1;min-width:0}
+.session-row .sr-dev{font-size:.82rem;font-weight:700}
+.session-row .sr-meta{font-size:.7rem;color:var(--muted);margin-top:2px}
+.session-row .sr-current{font-size:.64rem;font-weight:800;color:#86efac;background:rgba(34,197,94,.12);padding:2px 8px;border-radius:999px;flex-shrink:0}
+@media (max-width:720px){
+  .settings-shell{flex-direction:column;width:min(480px,95vw);max-height:92dvh}
+  .settings-sidebar{width:auto;display:flex;overflow-x:auto;overflow-y:hidden;white-space:nowrap;border-right:0;border-bottom:1px solid rgba(255,255,255,.06);padding:10px}
+  .settings-sidebar-group{margin-bottom:0;display:flex;flex-shrink:0}
+  .settings-sidebar-label{display:none}
+  .settings-nav-btn{width:auto;white-space:nowrap}
+  .settings-content{padding:18px 16px}
+}
 .tabbar{display:none}
 @media (max-width:640px){
   .stage-inner{gap:18px;padding:14px 0}
@@ -1196,6 +1250,7 @@ button{cursor:pointer;border:0;background:0}
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
         <button type="button" id="ub-push">🔕 Activer les notifications</button>
+        <button type="button" id="ub-settings">⚙️ Paramètres</button>
         <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
         <button type="button" id="btn-report-bug">🐞 Signaler un bug</button>
         <button type="button" id="btn-logout">🚪 Déconnexion</button>
@@ -1605,6 +1660,14 @@ button{cursor:pointer;border:0;background:0}
     <h3>📋 Nouveautés</h3>
     <div class="cl-sub">Tout ce qui a changé récemment sur XULTRA</div>
     <div class="cl-list" id="cl-list"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-settings">
+  <div class="modal-box settings-shell">
+    <button type="button" class="modal-close settings-close" id="set-close">✕</button>
+    <nav class="settings-sidebar" id="settings-sidebar"></nav>
+    <div class="settings-content" id="settings-content"></div>
   </div>
 </div>
 
@@ -2140,6 +2203,17 @@ async function enterApp(){
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
   ensureE2EKeys().catch(function(){});
+  (async function(){
+    try{
+      const meta=await db.getDocument(DB,'user_meta',acc.\$id);
+      const extra=parseProfileExtra(meta&&meta.profileExtraJson);
+      if(extra.disabled){
+        extra.disabled=false;
+        await db.updateDocument(DB,'user_meta',acc.\$id,{profileExtraJson:JSON.stringify(extra)});
+        showToast('Ton compte a été réactivé, content de te revoir !');
+      }
+    }catch(e){}
+  })();
   if(profile)refreshSelfBar();
   else{
     const name=acc.name||acc.email||'Compte';
@@ -2361,6 +2435,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.14.0',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
+    body:'Un nouveau ⚙️ « Paramètres » est apparu dans le menu ⋯ à côté de ton pseudo. Tu peux maintenant changer ton pseudo, ton e-mail et ton mot de passe, gérer qui peut t’ajouter en ami ou t’écrire, voir tes appareils connectés, régler tes sons de notification, activer des heures calmes automatiques, et bien plus encore. Certaines options marquées « Bientôt disponible » arriveront dans les prochaines mises à jour.'},
   {version:'2.13.1',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
     body:'Tu es justement en train de le découvrir ! Il y a maintenant un endroit pour voir tout ce qui change sur XULTRA. On a aussi rendu beaucoup plus visible la possibilité d\\'ajouter une photo de profil et une bannière dès l\\'inscription — toujours facultatif, bien sûr.'},
   {version:'2.13.0',date:'22 août 2026',time:'23:46',title:'Un vrai centre de notifications',
@@ -2395,6 +2471,536 @@ function openChangelogPanel(){
 if(\$('nav-changelog'))\$('nav-changelog').addEventListener('click',openChangelogPanel);
 if(\$('cl-close'))\$('cl-close').addEventListener('click',function(){\$('modal-changelog').classList.add('hidden')});
 if(\$('modal-changelog'))\$('modal-changelog').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+
+/* ===== Paramètres de l’application ===== */
+function loadAppPrefs(){
+  let p={};
+  try{p=JSON.parse(localStorage.getItem('xultra_app_prefs')||'{}')||{};}catch(e){p={};}
+  return Object.assign({
+    displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
+    animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
+    highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
+    soundMessage:true,soundCall:true,soundMention:true,
+    dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
+    analyticsShare:false,adsPersonalization:false,_prevStatus:null
+  },p);
+}
+let appPrefs=loadAppPrefs();
+function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
+function applyAppPrefs(){
+  try{document.documentElement.style.setProperty('--msg-font-size',appPrefs.msgFontSize+'px');}catch(e){}
+  try{document.documentElement.style.setProperty('--msg-gap',appPrefs.msgSpacing==='compact'?'4px':'10px');}catch(e){}
+  if(document.body){
+    try{document.body.style.zoom=(appPrefs.zoomScale||100)/100;}catch(e){}
+    document.body.classList.toggle('compact-mode',appPrefs.displayMode==='compact');
+    document.body.classList.toggle('no-emoji-anim',!appPrefs.animateEmoji);
+    document.body.classList.toggle('reduce-motion',!!appPrefs.reduceMotion);
+    document.body.classList.toggle('high-contrast',!!appPrefs.highContrast);
+  }
+}
+applyAppPrefs();
+function playNotifSound(kind){
+  if(kind==='message'&&!appPrefs.soundMessage)return;
+  if(kind==='call'&&!appPrefs.soundCall)return;
+  if(kind==='mention'&&!appPrefs.soundMention)return;
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+    const ctx=new Ctx();
+    const o=ctx.createOscillator(),g=ctx.createGain();
+    o.type='sine';
+    o.frequency.value=kind==='call'?660:(kind==='mention'?880:520);
+    g.gain.value=0.0001;
+    o.connect(g);g.connect(ctx.destination);
+    const now=ctx.currentTime;
+    g.gain.exponentialRampToValueAtTime(0.12,now+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,now+(kind==='call'?0.5:0.28));
+    o.start(now);o.stop(now+(kind==='call'?0.55:0.32));
+    o.onended=function(){try{ctx.close();}catch(e){}};
+  }catch(e){}
+}
+function checkScheduledDnd(){
+  if(!appPrefs.dndScheduleEnabled||!me||!meProfile)return;
+  const now=new Date();
+  const cur=now.getHours()*60+now.getMinutes();
+  const parse=function(t){const p=(t||'00:00').split(':');return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0);};
+  const start=parse(appPrefs.dndStart),end=parse(appPrefs.dndEnd);
+  const inWindow=start<=end?(cur>=start&&cur<end):(cur>=start||cur<end);
+  if(inWindow&&meProfile.statusManual!=='dnd'){
+    appPrefs._prevStatus=meProfile.statusManual||'online';
+    saveAppPrefs();
+    db.updateDocument(DB,'users',meProfile.\$id,{statusManual:'dnd'}).then(function(){meProfile.statusManual='dnd';refreshSelfBar();}).catch(function(){});
+  }else if(!inWindow&&appPrefs._prevStatus&&meProfile.statusManual==='dnd'){
+    const prev=appPrefs._prevStatus;
+    appPrefs._prevStatus=null;saveAppPrefs();
+    db.updateDocument(DB,'users',meProfile.\$id,{statusManual:prev}).then(function(){meProfile.statusManual=prev;refreshSelfBar();}).catch(function(){});
+  }
+}
+setInterval(checkScheduledDnd,60000);
+
+function soonBadge(){return '<span class="soon-badge">Bientôt disponible</span>';}
+function toggleRow(label,key,val){
+  return '<div class="set-toggle-row"><span>'+label+'</span><div class="set-switch'+(val?' on':'')+'" data-app-toggle="'+key+'" data-on="'+(val?'1':'0')+'"></div></div>';
+}
+function wireGenericToggles(box){
+  box.querySelectorAll('[data-app-toggle]').forEach(function(sw){
+    sw.onclick=function(){
+      const key=sw.getAttribute('data-app-toggle');
+      const on=sw.getAttribute('data-on')!=='1';
+      sw.setAttribute('data-on',on?'1':'0');
+      sw.classList.toggle('on',on);
+      appPrefs[key]=on;saveAppPrefs();applyAppPrefs();
+    };
+  });
+}
+
+const SETTINGS_GROUPS=[
+  {label:'Compte',items:[
+    {key:'account',icon:'👤',title:'Mon compte'},
+    {key:'profiles',icon:'🎨',title:'Profils'},
+    {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
+    {key:'devices',icon:'💻',title:'Appareils'},
+    {key:'connections',icon:'🔗',title:'Connexions'},
+    {key:'apps',icon:'🧩',title:'Applications autorisées'},
+    {key:'family',icon:'🛡️',title:'Coffre-fort / Family Center'}
+  ]},
+  {label:'Application',items:[
+    {key:'appearance',icon:'🎭',title:'Apparence'},
+    {key:'accessibility',icon:'♿',title:'Accessibilité'},
+    {key:'voice',icon:'🎙️',title:'Voix et vidéo'},
+    {key:'notifications',icon:'🔔',title:'Notifications'},
+    {key:'shortcuts',icon:'⌨️',title:'Raccourcis clavier'},
+    {key:'language',icon:'🌐',title:'Langue'},
+    {key:'os',icon:'🖥️',title:'Paramètres du système'},
+    {key:'advanced',icon:'🛠️',title:'Avancé'},
+    {key:'activity',icon:'🎮',title:'Activité'}
+  ]},
+  {label:'',items:[
+    {key:'changelog',icon:'📋',title:'Notes de version'},
+    {key:'support',icon:'🐞',title:'Support'},
+    {key:'testers',icon:'🧪',title:'Rejoindre XULTRA Testers'},
+    {key:'logout',icon:'🚪',title:'Se déconnecter'}
+  ]}
+];
+let settingsActiveKey='account';
+let settingsMeta=null;
+async function openSettingsPanel(){
+  if(!me)return;
+  \$('modal-settings').classList.remove('hidden');
+  try{settingsMeta=await db.getDocument(DB,'user_meta',me.\$id);}catch(e){settingsMeta=settingsMeta||{};}
+  renderSettingsSidebar();
+  renderSettingsSection(settingsActiveKey);
+}
+function closeSettingsPanel(){\$('modal-settings').classList.add('hidden');}
+function renderSettingsSidebar(){
+  const nav=\$('settings-sidebar');if(!nav)return;
+  nav.innerHTML=SETTINGS_GROUPS.map(function(g){
+    return '<div class="settings-sidebar-group">'
+      +(g.label?'<div class="settings-sidebar-label">'+esc(g.label)+'</div>':'')
+      +g.items.map(function(it){
+        return '<button type="button" class="settings-nav-btn'+(it.key===settingsActiveKey?' on':'')+'" data-set-key="'+it.key+'"><span class="snb-ico">'+it.icon+'</span>'+esc(it.title)+'</button>';
+      }).join('')
+      +'</div>';
+  }).join('');
+  nav.querySelectorAll('[data-set-key]').forEach(function(b){
+    b.addEventListener('click',function(){handleSettingsNavClick(b.getAttribute('data-set-key'));});
+  });
+}
+function handleSettingsNavClick(key){
+  if(key==='changelog'){closeSettingsPanel();openChangelogPanel();return}
+  if(key==='support'){closeSettingsPanel();openBugModal(null);return}
+  if(key==='testers'){showToast('Bientôt disponible !');return}
+  if(key==='logout'){closeSettingsPanel();if(\$('btn-logout'))\$('btn-logout').click();return}
+  settingsActiveKey=key;
+  renderSettingsSidebar();
+  renderSettingsSection(key);
+}
+function renderSettingsSection(key){
+  const box=\$('settings-content');if(!box)return;
+  const renderers={
+    account:renderSetAccount,profiles:renderSetProfiles,privacy:renderSetPrivacy,
+    devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
+    family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
+    voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
+    language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity
+  };
+  (renderers[key]||renderSetAccount)(box);
+}
+
+function renderSetAccount(box){
+  const name=(meProfile&&(meProfile.displayName||meProfile.username))||(me&&me.name)||'—';
+  const tag=(meProfile&&meProfile.tag)||'0000';
+  const email=(me&&me.email)||'—';
+  const avatarUrl=safeUrl(meProfile&&meProfile.avatar);
+  const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+  const disabled=!!extra.disabled;
+  box.innerHTML=
+    '<h2>Mon compte</h2><div class="sc-desc">Gère les informations qui te permettent de te connecter.</div>'
+    +'<div class="settings-account-head"><div class="av">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc((name||'?').slice(0,1).toUpperCase()))+'</div><div><div class="sah-name">'+esc(name)+'</div><div class="sah-tag">#'+esc(tag)+'</div></div></div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Pseudo</div><div class="scr-sub">'+esc(name)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-name">Modifier</button></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Mot de passe</div><div class="scr-sub">••••••••</div></div><button type="button" class="set-mini-btn" id="acc-edit-pass">Modifier</button></div>'
+      +(appPrefs.devMode?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">ID utilisateur</div><div class="scr-sub">'+esc((me&&me.\$id)||'')+'</div></div><button type="button" class="set-mini-btn" id="acc-copy-id">Copier</button></div>'):'')
+    +'</div>'
+    +'<div class="set-card hidden" id="acc-name-form"><div class="set-row"><label>Nouveau pseudo</label><input type="text" id="acc-name-input" class="field-input" maxlength="64"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-name-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-name-cancel">Annuler</button></div></div>'
+    +'<div class="set-card hidden" id="acc-email-form"><div class="set-row"><label>Nouvel e-mail</label><input type="email" id="acc-email-input" class="field-input"></div><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-email-pass" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-email-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-email-cancel">Annuler</button></div><div class="err" id="acc-email-err" style="min-height:1em;margin-top:6px"></div></div>'
+    +'<div class="set-card hidden" id="acc-pass-form"><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-pass-old" class="field-input"></div><div class="set-row"><label>Nouveau mot de passe</label><input type="password" id="acc-pass-new" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-pass-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-pass-cancel">Annuler</button></div><div class="err" id="acc-pass-err" style="min-height:1em;margin-top:6px"></div></div>'
+    +'<div class="set-card">'
+      +'<div class="set-section-label">Sécurité</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">Ajoute une couche de sécurité à ton compte.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours</div><div class="scr-sub">Récupère ton compte si tu perds l’accès.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Clés de sécurité / passkeys</div><div class="scr-sub">Connecte-toi sans mot de passe.</div></div>'+soonBadge()+'</div>'
+    +'</div>'
+    +'<div class="set-card settings-danger">'
+      +'<div class="set-section-label">Zone dangereuse</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Désactiver mon compte</div><div class="scr-sub">Masque ton profil. Reconnecte-toi pour le réactiver à tout moment.</div></div><div class="set-switch'+(disabled?' on':'')+'" id="acc-disable-switch" data-on="'+(disabled?'1':'0')+'"></div></div>'
+      +'<div class="set-card-row" id="acc-delete-row"><div class="scr-info"><div class="scr-label">Supprimer mon compte</div><div class="scr-sub">Action définitive : ton compte et tes données seront supprimés.</div></div><button type="button" class="set-mini-btn danger" id="acc-delete-btn">Supprimer</button></div>'
+      +'<div class="set-card hidden" id="acc-delete-form"><div class="scr-sub" style="margin-bottom:10px">Tape ton pseudo <b>'+esc(name)+'</b> pour confirmer, puis glisse pour valider. Cette action est irréversible.</div><input type="text" id="acc-delete-confirm-input" class="field-input" placeholder="'+esc(name)+'" style="margin-bottom:10px"><div id="acc-delete-slide-anchor"></div><button type="button" class="set-mini-btn" id="acc-delete-cancel" style="margin-top:8px">Annuler</button></div>'
+    +'</div>';
+  wireSetAccount(box,name);
+}
+function wireSetAccount(box,name){
+  const copyIdBtn=\$('acc-copy-id');
+  if(copyIdBtn)copyIdBtn.onclick=function(){
+    const id=(me&&me.\$id)||'';
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(id):Promise.reject()).then(function(){showToast('ID copié !');}).catch(function(){showToast(id,'error');});
+  };
+  const nameBtn=\$('acc-edit-name');
+  if(nameBtn)nameBtn.onclick=function(){\$('acc-name-form').classList.remove('hidden');\$('acc-name-input').value=name;};
+  const nameCancel=\$('acc-name-cancel');
+  if(nameCancel)nameCancel.onclick=function(){\$('acc-name-form').classList.add('hidden');};
+  const nameSave=\$('acc-name-save');
+  if(nameSave)nameSave.onclick=async function(){
+    const v=(\$('acc-name-input').value||'').trim().slice(0,64);
+    if(v.length<2){showToast('Pseudo trop court','error');return}
+    nameSave.disabled=true;
+    try{
+      await db.updateDocument(DB,'users',meProfile.\$id,{displayName:v});
+      meProfile.displayName=v;
+      try{await account.updateName(v);}catch(e){}
+      refreshSelfBar();
+      showToast('Pseudo mis à jour !');
+      renderSetAccount(box);
+    }catch(e){showToast('Action impossible','error');nameSave.disabled=false;}
+  };
+  const emailBtn=\$('acc-edit-email');
+  if(emailBtn)emailBtn.onclick=function(){\$('acc-email-form').classList.remove('hidden');};
+  const emailCancel=\$('acc-email-cancel');
+  if(emailCancel)emailCancel.onclick=function(){\$('acc-email-form').classList.add('hidden');};
+  const emailSave=\$('acc-email-save');
+  if(emailSave)emailSave.onclick=async function(){
+    const newEmail=(\$('acc-email-input').value||'').trim();
+    const pass=\$('acc-email-pass').value||'';
+    const err=\$('acc-email-err');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+\$/.test(newEmail)){err.textContent='E-mail invalide';return}
+    if(!pass){err.textContent='Mot de passe requis';return}
+    emailSave.disabled=true;err.textContent='';
+    try{
+      await account.updateEmail(newEmail,pass);
+      if(me)me.email=newEmail;
+      showToast('E-mail mis à jour !');
+      renderSetAccount(box);
+    }catch(e){err.textContent=(e&&e.message)||'Action impossible';emailSave.disabled=false;}
+  };
+  const passBtn=\$('acc-edit-pass');
+  if(passBtn)passBtn.onclick=function(){\$('acc-pass-form').classList.remove('hidden');};
+  const passCancel=\$('acc-pass-cancel');
+  if(passCancel)passCancel.onclick=function(){\$('acc-pass-form').classList.add('hidden');};
+  const passSave=\$('acc-pass-save');
+  if(passSave)passSave.onclick=async function(){
+    const oldPass=\$('acc-pass-old').value||'';
+    const newPass=\$('acc-pass-new').value||'';
+    const err=\$('acc-pass-err');
+    if(newPass.length<8){err.textContent='8 caractères minimum';return}
+    passSave.disabled=true;err.textContent='';
+    try{
+      await account.updatePassword(newPass,oldPass);
+      showToast('Mot de passe mis à jour !');
+      \$('acc-pass-form').classList.add('hidden');
+    }catch(e){err.textContent=(e&&e.message)||'Mot de passe actuel incorrect';passSave.disabled=false;}
+  };
+  const disableSwitch=\$('acc-disable-switch');
+  if(disableSwitch)disableSwitch.onclick=async function(){
+    const willDisable=disableSwitch.getAttribute('data-on')!=='1';
+    try{
+      const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+      extra.disabled=willDisable;
+      await db.updateDocument(DB,'user_meta',me.\$id,{profileExtraJson:JSON.stringify(extra)});
+      settingsMeta=settingsMeta||{};settingsMeta.profileExtraJson=JSON.stringify(extra);
+      if(willDisable){
+        showToast('Compte désactivé. Reconnecte-toi pour le réactiver.');
+        setTimeout(function(){if(\$('btn-logout'))\$('btn-logout').click();},900);
+      }else{
+        showToast('Compte réactivé.');
+        renderSetAccount(box);
+      }
+    }catch(e){showToast('Action impossible','error');}
+  };
+  const delBtn=\$('acc-delete-btn');
+  if(delBtn)delBtn.onclick=function(){\$('acc-delete-form').classList.remove('hidden');\$('acc-delete-row').classList.add('hidden');};
+  const delCancel=\$('acc-delete-cancel');
+  if(delCancel)delCancel.onclick=function(){\$('acc-delete-form').classList.add('hidden');\$('acc-delete-row').classList.remove('hidden');};
+  const slideAnchor=\$('acc-delete-slide-anchor');
+  if(slideAnchor){
+    const expected=(name||'').trim();
+    const btn=document.createElement('button');
+    btn.type='button';btn.className='set-mini-btn danger';btn.textContent='Confirmer la suppression';
+    btn.disabled=true;btn.style.width='100%';
+    slideAnchor.appendChild(btn);
+    const input=\$('acc-delete-confirm-input');
+    if(input)input.addEventListener('input',function(){btn.disabled=!expected||input.value.trim()!==expected;});
+    btn.onclick=function(){
+      showSlideConfirm('Glisse pour supprimer définitivement ton compte',async function(){
+        btn.disabled=true;btn.textContent='Suppression…';
+        try{
+          await authPost('/api/account/delete',{});
+          try{localStorage.clear();}catch(e){}
+          clearCookieFallback();
+          location.reload();
+        }catch(e){showToast((e&&e.message)||'Action impossible','error');btn.disabled=false;btn.textContent='Confirmer la suppression';}
+      });
+    };
+  }
+}
+
+function renderSetProfiles(box){
+  box.innerHTML='<h2>Profils</h2><div class="sc-desc">Personnalise ton avatar, ta bannière, ta bio, tes couleurs et bien plus.</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Éditeur de profil</div><div class="scr-sub">Avatar, bannière, effets, couleurs, bio, pronoms…</div></div><button type="button" class="set-mini-btn" id="prof-open-editor">Ouvrir</button></div></div>';
+  const btn=\$('prof-open-editor');
+  if(btn)btn.onclick=function(){closeSettingsPanel();if(me)openProfileModal(me.\$id);};
+}
+
+function renderSetPrivacy(box){
+  const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+  const privacy=Object.assign({friendRequests:'everyone',dms:'everyone',hideOnlineStatus:false},extra.privacy||{});
+  box.innerHTML='<h2>Confidentialité et sécurité</h2><div class="sc-desc">Choisis qui peut interagir avec toi.</div>'
+    +'<div class="set-card">'
+      +'<div class="set-row"><label>Qui peut t’ajouter en ami</label><div class="seg-group"><button type="button" class="seg-btn'+(privacy.friendRequests==='everyone'?' on':'')+'" data-priv-fr="everyone">Tout le monde</button><button type="button" class="seg-btn'+(privacy.friendRequests==='none'?' on':'')+'" data-priv-fr="none">Personne</button></div></div>'
+      +'<div class="set-row"><label>Qui peut t’envoyer des messages</label><div class="seg-group"><button type="button" class="seg-btn'+(privacy.dms==='everyone'?' on':'')+'" data-priv-dm="everyone">Tout le monde</button><button type="button" class="seg-btn'+(privacy.dms==='friends'?' on':'')+'" data-priv-dm="friends">Amis uniquement</button></div></div>'
+      +'<div class="set-toggle-row"><span>Masquer mon statut en ligne</span><div class="set-switch'+(privacy.hideOnlineStatus?' on':'')+'" id="priv-hide-status" data-on="'+(privacy.hideOnlineStatus?'1':'0')+'"></div></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">Contenu</div>'+toggleRow('Flouter le contenu sensible (NSFW)','nsfwBlur',appPrefs.nsfwBlur)+'</div>'
+    +'<div class="set-card"><div class="set-section-label">Données</div>'
+      +toggleRow('Partager des données d’analyse anonymes','analyticsShare',appPrefs.analyticsShare)
+      +toggleRow('Personnalisation des publicités','adsPersonalization',appPrefs.adsPersonalization)
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Demander une copie de mes données</div><div class="scr-sub">Contacte le support pour en faire la demande.</div></div><button type="button" class="set-mini-btn" id="priv-data-request">Demander</button></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Chiffrement des appels vocaux</div><div class="scr-sub">Tes appels passent toujours par une connexion chiffrée de bout en bout.</div></div><span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">🔒 Toujours actif</span></div>'
+    +'</div>';
+  wireSetPrivacy(box,privacy);
+  wireGenericToggles(box);
+}
+function wireSetPrivacy(box,privacy){
+  async function savePrivacy(next){
+    const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+    extra.privacy=next;
+    try{
+      await db.updateDocument(DB,'user_meta',me.\$id,{profileExtraJson:JSON.stringify(extra)});
+      settingsMeta=settingsMeta||{};settingsMeta.profileExtraJson=JSON.stringify(extra);
+      showToast('Préférences enregistrées.');
+    }catch(e){showToast('Action impossible','error');}
+    renderSetPrivacy(box);
+  }
+  box.querySelectorAll('[data-priv-fr]').forEach(function(b){
+    b.onclick=function(){savePrivacy(Object.assign({},privacy,{friendRequests:b.getAttribute('data-priv-fr')}));};
+  });
+  box.querySelectorAll('[data-priv-dm]').forEach(function(b){
+    b.onclick=function(){savePrivacy(Object.assign({},privacy,{dms:b.getAttribute('data-priv-dm')}));};
+  });
+  const hideSt=\$('priv-hide-status');
+  if(hideSt)hideSt.onclick=function(){savePrivacy(Object.assign({},privacy,{hideOnlineStatus:hideSt.getAttribute('data-on')!=='1'}));};
+  const dataReq=\$('priv-data-request');
+  if(dataReq)dataReq.onclick=function(){closeSettingsPanel();openBugModal(null);showToast('Décris ta demande dans le formulaire, on te répond vite !');};
+}
+
+async function loadDeviceSessions(box){
+  const list=\$('dev-list');if(!list)return;
+  try{
+    const res=await account.listSessions();
+    const sessions=(res&&res.sessions)||(Array.isArray(res)?res:[]);
+    list.innerHTML=sessions.map(function(s){
+      const isCurrent=!!s.current;
+      const dev=(s.clientName||'Navigateur')+' · '+(s.osName||s.deviceModel||'Appareil inconnu');
+      const meta=(s.ip||'')+' · '+(s.\$createdAt?new Date(s.\$createdAt).toLocaleString('fr-FR'):'');
+      return '<div class="session-row"><div class="sr-ico">'+(s.clientType==='mobile'?'📱':'💻')+'</div><div class="sr-info"><div class="sr-dev">'+esc(dev)+'</div><div class="sr-meta">'+esc(meta)+'</div></div>'+(isCurrent?'<span class="sr-current">Session actuelle</span>':'<button type="button" class="set-mini-btn danger" data-session-id="'+s.\$id+'">Déconnecter</button>')+'</div>';
+    }).join('')||'<div class="scr-sub">Aucune session trouvée.</div>';
+    list.querySelectorAll('[data-session-id]').forEach(function(b){
+      b.onclick=async function(){
+        b.disabled=true;
+        try{await account.deleteSession(b.getAttribute('data-session-id'));showToast('Session déconnectée.');loadDeviceSessions(box);}
+        catch(e){showToast('Action impossible','error');b.disabled=false;}
+      };
+    });
+  }catch(e){list.innerHTML='<div class="scr-sub">Impossible de charger les sessions.</div>';}
+  const logoutAll=\$('dev-logout-all');
+  if(logoutAll)logoutAll.onclick=function(){
+    showSlideConfirm('Glisse pour déconnecter tous les autres appareils',async function(){
+      try{
+        const res=await account.listSessions();
+        const sessions=((res&&res.sessions)||(Array.isArray(res)?res:[])).filter(function(s){return !s.current});
+        for(const s of sessions){await account.deleteSession(s.\$id).catch(function(){});}
+        showToast('Tous les autres appareils ont été déconnectés.');
+        loadDeviceSessions(box);
+      }catch(e){showToast('Action impossible','error');}
+    });
+  };
+}
+function renderSetDevices(box){
+  box.innerHTML='<h2>Appareils</h2><div class="sc-desc">Les appareils actuellement connectés à ton compte.</div><div class="set-card" id="dev-list"><div class="scr-sub">Chargement…</div></div><div class="set-card"><button type="button" class="set-mini-btn danger" id="dev-logout-all" style="width:100%">Déconnecter tous les autres appareils</button></div>';
+  loadDeviceSessions(box);
+}
+
+const CONNECTION_SERVICES=[
+  {name:'Spotify',icon:'🎵'},{name:'Steam',icon:'🎮'},{name:'Xbox',icon:'🕹️'},{name:'PlayStation',icon:'🎮'},
+  {name:'Twitch',icon:'🟣'},{name:'YouTube',icon:'▶️'},{name:'GitHub',icon:'🐙'},{name:'Reddit',icon:'👽'},
+  {name:'TikTok',icon:'🎬'},{name:'Instagram',icon:'📸'},{name:'Facebook',icon:'📘'},{name:'Battle.net',icon:'⚔️'},
+  {name:'Epic Games',icon:'🏹'},{name:'Riot Games',icon:'🔫'},{name:'Bluesky',icon:'🦋'}
+];
+function renderSetConnections(box){
+  box.innerHTML='<h2>Connexions</h2><div class="sc-desc">Relie tes autres comptes pour les afficher sur ton profil. Bientôt disponible !</div><div class="conn-grid">'
+    +CONNECTION_SERVICES.map(function(s){return '<div class="conn-item"><span class="ci-ico">'+s.icon+'</span><span class="ci-name">'+esc(s.name)+'</span><span class="soon-badge">Bientôt</span></div>';}).join('')
+    +'</div>';
+}
+function renderSetApps(box){
+  box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les applications tierces ayant accès à ton compte.</div><div class="set-card"><div class="scr-sub">Aucune application connectée pour le moment · Bientôt disponible.</div></div>';
+}
+function renderSetFamily(box){
+  box.innerHTML='<h2>Coffre-fort de contenu / Family Center</h2><div class="sc-desc">Des outils pour garder un œil sur ton activité ou celle d’un proche.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur XULTRA.</div></div>';
+}
+
+function renderSetAppearance(box){
+  box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte XULTRA à ton goût.</div>'
+    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn on">🌙 Sombre</button><button type="button" class="seg-btn" id="app-theme-light">☀️ Clair</button><button type="button" class="seg-btn" id="app-theme-system">🖥️ Système</button></div></div></div>'
+    +'<div class="set-card">'
+      +'<div class="set-row"><label>Mode d’affichage</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.displayMode==='modern'?' on':'')+'" data-app-val="displayMode:modern">Moderne</button><button type="button" class="seg-btn'+(appPrefs.displayMode==='compact'?' on':'')+'" data-app-val="displayMode:compact">Compact</button></div></div>'
+      +'<div class="set-row"><label>Taille de police <span class="val" id="app-font-val">'+appPrefs.msgFontSize+'px</span></label><input type="range" id="app-font-range" min="12" max="20" value="'+appPrefs.msgFontSize+'"></div>'
+      +'<div class="set-row"><label>Échelle du zoom <span class="val" id="app-zoom-val">'+appPrefs.zoomScale+'%</span></label><input type="range" id="app-zoom-range" min="80" max="150" step="5" value="'+appPrefs.zoomScale+'"></div>'
+      +'<div class="set-row"><label>Espacement des messages</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.msgSpacing==='comfortable'?' on':'')+'" data-app-val="msgSpacing:comfortable">Confortable</button><button type="button" class="seg-btn'+(appPrefs.msgSpacing==='compact'?' on':'')+'" data-app-val="msgSpacing:compact">Compact</button></div></div>'
+    +'</div>'
+    +'<div class="set-card">'
+      +toggleRow('Animer les emojis, autocollants et avatars','animateEmoji',appPrefs.animateEmoji)
+      +'<div class="set-toggle-row"><span>Aperçu des liens dans les messages</span>'+soonBadge()+'</div>'
+    +'</div>';
+  wireSetAppearance(box);
+  wireGenericToggles(box);
+}
+function wireSetAppearance(box){
+  const lightBtn=\$('app-theme-light'),sysBtn=\$('app-theme-system');
+  if(lightBtn)lightBtn.onclick=function(){showToast('Le thème clair arrive bientôt !');};
+  if(sysBtn)sysBtn.onclick=function(){showToast('La synchro avec le système arrive bientôt !');};
+  box.querySelectorAll('[data-app-val]').forEach(function(b){
+    b.onclick=function(){
+      const parts=b.getAttribute('data-app-val').split(':');
+      appPrefs[parts[0]]=parts[1];
+      saveAppPrefs();applyAppPrefs();
+      renderSetAppearance(box);
+    };
+  });
+  const fontRange=\$('app-font-range');
+  if(fontRange)fontRange.addEventListener('input',function(){
+    appPrefs.msgFontSize=parseInt(fontRange.value,10);
+    \$('app-font-val').textContent=appPrefs.msgFontSize+'px';
+    saveAppPrefs();applyAppPrefs();
+  });
+  const zoomRange=\$('app-zoom-range');
+  if(zoomRange)zoomRange.addEventListener('input',function(){
+    appPrefs.zoomScale=parseInt(zoomRange.value,10);
+    \$('app-zoom-val').textContent=appPrefs.zoomScale+'%';
+    saveAppPrefs();applyAppPrefs();
+  });
+}
+
+function renderSetAccessibility(box){
+  box.innerHTML='<h2>Accessibilité</h2><div class="sc-desc">Adapte l’interface à tes besoins.</div>'
+    +'<div class="set-card">'
+      +toggleRow('Réduire les animations et le mouvement','reduceMotion',appPrefs.reduceMotion)
+      +toggleRow('Lire les GIF au survol seulement','gifHoverPlay',appPrefs.gifHoverPlay)
+      +toggleRow('Contraste élevé','highContrast',appPrefs.highContrast)
+    +'</div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Synthèse vocale (TTS)</div><div class="scr-sub">Lit les messages et notifications à voix haute.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Sous-titres pour les appels</div><div class="scr-sub">Transcription en direct pendant les appels.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Grossissement du chat au clavier</div></div>'+soonBadge()+'</div>'
+    +'</div>';
+  wireGenericToggles(box);
+}
+
+function renderSetVoice(box){
+  box.innerHTML='<h2>Voix et vidéo</h2><div class="sc-desc">Micro, caméra, partage d’écran et qualité audio.</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Paramètres audio &amp; vidéo</div><div class="scr-sub">Choisis ton micro, ta caméra et ajuste la qualité.</div></div><button type="button" class="set-mini-btn" id="voice-open-settings">Ouvrir</button></div></div>'
+    +'<div class="set-card"><div class="scr-sub">💡 Le test du micro et l’aperçu vidéo sont disponibles pendant un appel actif.</div></div>';
+  const btn=\$('voice-open-settings');
+  if(btn)btn.onclick=function(){closeSettingsPanel();\$('modal-call-settings').classList.remove('hidden');};
+}
+
+function renderSetNotifications(box){
+  const granted=(typeof Notification!=='undefined'&&Notification.permission==='granted');
+  box.innerHTML='<h2>Notifications</h2><div class="sc-desc">Choisis comment XULTRA t’avertit.</div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Notifications bureau</div><div class="scr-sub">Reçois une alerte même quand l’onglet est fermé.</div></div><button type="button" class="set-mini-btn" id="notif-push-toggle">'+(granted?'Activées ✅':'Activer')+'</button></div>'
+      +toggleRow('Aperçu du contenu dans la notification','notifPreview',appPrefs.notifPreview)
+      +toggleRow('Badge sur l’icône (messages non lus)','notifBadge',appPrefs.notifBadge)
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">Sons</div>'
+      +toggleRow('Message','soundMessage',appPrefs.soundMessage)
+      +toggleRow('Appel','soundCall',appPrefs.soundCall)
+      +toggleRow('Mention','soundMention',appPrefs.soundMention)
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">Ne pas déranger</div>'
+      +toggleRow('Heures calmes planifiées','dndScheduleEnabled',appPrefs.dndScheduleEnabled)
+      +'<div class="set-row"><label>De</label><input type="time" id="dnd-start" class="field-input" value="'+esc(appPrefs.dndStart)+'"></div>'
+      +'<div class="set-row"><label>À</label><input type="time" id="dnd-end" class="field-input" value="'+esc(appPrefs.dndEnd)+'"></div>'
+    +'</div>';
+  wireGenericToggles(box);
+  const pushBtn=\$('notif-push-toggle');
+  if(pushBtn)pushBtn.onclick=function(){if(\$('ub-push'))\$('ub-push').click();};
+  const dndStart=\$('dnd-start'),dndEnd=\$('dnd-end');
+  if(dndStart)dndStart.addEventListener('change',function(){appPrefs.dndStart=dndStart.value;saveAppPrefs();});
+  if(dndEnd)dndEnd.addEventListener('change',function(){appPrefs.dndEnd=dndEnd.value;saveAppPrefs();});
+}
+
+function renderSetShortcuts(box){
+  box.innerHTML='<h2>Raccourcis clavier</h2><div class="sc-desc">Personnalise tes propres raccourcis pour aller plus vite.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur XULTRA.</div></div>';
+}
+function renderSetLanguage(box){
+  box.innerHTML='<h2>Langue</h2><div class="sc-desc">La langue de l’interface XULTRA.</div>'
+    +'<div class="set-card"><div class="set-row"><label>Langue de l’application</label><div class="seg-group"><button type="button" class="seg-btn on">🇫🇷 Français</button><button type="button" class="seg-btn" id="lang-en">🇬🇧 English</button></div></div></div>'
+    +'<div class="set-card"><div class="scr-sub">Envie d’aider à traduire XULTRA dans une nouvelle langue ? Écris-nous via le support !</div></div>';
+  const en=\$('lang-en');
+  if(en)en.onclick=function(){showToast('English support is coming soon!');};
+}
+function renderSetOs(box){
+  box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Options disponibles sur les futures applications de bureau XULTRA.</div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Ouvrir XULTRA au démarrage</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Démarrer minimisé</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Minimiser dans la barre des tâches</div></div>'+soonBadge()+'</div>'
+    +'</div>';
+}
+function renderSetAdvanced(box){
+  box.innerHTML='<h2>Avancé</h2><div class="sc-desc">Options pour les curieux et les développeurs.</div>'
+    +'<div class="set-card">'+toggleRow('Mode développeur (copier les IDs)','devMode',appPrefs.devMode)+'</div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Accélération matérielle</div><div class="scr-sub">Utilise ta carte graphique pour fluidifier l’affichage.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Canal de mise à jour</div></div><span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">Stable</span></div>'
+    +'</div>';
+  wireGenericToggles(box);
+}
+function renderSetActivity(box){
+  const myStatus=(meProfile&&meProfile.statusManual)||'online';
+  const def=PRESENCE_DEFS[myStatus]||PRESENCE_DEFS.online;
+  box.innerHTML='<h2>Activité</h2><div class="sc-desc">Ton statut et ton activité visibles par les autres.</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Statut actuel</div><div class="scr-sub">'+esc(def.label)+'</div></div><button type="button" class="set-mini-btn" id="act-open-status">Changer</button></div></div>'
+    +'<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Détection automatique des jeux</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Bibliothèque de jeux / Quêtes</div></div>'+soonBadge()+'</div>'
+    +'</div>';
+  const btn=\$('act-open-status');
+  if(btn)btn.onclick=function(){closeSettingsPanel();if(\$('ub-presence-btn'))\$('ub-presence-btn').click();};
+}
+
+if(\$('ub-settings'))\$('ub-settings').addEventListener('click',function(){closeUbPopovers();openSettingsPanel();});
+if(\$('set-close'))\$('set-close').addEventListener('click',closeSettingsPanel);
+if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e){if(e.target===this)closeSettingsPanel();});
 
 const BADGE_DEFS={
   base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
@@ -2457,6 +3063,12 @@ function computePresence(p){
   if(!p)return 'offline';
   const manual=p.statusManual||'online';
   if(manual==='invisible')return 'offline';
+  const uidKey=String(p.authUserId||p.\$id||'');
+  const metaDoc=memberMetaByUid[uidKey];
+  if(metaDoc){
+    const extra=parseProfileExtra(metaDoc.profileExtraJson);
+    if(extra.privacy&&extra.privacy.hideOnlineStatus)return 'offline';
+  }
   const last=p.lastSeen?new Date(p.lastSeen).getTime():0;
   if(!last||Date.now()-last>PRESENCE_STALE_MS)return 'offline';
   return manual;
@@ -2655,6 +3267,14 @@ async function sendFriendRequest(targetUid,targetName){
   if(!me||!targetUid||targetUid===me.\$id)return;
   const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
   try{
+    const targetMeta=await db.getDocument(DB,'user_meta',targetUid).catch(function(){return null});
+    const targetExtra=parseProfileExtra(targetMeta&&targetMeta.profileExtraJson);
+    if(targetExtra.privacy&&targetExtra.privacy.friendRequests==='none'){
+      showToast("Cette personne n'accepte pas les demandes d'ami pour le moment.",'error');
+      return false;
+    }
+  }catch(e){}
+  try{
     await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:targetUid,status:'pending_out',name:targetName||'Ami'});
     try{await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:targetUid,friendId:me.\$id,status:'pending_in',name:myName});}catch(e){}
     sendNotification(targetUid,'friend_request',me.\$id,myName,myName+' t\\'a envoyé une demande d\\'ami');
@@ -2796,6 +3416,7 @@ function subscribeNotifWatcher(){
       if(eventIs(res.events,'.create')){
         if(!notifCache.find(function(n){return n.\$id===p.\$id}))notifCache.unshift(p);
         updateNotifBadge();
+        playNotifSound(p.type==='friend_request'?'mention':'message');
         if(!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
       }
     });
@@ -2920,6 +3541,14 @@ async function startDmWith(peerUid,peerName){
     await loadDms();
     let dm=dmsCache.find(function(d){return dmPeerId(d)===peerUid});
     if(!dm){
+      try{
+        const peerMeta=await db.getDocument(DB,'user_meta',peerUid).catch(function(){return null});
+        const peerExtra=parseProfileExtra(peerMeta&&peerMeta.profileExtraJson);
+        if(peerExtra.privacy&&peerExtra.privacy.dms==='friends'){
+          const isFriend=friendsCache.some(function(f){return String(f.friendId)===String(peerUid)&&f.status==='accepted'});
+          if(!isFriend){showToast("Cette personne n'accepte les messages que de ses amis.",'error');return}
+        }
+      }catch(e){}
       dm=await db.createDocument(DB,'dms',Appwrite.ID.unique(),{members:[String(me.\$id),String(peerUid)],displayName:peerName||'Conversation',lastMessage:''});
       dmsCache.unshift(dm);
     }
@@ -5308,6 +5937,7 @@ async function checkPendingIncomingCall(){
 let ringSubtitleTimeoutId=null;
 function showIncomingCall(doc){
   incomingCallDoc=doc;
+  playNotifSound('call');
   \$('ic-name').textContent=doc.callerName||'Appel inconnu';
   const av=\$('ic-av');
   if(safeUrl(doc.callerAvatar))av.innerHTML='<img src="'+esc(safeUrl(doc.callerAvatar))+'" alt=""/>';
@@ -6627,6 +7257,28 @@ async function handle(request) {
         }
       });
       return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const profile = await resolveProfile(acc.$id);
+      if (profile && profile.$id) {
+        await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + profile.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      await awFetch("/users/" + acc.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
