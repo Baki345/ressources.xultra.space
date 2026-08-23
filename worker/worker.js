@@ -2245,6 +2245,7 @@ async function enterApp(){
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeCallBadgeWatcher();}catch(e){}
   try{subscribeDmDeleteWatcher();}catch(e){}
+  try{subscribeDmMessagesWatcher();}catch(e){}
   try{subscribeNotifWatcher();await loadNotifications();updateNotifBadge();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
@@ -2447,6 +2448,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.15.0',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
+    body:'Gros morceau technique aujourd’hui : jusqu’ici, tes messages ne se mettaient à jour que quand tu rouvrais une conversation. Ce n’est plus le cas ! Les nouveaux messages apparaissent maintenant instantanément dans la conversation ouverte, avec un petit son, et ta liste de conversations se réorganise et se met à jour toute seule dès que quelqu’un t’écrit. La synthèse vocale peut aussi lire à voix haute les nouveaux messages de la conversation que tu regardes.'},
   {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'XULTRA peut maintenant te lire tes notifications à voix haute',
     body:'Dans Paramètres → Accessibilité, tu peux activer la synthèse vocale pour que tes notifications te soient lues à voix haute, avec un réglage de vitesse. On a aussi ajouté un vrai badge sur l’icône de l’app pour voir tes messages non lus d’un coup d’œil, et les GIF peuvent maintenant rester figés jusqu’à ce que tu passes ta souris dessus (pratique pour ne pas être distrait en pleine conversation).'},
   {version:'2.14.1',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
@@ -2951,7 +2954,7 @@ function renderSetAccessibility(box){
       +toggleRow('Lire tes notifications à voix haute','ttsEnabled',appPrefs.ttsEnabled)
       +'<div class="set-row"><label>Vitesse de lecture <span class="val" id="tts-rate-val">'+(appPrefs.ttsRate||1).toFixed(1)+'x</span></label><input type="range" id="tts-rate-range" min="0.5" max="2" step="0.1" value="'+(appPrefs.ttsRate||1)+'"></div>'
       +'<button type="button" class="set-mini-btn" id="tts-test-btn">🔊 Tester</button>'
-      +'<div class="scr-sub" style="margin-top:8px">Pour l’instant, la lecture concerne les notifications (demandes d’ami, etc.) — la lecture des messages arrive avec la messagerie en temps réel, bientôt.</div>'
+      +'<div class="scr-sub" style="margin-top:8px">Lit tes notifications (demandes d’ami, etc.) ainsi que les nouveaux messages reçus dans la conversation actuellement ouverte.</div>'
     +'</div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Sous-titres pour les appels</div><div class="scr-sub">Transcription en direct pendant les appels.</div></div>'+soonBadge()+'</div>'
@@ -3672,16 +3675,57 @@ async function deleteConversationConfirmed(dmId){
 function subscribeDmDeleteWatcher(){
   try{
     client.subscribe('databases.'+DB+'.collections.dms.documents',function(res){
-      if(!eventIs(res.events,'.delete'))return;
       const p=res.payload;if(!p)return;
-      dmsCache=dmsCache.filter(function(d){return d.\$id!==p.\$id});
-      if(activeDm===p.\$id){
-        activeDm=null;activeDmPeerUid=null;
-        if(\$('chat-active'))\$('chat-active').classList.add('hidden');
-        if(\$('chat-empty'))\$('chat-empty').classList.remove('hidden');
-        showToast('Cette conversation a été supprimée.');
+      if(eventIs(res.events,'.delete')){
+        dmsCache=dmsCache.filter(function(d){return d.\$id!==p.\$id});
+        if(activeDm===p.\$id){
+          activeDm=null;activeDmPeerUid=null;
+          if(\$('chat-active'))\$('chat-active').classList.add('hidden');
+          if(\$('chat-empty'))\$('chat-empty').classList.remove('hidden');
+          showToast('Cette conversation a été supprimée.');
+        }
+        if(view==='dms')renderDms();
+        return;
       }
-      if(view==='dms')renderDms();
+      if(eventIs(res.events,'.update')||eventIs(res.events,'.create')){
+        if(!me)return;
+        const members=(p.members||[]).map(String);
+        if(members.indexOf(String(me.\$id))<0)return;
+        const idx=dmsCache.findIndex(function(d){return d.\$id===p.\$id});
+        if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
+        dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
+        updateNotifBadge();
+        if(view==='dms')renderDms();
+      }
+    });
+  }catch(e){}
+}
+function subscribeDmMessagesWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.dms_messages.documents',function(res){
+      if(!eventIs(res.events,'.create'))return;
+      const p=res.payload;if(!p||!me)return;
+      if(String(p.uid)===String(me.\$id))return;
+      if(blockedUids.indexOf(String(p.uid))>=0)return;
+      const inMyDms=dmsCache.some(function(d){return d.\$id===p.threadId});
+      if(!inMyDms)return;
+      if(p.threadId===activeDm){
+        (async function(){
+          let text=p.text||'';
+          if(p.enc&&text){
+            try{
+              const key=await e2eResolveIncomingKey(p);
+              text=key?await e2eDecryptTextWithKey(key,text):'';
+            }catch(e){text='';}
+          }
+          if(text)speakText((p.displayName||'Message')+' : '+text);
+        })();
+        loadMessages(activeDm);
+        markDmRead(activeDm);
+        playNotifSound('message');
+      }else{
+        playNotifSound('message');
+      }
     });
   }catch(e){}
 }
