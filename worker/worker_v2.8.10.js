@@ -1018,6 +1018,15 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .gcb-p .cb-av-wave{width:88px;height:88px}
 .gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
+.e2e-backup-banner{position:fixed;left:12px;right:12px;top:12px;z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.e2e-bb-row{display:flex;align-items:center;gap:8px}
+.e2e-bb-row.hidden{display:none}
+.e2e-bb-text{flex:1;font-size:.78rem;color:#e9d5ff;line-height:1.3}
+.e2e-bb-btn{flex-shrink:0;padding:8px 12px;border-radius:9px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:700;font-size:.76rem;white-space:nowrap}
+.e2e-bb-x{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.06);color:#c4b5fd;display:grid;place-items:center;font-size:.8rem}
+.e2e-bb-x:hover{background:rgba(239,68,68,.15);color:#fca5a5}
+.e2e-bb-input{flex:1;min-width:0;padding:9px 12px;border-radius:9px;border:1px solid rgba(167,139,250,.3);background:#0d0818;color:#f3e8ff;font-size:.85rem;outline:none}
+.e2e-bb-input:focus{border-color:#7c3aed}
 .cb-info{flex:1;min-width:0}
 .cb-name{font-weight:800;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
@@ -1868,6 +1877,19 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   </div>
 </div>
 
+<div class="e2e-backup-banner hidden" id="e2e-backup-banner">
+  <div class="e2e-bb-row" id="e2e-bb-ask">
+    <span class="e2e-bb-text">🔒 Sécurise l'accès à tes messages chiffrés sur tes autres appareils.</span>
+    <button type="button" class="e2e-bb-btn" id="e2e-backup-confirm">Confirmer mon mot de passe</button>
+    <button type="button" class="e2e-bb-x" id="e2e-backup-later" title="Plus tard">✕</button>
+  </div>
+  <div class="e2e-bb-row hidden" id="e2e-bb-form">
+    <input type="password" class="e2e-bb-input" id="e2e-bb-pass" placeholder="Ton mot de passe" autocomplete="current-password">
+    <button type="button" class="e2e-bb-btn" id="e2e-bb-submit">Valider</button>
+    <button type="button" class="e2e-bb-x" id="e2e-bb-cancel" title="Annuler">✕</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-notifications">
   <div class="modal-box notif-panel">
     <button type="button" class="modal-close" id="ntf-close">✕</button>
@@ -2414,6 +2436,7 @@ async function fetchMe(){
 }
 
 let me=null, meProfile=null;
+let e2eBackupPromptDismissed=false;
 
 /* ===== Chiffrement de bout en bout (E2E) — ECDH P-256 + AES-256-GCM ===== */
 /* La clé privée n'est jamais transmise au serveur ; elle vit uniquement   */
@@ -2450,8 +2473,13 @@ async function backupE2EPrivateKeyIfNeeded(password,jwk,doc){
      l'avait générée : changer de navigateur ou d'appareil en générait une
      toute nouvelle, rendant tous les anciens messages chiffrés illisibles
      pour toujours ("Message illisible sur cet appareil"). Best-effort : si
-     ça échoue, le comportement reste celui d'avant (pas de régression). */
-  if(!password||!doc||doc.encPrivB64)return;
+     ça échoue, le comportement reste celui d'avant (pas de régression).
+     Renvoie true si une sauvegarde existe désormais (déjà présente ou tout
+     juste créée), false sinon — utilisé pour savoir s'il faut proposer à
+     l'utilisateur de confirmer son mot de passe pour l'activer. */
+  if(!doc)return false;
+  if(doc.encPrivB64)return true;
+  if(!password)return false;
   try{
     const salt=crypto.getRandomValues(new Uint8Array(16));
     const iv=crypto.getRandomValues(new Uint8Array(12));
@@ -2459,13 +2487,14 @@ async function backupE2EPrivateKeyIfNeeded(password,jwk,doc){
     const plain=new TextEncoder().encode(JSON.stringify(jwk));
     const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},aesKey,plain);
     await db.updateDocument(DB,'e2e_keys',doc.\$id,{encPrivB64:b64enc(new Uint8Array(cipher)),saltB64:b64enc(salt),ivB64:b64enc(iv)});
-  }catch(e){xlog('e2e_backup_fail',{msg:(e&&e.message)||String(e)});}
+    return true;
+  }catch(e){xlog('e2e_backup_fail',{msg:(e&&e.message)||String(e)});return false;}
 }
 async function ensureE2EKeys(password){
   try{
     let jwk=null,pub=null;
     try{jwk=JSON.parse(localStorage.getItem('xultra_e2e_priv')||'null');pub=localStorage.getItem('xultra_e2e_pub');}catch(e){}
-    if(!me||!me.\$id)return;
+    if(!me||!me.\$id)return {hasKey:false,backedUp:false};
     let existing=null;
     try{
       const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
@@ -2493,8 +2522,9 @@ async function ensureE2EKeys(password){
     }else if(existing.pubKey!==pub){
       try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
     }
-    if(existing)await backupE2EPrivateKeyIfNeeded(password,jwk,existing);
-  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});}
+    const backedUp=existing?await backupE2EPrivateKeyIfNeeded(password,jwk,existing):false;
+    return {hasKey:!!jwk,backedUp:backedUp};
+  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});return {hasKey:false,backedUp:false};}
 }
 const peerPubKeyCache={};
 async function e2ePeerPubKey(peerUid){
@@ -2617,7 +2647,18 @@ async function enterApp(e2ePassword){
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
-  ensureE2EKeys(e2ePassword).catch(function(){});
+  ensureE2EKeys(e2ePassword).then(function(status){
+    /* Si cet appareil a bien une clé E2E locale mais qu'elle n'a jamais été
+       sauvegardée côté serveur (généralement parce qu'on ne s'est pas
+       reconnecté avec son mot de passe depuis l'ajout de cette fonctionnalité —
+       une session restaurée automatiquement, comme au chargement de la page,
+       ne le transporte jamais), on propose de confirmer son mot de passe pour
+       l'activer, plutôt que de laisser le risque silencieux de perdre l'accès
+       aux messages en cas de changement d'appareil. */
+    if(status&&status.hasKey&&!status.backedUp&&!e2eBackupPromptDismissed){
+      \$('e2e-backup-banner').classList.remove('hidden');
+    }
+  }).catch(function(){});
   authPost('/api/account/grant-early-badge',{}).catch(function(){});
   authPost('/api/account/refresh-hunter-tier',{}).catch(function(){});
   (async function(){
@@ -2662,6 +2703,54 @@ async function enterApp(e2ePassword){
     if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
   }catch(e){}
 }
+function hideE2EBackupBanner(){
+  \$('e2e-backup-banner').classList.add('hidden');
+  \$('e2e-bb-ask').classList.remove('hidden');
+  \$('e2e-bb-form').classList.add('hidden');
+  \$('e2e-bb-pass').value='';
+}
+if(\$('e2e-backup-later'))\$('e2e-backup-later').addEventListener('click',function(){
+  e2eBackupPromptDismissed=true;
+  hideE2EBackupBanner();
+});
+if(\$('e2e-backup-confirm'))\$('e2e-backup-confirm').addEventListener('click',function(){
+  \$('e2e-bb-ask').classList.add('hidden');
+  \$('e2e-bb-form').classList.remove('hidden');
+  setTimeout(function(){\$('e2e-bb-pass').focus();},50);
+});
+if(\$('e2e-bb-cancel'))\$('e2e-bb-cancel').addEventListener('click',function(){
+  \$('e2e-bb-form').classList.add('hidden');
+  \$('e2e-bb-ask').classList.remove('hidden');
+});
+async function submitE2EBackupPassword(){
+  const pass=\$('e2e-bb-pass').value||'';
+  if(!pass||!me||!me.email)return;
+  const btn=\$('e2e-bb-submit');
+  btn.disabled=true;btn.textContent='Vérification…';
+  try{
+    /* ensureE2EKeys() ne vérifie jamais que le mot de passe fourni est le bon
+       — il dérive juste une clé de chiffrement à partir de ce qu'on lui donne
+       (normal pour les flux de connexion, où le mot de passe vient d'être
+       validé par Appwrite). Ici, c'est la première fois qu'un mot de passe
+       est saisi SANS passer par une vraie connexion : sans cette vérification,
+       une faute de frappe créerait silencieusement une sauvegarde chiffrée
+       avec le mauvais mot de passe — inutilisable plus tard, mais affichée
+       comme un succès. On vérifie donc d'abord via une vraie tentative de
+       connexion (ouvre une session de plus, sans conséquence : l'app gère
+       déjà plusieurs sessions par appareil). */
+    await account.createEmailPasswordSession(me.email,pass);
+    const status=await ensureE2EKeys(pass);
+    if(status&&status.backedUp){
+      showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
+      hideE2EBackupBanner();
+    }else{
+      showToast('Erreur réseau, réessaie.','error');
+    }
+  }catch(e){showToast('Mot de passe incorrect.','error');}
+  btn.disabled=false;btn.textContent='Valider';
+}
+if(\$('e2e-bb-submit'))\$('e2e-bb-submit').addEventListener('click',submitE2EBackupPassword);
+if(\$('e2e-bb-pass'))\$('e2e-bb-pass').addEventListener('keydown',function(e){if(e.key==='Enter')submitE2EBackupPassword();});
 let presenceTimerId=null;
 async function updateLastSeen(){
   if(!meProfile||!meProfile.\$id)return;
@@ -2946,6 +3035,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
+    body:'Corrigé : la photo de profil de l\\'interlocuteur n\\'apparaissait jamais dans l\\'en-tête d\\'une conversation privée (seulement ses initiales) — elle s\\'affiche maintenant correctement. Autre correctif plus important : la sauvegarde chiffrée qui permet de lire ses anciens messages en changeant d\\'appareil ne se déclenchait que lors d\\'une vraie reconnexion avec mot de passe — une session simplement restaurée à la réouverture de l\\'app (le cas le plus courant) ne l\\'activait jamais. Un petit bandeau propose maintenant de confirmer son mot de passe pour l\\'activer si ce n\\'est pas déjà fait, avec vérification du mot de passe avant de sauvegarder quoi que ce soit.'},
   {version:'2.32.1',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
     body:'Un souci de permissions empêchait parfois la suppression propre de la présence en salon vocal en quittant un appel de groupe, ce qui pouvait laisser le badge « Salon vocal actif » affiché à tort. Corrigé, avec en plus un battement de coeur toutes les 60 secondes et un nettoyage automatique en cas de fermeture d\\'onglet — le badge se met désormais à jour de façon fiable, même en cas de coupure brutale (batterie, crash…).'},
   {version:'2.32.0',date:'24 août 2026',time:'01:10',title:'Les appels de groupe sont de retour — salons vocaux',
@@ -5583,8 +5674,14 @@ async function openDm(threadId,title,peerUid){
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
   \$('ch-title').textContent=title||'Conversation';
-  const groupAv=activeDmIsGroup&&dm?safeUrl(dm.avatar):'';
-  \$('ch-av').innerHTML=groupAv?'<img src="'+esc(groupAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(title||'?'));
+  let headerAv='';
+  if(activeDmIsGroup&&dm){
+    headerAv=safeUrl(dm.avatar);
+  }else if(activeDmPeerUid){
+    const peer=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(activeDmPeerUid)});
+    headerAv=safeUrl(peer&&peer.avatar);
+  }
+  \$('ch-av').innerHTML=headerAv?'<img src="'+esc(headerAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(title||'?'));
   const openHeaderAction=activeDmIsGroup?function(){openGroupEditModal(dm);}:((activeDmPeerUid)?function(){openProfileModal(activeDmPeerUid)}:null);
   \$('ch-av').style.cursor=openHeaderAction?'pointer':'';
   \$('ch-av').onclick=openHeaderAction;
