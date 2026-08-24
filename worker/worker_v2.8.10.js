@@ -3382,6 +3382,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.38.1',date:'24 août 2026',time:'11:10',title:'Correctif : le partage de position ne faisait rien',
+    body:'Contrairement à tous les autres types de message, le partage de position n\\'allait jamais chercher de clé de chiffrement E2E avant d\\'envoyer — la position partait donc en clair, et surtout, un échec d\\'envoi ne s\\'affichait nulle part (juste un journal technique invisible) : on cliquait, et rien ne semblait se passer. Corrigé sur les deux points.'},
   {version:'2.38.0',date:'24 août 2026',time:'10:50',title:'Corrections suite à vos signalements : temps réel, présence, rôles',
     body:'Gros lot de correctifs : (1) les messages dans les salons de serveur n\\'arrivaient plus en direct — il fallait actualiser ou attendre — car ils n\\'avaient jamais la permission technique nécessaire pour le temps réel, corrigé sans rouvrir l\\'accès aux salons privés. (2) Les demandes d\\'ami n\\'apparaissaient plus dans la liste sans recharger la page — ajout d\\'une vraie mise à jour en direct. (3) Un ami déjà en ligne à ta connexion pouvait s\\'afficher "hors ligne" dans les listes alors que son profil montrait le bon statut — la liste des membres est plafonnée à 100 profils, tes amis et contacts DM au-delà de ce plafond ne recevaient jamais leur statut ; ils sont maintenant toujours récupérés. (4) L\\'heure des messages, disparue, est de retour (DM et salons de serveur). (5) Les photos de profil manquaient dans les salons texte de serveur — ajoutées, cliquables. (6) Nouveau bouton "Membres" sur chaque rôle pour voir et gérer qui l\\'a, sans passer membre par membre. (7) Le bandeau de restauration E2E affichait "mot de passe incorrect" même en cas de simple limite de débit ou de coupure réseau — message corrigé selon la vraie cause.'},
   {version:'2.37.3',date:'24 août 2026',time:'00:05',title:'Correctif mobile : le clavier faisait zoomer l\\'écran en écrivant un message',
@@ -6792,8 +6794,15 @@ function shareLocation(){
   if(!navigator.geolocation){alert('Géolocalisation non supportée sur cet appareil.');return}
   navigator.geolocation.getCurrentPosition(async function(pos){
     try{
-      await postMessage({type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})},'📍 Position');
-    }catch(e){xlog('location_send_fail',{msg:(e&&e.message)||String(e)});}
+      /* Contrairement à sendMessage()/handleFileAttach(), ce point d'envoi
+         n'a jamais récupéré ni transmis de contexte de clé E2E — la position
+         partait donc TOUJOURS en clair, jamais chiffrée comme le reste d'une
+         conversation, et un échec de création du document ne remontait
+         qu'à xlog (aucun message d'erreur visible : on clique, "rien ne se
+         passe"). */
+      const keyCtx=await e2eGetMessageKeyContext();
+      await postMessage({type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})},'📍 Position',keyCtx);
+    }catch(e){xlog('location_send_fail',{msg:(e&&e.message)||String(e)});showToast('Impossible d\\'envoyer la position, réessaie.','error');}
   },function(){alert('Impossible d\\'obtenir ta position.');},{enableHighAccuracy:false,timeout:8000});
 }
 
