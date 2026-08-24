@@ -53,7 +53,7 @@ function mintLiveKitParticipantToken(identity, name, room) {
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
-const SERVER_PERMISSIONS = ["manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log"];
+const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log"];
 async function logServerAudit(serverId, actorUid, actorName, action, targetName, details) {
   try {
     await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents", {
@@ -92,6 +92,12 @@ async function serverCheckPermission(serverId, uid, permissionOrList) {
   for (const role of roles) {
     let perms = [];
     try { perms = JSON.parse(role.permissionsJson || "[]"); } catch (e) {}
+    // "administrator" contourne toutes les autres permissions (mais jamais la
+    // hiérarchie des rôles ni le statut de propriétaire, qui restent vérifiés
+    // séparément par position via getMemberAuthorityPosition/
+    // assertCanModerateTarget — un admin ne peut donc toujours pas toucher un
+    // rôle ou un membre égal ou supérieur au sien).
+    if (perms.indexOf("administrator") >= 0) return { ok: true, server: server, member: member, role: role };
     if (wanted.some(function (p) { return perms.indexOf(p) >= 0; })) return { ok: true, server: server, member: member, role: role };
   }
   return { ok: false, server: server, member: member, error: "Permission refusée" };
@@ -162,7 +168,7 @@ async function computeChannelMessagePermissions(serverId, channel) {
       const roles = roleIds.map(function (id) { return rolesById[id]; }).filter(Boolean);
       const hasManage = roles.some(function (r) {
         let perms = []; try { perms = JSON.parse(r.permissionsJson || "[]"); } catch (e) {}
-        return perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
+        return perms.indexOf("administrator") >= 0 || perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
       });
       const access = computeChannelAccess(channel, roleIds);
       if (hasManage || access.view) uids.push(String(m.uid));
@@ -195,7 +201,7 @@ async function serverResolveChannelAccess(serverId, uid, channelId) {
   const roleIds = roles.map(function (r) { return r.$id; });
   const hasManage = roles.some(function (r) {
     let perms = []; try { perms = JSON.parse(r.permissionsJson || "[]"); } catch (e) {}
-    return perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
+    return perms.indexOf("administrator") >= 0 || perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
   });
   const access = computeChannelAccess(channel, roleIds);
   let view = hasManage || access.view;
@@ -218,6 +224,19 @@ async function getMemberAuthorityPosition(serverId, uid, server) {
   const roles = await serverGetMemberRoles(serverId, member);
   if (!roles.length) return -1;
   return Math.max.apply(null, roles.map(function (r) { return Number(r.position) || 0; }));
+}
+// Un membre ne peut expulser, bannir ou timeouter qu'une cible dont le rôle le
+// plus haut est STRICTEMENT inférieur au sien (le propriétaire est hors
+// hiérarchie et peut toujours agir). Sans ce garde-fou, deux modérateurs
+// portant le même rôle — ou pire, un rôle mineur doté par erreur d'une
+// permission de modération — pouvaient s'expulser/bannir entre eux ou agir
+// sur un rôle supérieur au leur, du moment que la permission générique
+// (kick_members/ban_members/moderate_members) était accordée.
+async function assertCanModerateTarget(serverId, actorUid, targetUid, server) {
+  if (String(server.ownerId) === String(actorUid)) return;
+  const actorAuthority = await getMemberAuthorityPosition(serverId, actorUid, server);
+  const targetAuthority = await getMemberAuthorityPosition(serverId, targetUid, server);
+  if (targetAuthority >= actorAuthority) throw new Error("Tu ne peux pas agir sur un membre dont le rôle est égal ou supérieur au tien");
 }
 const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<meta name=\"robots\" content=\"noindex,nofollow\"/>\n<title>XULTRA \u2014 Maintenance</title>\n<style>\n:root{--bg:#0b0614;--accent:#a78bfa;--muted:#9ca3af;--line:#2a1f3d;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{min-height:100dvh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),var(--bg);color:#f3e8ff;padding:24px}\n.card{width:min(420px,100%);background:linear-gradient(180deg,rgba(30,16,50,.95),rgba(15,8,28,.98));border:1px solid var(--line);border-radius:20px;padding:32px 26px;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center;position:relative}\n.logo{font-size:2rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}\n.badge{display:inline-block;margin:12px 0 18px;padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28);color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}\nh1{font-size:1.2rem;margin-bottom:8px;font-weight:800}\np{color:var(--muted);font-size:.92rem;line-height:1.55;margin-bottom:8px}\n.pulse{width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;margin-right:8px;box-shadow:0 0 0 0 rgba(167,139,250,.6);animation:p 1.6s infinite}\n@keyframes p{0%{box-shadow:0 0 0 0 rgba(167,139,250,.55)}70%{box-shadow:0 0 0 12px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}\n.foot{margin-top:18px;font-size:.72rem;color:#6b7280}\n.dev-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:left}\n.dev-box h2{font-size:.78rem;color:#a78bfa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:700}\nlabel{display:block;font-size:.72rem;color:#9ca3af;margin:0 0 6px;font-weight:600}\ninput{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.95rem;margin-bottom:12px;outline:none}\ninput:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}\n.btn-main{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer}\n.btn-main:disabled{opacity:.6;cursor:wait}\n.btn-status{margin-top:14px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#e9d5ff;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}\n.btn-status:hover{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.55)}\n.err{color:#f87171;font-size:.82rem;min-height:1.2em;margin-top:8px;text-align:center}\n.ov{position:fixed;inset:0;background:rgba(5,2,12,.72);backdrop-filter:blur(10px);display:none;place-items:center;z-index:100;padding:20px}\n.ov.on{display:grid}\n.modal{width:min(440px,100%);background:linear-gradient(165deg,#1a1030 0%,#10081c 100%);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:0;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 0 1px rgba(124,58,237,.15),0 0 60px rgba(124,58,237,.12);animation:pop .28s ease}\n@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}\n.modal-head{padding:22px 22px 14px;border-bottom:1px solid rgba(42,31,61,.9);position:relative}\n.modal-head h3{font-size:1.05rem;font-weight:800;letter-spacing:.02em}\n.modal-head .sub{font-size:.78rem;color:var(--muted);margin-top:4px}\n.modal-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e9d5ff;font-size:1.1rem;cursor:pointer;display:grid;place-items:center}\n.modal-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}\n.modal-body{padding:12px 16px 20px;max-height:min(60vh,420px);overflow:auto}\n.svc{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8)}\n.svc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}\n.svc-dot.ok{background:var(--ok);color:rgba(34,197,94,.5)}\n.svc-dot.bad{background:var(--bad);color:rgba(239,68,68,.45)}\n.svc-dot.warn{background:var(--warn);color:rgba(245,158,11,.45)}\n.svc-dot.load{background:#a78bfa;animation:blink 1s infinite}\n@keyframes blink{50%{opacity:.35}}\n.svc-name{font-weight:700;font-size:.9rem}\n.svc-desc{font-size:.72rem;color:var(--muted);margin-top:2px}\n.svc-state{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}\n.svc-state.ok{color:var(--ok)}.svc-state.bad{color:var(--bad)}.svc-state.warn{color:var(--warn)}.svc-state.load{color:#a78bfa}\n.modal-foot{padding:0 16px 18px;font-size:.7rem;color:#6b7280;text-align:center}\n</style></head><body>\n<div class=\"card\">\n<div class=\"logo\">XULTRA</div>\n<div class=\"badge\"><span class=\"pulse\"></span>Maintenance</div>\n<h1>Nous revenons tr\u00e8s bient\u00f4t</h1>\n__MAINT_MESSAGE__\n<button type=\"button\" class=\"btn-status\" id=\"btn-status\">\ud83d\udce1 Statut des services</button>\n<div class=\"dev-box\">\n<h2>Acc\u00e8s d\u00e9veloppeur</h2>\n<label for=\"dev-email\">Email</label>\n<input id=\"dev-email\" type=\"email\" autocomplete=\"username\" placeholder=\"email@exemple.com\"/>\n<label for=\"dev-pass\">Mot de passe</label>\n<input id=\"dev-pass\" type=\"password\" autocomplete=\"current-password\" placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\"/>\n<button type=\"button\" class=\"btn-main\" id=\"dev-btn\">Entrer (dev)</button>\n<div class=\"err\" id=\"dev-err\"></div>\n</div>\n<div class=\"foot\">xultra.space</div>\n</div>\n<div class=\"ov\" id=\"status-ov\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal\">\n    <div class=\"modal-head\">\n      <h3>\ud83d\udce1 Statut des services</h3>\n      <div class=\"sub\">Infrastructure XULTRA en temps r\u00e9el</div>\n      <button type=\"button\" class=\"modal-x\" id=\"status-x\" aria-label=\"Fermer\">\u2715</button>\n    </div>\n    <div class=\"modal-body\" id=\"status-body\"></div>\n    <div class=\"modal-foot\">Mis \u00e0 jour \u00e0 l\u2019ouverture \u00b7 \u03b22.8.8</div>\n  </div>\n</div>\n<script>\n(function(){\n  var btn=document.getElementById('dev-btn');\n  var err=document.getElementById('dev-err');\n  function show(m){err.textContent=m||'';}\n  async function go(){\n    show('');\n    var email=(document.getElementById('dev-email').value||'').trim();\n    var pass=document.getElementById('dev-pass').value||'';\n    if(!email||!pass){show('Email et mot de passe requis');return;}\n    btn.disabled=true;btn.textContent='V\u00e9rification\u2026';\n    try{\n      var r=await fetch('/api/maint/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:email,password:pass})});\n      var j=await r.json().catch(function(){return {};});\n      if(!r.ok||!j.ok){show((j&&j.error)||('Acc\u00e8s refus\u00e9 ('+r.status+')'));btn.disabled=false;btn.textContent='Entrer (dev)';return;}\n      btn.textContent='OK \u2014 redirection\u2026';location.href='/?dev=1';\n    }catch(e){show('Erreur r\u00e9seau');btn.disabled=false;btn.textContent='Entrer (dev)';}\n  }\n  btn.onclick=go;\n  document.getElementById('dev-pass').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  document.getElementById('dev-email').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  var ov=document.getElementById('status-ov');\n  var body=document.getElementById('status-body');\n  document.getElementById('btn-status').onclick=function(){ov.classList.add('on');loadStatus();};\n  document.getElementById('status-x').onclick=function(){ov.classList.remove('on');};\n  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});\n  function row(name,desc,state,label){\n    return '<div class=\"svc\"><div class=\"svc-dot '+state+'\"></div><div><div class=\"svc-name\">'+name+'</div><div class=\"svc-desc\">'+desc+'</div></div><div class=\"svc-state '+state+'\">'+label+'</div></div>';\n  }\n  async function loadStatus(){\n    body.innerHTML=row('Chargement','V\u00e9rification des services','load','\u2026');\n    try{\n      var r=await fetch('/api/maint/status',{cache:'no-store'});\n      var j=await r.json();\n      if(j&&j.services&&j.services.length){\n        body.innerHTML=j.services.map(function(s){return row(s.name,s.desc||'',s.state||'warn',s.label||'?');}).join('');\n        return;\n      }\n    }catch(e){}\n    body.innerHTML=row('Cloudflare Worker','Edge xultra.space','ok','OK')+row('Mode maintenance','Acc\u00e8s public bloqu\u00e9','ok','ACTIF')+row('Appwrite API','Statut indisponible','warn','N/A');\n  }\n})();\n</script>\n</body></html>";;;
 
@@ -3442,6 +3461,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.41.0',date:'24 août 2026',time:'16:30',title:'Serveurs : hiérarchie des rôles renforcée et permission Administrateur',
+    body:'Un modérateur pouvait jusqu\\'ici expulser, bannir ou mettre en timeout un autre membre portant un rôle égal ou supérieur au sien (y compris un autre modérateur), et retirer un rôle qu\\'il n\\'aurait pas eu le droit d\\'attribuer — la hiérarchie des rôles n\\'était vérifiée qu\\'à moitié. Elle s\\'applique maintenant partout : impossible d\\'agir sur, d\\'attribuer OU de retirer un rôle égal ou supérieur au sien, propriétaire excepté. Nouvelle permission "Administrateur" qui contourne toutes les autres permissions (mais jamais la hiérarchie des rôles ni le statut du propriétaire).'},
   {version:'2.40.2',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
     body:'Un correctif précédent (le bouton supprimer qui se dévoilait au survol d\\'une conversation) avait par erreur rendu ce bouton cliquable sur TOUTE la ligne dès qu\\'on la survolait à la souris — donc à chaque clic pour ouvrir une conversation, c\\'était la confirmation de suppression qui s\\'affichait à la place. Corrigé : ouvrir une conversation en cliquant dessus fonctionne de nouveau normalement, à la souris comme au tactile.'},
   {version:'2.40.1',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
@@ -9089,6 +9110,7 @@ window.addEventListener('pagehide',function(){
 
 /* ===== Serveurs (communautés) : rôles, permissions, salon vocal, branding ===== */
 const SERVER_PERM_DEFS=[
+  {key:'administrator',icon:'👑',label:'Administrateur',desc:'Contourne TOUTES les autres permissions et restrictions de salon. Ne contourne jamais la hiérarchie des rôles : reste sans effet sur un membre ou un rôle égal ou supérieur au sien. Extrêmement puissant, à distribuer avec précaution.'},
   {key:'manage_server',icon:'⚙️',label:'Gérer le serveur',desc:'Modifier le nom, la description, l\\'icône, la bannière et la qualité audio/vidéo.'},
   {key:'manage_channels',icon:'📁',label:'Gérer les salons',desc:'Créer, modifier, supprimer des salons et des catégories.'},
   {key:'manage_roles',icon:'🎭',label:'Gérer les rôles',desc:'Créer, modifier, supprimer des rôles et les attribuer aux membres.'},
@@ -9109,7 +9131,7 @@ function serverHasPermission(permission){
   return activeServerRoles.some(function(r){
     if(roleIds.indexOf(r.\$id)<0)return false;
     let perms=[];try{perms=JSON.parse(r.permissionsJson||'[]');}catch(e){}
-    return perms.indexOf(permission)>=0;
+    return perms.indexOf('administrator')>=0||perms.indexOf(permission)>=0;
   });
 }
 async function loadMyServers(){
@@ -11966,20 +11988,27 @@ async function handle(request) {
       const roleIds = Array.isArray(body.roleIds) ? body.roleIds.map(String) : [];
       const gate = await serverCheckPermission(serverId, acc.$id, "manage_roles");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
       const isOwner = String(gate.server.ownerId) === String(acc.$id);
-      if (!isOwner && roleIds.length) {
+      if (!isOwner) {
         const authority = await getMemberAuthorityPosition(serverId, acc.$id, gate.server);
         const rolesData = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
           "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
           "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
         const roleMap = {}; (rolesData.documents || []).forEach(function (r) { roleMap[r.$id] = r; });
-        for (const rid of roleIds) {
+        // Un rôle égal ou supérieur au sien ne peut être ni ATTRIBUÉ ni RETIRÉ —
+        // seuls les rôles présents dans l'ancien ET le nouvel ensemble (donc
+        // inchangés) peuvent être à ou au-dessus de son autorité ; toute
+        // différence (ajout ou retrait) touchant un tel rôle est refusée.
+        const oldRoleIds = (member.roleIds || []).map(String);
+        const changed = oldRoleIds.filter(function (id) { return roleIds.indexOf(id) < 0; })
+          .concat(roleIds.filter(function (id) { return oldRoleIds.indexOf(id) < 0; }));
+        for (const rid of changed) {
           const r = roleMap[rid];
-          if (r && (Number(r.position) || 0) >= authority) throw new Error("Tu ne peux pas attribuer un rôle égal ou supérieur au tien");
+          if (r && (Number(r.position) || 0) >= authority) throw new Error("Tu ne peux pas attribuer ou retirer un rôle égal ou supérieur au tien");
         }
       }
-      const member = await getServerMembership(serverId, targetUid);
-      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
       const actorProfile4 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile4 && (actorProfile4.displayName || actorProfile4.username)) || acc.name, "role_assign", member.username || targetUid, { roleIds: roleIds });
@@ -12032,6 +12061,7 @@ async function handle(request) {
       const gate = await serverCheckPermission(serverId, acc.$id, "kick_members");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible d'expulser le propriétaire");
+      await assertCanModerateTarget(serverId, acc.$id, targetUid, gate.server);
       const member = await getServerMembership(serverId, targetUid);
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
       const actorProfile = await resolveProfile(acc.$id);
@@ -12053,6 +12083,7 @@ async function handle(request) {
       const gate = await serverCheckPermission(serverId, acc.$id, "ban_members");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de bannir le propriétaire");
+      if (!unban) await assertCanModerateTarget(serverId, acc.$id, targetUid, gate.server);
       let banned = [];
       try { banned = JSON.parse(gate.server.bannedUidsJson || "[]"); } catch (e) {}
       let member = null;
@@ -12083,13 +12114,14 @@ async function handle(request) {
       const gate = await serverCheckPermission(serverId, acc.$id, "moderate_members");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de mettre en timeout le propriétaire");
+      if (minutes) await assertCanModerateTarget(serverId, acc.$id, targetUid, gate.server);
       const member = await getServerMembership(serverId, targetUid);
       if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
       if (!minutes) {
-        // Empêcher un modérateur de timeout un autre membre disposant lui-même
-        // de manage_roles/manage_server serait plus complet, mais on applique
-        // déjà la hiérarchie de rôles ailleurs (rôles) ; ici on garde simple :
-        // n'importe quel détenteur de moderate_members peut lever un timeout.
+        // Lever un timeout est une désescalade, pas une sanction : contrairement
+        // à en poser un (ligne 12108, vérifié via assertCanModerateTarget),
+        // n'importe quel détenteur de moderate_members peut lever celui d'un
+        // membre de rôle supérieur — ça ne l'expose à rien de nouveau.
         await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: "" } } });
       } else {
         const until = new Date(Date.now() + minutes * 60000).toISOString();
@@ -12309,7 +12341,7 @@ async function handle(request) {
         roleIds = roles.map(function (r) { return r.$id; });
         hasManage = roles.some(function (r) {
           let perms = []; try { perms = JSON.parse(r.permissionsJson || "[]"); } catch (e) {}
-          return perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
+          return perms.indexOf("administrator") >= 0 || perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
         });
       }
       const catsData = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents?" +
