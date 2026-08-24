@@ -833,6 +833,25 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .msg.mine .bub{background:#7c3aed}
 .msg .meta{font-size:.65rem;color:var(--muted);margin-top:3px}
 .msg-seen{font-size:.62rem;color:var(--muted);margin-top:2px;text-align:right}
+.msg-reply-quote{display:flex;flex-direction:column;gap:1px;padding:5px 10px;margin-bottom:3px;border-left:2px solid #8b5cf6;background:rgba(139,92,246,.1);border-radius:6px;font-size:.72rem;color:var(--muted);cursor:pointer;max-width:100%}
+.msg-reply-quote b{color:#c4b5fd}
+.msg-reply-quote .rq-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.msg.mine .msg-reply-quote{align-self:flex-end}
+.msg-reactions{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.msg.mine .msg-reactions{justify-content:flex-end}
+.reaction-pill{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;background:var(--elev);border:1px solid rgba(255,255,255,.08);font-size:.72rem;color:#f2ebff}
+.reaction-pill:hover{background:var(--hover)}
+.reaction-pill.mine{background:rgba(139,92,246,.28);border-color:#8b5cf6}
+.reaction-pill span{font-size:.66rem;color:var(--muted);font-weight:700}
+.reply-preview{display:none;align-items:center;gap:8px;padding:7px 14px;border-top:1px solid var(--line);background:rgba(139,92,246,.08);font-size:.78rem}
+.reply-preview.show{display:flex}
+.reply-preview .rp-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.reply-preview .rp-info b{color:#c4b5fd}
+.reply-preview .rp-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
+.emoji-picker-pop{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(280px,90vw);max-height:260px;overflow-y:auto;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:5500;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.emoji-picker-pop.hidden{display:none}
+.emoji-picker-pop button{font-size:1.25rem;padding:5px;border-radius:8px;line-height:1}
+.emoji-picker-pop button:hover{background:var(--elev)}
 .composer{position:relative;padding:10px 14px;display:flex;gap:8px;align-items:flex-end;border-top:1px solid var(--line);flex-shrink:0}
 .composer textarea{flex:1;background:var(--elev);border:1px solid transparent;border-radius:10px;padding:9px 12px;outline:0;resize:none;max-height:100px;font-size:.85rem;color:#f2ebff}
 .composer textarea:focus{border-color:#8b5cf6}
@@ -1228,19 +1247,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .srv-chan-lock{font-size:.72rem;flex-shrink:0}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
-.srv-chan-msgs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:min(40vh,320px);overflow-y:auto;padding-right:4px}
-.srv-chan-msg{display:flex;gap:8px;background:rgba(255,255,255,.03);border-radius:10px;padding:8px 11px;font-size:.84rem;position:relative}
-.srv-chan-msg.mine{background:rgba(124,58,237,.12)}
-.srv-chan-msg-av{width:26px;height:26px;border-radius:50%;flex-shrink:0;overflow:hidden;display:grid;place-items:center;background:var(--elev);font-size:.66rem;font-weight:800;color:#e9d5ff}
-.srv-chan-msg-av img{width:100%;height:100%;object-fit:cover}
-.srv-chan-msg-body{flex:1;min-width:0}
-.srv-chan-msg-author{font-weight:800;color:#c4b5fd;margin-right:6px;font-size:.78rem}
-.srv-chan-msg-text{color:#f2ebff;word-break:break-word;display:block}
-.srv-chan-msg-del{background:transparent;border:0;color:var(--muted);font-size:.72rem;opacity:.5;float:right;cursor:pointer;padding:0 2px}
-.srv-chan-msg-time{font-size:.62rem;color:var(--muted);margin-left:6px}
-.srv-chan-msg-del:hover{opacity:1;color:#f87171}
-.srv-chan-composer{display:flex;gap:8px}
-.srv-chan-composer .field-input{flex:1}
+.srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
+.srv-chan-author{font-weight:800;font-size:.72rem;margin-right:4px}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
 .srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
@@ -1690,9 +1698,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       </div>
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
+      <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre">➕</button>
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
+        <button type="button" class="composer-btn" id="btn-emoji" title="Emoji">😊</button>
         <button type="button" class="composer-btn" id="btn-voice" title="Message vocal">🎤</button>
         <button type="button" class="send-btn hidden" id="btn-send">➤</button>
         <div class="attach-menu hidden" id="attach-menu">
@@ -2777,16 +2787,39 @@ async function ensureE2EKeys(password){
       const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
       existing=(r.documents&&r.documents[0])||null;
     }catch(e){}
-    let needsRestore=false;
-    if(!jwk||!pub){
+    let needsRestore=false,justRestored=false;
+    /* Un appareil qui a DÉJÀ une clé locale n'est pas forcément le bon : si ce
+       compte a déjà une identité canonique sauvegardée côté serveur (encPrivB64)
+       et que la clé publique de CET appareil ne correspond pas à celle
+       enregistrée, c'est que cet appareil a généré sa propre clé orpheline un
+       jour (typiquement en visitant l'app une première fois avant d'avoir
+       jamais restauré depuis un autre appareil) — exactement le cas d'un
+       message envoyé depuis le mobile devenu illisible sur le bureau. Avant ce
+       correctif, ce mismatch n'était JAMAIS détecté une fois qu'un appareil
+       avait sa propre clé locale (même orpheline) : le bandeau de restauration
+       ne se déclenchait qu'à la toute première visite, et pire, la clé
+       publique canonique du compte se faisait silencieusement écraser par
+       celle de l'appareil orphelin (ligne \"pubKey!==pub\" ci-dessous) — après
+       quoi plus AUCUN appareil ne recevait de messages déchiffrables. */
+    const mismatched=!!(existing&&existing.pubKey&&pub&&existing.pubKey!==pub);
+    const backupAvailable=!!(existing&&existing.encPrivB64);
+    /* Un mot de passe fourni est toujours l'occasion de vérifier la clé
+       canonique — pas seulement quand un mismatch est déjà détecté. Cas
+       limite sinon impossible à guérir : l'appareil qui a lui-même causé un
+       écrasement de la clé publique du compte (voir plus bas) a, par
+       définition, une clé locale qui correspond exactement à la valeur
+       (erronée) du serveur — aucun mismatch n'est donc visible depuis cet
+       appareil, alors que la vraie sauvegarde chiffrée reste, elle, intacte. */
+    if(!jwk||!pub||(mismatched&&backupAvailable)||(password&&backupAvailable)){
       const restored=await restoreE2EPrivateKeyFromBackup(password,existing);
       if(restored){
         jwk=restored;
         const pubJwk=Object.assign({},jwk);delete pubJwk.d;pubJwk.key_ops=[];
         const pubKeyObj=await crypto.subtle.importKey('jwk',pubJwk,{name:'ECDH',namedCurve:'P-256'},true,[]);
         pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',pubKeyObj)));
+        justRestored=true;
         xlog('e2e_key_restored',{});
-      }else{
+      }else if(!jwk||!pub){
         /* Un compte peut se connecter sans jamais fournir son mot de passe
            (clé d'accès/passkey, session restaurée) — dans ce cas on ne peut
            pas déchiffrer une sauvegarde existante même si elle existe bel et
@@ -2799,6 +2832,12 @@ async function ensureE2EKeys(password){
         const kp=await crypto.subtle.generateKey({name:'ECDH',namedCurve:'P-256'},true,['deriveBits']);
         jwk=await crypto.subtle.exportKey('jwk',kp.privateKey);
         pub=b64enc(new Uint8Array(await crypto.subtle.exportKey('raw',kp.publicKey)));
+      }else{
+        // Clé locale déjà présente mais orpheline (mismatch détecté) et pas de
+        // mot de passe fourni pour restaurer tout de suite : on garde la clé
+        // locale telle quelle (l'appli reste utilisable) mais on signale qu'une
+        // restauration reste nécessaire.
+        needsRestore=true;
       }
       localStorage.setItem('xultra_e2e_priv',JSON.stringify(jwk));
       localStorage.setItem('xultra_e2e_pub',pub);
@@ -2806,7 +2845,12 @@ async function ensureE2EKeys(password){
     }
     if(!existing){
       try{existing=await db.createDocument(DB,'e2e_keys',Appwrite.ID.unique(),{uid:me.\$id,pubKey:pub},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);}catch(e){}
-    }else if(existing.pubKey!==pub){
+    }else if(existing.pubKey!==pub&&(justRestored||!existing.encPrivB64)){
+      /* On ne pousse la clé publique locale vers le serveur que si on vient de
+         restaurer la bonne (auto-réparation d'un pubKey précédemment écrasé),
+         ou si ce compte n'a encore AUCUNE sauvegarde (tout premier appareil) —
+         jamais pour un appareil orphelin qui n'a pas restauré, sous peine de
+         reproduire le bug ci-dessus. */
       try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
     }
     const backedUp=existing?await backupE2EPrivateKeyIfNeeded(password,jwk,existing):false;
@@ -3388,6 +3432,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.40.1',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
+    body:'Un appareil qui avait déjà sa propre clé de chiffrement locale (même générée par erreur, par exemple en visitant XULTRA une première fois avant d\\'avoir jamais restauré depuis un autre appareil) ne se voyait jamais proposer la restauration — pire, il pouvait silencieusement écraser la clé publique du compte, rendant les messages illisibles sur TOUS les appareils, pas seulement le nouveau. XULTRA détecte maintenant ce décalage et propose la restauration par mot de passe même sur un appareil déjà utilisé, sans jamais écraser la bonne clé.'},
+  {version:'2.40.0',date:'24 août 2026',time:'14:50',title:'Les salons de serveur passent au niveau des messages privés',
+    body:'Les salons textuels des serveurs ont maintenant le même habillage que tes conversations privées, avec plusieurs nouveautés partagées entre les deux : un bouton emoji dans la zone d\\'écriture, la possibilité de répondre à un message précis (aperçu de la citation, clic dessus pour retrouver le message d\\'origine), des réactions emoji sur n\\'importe quel message, et un vrai menu d\\'actions (répondre, réagir, signaler, supprimer pour tout le monde) au lieu des petits boutons du coin. Les messages de salon s\\'affichent aussi vraiment en direct désormais.'},
   {version:'2.39.1',date:'24 août 2026',time:'12:05',title:'3 correctifs d\\'affichage : médailles, liste de messages, candidatures',
     body:'(1) La fenêtre de profil pouvait dépasser la hauteur de l\\'écran sans aucun moyen de faire défiler — sur un petit écran, tes médailles (juste sous ton pseudo) et les boutons du bas devenaient invisibles et inaccessibles. Elle défile maintenant proprement. (2) Dans la liste des messages privés, survoler une conversation avec la souris pour révéler le bouton supprimer poussait toute la ligne vers la gauche, faisant sortir la photo de profil de la zone cliquable — impossible de cliquer dessus pour voir le profil sans ouvrir la conversation. Le bouton supprimer apparaît maintenant par-dessus, sans rien déplacer. (3) La liste des candidatures d\\'équipe n\\'affichait aucun bouton pour qui n\\'est pas propriétaire du serveur (volontaire : seul le propriétaire décide) mais ne l\\'expliquait pas — un message le précise maintenant.'},
   {version:'2.39.0',date:'24 août 2026',time:'11:35',title:'Signaler un message, suivre tes signalements, marquer un bug en doublon',
@@ -4933,7 +4981,7 @@ function renderFriends(){
       return '<div class="row">'+rowAvatar(friendProfile(f.friendId),f.name||'?',f.friendId)
         +'<div class="info" data-profile="'+esc(f.friendId)+'"><div class="n">'+esc(f.name||'Ami')+'</div></div>'
         +'<div class="act"><button type="button" data-accept="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'" data-fname="'+esc(f.name||'')+'">Accepter</button>'
-        +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'">✕</button></div></div>';
+        +'<button type="button" class="rej" data-reject="'+esc(f.\$id)+'" data-from="'+esc(f.friendId)+'">Refuser</button></div></div>';
     }).join('');
   }
   if(accepted.length){
@@ -5130,14 +5178,23 @@ function renderNotifications(){
     if(e.kind==='friend_request'){
       body='<div class="ntf-text"><b>'+esc(e.name||'Quelqu\\'un')+'</b> t\\'a envoyé une demande d\\'ami</div>'
         +'<div class="ntf-actions"><button type="button" data-ntf-accept="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Accepter</button>'
-        +'<button type="button" class="rej" data-ntf-decline="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Refuser</button>'
-        +'<button type="button" class="rej" data-ntf-block="'+esc(e.fromUid)+'" data-ntf-blockname="'+esc(e.name||'')+'">Bloquer</button></div>';
+        +'<button type="button" class="rej" data-ntf-decline="'+esc(e.id)+'" data-ntf-from="'+esc(e.fromUid)+'">Refuser</button></div>';
     } else if(e.kind==='dm'){
       clickable=true;
       body='<div class="ntf-text">'+e.count+' nouveau'+(e.count>1?'x':'')+' message'+(e.count>1?'s':'')+' de <b>'+esc(e.title)+'</b></div>';
     } else {
       body='<div class="ntf-text">'+esc(e.text||'')+'</div>';
       clickable=!!e.fromUid;
+    }
+    /* Les demandes d'ami ont déjà leurs deux seules actions possibles
+       (Accepter/Refuser) juste en dessous — le geste de suppression par
+       balayage appelait rejectFriendRequest en douce, une troisième façon
+       de faire la même chose que le bouton Refuser, source de confusion. */
+    if(e.kind==='friend_request'){
+      return '<div class="row notif-row" data-notif-kind="'+esc(e.kind)+'">'
+        +'<span class="ntf-icon">'+(NOTIF_ICONS[e.kind]||'🔔')+'</span>'
+        +'<div class="ntf-body">'+body+'<div class="ntf-time">'+esc(fmtRelTime(e.ts))+'</div></div>'
+        +'</div>';
     }
     return '<div class="row-swipe" data-notif-wrap>'
       +'<div class="row-del-action" data-ntf-del="'+esc(e.kind==='dm'?e.dmId:e.id||'')+'" data-ntf-del-kind="'+esc(e.kind)+'" data-ntf-del-from="'+esc(e.fromUid||'')+'"><span>🗑</span></div>'
@@ -6189,6 +6246,7 @@ if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',functi
 
 let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=false, msgsCache=[];
 async function openDm(threadId,title,peerUid){
+  clearReplyTarget('dm');
   activeDm=threadId;
   const dm=dmsCache.find(function(d){return d.\$id===threadId});
   const members=(dm&&dm.members)?dm.members.map(String):(peerUid?[String(me.\$id),String(peerUid)]:[]);
@@ -6594,6 +6652,72 @@ function computeSeenInfo(){
   const seen=!!(peerRead&&new Date(peerRead).getTime()>=createdAt);
   return {lastMineId:lastMine.\$id,seenLabel:seen?'Vu':''};
 }
+/* ===== Emojis, réponses, réactions — partagés entre DM et salons de serveur ===== */
+const EMOJI_LIST=['😀','😂','🤣','😊','😍','😘','😉','😎','🤩','🥳','😭','😢','😡','🤬','😱','😴','🤔','🙄','😅','😇','🥰','😜','🤗','🤯','🥺','😏','🙃','😬','🤝','👍','👎','👏','🙏','💪','👌','✌️','🤙','🔥','💯','✨','🎉','❤️','🧡','💛','💚','💙','💜','🖤','💔','⭐','☠️','👀','🤡','💀','🚀','⚡','😈'];
+function closeEmojiPicker(){
+  const pop=\$('emoji-picker-pop');
+  if(pop)pop.remove();
+}
+function openEmojiPicker(anchorBtn,onPick){
+  closeEmojiPicker();
+  const pop=document.createElement('div');
+  pop.id='emoji-picker-pop';
+  pop.className='emoji-picker-pop';
+  pop.innerHTML=EMOJI_LIST.map(function(em){return '<button type="button" data-emo="'+em+'">'+em+'</button>';}).join('');
+  document.body.appendChild(pop);
+  pop.addEventListener('click',function(e){
+    const btn=e.target.closest('[data-emo]');if(!btn)return;
+    onPick(btn.getAttribute('data-emo'));
+    closeEmojiPicker();
+  });
+  setTimeout(function(){
+    document.addEventListener('click',function onDoc(e){
+      if(pop.contains(e.target)||e.target===anchorBtn)return;
+      closeEmojiPicker();
+      document.removeEventListener('click',onDoc);
+    });
+  },0);
+}
+function msgReactionsHtml(reactionsJson,onToggleAttr){
+  let reactions={};try{reactions=JSON.parse(reactionsJson||'{}');}catch(e){reactions={};}
+  const keys=Object.keys(reactions).filter(function(k){return Array.isArray(reactions[k])&&reactions[k].length;});
+  if(!keys.length)return '';
+  return '<div class="msg-reactions">'+keys.map(function(emo){
+    const uids=(reactions[emo]||[]).map(String);
+    const mine=me&&uids.indexOf(String(me.\$id))>=0;
+    return '<button type="button" class="reaction-pill'+(mine?' mine':'')+'" '+onToggleAttr+'="'+esc(emo)+'">'+emo+' <span>'+uids.length+'</span></button>';
+  }).join('')+'</div>';
+}
+function msgReplyQuoteHtml(replyToId,findFn){
+  if(!replyToId)return '';
+  const orig=findFn(replyToId);
+  if(!orig)return '<div class="msg-reply-quote">Message d\\'origine indisponible</div>';
+  const label=orig.displayName||orig.username||'Quelqu\\'un';
+  const snippet=orig.enc?'🔒 Message chiffré':(orig.text||(orig.mediaUrl?'📎 Pièce jointe':''));
+  return '<div class="msg-reply-quote" data-scroll-reply="'+esc(replyToId)+'"><b>'+esc(label)+'</b><span class="rq-text">'+esc(snippet)+'</span></div>';
+}
+let replyTarget=null,replyTargetKind='dm';
+function setReplyTarget(m,kind){
+  replyTarget=m;replyTargetKind=kind;
+  const bar=\$(kind==='dm'?'reply-preview':'srv-reply-preview');
+  if(!bar)return;
+  const name=m.displayName||m.username||'Quelqu\\'un';
+  const snippet=m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':''));
+  bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((snippet||'').slice(0,60));
+  bar.classList.add('show');
+  const input=\$(kind==='dm'?'msg-input':'srv-chan-input');
+  if(input)input.focus();
+}
+function clearReplyTarget(kind){
+  replyTarget=null;
+  const bar=\$(kind==='dm'?'reply-preview':'srv-reply-preview');
+  if(bar)bar.classList.remove('show');
+}
+function scrollToMessage(mid){
+  let box=null;
+  try{box=document.querySelector('.msg[data-mid="'+CSS.escape(mid)+'"]');}catch(e){}
+  if(box){box.scrollIntoView({behavior:'smooth',block:'center'});box.style.outline='2px solid #8b5cf6';setTimeout(function(){box.style.outline='';},900);}
+}
 function renderMessages(){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
@@ -6606,8 +6730,10 @@ function renderMessages(){
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
+    const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return msgsCache.find(function(x){return x.\$id===id});});
+    const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
+      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -6615,6 +6741,17 @@ function renderMessages(){
   });
   box.querySelectorAll('.msg-media img').forEach(function(el){
     el.addEventListener('click',function(){window.open(el.src,'_blank')});
+  });
+  box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
+    el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
+  });
+  box.querySelectorAll('[data-react-toggle]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const mid=el.closest('.msg').getAttribute('data-mid');
+      const m=msgsCache.find(function(x){return x.\$id===mid});
+      if(m)toggleDmReaction(m,el.getAttribute('data-react-toggle'));
+    });
   });
   hydrateEncryptedMessages();
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
@@ -6624,7 +6761,7 @@ function renderMessages(){
     if(IS_HOVER_DEVICE){
       el.classList.add('hover-reveal');
       const btn=el.querySelector('.msg-menu-btn');
-      if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m);});
+      if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
     } else {
       attachMsgSwipe(el,m);
     }
@@ -6633,7 +6770,25 @@ function renderMessages(){
   mountGifFreeze(box);
   box.scrollTop=box.scrollHeight;
 }
-function attachMsgSwipe(el,m){
+async function toggleDmReaction(m,emoji){
+  try{
+    const fresh=await db.getDocument(DB,'dms_messages',m.\$id);
+    let reactions={};try{reactions=JSON.parse(fresh.reactionsJson||'{}');}catch(e){reactions={};}
+    const uid=String(me.\$id);
+    const list=(Array.isArray(reactions[emoji])?reactions[emoji]:[]).map(String);
+    const idx=list.indexOf(uid);
+    if(idx>=0)list.splice(idx,1);else list.push(uid);
+    if(list.length)reactions[emoji]=list;else delete reactions[emoji];
+    const reactionsJson=JSON.stringify(reactions);
+    await db.updateDocument(DB,'dms_messages',m.\$id,{reactionsJson:reactionsJson});
+    m.reactionsJson=reactionsJson;
+    const cached=msgsCache.find(function(x){return x.\$id===m.\$id});
+    if(cached)cached.reactionsJson=reactionsJson;
+    renderMessages();
+  }catch(e){showToast('Action impossible','error');}
+}
+function attachMsgSwipe(el,m,kind){
+  kind=kind||'dm';
   const bub=el.querySelector('.bub');if(!bub)return;
   let startX=0,dragging=false,triggered=false;
   bub.style.touchAction='pan-y';
@@ -6650,7 +6805,7 @@ function attachMsgSwipe(el,m){
     bub.style.transform='translateX('+clamped+'px)';
     if(!triggered&&Math.abs(dx)>56){
       triggered=true;
-      openMessageActionSheet(m);
+      openMessageActionSheet(m,kind);
     }
   });
   function reset(){
@@ -6662,16 +6817,20 @@ function attachMsgSwipe(el,m){
   el.addEventListener('pointerup',reset);
   el.addEventListener('pointercancel',reset);
 }
-function openMessageActionSheet(m){
+function openMessageActionSheet(m,kind){
+  kind=kind||'dm';
   const mine=String(m.uid)===(me&&String(me.\$id));
-  const name=esc(m.displayName||'cet utilisateur');
+  const canModerate=kind==='channel'&&(serverHasPermission('moderate_members')||serverHasPermission('manage_channels')||serverHasPermission('manage_server'));
+  const name=esc(m.displayName||m.username||'cet utilisateur');
   const sheet=document.createElement('div');
   sheet.className='action-sheet-overlay';
-  let items='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
-  if(mine)items+='<button type="button" data-act="delall">🗑 Supprimer pour tout le monde</button>';
+  let items='<button type="button" data-act="react">😊 Réagir</button>';
+  items+='<button type="button" data-act="reply">↩️ Répondre</button>';
+  if(kind==='dm')items+='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
+  if(mine||canModerate)items+='<button type="button" data-act="delall">🗑 Supprimer pour tout le monde</button>';
   if(!mine){
     items+='<button type="button" data-act="report">🚩 Signaler '+name+'</button>';
-    items+='<button type="button" data-act="block">⛔ Bloquer '+name+'</button>';
+    if(kind==='dm')items+='<button type="button" data-act="block">⛔ Bloquer '+name+'</button>';
   }
   items+='<button type="button" data-act="cancel" class="as-cancel">Annuler</button>';
   sheet.innerHTML='<div class="action-sheet-card">'+items+'</div>';
@@ -6681,12 +6840,26 @@ function openMessageActionSheet(m){
   sheet.addEventListener('click',function(e){
     if(e.target===sheet){close();return}
     const act=e.target.closest('[data-act]');if(!act)return;
-    const kind=act.getAttribute('data-act');
+    const a=act.getAttribute('data-act');
     close();
-    if(kind==='delme')deleteMessageForMe(m);
-    else if(kind==='delall')confirmDeleteMessageForAll(m);
-    else if(kind==='report')openReportModal(m.uid,m.displayName||'User',{source:'dm_message',messageId:m.\$id,messageText:(m.enc?'':(m.text||'')).slice(0,200),contextId:activeDm});
-    else if(kind==='block')confirmBlockUser(m.uid,m.displayName||'User');
+    if(a==='react'){
+      setTimeout(function(){
+        openEmojiPicker(document.body,function(emo){
+          if(kind==='dm')toggleDmReaction(m,emo);else toggleChannelReaction(m,emo);
+        });
+      },180);
+    }
+    else if(a==='reply')setReplyTarget(m,kind);
+    else if(a==='delme')deleteMessageForMe(m);
+    else if(a==='delall'){
+      if(kind==='dm')confirmDeleteMessageForAll(m);
+      else confirmDeleteChannelMessage(m);
+    }
+    else if(a==='report'){
+      if(kind==='dm')openReportModal(m.uid,m.displayName||'User',{source:'dm_message',messageId:m.\$id,messageText:(m.enc?'':(m.text||'')).slice(0,200),contextId:activeDm});
+      else openReportModal(m.uid,m.username||'User',{source:'server_message',messageId:m.\$id,messageText:(m.text||'').slice(0,200),contextId:activeChannel&&activeChannel.\$id});
+    }
+    else if(a==='block')confirmBlockUser(m.uid,m.displayName||'User');
   });
 }
 async function deleteMessageForMe(m){
@@ -6716,8 +6889,10 @@ async function postMessage(data,lastMessagePreview,keyCtx){
   if(keyCtx&&keyCtx.aesKey&&text){
     try{text=await e2eEncryptTextWithKey(keyCtx.aesKey,text);enc=true;}catch(e){}
   }
-  const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:''},data,{text:text,enc:enc,keysJson:keysJson});
+  const replyToId=(replyTargetKind==='dm'&&replyTarget)?replyTarget.\$id:'';
+  const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:'',replyToId:replyToId},data,{text:text,enc:enc,keysJson:keysJson});
   await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),payload);
+  if(replyToId)clearReplyTarget('dm');
   const previewPub=enc?'🔒 Message chiffré':lastMessagePreview;
   const recipients=activeDmIsGroup?activeDmMembers.filter(function(u){return u!==me.\$id}):(activeDmPeerUid?[activeDmPeerUid]:[]);
   try{
@@ -6744,6 +6919,16 @@ async function sendMessage(){
     clearTypingState();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
 }
+if(\$('btn-emoji'))\$('btn-emoji').addEventListener('click',function(e){
+  e.stopPropagation();
+  openEmojiPicker(\$('btn-emoji'),function(emo){
+    const input=\$('msg-input');
+    input.value+=emo;
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  });
+});
+if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',function(){clearReplyTarget('dm');});
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
@@ -9146,14 +9331,29 @@ function renderServerChannelContent(){
     return;
   }
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
-    +'<div class="srv-chan-composer"><input type="text" id="srv-chan-input" class="field-input" placeholder="Écrire dans #'+esc(activeChannel.name)+'" maxlength="4000"><button type="button" class="set-mini-btn" id="srv-chan-send">Envoyer</button></div>';
+    +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
+    +'<div class="composer" id="srv-chan-composer">'
+    +'<textarea id="srv-chan-input" placeholder="Écrire dans #'+esc(activeChannel.name)+'" rows="1" maxlength="4000"></textarea>'
+    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji">😊</button>'
+    +'<button type="button" class="send-btn" id="srv-chan-send">➤</button>'
+    +'</div>';
   box.innerHTML=html;
   wireServerChannelBack();
   loadChannelMessages();
   const sendBtn=\$('srv-chan-send');
   if(sendBtn)sendBtn.onclick=sendServerChannelMessage;
   const input=\$('srv-chan-input');
-  if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter')sendServerChannelMessage();});
+  if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendServerChannelMessage();}});
+  const emojiBtn=\$('srv-chan-emoji');
+  if(emojiBtn)emojiBtn.addEventListener('click',function(e){
+    e.stopPropagation();
+    openEmojiPicker(emojiBtn,function(emo){
+      const inp=\$('srv-chan-input');
+      inp.value+=emo;inp.focus();
+    });
+  });
+  const replyClose=\$('srv-reply-preview-close');
+  if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
 }
 function wireServerChannelBack(){
   const editBtn=\$('srv-chan-edit');
@@ -9161,12 +9361,14 @@ function wireServerChannelBack(){
   const back=\$('srv-chan-back');
   if(back)back.onclick=function(){
     if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+    clearReplyTarget('channel');
     activeChannel=null;
     renderServerChannelList();
   };
 }
 async function loadChannelMessages(){
   if(!activeChannel)return;
+  clearReplyTarget('channel');
   try{
     const r=await authPost('/api/servers/channels/messages/list',{serverId:activeServer.\$id,channelId:activeChannel.\$id});
     activeChannelMessages=r.messages||[];
@@ -9183,47 +9385,73 @@ async function loadChannelMessages(){
     }else if(eventIs(res.events,'.delete')){
       activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==payload.\$id});
       renderChannelMessages();
+    }else if(eventIs(res.events,'.update')){
+      const idx=activeChannelMessages.findIndex(function(m){return m.\$id===payload.\$id});
+      if(idx>=0){activeChannelMessages[idx]=payload;renderChannelMessages();}
     }
   });
 }
 function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
-  const canModerate=serverHasPermission('moderate_members')||serverHasPermission('manage_channels')||serverHasPermission('manage_server');
+  if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
   box.innerHTML=activeChannelMessages.map(function(m){
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
-    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="">':esc(ini(m.username||'?'));
-    const canDel=mine||canModerate;
-    const canReport=!mine;
-    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><div class="srv-chan-msg-av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div><div class="srv-chan-msg-body"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-time">'+esc(fmtClockTime(m.\$createdAt))+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span></div>'+(canReport?'<button type="button" class="srv-chan-msg-del" data-srv-msg-report="'+esc(m.\$id)+'" data-srv-msg-uid="'+esc(m.uid||'')+'" data-srv-msg-name="'+esc(m.username||'')+'" title="Signaler">🚩</button>':'')+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
-  }).join('')||'<div class="empty-hint">Aucun message pour l\\'instant. Sois le premier à écrire !</div>';
+    const name=m.username||'Membre';
+    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
+    const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
+    const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
+      +'<div>'+replyHtml+'<div class="bub">'+highlightRoleMentions(esc(m.text||''))+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+'</div></div></div>';
+  }).join('');
   box.scrollTop=box.scrollHeight;
-  box.querySelectorAll('[data-srv-msg-del]').forEach(function(b){
-    b.addEventListener('click',async function(){
-      const messageId=b.getAttribute('data-srv-msg-del');
-      if(!confirm('Supprimer ce message ?'))return;
-      try{
-        await authPost('/api/servers/channels/messages/delete',{serverId:activeServer.\$id,messageId:messageId});
-        activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==messageId});
-        renderChannelMessages();
-      }catch(e){showToast((e&&e.message)||'Erreur','error');}
-    });
-  });
-  box.querySelectorAll('[data-srv-msg-report]').forEach(function(b){
-    b.addEventListener('click',function(){
-      const messageId=b.getAttribute('data-srv-msg-report');
-      const uid=b.getAttribute('data-srv-msg-uid');
-      const uname=b.getAttribute('data-srv-msg-name');
-      const msg=activeChannelMessages.find(function(x){return x.\$id===messageId;});
-      openReportModal(uid,uname,{source:'server_message',messageId:messageId,messageText:(msg&&msg.text||'').slice(0,200),contextId:activeChannel.\$id});
-    });
-  });
-  box.querySelectorAll('.srv-chan-msg-av[data-profile]').forEach(function(el){
+  box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
     el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-profile'));});
+  });
+  box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
+    el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
+  });
+  box.querySelectorAll('[data-chan-react-toggle]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const mid=el.closest('.msg').getAttribute('data-mid');
+      const m=activeChannelMessages.find(function(x){return x.\$id===mid});
+      if(m)toggleChannelReaction(m,el.getAttribute('data-chan-react-toggle'));
+    });
+  });
+  box.querySelectorAll('.msg[data-mid]').forEach(function(el){
+    const m=activeChannelMessages.find(function(x){return x.\$id===el.getAttribute('data-mid')});
+    if(!m)return;
+    if(IS_HOVER_DEVICE){
+      el.classList.add('hover-reveal');
+      const btn=el.querySelector('[data-chan-menu]');
+      if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
+    } else {
+      attachMsgSwipe(el,m,'channel');
+    }
+  });
+}
+async function toggleChannelReaction(m,emoji){
+  try{
+    const r=await authPost('/api/servers/channels/messages/react',{serverId:activeServer.\$id,messageId:m.\$id,emoji:emoji});
+    m.reactionsJson=r.reactionsJson||'{}';
+    const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
+    if(cached)cached.reactionsJson=m.reactionsJson;
+    renderChannelMessages();
+  }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+}
+function confirmDeleteChannelMessage(m){
+  showSlideConfirm('Supprimer ce message pour tout le monde ? Action irréversible.',async function(){
+    try{
+      await authPost('/api/servers/channels/messages/delete',{serverId:activeServer.\$id,messageId:m.\$id});
+      activeChannelMessages=activeChannelMessages.filter(function(x){return x.\$id!==m.\$id});
+      renderChannelMessages();
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
   });
 }
 async function sendServerChannelMessage(){
@@ -9231,7 +9459,11 @@ async function sendServerChannelMessage(){
   const text=(input.value||'').trim();
   if(!text)return;
   input.value='';
-  try{await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text});}
+  const replyToId=(replyTargetKind==='channel'&&replyTarget)?replyTarget.\$id:'';
+  try{
+    await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId});
+    if(replyToId)clearReplyTarget('channel');
+  }
   catch(e){showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
 }
 function serverRoleBadgesHtml(member){
@@ -12109,6 +12341,7 @@ async function handle(request) {
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
       const text = String((body && body.text) || "").trim().slice(0, 4000);
+      const replyToId = String((body && body.replyToId) || "").slice(0, 64);
       if (!text) throw new Error("Message vide");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
@@ -12118,9 +12351,39 @@ async function handle(request) {
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId }, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/messages/react" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const messageId = String((body && body.messageId) || "");
+      const emoji = String((body && body.emoji) || "").slice(0, 8);
+      if (!emoji) throw new Error("Emoji requis");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.serverId) !== String(serverId)) throw new Error("Message introuvable dans ce serveur");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, msg.channelId);
+      if (!access.access.view) throw new Error("Tu n'as pas accès à ce salon");
+      let reactions = {};
+      try { reactions = JSON.parse(msg.reactionsJson || "{}"); } catch (e) {}
+      const uid = String(acc.$id);
+      const list = (Array.isArray(reactions[emoji]) ? reactions[emoji] : []).map(String);
+      const idx = list.indexOf(uid);
+      if (idx >= 0) list.splice(idx, 1); else list.push(uid);
+      if (list.length) reactions[emoji] = list; else delete reactions[emoji];
+      const reactionsJson = JSON.stringify(reactions);
+      await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, {
+        method: "PATCH", asAdmin: true, body: { data: { reactionsJson: reactionsJson } }
+      });
+      return new Response(JSON.stringify({ ok: true, reactionsJson: reactionsJson }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
