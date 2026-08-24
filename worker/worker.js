@@ -127,6 +127,51 @@ function computeChannelAccess(channel, roleIds) {
   if (!view) send = false;
   return { view: view, send: send };
 }
+// Calcule les permissions Appwrite de lecture à poser sur un message de salon
+// au moment de sa création. server_channel_messages n'a AUCUNE permission de
+// lecture au niveau collection (exprès, pour que l'accès aux salons privés
+// passe uniquement par serverResolveChannelAccess côté Worker) — mais ça
+// bloquait aussi le temps réel : Appwrite ne pousse un événement realtime
+// qu'aux utilisateurs qui ont explicitement la permission de lire le document
+// concerné, donc personne ne recevait jamais les nouveaux messages en direct
+// (d'où "il faut actualiser la page"). Pour un salon public, un simple
+// read("users") suffit et ne change rien à la confidentialité puisque
+// n'importe quel membre peut déjà le lire via la route. Pour un salon
+// restreint, on énumère qui a effectivement accès à l'instant T et on ne
+// leur accorde la lecture qu'à eux — un membre qui obtient le rôle plus tard
+// ne recevra pas le direct sur les anciens messages, mais la route de lecture
+// (qui revérifie l'accès à chaque appel) reste la source de vérité.
+async function computeChannelMessagePermissions(serverId, channel) {
+  const visible = channel.visibleRoleIds || [];
+  let overwrites = [];
+  try { overwrites = JSON.parse(channel.overwritesJson || "[]"); } catch (e) {}
+  const restricted = visible.length > 0 || overwrites.some(function (o) { return o && (o.view === "deny" || o.view === "allow"); });
+  if (!restricted) return ["read(\"users\")"];
+  try {
+    const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+    const membersData = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+    const rolesData = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+    const rolesById = {}; (rolesData.documents || []).forEach(function (r) { rolesById[r.$id] = r; });
+    const uids = [String(server.ownerId)];
+    (membersData.documents || []).forEach(function (m) {
+      const roleIds = m.roleIds || [];
+      const roles = roleIds.map(function (id) { return rolesById[id]; }).filter(Boolean);
+      const hasManage = roles.some(function (r) {
+        let perms = []; try { perms = JSON.parse(r.permissionsJson || "[]"); } catch (e) {}
+        return perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
+      });
+      const access = computeChannelAccess(channel, roleIds);
+      if (hasManage || access.view) uids.push(String(m.uid));
+    });
+    return uids.slice(0, 100).map(function (uid) { return "read(\"user:" + uid + "\")"; });
+  } catch (e) {
+    return []; // best-effort : le temps réel restera indisponible pour ce message, la lecture via la route fonctionne quand même
+  }
+}
 function sanitizeChannelOverwrites(list) {
   if (!Array.isArray(list)) return [];
   const allowedVals = ["allow", "deny", null];
@@ -1181,11 +1226,15 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:min(40vh,320px);overflow-y:auto;padding-right:4px}
-.srv-chan-msg{background:rgba(255,255,255,.03);border-radius:10px;padding:8px 11px;font-size:.84rem;position:relative}
+.srv-chan-msg{display:flex;gap:8px;background:rgba(255,255,255,.03);border-radius:10px;padding:8px 11px;font-size:.84rem;position:relative}
 .srv-chan-msg.mine{background:rgba(124,58,237,.12)}
+.srv-chan-msg-av{width:26px;height:26px;border-radius:50%;flex-shrink:0;overflow:hidden;display:grid;place-items:center;background:var(--elev);font-size:.66rem;font-weight:800;color:#e9d5ff}
+.srv-chan-msg-av img{width:100%;height:100%;object-fit:cover}
+.srv-chan-msg-body{flex:1;min-width:0}
 .srv-chan-msg-author{font-weight:800;color:#c4b5fd;margin-right:6px;font-size:.78rem}
-.srv-chan-msg-text{color:#f2ebff;word-break:break-word}
+.srv-chan-msg-text{color:#f2ebff;word-break:break-word;display:block}
 .srv-chan-msg-del{background:transparent;border:0;color:var(--muted);font-size:.72rem;opacity:.5;float:right;cursor:pointer;padding:0 2px}
+.srv-chan-msg-time{font-size:.62rem;color:var(--muted);margin-left:6px}
 .srv-chan-msg-del:hover{opacity:1;color:#f87171}
 .srv-chan-composer{display:flex;gap:8px}
 .srv-chan-composer .field-input{flex:1}
@@ -2919,6 +2968,10 @@ async function enterApp(e2ePassword){
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{
+    const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId));
+    await ensureMembersCached(relevantUids);
+  }catch(e){}
   try{subscribePresenceWatcher();}catch(e){}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
@@ -2926,6 +2979,7 @@ async function enterApp(e2ePassword){
   try{subscribeCallBadgeWatcher();}catch(e){}
   try{subscribeDmDeleteWatcher();}catch(e){}
   try{subscribeDmMessagesWatcher();}catch(e){}
+  try{subscribeFriendsWatcher();}catch(e){}
   try{subscribeNotifWatcher();await loadNotifications();updateNotifBadge();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
@@ -3003,7 +3057,22 @@ async function submitE2EBackupPassword(){
     }else{
       showToast('Erreur réseau, réessaie.','error');
     }
-  }catch(e){showToast('Mot de passe incorrect.','error');}
+  }catch(e){
+    /* Ce catch attrapait TOUTE erreur de createEmailPasswordSession comme "mot
+       de passe incorrect" — y compris une vraie limite de débit Appwrite (429,
+       protection anti brute-force après plusieurs tentatives) ou une coupure
+       réseau, affichant un message trompeur alors que le mot de passe saisi
+       était le bon. On distingue maintenant selon le code/type réel renvoyé. */
+    const code=e&&e.code;
+    const type=e&&e.type;
+    if(code===429||type==='general_rate_limit_exceeded'){
+      showToast('Trop de tentatives, réessaie dans quelques minutes.','error');
+    }else if(code===401||type==='user_invalid_credentials'){
+      showToast('Mot de passe incorrect.','error');
+    }else{
+      showToast('Erreur réseau, réessaie.','error');
+    }
+  }
   btn.disabled=false;btn.textContent='Valider';
 }
 if(\$('e2e-bb-submit'))\$('e2e-bb-submit').addEventListener('click',submitE2EBackupPassword);
@@ -3313,6 +3382,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.38.0',date:'24 août 2026',time:'10:50',title:'Corrections suite à vos signalements : temps réel, présence, rôles',
+    body:'Gros lot de correctifs : (1) les messages dans les salons de serveur n\\'arrivaient plus en direct — il fallait actualiser ou attendre — car ils n\\'avaient jamais la permission technique nécessaire pour le temps réel, corrigé sans rouvrir l\\'accès aux salons privés. (2) Les demandes d\\'ami n\\'apparaissaient plus dans la liste sans recharger la page — ajout d\\'une vraie mise à jour en direct. (3) Un ami déjà en ligne à ta connexion pouvait s\\'afficher "hors ligne" dans les listes alors que son profil montrait le bon statut — la liste des membres est plafonnée à 100 profils, tes amis et contacts DM au-delà de ce plafond ne recevaient jamais leur statut ; ils sont maintenant toujours récupérés. (4) L\\'heure des messages, disparue, est de retour (DM et salons de serveur). (5) Les photos de profil manquaient dans les salons texte de serveur — ajoutées, cliquables. (6) Nouveau bouton "Membres" sur chaque rôle pour voir et gérer qui l\\'a, sans passer membre par membre. (7) Le bandeau de restauration E2E affichait "mot de passe incorrect" même en cas de simple limite de débit ou de coupure réseau — message corrigé selon la vraie cause.'},
   {version:'2.37.3',date:'24 août 2026',time:'00:05',title:'Correctif mobile : le clavier faisait zoomer l\\'écran en écrivant un message',
     body:'Sur iPhone, appuyer sur la zone d\\'écriture d\\'un message (ou le champ de mot de passe de restauration E2E) déclenchait un zoom automatique de la page — Safari zoome dès qu\\'un champ de texte a une police affichée sous 16px. Corrigé sur ces deux champs, sans rien changer à leur taille sur ordinateur.'},
   {version:'2.37.2',date:'23 août 2026',time:'23:45',title:'Correctif mobile : bouton "Changer la photo" invisible sur les groupes',
@@ -4681,6 +4752,27 @@ function refreshPresenceMap(){
   membersCache.forEach(function(p){next[String(p.authUserId||p.\$id)]=computePresence(p);});
   presenceByUid=next;
 }
+async function ensureMembersCached(uids){
+  /* loadMembers() plafonne à 100 profils (Query.limit(100)) pour l'onglet
+     Membres — un ami ou un correspondant en DM au-delà de ce plafond
+     n'apparaît jamais dans membersCache, donc presenceByUid le considère
+     "hors ligne" en permanence dans les listes, alors que sa fiche profil
+     (qui va chercher son document directement) affiche le vrai statut.
+     On complète ici avec les profils précis dont on a besoin. */
+  const missing=Array.from(new Set((uids||[]).filter(Boolean).map(String))).filter(function(uid){
+    return !membersCache.some(function(p){return String(p.authUserId||p.\$id)===uid;});
+  });
+  if(!missing.length)return;
+  try{
+    const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',missing),Appwrite.Query.limit(missing.length)]);
+    (r.documents||[]).forEach(function(p){
+      const uid=String(p.authUserId||p.\$id);
+      const idx=membersCache.findIndex(function(x){return String(x.authUserId||x.\$id)===uid;});
+      if(idx>=0)membersCache[idx]=p;else membersCache.push(p);
+      presenceByUid[uid]=computePresence(p);
+    });
+  }catch(e){}
+}
 function presenceDotHtml(uid,extraClass){
   const st=presenceByUid[String(uid)]||'offline';
   const d=PRESENCE_DEFS[st]||PRESENCE_DEFS.online;
@@ -5074,6 +5166,24 @@ if(\$('ntf-clear-all'))\$('ntf-clear-all').addEventListener('click',function(){
 if(\$('ntf-close'))\$('ntf-close').addEventListener('click',function(){\$('modal-notifications').classList.add('hidden')});
 if(\$('modal-notifications'))\$('modal-notifications').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 if(\$('ub-bell'))\$('ub-bell').addEventListener('click',openNotificationsPanel);
+function subscribeFriendsWatcher(){
+  /* Sans ça, une demande d'ami reçue (ou acceptée, ou retirée) ne se
+     reflétait dans la liste/le badge qu'après un rechargement manuel de la
+     page — friendsCache n'était jamais réactualisé en direct, seule la
+     notification sonore l'était (via subscribeNotifWatcher, un cache
+     séparé). */
+  try{
+    client.subscribe('databases.'+DB+'.collections.ultravoc_friends.documents',function(res){
+      const p=res.payload;if(!p||!me)return;
+      if(String(p.userId)!==String(me.\$id)&&String(p.friendId)!==String(me.\$id))return;
+      loadFriends().then(function(){
+        if(view==='friends')renderFriends();
+        if(\$('modal-notifications')&&!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
+        updateNotifBadge();
+      });
+    });
+  }catch(e){}
+}
 function subscribeNotifWatcher(){
   try{
     client.subscribe('databases.'+DB+'.collections.notifications.documents',function(res){
@@ -5115,6 +5225,10 @@ async function loadDms(){
   const r=await db.listDocuments(DB,'dms',[Appwrite.Query.orderDesc('\$updatedAt'),Appwrite.Query.limit(100)]);
   dmsCache=(r.documents||[]).filter(function(d){return (d.members||[]).map(String).indexOf(me.\$id)>=0});
   return dmsCache;
+}
+function fmtClockTime(dateStr){
+  if(!dateStr)return '';
+  try{return new Date(dateStr).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
 }
 function fmtRelTime(dateStr){
   if(!dateStr)return '';
@@ -6448,7 +6562,7 @@ function renderMessages(){
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
+      +'<div><div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div><div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -9020,8 +9134,11 @@ function renderChannelMessages(){
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
+    const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
+    const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
+    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="">':esc(ini(m.username||'?'));
     const canDel=mine||canModerate;
-    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span>'+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
+    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><div class="srv-chan-msg-av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div><div class="srv-chan-msg-body"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-time">'+esc(fmtClockTime(m.\$createdAt))+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span></div>'+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
   }).join('')||'<div class="empty-hint">Aucun message pour l\\'instant. Sois le premier à écrire !</div>';
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-srv-msg-del]').forEach(function(b){
@@ -9034,6 +9151,10 @@ function renderChannelMessages(){
         renderChannelMessages();
       }catch(e){showToast((e&&e.message)||'Erreur','error');}
     });
+  });
+  box.querySelectorAll('.srv-chan-msg-av[data-profile]').forEach(function(el){
+    el.style.cursor='pointer';
+    el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-profile'));});
   });
 }
 async function sendServerChannelMessage(){
@@ -9170,16 +9291,52 @@ function openServerRoleAssign(uid){
     }catch(e){\$('srv-assign-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
   };
 }
+function openServerRoleMembers(role){
+  const box=\$('srv-detail-body');if(!box)return;
+  const isOwnerUid=String(activeServer.ownerId);
+  box.innerHTML='<button type="button" class="set-mini-btn" id="srv-rm-back" style="margin-bottom:12px">← Rôles</button>'
+    +'<div class="set-card">'
+    +'<div class="set-section-label" style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:'+esc(role.color||'#7c3aed')+';display:inline-block"></span>Membres avec le rôle « '+esc(role.name)+' »</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Coche ou décoche pour attribuer/retirer ce rôle.</div>'
+    +activeServerMembers.map(function(m){
+      const isOwnerRow=String(m.uid)===isOwnerUid;
+      const has=(m.roleIds||[]).indexOf(role.\$id)>=0;
+      return '<label class="srv-perm-check"><input type="checkbox" data-srv-rm-member="'+esc(m.uid)+'"'+(has?' checked':'')+(isOwnerRow?' disabled':'')+'> <b>'+esc(m.username||'Membre')+'</b>'+(isOwnerRow?' 👑':'')+'</label>';
+    }).join('')
+    +'<div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="btn-main" id="srv-rm-save">Enregistrer</button></div>'
+    +'<div class="err" id="srv-rm-err"></div>'
+    +'</div>';
+  \$('srv-rm-back').onclick=function(){switchServerTab('roles');};
+  \$('srv-rm-save').onclick=async function(){
+    this.disabled=true;this.textContent='...';
+    const checks=Array.from(box.querySelectorAll('[data-srv-rm-member]'));
+    try{
+      for(const c of checks){
+        const uid=c.getAttribute('data-srv-rm-member');
+        const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid);});
+        if(!member)continue;
+        const current=member.roleIds||[];
+        const has=current.indexOf(role.\$id)>=0;
+        if(c.checked===has)continue;
+        const roleIds=c.checked?current.concat([role.\$id]):current.filter(function(id){return id!==role.\$id;});
+        await authPost('/api/servers/roles/assign',{serverId:activeServer.\$id,uid:uid,roleIds:roleIds});
+      }
+      await openServerDetail(activeServer.\$id);switchServerTab('roles');showToast('Membres du rôle mis à jour.');
+    }catch(e){\$('srv-rm-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+}
 function renderServerRolesTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   let html='<button type="button" class="btn-main" id="srv-role-create-btn" style="margin-bottom:14px">+ Créer un rôle</button>'
     +'<div class="scr-sub" style="margin-bottom:10px">Les rôles les plus haut dans la liste sont les plus puissants — leur couleur prime sur le pseudo des membres, et ils l\\'emportent en cas de conflit de permissions.</div>';
   html+=activeServerRoles.map(function(r,idx){
     let perms=[];try{perms=JSON.parse(r.permissionsJson||'[]');}catch(e){}
+    const memberCount=activeServerMembers.filter(function(m){return (m.roleIds||[]).indexOf(r.\$id)>=0;}).length;
     return '<div class="set-card" data-srv-role-id="'+esc(r.\$id)+'">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';flex-shrink:0"></span><b>'+esc(r.name)+'</b>'+(r.mentionable?' <span class="scr-sub">📣</span>':'')+'</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">'+(perms.length?perms.map(function(p){const d=SERVER_PERM_DEFS.find(function(x){return x.key===p});return d?d.icon+' '+d.label:p;}).join(', '):'Aucune permission')+'</div>'
-      +'<div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" data-srv-role-edit="'+esc(r.\$id)+'">Modifier</button>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="set-mini-btn" data-srv-role-members="'+esc(r.\$id)+'">👥 '+memberCount+' membre'+(memberCount!==1?'s':'')+'</button>'
+      +'<button type="button" class="set-mini-btn" data-srv-role-edit="'+esc(r.\$id)+'">Modifier</button>'
       +'<button type="button" class="set-mini-btn" data-srv-role-up="'+esc(r.\$id)+'"'+(idx===0?' disabled':'')+' title="Monter">▲</button>'
       +'<button type="button" class="set-mini-btn" data-srv-role-down="'+esc(r.\$id)+'"'+(idx===activeServerRoles.length-1?' disabled':'')+' title="Descendre">▼</button>'
       +'<button type="button" class="set-mini-btn danger" data-srv-role-del="'+esc(r.\$id)+'">Supprimer</button></div>'
@@ -9192,6 +9349,12 @@ function renderServerRolesTab(){
     b.addEventListener('click',function(){
       const role=activeServerRoles.find(function(r){return r.\$id===b.getAttribute('data-srv-role-edit')});
       openServerRoleEditor(role);
+    });
+  });
+  box.querySelectorAll('[data-srv-role-members]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const role=activeServerRoles.find(function(r){return r.\$id===b.getAttribute('data-srv-role-members')});
+      if(role)openServerRoleMembers(role);
     });
   });
   box.querySelectorAll('[data-srv-role-del]').forEach(function(b){
@@ -11857,9 +12020,10 @@ async function handle(request) {
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text } }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text }, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
