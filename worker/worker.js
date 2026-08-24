@@ -1461,6 +1461,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .tabbar .rail-btn{flex:1;width:auto;height:56px;border-radius:0;background:transparent}
   .tabbar .rail-btn.on{border-radius:0;background:rgba(124,58,237,.18)}
   .chat-back{display:grid;place-items:center}
+  /* iOS Safari zoome automatiquement la page quand on touche un champ de
+     texte dont la taille de police calculée est sous 16px — la zone de
+     saisie des messages (la plus utilisée de toute l'appli) et le champ de
+     mot de passe de restauration E2E étaient tous deux en dessous. On ne
+     touche qu'à cette largeur d'écran précisément pour ne rien changer à
+     l'apparence sur ordinateur. */
+  .composer textarea,.e2e-bb-input{font-size:16px}
 }
 </style>
 </head>
@@ -3306,6 +3313,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.37.3',date:'24 août 2026',time:'00:05',title:'Correctif mobile : le clavier faisait zoomer l\\'écran en écrivant un message',
+    body:'Sur iPhone, appuyer sur la zone d\\'écriture d\\'un message (ou le champ de mot de passe de restauration E2E) déclenchait un zoom automatique de la page — Safari zoome dès qu\\'un champ de texte a une police affichée sous 16px. Corrigé sur ces deux champs, sans rien changer à leur taille sur ordinateur.'},
   {version:'2.37.2',date:'23 août 2026',time:'23:45',title:'Correctif mobile : bouton "Changer la photo" invisible sur les groupes',
     body:'En créant ou modifiant un groupe, le bouton "✏️ Changer la photo" sur l\\'avatar n\\'apparaissait qu\\'au survol de la souris — invisible et sans indice sur mobile (le cercle restait tapable, mais rien ne le montrait). Audit complet des autres interactions "au survol seulement" dans l\\'appli : les autres cas (bouton "⋯" sur les messages, glisser pour supprimer) ont déjà une vraie alternative tactile (glissement) et fonctionnent normalement.'},
   {version:'2.37.1',date:'23 août 2026',time:'23:35',title:'Correctif d\\'affichage : zone encoche/barre du bas sur iPhone',
