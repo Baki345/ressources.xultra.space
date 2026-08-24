@@ -769,10 +769,20 @@ button{cursor:pointer;border:0;background:0}
 .row .act button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
 .row-time{flex-shrink:0;font-size:.66rem;color:var(--muted);align-self:flex-start;margin-top:1px;white-space:nowrap}
 .row-swipe{position:relative;overflow:hidden;border-radius:8px}
-.row-del-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;background:linear-gradient(90deg,transparent 30%,rgba(239,68,68,.92));color:#fff;font-size:1.15rem;cursor:pointer;z-index:1}
+.row-del-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;background:linear-gradient(90deg,transparent 30%,rgba(239,68,68,.92));color:#fff;font-size:1.15rem;cursor:pointer}
 .row-swipe .row{position:relative;background:var(--bg,#0b0614);will-change:transform}
+/* IMPORTANT : ne JAMAIS mettre de z-index permanent sur .row-del-action.
+   Un z-index posé même seulement en ":hover" reste actif pendant tout
+   survol (donc pendant le clic qui suit forcément, puisqu'on ne peut pas
+   cliquer sans d'abord survoler) : ça a déjà cassé l'ouverture des DM au
+   clic sur souris (le clic touchait l'action supprimer au lieu de la
+   ligne). Le seul mécanisme sûr est physique : .row (opaque, sans
+   z-index) glisse pour révéler .row-del-action en dessous — jamais
+   l'inverse. */
 .row-swipe.hover-reveal .row-del-action{opacity:0;transition:opacity .15s ease;pointer-events:none}
 .row-swipe.hover-reveal:hover .row-del-action{opacity:1;pointer-events:auto}
+.row-swipe.hover-reveal:hover .row{transform:translateX(-64px);transition:transform .15s ease}
+.row-swipe.hover-reveal .row{transition:transform .15s ease}
 .userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
 .ub-presence-btn{display:flex;align-items:center;gap:5px;background:transparent;padding:0;font-size:.66rem;color:var(--muted);font-weight:600;cursor:pointer}
 .ub-presence-btn:hover{color:#e9d5ff}
@@ -3432,6 +3442,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.40.2',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
+    body:'Un correctif précédent (le bouton supprimer qui se dévoilait au survol d\\'une conversation) avait par erreur rendu ce bouton cliquable sur TOUTE la ligne dès qu\\'on la survolait à la souris — donc à chaque clic pour ouvrir une conversation, c\\'était la confirmation de suppression qui s\\'affichait à la place. Corrigé : ouvrir une conversation en cliquant dessus fonctionne de nouveau normalement, à la souris comme au tactile.'},
   {version:'2.40.1',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
     body:'Un appareil qui avait déjà sa propre clé de chiffrement locale (même générée par erreur, par exemple en visitant XULTRA une première fois avant d\\'avoir jamais restauré depuis un autre appareil) ne se voyait jamais proposer la restauration — pire, il pouvait silencieusement écraser la clé publique du compte, rendant les messages illisibles sur TOUS les appareils, pas seulement le nouveau. XULTRA détecte maintenant ce décalage et propose la restauration par mot de passe même sur un appareil déjà utilisé, sans jamais écraser la bonne clé.'},
   {version:'2.40.0',date:'24 août 2026',time:'14:50',title:'Les salons de serveur passent au niveau des messages privés',
