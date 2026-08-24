@@ -769,12 +769,10 @@ button{cursor:pointer;border:0;background:0}
 .row .act button.rej{background:rgba(255,255,255,.08);color:#f2ebff}
 .row-time{flex-shrink:0;font-size:.66rem;color:var(--muted);align-self:flex-start;margin-top:1px;white-space:nowrap}
 .row-swipe{position:relative;overflow:hidden;border-radius:8px}
-.row-del-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;background:linear-gradient(90deg,transparent 30%,rgba(239,68,68,.92));color:#fff;font-size:1.15rem;cursor:pointer}
+.row-del-action{position:absolute;inset:0;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;background:linear-gradient(90deg,transparent 30%,rgba(239,68,68,.92));color:#fff;font-size:1.15rem;cursor:pointer;z-index:1}
 .row-swipe .row{position:relative;background:var(--bg,#0b0614);will-change:transform}
 .row-swipe.hover-reveal .row-del-action{opacity:0;transition:opacity .15s ease;pointer-events:none}
 .row-swipe.hover-reveal:hover .row-del-action{opacity:1;pointer-events:auto}
-.row-swipe.hover-reveal:hover .row{transform:translateX(-64px);transition:transform .15s ease}
-.row-swipe.hover-reveal .row{transition:transform .15s ease}
 .userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
 .ub-presence-btn{display:flex;align-items:center;gap:5px;background:transparent;padding:0;font-size:.66rem;color:var(--muted);font-weight:600;cursor:pointer}
 .ub-presence-btn:hover{color:#e9d5ff}
@@ -996,7 +994,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-hunter5{background-image:linear-gradient(125deg,#78350f,#facc15,#fff7cc,#f59e0b,#facc15,#78350f);color:#1a1005;border-color:rgba(250,204,21,.85);box-shadow:0 0 18px rgba(250,204,21,.75),0 0 34px rgba(250,204,21,.4);animation:badgeShift 3.2s ease infinite,badgePulse 1.6s ease-in-out infinite}
 .badge-hunter5::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(250,204,21,.6);animation:frameSpin 4s linear infinite;pointer-events:none}
 .badge-early{background-image:linear-gradient(125deg,#cbd5e1,#ffffff,#e2e8f0,#f8fafc,#cbd5e1);color:#0f172a;border-color:rgba(255,255,255,.75);box-shadow:0 0 10px rgba(255,255,255,.45)}
-.profile-card{width:min(360px,100%);padding:0;overflow:hidden}
+.profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
+.pm-scroll{overflow-y:auto;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
 .pm-av{width:78px;height:78px;border-radius:50%;margin:-42px auto 0;position:relative;z-index:1;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #15101f;overflow:hidden}
 .pm-av img{width:100%;height:100%;object-fit:cover}
@@ -1839,14 +1838,16 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 <div class="overlay hidden" id="modal-profile">
   <div class="modal-box profile-card">
     <button type="button" class="modal-close" id="pm-close">✕</button>
-    <div id="pm-render"></div>
-    <div class="pm-btn-row">
-      <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
-      <button type="button" class="btn-main" id="pm-message">Message</button>
-      <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
-      <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
-      <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre">⛔</button>
-      <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
+    <div class="pm-scroll">
+      <div id="pm-render"></div>
+      <div class="pm-btn-row">
+        <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
+        <button type="button" class="btn-main" id="pm-message">Message</button>
+        <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
+        <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
+        <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre">⛔</button>
+        <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3387,6 +3388,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.39.1',date:'24 août 2026',time:'12:05',title:'3 correctifs d\\'affichage : médailles, liste de messages, candidatures',
+    body:'(1) La fenêtre de profil pouvait dépasser la hauteur de l\\'écran sans aucun moyen de faire défiler — sur un petit écran, tes médailles (juste sous ton pseudo) et les boutons du bas devenaient invisibles et inaccessibles. Elle défile maintenant proprement. (2) Dans la liste des messages privés, survoler une conversation avec la souris pour révéler le bouton supprimer poussait toute la ligne vers la gauche, faisant sortir la photo de profil de la zone cliquable — impossible de cliquer dessus pour voir le profil sans ouvrir la conversation. Le bouton supprimer apparaît maintenant par-dessus, sans rien déplacer. (3) La liste des candidatures d\\'équipe n\\'affichait aucun bouton pour qui n\\'est pas propriétaire du serveur (volontaire : seul le propriétaire décide) mais ne l\\'expliquait pas — un message le précise maintenant.'},
   {version:'2.39.0',date:'24 août 2026',time:'11:35',title:'Signaler un message, suivre tes signalements, marquer un bug en doublon',
     body:'Tu peux maintenant signaler un message précis (pas seulement un profil), en DM comme dans un salon de serveur — le message cité arrive avec ton signalement. Nouvelle section "Mes signalements" dans les Paramètres → Compte : suis le statut de ce que tu as signalé, avec la note laissée par la modération si elle en a laissé une. Côté modération, un nouveau champ permet de laisser cette note en marquant un signalement traité ou rejeté. Enfin, un rapport de bug peut être marqué "Déjà signalé" — il ne compte plus dans les badges Chasseur de bugs, pour éviter qu\\'un même bug signalé par plusieurs personnes soit compté en double.'},
   {version:'2.38.1',date:'24 août 2026',time:'11:10',title:'Correctif : le partage de position ne faisait rien',
@@ -7548,7 +7551,7 @@ function renderAdminTeamApplications(list){
       +(canDecide?('<div class="acts">'
       +(st!=='accepted'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="accepted" class="ok">Accepter</button>':'')
       +(st!=='rejected'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="rejected">Refuser</button>':'')
-      +'</div>'):'')
+      +'</div>'):'<div class="p" style="opacity:.7;font-style:italic">Seul le propriétaire peut valider les candidatures.</div>')
       +'</div>';
   }).join('');
   box.querySelectorAll('[data-teamapp]').forEach(function(el){
