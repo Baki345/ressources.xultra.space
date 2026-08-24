@@ -664,6 +664,7 @@ button{cursor:pointer;border:0;background:0}
 .ge-av img{width:100%;height:100%;object-fit:cover}
 .ge-av-edit{position:absolute;inset:0;border-radius:50%;background:rgba(5,2,12,.72);color:#fff;font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;opacity:0;transition:opacity .15s ease}
 .ge-av-wrap:hover .ge-av-edit{opacity:1}
+@media (hover:none){.ge-av-edit{opacity:.85}}
 .reg-preview .rp-av img{width:100%;height:100%;object-fit:cover}
 .reg-preview .rp-meta{min-width:0;flex:1}
 .reg-preview .rp-name{font-weight:800;font-size:.95rem;color:#f3e8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3305,6 +3306,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.37.2',date:'23 août 2026',time:'23:45',title:'Correctif mobile : bouton "Changer la photo" invisible sur les groupes',
+    body:'En créant ou modifiant un groupe, le bouton "✏️ Changer la photo" sur l\\'avatar n\\'apparaissait qu\\'au survol de la souris — invisible et sans indice sur mobile (le cercle restait tapable, mais rien ne le montrait). Audit complet des autres interactions "au survol seulement" dans l\\'appli : les autres cas (bouton "⋯" sur les messages, glisser pour supprimer) ont déjà une vraie alternative tactile (glissement) et fonctionnent normalement.'},
   {version:'2.37.1',date:'23 août 2026',time:'23:35',title:'Correctif d\\'affichage : zone encoche/barre du bas sur iPhone',
     body:'La barre d\\'onglets du bas, la pastille d\\'appel flottante, les notifications toast, le bandeau de restauration E2E et les feuilles de confirmation glissantes pouvaient chevaucher l\\'encoche ou la barre de balayage en bas de l\\'écran sur iPhone (et appareils Android équivalents) — l\\'appli ne réservait jamais cet espace. Corrigé partout.'},
   {version:'2.37.0',date:'23 août 2026',time:'23:20',title:'Modération et journal d\\'audit dans les Serveurs',
