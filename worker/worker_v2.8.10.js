@@ -1145,6 +1145,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .st-pending{background:rgba(148,163,184,.2);color:#cbd5e1}
 .st-approved{background:rgba(59,130,246,.2);color:#93c5fd}
 .st-resolved{background:rgba(34,197,94,.2);color:#86efac}
+.st-duplicate{background:rgba(234,179,8,.2);color:#fde047}
+.report-status-badge{padding:2px 8px;border-radius:999px;font-weight:800;font-size:.65rem;text-transform:uppercase;flex-shrink:0;background:rgba(148,163,184,.2);color:#cbd5e1}
+.report-status-badge.ok{background:rgba(34,197,94,.2);color:#86efac}
+.report-status-badge.danger{background:rgba(239,68,68,.2);color:#fca5a5}
 .bug-item .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .bug-item .actions button{padding:6px 10px;border-radius:8px;font-size:.72rem;font-weight:700;background:var(--elev);border:1px solid var(--line);color:#f2ebff}
 .bug-item .actions button.ok{background:rgba(59,130,246,.25);border-color:rgba(59,130,246,.4)}
@@ -1935,6 +1939,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="modal-close" id="rp-close">✕</button>
     <h3 style="margin-bottom:4px">🚩 Signaler <span id="rp-target-name"></span></h3>
     <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ton signalement est envoyé à l'équipe de modération. Elle seule peut le consulter.</p>
+    <p id="rp-msg-preview" class="hidden" style="font-size:.78rem;font-style:italic;color:#c4b5fd;background:rgba(124,58,237,.1);border-radius:8px;padding:8px 10px;margin-bottom:12px;word-break:break-word"></p>
     <div class="field">
       <label>Raison</label>
       <select id="rp-reason">
@@ -3382,6 +3387,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.39.0',date:'24 août 2026',time:'11:35',title:'Signaler un message, suivre tes signalements, marquer un bug en doublon',
+    body:'Tu peux maintenant signaler un message précis (pas seulement un profil), en DM comme dans un salon de serveur — le message cité arrive avec ton signalement. Nouvelle section "Mes signalements" dans les Paramètres → Compte : suis le statut de ce que tu as signalé, avec la note laissée par la modération si elle en a laissé une. Côté modération, un nouveau champ permet de laisser cette note en marquant un signalement traité ou rejeté. Enfin, un rapport de bug peut être marqué "Déjà signalé" — il ne compte plus dans les badges Chasseur de bugs, pour éviter qu\\'un même bug signalé par plusieurs personnes soit compté en double.'},
   {version:'2.38.1',date:'24 août 2026',time:'11:10',title:'Correctif : le partage de position ne faisait rien',
     body:'Contrairement à tous les autres types de message, le partage de position n\\'allait jamais chercher de clé de chiffrement E2E avant d\\'envoyer — la position partait donc en clair, et surtout, un échec d\\'envoi ne s\\'affichait nulle part (juste un journal technique invisible) : on cliquait, et rien ne semblait se passer. Corrigé sur les deux points.'},
   {version:'2.38.0',date:'24 août 2026',time:'10:50',title:'Corrections suite à vos signalements : temps réel, présence, rôles',
@@ -3906,6 +3913,7 @@ const SETTINGS_GROUPS=[
     {key:'subscription',icon:'⭐',title:'Abonnement'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
+    {key:'myreports',icon:'🚩',title:'Mes signalements'},
     {key:'devices',icon:'💻',title:'Appareils'},
     {key:'connections',icon:'🔗',title:'Connexions'},
     {key:'apps',icon:'🧩',title:'Applications autorisées'},
@@ -3969,7 +3977,8 @@ function renderSettingsSection(key){
     devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
-    language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity
+    language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
+    myreports:renderSetMyReports
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -4600,6 +4609,26 @@ function renderSetActivity(box){
     +'</div>';
   const btn=\$('act-open-status');
   if(btn)btn.onclick=function(){closeSettingsPanel();if(\$('ub-presence-btn'))\$('ub-presence-btn').click();};
+}
+async function renderSetMyReports(box){
+  box.innerHTML='<h2>Mes signalements</h2><div class="sc-desc">Chargement…</div>';
+  let reports=[];
+  try{const r=await authPost('/api/my-reports',{});reports=r.reports||[];}catch(e){box.innerHTML='<h2>Mes signalements</h2><div class="err">Impossible de charger tes signalements.</div>';return}
+  if(!reports.length){box.innerHTML='<h2>Mes signalements</h2><div class="sc-desc">Ce que tu as signalé, et où ça en est.</div><div class="empty-hint">Tu n\\'as encore rien signalé.</div>';return}
+  box.innerHTML='<h2>Mes signalements</h2><div class="sc-desc">Ce que tu as signalé, et où ça en est. Seule l\\'équipe de modération voit les détails.</div>'
+    +reports.map(function(r){
+      const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
+      const stCls=r.status==='pending'?'':(r.status==='dismissed'?'danger':'ok');
+      const srcLabel=r.source==='dm_message'?'Message en DM':(r.source==='server_message'?'Message dans un serveur':'Profil');
+      return '<div class="set-card">'
+        +'<div class="set-card-row"><div class="scr-info">'
+          +'<div class="scr-label">'+esc(r.targetName||r.targetUid)+' — '+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+'</div>'
+          +'<div class="scr-sub">'+esc(srcLabel)+' · '+esc(when)+'</div>'
+          +(r.messageText?'<div class="scr-sub" style="font-style:italic;margin-top:4px">« '+esc(r.messageText)+' »</div>':'')
+          +(r.resolutionNote?'<div class="scr-sub" style="margin-top:6px;padding:6px 8px;background:rgba(124,58,237,.1);border-radius:8px">💬 '+esc(r.resolutionNote)+'</div>':'')
+        +'</div><span class="report-status-badge'+(stCls?' '+stCls:'')+'">'+esc(REPORT_STATUS_LABELS[r.status]||r.status||'En attente')+'</span></div>'
+      +'</div>';
+    }).join('');
 }
 
 if(\$('ub-settings'))\$('ub-settings').addEventListener('click',function(){closeUbPopovers();openSettingsPanel();});
@@ -6075,10 +6104,16 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
   finally{btn.disabled=false;btn.textContent='Enregistrer';}
 });
 
-let reportTargetUid=null;
-function openReportModal(uid,name){
+let reportTargetUid=null,reportMsgCtx=null;
+function openReportModal(uid,name,msgCtx){
   reportTargetUid=uid;
+  reportMsgCtx=msgCtx||null;
   \$('rp-target-name').textContent=name||'';
+  const preview=\$('rp-msg-preview');
+  if(preview){
+    if(msgCtx&&msgCtx.messageText){preview.textContent='« '+msgCtx.messageText.slice(0,200)+' »';preview.classList.remove('hidden');}
+    else{preview.textContent='';preview.classList.add('hidden');}
+  }
   \$('rp-reason').value='harcelement';
   \$('rp-details').value='';
   \$('rp-err').textContent='';
@@ -6094,7 +6129,12 @@ if(\$('rp-submit'))\$('rp-submit').addEventListener('click',async function(){
   try{
     const targetP=membersCache.find(function(x){return (x.authUserId||x.\$id)===reportTargetUid});
     const targetName=(targetP&&(targetP.displayName||targetP.username))||'';
-    await authPost('/api/report',{targetUid:reportTargetUid,targetName:targetName,reason:\$('rp-reason').value,details:\$('rp-details').value.slice(0,1000)});
+    const payload={targetUid:reportTargetUid,targetName:targetName,reason:\$('rp-reason').value,details:\$('rp-details').value.slice(0,1000)};
+    if(reportMsgCtx){
+      payload.source=reportMsgCtx.source;payload.messageId=reportMsgCtx.messageId;
+      payload.messageText=reportMsgCtx.messageText;payload.contextId=reportMsgCtx.contextId;
+    }
+    await authPost('/api/report',payload);
     \$('modal-report').classList.add('hidden');
     alert('Signalement envoyé. Merci, l\\'équipe de modération va l\\'examiner.');
   }catch(e){\$('rp-err').textContent=(e&&e.message)||'Erreur lors de l\\'envoi';}
@@ -6642,7 +6682,7 @@ function openMessageActionSheet(m){
     close();
     if(kind==='delme')deleteMessageForMe(m);
     else if(kind==='delall')confirmDeleteMessageForAll(m);
-    else if(kind==='report')openReportModal(m.uid,m.displayName||'User');
+    else if(kind==='report')openReportModal(m.uid,m.displayName||'User',{source:'dm_message',messageId:m.\$id,messageText:(m.enc?'':(m.text||'')).slice(0,200),contextId:activeDm});
     else if(kind==='block')confirmBlockUser(m.uid,m.displayName||'User');
   });
 }
@@ -7414,15 +7454,19 @@ function renderAdminReports(list){
     if(a.status!=='pending'&&b.status==='pending')return 1;
     return 0;
   });
+  const SRC_LABELS={dm_message:'💬 Message en DM',server_message:'💬 Message dans un serveur'};
   box.innerHTML=sorted.map(function(r){
     const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
-    const statusCls=r.status==='pending'?'':(r.status==='dismissed'?'danger':'ok');
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +'<div class="av">🚩</div>'
       +'<div class="info">'
         +'<div class="n">'+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+' — <span class="'+(r.status==='pending'?'tag-mod':'')+'">'+esc(REPORT_STATUS_LABELS[r.status]||r.status)+'</span></div>'
         +'<div class="p">Visé : '+esc(r.targetName||r.targetUid)+' · Par : '+esc(r.reporterName||r.reporterUid)+' · '+esc(when)+'</div>'
+        +(SRC_LABELS[r.source]?'<div class="p">'+SRC_LABELS[r.source]+'</div>':'')
+        +(r.messageText?'<div class="p" style="font-style:italic;margin-top:4px">« '+esc(r.messageText)+' »</div>':'')
         +(r.details?'<div class="p" style="margin-top:4px">'+esc(r.details)+'</div>':'')
+        +(r.resolutionNote?'<div class="p" style="margin-top:4px;opacity:.75">Note : '+esc(r.resolutionNote)+'</div>':'')
+        +(r.status==='pending'?'<input type="text" class="field-input" data-reportnote="'+esc(r.\$id)+'" placeholder="Note pour la personne qui a signalé (optionnel)" style="margin-top:8px;height:32px;font-size:.78rem">':'')
       +'</div>'
       +'<div class="acts">'
         +'<button type="button" data-reportfiche="'+esc(r.targetUid)+'">📋 Fiche</button>'
@@ -7437,8 +7481,10 @@ function renderAdminReports(list){
   box.querySelectorAll('[data-reportstatus]').forEach(function(el){
     el.onclick=async function(){
       this.disabled=true;
+      const reportId=el.getAttribute('data-reportstatus');
+      const noteInput=box.querySelector('[data-reportnote="'+reportId+'"]');
       try{
-        await authPost('/api/admin/reports/status',{reportId:el.getAttribute('data-reportstatus'),status:el.getAttribute('data-status')});
+        await authPost('/api/admin/reports/status',{reportId:reportId,status:el.getAttribute('data-status'),resolutionNote:noteInput?noteInput.value.trim().slice(0,500):''});
         await loadAdminReports().then(renderAdminReports);
       }catch(e){adminErr(e)}
     };
@@ -7463,6 +7509,7 @@ function renderAdminBugs(list){
       +'<div class="acts">'
       +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
       +(st!=='resolved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="resolved" class="ok">Résolu</button>':'')
+      +(st!=='duplicate'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="duplicate" title="Déjà signalé par quelqu\\'un d\\'autre — ne compte pas double pour les badges Chasseur">Doublon</button>':'')
       +(st!=='pending'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="pending">Attente</button>':'')
       +'</div></div>';
   }).join('');
@@ -7699,7 +7746,7 @@ async function loadMyBugs(){
   \$('hunter-stats').textContent=hunterProgressText(resolved);
   renderMyBugs();
 }
-const BUG_STATUS_LABEL={pending:'En attente',approved:'En cours',resolved:'Résolu'};
+const BUG_STATUS_LABEL={pending:'En attente',approved:'En cours',resolved:'Résolu',duplicate:'Déjà signalé'};
 function renderMyBugs(){
   const box=\$('hunter-bug-list');if(!box)return;
   if(!myBugsCache.length){box.innerHTML='<p style="color:var(--muted);font-size:.85rem">Aucun rapport pour l\\'instant.</p>';return}
@@ -9147,7 +9194,8 @@ function renderChannelMessages(){
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="">':esc(ini(m.username||'?'));
     const canDel=mine||canModerate;
-    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><div class="srv-chan-msg-av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div><div class="srv-chan-msg-body"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-time">'+esc(fmtClockTime(m.\$createdAt))+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span></div>'+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
+    const canReport=!mine;
+    return '<div class="srv-chan-msg'+(mine?' mine':'')+'"><div class="srv-chan-msg-av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div><div class="srv-chan-msg-body"><span class="srv-chan-msg-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(m.username||'Membre')+'</span><span class="srv-chan-msg-time">'+esc(fmtClockTime(m.\$createdAt))+'</span><span class="srv-chan-msg-text">'+highlightRoleMentions(esc(m.text||''))+'</span></div>'+(canReport?'<button type="button" class="srv-chan-msg-del" data-srv-msg-report="'+esc(m.\$id)+'" data-srv-msg-uid="'+esc(m.uid||'')+'" data-srv-msg-name="'+esc(m.username||'')+'" title="Signaler">🚩</button>':'')+(canDel?'<button type="button" class="srv-chan-msg-del" data-srv-msg-del="'+esc(m.\$id)+'" title="Supprimer">🗑️</button>':'')+'</div>';
   }).join('')||'<div class="empty-hint">Aucun message pour l\\'instant. Sois le premier à écrire !</div>';
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-srv-msg-del]').forEach(function(b){
@@ -9159,6 +9207,15 @@ function renderChannelMessages(){
         activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==messageId});
         renderChannelMessages();
       }catch(e){showToast((e&&e.message)||'Erreur','error');}
+    });
+  });
+  box.querySelectorAll('[data-srv-msg-report]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const messageId=b.getAttribute('data-srv-msg-report');
+      const uid=b.getAttribute('data-srv-msg-uid');
+      const uname=b.getAttribute('data-srv-msg-name');
+      const msg=activeChannelMessages.find(function(x){return x.\$id===messageId;});
+      openReportModal(uid,uname,{source:'server_message',messageId:messageId,messageText:(msg&&msg.text||'').slice(0,200),contextId:activeChannel.\$id});
     });
   });
   box.querySelectorAll('.srv-chan-msg-av[data-profile]').forEach(function(el){
@@ -10732,7 +10789,7 @@ async function handle(request) {
       const body = await request.json();
       const reportId = String((body && body.reportId) || "");
       const status = String((body && body.status) || "");
-      if (!reportId || ["pending", "approved", "resolved"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      if (!reportId || ["pending", "approved", "resolved", "duplicate"].indexOf(status) === -1) throw new Error("paramètres invalides");
       const updatedReport = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
         method: "PATCH", asAdmin: true, body: { data: { status } }
       });
@@ -10765,6 +10822,11 @@ async function handle(request) {
       const reason = String((body && body.reason) || "").slice(0, 32);
       const details = String((body && body.details) || "").slice(0, 1000);
       const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "autre"];
+      const validSources = ["user", "dm_message", "server_message"];
+      const source = validSources.indexOf(body && body.source) >= 0 ? body.source : "user";
+      const messageId = String((body && body.messageId) || "").slice(0, 64);
+      const messageText = String((body && body.messageText) || "").slice(0, 500);
+      const contextId = String((body && body.contextId) || "").slice(0, 64);
       if (!targetUid) throw new Error("targetUid requis");
       if (validReasons.indexOf(reason) === -1) throw new Error("raison invalide");
       if (targetUid === acc.$id) throw new Error("Impossible de se signaler soi-même");
@@ -10774,7 +10836,7 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: {
           documentId: "unique()",
-          data: { reporterUid: acc.$id, reporterName, targetUid, targetName, reason, details, status: "pending", at: new Date().toISOString() }
+          data: { reporterUid: acc.$id, reporterName, targetUid, targetName, reason, details, status: "pending", at: new Date().toISOString(), source: source, messageId: messageId, messageText: messageText, contextId: contextId }
         }
       });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -10814,9 +10876,12 @@ async function handle(request) {
       const body = await request.json();
       const reportId = String((body && body.reportId) || "");
       const status = String((body && body.status) || "");
+      const resolutionNote = String((body && body.resolutionNote) || "").slice(0, 500);
       if (!reportId || ["pending", "reviewed", "dismissed"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      const data = { status: status };
+      if (resolutionNote) data.resolutionNote = resolutionNote;
       await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
-        method: "PATCH", asAdmin: true, body: { data: { status } }
+        method: "PATCH", asAdmin: true, body: { data: data }
       });
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
@@ -10828,6 +10893,24 @@ async function handle(request) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+  if (path === "/api/my-reports" && request.method === "POST") {
+    // Libre-service, sans capacité staff : un membre ne voit ici QUE ses
+    // propres signalements (filtré sur reporterUid côté Worker, la
+    // collection n'a aucune permission de lecture publique) — répond à
+    // "il n'y a pas d'option pour voir le retour des modérateurs sur ses
+    // signalements".
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const data = await awFetch("/databases/" + AW_DB + "/collections/reports/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "reporterUid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, reports: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
   if (path === "/api/bugs/upvote" && request.method === "POST") {
