@@ -1509,6 +1509,27 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-creator .bi-head{color:#f9a8d4}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
+.bug-modal-box{padding:0;overflow:hidden;width:min(420px,100%);max-height:90dvh;display:flex;flex-direction:column}
+.bug-modal-hero{position:relative;padding:26px 22px 20px;text-align:center;overflow:hidden;background:linear-gradient(120deg,#4c1d95,#7c3aed,#a855f7,#ec4899,#7c3aed,#4c1d95);background-size:280% 280%;animation:bugHeroShift 8s ease infinite;flex-shrink:0}
+.bug-modal-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 15%,rgba(255,255,255,.25),transparent 55%);pointer-events:none}
+.bug-modal-hero-icon{font-size:2rem;filter:drop-shadow(0 4px 10px rgba(0,0,0,.35));animation:bugHeroFloat 3s ease-in-out infinite;position:relative}
+.bug-modal-hero h3{margin-top:6px;font-size:1.1rem;font-weight:900;color:#fff;position:relative}
+.bug-modal-hero-sub{margin-top:4px;font-size:.76rem;color:rgba(255,255,255,.88);line-height:1.4;position:relative}
+@keyframes bugHeroShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+@keyframes bugHeroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.bug-modal-body{padding:18px 20px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+.bug-att-wrap{margin-top:2px}
+.bug-att-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px}
+.bug-att-limit{padding:2px 9px;border-radius:999px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;font-size:.68rem;font-weight:800;white-space:nowrap}
+.bug-att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px}
+.bug-att-item{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--elev);border:1px solid var(--line)}
+.bug-att-item img,.bug-att-item video{width:100%;height:100%;object-fit:cover}
+a.bug-att-item{display:block}
+.bug-att-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.6);pointer-events:none;background:rgba(0,0,0,.15)}
+.bug-att-remove{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;border:none;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.bug-att-add{aspect-ratio:1;border-radius:10px;border:1.5px dashed rgba(167,139,250,.4);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#c4b5fd;font-size:.62rem;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+.bug-att-add:hover{border-color:rgba(167,139,250,.7);background:rgba(167,139,250,.08)}
+.bug-att-add-ico{font-size:1.3rem;font-weight:900;line-height:1}
 .hunter-stats{font-size:.8rem;color:var(--muted);font-weight:700;margin-top:6px}
 .bug-item{background:var(--elev);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;text-align:left}
 .bug-item .bt{font-weight:800;font-size:.9rem;margin-bottom:4px}
@@ -2205,21 +2226,27 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 </div>
 
 <div class="overlay hidden" id="modal-bug">
-  <div class="modal-box">
+  <div class="modal-box bug-modal-box">
     <button type="button" class="modal-close" id="mb-close">✕</button>
-    <h3 id="bug-modal-title">🐞 Signaler un bug</h3>
-    <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
-    <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
-    <div id="bug-shot-wrap" style="margin-top:8px">
-      <div id="bug-shot-preview" class="hidden" style="position:relative;margin-bottom:8px">
-        <img id="bug-shot-img" style="max-width:100%;max-height:160px;border-radius:10px;border:1px solid rgba(167,139,250,.25);display:block"/>
-        <button type="button" id="bug-shot-remove" title="Retirer la capture" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:24px;height:24px;cursor:pointer">✕</button>
-      </div>
-      <label for="bug-shot-input" class="pe-mini-btn" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer">📎 Joindre une capture d'écran</label>
-      <input type="file" id="bug-shot-input" accept="image/*" class="hidden"/>
+    <div class="bug-modal-hero">
+      <div class="bug-modal-hero-icon">🐞</div>
+      <h3 id="bug-modal-title">Signaler un bug</h3>
+      <div class="bug-modal-hero-sub">Aide XULTRA à s'améliorer — chaque bug résolu te rapproche du palier suivant.</div>
     </div>
-    <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
-    <div class="err" id="bug-err"></div>
+    <div class="bug-modal-body">
+      <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
+      <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
+      <div class="bug-att-wrap">
+        <div class="bug-att-head">
+          <span>📎 Captures / vidéos (optionnel)</span>
+          <span class="bug-att-limit" id="bug-att-limit">30 Mo max par fichier</span>
+        </div>
+        <div class="bug-att-grid" id="bug-att-grid"></div>
+        <input type="file" id="bug-shot-input" accept="image/*,video/*" multiple class="hidden"/>
+      </div>
+      <button type="button" class="btn-main" id="bug-submit" style="margin-top:4px">Envoyer le rapport</button>
+      <div class="err" id="bug-err"></div>
+    </div>
   </div>
 </div>
 
@@ -4009,6 +4036,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.57.0',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
+    body:'Le panneau de signalement fait peau neuve, aux couleurs XULTRA (dégradé animé, mise en page plus claire). Tu peux maintenant joindre jusqu\\'à 5 fichiers par rapport — images ET vidéos mélangées — au lieu d\\'une seule capture d\\'écran. La taille max par fichier grandit avec ton palier Bug Hunter : 30 Mo de base, puis 50 / 75 / 100 / 150 / 200 Mo à mesure que tu montes les échelons. Une raison de plus de continuer à chasser les bugs !'},
   {version:'2.56.2',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
     body:'Sur téléphone, la barre de navigation en bas de l\\'écran est remplacée par la même barre verticale à gauche que sur ordinateur — toutes les icônes (Messages, Amis, Membres, Chatroulette, Casino, Créateurs, Serveurs, État du système, Nouveautés, Boîte à idées, Équipe) directement accessibles au même endroit que sur la version navigateur, sans passer par un menu "⋯".'},
   {version:'2.56.1',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
@@ -9726,7 +9755,7 @@ function renderAdminBugs(list){
       +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
       +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+'</div>'
       +'<div class="p">'+esc(b.description||'')+'</div>'
-      +(b.screenshot?'<a href="'+esc(b.screenshot)+'" target="_blank" rel="noopener"><img src="'+esc(b.screenshot)+'" style="max-width:220px;max-height:130px;border-radius:8px;margin-top:6px;display:block;border:1px solid rgba(167,139,250,.25)"/></a>':'')
+      +bugAttachmentsHtml(b)
       +'<div class="p">par '+esc(b.username||'?')+' — '+esc(BUG_STATUS_LABEL[st]||st)+' · 👍 '+(b.upvotes||0)+'</div></div>'
       +'<div class="acts">'
       +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
@@ -9842,21 +9871,73 @@ function renderAdminMaintenance(state){
   };
 }
 
-let editBugId=null,bugShotFile=null,bugShotUrl='',bugShotRemoved=false;
-function updateBugShotPreview(){
-  const wrap=\$('bug-shot-preview'),img=\$('bug-shot-img');
-  if(bugShotUrl){wrap.classList.remove('hidden');img.src=bugShotUrl;}
-  else{wrap.classList.add('hidden');img.src='';}
+/* Limite de taille par fichier joint à un rapport de bug : récompense la
+   progression Bug Hunter — plus on a résolu de bugs, plus on peut joindre
+   de grosses preuves (captures 4K, vidéos de reproduction longues...). Le
+   bucket de stockage a été relevé à 200 Mo côté Appwrite pour accueillir
+   le palier le plus haut ; les autres usages du même bucket (stories,
+   publications créateurs...) gardent leurs propres limites, plus basses,
+   vérifiées côté client. */
+const BUG_ATTACHMENT_LIMITS_MB={base:30,hunter1:50,hunter2:75,hunter3:100,hunter4:150,hunter5:200};
+const BUG_ATTACH_MAX_COUNT=5;
+function bugAttachmentLimitMB(badges){
+  for(let i=HUNTER_TIERS.length-1;i>=0;i--){if(badges.indexOf(HUNTER_TIERS[i].key)>=0)return BUG_ATTACHMENT_LIMITS_MB[HUNTER_TIERS[i].key];}
+  return BUG_ATTACHMENT_LIMITS_MB.base;
 }
-function openBugModal(doc){
+function bugAttachmentsFromDoc(doc){
+  if(!doc)return [];
+  try{
+    const arr=JSON.parse(doc.attachmentsJson||'[]');
+    if(Array.isArray(arr)&&arr.length)return arr.filter(function(a){return a&&a.url;});
+  }catch(e){}
+  /* Compat avec les rapports envoyés avant l'ajout des pièces jointes
+     multiples, qui n'avaient qu'un seul champ "screenshot". */
+  return doc.screenshot?[{url:doc.screenshot,type:'image'}]:[];
+}
+function bugAttachmentThumbHtml(url,type){
+  const isVideo=type==='video';
+  return isVideo?('<video src="'+esc(url)+'" muted preload="metadata"></video><span class="bug-att-play">▶</span>'):('<img src="'+esc(url)+'" alt="">');
+}
+function bugAttachmentsHtml(doc){
+  const atts=bugAttachmentsFromDoc(doc);
+  if(!atts.length)return '';
+  return '<div class="bug-att-grid">'+atts.map(function(a){
+    return '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" class="bug-att-item">'+bugAttachmentThumbHtml(a.url,a.type)+'</a>';
+  }).join('')+'</div>';
+}
+let editBugId=null,bugAttachExisting=[],bugAttachNewFiles=[],bugAttachLimitMB=30;
+function renderBugAttachForm(){
+  const grid=\$('bug-att-grid');if(!grid)return;
+  const existingHtml=bugAttachExisting.map(function(a,i){
+    return '<div class="bug-att-item">'+bugAttachmentThumbHtml(a.url,a.type)+'<button type="button" class="bug-att-remove" data-bug-att-remove-existing="'+i+'">✕</button></div>';
+  });
+  const newHtml=bugAttachNewFiles.map(function(f,i){
+    const url=URL.createObjectURL(f);
+    const type=f.type.indexOf('video/')===0?'video':'image';
+    return '<div class="bug-att-item">'+bugAttachmentThumbHtml(url,type)+'<button type="button" class="bug-att-remove" data-bug-att-remove-new="'+i+'">✕</button></div>';
+  });
+  const total=bugAttachExisting.length+bugAttachNewFiles.length;
+  const addTile=total<BUG_ATTACH_MAX_COUNT?'<label for="bug-shot-input" class="bug-att-add"><span class="bug-att-add-ico">+</span><span>Ajouter</span></label>':'';
+  grid.innerHTML=existingHtml.join('')+newHtml.join('')+addTile;
+  grid.querySelectorAll('[data-bug-att-remove-existing]').forEach(function(b){
+    b.addEventListener('click',function(){bugAttachExisting.splice(parseInt(b.getAttribute('data-bug-att-remove-existing'),10),1);renderBugAttachForm();});
+  });
+  grid.querySelectorAll('[data-bug-att-remove-new]').forEach(function(b){
+    b.addEventListener('click',function(){bugAttachNewFiles.splice(parseInt(b.getAttribute('data-bug-att-remove-new'),10),1);renderBugAttachForm();});
+  });
+}
+async function openBugModal(doc){
   editBugId=doc?doc.\$id:null;
   \$('bug-title').value=doc?(doc.title||''):'';
   \$('bug-desc').value=doc?(doc.description||''):'';
   \$('bug-err').textContent='';
-  \$('bug-modal-title').textContent=doc?'✏️ Éditer mon rapport':'🐞 Signaler un bug';
-  bugShotFile=null;bugShotRemoved=false;
-  bugShotUrl=doc?(doc.screenshot||''):'';
-  updateBugShotPreview();
+  \$('bug-modal-title').textContent=doc?'Éditer mon rapport':'Signaler un bug';
+  bugAttachExisting=bugAttachmentsFromDoc(doc);
+  bugAttachNewFiles=[];
+  const badges=await getMyBadges();
+  bugAttachLimitMB=bugAttachmentLimitMB(badges);
+  \$('bug-att-limit').textContent=bugAttachLimitMB+' Mo max par fichier';
+  renderBugAttachForm();
   /* modal-hunter partage le même z-index que tous les .overlay : s'il
      est déjà ouvert (on vient de son bouton "+ Nouveau rapport"), il
      passe devant modal-bug puisqu'il est plus loin dans le DOM. On le
@@ -9875,43 +9956,45 @@ function closeBugModal(){
 if(\$('btn-report-bug'))\$('btn-report-bug').addEventListener('click',function(){openBugModal(null)});
 if(\$('mb-close'))\$('mb-close').addEventListener('click',closeBugModal);
 if(\$('bug-shot-input'))\$('bug-shot-input').addEventListener('change',function(){
-  const file=this.files&&this.files[0];this.value='';
-  if(!file)return;
-  if(file.size>8*1024*1024){\$('bug-err').textContent='Capture max 8 Mo';return}
-  if(file.type.indexOf('image/')!==0){\$('bug-err').textContent='Choisis une image';return}
+  const picked=Array.from(this.files||[]);
+  this.value='';
+  if(!picked.length)return;
   \$('bug-err').textContent='';
-  bugShotFile=file;bugShotRemoved=false;
-  const r=new FileReader();
-  r.onload=function(){bugShotUrl=r.result;updateBugShotPreview()};
-  r.readAsDataURL(file);
-});
-if(\$('bug-shot-remove'))\$('bug-shot-remove').addEventListener('click',function(){
-  bugShotFile=null;bugShotUrl='';bugShotRemoved=true;
-  updateBugShotPreview();
+  const limitBytes=bugAttachLimitMB*1024*1024;
+  let skippedType=false,skippedSize=false,skippedCount=false;
+  for(const f of picked){
+    if(bugAttachExisting.length+bugAttachNewFiles.length>=BUG_ATTACH_MAX_COUNT){skippedCount=true;break}
+    if(!/^(image|video)\\//.test(f.type)){skippedType=true;continue}
+    if(f.size>limitBytes){skippedSize=true;continue}
+    bugAttachNewFiles.push(f);
+  }
+  if(skippedCount)\$('bug-err').textContent='Maximum '+BUG_ATTACH_MAX_COUNT+' fichiers par rapport.';
+  else if(skippedSize)\$('bug-err').textContent='Un ou plusieurs fichiers dépassent '+bugAttachLimitMB+' Mo et ont été ignorés.';
+  else if(skippedType)\$('bug-err').textContent='Seules les images et vidéos sont acceptées.';
+  renderBugAttachForm();
 });
 if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
   const title=(\$('bug-title').value||'').trim();
   const desc=(\$('bug-desc').value||'').trim();
   if(!title||!desc){\$('bug-err').textContent='Titre et description requis';return}
   this.disabled=true;this.textContent=editBugId?'Mise à jour…':'Envoi…';
+  \$('bug-err').textContent='';
   try{
-    let screenshotUrl='';
-    if(bugShotFile){
+    const uploaded=[];
+    for(const f of bugAttachNewFiles){
       try{
-        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),bugShotFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
-        screenshotUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-      }catch(e){\$('bug-err').textContent='Envoi de la capture impossible, réessaie.';this.disabled=false;this.textContent=editBugId?'Mise à jour…':'Envoyer le rapport';return}
+        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),f,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        uploaded.push({url:PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID,type:f.type.indexOf('video/')===0?'video':'image'});
+      }catch(e){\$('bug-err').textContent='Envoi d\\'un fichier impossible, réessaie.';this.disabled=false;this.textContent=editBugId?'Mise à jour':'Envoyer le rapport';return}
     }
+    const attachmentsJson=JSON.stringify(bugAttachExisting.concat(uploaded));
     if(editBugId){
-      const patch={title:title.slice(0,120),description:desc.slice(0,2000)};
-      if(bugShotFile)patch.screenshot=screenshotUrl;
-      else if(bugShotRemoved)patch.screenshot='';
-      await db.updateDocument(DB,'bug_reports',editBugId,patch);
+      await db.updateDocument(DB,'bug_reports',editBugId,{title:title.slice(0,120),description:desc.slice(0,2000),attachmentsJson:attachmentsJson,screenshot:''});
       xlog('bug_report_edited',{});
     } else {
       const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
       await db.createDocument(DB,'bug_reports',Appwrite.ID.unique(),{
-        uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),screenshot:screenshotUrl,status:'pending',upvotes:0
+        uid:me.\$id,username:name,title:title.slice(0,120),description:desc.slice(0,2000),screenshot:'',attachmentsJson:attachmentsJson,status:'pending',upvotes:0
       },[
         Appwrite.Permission.read(Appwrite.Role.any()),
         Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
@@ -9920,12 +10003,12 @@ if(\$('bug-submit'))\$('bug-submit').addEventListener('click',async function(){
       xlog('bug_report_sent',{});
       showToast('Merci ! Ton rapport a été envoyé à l\\'équipe.');
     }
-    editBugId=null;bugShotFile=null;bugShotUrl='';bugShotRemoved=false;
+    editBugId=null;bugAttachExisting=[];bugAttachNewFiles=[];
     closeBugModal();
     try{await refreshHunterEligibility();}catch(e){}
     if(!\$('modal-hunter').classList.contains('hidden'))await loadMyBugs();
   }catch(e){\$('bug-err').textContent=(e&&e.message)||'Erreur';xlog('bug_report_fail',{msg:(e&&e.message)||String(e)});}
-  this.disabled=false;this.textContent='Envoyer le rapport';
+  this.disabled=false;this.textContent=editBugId?'Mise à jour':'Envoyer le rapport';
 });
 
 let resolvedBugCount=0;
@@ -9976,7 +10059,7 @@ function renderMyBugs(){
     const st=b.status||'pending';
     return '<div class="bug-item"><div class="bt">'+esc(b.title||'Sans titre')+'</div>'
       +'<div class="bd">'+esc(b.description||'')+'</div>'
-      +(b.screenshot?'<a href="'+esc(b.screenshot)+'" target="_blank" rel="noopener"><img src="'+esc(b.screenshot)+'" style="max-width:200px;max-height:120px;border-radius:8px;margin:6px 0;display:block;border:1px solid rgba(167,139,250,.25)"/></a>':'')
+      +bugAttachmentsHtml(b)
       +'<div class="meta"><span class="st st-'+esc(st)+'">'+esc(BUG_STATUS_LABEL[st]||st)+'</span>'
       +'<span>👍 '+(b.upvotes||0)+'</span>'
       +'<span>'+esc((b.\$createdAt||'').toString().slice(0,10))+'</span></div>'
