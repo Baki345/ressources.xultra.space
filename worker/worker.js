@@ -1639,6 +1639,7 @@ a.bug-att-item{display:block}
 .srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
 .srv-event-card{margin-bottom:10px}
 .srv-event-card.srv-event-past{opacity:.55}
+.srv-webhook-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,.25);color:#c4b5fd;font-size:.6rem;font-weight:800;letter-spacing:.02em;vertical-align:middle}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
@@ -4048,6 +4049,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.59.0',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
+    body:'Nouvelle section 🔌 Webhooks dans les paramètres du serveur (réservée à qui gère les salons) : crée une URL unique par salon texte, à donner à un service externe (GitHub, un script, une app…) pour qu\\'il puisse poster des messages directement dans XULTRA, sans compte. Les messages d\\'un webhook portent un petit repère "WEBHOOK" pour rester bien distincts des messages de membres.'},
   {version:'2.58.0',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
     body:'Nouvel onglet 📅 Événements dans chaque serveur : les membres avec la permission "Gérer les événements" peuvent en créer (titre, description, date de début/fin, salon lié ou lieu externe) ; tout le monde peut voir la liste et cliquer "🙋 Je participe" pour s\\'inscrire. Compteur d\\'intéressés en direct, et annulation possible par le créateur ou la modération — tracée dans le journal d\\'audit.'},
   {version:'2.57.2',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
@@ -11698,8 +11701,9 @@ function renderChannelMessages(){
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
+    const isWebhook=typeof m.uid==='string'&&m.uid.indexOf('webhook:')===0;
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
-    const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
+    const authorAv=safeUrl(m.avatarUrl)||safeUrl(authorProfile&&authorProfile.avatar);
     const name=m.username||'Membre';
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
@@ -11707,9 +11711,9 @@ function renderChannelMessages(){
     const body=m.pollJson?pollCardHtml(m):highlightRoleMentions(esc(m.text||''));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isWebhook?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -12182,6 +12186,38 @@ function openServerEventCreateForm(){
     }catch(e){\$('ev-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
+function openServerWebhookCreateForm(){
+  const textChannels=activeServerChannels.filter(function(c){return c.type==='text';});
+  if(!textChannels.length){showToast('Crée d\\'abord un salon texte pour pouvoir y attacher un webhook.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const channelOptions=textChannels.map(function(c){return '<option value="'+esc(c.\$id)+'">#'+esc(c.name)+'</option>';}).join('');
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
+    +'<div class="set-section-label">🔌 Nouveau webhook</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">L\\'URL générée permet à un service externe de poster des messages dans le salon choisi, sans compte XULTRA — garde-la secrète, comme un mot de passe.</div>'
+    +'<div class="set-row"><label>Nom</label><input type="text" id="wh-name" class="field-input" maxlength="100" placeholder="GitHub, Alertes…"></div>'
+    +'<div class="set-row"><label>Salon</label><select id="wh-channel" class="field-input">'+channelOptions+'</select></div>'
+    +'<button type="button" class="btn-main" id="wh-create-go" style="width:100%;margin-top:6px">Créer</button>'
+    +'<div class="err" id="wh-create-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('wh-create-go').onclick=async function(){
+    const name=(\$('wh-name').value||'').trim();
+    if(!name){\$('wh-create-err').textContent='Nom requis';return}
+    this.disabled=true;this.textContent='Création…';\$('wh-create-err').textContent='';
+    try{
+      const r=await authPost('/api/servers/webhooks/create',{serverId:activeServer.\$id,channelId:\$('wh-channel').value,name:name});
+      close();
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast('Webhook créé — copie son URL avant de fermer, tu pourras toujours la recopier plus tard depuis ce panneau. 🔌');
+      if(r&&r.webhook&&r.webhook.url){
+        (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(r.webhook.url):Promise.reject()).catch(function(){});
+      }
+    }catch(e){\$('wh-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+  };
+}
 const TIMEOUT_PRESETS=[{label:'5 minutes',minutes:5},{label:'10 minutes',minutes:10},{label:'1 heure',minutes:60},{label:'1 jour',minutes:1440},{label:'1 semaine',minutes:10080}];
 function openServerTimeoutPicker(uid){
   const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
@@ -12352,7 +12388,8 @@ const AUDIT_ACTION_LABELS={
   message_pin:{icon:'📌',label:'a épinglé un message de'},message_unpin:{icon:'📌',label:'a désépinglé un message de'},
   thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'},
   server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'},
-  event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'}
+  event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'},
+  webhook_create:{icon:'🔌',label:'a créé le webhook'},webhook_delete:{icon:'🔌',label:'a supprimé le webhook'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12596,10 +12633,19 @@ function automodWordsHtml(json){
     return '<span class="srv-role-pill" style="background:rgba(239,68,68,.15);color:#fca5a5">'+esc(w)+' <button type="button" data-automod-del="'+esc(w)+'" style="margin-left:4px;color:inherit;font-weight:900">✕</button></span>';
   }).join('');
 }
+let srvWebhooksCache=[];
 async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
+  const canWebhooks=isOwner||serverHasPermission('manage_channels');
+  if(canWebhooks){
+    try{
+      const rwh=await fetch('/api/servers/webhooks/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+      const jwh=await rwh.json();
+      srvWebhooksCache=(jwh&&jwh.webhooks)||[];
+    }catch(e){srvWebhooksCache=[];}
+  }else{srvWebhooksCache=[];}
   const boostLevel=serverBoostLevel(activeServer);
   const boostCount=serverBoostCount(activeServer);
   const boostedByMe=serverIsBoostedByMe(activeServer);
@@ -12621,6 +12667,16 @@ async function renderServerSettingsTab(){
     +'<div id="srv-automod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+automodWordsHtml(activeServer.autoModWordsJson)+'</div>'
     +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
+    +(canWebhooks?('<div class="set-card"><div class="set-section-label">🔌 Webhooks</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Un webhook laisse un service externe (GitHub, un script, une app…) poster des messages dans un salon texte via une simple requête, sans compte XULTRA.</div>'
+      +(srvWebhooksCache.length?srvWebhooksCache.map(function(w){
+        const chan=activeServerChannels.find(function(c){return c.\$id===w.channelId;});
+        return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(w.name)+'</div><div class="scr-sub">#'+esc(chan?chan.name:'salon supprimé')+'</div></div>'
+          +'<button type="button" class="set-mini-btn" data-srv-wh-copy="'+esc(w.url)+'">Copier l\\'URL</button>'
+          +'<button type="button" class="set-mini-btn danger" data-srv-wh-del="'+esc(w.\$id)+'">Supprimer</button></div>';
+      }).join(''):'<div class="scr-sub">Aucun webhook pour l\\'instant.</div>')
+      +'<button type="button" class="btn-main" id="srv-wh-create-btn" style="width:100%;margin-top:8px">+ Créer un webhook</button>'
+    +'</div>'):'')
     +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧭 Découverte</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Rends ce serveur visible dans Découvrir des serveurs pour que n\\'importe qui puisse le trouver et le rejoindre en un clic, sans code d\\'invitation.</div>'
       +'<div class="set-toggle-row"><span>Serveur découvrable</span><div class="set-switch'+(activeServer.discoverable?' on':'')+'" id="srv-discoverable-toggle" data-on="'+(activeServer.discoverable?'1':'0')+'"></div></div>'
@@ -12688,6 +12744,25 @@ async function renderServerSettingsTab(){
       try{await authPost('/api/servers/quality',{serverId:activeServer.\$id,screenQualityKey:b.getAttribute('data-srv-quality-screen')});await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Qualité vidéo mise à jour.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
     });
   });
+  box.querySelectorAll('[data-srv-wh-copy]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const url=b.getAttribute('data-srv-wh-copy');
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject()).then(function(){showToast('URL du webhook copiée !');}).catch(function(){showToast(url,'error');});
+    });
+  });
+  box.querySelectorAll('[data-srv-wh-del]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Supprimer ce webhook ? Tout service qui l\\'utilise arrêtera de pouvoir poster.'))return;
+      b.disabled=true;
+      try{
+        await authPost('/api/servers/webhooks/delete',{webhookId:b.getAttribute('data-srv-wh-del')});
+        await openServerDetail(activeServer.\$id);switchServerTab('settings');
+        showToast('Webhook supprimé.');
+      }catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+  const whCreateBtn=\$('srv-wh-create-btn');
+  if(whCreateBtn)whCreateBtn.onclick=openServerWebhookCreateForm;
   const discoverableToggle=\$('srv-discoverable-toggle');
   if(discoverableToggle)discoverableToggle.onclick=async function(){
     const next=discoverableToggle.getAttribute('data-on')!=='1';
@@ -15495,6 +15570,99 @@ async function handle(request) {
       return new Response(JSON.stringify({ ok: true, event: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/webhooks/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const name = String((body && body.name) || "").trim().slice(0, 100) || "Webhook";
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "text") throw new Error("Les webhooks ne peuvent cibler qu'un salon texte");
+      const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+      const webhook = await awFetch("/databases/" + AW_DB + "/collections/server_webhooks/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, channelId: channelId, name: name, avatarUrl: String((body && body.avatarUrl) || "").slice(0, 500), token: token, creatorUid: String(acc.$id) } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "webhook_create", name, { channelId: channelId });
+      return new Response(JSON.stringify({ ok: true, webhook: Object.assign({}, webhook, { url: url.origin + "/api/webhooks/" + webhook.$id + "/" + token }) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/webhooks/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/server_webhooks/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const webhooks = (found.documents || []).map(function (w) {
+        return Object.assign({}, w, { url: url.origin + "/api/webhooks/" + w.$id + "/" + w.token });
+      });
+      return new Response(JSON.stringify({ ok: true, webhooks: webhooks }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/webhooks/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const webhookId = String((body && body.webhookId) || "");
+      const webhook = await awFetch("/databases/" + AW_DB + "/collections/server_webhooks/documents/" + webhookId, { asAdmin: true });
+      const gate = await serverCheckPermission(webhook.serverId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      await awFetch("/databases/" + AW_DB + "/collections/server_webhooks/documents/" + webhookId, { method: "DELETE", asAdmin: true });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(webhook.serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "webhook_delete", webhook.name, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Point d'entrée PUBLIC (pas de session requise, comme les webhooks Discord :
+  // l'URL elle-même, avec son jeton long et aléatoire, fait office de secret).
+  // Format : /api/webhooks/{webhookId}/{token}, POST { content, username?, avatar_url? }.
+  if (/^\/api\/webhooks\/[^/]+\/[^/]+$/.test(path) && request.method === "POST") {
+    try {
+      const segs = path.split("/");
+      const webhookId = segs[3];
+      const token = segs[4];
+      const webhook = await awFetch("/databases/" + AW_DB + "/collections/server_webhooks/documents/" + webhookId, { asAdmin: true }).catch(function () { return null; });
+      if (!webhook || webhook.token !== token) throw new Error("Webhook invalide");
+      const body = await request.json().catch(function () { return {}; });
+      const content = String((body && body.content) || "").trim().slice(0, 4000);
+      if (!content) throw new Error("content requis");
+      const username = String((body && body.username) || "").trim().slice(0, 100) || webhook.name;
+      const avatarUrl = String((body && body.avatar_url) || "").trim().slice(0, 500) || webhook.avatarUrl || "";
+      const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + webhook.channelId, { asAdmin: true }).catch(function () { return null; });
+      if (!channel) throw new Error("Salon introuvable");
+      // Le message d'un webhook doit rester visible aux MÊMES personnes qu'un
+      // message envoyé normalement dans ce salon (jamais plus large) — jamais
+      // read("any") en dur, qui exposerait un salon restreint à tout le monde.
+      const msgPerms = await computeChannelMessagePermissions(webhook.serverId, channel);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { channelId: webhook.channelId, serverId: webhook.serverId, uid: "webhook:" + webhookId, username: username, text: content, avatarUrl: avatarUrl, replyToId: "", pollJson: "", threadId: "" }, permissions: msgPerms }
+      });
+      return new Response(JSON.stringify({ ok: true, id: msg.$id }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
