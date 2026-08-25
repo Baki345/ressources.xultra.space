@@ -1658,6 +1658,16 @@ a.bug-att-item{display:block}
 .srv-rules-text{max-height:38vh;overflow-y:auto;font-size:.85rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;padding-right:4px;margin-bottom:12px}
 .srv-rules-check{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;cursor:pointer;padding:8px 0}
 .srv-rules-check input{width:16px;height:16px;accent-color:#7c3aed}
+.srv-welcome-channels{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.srv-welcome-chan-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.18);cursor:pointer;transition:background .15s ease}
+.srv-welcome-chan-row:hover{background:rgba(124,58,237,.16)}
+.srv-welcome-chan-emoji{font-size:1.3rem;flex-shrink:0}
+.srv-welcome-chan-info{min-width:0}
+.srv-welcome-chan-name{font-weight:700;font-size:.85rem}
+.srv-welcome-editor-row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.srv-welcome-editor-row select{flex:2}
+.srv-welcome-editor-row input[data-welcome-emoji]{flex:0 0 46px;text-align:center;padding:8px 4px}
+.srv-welcome-editor-row input[data-welcome-desc]{flex:3}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
@@ -4079,6 +4089,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.63.0',date:'26 août 2026',time:'08:00',title:'Serveurs : écran d\\'accueil',
+    body:'Nouvelle section 👋 Écran d\\'accueil dans les paramètres du serveur : mets en avant jusqu\\'à 5 salons avec un emoji et une courte description. Les nouveaux membres (et ceux qui viennent d\\'accepter les règles du mode communauté) le voient automatiquement à leur arrivée, avec un clic direct vers chaque salon mis en avant — et un bouton 👋 permet de le revoir à tout moment depuis la liste des salons.'},
   {version:'2.62.0',date:'26 août 2026',time:'07:15',title:'Tags de serveur',
     body:'Le propriétaire d\\'un serveur peut désormais lui donner un tag 100% personnalisable (texte + couleur) depuis les paramètres du serveur. Chaque membre choisit ensuite, dans Paramètres → Profils, d\\'afficher le tag d\\'un des serveurs dont il est membre juste à côté de son pseudo — dans les messages, les listes d\\'amis et de conversations, la fiche profil, un peu partout sur XULTRA.'},
   {version:'2.61.0',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
@@ -11549,6 +11561,9 @@ async function openServerDetail(serverId){
   const isOwnerHere=me&&String(activeServer.ownerId)===String(me.\$id);
   if(activeServer.communityMode&&!isOwnerHere&&!canSettings&&activeServerMembership&&!activeServerMembership.rulesAcceptedAt){
     openServerRulesGate();
+  }else if(activeServerMembership&&!shownWelcomeScreenServerIds.has(activeServer.\$id)){
+    shownWelcomeScreenServerIds.add(activeServer.\$id);
+    maybeShowWelcomeScreen(activeServer.\$id);
   }
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.add('hidden');
@@ -11597,7 +11612,9 @@ function renderServerChannelList(){
   if(canInvite){
     html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
   }
-  html+='<div class="srv-section-row"><div class="set-section-label">Salons</div>'+(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-add-channel">+ Salon</button>':'')+'</div>';
+  let hasWelcomeContent=!!(activeServer.welcomeMessage||'').trim();
+  if(!hasWelcomeContent)try{hasWelcomeContent=(JSON.parse(activeServer.welcomeScreenChannelsJson||'[]')||[]).length>0;}catch(e){}
+  html+='<div class="srv-section-row"><div class="set-section-label">Salons</div><div style="display:flex;gap:6px">'+(hasWelcomeContent?'<button type="button" class="set-mini-btn" id="srv-reopen-welcome" title="Revoir l\\'écran d\\'accueil">👋</button>':'')+(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-add-channel">+ Salon</button>':'')+'</div></div>';
   const catMap={};activeServerCategories.forEach(function(c){catMap[c.\$id]=c;});
   const grouped={};
   activeServerChannels.forEach(function(c){const key=c.categoryId||'';(grouped[key]=grouped[key]||[]).push(c);});
@@ -11627,6 +11644,8 @@ function renderServerChannelList(){
   };
   const addChanBtn=\$('srv-add-channel');
   if(addChanBtn)addChanBtn.onclick=function(){openServerChannelEditor(null);};
+  const reopenWelcomeBtn=\$('srv-reopen-welcome');
+  if(reopenWelcomeBtn)reopenWelcomeBtn.onclick=function(){maybeShowWelcomeScreen(activeServer.\$id);};
   box.querySelectorAll('[data-srv-chan]').forEach(function(el){
     el.addEventListener('click',function(){openServerChannel(el.getAttribute('data-srv-chan'));});
   });
@@ -12337,6 +12356,42 @@ function openServerWebhookCreateForm(){
     }catch(e){\$('wh-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
+let shownWelcomeScreenServerIds=new Set();
+async function maybeShowWelcomeScreen(serverId){
+  try{
+    const r=await fetch('/api/servers/welcome-screen/get?serverId='+encodeURIComponent(serverId),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const j=await r.json();
+    if(!j||!j.ok)return;
+    if(!j.welcomeMessage&&!(j.channels&&j.channels.length))return;
+    if(activeServer&&activeServer.\$id===serverId)openServerWelcomeScreen(j);
+  }catch(e){}
+}
+const WELCOME_CHANNEL_ICONS={text:'#',voice:'🔊',forum:'📋'};
+function openServerWelcomeScreen(data){
+  if(\$('srv-welcome-screen-overlay'))return;
+  const overlay=document.createElement('div');
+  overlay.id='srv-welcome-screen-overlay';
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card srv-rules-card" style="text-align:left">'
+    +'<div class="set-section-label">👋 Bienvenue sur '+esc(activeServer.name)+'</div>'
+    +(data.welcomeMessage?'<div class="srv-rules-welcome">'+esc(data.welcomeMessage)+'</div>':'')
+    +((data.channels&&data.channels.length)?('<div class="srv-welcome-channels">'+data.channels.map(function(c){
+      return '<div class="srv-welcome-chan-row" data-welcome-go="'+esc(c.channelId)+'"><span class="srv-welcome-chan-emoji">'+esc(c.emoji||'👋')+'</span><div class="srv-welcome-chan-info"><div class="srv-welcome-chan-name">'+(WELCOME_CHANNEL_ICONS[c.type]||'#')+' '+esc(c.name)+'</div>'+(c.description?('<div class="scr-sub">'+esc(c.description)+'</div>'):'')+'</div></div>';
+    }).join('')+'</div>'):'')
+    +'<button type="button" class="btn-main" id="srv-welcome-close-btn" style="width:100%;margin-top:10px">C\\'est parti !</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('srv-welcome-close-btn').onclick=close;
+  overlay.querySelectorAll('[data-welcome-go]').forEach(function(row){
+    row.addEventListener('click',function(){
+      const channelId=row.getAttribute('data-welcome-go');
+      close();
+      openServerChannel(channelId);
+    });
+  });
+}
 function handleRulesGateError(e){
   if(e&&e.message==='rules_not_accepted'&&activeServer){openServerRulesGate();return true}
   return false;
@@ -12366,6 +12421,10 @@ function openServerRulesGate(){
       if(activeServerMembership)activeServerMembership.rulesAcceptedAt=new Date().toISOString();
       overlay.remove();
       showToast('Bienvenue parmi nous ! 🏛️');
+      if(!shownWelcomeScreenServerIds.has(activeServer.\$id)){
+        shownWelcomeScreenServerIds.add(activeServer.\$id);
+        maybeShowWelcomeScreen(activeServer.\$id);
+      }
     }catch(e){\$('srv-rules-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='J\\'accepte les règles';}
   };
 }
@@ -12862,6 +12921,13 @@ async function renderServerSettingsTab(){
       +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-tag-save" style="flex:1">Enregistrer</button>'+(activeServer.tagText?'<button type="button" class="set-mini-btn danger" id="srv-tag-remove">Retirer</button>':'')+'</div>'
       +'<div class="err" id="srv-tag-err"></div>'
     +'</div>'):'')
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">👋 Écran d\\'accueil</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Mets en avant jusqu\\'à 5 salons avec un emoji et une courte description, montrés aux membres à leur arrivée pour les orienter.</div>'
+      +'<div id="srv-welcome-rows"></div>'
+      +'<button type="button" class="set-mini-btn" id="srv-welcome-add-row" style="margin-bottom:10px">+ Ajouter un salon</button>'
+      +'<button type="button" class="btn-main" id="srv-welcome-save" style="width:100%">Enregistrer</button>'
+      +'<div class="err" id="srv-welcome-err"></div>'
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -13042,6 +13108,49 @@ async function renderServerSettingsTab(){
       showToast('Tag retiré.');
     }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
   };
+  if(\$('srv-welcome-rows')){
+    let welcomeDraft=[];
+    try{welcomeDraft=JSON.parse(activeServer.welcomeScreenChannelsJson||'[]')||[];}catch(e){welcomeDraft=[];}
+    welcomeDraft=welcomeDraft.filter(function(c){return activeServerChannels.some(function(ch){return ch.\$id===c.channelId;});});
+    function renderWelcomeRows(){
+      const rowsBox=\$('srv-welcome-rows');if(!rowsBox)return;
+      rowsBox.innerHTML=welcomeDraft.map(function(c,i){
+        return '<div class="srv-welcome-editor-row" data-welcome-row="'+i+'">'
+          +'<select data-welcome-chan="'+i+'" class="field-input">'+activeServerChannels.map(function(ch){return '<option value="'+esc(ch.\$id)+'"'+(ch.\$id===c.channelId?' selected':'')+'>#'+esc(ch.name)+'</option>';}).join('')+'</select>'
+          +'<input type="text" data-welcome-emoji="'+i+'" class="field-input" maxlength="8" value="'+esc(c.emoji||'👋')+'">'
+          +'<input type="text" data-welcome-desc="'+i+'" class="field-input" maxlength="100" placeholder="Description" value="'+esc(c.description||'')+'">'
+          +'<button type="button" class="set-mini-btn danger" data-welcome-rm="'+i+'">✕</button>'
+          +'</div>';
+      }).join('')||'<div class="scr-sub" style="margin-bottom:8px">Aucun salon mis en avant pour l\\'instant.</div>';
+      rowsBox.querySelectorAll('[data-welcome-rm]').forEach(function(b){
+        b.addEventListener('click',function(){welcomeDraft.splice(Number(b.getAttribute('data-welcome-rm')),1);renderWelcomeRows();});
+      });
+    }
+    renderWelcomeRows();
+    const addRowBtn=\$('srv-welcome-add-row');
+    if(addRowBtn)addRowBtn.onclick=function(){
+      if(welcomeDraft.length>=5){showToast('5 salons maximum','error');return}
+      if(!activeServerChannels.length){showToast('Crée d\\'abord un salon.','error');return}
+      welcomeDraft.push({channelId:activeServerChannels[0].\$id,emoji:'👋',description:''});
+      renderWelcomeRows();
+    };
+    const welcomeSaveBtn=\$('srv-welcome-save');
+    if(welcomeSaveBtn)welcomeSaveBtn.onclick=async function(){
+      const rowsBox=\$('srv-welcome-rows');
+      const channels=welcomeDraft.map(function(c,i){
+        const sel=rowsBox.querySelector('[data-welcome-chan="'+i+'"]');
+        const emo=rowsBox.querySelector('[data-welcome-emoji="'+i+'"]');
+        const desc=rowsBox.querySelector('[data-welcome-desc="'+i+'"]');
+        return {channelId:sel?sel.value:c.channelId,emoji:emo?emo.value:c.emoji,description:desc?desc.value:c.description};
+      });
+      this.disabled=true;this.textContent='Enregistrement…';\$('srv-welcome-err').textContent='';
+      try{
+        await authPost('/api/servers/welcome-screen/set',{serverId:activeServer.\$id,channels:channels});
+        showToast('Écran d\\'accueil enregistré ! 👋');
+      }catch(e){\$('srv-welcome-err').textContent=(e&&e.message)||'Erreur';}
+      this.disabled=false;this.textContent='Enregistrer';
+    };
+  }
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
     this.disabled=true;
@@ -16117,6 +16226,71 @@ async function handle(request) {
         return { serverId: s.$id, name: s.name, tagText: s.tagText, tagColor: s.tagColor || "#7c3aed" };
       });
       return new Response(JSON.stringify({ ok: true, servers: tagged }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Écran d'accueil (§ welcome screen) : jusqu'à 5 salons mis en avant avec
+  // emoji + description, pour orienter les nouveaux membres dès leur arrivée
+  // sur le serveur — complète le mode communauté (règles) sans s'y substituer.
+  if (path === "/api/servers/welcome-screen/set" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const rawChannels = Array.isArray(body && body.channels) ? body.channels : [];
+      if (rawChannels.length > 5) throw new Error("5 salons maximum dans l'écran d'accueil");
+      const serverChannels = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const validIds = (serverChannels.documents || []).map(function (c) { return c.$id; });
+      const channels = [];
+      for (const c of rawChannels) {
+        const channelId = String((c && c.channelId) || "");
+        if (validIds.indexOf(channelId) < 0) continue;
+        channels.push({
+          channelId: channelId,
+          emoji: String((c && c.emoji) || "").trim().slice(0, 8) || "👋",
+          description: String((c && c.description) || "").trim().slice(0, 100)
+        });
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
+        method: "PATCH", asAdmin: true, body: { data: { welcomeScreenChannelsJson: JSON.stringify(channels) } }
+      });
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/welcome-screen/get" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!isOwner) {
+        const member = await getServerMembership(serverId, acc.$id);
+        if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      }
+      let channels = [];
+      try { channels = JSON.parse(server.welcomeScreenChannelsJson || "[]") || []; } catch (e) {}
+      if (channels.length) {
+        const serverChannels = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+        const byId = {};
+        (serverChannels.documents || []).forEach(function (c) { byId[c.$id] = c; });
+        channels = channels.filter(function (c) { return !!byId[c.channelId]; }).map(function (c) {
+          return Object.assign({}, c, { name: byId[c.channelId].name, type: byId[c.channelId].type });
+        });
+      }
+      return new Response(JSON.stringify({ ok: true, welcomeMessage: server.welcomeMessage || "", channels: channels }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
