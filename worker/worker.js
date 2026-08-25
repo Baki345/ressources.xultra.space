@@ -80,6 +80,20 @@ function randomInviteCode() {
   for (let i = 0; i < 8; i++) s += chars[bytes[i] % chars.length];
   return s;
 }
+// Boosts de serveur : geste symbolique et gratuit (pas de passerelle de
+// paiement) — chaque membre peut activer/désactiver son propre boost, le
+// serveur accumule les boosts actifs, et franchir un palier débloque des
+// avantages pour TOUT le serveur (contrairement à XULTRA+ qui reste un
+// avantage personnel du propriétaire).
+const SERVER_BOOST_THRESHOLDS = [2, 5, 10];
+function serverBoostLevel(server) {
+  let boosters = [];
+  try { boosters = JSON.parse((server && server.boostedByJson) || "[]"); } catch (e) {}
+  const count = boosters.length;
+  let level = 0;
+  for (let i = 0; i < SERVER_BOOST_THRESHOLDS.length; i++) { if (count >= SERVER_BOOST_THRESHOLDS[i]) level = i + 1; }
+  return level;
+}
 async function getServerMembership(serverId, uid) {
   const q = "/databases/" + AW_DB + "/collections/server_members/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -3758,6 +3772,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.53.0',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
+    body:'Nouvelle section 🚀 Boosts dans les paramètres d\\'un serveur : n\\'importe quel membre peut le booster (geste gratuit et symbolique), et plus il y a de boosts actifs, plus le serveur débloque d\\'avantages pour TOUT le monde — palier 2 : qualité audio/vidéo XULTRA+ pour tous les membres, sans dépendre de l\\'abonnement du propriétaire ; palier 3 : le code d\\'invitation devient personnalisable (ex. "MONSERVEUR" au lieu d\\'une suite de caractères aléatoires).'},
   {version:'2.52.0',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
     body:'Chatroulette : l\\'appel vocal démarre maintenant automatiquement dès la mise en relation, plus besoin de le proposer manuellement (la caméra, elle, reste toujours ton propre choix). Nouveau 🎰 Casino (juste sous 🎲 Chatroulette) : jetons fictifs sans valeur réelle, pour défier d\\'autres membres en duel — pile ou face et dés pour commencer, d\\'autres jeux à venir. Et dans Paramètres → Confidentialité et sécurité → Utilisateurs bloqués, retrouve enfin la liste de qui tu as bloqué pour débloquer en un clic.'},
   {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
@@ -10565,6 +10581,22 @@ function serverIconHtml(s,sizeClass){
   const url=safeUrl(s&&s.icon);
   return url?'<img src="'+esc(url)+'" alt="">':esc(ini((s&&s.name)||'?'));
 }
+const SERVER_BOOST_THRESHOLDS=[2,5,10];
+function serverBoostCount(s){
+  let boosters=[];try{boosters=JSON.parse((s&&s.boostedByJson)||'[]');}catch(e){}
+  return boosters.length;
+}
+function serverBoostLevel(s){
+  const count=serverBoostCount(s);
+  let level=0;
+  for(let i=0;i<SERVER_BOOST_THRESHOLDS.length;i++){if(count>=SERVER_BOOST_THRESHOLDS[i])level=i+1;}
+  return level;
+}
+function serverIsBoostedByMe(s){
+  if(!me)return false;
+  let boosters=[];try{boosters=JSON.parse((s&&s.boostedByJson)||'[]');}catch(e){}
+  return boosters.map(String).indexOf(String(me.\$id))>=0;
+}
 function renderServersListView(){
   const box=\$('list-body');if(!box||view!=='servers')return;
   if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu ne fais partie d\\'aucun serveur pour l\\'instant. Crée le tien ou rejoins-en un avec un code (boutons en haut) !</div>';return}
@@ -11731,11 +11763,14 @@ async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
-  let isPlus=false;
-  if(isOwner){
-    try{const ownerMeta=await db.getDocument(DB,'user_meta',me.\$id);isPlus=ownerMeta&&ownerMeta.plan==='plus';}catch(e){}
+  const boostLevel=serverBoostLevel(activeServer);
+  const boostCount=serverBoostCount(activeServer);
+  const boostedByMe=serverIsBoostedByMe(activeServer);
+  let isPlus=boostLevel>=2;
+  if(isOwner&&!isPlus){
+    try{const ownerMeta=await db.getDocument(DB,'user_meta',me.\$id);isPlus=!!(ownerMeta&&ownerMeta.plan==='plus');}catch(e){}
   }
-  const upsell='<div class="srv-upsell">⭐ Nécessite XULTRA+ — voir Paramètres → Abonnement</div>';
+  const upsell='<div class="srv-upsell">⭐ Nécessite XULTRA+ (propriétaire) ou le palier de boost 2 — voir Paramètres → Abonnement, ou la section 🚀 Boosts ci-dessous</div>';
   box.innerHTML='<div class="set-card">'
     +'<div class="set-row"><label>Nom</label><input type="text" id="srv-set-name" class="field-input" maxlength="100" value="'+esc(activeServer.name)+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="srv-set-desc" class="field-input" maxlength="500" rows="3">'+esc(activeServer.description||'')+'</textarea></div>'
@@ -11749,6 +11784,19 @@ async function renderServerSettingsTab(){
     +'<div id="srv-automod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+automodWordsHtml(activeServer.autoModWordsJson)+'</div>'
     +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
+    +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
+    +SERVER_BOOST_THRESHOLDS.map(function(threshold,i){
+      const lvl=i+1,unlocked=boostLevel>=lvl;
+      const perk=lvl===1?'Premier palier atteint — d\\'autres avantages arriveront à ce niveau':lvl===2?'Qualité audio/vidéo XULTRA+ débloquée pour tout le serveur':'Code d\\'invitation personnalisable';
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+(unlocked?'✅':'🔒')+' Palier '+lvl+' — '+threshold+' boosts</div><div class="scr-sub">'+esc(perk)+'</div></div></div>';
+    }).join('')
+    +'</div>'
+    +((isOwner||serverHasPermission('manage_invites'))?('<div class="set-card'+(boostLevel>=3?'':' srv-quality-locked')+'"><div class="set-section-label">🔗 Lien d\\'invitation personnalisé</div>'
+      +(boostLevel>=3?('<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>')
+        :'<div class="srv-upsell">🚀 Nécessite le palier de boost 3 pour ce serveur</div>')
+      +'</div>'):'')
     +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité XULTRA+</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité du partage d\\'écran</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.screenQualityKey||'720p60')==='720p60'?' on':'')+'" data-srv-quality-screen="720p60">720p60</button><button type="button" class="seg-btn'+(activeServer.screenQualityKey==='1080p60'?' on':'')+'" data-srv-quality-screen="1080p60"'+(isPlus?'':' disabled')+'>1080p60</button></div>'+(isPlus?'':upsell)+'</div>'
@@ -11798,6 +11846,27 @@ async function renderServerSettingsTab(){
       try{await authPost('/api/servers/quality',{serverId:activeServer.\$id,screenQualityKey:b.getAttribute('data-srv-quality-screen')});await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Qualité vidéo mise à jour.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
     });
   });
+  const boostBtn=\$('srv-boost-toggle');
+  if(boostBtn)boostBtn.onclick=async function(){
+    this.disabled=true;
+    try{
+      const r=await authPost('/api/servers/boost/toggle',{serverId:activeServer.\$id});
+      activeServer.boostedByJson=r.server.boostedByJson;
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast(r.boosting?'Merci pour ton boost ! 🚀':'Boost retiré.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
+  };
+  const vanitySave=\$('srv-vanity-save');
+  if(vanitySave)vanitySave.onclick=async function(){
+    \$('srv-vanity-err').textContent='';
+    this.disabled=true;
+    try{
+      const r=await authPost('/api/servers/vanity-invite',{serverId:activeServer.\$id,code:(\$('srv-vanity-input').value||'').trim()});
+      activeServer.inviteCode=r.inviteCode;
+      showToast('Lien personnalisé enregistré !');
+    }catch(e){\$('srv-vanity-err').textContent=(e&&e.message)||'Erreur';}
+    this.disabled=false;
+  };
   const delBtn=\$('srv-delete-btn');
   if(delBtn)delBtn.onclick=async function(){
     if(!confirm('Supprimer définitivement ce serveur ? Cette action est irréversible.'))return;
@@ -14125,23 +14194,79 @@ async function handle(request) {
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
       if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire peut changer la qualité");
       const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      const isPlus = meta && meta.plan === "plus";
+      // Deux chemins indépendants débloquent la meilleure qualité : XULTRA+
+      // personnel du propriétaire (avantage individuel), OU le serveur a
+      // atteint le palier de boost 2 (avantage collectif, gagné par les
+      // membres — ne dépend pas du compte du propriétaire).
+      const isPlus = (meta && meta.plan === "plus") || serverBoostLevel(server) >= 2;
       const AUDIO_OK = ["standard", "high"];
       const SCREEN_OK = ["720p60", "1080p60"];
       const data = {};
       if (typeof body.audioQualityKey === "string") {
         if (AUDIO_OK.indexOf(body.audioQualityKey) < 0) throw new Error("Qualité audio inconnue");
-        if (body.audioQualityKey !== "standard" && !isPlus) throw new Error("Cette qualité audio nécessite XULTRA+");
+        if (body.audioQualityKey !== "standard" && !isPlus) throw new Error("Cette qualité audio nécessite XULTRA+ ou que le serveur atteigne le palier de boost 2");
         data.audioQualityKey = body.audioQualityKey;
       }
       if (typeof body.screenQualityKey === "string") {
         if (SCREEN_OK.indexOf(body.screenQualityKey) < 0) throw new Error("Qualité d'écran inconnue");
-        if (body.screenQualityKey !== "720p60" && !isPlus) throw new Error("Cette qualité de partage d'écran nécessite XULTRA+");
+        if (body.screenQualityKey !== "720p60" && !isPlus) throw new Error("Cette qualité de partage d'écran nécessite XULTRA+ ou que le serveur atteigne le palier de boost 2");
         data.screenQualityKey = body.screenQualityKey;
       }
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
       return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/boost/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!isOwner) {
+        const member = await getServerMembership(serverId, acc.$id);
+        if (!member) throw new Error("Tu dois être membre de ce serveur pour le booster");
+      }
+      let boosters = [];
+      try { boosters = JSON.parse(server.boostedByJson || "[]"); } catch (e) {}
+      boosters = boosters.map(String);
+      const uid = String(acc.$id);
+      const idx = boosters.indexOf(uid);
+      const nowBoosting = idx < 0;
+      if (nowBoosting) boosters.push(uid); else boosters.splice(idx, 1);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { boostedByJson: JSON.stringify(boosters) } } });
+      return new Response(JSON.stringify({ ok: true, server: updated, boosting: nowBoosting, boostCount: boosters.length, boostLevel: serverBoostLevel(updated) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/vanity-invite" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const code = String((body && body.code) || "").trim().toUpperCase();
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_invites");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (serverBoostLevel(server) < 3) throw new Error("Ce serveur doit atteindre le palier de boost 3 pour un lien personnalisé");
+      if (!/^[A-Z0-9-]{3,20}$/.test(code)) throw new Error("Le lien doit faire 3 à 20 caractères (lettres, chiffres, tirets)");
+      const dup = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "inviteCode", values: [code] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const conflict = (dup.documents || [])[0];
+      if (conflict && String(conflict.$id) !== String(serverId)) throw new Error("Ce lien est déjà pris");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { inviteCode: code } } });
+      const actorProfileVanity = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfileVanity && (actorProfileVanity.displayName || actorProfileVanity.username)) || acc.name, "invite_regenerate", updated.inviteCode, { vanity: true });
+      return new Response(JSON.stringify({ ok: true, inviteCode: updated.inviteCode }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
