@@ -1323,6 +1323,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-hunter5{background-image:linear-gradient(125deg,#78350f,#facc15,#fff7cc,#f59e0b,#facc15,#78350f);color:#1a1005;border-color:rgba(250,204,21,.85);box-shadow:0 0 18px rgba(250,204,21,.75),0 0 34px rgba(250,204,21,.4);animation:badgeShift 3.2s ease infinite,badgePulse 1.6s ease-in-out infinite}
 .badge-hunter5::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(250,204,21,.6);animation:frameSpin 4s linear infinite;pointer-events:none}
 .badge-early{background-image:linear-gradient(125deg,#cbd5e1,#ffffff,#e2e8f0,#f8fafc,#cbd5e1);color:#0f172a;border-color:rgba(255,255,255,.75);box-shadow:0 0 10px rgba(255,255,255,.45)}
+.badge-creator{background-image:linear-gradient(125deg,#ec4899,#8b5cf6,#38bdf8,#facc15,#ec4899);color:#fff;border-color:rgba(236,72,153,.8);box-shadow:0 0 16px rgba(236,72,153,.65),0 0 32px rgba(139,92,246,.4);animation:badgeShift 2.6s ease infinite,badgePulse 1.7s ease-in-out infinite}
+.badge-creator::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(236,72,153,.6);animation:frameSpin 3.2s linear infinite;pointer-events:none}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
 .pm-scroll{overflow-y:auto;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -1453,6 +1455,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-hunter5::before{background:radial-gradient(circle at 30% 20%,#facc15,transparent 60%);opacity:.4}
 .badge-info-card.badge-early{background:linear-gradient(160deg,#0f1218,#1e293b 40%,#0f1218);border-color:rgba(255,255,255,.35)}
 .badge-info-card.badge-early::before{background:radial-gradient(circle at 30% 20%,#fff,transparent 55%)}
+.badge-info-card.badge-creator{background:linear-gradient(160deg,#1a0a1a,#3d1a3d 40%,#1a0a1a);border-color:rgba(236,72,153,.55)}
+.badge-info-card.badge-creator::before{background:radial-gradient(circle at 30% 20%,#ec4899,transparent 40%,#8b5cf6 75%,transparent);opacity:.4}
 .bi-head{font-size:1.15rem;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative}
 .badge-info-card.badge-base .bi-head{color:#e9d5ff}
 .badge-info-card.badge-dev .bi-head{color:#fca5a5}
@@ -1462,6 +1466,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-hunter4 .bi-head{color:#fca5a5}
 .badge-info-card.badge-hunter5 .bi-head{color:#fde68a}
 .badge-info-card.badge-early .bi-head{color:#fff}
+.badge-info-card.badge-creator .bi-head{color:#f9a8d4}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
 .hunter-stats{font-size:.8rem;color:var(--muted);font-weight:700;margin-top:6px}
@@ -3852,6 +3857,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.54.1',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
+    body:'Un nouveau badge holographique rejoint la collection — remis à la main par l\\'équipe aux créateurs qui font vivre XULTRA en dehors de la plateforme (vidéos, streams, tutos, communauté). Dégradé irisé qui tourne et scintille, anneau qui tourne autour comme les badges les plus rares. Un clic dessus, sur un profil ou dans le trombinoscope, ouvre une jolie carte de présentation avec sa description.'},
   {version:'2.54.0',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
     body:'Nouveau bouton 🧭 à côté de Créer/Rejoindre un serveur : parcours les serveurs qu\\'un propriétaire a choisi de rendre publics, filtre par catégorie (Gaming, Musique, Art, Éducation, Technologie, Communauté…) ou recherche par nom, et rejoins en un clic — plus besoin de code d\\'invitation. Côté propriétaire (ou membre avec la permission "Gérer le serveur"), un nouveau réglage 🧭 Découverte permet d\\'activer la visibilité du serveur et de choisir sa catégorie.'},
   {version:'2.53.3',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
@@ -5300,7 +5307,8 @@ const BADGE_DEFS={
   hunter3:{icon:'🕷️',label:'CHASSEUR EXPERT',color:'#f59e0b',desc:"10 bugs validés et résolus — ce badge or qui brille pour de vrai. À partir de ce niveau, tu débloques un accès en avant-première à certaines nouvelles fonctionnalités avant tout le monde."},
   hunter4:{icon:'⚔️',label:'EXTERMINATEUR',color:'#ef4444',desc:"25 bugs éliminés. Un vrai fléau pour les failles de XULTRA. Ton accès en avant-première devient prioritaire : tu testes les nouveautés parmi les tout premiers."},
   hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et XULTRA+ offert à vie en reconnaissance. Un immense merci."},
-  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."}
+  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
+  creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe XULTRA aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -5314,8 +5322,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['dev','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
-const BADGE_GROUP_LABEL={dev:'STAFF / DEV',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['dev','creator','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
+const BADGE_GROUP_LABEL={dev:'STAFF / DEV',creator:'CRÉATEURS DE CONTENU',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
@@ -9105,7 +9113,7 @@ async function loadAdminMembers(){
   if(!membersCache.length)await loadMembers();
   return membersCache;
 }
-const TOGGLEABLE_BADGES=['dev','early'];
+const TOGGLEABLE_BADGES=['dev','early','creator'];
 let adminMembersQuery='';
 function renderAdminMembers(list,focusSearch){
   const box=\$('admin-body');if(!box)return;
@@ -13403,7 +13411,7 @@ async function handle(request) {
     try {
       const body = await request.json();
       const authUserId = String((body && body.authUserId) || "");
-      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early"].indexOf(b) >= 0; }) : [];
+      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator"].indexOf(b) >= 0; }) : [];
       const targetName = String((body && body.targetName) || "");
       if (!authUserId) throw new Error("authUserId requis");
       const badgesJson = JSON.stringify(badges);
