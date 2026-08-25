@@ -1447,6 +1447,15 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-pane.hidden{display:none}
 .pe-field{display:flex;flex-direction:column;gap:6px;font-size:.76rem;font-weight:700;color:var(--muted)}
 .pe-field .field-input{width:100%}
+/* Infobulle légère façon XULTRA pour les boutons icône-seule (juste un
+   emoji, sans texte visible) — le title= natif du navigateur reste en
+   secours (accessibilité, et s'affiche quand même si le CSS échoue), mais
+   il est lent à apparaître et visuellement générique. data-tip="" ajoute
+   une bulle stylée, plus rapide et lisible, sans rien changer côté clic. */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 9px);left:50%;transform:translateX(-50%) translateY(4px);background:linear-gradient(135deg,#2a1548,#180c28);color:#f2ebff;font-size:.7rem;font-weight:700;padding:5px 10px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s ease,transform .15s ease;box-shadow:0 8px 20px rgba(0,0,0,.45);border:1px solid rgba(167,139,250,.35);z-index:50}
+[data-tip]::before{content:'';position:absolute;bottom:calc(100% + 3px);left:50%;transform:translateX(-50%) translateY(4px);border:5px solid transparent;border-top-color:#180c28;opacity:0;pointer-events:none;transition:opacity .15s ease,transform .15s ease;z-index:50}
+[data-tip]:hover::after,[data-tip]:hover::before,[data-tip]:focus-visible::after,[data-tip]:focus-visible::before{opacity:1;transform:translateX(-50%) translateY(0)}
 .pe-mini-btn{margin-left:6px;background:rgba(255,255,255,.08);border-radius:6px;padding:1px 7px;font-size:.85rem;cursor:pointer}
 .pe-color-input{width:100%;height:38px;border-radius:8px;border:1px solid rgba(255,255,255,.1);background:transparent;cursor:pointer;padding:2px}
 .pe-swatches{display:flex;gap:8px;flex-wrap:wrap}
@@ -2270,9 +2279,9 @@ a.bug-att-item{display:block}
         <button type="button" class="btn-main hidden" id="pm-creator">🎬 Voir la chaîne</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
         <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
-        <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
-        <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre">⛔</button>
-        <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre">🚩</button>
+        <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil">🔗</button>
+        <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
+        <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
       </div>
     </div>
   </div>
@@ -2301,7 +2310,7 @@ a.bug-att-item{display:block}
             <label class="pe-mini-upload"><input type="file" id="pe-gallery-file" accept="image/*" hidden/>➕ Ajouter une photo</label>
           </div>
           <label class="pe-field"><span>Nom affiché</span><input type="text" id="pe-name" maxlength="64" class="field-input"/></label>
-          <label class="pe-field"><span>Tag <button type="button" class="pe-mini-btn" id="pe-tag-random" title="Randomiser">🎲</button></span><input type="text" id="pe-tag" maxlength="4" class="field-input" placeholder="0000"/></label>
+          <label class="pe-field"><span>Tag <button type="button" class="pe-mini-btn" id="pe-tag-random" title="Randomiser" data-tip="Tirer un nouveau tag au hasard">🎲</button></span><input type="text" id="pe-tag" maxlength="4" class="field-input" placeholder="0000"/></label>
           <label class="pe-field"><span>Pronoms</span><input type="text" id="pe-pronouns" maxlength="24" class="field-input" placeholder="il/lui, elle/elle, iel…"/></label>
           <label class="pe-field"><span>Statut personnalisé</span><input type="text" id="pe-custom-status" maxlength="60" class="field-input" placeholder="🎮 En train de coder…"/></label>
           <label class="pe-field"><span>Bio</span><textarea id="pe-bio" maxlength="500" class="field-input" style="height:80px;padding-top:9px;resize:vertical"></textarea></label>
@@ -4036,6 +4045,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.57.2',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
+    body:'Suite à une idée reçue dans la Boîte à idées ("juste des boutons avec des emojis, je ne sais pas ce que c\\'est") : les boutons icône-seule autour du profil (🔗 copier le lien, ⛔ bloquer, 🚩 signaler, 📷 changer photo/bannière, 🎲 randomiser le tag, ✕ retirer une photo, thèmes et contours d\\'avatar) affichent maintenant une info-bulle stylée aux couleurs XULTRA au survol, plus rapide et plus lisible que la bulle générique du navigateur.'},
   {version:'2.57.1',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
     body:'Le nouveau bandeau d\\'en-tête dégradé du panneau de signalement passait par-dessus le bouton ✕, le rendant invisible et inutilisable — introduit par la refonte visuelle précédente. Corrigé.'},
   {version:'2.57.0',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
@@ -6405,10 +6416,10 @@ function buildProfileCardHtml(p,meta,badges,opts){
   }
   return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
     +'<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
-      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière">📷</button>':'')
+      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
     +'</div>'
     +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"><div class="pc-av">'+avatarInner+'</div>'
-      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo">📷</button>':'')
+      +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo" data-tip="Changer la photo">📷</button>':'')
       +(p.statusManual&&p.statusManual!=='invisible'?'<span class="pc-presence-dot" style="background:'+presence.dot+'" title="'+esc(presence.label)+'"></span>':'')
     +'</div></div>'
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
@@ -6556,6 +6567,7 @@ async function openProfileModal(uid){
     const isBlocked=blockedUids.indexOf(String(uid))>=0;
     blockBtn.textContent=isBlocked?'✅':'⛔';
     blockBtn.title=isBlocked?'Débloquer ce membre':'Bloquer ce membre';
+    blockBtn.dataset.tip=blockBtn.title;
     blockBtn.onclick=function(){
       if(isBlocked)unblockUser(uid);
       else confirmBlockUser(uid,name);
@@ -6700,7 +6712,7 @@ function openProfileEditPanel(p,meta){
 function renderThemeSwatches(){
   const wrap=\$('pe-theme-swatches');if(!wrap||!peDraft)return;
   wrap.innerHTML=Object.keys(THEME_PRESETS).map(function(k){
-    return '<button type="button" class="pe-swatch'+(peDraft.theme===k?' on':'')+'" data-theme="'+k+'" style="background:'+THEME_PRESETS[k]+'" title="'+k+'"></button>';
+    return '<button type="button" class="pe-swatch'+(peDraft.theme===k?' on':'')+'" data-theme="'+k+'" style="background:'+THEME_PRESETS[k]+'" title="'+k+'" data-tip="'+esc(k)+'"></button>';
   }).join('');
   wrap.querySelectorAll('[data-theme]').forEach(function(b){
     b.addEventListener('click',function(){
@@ -6715,7 +6727,7 @@ const FRAME_LABELS={none:'Aucun',fire:'🔥 Feu',frost:'❄️ Givre',gold:'✨ 
 function renderFrameSwatches(){
   const wrap=\$('pe-frame-swatches');if(!wrap||!peDraft)return;
   wrap.innerHTML=AVATAR_FRAMES.map(function(k){
-    return '<button type="button" class="pe-frame-swatch pc-av-frame frame-'+k+'" data-frame="'+k+'" title="'+esc(FRAME_LABELS[k])+'">'
+    return '<button type="button" class="pe-frame-swatch pc-av-frame frame-'+k+'" data-frame="'+k+'" title="'+esc(FRAME_LABELS[k])+'" data-tip="'+esc(FRAME_LABELS[k])+'">'
       +'<span class="pe-frame-inner'+(peDraft.avatarFrame===k?' on':'')+'"></span></button>';
   }).join('');
   wrap.querySelectorAll('[data-frame]').forEach(function(b){
@@ -6742,7 +6754,7 @@ function renderPresenceRow(){
 function renderGalleryThumbs(){
   const wrap=\$('pe-gallery');if(!wrap||!peDraft)return;
   wrap.innerHTML=peDraft.avatarGallery.map(function(url,i){
-    return '<div class="pe-gallery-thumb"><img src="'+esc(url)+'" alt=""/><button type="button" class="pe-gallery-rm" data-rm="'+i+'">✕</button></div>';
+    return '<div class="pe-gallery-thumb"><img src="'+esc(url)+'" alt=""/><button type="button" class="pe-gallery-rm" data-rm="'+i+'" title="Retirer cette photo" data-tip="Retirer cette photo">✕</button></div>';
   }).join('');
   wrap.querySelectorAll('[data-rm]').forEach(function(b){
     b.addEventListener('click',function(){
