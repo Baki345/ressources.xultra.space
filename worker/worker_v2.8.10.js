@@ -268,6 +268,19 @@ async function serverResolveChannelAccess(serverId, uid, channelId) {
 // Position = rang hiérarchique d'un rôle (plus grand = plus haut placé). Sert à
 // empêcher un détenteur de "manage_roles" de créer/modifier/attribuer un rôle
 // aussi ou plus puissant que le sien — seul le propriétaire est sans limite.
+// Mode Communauté (§ roadmap) : tant qu'un membre n'a pas explicitement
+// accepté les règles du serveur, il peut toujours LIRE mais pas écrire —
+// même logique que le timeout, mais déclenchée par un réglage de serveur
+// plutôt que par la modération. Le propriétaire et quiconque a une
+// permission de gestion (déjà "de confiance" par construction) n'est jamais
+// bloqué. Le message d'erreur est un identifiant technique volontairement
+// non traduit ("rules_not_accepted") : le client le reconnaît pour ouvrir
+// l'écran d'acceptation des règles plutôt qu'un toast d'erreur générique.
+function assertRulesAccepted(server, member, hasManage) {
+  if (!server.communityMode || hasManage) return;
+  if (member && member.rulesAcceptedAt) return;
+  throw new Error("rules_not_accepted");
+}
 async function getMemberAuthorityPosition(serverId, uid, server) {
   if (String(server.ownerId) === String(uid)) return Infinity;
   const member = await getServerMembership(serverId, uid);
@@ -1640,6 +1653,11 @@ a.bug-att-item{display:block}
 .srv-event-card{margin-bottom:10px}
 .srv-event-card.srv-event-past{opacity:.55}
 .srv-webhook-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,.25);color:#c4b5fd;font-size:.6rem;font-weight:800;letter-spacing:.02em;vertical-align:middle}
+.srv-rules-card{max-width:460px;padding:18px}
+.srv-rules-welcome{background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-bottom:10px;white-space:pre-wrap}
+.srv-rules-text{max-height:38vh;overflow-y:auto;font-size:.85rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;padding-right:4px;margin-bottom:12px}
+.srv-rules-check{display:flex;align-items:center;gap:8px;font-size:.82rem;font-weight:700;cursor:pointer;padding:8px 0}
+.srv-rules-check input{width:16px;height:16px;accent-color:#7c3aed}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
@@ -4049,6 +4067,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.60.0',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
+    body:'Nouvelle section 🏛️ Mode Communauté dans les paramètres du serveur (réservée à qui gère le serveur) : une fois activé avec des règles écrites, tout nouveau membre doit les lire et cocher "J\\'accepte" avant de pouvoir écrire dans les salons, créer un fil ou publier dans un forum — il peut toujours tout lire normalement en attendant. Message de bienvenue optionnel affiché avec les règles. Le propriétaire et la modération avec un rôle de gestion ne sont jamais bloqués.'},
   {version:'2.59.0',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
     body:'Nouvelle section 🔌 Webhooks dans les paramètres du serveur (réservée à qui gère les salons) : crée une URL unique par salon texte, à donner à un service externe (GitHub, un script, une app…) pour qu\\'il puisse poster des messages directement dans XULTRA, sans compte. Les messages d\\'un webhook portent un petit repère "WEBHOOK" pour rester bien distincts des messages de membres.'},
   {version:'2.58.0',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
@@ -11439,6 +11459,10 @@ async function openServerDetail(serverId){
   \$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
   activeServerTab='overview';
   switchServerTab('overview');
+  const isOwnerHere=me&&String(activeServer.ownerId)===String(me.\$id);
+  if(activeServer.communityMode&&!isOwnerHere&&!canSettings&&activeServerMembership&&!activeServerMembership.rulesAcceptedAt){
+    openServerRulesGate();
+  }
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.add('hidden');
   \$('server-active').classList.remove('hidden');
@@ -11797,7 +11821,7 @@ async function sendServerChannelMessage(){
     await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId,threadId:activeThread?activeThread.\$id:''});
     if(replyToId)clearReplyTarget('channel');
   }
-  catch(e){showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
+  catch(e){if(!handleRulesGateError(e))showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
 }
 async function loadChannelThreads(){
   try{
@@ -11856,7 +11880,7 @@ function openThreadCreateForm(originMessage){
       const r=await authPost('/api/servers/threads/create',{serverId:activeServer.\$id,channelId:activeChannel.\$id,name:name,private:\$('thread-private').checked,originMessageId:originMessage?originMessage.\$id:''});
       close();
       openThread(r.thread);
-    }catch(e){\$('thread-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+    }catch(e){if(handleRulesGateError(e)){close();return}\$('thread-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
 function openThread(thread){
@@ -11911,7 +11935,7 @@ function openForumPostCreateForm(){
       const r=await authPost('/api/servers/forum/post/create',{serverId:activeServer.\$id,channelId:activeChannel.\$id,title:title,text:text});
       close();
       openThread(r.thread);
-    }catch(e){\$('forum-post-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
+    }catch(e){if(handleRulesGateError(e)){close();return}\$('forum-post-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
   };
 }
 function renderThreadContent(box){
@@ -12004,7 +12028,7 @@ function openPollBuilder(){
       await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,replyToId:replyToId,poll:{question:question,options:options,multi:\$('poll-multi').checked,durationHours:parseInt(\$('poll-duration').value,10)}});
       if(replyToId)clearReplyTarget('channel');
       close();
-    }catch(e){\$('poll-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer le sondage';}
+    }catch(e){if(handleRulesGateError(e)){close();return}\$('poll-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer le sondage';}
   };
 }
 function serverRoleBadgesHtml(member){
@@ -12218,6 +12242,38 @@ function openServerWebhookCreateForm(){
     }catch(e){\$('wh-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
+function handleRulesGateError(e){
+  if(e&&e.message==='rules_not_accepted'&&activeServer){openServerRulesGate();return true}
+  return false;
+}
+function openServerRulesGate(){
+  if(\$('srv-rules-gate-overlay'))return;
+  const overlay=document.createElement('div');
+  overlay.id='srv-rules-gate-overlay';
+  overlay.className='action-sheet-overlay show';
+  const welcome=(activeServer.welcomeMessage||'').trim();
+  const rules=(activeServer.rulesText||'').trim();
+  overlay.innerHTML='<div class="action-sheet-card srv-rules-card" style="text-align:left">'
+    +'<div class="set-section-label">🏛️ Règles de '+esc(activeServer.name)+'</div>'
+    +(welcome?'<div class="srv-rules-welcome">'+esc(welcome)+'</div>':'')
+    +'<div class="srv-rules-text">'+(rules?esc(rules):'<span class="scr-sub">Ce serveur n\\'a pas encore détaillé de règles.</span>')+'</div>'
+    +'<label class="srv-rules-check"><input type="checkbox" id="srv-rules-checkbox"> J\\'ai lu et j\\'accepte les règles de ce serveur</label>'
+    +'<button type="button" class="btn-main" id="srv-rules-accept-btn" style="width:100%;margin-top:6px" disabled>J\\'accepte les règles</button>'
+    +'<div class="err" id="srv-rules-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  const checkbox=\$('srv-rules-checkbox'),acceptBtn=\$('srv-rules-accept-btn');
+  checkbox.addEventListener('change',function(){acceptBtn.disabled=!checkbox.checked;});
+  acceptBtn.onclick=async function(){
+    this.disabled=true;this.textContent='Validation…';\$('srv-rules-err').textContent='';
+    try{
+      await authPost('/api/servers/rules/accept',{serverId:activeServer.\$id});
+      if(activeServerMembership)activeServerMembership.rulesAcceptedAt=new Date().toISOString();
+      overlay.remove();
+      showToast('Bienvenue parmi nous ! 🏛️');
+    }catch(e){\$('srv-rules-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='J\\'accepte les règles';}
+  };
+}
 const TIMEOUT_PRESETS=[{label:'5 minutes',minutes:5},{label:'10 minutes',minutes:10},{label:'1 heure',minutes:60},{label:'1 jour',minutes:1440},{label:'1 semaine',minutes:10080}];
 function openServerTimeoutPicker(uid){
   const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
@@ -12389,7 +12445,8 @@ const AUDIT_ACTION_LABELS={
   thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'},
   server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'},
   event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'},
-  webhook_create:{icon:'🔌',label:'a créé le webhook'},webhook_delete:{icon:'🔌',label:'a supprimé le webhook'}
+  webhook_create:{icon:'🔌',label:'a créé le webhook'},webhook_delete:{icon:'🔌',label:'a supprimé le webhook'},
+  community_mode_on:{icon:'🏛️',label:'a activé le mode communauté'},community_mode_off:{icon:'🏛️',label:'a désactivé le mode communauté'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12682,6 +12739,14 @@ async function renderServerSettingsTab(){
       +'<div class="set-toggle-row"><span>Serveur découvrable</span><div class="set-switch'+(activeServer.discoverable?' on':'')+'" id="srv-discoverable-toggle" data-on="'+(activeServer.discoverable?'1':'0')+'"></div></div>'
       +'<div class="set-row"><label>Catégorie</label><select id="srv-discoverable-category" class="field-input">'+SERVER_DISCOVERY_CATEGORIES.map(function(c){return '<option value="'+c+'"'+(activeServer.category===c?' selected':'')+'>'+SERVER_CATEGORY_LABELS[c]+'</option>';}).join('')+'</select></div>'
     +'</div>'):'')
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🏛️ Mode Communauté</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Oblige les nouveaux membres à lire et accepter les règles du serveur avant de pouvoir écrire (les propriétaires et la modération avec Gérer le serveur ne sont jamais bloqués).</div>'
+      +'<div class="set-toggle-row"><span>Mode communauté activé</span><div class="set-switch'+(activeServer.communityMode?' on':'')+'" id="srv-community-toggle" data-on="'+(activeServer.communityMode?'1':'0')+'"></div></div>'
+      +'<div class="set-row"><label>Message de bienvenue (optionnel)</label><textarea id="srv-community-welcome" class="field-input" maxlength="500" rows="2" placeholder="Bienvenue sur '+esc(activeServer.name)+' !">'+esc(activeServer.welcomeMessage||'')+'</textarea></div>'
+      +'<div class="set-row"><label>Règles du serveur</label><textarea id="srv-community-rules" class="field-input" maxlength="4000" rows="5" placeholder="1. Sois respectueux…">'+esc(activeServer.rulesText||'')+'</textarea></div>'
+      +'<button type="button" class="btn-main" id="srv-community-save" style="width:100%">Enregistrer</button>'
+      +'<div class="err" id="srv-community-err"></div>'
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -12783,6 +12848,34 @@ async function renderServerSettingsTab(){
       showToast('Catégorie mise à jour.');
     }catch(e){showToast((e&&e.message)||'Erreur','error');}
   });
+  const communityToggle=\$('srv-community-toggle');
+  if(communityToggle)communityToggle.onclick=async function(){
+    const next=communityToggle.getAttribute('data-on')!=='1';
+    const rulesText=(\$('srv-community-rules').value||'').trim();
+    const welcomeMessage=(\$('srv-community-welcome').value||'').trim();
+    if(next&&!rulesText){\$('srv-community-err').textContent='Écris au moins quelques règles avant d\\'activer le mode communauté';return}
+    \$('srv-community-err').textContent='';
+    try{
+      await authPost('/api/servers/community/toggle',{serverId:activeServer.\$id,communityMode:next,rulesText:rulesText,welcomeMessage:welcomeMessage});
+      activeServer.communityMode=next;activeServer.rulesText=rulesText;activeServer.welcomeMessage=welcomeMessage;
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast(next?'Mode communauté activé. 🏛️':'Mode communauté désactivé.');
+    }catch(e){\$('srv-community-err').textContent=(e&&e.message)||'Erreur';}
+  };
+  const communitySave=\$('srv-community-save');
+  if(communitySave)communitySave.onclick=async function(){
+    const rulesText=(\$('srv-community-rules').value||'').trim();
+    const welcomeMessage=(\$('srv-community-welcome').value||'').trim();
+    const current=communityToggle&&communityToggle.getAttribute('data-on')==='1';
+    if(current&&!rulesText){\$('srv-community-err').textContent='Écris au moins quelques règles avant d\\'activer le mode communauté';return}
+    this.disabled=true;this.textContent='Enregistrement…';\$('srv-community-err').textContent='';
+    try{
+      await authPost('/api/servers/community/toggle',{serverId:activeServer.\$id,communityMode:current,rulesText:rulesText,welcomeMessage:welcomeMessage});
+      activeServer.rulesText=rulesText;activeServer.welcomeMessage=welcomeMessage;
+      showToast('Règles enregistrées.');
+    }catch(e){\$('srv-community-err').textContent=(e&&e.message)||'Erreur';}
+    this.disabled=false;this.textContent='Enregistrer';
+  };
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
     this.disabled=true;
@@ -15573,6 +15666,44 @@ async function handle(request) {
     }
   }
 
+  if (path === "/api/servers/community/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const communityMode = !!(body && body.communityMode);
+      const rulesText = String((body && body.rulesText) || "").trim().slice(0, 4000);
+      const welcomeMessage = String((body && body.welcomeMessage) || "").trim().slice(0, 500);
+      if (communityMode && !rulesText) throw new Error("Écris au moins quelques règles avant d'activer le mode communauté");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
+        method: "PATCH", asAdmin: true, body: { data: { communityMode: communityMode, rulesText: rulesText, welcomeMessage: welcomeMessage } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, communityMode ? "community_mode_on" : "community_mode_off", "", {});
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/rules/accept" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const member = await getServerMembership(serverId, acc.$id);
+      if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { rulesAcceptedAt: new Date().toISOString() } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/servers/webhooks/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -16273,6 +16404,7 @@ async function handle(request) {
       // message ensemble ; ici on n'autorise que les réponses DANS un post existant.
       if (access.channel.type !== "text" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type d'écriture");
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
+      assertRulesAccepted(access.server, access.member, access.hasManage);
       // Le verrouillage gèle le salon pour tout le monde sauf qui peut le gérer
       // (§13 : refuser "Envoyer des messages" sans supprimer le contenu).
       if (access.channel.locked && !access.hasManage) throw new Error("Ce salon est verrouillé par la modération");
@@ -16330,6 +16462,7 @@ async function handle(request) {
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
       if (!access.access.send) throw new Error("Tu ne peux pas créer de fil dans ce salon");
+      assertRulesAccepted(access.server, access.member, access.hasManage);
       const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents", {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { serverId: serverId, channelId: channelId, name: name, creatorUid: String(acc.$id), private: isPrivate, archived: false, memberUids: isPrivate ? [String(acc.$id)] : [], originMessageId: originMessageId } }
@@ -16433,6 +16566,7 @@ async function handle(request) {
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "forum") throw new Error("Ce salon n'est pas un salon forum");
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas publier pour le moment" : "Tu ne peux pas publier dans ce salon");
+      assertRulesAccepted(access.server, access.member, access.hasManage);
       if (access.channel.locked && !access.hasManage) throw new Error("Ce salon est verrouillé par la modération");
       const slowmodeSeconds = Number(access.channel.slowmodeSeconds) || 0;
       if (slowmodeSeconds > 0 && !access.hasManage) {
