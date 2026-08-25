@@ -3510,6 +3510,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.47.1',date:'25 août 2026',time:'15:10',title:'Journal d\\'audit : filtres et actions manquantes',
+    body:'Le journal d\\'audit d\\'un serveur (onglet dédié, réservé à la modération) affiche maintenant un filtre par type d\\'action et une recherche par nom, utile dès qu\\'un serveur a un peu d\\'historique. Quelques actions qui étaient déjà enregistrées mais restaient sans libellé lisible (verrouillage de salon, synchronisation de catégorie, épinglage de message) s\\'affichent maintenant correctement, et l\\'archivage/réouverture d\\'un fil par la modération y apparaît aussi désormais.'},
   {version:'2.47.0',date:'25 août 2026',time:'14:30',title:'Salons forum',
     body:'Nouveau type de salon "📋 Forum" (au choix à la création d\\'un salon) : au lieu d\\'un fil de discussion unique, chaque publication a son propre titre et devient une conversation à part entière — exactement comme un fil, avec réponses, réactions et emojis. Le bouton "+ Nouveau post" en haut du salon ouvre un petit formulaire (titre + contenu), et la liste des posts s\\'affiche triée du plus récent au plus ancien.'},
   {version:'2.46.0',date:'25 août 2026',time:'12:00',title:'Fils de discussion dans les salons de serveur',
@@ -10251,17 +10253,41 @@ const AUDIT_ACTION_LABELS={
   message_delete:{icon:'🗑️',label:'a supprimé un message de'},
   role_create:{icon:'🎭',label:'a créé le rôle'},role_update:{icon:'🎭',label:'a modifié le rôle'},role_delete:{icon:'🎭',label:'a supprimé le rôle'},role_assign:{icon:'🎭',label:'a changé les rôles de'},
   channel_create:{icon:'📁',label:'a créé le salon'},channel_delete:{icon:'📁',label:'a supprimé le salon'},
+  channel_lock:{icon:'🔒',label:'a verrouillé le salon'},channel_unlock:{icon:'🔓',label:'a déverrouillé le salon'},
+  channel_sync_category:{icon:'🔄',label:'a synchronisé les permissions du salon'},
   category_create:{icon:'🗂️',label:'a créé la catégorie'},category_delete:{icon:'🗂️',label:'a supprimé la catégorie'},
-  invite_regenerate:{icon:'🔗',label:'a régénéré l\\'invitation'},server_update:{icon:'⚙️',label:'a modifié les paramètres du serveur'}
+  invite_regenerate:{icon:'🔗',label:'a régénéré l\\'invitation'},server_update:{icon:'⚙️',label:'a modifié les paramètres du serveur'},
+  message_pin:{icon:'📌',label:'a épinglé un message de'},message_unpin:{icon:'📌',label:'a désépinglé un message de'},
+  thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'}
 };
+let auditLogEntries=[];
+function auditActionLabel(action){
+  return (AUDIT_ACTION_LABELS[action]&&AUDIT_ACTION_LABELS[action].label)||action;
+}
 async function renderServerAuditTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   box.innerHTML='<div class="empty-hint">Chargement…</div>';
-  let entries=[];
-  try{const r=await authPost('/api/servers/audit/list',{serverId:activeServer.\$id});entries=r.entries||[];}catch(e){box.innerHTML='<div class="empty-hint">Impossible de charger le journal.</div>';return}
-  if(!entries.length){box.innerHTML='<div class="empty-hint">Aucune action de modération pour l\\'instant.</div>';return}
+  try{const r=await authPost('/api/servers/audit/list',{serverId:activeServer.\$id});auditLogEntries=r.entries||[];}catch(e){box.innerHTML='<div class="empty-hint">Impossible de charger le journal.</div>';return}
+  if(!auditLogEntries.length){box.innerHTML='<div class="empty-hint">Aucune action de modération pour l\\'instant.</div>';return}
+  const actions=Array.from(new Set(auditLogEntries.map(function(e){return e.action;})));
   box.innerHTML='<div class="scr-sub" style="margin-bottom:10px">Historique des actions de modération et d\\'administration sur ce serveur.</div>'
-    +entries.map(function(e){
+    +'<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+    +'<input type="text" id="srv-audit-search" class="field-input" placeholder="Filtrer par nom…" style="flex:1;min-width:160px">'
+    +'<select id="srv-audit-filter" class="field-input" style="width:auto"><option value="">Toutes les actions</option>'
+    +actions.map(function(a){return '<option value="'+esc(a)+'">'+esc(auditActionLabel(a))+'</option>';}).join('')
+    +'</select></div>'
+    +'<div id="srv-audit-list"></div>';
+  function renderList(){
+    const q=(\$('srv-audit-search').value||'').trim().toLowerCase();
+    const filterAction=\$('srv-audit-filter').value;
+    const filtered=auditLogEntries.filter(function(e){
+      if(filterAction&&e.action!==filterAction)return false;
+      if(q&&(String(e.actorName||'').toLowerCase().indexOf(q)<0)&&(String(e.targetName||'').toLowerCase().indexOf(q)<0))return false;
+      return true;
+    });
+    const list=\$('srv-audit-list');
+    if(!filtered.length){list.innerHTML='<div class="empty-hint">Aucun résultat pour ce filtre.</div>';return}
+    list.innerHTML=filtered.map(function(e){
       const def=AUDIT_ACTION_LABELS[e.action]||{icon:'📋',label:e.action};
       let extra='';
       try{
@@ -10273,6 +10299,10 @@ async function renderServerAuditTab(){
         +'<div class="scr-sub" style="margin-top:2px">'+esc(fmtRelTime(e.\$createdAt))+'</div>'
         +'</div>';
     }).join('');
+  }
+  \$('srv-audit-search').addEventListener('input',renderList);
+  \$('srv-audit-filter').addEventListener('change',renderList);
+  renderList();
 }
 async function syncChannelWithCategory(channelId){
   const channel=activeServerChannels.find(function(c){return c.\$id===channelId});
@@ -13247,6 +13277,14 @@ async function handle(request) {
       const canAct = access.hasManage || (archived && isCreator);
       if (!canAct) throw new Error("Tu ne peux pas modifier ce fil");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { method: "PATCH", asAdmin: true, body: { data: { archived: archived } } });
+      // Le journal d'audit retrace les actions de MODÉRATION (§10), pas l'usage
+      // normal du site : un créateur qui archive son propre fil n'y figure pas,
+      // mais toute action passant par le pouvoir "Gérer les salons" (fermer le
+      // fil de quelqu'un d'autre, ou le rouvrir) y est consignée.
+      if (access.hasManage) {
+        const actorProfileThr = await resolveProfile(acc.$id);
+        await logServerAudit(serverId, acc.$id, (actorProfileThr && (actorProfileThr.displayName || actorProfileThr.username)) || acc.name, archived ? "thread_archive" : "thread_reopen", thread.name, {});
+      }
       return new Response(JSON.stringify({ ok: true, thread: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
