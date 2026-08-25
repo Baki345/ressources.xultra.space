@@ -3176,8 +3176,47 @@ async function ensureE2EKeys(password){
       try{await db.updateDocument(DB,'e2e_keys',existing.\$id,{pubKey:pub});}catch(e){}
     }
     const backedUp=existing?await backupE2EPrivateKeyIfNeeded(password,jwk,existing):false;
-    return {hasKey:!!jwk,backedUp:backedUp,needsRestore:needsRestore};
-  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});return {hasKey:false,backedUp:false,needsRestore:false};}
+    /* backedUp ne veut dire QUE "une sauvegarde existe côté serveur pour ce
+       compte" — pas que CETTE tentative de restauration a réussi. Les deux
+       étaient confondus jusqu'ici : un mot de passe valide pour la connexion
+       (donc validé) mais différent de celui utilisé au moment de la
+       sauvegarde (typiquement après un changement de mot de passe) fait
+       échouer restoreE2EPrivateKeyFromBackup() en silence (mauvaise clé de
+       déchiffrement AES) — needsRestore restait vrai et la clé locale restait
+       inchangée, mais backedUp valait quand même true, donc un vrai échec de
+       restauration s'affichait comme un succès ("Messages restaurés") sans
+       que rien n'ait changé. "restored" distingue clairement ce cas. */
+    return {hasKey:!!jwk,backedUp:backedUp,needsRestore:needsRestore,restored:justRestored,backupExists:backupAvailable};
+  }catch(e){xlog('e2e_keygen_fail',{msg:(e&&e.message)||String(e)});return {hasKey:false,backedUp:false,needsRestore:false,restored:false,backupExists:false};}
+}
+async function forceResaveE2EBackup(password){
+  /* Écrase la sauvegarde chiffrée côté serveur avec la clé privée ACTUELLE de
+     cet appareil, chiffrée avec le mot de passe ACTUEL (déjà vérifié par
+     l'appelant). Sert de filet de secours quand la sauvegarde existante ne
+     peut plus être déchiffrée par aucun mot de passe connu (compte dont le
+     mot de passe a changé sans que la sauvegarde n'ait jamais été
+     re-chiffrée) : impossible de récupérer l'ancien historique de messages
+     dans ce cas — aucune clé ne peut faire apparaître un secret perdu — mais
+     ça resynchronise tous les appareils sur une identité commune pour la
+     suite. */
+  if(!me||!me.\$id||!password)return false;
+  let jwk=null;
+  try{jwk=JSON.parse(localStorage.getItem('xultra_e2e_priv')||'null');}catch(e){}
+  if(!jwk)return false;
+  try{
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const aesKey=await deriveE2EBackupKey(password,salt);
+    const plain=new TextEncoder().encode(JSON.stringify(jwk));
+    const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv},aesKey,plain);
+    const pub=localStorage.getItem('xultra_e2e_pub')||'';
+    const r=await db.listDocuments(DB,'e2e_keys',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
+    const existing=(r.documents&&r.documents[0])||null;
+    const payload={pubKey:pub,encPrivB64:b64enc(new Uint8Array(cipher)),saltB64:b64enc(salt),ivB64:b64enc(iv)};
+    if(existing)await db.updateDocument(DB,'e2e_keys',existing.\$id,payload);
+    else await db.createDocument(DB,'e2e_keys',Appwrite.ID.unique(),Object.assign({uid:me.\$id},payload),[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+    return true;
+  }catch(e){xlog('e2e_force_resave_fail',{msg:(e&&e.message)||String(e)});return false;}
 }
 const peerPubKeyCache={};
 async function e2ePeerPubKey(peerUid){
@@ -3432,8 +3471,8 @@ async function e2eVerifyAndSync(pass,restoreIntent){
       return {ok:false};
     }
     const status=await ensureE2EKeys(pass);
-    if(status&&status.backedUp){
-      if(restoreIntent){
+    if(restoreIntent){
+      if(status&&status.restored){
         /* La clé restaurée peut différer de celle générée temporairement au
            démarrage — sans vider ce cache, e2eThreadKey() continuerait de
            renvoyer la clé (fausse) déjà résolue cette session, et les
@@ -3441,9 +3480,25 @@ async function e2eVerifyAndSync(pass,restoreIntent){
         Object.keys(threadKeyCache).forEach(function(k){delete threadKeyCache[k];});
         showToast('Messages restaurés — tu peux à nouveau les lire sur cet appareil. 🔓');
         hydrateEncryptedMessages().catch(function(){});
-      }else{
-        showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
+        return {ok:true};
       }
+      if(status&&status.backupExists){
+        /* Mot de passe correct pour la connexion (vérifié ci-dessus), mais
+           une sauvegarde existe côté serveur qu'il ne parvient PAS à
+           déchiffrer — presque toujours parce que le mot de passe du compte
+           a changé depuis que cette sauvegarde a été créée (elle est restée
+           chiffrée avec l'ancien). Aucun mot de passe actuel ne peut plus la
+           récupérer : ce n'est pas une erreur de frappe, c'est un vrai
+           blocage — mieux vaut le dire clairement que de faire croire que
+           réessayer suffira. */
+        showToast('Cette sauvegarde a été chiffrée avec un ancien mot de passe (probablement changé depuis) — elle ne peut plus être déchiffrée.','error');
+        return {ok:false,keyMismatch:true};
+      }
+      showToast('Aucune sauvegarde trouvée pour ce compte sur le serveur.','error');
+      return {ok:false};
+    }
+    if(status&&status.backedUp){
+      showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
       return {ok:true};
     }
     showToast('Erreur réseau, réessaie.','error');
@@ -3782,6 +3837,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.53.3',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
+    body:'Le vrai fond du problème signalé plusieurs fois : quand le mot de passe du compte a été changé APRÈS l\\'activation de la sauvegarde des messages, cette sauvegarde reste chiffrée avec l\\'ancien mot de passe pour toujours — aucun mot de passe actuel ne peut plus la déchiffrer. La restauration échouait donc en silence à chaque tentative tout en affichant "Messages restaurés" (elle confondait "une sauvegarde existe" et "cette tentative a réussi"). Corrigé : un message honnête s\\'affiche maintenant dans ce cas précis, avec un bouton pour réinitialiser la sauvegarde et resynchroniser tous tes appareils pour la suite (l\\'historique déjà chiffré avec l\\'ancienne clé, lui, ne peut malheureusement plus être récupéré — aucun logiciel ne peut déchiffrer sans la bonne clé). Et pour que ça ne se reproduise plus : changer son mot de passe re-chiffre maintenant automatiquement la sauvegarde avec le nouveau.'},
   {version:'2.53.2',date:'25 août 2026',time:'00:15',title:'Correctif : « mot de passe incorrect » lors de la restauration des messages',
     body:'Le nouveau bouton de restauration des messages chiffrés (Paramètres → Confidentialité et sécurité) affichait à tort "Mot de passe incorrect" même en tapant le bon, sur un appareil déjà connecté : la vérification du mot de passe entrait en conflit avec la session déjà active de l\\'appli, une erreur qui n\\'avait rien à voir avec le mot de passe saisi mais s\\'affichait comme telle. Corrigé — la vérification passe maintenant par un chemin indépendant qui ne rentre plus en conflit.'},
   {version:'2.53.1',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
@@ -4543,6 +4600,16 @@ function wireSetAccount(box,name){
     passSave.disabled=true;err.textContent='';
     try{
       await account.updatePassword(newPass,oldPass);
+      /* La sauvegarde chiffrée de la clé E2E (voir Confidentialité et
+         sécurité → Messages chiffrés) reste chiffrée avec l'ANCIEN mot de
+         passe si on ne la re-chiffre pas ici : elle devient alors
+         définitivement irrécupérable avec le nouveau, sur tout futur
+         appareil — exactement le bug qui a cassé la restauration de
+         messages chiffrés pour au moins un compte avant ce correctif.
+         Best-effort : la clé locale de CET appareil est toujours valide
+         juste après un changement de mot de passe, donc pas besoin de
+         redemander quoi que ce soit. */
+      forceResaveE2EBackup(newPass).catch(function(){});
       showToast('Mot de passe mis à jour !');
       \$('acc-pass-form').classList.add('hidden');
     }catch(e){err.textContent=(e&&e.message)||'Mot de passe actuel incorrect';passSave.disabled=false;}
@@ -4752,6 +4819,10 @@ function renderSetPrivacy(box){
     +'<div class="set-card"><div class="set-section-label">Messages chiffrés</div>'
       +'<div class="scr-sub" style="padding:0 4px 10px">Si tu vois « 🔒 Message illisible sur cet appareil », c\\'est que cet appareil n\\'a pas encore la bonne clé de déchiffrement. Entre ton mot de passe ci-dessous pour la restaurer — ça marche sur n\\'importe quel appareil, à tout moment, pas besoin d\\'attendre une bannière.</div>'
       +'<div class="set-card-row" style="gap:8px;flex-wrap:wrap"><input type="password" id="priv-e2e-restore-pass" placeholder="Ton mot de passe" style="flex:1;min-width:160px;padding:8px 10px;border-radius:8px;background:var(--elev);border:1px solid rgba(255,255,255,.1);color:inherit"><button type="button" class="set-mini-btn" id="priv-e2e-restore-btn">Restaurer mes messages</button></div>'
+      +'<div class="hidden" id="priv-e2e-reset-zone" style="padding:10px;margin-top:8px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)">'
+        +'<div class="scr-sub" style="color:#fca5a5">Cette sauvegarde a été chiffrée avec un ancien mot de passe et ne peut plus être déchiffrée — ça arrive quand le mot de passe du compte a été changé après l\\'activation de la sauvegarde. Impossible de récupérer l\\'historique déjà chiffré avec l\\'ancienne clé. Tu peux réinitialiser la sauvegarde avec la clé de CET appareil : les conversations déjà illisibles le resteront, mais tous tes appareils se resynchroniseront correctement pour la suite.</div>'
+        +'<button type="button" class="set-mini-btn danger" id="priv-e2e-reset-btn" style="margin-top:8px">Réinitialiser la sauvegarde</button>'
+      +'</div>'
     +'</div>'
     +'<div class="set-card"><div class="set-section-label">Contenu</div>'+toggleRow('Flouter le contenu sensible (NSFW)','nsfwBlur',appPrefs.nsfwBlur)+'</div>'
     +'<div class="set-card"><div class="set-section-label">Données</div>'
@@ -4785,14 +4856,37 @@ function wireSetPrivacy(box,privacy){
   const dataReq=\$('priv-data-request');
   if(dataReq)dataReq.onclick=function(){closeSettingsPanel();openBugModal(null);showToast('Décris ta demande dans le formulaire, on te répond vite !');};
   const e2eRestoreBtn=\$('priv-e2e-restore-btn');
+  let lastVerifiedE2EPass=null;
   if(e2eRestoreBtn)e2eRestoreBtn.onclick=async function(){
     const passInput=\$('priv-e2e-restore-pass');
     const pass=(passInput&&passInput.value)||'';
     if(!pass||!me||!me.email){showToast('Entre ton mot de passe.','error');return}
     e2eRestoreBtn.disabled=true;e2eRestoreBtn.textContent='Vérification…';
-    await e2eVerifyAndSync(pass,true);
+    const res=await e2eVerifyAndSync(pass,true);
+    const resetZone=\$('priv-e2e-reset-zone');
+    if(res&&res.keyMismatch){
+      lastVerifiedE2EPass=pass;
+      if(resetZone)resetZone.classList.remove('hidden');
+    }else if(resetZone){
+      resetZone.classList.add('hidden');
+    }
     e2eRestoreBtn.disabled=false;e2eRestoreBtn.textContent='Restaurer mes messages';
     if(passInput)passInput.value='';
+  };
+  const e2eResetBtn=\$('priv-e2e-reset-btn');
+  if(e2eResetBtn)e2eResetBtn.onclick=async function(){
+    if(!lastVerifiedE2EPass){showToast('Entre à nouveau ton mot de passe ci-dessus puis réessaie.','error');return}
+    e2eResetBtn.disabled=true;e2eResetBtn.textContent='Réinitialisation…';
+    const ok=await forceResaveE2EBackup(lastVerifiedE2EPass);
+    if(ok){
+      showToast('Sauvegarde réinitialisée — tes autres appareils pourront resynchroniser cette clé avec ton mot de passe. 🔒');
+      const resetZone=\$('priv-e2e-reset-zone');
+      if(resetZone)resetZone.classList.add('hidden');
+    }else{
+      showToast('Erreur réseau, réessaie.','error');
+    }
+    lastVerifiedE2EPass=null;
+    e2eResetBtn.disabled=false;e2eResetBtn.textContent='Réinitialiser la sauvegarde';
   };
 }
 function renderSetBlocked(box){
