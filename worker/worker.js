@@ -610,7 +610,14 @@ button{cursor:pointer;border:0;background:0}
 .hidden{display:none!important}
 
 #stage{
-  min-height:100dvh;display:grid;place-items:center;padding:20px;overflow:hidden;position:relative;
+  /* display:flex + margin:auto sur .stage-inner (pas place-items:center) :
+     un centrage grid/flex "unsafe" sur un contenu plus haut que l'écran
+     (formulaire d'inscription long, clavier mobile ouvert) coupait le haut
+     ET le bas de la carte à parts égales, sans aucun moyen d'y accéder —
+     rien à voir avec un vrai défaut de centrage, la carte restait bien au
+     centre, mais un centre en partie invisible. La marge automatique laisse
+     la page grandir et défiler normalement quand le contenu dépasse. */
+  min-height:100dvh;display:flex;padding:20px;overflow-x:hidden;position:relative;
   background:
     radial-gradient(ellipse 60% 45% at 18% 20%,rgba(124,58,237,.38),transparent 60%),
     radial-gradient(ellipse 55% 45% at 85% 15%,rgba(167,139,250,.24),transparent 60%),
@@ -631,7 +638,7 @@ button{cursor:pointer;border:0;background:0}
   background-image:radial-gradient(rgba(255,255,255,.045) 1px,transparent 1px);
   background-size:28px 28px;opacity:.5;mix-blend-mode:screen;
 }
-.stage-inner{position:relative;z-index:1;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;gap:26px;padding:20px 0}
+.stage-inner{position:relative;z-index:1;width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;align-items:center;gap:26px;padding:20px 0}
 .card{
   position:relative;z-index:1;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
   background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
@@ -983,9 +990,15 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .gif-picker{width:min(420px,100%);max-height:80dvh;display:flex;flex-direction:column}
 .gif-grid{margin-top:10px;display:grid;grid-template-columns:repeat(2,1fr);gap:8px;overflow-y:auto;max-height:60dvh}
 .gif-grid img{width:100%;border-radius:10px;cursor:pointer;display:block;background:var(--elev)}
-.overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px}
+/* Pas de align-items/justify-content:center ici : sur un contenu plus haut que
+   l'écran (clavier mobile ouvert, formulaire long), un centrage flex "unsafe"
+   coupe le haut ET le bas du modal sans aucun moyen de faire défiler pour les
+   voir — .overlay est position:fixed, donc en dehors du flux/scroll normal
+   de la page. La marge automatique sur .modal-box centre quand tout tient,
+   et laisse le débordement scrollable via overflow-y:auto ci-dessous sinon. */
+.overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;padding:16px;overflow-y:auto}
 .overlay:not(.hidden){display:flex}
-.modal-box{width:min(360px,100%);background:#15101f;border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:20px;position:relative}
+.modal-box{width:min(360px,100%);margin:auto;background:#15101f;border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:20px;position:relative}
 .modal-box h3{font-size:1rem;margin-bottom:12px}
 .modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
 .field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
@@ -3475,6 +3488,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.45.2',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
+    body:'Sur un écran court (clavier mobile ouvert, ou simplement un petit téléphone), la page de connexion/inscription et toutes les fenêtres (profil, paramètres, signalement, création de serveur…) pouvaient afficher un contenu coupé en haut et en bas dès qu\\'il dépassait la hauteur visible, sans aucun moyen de faire défiler pour voir le reste — un effet de bord du centrage automatique quand le contenu est plus grand que l\\'écran. Toutes ces fenêtres restent centrées quand tout tient, et défilent normalement sinon.'},
   {version:'2.45.1',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
     body:'Un salon de serveur sans restriction de rôle accordait la lecture de ses messages à "n\\'importe quel compte connecté sur XULTRA", pas seulement aux membres de ce serveur — un raccourci technique pour le temps réel qui supposait (à tort) que personne n\\'interrogerait la base directement. Découvert en développant la recherche de messages. Corrigé : seuls les membres réels du serveur reçoivent désormais l\\'accès en lecture, salon restreint ou non.'},
   {version:'2.45.0',date:'24 août 2026',time:'19:15',title:'Recherche de messages (DM et salons de serveur)',
