@@ -64,7 +64,7 @@ function mintLiveKitParticipantToken(identity, name, room) {
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
-const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events"];
+const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events", "manage_expressions"];
 async function logServerAudit(serverId, actorUid, actorName, action, targetName, details) {
   try {
     await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents", {
@@ -1661,6 +1661,16 @@ a.bug-att-item{display:block}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
+.msg-custom-emoji{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin:-4px 1px}
+.emoji-picker-custom-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(167,139,250,.2)}
+.emoji-picker-custom-grid button{padding:5px;border-radius:8px;line-height:1;display:flex;align-items:center;justify-content:center}
+.emoji-picker-custom-grid button:hover{background:var(--elev)}
+.emoji-picker-custom-grid img{width:22px;height:22px;object-fit:contain}
+.srv-emoji-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;margin-bottom:12px}
+.srv-emoji-tile{position:relative;background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:6px 4px;text-align:center}
+.srv-emoji-tile img{width:32px;height:32px;object-fit:contain;display:block;margin:0 auto 3px}
+.srv-emoji-tile .srv-emoji-name{font-size:.6rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srv-emoji-tile .srv-emoji-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#3a1030;border:1px solid rgba(248,113,113,.5);color:#fca5a5;font-size:.65rem;line-height:16px;cursor:pointer}
 .srv-perm-check{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:.82rem}
 .srv-quality-locked{opacity:.55}
 .srv-upsell{font-size:.7rem;color:#facc15;margin-top:4px}
@@ -4067,6 +4077,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.61.0',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
+    body:'Nouvelle section 😀 Emojis personnalisés dans les paramètres du serveur (jusqu\\'à 50 par serveur) : ajoute une image (PNG/GIF/WEBP, 512 Ko max) avec un nom, et tous les membres peuvent l\\'utiliser dans les salons en tapant <code>:nom:</code> — il s\\'affiche automatiquement comme une petite image dans les messages. Les emojis du serveur apparaissent aussi en haut du sélecteur d\\'emoji habituel pour un accès rapide en un clic.'},
   {version:'2.60.0',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
     body:'Nouvelle section 🏛️ Mode Communauté dans les paramètres du serveur (réservée à qui gère le serveur) : une fois activé avec des règles écrites, tout nouveau membre doit les lire et cocher "J\\'accepte" avant de pouvoir écrire dans les salons, créer un fil ou publier dans un forum — il peut toujours tout lire normalement en attendant. Message de bienvenue optionnel affiché avec les règles. Le propriétaire et la modération avec un rôle de gestion ne sont jamais bloqués.'},
   {version:'2.59.0',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
@@ -7496,14 +7508,19 @@ function closeEmojiPicker(){
   const pop=\$('emoji-picker-pop');
   if(pop)pop.remove();
 }
-function openEmojiPicker(anchorBtn,onPick){
+function openEmojiPicker(anchorBtn,onPick,customEmojis){
   closeEmojiPicker();
   const pop=document.createElement('div');
   pop.id='emoji-picker-pop';
   pop.className='emoji-picker-pop';
-  pop.innerHTML=EMOJI_LIST.map(function(em){return '<button type="button" data-emo="'+em+'">'+em+'</button>';}).join('');
+  const customHtml=(customEmojis&&customEmojis.length)?('<div class="emoji-picker-custom-grid">'+customEmojis.map(function(em){
+    return '<button type="button" data-custom-emo="'+esc(em.name)+'" title=":'+esc(em.name)+':"><img src="'+esc(em.imageUrl)+'" alt=""></button>';
+  }).join('')+'</div>'):'';
+  pop.innerHTML=customHtml+EMOJI_LIST.map(function(em){return '<button type="button" data-emo="'+em+'">'+em+'</button>';}).join('');
   document.body.appendChild(pop);
   pop.addEventListener('click',function(e){
+    const customBtn=e.target.closest('[data-custom-emo]');
+    if(customBtn){onPick(':'+customBtn.getAttribute('data-custom-emo')+':');closeEmojiPicker();return}
     const btn=e.target.closest('[data-emo]');if(!btn)return;
     onPick(btn.getAttribute('data-emo'));
     closeEmojiPicker();
@@ -11246,10 +11263,12 @@ const SERVER_PERM_DEFS=[
   {key:'kick_members',icon:'👢',label:'Expulser des membres',desc:'Retirer un membre du serveur (il peut revenir avec un code d\\'invitation).'},
   {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'},
   {key:'view_audit_log',icon:'📜',label:'Voir le journal d\\'audit',desc:'Consulter l\\'historique des actions de modération du serveur.'},
-  {key:'manage_events',icon:'📅',label:'Gérer les événements',desc:'Créer et annuler des événements planifiés du serveur.'}
+  {key:'manage_events',icon:'📅',label:'Gérer les événements',desc:'Créer et annuler des événements planifiés du serveur.'},
+  {key:'manage_expressions',icon:'😀',label:'Gérer les expressions',desc:'Ajouter et supprimer les emojis personnalisés du serveur.'}
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
+let activeServerEmojis=[];
 let activeThread=null,channelThreadsCache=[];
 function serverHasPermission(permission){
   if(!activeServer||!me)return false;
@@ -11446,6 +11465,11 @@ async function openServerDetail(serverId){
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   activeChannel=null;
   await loadServerChannels();
+  try{
+    const rEm=await fetch('/api/servers/emojis/list?serverId='+encodeURIComponent(serverId),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const jEm=await rEm.json();
+    activeServerEmojis=(jEm&&jEm.emojis)||[];
+  }catch(e){activeServerEmojis=[];}
   \$('srv-detail-name').textContent=activeServer.name;
   \$('srv-detail-desc').textContent=activeServer.description||'';
   \$('srv-detail-icon').innerHTML=serverIconHtml(activeServer);
@@ -11625,7 +11649,7 @@ function renderServerChannelContent(){
     openEmojiPicker(emojiBtn,function(emo){
       const inp=\$('srv-chan-input');
       inp.value+=emo;inp.focus();
-    });
+    },activeServerEmojis);
   });
   const aiFixBtn=\$('srv-chan-ai');
   if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
@@ -11732,7 +11756,7 @@ function renderChannelMessages(){
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
-    const body=m.pollJson?pollCardHtml(m):highlightRoleMentions(esc(m.text||''));
+    const body=m.pollJson?pollCardHtml(m):replaceCustomEmojis(highlightRoleMentions(esc(m.text||'')));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isWebhook?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
@@ -11983,7 +12007,7 @@ function renderThreadContent(box){
     openEmojiPicker(emojiBtn,function(emo){
       const inp=\$('srv-chan-input');
       inp.value+=emo;inp.focus();
-    });
+    },activeServerEmojis);
   });
   const aiFixBtn=\$('srv-chan-ai');
   if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
@@ -12061,6 +12085,14 @@ function highlightRoleMentions(escapedText){
     out=out.replace(re,'<span class="srv-role-mention" style="color:'+esc(r.color||'#a78bfa')+'">@'+name+'</span>');
   });
   return out;
+}
+function replaceCustomEmojis(escapedText){
+  if(!activeServerEmojis.length)return escapedText;
+  return escapedText.replace(/:([a-z0-9_]{2,32}):/g,function(full,name){
+    const em=activeServerEmojis.find(function(e){return e.name===name;});
+    if(!em)return full;
+    return '<img class="msg-custom-emoji" src="'+esc(em.imageUrl)+'" alt=":'+esc(name)+':" title=":'+esc(name)+':">';
+  });
 }
 function renderServerMembersTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
@@ -12446,7 +12478,8 @@ const AUDIT_ACTION_LABELS={
   server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'},
   event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'},
   webhook_create:{icon:'🔌',label:'a créé le webhook'},webhook_delete:{icon:'🔌',label:'a supprimé le webhook'},
-  community_mode_on:{icon:'🏛️',label:'a activé le mode communauté'},community_mode_off:{icon:'🏛️',label:'a désactivé le mode communauté'}
+  community_mode_on:{icon:'🏛️',label:'a activé le mode communauté'},community_mode_off:{icon:'🏛️',label:'a désactivé le mode communauté'},
+  emoji_create:{icon:'😀',label:'a ajouté l\\'emoji'},emoji_delete:{icon:'😀',label:'a supprimé l\\'emoji'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12747,6 +12780,16 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-community-save" style="width:100%">Enregistrer</button>'
       +'<div class="err" id="srv-community-err"></div>'
     +'</div>'):'')
+    +((isOwner||serverHasPermission('manage_expressions'))?('<div class="set-card"><div class="set-section-label">😀 Emojis personnalisés ('+activeServerEmojis.length+'/50)</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Ajoute des emojis propres à ce serveur, utilisables par tous les membres en tapant <code>:nom:</code> dans un salon.</div>'
+      +(activeServerEmojis.length?('<div class="srv-emoji-grid">'+activeServerEmojis.map(function(em){
+        return '<div class="srv-emoji-tile"><button type="button" class="srv-emoji-del" data-srv-emoji-del="'+esc(em.\$id)+'" title="Supprimer">✕</button><img src="'+esc(em.imageUrl)+'" alt=""><div class="srv-emoji-name">:'+esc(em.name)+':</div></div>';
+      }).join('')+'</div>'):'<div class="scr-sub" style="margin-bottom:10px">Aucun emoji personnalisé pour l\\'instant.</div>')
+      +'<div class="set-row"><label>Nom (lettres, chiffres, underscore)</label><input type="text" id="srv-emoji-name" class="field-input" maxlength="32" placeholder="pepe_content"></div>'
+      +'<div class="set-row"><label>Image (PNG/GIF/WEBP, 512 Ko max)</label><input type="file" id="srv-emoji-file" accept="image/png,image/gif,image/webp,image/jpeg" class="field-input"></div>'
+      +'<button type="button" class="btn-main" id="srv-emoji-add" style="width:100%">+ Ajouter l\\'emoji</button>'
+      +'<div class="err" id="srv-emoji-err"></div>'
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -12876,6 +12919,34 @@ async function renderServerSettingsTab(){
     }catch(e){\$('srv-community-err').textContent=(e&&e.message)||'Erreur';}
     this.disabled=false;this.textContent='Enregistrer';
   };
+  const emojiAddBtn=\$('srv-emoji-add');
+  if(emojiAddBtn)emojiAddBtn.onclick=async function(){
+    const name=(\$('srv-emoji-name').value||'').trim().toLowerCase();
+    const file=(\$('srv-emoji-file').files||[])[0];
+    \$('srv-emoji-err').textContent='';
+    if(!/^[a-z0-9_]{2,32}\$/.test(name)){\$('srv-emoji-err').textContent='Nom invalide : 2 à 32 caractères, lettres/chiffres/underscore';return}
+    if(!file){\$('srv-emoji-err').textContent='Choisis une image';return}
+    if(file.size>512*1024){\$('srv-emoji-err').textContent='Image trop lourde : 512 Ko max';return}
+    this.disabled=true;this.textContent='Ajout…';
+    try{
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      const imageUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      await authPost('/api/servers/emojis/create',{serverId:activeServer.\$id,name:name,imageUrl:imageUrl});
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast('Emoji :'+name+': ajouté ! 😀');
+    }catch(e){\$('srv-emoji-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='+ Ajouter l\\'emoji';}
+  };
+  box.querySelectorAll('[data-srv-emoji-del]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Supprimer cet emoji ? Il disparaîtra des messages où il était utilisé.'))return;
+      b.disabled=true;
+      try{
+        await authPost('/api/servers/emojis/delete',{emojiId:b.getAttribute('data-srv-emoji-del')});
+        await openServerDetail(activeServer.\$id);switchServerTab('settings');
+        showToast('Emoji supprimé.');
+      }catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
     this.disabled=true;
@@ -15794,6 +15865,72 @@ async function handle(request) {
       return new Response(JSON.stringify({ ok: true, id: msg.$id }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/emojis/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_expressions");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const name = String((body && body.name) || "").trim().toLowerCase();
+      if (!/^[a-z0-9_]{2,32}$/.test(name)) throw new Error("Le nom doit faire 2 à 32 caractères : lettres, chiffres, underscore uniquement");
+      const imageUrl = String((body && body.imageUrl) || "").trim().slice(0, 500);
+      if (!imageUrl) throw new Error("Image requise");
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const list = existing.documents || [];
+      if (list.some(function (e) { return e.name.toLowerCase() === name; })) throw new Error("Un emoji porte déjà ce nom sur ce serveur");
+      if (list.length >= 50) throw new Error("Limite de 50 emojis personnalisés atteinte pour ce serveur");
+      const emoji = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, name: name, imageUrl: imageUrl, creatorUid: String(acc.$id) } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "emoji_create", name, {});
+      return new Response(JSON.stringify({ ok: true, emoji: emoji }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/emojis/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const member = await getServerMembership(serverId, acc.$id);
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!member && !isOwner) throw new Error("Tu n'es pas membre de ce serveur");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, emojis: found.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/emojis/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const emojiId = String((body && body.emojiId) || "");
+      const emoji = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents/" + emojiId, { asAdmin: true });
+      const gate = await serverCheckPermission(emoji.serverId, acc.$id, "manage_expressions");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents/" + emojiId, { method: "DELETE", asAdmin: true });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(emoji.serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "emoji_delete", emoji.name, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
