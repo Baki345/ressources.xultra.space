@@ -857,6 +857,17 @@ button{cursor:pointer;border:0;background:0}
 .story-viewer-tap-l{left:0}.story-viewer-tap-r{right:0}
 .story-viewer-foot{padding:10px 12px 16px;display:flex;justify-content:center}
 .story-viewer-foot button{color:#fff;font-size:.78rem;background:rgba(255,255,255,.1);padding:8px 14px;border-radius:999px}
+.story-viewer-reply{flex-direction:column;gap:8px;padding:8px 12px 16px}
+.story-quick-reacts{display:flex;justify-content:center;gap:6px}
+.story-quick-react{background:rgba(255,255,255,.1);border-radius:50%;width:38px;height:38px;font-size:1.15rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .1s}
+.story-quick-react:active{transform:scale(1.25)}
+.story-reply-row{display:flex;gap:8px;align-items:center}
+#story-reply-input{flex:1;height:40px;border-radius:999px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;padding:0 16px;font-size:.85rem;outline:0}
+#story-reply-input::placeholder{color:rgba(255,255,255,.55)}
+#story-reply-input:focus{border-color:#a78bfa;background:rgba(255,255,255,.14)}
+#story-reply-send{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;flex-shrink:0}
+.story-ring:not(.seen){animation:storyRingPulse 2.4s ease-in-out infinite}
+@keyframes storyRingPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.45)}50%{box-shadow:0 0 0 4px rgba(124,58,237,0)}}
 .discover-overlay{position:fixed;inset:0;z-index:2500;background:#0b0714;display:none;flex-direction:column}
 .discover-overlay.show{display:flex}
 .discover-head{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
@@ -3127,6 +3138,18 @@ async function e2eResolveIncomingKey(m){
   }
   return e2eThreadKey(activeDmPeerUid);
 }
+// peerPubKeyCache/threadKeyCache vivent pour toute la durée de l'onglet — un
+// bug réel et longtemps invisible : si l'interlocuteur régénère/restaure sa
+// clé sur un AUTRE appareil pendant que cet onglet reste ouvert (ou que cet
+// onglet lui-même l'a déjà en cache avant sa propre restauration), tous ses
+// messages restent "🔒 Message illisible sur cet appareil" ici jusqu'au
+// prochain rechargement complet de la page — rien ne force jamais une
+// nouvelle lecture de sa clé publique entre-temps.
+function invalidateE2EPeerCache(peerUid){
+  if(!peerUid)return;
+  delete peerPubKeyCache[peerUid];
+  delete threadKeyCache[peerUid];
+}
 
 async function enterApp(e2ePassword){
   xlog('show_dash_start',{});
@@ -3594,6 +3617,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
+    body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. XULTRA détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
+  {version:'2.49.3',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
+    body:'Tu peux maintenant sélectionner plusieurs photos/vidéos dans la galerie en une fois : elles se publient à la suite comme autant de stories séparées, avec les mêmes réglages (visibilité, durée, position). Le visionnage se rapproche encore plus d\\'Instagram : appuie et maintiens pour mettre en pause, réagis avec une réaction rapide ou réponds directement en message privé à la story de quelqu\\'un, et ton propre rond de story a maintenant son "+" toujours accessible pour en ajouter une de plus.'},
   {version:'2.49.2',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
     body:'À la publication d\\'une story publique, choisis maintenant comment elle apparaît sur la carte "Découvrir" : Précise (ta position réelle), Approximative (ta position réelle, floutée à l\\'échelle du quartier pour rester discret) ou Simulée (touche une petite carte pour placer ta story où tu veux, sans lien avec ta position réelle) — ou "Aucune" si tu ne veux pas apparaître dessus du tout.'},
   {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs XULTRA + capture directe caméra',
@@ -6445,6 +6472,12 @@ async function openDm(threadId,title,peerUid){
   activeDmMembers=members;
   activeDmIsGroup=members.length>2;
   activeDmPeerUid=activeDmIsGroup?null:(peerUid||members.find(function(m){return m!==(me&&me.\$id)})||null);
+  // Ouvrir une conversation force une lecture fraîche de la clé publique de
+  // l'interlocuteur plutôt que de faire confiance à un cache potentiellement
+  // vieux de plusieurs heures — le cas concret évité : rouvrir une
+  // conversation après que l'autre personne a restauré/régénéré sa clé sur
+  // un autre appareil, sans jamais recharger complètement cette page.
+  if(activeDmPeerUid)invalidateE2EPeerCache(activeDmPeerUid);
   if(dm)title=dmTitleFor(dm);
   \$('chat-empty').classList.add('hidden');
   \$('chat-active').classList.remove('hidden');
@@ -6747,32 +6780,45 @@ function renderEncPlaceholder(m){
   if(t==='file')return '<div class="msg-file enc-loading"><span class="enc-spin">🔒</span><span>Déchiffrement…</span></div>';
   return '<span class="enc-loading"><span class="enc-spin">🔒</span> Déchiffrement…</span>';
 }
+async function attemptDecryptMessage(m){
+  let text=m.text||'',mediaUrl='',key=null;
+  try{key=await e2eResolveIncomingKey(m);}catch(e){key=null}
+  if(!key)return {ok:false};
+  if(text){
+    try{text=await e2eDecryptTextWithKey(key,text);}catch(e){return {ok:false};}
+  }
+  const srcUrl=safeUrl(m.mediaUrl);
+  if(srcUrl){
+    try{
+      const blob=await e2eDecryptBlobWithKey(key,srcUrl,m.mime||'application/octet-stream');
+      mediaUrl=URL.createObjectURL(blob);
+    }catch(e){return {ok:false};}
+  }
+  return {ok:true,text:text,mediaUrl:mediaUrl};
+}
 async function hydrateEncryptedMessages(){
   const forDm=activeDm;
   if(!forDm)return;
   const targets=msgsCache.filter(function(m){return m.enc});
   for(const m of targets){
     if(activeDm!==forDm)return;
-    let text=m.text||'',ok=true,key=null;
-    try{key=await e2eResolveIncomingKey(m);}catch(e){key=null}
-    if(!key)ok=false;
-    if(ok&&text){
-      try{text=await e2eDecryptTextWithKey(key,text);}catch(e){ok=false;text='';}
-    }
-    let mediaUrl='';
-    const srcUrl=safeUrl(m.mediaUrl);
-    if(ok&&srcUrl){
-      try{
-        const blob=await e2eDecryptBlobWithKey(key,srcUrl,m.mime||'application/octet-stream');
-        mediaUrl=URL.createObjectURL(blob);
-      }catch(e){ok=false;}
+    let result=await attemptDecryptMessage(m);
+    if(!result.ok){
+      // La clé mise en cache pour cet expéditeur peut être périmée — par
+      // exemple si SON appareil a régénéré/restauré sa clé pendant que cet
+      // onglet restait ouvert. On force une nouvelle lecture de sa clé
+      // publique et on retente une seule fois avant d'abandonner, plutôt que
+      // de laisser le message "illisible" jusqu'au prochain rechargement.
+      invalidateE2EPeerCache(m.uid);
+      invalidateE2EPeerCache(activeDmPeerUid);
+      result=await attemptDecryptMessage(m);
     }
     if(activeDm!==forDm)return;
     const box=\$('msgs');if(!box)return;
     const wrap=box.querySelector('.msg[data-mid="'+m.\$id+'"] .bub');
     if(!wrap)continue;
-    if(!ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';continue}
-    wrap.innerHTML=renderMsgBody(m,text,mediaUrl);
+    if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';continue}
+    wrap.innerHTML=renderMsgBody(m,result.text,result.mediaUrl);
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     mountLinkPreviews(wrap);
@@ -7416,6 +7462,8 @@ function renderStoriesBar(){
     if(myStories.length)openStoryViewer(me.\$id,0);
     else openStoryCreateForm();
   });
+  const myPlusBadge=box.querySelector('#story-add-btn .story-plus');
+  if(myPlusBadge)myPlusBadge.addEventListener('click',function(e){e.stopPropagation();openStoryCreateForm();});
   \$('story-discover-btn').addEventListener('click',openDiscoverOverlay);
   box.querySelectorAll('[data-story-open]').forEach(function(el){
     el.addEventListener('click',function(){openStoryViewer(el.getAttribute('data-story-open'),0);});
@@ -7431,7 +7479,7 @@ function openStoryCreateForm(){
     +'<button type="button" class="set-mini-btn" id="story-src-photo" style="flex:1">📷 Photo</button>'
     +'<button type="button" class="set-mini-btn" id="story-src-video" style="flex:1">🎥 Vidéo</button>'
     +'</div>'
-    +'<input type="file" id="story-file" accept="image/*,video/*" class="hidden">'
+    +'<input type="file" id="story-file" accept="image/*,video/*" multiple class="hidden">'
     +'<input type="file" id="story-file-photo" accept="image/*" capture="environment" class="hidden">'
     +'<input type="file" id="story-file-video" accept="video/*" capture="environment" class="hidden">'
     +'<div id="story-preview" style="margin-bottom:10px"></div>'
@@ -7491,42 +7539,70 @@ function openStoryCreateForm(){
       if(geoMode==='simulate')await initStorySimMap();
     });
   });
-  let selectedFile=null;
+  const STORY_MAX_COUNT=10;
+  let selectedFiles=[];
   \$('story-src-gallery').addEventListener('click',function(){\$('story-file').click();});
   \$('story-src-photo').addEventListener('click',function(){\$('story-file-photo').click();});
   \$('story-src-video').addEventListener('click',function(){\$('story-file-video').click();});
-  function onStoryFilePicked(){
-    selectedFile=this.files[0]||null;
+  function renderStoryFilePreviews(){
     const prev=\$('story-preview');
-    if(!selectedFile){prev.innerHTML='';return}
-    if(selectedFile.size>STORY_MAX_BYTES){\$('story-err').textContent='Fichier trop volumineux (50 Mo max).';selectedFile=null;this.value='';prev.innerHTML='';return}
-    \$('story-err').textContent='';
-    const url=URL.createObjectURL(selectedFile);
-    prev.innerHTML=selectedFile.type.indexOf('video/')===0
-      ?('<video src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px" controls></video>')
-      :('<img src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px">');
+    if(!selectedFiles.length){prev.innerHTML='';return}
+    prev.innerHTML='<div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">'+selectedFiles.map(function(f,i){
+      const url=URL.createObjectURL(f);
+      const isVideo=f.type.indexOf('video/')===0;
+      return '<div style="position:relative;flex-shrink:0;width:70px;height:100px;border-radius:10px;overflow:hidden;background:var(--elev)">'
+        +(isVideo?('<video src="'+url+'" style="width:100%;height:100%;object-fit:cover" muted></video><span style="position:absolute;bottom:2px;left:4px;font-size:.75rem">🎥</span>')
+          :('<img src="'+url+'" style="width:100%;height:100%;object-fit:cover">'))
+        +'<button type="button" data-story-remove="'+i+'" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.65);color:#fff;font-size:.7rem;line-height:1;display:flex;align-items:center;justify-content:center">✕</button>'
+        +'</div>';
+    }).join('')+'</div>'
+    +(selectedFiles.length>1?('<div class="scr-sub" style="margin-top:6px">'+selectedFiles.length+' stories seront publiées à la suite, avec les mêmes réglages ci-dessous.</div>'):'');
+    prev.querySelectorAll('[data-story-remove]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        selectedFiles.splice(parseInt(btn.getAttribute('data-story-remove'),10),1);
+        renderStoryFilePreviews();
+      });
+    });
+  }
+  function onStoryFilePicked(){
+    const picked=Array.from(this.files||[]);
+    this.value='';
+    let skippedSize=false,skippedCount=false;
+    for(const f of picked){
+      if(selectedFiles.length>=STORY_MAX_COUNT){skippedCount=true;break}
+      if(f.size>STORY_MAX_BYTES){skippedSize=true;continue}
+      selectedFiles.push(f);
+    }
+    \$('story-err').textContent=skippedCount?('Maximum '+STORY_MAX_COUNT+' stories à la fois.'):(skippedSize?'Un ou plusieurs fichiers dépassent 50 Mo et ont été ignorés.':'');
+    renderStoryFilePreviews();
   }
   \$('story-file').addEventListener('change',onStoryFilePicked);
   \$('story-file-photo').addEventListener('change',onStoryFilePicked);
   \$('story-file-video').addEventListener('change',onStoryFilePicked);
   \$('story-publish').onclick=async function(){
-    if(!selectedFile){\$('story-err').textContent='Choisis une photo ou une vidéo';return}
+    if(!selectedFiles.length){\$('story-err').textContent='Choisis au moins une photo ou une vidéo';return}
     if(visibility==='public'&&geoMode==='simulate'&&!simulatedCoords){\$('story-err').textContent='Touche la carte pour choisir un emplacement, ou passe sur "Aucune".';return}
-    this.disabled=true;this.textContent='Publication…';
+    this.disabled=true;
     try{
-      await createStory(selectedFile,visibility,parseInt(\$('story-duration').value,10),(\$('story-caption').value||'').trim(),visibility==='public'?geoMode:'none',simulatedCoords);
+      // Position résolue UNE seule fois pour tout le lot (pas un aller-retour
+      // GPS/permission par story) puis réutilisée pour chaque publication.
+      const coords=await resolveStoryCoords(visibility==='public'?geoMode:'none',simulatedCoords);
+      const durationHours=parseInt(\$('story-duration').value,10);
+      const caption=(\$('story-caption').value||'').trim();
+      for(let i=0;i<selectedFiles.length;i++){
+        this.textContent=selectedFiles.length>1?('Publication '+(i+1)+'/'+selectedFiles.length+'…'):'Publication…';
+        await createStory(selectedFiles[i],visibility,durationHours,caption,coords);
+      }
+      await loadStories();
       close();
-      showToast('Story publiée !');
+      showToast(selectedFiles.length>1?(selectedFiles.length+' stories publiées !'):'Story publiée !');
     }catch(e){\$('story-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
   };
 }
-async function createStory(file,visibility,durationHours,caption,geoMode,simulatedCoords){
-  const mediaType=file.type.indexOf('video/')===0?'video':'image';
-  const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
-  const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-  let coords=null;
-  if((geoMode==='precise'||geoMode==='approx')&&navigator.geolocation){
-    coords=await new Promise(function(resolve){
+async function resolveStoryCoords(geoMode,simulatedCoords){
+  if(geoMode==='precise'||geoMode==='approx'){
+    if(!navigator.geolocation)return null;
+    let coords=await new Promise(function(resolve){
       navigator.geolocation.getCurrentPosition(
         function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
         function(){resolve(null);},
@@ -7539,13 +7615,18 @@ async function createStory(file,visibility,durationHours,caption,geoMode,simulat
       // retomber systématiquement sur les mêmes coordonnées "en grille".
       coords={lat:coords.lat+(Math.random()-0.5)*0.06,lng:coords.lng+(Math.random()-0.5)*0.06};
     }
-  }else if(geoMode==='simulate'&&simulatedCoords){
-    coords=simulatedCoords;
+    return coords;
   }
+  if(geoMode==='simulate'&&simulatedCoords)return simulatedCoords;
+  return null;
+}
+async function createStory(file,visibility,durationHours,caption,coords){
+  const mediaType=file.type.indexOf('video/')===0?'video':'image';
+  const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+  const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
   const payload={mediaUrl:mediaUrl,mediaType:mediaType,visibility:visibility,durationHours:durationHours,caption:caption};
   if(coords){payload.lat=coords.lat;payload.lng=coords.lng;}
   await authPost('/api/stories/create',payload);
-  await loadStories();
 }
 let storyViewerState=null;
 function openStoryViewer(uid,startIndex){
@@ -7583,6 +7664,20 @@ function storyViewerPrev(){
     closeStoryViewer();
   }
 }
+const STORY_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
+function openStoryReplyFlow(peerUid,peerName,text){
+  if(!text||!peerUid)return;
+  closeStoryViewer();
+  // Réutilise le chemin d'envoi existant (chiffrement, notifications, liste
+  // de DM…) plutôt que de dupliquer postMessage() pour rester "dans" le
+  // visionnage — un doublon de logique d'envoi est plus risqué qu'un aller
+  // simple vers la conversation.
+  startDmWith(peerUid,peerName).then(function(){
+    const input=\$('msg-input');
+    if(input){input.value=text;input.dispatchEvent(new Event('input'));}
+    sendMessage();
+  });
+}
 function renderStoryViewerFrame(){
   const st=storyViewerState;if(!st)return;
   const overlay=\$('story-viewer-overlay');if(!overlay)return;
@@ -7596,15 +7691,17 @@ function renderStoryViewerFrame(){
     +'<div class="story-viewer-head"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div><div class="n">'+esc(name)+'</div><div class="t">'+esc(fmtRelTime(s.\$createdAt))+'</div></div><div class="spacer"></div>'+(isMine?'<button type="button" id="story-delete-btn" title="Supprimer">🗑️</button>':'')+'<button type="button" id="story-close-btn" title="Fermer">✕</button></div>'
     +'<div class="story-viewer-media" id="story-viewer-media"><div class="story-viewer-tap-l" id="story-tap-l"></div><div class="story-viewer-tap-r" id="story-tap-r"></div></div>'
     +(s.caption?('<div class="story-viewer-caption">'+esc(s.caption)+'</div>'):'')
-    +(isMine?('<div class="story-viewer-foot"><button type="button" id="story-viewers-btn">👁 '+viewers.length+' vue'+(viewers.length!==1?'s':'')+'</button></div>'):'');
+    +(isMine?('<div class="story-viewer-foot"><button type="button" id="story-viewers-btn">👁 '+viewers.length+' vue'+(viewers.length!==1?'s':'')+'</button></div>')
+      :('<div class="story-viewer-foot story-viewer-reply">'
+        +'<div class="story-quick-reacts">'+STORY_QUICK_REACTIONS.map(function(r){return '<button type="button" class="story-quick-react" data-story-react="'+esc(r)+'">'+r+'</button>';}).join('')+'</div>'
+        +'<div class="story-reply-row"><input type="text" id="story-reply-input" maxlength="500" placeholder="Répondre à '+esc(name)+'…"><button type="button" id="story-reply-send" title="Envoyer">➤</button></div>'
+        +'</div>'));
   const mediaBox=\$('story-viewer-media');
   const mediaEl=document.createElement(s.mediaType==='video'?'video':'img');
   if(s.mediaType==='video'){mediaEl.autoplay=true;mediaEl.playsInline=true;}
   mediaEl.src=s.mediaUrl;
   mediaBox.insertBefore(mediaEl,mediaBox.firstChild);
   \$('story-close-btn').onclick=closeStoryViewer;
-  \$('story-tap-l').onclick=storyViewerPrev;
-  \$('story-tap-r').onclick=storyViewerNext;
   const delBtn=\$('story-delete-btn');
   if(delBtn)delBtn.onclick=async function(){
     if(!confirm('Supprimer cette story ?'))return;
@@ -7612,22 +7709,71 @@ function renderStoryViewerFrame(){
   };
   const viewersBtn=\$('story-viewers-btn');
   if(viewersBtn)viewersBtn.onclick=function(){openStoryViewersList(s.\$id);};
+  const replyInput=\$('story-reply-input');
+  const replySendBtn=\$('story-reply-send');
+  function sendReply(){
+    const text=(replyInput&&replyInput.value||'').trim();
+    if(!text)return;
+    openStoryReplyFlow(s.uid,name,text);
+  }
+  if(replySendBtn)replySendBtn.onclick=sendReply;
+  if(replyInput){
+    replyInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();sendReply();}});
+    replyInput.addEventListener('focus',function(){if(storyViewerState&&storyViewerState.pauseFn)storyViewerState.pauseFn();});
+    replyInput.addEventListener('blur',function(){if(storyViewerState&&storyViewerState.resumeFn)storyViewerState.resumeFn();});
+  }
+  overlay.querySelectorAll('[data-story-react]').forEach(function(btn){
+    btn.addEventListener('click',function(){openStoryReplyFlow(s.uid,name,btn.getAttribute('data-story-react'));});
+  });
   if(!isMine)authPost('/api/stories/view',{storyId:s.\$id}).catch(function(){});
   function startProgress(totalMs){
     const myIndex=st.index;
     const bar=overlay.querySelector('[data-bar="'+myIndex+'"] .story-viewer-bar-fill');
     if(!bar)return;
-    const startedAt=Date.now();
+    let elapsedBeforePause=0,segStartedAt=Date.now();
+    storyViewerState.paused=false;
     function tick(){
       if(!storyViewerState||storyViewerState.index!==myIndex)return;
-      const elapsed=Date.now()-startedAt;
+      if(storyViewerState.paused){storyViewerState.raf=requestAnimationFrame(tick);return}
+      const elapsed=elapsedBeforePause+(Date.now()-segStartedAt);
       const pct=Math.min(100,(elapsed/totalMs)*100);
       bar.style.width=pct+'%';
       if(pct>=100){storyViewerNext();return}
       storyViewerState.raf=requestAnimationFrame(tick);
     }
+    // "Appuyer et maintenir" pour mettre en pause — façon Instagram — plutôt
+    // que la simple navigation prev/next au relâchement rapide (un vrai tap).
+    storyViewerState.pauseFn=function(){
+      if(storyViewerState.paused)return;
+      elapsedBeforePause+=Date.now()-segStartedAt;
+      storyViewerState.paused=true;
+      if(mediaEl.tagName==='VIDEO')mediaEl.pause();
+    };
+    storyViewerState.resumeFn=function(){
+      if(!storyViewerState.paused)return;
+      segStartedAt=Date.now();
+      storyViewerState.paused=false;
+      if(mediaEl.tagName==='VIDEO')mediaEl.play().catch(function(){});
+    };
     tick();
   }
+  function wireHoldTap(el,onTap){
+    let holdTimer=null,held=false;
+    el.addEventListener('pointerdown',function(){
+      held=false;
+      holdTimer=setTimeout(function(){held=true;if(storyViewerState&&storyViewerState.pauseFn)storyViewerState.pauseFn();},180);
+    });
+    function release(){
+      clearTimeout(holdTimer);
+      if(held){if(storyViewerState&&storyViewerState.resumeFn)storyViewerState.resumeFn();}
+      else onTap();
+      held=false;
+    }
+    el.addEventListener('pointerup',release);
+    el.addEventListener('pointercancel',release);
+  }
+  wireHoldTap(\$('story-tap-l'),storyViewerPrev);
+  wireHoldTap(\$('story-tap-r'),storyViewerNext);
   if(s.mediaType==='video'){
     mediaEl.addEventListener('loadedmetadata',function(){startProgress((mediaEl.duration||15)*1000);});
     mediaEl.addEventListener('ended',storyViewerNext);
