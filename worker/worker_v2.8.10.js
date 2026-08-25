@@ -397,6 +397,76 @@ async function getAcceptedFriendUids(uid) {
     return [];
   }
 }
+async function isBlockedPair(uidA, uidB) {
+  try {
+    const url = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [String(uidA), String(uidB)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["blocked"] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [10] }));
+    const data = await awFetch(url, { asAdmin: true });
+    const rows = (data && data.documents) || [];
+    return rows.some(function (r) {
+      return (String(r.userId) === String(uidA) && String(r.friendId) === String(uidB)) ||
+        (String(r.userId) === String(uidB) && String(r.friendId) === String(uidA));
+    });
+  } catch (e) {
+    return false;
+  }
+}
+
+// Chatroulette : appariement aléatoire entre membres connectés (texte, avec
+// appel vocal/vidéo optionnel à double consentement — jamais démarré tout
+// seul). Une file d'attente minimale plutôt qu'un vrai matchmaking : premier
+// arrivé, premier servi, en ignorant les entrées de plus de 2 minutes
+// (abandon silencieux d'un onglet fermé sans jamais avoir prévenu le
+// serveur) — pas de tâche planifiée pour les nettoyer activement, elles
+// sortent juste du champ des candidats valides.
+const CHATROULETTE_QUEUE_STALE_MS = 2 * 60 * 1000;
+async function chatrouletteTryMatchOrQueue(myUid) {
+  const cutoffIso = new Date(Date.now() - CHATROULETTE_QUEUE_STALE_MS).toISOString();
+  const candidatesData = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "$createdAt", values: [cutoffIso] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [10] })), { asAdmin: true });
+  const candidates = (candidatesData.documents || []).filter(function (c) { return String(c.uid) !== String(myUid); });
+  for (const candidate of candidates) {
+    const blocked = await isBlockedPair(myUid, candidate.uid);
+    if (blocked) continue;
+    try {
+      // La suppression de l'entrée de file du candidat fait office de
+      // verrou optimiste : si elle échoue (déjà retirée par une requête
+      // concurrente qui l'a apparié entre-temps), on passe simplement au
+      // candidat suivant plutôt que de créer deux sessions pour la même
+      // personne.
+      await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents/" + candidate.$id, { method: "DELETE", asAdmin: true });
+    } catch (e) {
+      continue;
+    }
+    const perms = ["read(\"user:" + myUid + "\")", "read(\"user:" + candidate.uid + "\")"];
+    const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents", {
+      method: "POST", asAdmin: true,
+      body: { documentId: "unique()", data: { uid1: String(candidate.uid), uid2: String(myUid), status: "active", endedReason: "", callRequestedByJson: "[]" }, permissions: perms }
+    });
+    return { matched: true, session: session };
+  }
+  // Personne de disponible : (ré)inscrit son propre uid en file, en
+  // remplaçant une éventuelle entrée déjà existante plutôt que d'en créer
+  // une deuxième pour la même personne.
+  const mineData = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(myUid)] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+  const mine = (mineData.documents || [])[0];
+  if (mine) {
+    await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents/" + mine.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+  }
+  await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents", {
+    method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: String(myUid) } }
+  });
+  return { matched: false, queued: true };
+}
+async function chatroulettePartnerUid(session, myUid) {
+  return String(session.uid1) === String(myUid) ? String(session.uid2) : String(session.uid1);
+}
 
 function isShamanAccount(acc, profile) {
   if (!acc) return false;
@@ -891,6 +961,16 @@ button{cursor:pointer;border:0;background:0}
 .leaflet-control-zoom a:hover{background:var(--hover)!important}
 .leaflet-control-attribution{background:rgba(19,12,28,.85)!important;color:var(--muted)!important}
 .leaflet-control-attribution a{color:#c4b5fd!important}
+.cr-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;height:100%;padding:20px}
+.cr-spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);border-top-color:#a78bfa;animation:crSpin .8s linear infinite}
+@keyframes crSpin{to{transform:rotate(360deg)}}
+.cr-chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.cr-chat-head .av{width:34px;height:34px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:.85rem}
+.cr-chat-head .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cr-chat-head .n{font-weight:700;font-size:.9rem}
+.cr-chat-head .spacer{flex:1}
+#cr-call-btn.on{color:#22c55e}
+#chatroulette-overlay .msgs{padding:12px 14px}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
@@ -1801,6 +1881,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette">🎲</button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
@@ -1812,6 +1893,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
     <button type="button" class="rail-btn" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
+    <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette">🎲</button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
@@ -3610,6 +3692,8 @@ async function refreshStatusPanel(){
   }
 }
 if(\$('nav-status'))\$('nav-status').addEventListener('click',openStatusPanel);
+if(\$('nav-chatroulette'))\$('nav-chatroulette').addEventListener('click',openChatroulette);
+if(\$('nav-chatroulette-mobile'))\$('nav-chatroulette-mobile').addEventListener('click',openChatroulette);
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -3617,6 +3701,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.51.0',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
+    body:'Nouveau bouton 🎲 dans la barre de navigation, sous Membres : mise en relation aléatoire avec un autre membre de XULTRA pour un chat texte. Passe au suivant quand tu veux, quitte à tout moment. L\\'appel vocal/vidéo reste entièrement facultatif : il ne démarre que si les DEUX personnes l\\'activent, jamais automatiquement. Le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation — les signalements arrivent dans le même circuit de modération que le reste du site, et les personnes que tu as bloquées ne te seront jamais proposées.'},
   {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
     body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. XULTRA détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
   {version:'2.49.3',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
@@ -4889,7 +4975,7 @@ async function renderSetMyReports(box){
     +reports.map(function(r){
       const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
       const stCls=r.status==='pending'?'':(r.status==='dismissed'?'danger':'ok');
-      const srcLabel=r.source==='dm_message'?'Message en DM':(r.source==='server_message'?'Message dans un serveur':'Profil');
+      const srcLabel=r.source==='dm_message'?'Message en DM':(r.source==='server_message'?'Message dans un serveur':(r.source==='chatroulette'?'Chatroulette':'Profil'));
       return '<div class="set-card">'
         +'<div class="set-card-row"><div class="scr-info">'
           +'<div class="scr-label">'+esc(r.targetName||r.targetUid)+' — '+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+'</div>'
@@ -6383,7 +6469,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
   finally{btn.disabled=false;btn.textContent='Enregistrer';}
 });
 
-let reportTargetUid=null,reportMsgCtx=null;
+let reportTargetUid=null,reportMsgCtx=null,reportOnSuccessCallback=null;
 function openReportModal(uid,name,msgCtx){
   reportTargetUid=uid;
   reportMsgCtx=msgCtx||null;
@@ -6416,6 +6502,7 @@ if(\$('rp-submit'))\$('rp-submit').addEventListener('click',async function(){
     await authPost('/api/report',payload);
     \$('modal-report').classList.add('hidden');
     alert('Signalement envoyé. Merci, l\\'équipe de modération va l\\'examiner.');
+    if(reportOnSuccessCallback){const cb=reportOnSuccessCallback;reportOnSuccessCallback=null;cb();}
   }catch(e){\$('rp-err').textContent=(e&&e.message)||'Erreur lors de l\\'envoi';}
   btn.disabled=false;btn.textContent='Envoyer le signalement';
 });
@@ -7933,6 +8020,201 @@ async function renderDiscoverMap(){
   }
 }
 
+/* ===== Chatroulette (appariement aléatoire entre membres, texte + appel
+   vocal/vidéo facultatif à double consentement) ===== */
+let crState='landing',crSession=null,crMessages=[],crMsgUnsub=null,crSessionUnsub=null;
+function chatroulettePartnerUid(session){
+  if(!session||!me)return null;
+  return String(session.uid1)===String(me.\$id)?String(session.uid2):String(session.uid1);
+}
+function crTeardownSubs(){
+  if(crMsgUnsub){try{crMsgUnsub();}catch(e){}crMsgUnsub=null;}
+  if(crSessionUnsub){try{crSessionUnsub();}catch(e){}crSessionUnsub=null;}
+}
+async function openChatroulette(){
+  let overlay=\$('chatroulette-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='chatroulette-overlay';
+    overlay.className='discover-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  crState='landing';crSession=null;crMessages=[];
+  renderChatroulette();
+  try{
+    const r=await authPost('/api/chatroulette/status',{});
+    if(r.matched&&r.session)crEnterChat(r.session);
+    else if(r.queued)crEnterWaiting();
+  }catch(e){}
+}
+function closeChatroulette(){
+  const overlay=\$('chatroulette-overlay');
+  if(overlay)overlay.classList.remove('show');
+  crLeaveEverything();
+}
+function crLeaveEverything(){
+  crTeardownSubs();
+  if(activeCallDoc)endCall('ended');
+  const sid=crSession&&crSession.\$id;
+  crSession=null;crMessages=[];crState='landing';
+  authPost('/api/chatroulette/leave',{sessionId:sid||''}).catch(function(){});
+}
+async function crStart(){
+  crState='waiting';renderChatroulette();
+  try{
+    const r=await authPost('/api/chatroulette/join',{});
+    if(r.matched&&r.session)crEnterChat(r.session);
+    else crEnterWaiting();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');crState='landing';renderChatroulette();}
+}
+function crEnterWaiting(){
+  crState='waiting';
+  renderChatroulette();
+  crTeardownSubs();
+  crSessionUnsub=client.subscribe('databases.'+DB+'.collections.chatroulette_sessions.documents',function(res){
+    if(!eventIs(res.events,'.create'))return;
+    const p=res.payload;if(!p||!me)return;
+    if(String(p.uid1)!==String(me.\$id)&&String(p.uid2)!==String(me.\$id))return;
+    if(p.status!=='active')return;
+    crEnterChat(p);
+  });
+}
+async function crEnterChat(session){
+  crTeardownSubs();
+  crSession=session;crState='chat';crMessages=[];
+  renderChatroulette();
+  try{const r=await authPost('/api/chatroulette/messages/list',{sessionId:session.\$id});crMessages=r.messages||[];}catch(e){}
+  renderCrMessages();
+  crMsgUnsub=client.subscribe('databases.'+DB+'.collections.chatroulette_messages.documents',function(res){
+    if(!eventIs(res.events,'.create'))return;
+    const p=res.payload;if(!p||!crSession||p.sessionId!==crSession.\$id)return;
+    crMessages.push(p);
+    renderCrMessages();
+    if(String(p.uid)!==String(me.\$id))playNotifSound('message');
+  });
+  crSessionUnsub=client.subscribe('databases.'+DB+'.collections.chatroulette_sessions.documents.'+session.\$id,function(res){
+    if(!eventIs(res.events,'.update'))return;
+    const p=res.payload;if(!p)return;
+    crSession=p;
+    if(p.status!=='active'){
+      showToast('Ton partenaire a quitté la conversation.');
+      if(activeCallDoc)endCall('ended');
+      crTeardownSubs();
+      crSession=null;crState='landing';
+      renderChatroulette();
+      return;
+    }
+    let requested=[];try{requested=JSON.parse(p.callRequestedByJson||'[]');}catch(e){}
+    crUpdateCallBtn(requested);
+    if(requested.length>=2&&!activeCallDoc&&!incomingCallDoc&&String(p.uid1)===String(me.\$id)){
+      const partnerUid=chatroulettePartnerUid(p);
+      const partnerP=membersCache.find(function(x){return String(x.authUserId||x.\$id)===partnerUid;});
+      startCall(partnerUid,(partnerP&&(partnerP.displayName||partnerP.username))||'Chatroulette');
+    }
+  });
+}
+function crUpdateCallBtn(requested){
+  const btn=\$('cr-call-btn');if(!btn)return;
+  const mine=me&&requested.map(String).indexOf(String(me.\$id))>=0;
+  btn.classList.toggle('on',mine);
+  btn.disabled=mine;
+  btn.title=mine?'En attente de ton partenaire…':'Proposer un appel';
+}
+async function crSendMessage(){
+  const input=\$('cr-input');
+  if(!input||!crSession)return;
+  const text=(input.value||'').trim();
+  if(!text)return;
+  input.value='';input.dispatchEvent(new Event('input'));
+  try{await authPost('/api/chatroulette/messages/send',{sessionId:crSession.\$id,text:text.slice(0,2000)});}
+  catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+function renderCrMessages(){
+  const box=\$('cr-msgs');if(!box)return;
+  box.innerHTML=crMessages.map(function(m){
+    const mine=me&&String(m.uid)===String(me.\$id);
+    return '<div class="msg'+(mine?' mine':'')+'"><div class="bub">'+esc(m.text||'')+'</div></div>';
+  }).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function renderChatroulette(){
+  const overlay=\$('chatroulette-overlay');if(!overlay)return;
+  if(crState==='landing'){
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>🎲 Chatroulette</h2></div>'
+      +'<div class="discover-body cr-center">'
+      +'<div style="font-size:3rem">🎲</div>'
+      +'<h3>Discute avec un membre au hasard</h3>'
+      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de XULTRA au hasard, pour un chat texte. Passe au suivant quand tu veux. L\\'appel vocal/vidéo reste toujours facultatif : il ne démarre que si vous l\\'activez TOUS LES DEUX, jamais automatiquement.</p>'
+      +'<p class="scr-sub" style="max-width:420px">Sois respectueux·se — le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation.</p>'
+      +'<button type="button" class="btn-main" id="cr-start" style="width:auto;padding:14px 32px">Commencer</button>'
+      +'</div>';
+    \$('cr-close').onclick=closeChatroulette;
+    \$('cr-start').onclick=crStart;
+    return;
+  }
+  if(crState==='waiting'){
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>🎲 Chatroulette</h2></div>'
+      +'<div class="discover-body cr-center"><div class="cr-spinner"></div><div>Recherche d\\'un partenaire…</div>'
+      +'<button type="button" class="set-mini-btn" id="cr-cancel">Annuler</button></div>';
+    \$('cr-close').onclick=closeChatroulette;
+    \$('cr-cancel').onclick=closeChatroulette;
+    return;
+  }
+  // 'chat'
+  const partnerUid=chatroulettePartnerUid(crSession);
+  const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===partnerUid;});
+  const name=(p&&(p.displayName||p.username))||'Membre';
+  const av=p&&safeUrl(p.avatar);
+  overlay.innerHTML='<div class="cr-chat-head">'
+    +'<div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div>'
+    +'<div class="n">'+esc(name)+'</div><div class="spacer"></div>'
+    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Proposer un appel">🎙️</button>'
+    +'<button type="button" class="ub-btn" id="cr-report-btn" title="Signaler">🚨</button>'
+    +'<button type="button" class="ub-btn" id="cr-skip-btn" title="Suivant">⏭️</button>'
+    +'<button type="button" class="ub-btn" id="cr-leave-btn" title="Quitter">✕</button>'
+    +'</div>'
+    +'<div class="msgs" id="cr-msgs" style="flex:1"></div>'
+    +'<div class="composer" id="cr-composer">'
+    +'<textarea id="cr-input" placeholder="Écrire à '+esc(name)+'…" rows="1" maxlength="2000"></textarea>'
+    +'<button type="button" class="composer-btn ai-fix-btn" id="cr-ai-fix" title="Corriger avec l\\'IA">✨</button>'
+    +'<button type="button" class="composer-btn" id="cr-emoji" title="Emoji">😊</button>'
+    +'<button type="button" class="send-btn" id="cr-send">➤</button>'
+    +'</div>';
+  renderCrMessages();
+  let requestedInit=[];try{requestedInit=JSON.parse((crSession&&crSession.callRequestedByJson)||'[]');}catch(e){}
+  crUpdateCallBtn(requestedInit);
+  \$('cr-call-btn').onclick=async function(){
+    if(!crSession||this.disabled)return;
+    try{await authPost('/api/chatroulette/call-request',{sessionId:crSession.\$id});}
+    catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  \$('cr-report-btn').onclick=function(){
+    if(!crSession)return;
+    reportOnSuccessCallback=function(){closeChatroulette();};
+    openReportModal(partnerUid,name,{source:'chatroulette',contextId:crSession.\$id});
+  };
+  \$('cr-skip-btn').onclick=async function(){
+    if(!crSession)return;
+    if(activeCallDoc)endCall('ended');
+    const sid=crSession.\$id;
+    crTeardownSubs();
+    crState='waiting';renderChatroulette();
+    try{
+      const r=await authPost('/api/chatroulette/skip',{sessionId:sid});
+      if(r.matched&&r.session)crEnterChat(r.session);
+      else crEnterWaiting();
+    }catch(e){showToast((e&&e.message)||'Erreur','error');crState='landing';renderChatroulette();}
+  };
+  \$('cr-leave-btn').onclick=closeChatroulette;
+  \$('cr-send').onclick=crSendMessage;
+  \$('cr-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();crSendMessage();}});
+  \$('cr-emoji').addEventListener('click',function(e){
+    e.stopPropagation();
+    openEmojiPicker(\$('cr-emoji'),function(emo){const inp=\$('cr-input');inp.value+=emo;inp.focus();});
+  });
+  \$('cr-ai-fix').addEventListener('click',function(){aiFixText(\$('cr-input'),\$('cr-ai-fix'));});
+}
 /* ===== Messages vocaux (maintenir pour enregistrer) ===== */
 let vrState=null,vrTimerId=null,vrRafId=null,vrAudioCtx=null,vrAnalyser=null;
 let vrPending=false,vrStopRequested=false;
@@ -8541,7 +8823,7 @@ function renderAdminReports(list){
     if(a.status!=='pending'&&b.status==='pending')return 1;
     return 0;
   });
-  const SRC_LABELS={dm_message:'💬 Message en DM',server_message:'💬 Message dans un serveur'};
+  const SRC_LABELS={dm_message:'💬 Message en DM',server_message:'💬 Message dans un serveur',chatroulette:'🎲 Chatroulette'};
   box.innerHTML=sorted.map(function(r){
     const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
@@ -12445,7 +12727,7 @@ async function handle(request) {
       const reason = String((body && body.reason) || "").slice(0, 32);
       const details = String((body && body.details) || "").slice(0, 1000);
       const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "autre"];
-      const validSources = ["user", "dm_message", "server_message"];
+      const validSources = ["user", "dm_message", "server_message", "chatroulette"];
       const source = validSources.indexOf(body && body.source) >= 0 ? body.source : "user";
       const messageId = String((body && body.messageId) || "").slice(0, 64);
       const messageText = String((body && body.messageText) || "").slice(0, 500);
@@ -13092,6 +13374,143 @@ async function handle(request) {
       corrected = corrected.replace(/^["“„«]+|["”»]+$/g, "").trim();
       if (!corrected) throw new Error("Réponse vide de l'IA, réessaie");
       return new Response(JSON.stringify({ ok: true, corrected: corrected.slice(0, 4000) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const result = await chatrouletteTryMatchOrQueue(acc.$id);
+      return new Response(JSON.stringify(Object.assign({ ok: true }, result)), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/status" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const active = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid1", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["active"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const active2 = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid2", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["active"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const session = (active.documents || [])[0] || (active2.documents || [])[0] || null;
+      if (session) return new Response(JSON.stringify({ ok: true, matched: true, session: session }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const cutoffIso = new Date(Date.now() - CHATROULETTE_QUEUE_STALE_MS).toISOString();
+      const mineQ = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "$createdAt", values: [cutoffIso] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, matched: false, queued: !!(mineQ.documents || []).length }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/leave" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      if (sessionId) {
+        const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true }).catch(function () { return null; });
+        if (session && (String(session.uid1) === String(acc.$id) || String(session.uid2) === String(acc.$id)) && session.status === "active") {
+          await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: { status: "ended", endedReason: "left" } } });
+        }
+      }
+      const mineQ = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const mine = (mineQ.documents || [])[0];
+      if (mine) await awFetch("/databases/" + AW_DB + "/collections/chatroulette_queue/documents/" + mine.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/skip" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      if (sessionId) {
+        const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true }).catch(function () { return null; });
+        if (session && (String(session.uid1) === String(acc.$id) || String(session.uid2) === String(acc.$id)) && session.status === "active") {
+          await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: { status: "ended", endedReason: "skip" } } });
+        }
+      }
+      const result = await chatrouletteTryMatchOrQueue(acc.$id);
+      return new Response(JSON.stringify(Object.assign({ ok: true }, result)), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/messages/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      const text = String((body && body.text) || "").trim().slice(0, 2000);
+      if (!text) throw new Error("Message vide");
+      const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true });
+      if (String(session.uid1) !== String(acc.$id) && String(session.uid2) !== String(acc.$id)) throw new Error("Tu ne fais pas partie de cette session");
+      if (session.status !== "active") throw new Error("Cette session est terminée");
+      const perms = ["read(\"user:" + session.uid1 + "\")", "read(\"user:" + session.uid2 + "\")"];
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_messages/documents", {
+        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { sessionId: sessionId, uid: String(acc.$id), text: text }, permissions: perms }
+      });
+      return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/messages/list" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true });
+      if (String(session.uid1) !== String(acc.$id) && String(session.uid2) !== String(acc.$id)) throw new Error("Tu ne fais pas partie de cette session");
+      const msgs = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sessionId", values: [sessionId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, messages: msgs.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/chatroulette/call-request" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true });
+      if (String(session.uid1) !== String(acc.$id) && String(session.uid2) !== String(acc.$id)) throw new Error("Tu ne fais pas partie de cette session");
+      if (session.status !== "active") throw new Error("Cette session est terminée");
+      let requested = [];
+      try { requested = JSON.parse(session.callRequestedByJson || "[]"); } catch (e) {}
+      requested = requested.map(String);
+      if (requested.indexOf(String(acc.$id)) < 0) requested.push(String(acc.$id));
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: { callRequestedByJson: JSON.stringify(requested) } } });
+      return new Response(JSON.stringify({ ok: true, session: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
