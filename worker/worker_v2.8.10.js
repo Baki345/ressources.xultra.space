@@ -3415,11 +3415,22 @@ async function e2eVerifyAndSync(pass,restoreIntent){
      mot de passe est saisi SANS passer par une vraie connexion : sans cette
      vérification, une faute de frappe créerait silencieusement une
      sauvegarde chiffrée avec le mauvais mot de passe — inutilisable plus
-     tard, mais affichée comme un succès. On vérifie donc d'abord via une
-     vraie tentative de connexion (ouvre une session de plus, sans
-     conséquence : l'app gère déjà plusieurs sessions par appareil). */
+     tard, mais affichée comme un succès. On vérifie donc via serverLogin()
+     (le même chemin que le formulaire de connexion, /api/auth/login côté
+     Worker avec la clé admin) plutôt que account.createEmailPasswordSession()
+     directement : ce dernier échoue TOUJOURS ici avec "Creation of a session
+     is prohibited when a session is active", car ce client Appwrite porte
+     déjà la session active de l'utilisateur connecté (client.setSession()
+     appelé dès applySession()) — une erreur 401 qui n'a rien à voir avec le
+     mot de passe, mais qui s'affichait à tort comme "mot de passe
+     incorrect" même quand le bon mot de passe était saisi. serverLogin()
+     passe par une requête serveur indépendante, sans ce conflit. */
   try{
-    await account.createEmailPasswordSession(me.email,pass);
+    const jj=await serverLogin(me.email,pass);
+    if(jj&&jj.mfaRequired){
+      showToast('Ce compte a la double authentification activée : reconnecte-toi complètement pour restaurer tes messages.','error');
+      return {ok:false};
+    }
     const status=await ensureE2EKeys(pass);
     if(status&&status.backedUp){
       if(restoreIntent){
@@ -3438,16 +3449,10 @@ async function e2eVerifyAndSync(pass,restoreIntent){
     showToast('Erreur réseau, réessaie.','error');
     return {ok:false};
   }catch(e){
-    /* Ce catch attrapait TOUTE erreur de createEmailPasswordSession comme "mot
-       de passe incorrect" — y compris une vraie limite de débit Appwrite (429,
-       protection anti brute-force après plusieurs tentatives) ou une coupure
-       réseau, affichant un message trompeur alors que le mot de passe saisi
-       était le bon. On distingue maintenant selon le code/type réel renvoyé. */
-    const code=e&&e.code;
-    const type=e&&e.type;
-    if(code===429||type==='general_rate_limit_exceeded'){
+    const msg=String((e&&e.message)||'');
+    if(/rate limit/i.test(msg)){
       showToast('Trop de tentatives, réessaie dans quelques minutes.','error');
-    }else if(code===401||type==='user_invalid_credentials'){
+    }else if(/invalid credentials/i.test(msg)){
       showToast('Mot de passe incorrect.','error');
     }else{
       showToast('Erreur réseau, réessaie.','error');
@@ -3777,6 +3782,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.53.2',date:'25 août 2026',time:'00:15',title:'Correctif : « mot de passe incorrect » lors de la restauration des messages',
+    body:'Le nouveau bouton de restauration des messages chiffrés (Paramètres → Confidentialité et sécurité) affichait à tort "Mot de passe incorrect" même en tapant le bon, sur un appareil déjà connecté : la vérification du mot de passe entrait en conflit avec la session déjà active de l\\'appli, une erreur qui n\\'avait rien à voir avec le mot de passe saisi mais s\\'affichait comme telle. Corrigé — la vérification passe maintenant par un chemin indépendant qui ne rentre plus en conflit.'},
   {version:'2.53.1',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
     body:'Jusqu\\'ici, un appareil qui ne pouvait pas encore lire tes messages chiffrés ne pouvait être réparé que via une petite bannière proposée automatiquement à la connexion, facile à manquer ou à fermer par erreur. Ajout dans Paramètres → Confidentialité et sécurité → Messages chiffrés : entre ton mot de passe à tout moment pour restaurer l\\'accès à tes messages sur l\\'appareil que tu utilises, sans attendre une bannière.'},
   {version:'2.53.0',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
