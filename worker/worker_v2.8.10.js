@@ -1865,17 +1865,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .sc-icon{font-size:1.7rem}
   .sc-slide h3{font-size:.95rem}
   .sc-slide p{font-size:.8rem}
-  #app{flex-direction:column}
-  .list-col{width:100%;flex:1;min-height:0}
+  .list-col{flex:1;min-width:0;min-height:0}
   #app.chat-open .list-col{display:none}
   #app:not(.chat-open) .chat-col{display:none}
-  .rail{display:none}
-  #app.chat-open .rail{display:none}
   .mobile-only-menu-item{display:flex}
-  .tabbar{display:flex;order:3;height:calc(56px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;background:#0a0610;border-top:1px solid var(--line)}
-  #app.chat-open .tabbar{display:none}
-  .tabbar .rail-btn{flex:1;width:auto;height:56px;border-radius:0;background:transparent}
-  .tabbar .rail-btn.on{border-radius:0;background:rgba(124,58,237,.18)}
   .chat-back{display:grid;place-items:center}
   /* iOS Safari zoome automatiquement la page quand on touche un champ de
      texte dont la taille de police calculée est sous 16px — la zone de
@@ -4016,6 +4009,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.56.2',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
+    body:'Sur téléphone, la barre de navigation en bas de l\\'écran est remplacée par la même barre verticale à gauche que sur ordinateur — toutes les icônes (Messages, Amis, Membres, Chatroulette, Casino, Créateurs, Serveurs, État du système, Nouveautés, Boîte à idées, Équipe) directement accessibles au même endroit que sur la version navigateur, sans passer par un menu "⋯".'},
   {version:'2.56.1',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
     body:'Deux bugs remontés corrigés : dans une conversation, le repère "Vu" disparaissait dès qu\\'un nouveau message était envoyé avant que le précédent ne soit lu, même si les messages précédents avaient bel et bien été vus — le repère s\\'affiche maintenant sur le dernier message effectivement lu, pas seulement sur le tout dernier envoyé. Et la vérification (invisible) des droits admin faite à chaque connexion affichait une fausse alerte rouge dans la console du navigateur pour tous les membres normaux — silencieuse désormais.'},
   {version:'2.56.0',date:'26 août 2026',time:'00:20',title:'Mot de passe oublié',
