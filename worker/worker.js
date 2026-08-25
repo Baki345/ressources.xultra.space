@@ -1296,7 +1296,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .overlay:not(.hidden){display:flex}
 .modal-box{width:min(360px,100%);margin:auto;background:#15101f;border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:20px;position:relative}
 .modal-box h3{font-size:1rem;margin-bottom:12px}
-.modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev)}
+.modal-close{position:absolute;top:12px;right:12px;width:28px;height:28px;border-radius:8px;background:var(--elev);z-index:5}
 .field-input{width:100%;height:38px;border-radius:8px;border:1px solid var(--line);background:#0d0814;color:#f2ebff;padding:0 12px;outline:0;margin-bottom:10px}
 .fr-results{max-height:220px;overflow-y:auto}
 .mg-hint{font-size:.72rem;color:var(--muted);margin-bottom:8px}
@@ -4036,6 +4036,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.57.1',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
+    body:'Le nouveau bandeau d\\'en-tête dégradé du panneau de signalement passait par-dessus le bouton ✕, le rendant invisible et inutilisable — introduit par la refonte visuelle précédente. Corrigé.'},
   {version:'2.57.0',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
     body:'Le panneau de signalement fait peau neuve, aux couleurs XULTRA (dégradé animé, mise en page plus claire). Tu peux maintenant joindre jusqu\\'à 5 fichiers par rapport — images ET vidéos mélangées — au lieu d\\'une seule capture d\\'écran. La taille max par fichier grandit avec ton palier Bug Hunter : 30 Mo de base, puis 50 / 75 / 100 / 150 / 200 Mo à mesure que tu montes les échelons. Une raison de plus de continuer à chasser les bugs !'},
   {version:'2.56.2',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
