@@ -1661,6 +1661,7 @@ a.bug-att-item{display:block}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
+.user-server-tag{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.03em;padding:1px 5px;border-radius:5px;border:1px solid;background:rgba(124,58,237,.12);vertical-align:middle;margin-left:4px;line-height:1.4}
 .msg-custom-emoji{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin:-4px 1px}
 .emoji-picker-custom-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(167,139,250,.2)}
 .emoji-picker-custom-grid button{padding:5px;border-radius:8px;line-height:1;display:flex;align-items:center;justify-content:center}
@@ -3539,8 +3540,9 @@ async function enterApp(e2ePassword){
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
   try{
-    const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId));
+    const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId)).concat(acc?[acc.\$id]:[]);
     await ensureMembersCached(relevantUids);
+    if(profile)refreshSelfBar();
   }catch(e){}
   try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribePresenceWatcher();}catch(e){}
@@ -4077,6 +4079,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.62.0',date:'26 août 2026',time:'07:15',title:'Tags de serveur',
+    body:'Le propriétaire d\\'un serveur peut désormais lui donner un tag 100% personnalisable (texte + couleur) depuis les paramètres du serveur. Chaque membre choisit ensuite, dans Paramètres → Profils, d\\'afficher le tag d\\'un des serveurs dont il est membre juste à côté de son pseudo — dans les messages, les listes d\\'amis et de conversations, la fiche profil, un peu partout sur XULTRA.'},
   {version:'2.61.0',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
     body:'Nouvelle section 😀 Emojis personnalisés dans les paramètres du serveur (jusqu\\'à 50 par serveur) : ajoute une image (PNG/GIF/WEBP, 512 Ko max) avec un nom, et tous les membres peuvent l\\'utiliser dans les salons en tapant <code>:nom:</code> — il s\\'affiche automatiquement comme une petite image dans les messages. Les emojis du serveur apparaissent aussi en haut du sélecteur d\\'emoji habituel pour un accès rapide en un clic.'},
   {version:'2.60.0',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
@@ -5069,10 +5073,50 @@ function wireSetSubscription(box){
   };
 }
 function renderSetProfiles(box){
+  const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+  const currentTag=extra.displayedServerTag||null;
   box.innerHTML='<h2>Profils</h2><div class="sc-desc">Personnalise ton avatar, ta bannière, ta bio, tes couleurs et bien plus.</div>'
-    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Éditeur de profil</div><div class="scr-sub">Avatar, bannière, effets, couleurs, bio, pronoms…</div></div><button type="button" class="set-mini-btn" id="prof-open-editor">Ouvrir</button></div></div>';
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Éditeur de profil</div><div class="scr-sub">Avatar, bannière, effets, couleurs, bio, pronoms…</div></div><button type="button" class="set-mini-btn" id="prof-open-editor">Ouvrir</button></div></div>'
+    +'<div class="set-card"><div class="set-section-label">🏷️ Tag de serveur</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Affiche le tag d\\'un serveur dont tu es membre à côté de ton pseudo partout sur XULTRA.</div>'
+    +'<div id="prof-tag-picker"><div class="scr-sub">Chargement…</div></div>'
+    +'</div>';
   const btn=\$('prof-open-editor');
   if(btn)btn.onclick=function(){closeSettingsPanel();if(me)openProfileModal(me.\$id);};
+  loadServerTagPicker(currentTag);
+}
+async function loadServerTagPicker(currentTag){
+  const holder=\$('prof-tag-picker');if(!holder)return;
+  let servers=[];
+  try{
+    const r=await fetch('/api/servers/tag/list-mine',{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const j=await r.json();
+    servers=(j&&j.servers)||[];
+  }catch(e){}
+  if(!servers.length&&!currentTag){holder.innerHTML='<div class="scr-sub">Rejoins ou crée un serveur avec un tag configuré pour pouvoir l\\'afficher ici.</div>';return}
+  const options=['<option value=""'+(!currentTag?' selected':'')+'>Aucun tag</option>']
+    .concat(servers.map(function(s){
+      return '<option value="'+esc(s.serverId)+'"'+(currentTag&&currentTag.serverId===s.serverId?' selected':'')+'>'+esc(s.name)+' — '+esc(s.tagText)+'</option>';
+    }));
+  if(currentTag&&!servers.some(function(s){return s.serverId===currentTag.serverId;})){
+    options.splice(1,0,'<option value="'+esc(currentTag.serverId)+'" selected>'+esc(currentTag.text)+' (plus disponible)</option>');
+  }
+  holder.innerHTML='<select id="prof-tag-select" class="field-input">'+options.join('')+'</select>'+(currentTag?('<div class="scr-sub" style="margin-top:8px">Aperçu : '+serverTagBadgeHtml({displayedServerTag:currentTag})+'</div>'):'');
+  const select=\$('prof-tag-select');
+  if(select)select.addEventListener('change',async function(){
+    select.disabled=true;
+    try{
+      const r=await authPost('/api/account/display-tag',{serverId:select.value});
+      const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
+      if(r.tag)extra.displayedServerTag=r.tag;else delete extra.displayedServerTag;
+      settingsMeta=settingsMeta||{};settingsMeta.profileExtraJson=JSON.stringify(extra);
+      if(me)memberMetaByUid[String(me.\$id)]=Object.assign({},memberMetaByUid[String(me.\$id)],{profileExtraJson:JSON.stringify(extra)});
+      refreshSelfBar();
+      showToast(r.tag?'Tag affiché !':'Tag retiré.');
+      loadServerTagPicker(r.tag||null);
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+    select.disabled=false;
+  });
 }
 
 function renderSetPrivacy(box){
@@ -5643,11 +5687,11 @@ async function ensureMembersCached(uids){
      "hors ligne" en permanence dans les listes, alors que sa fiche profil
      (qui va chercher son document directement) affiche le vrai statut.
      On complète ici avec les profils précis dont on a besoin. */
-  const missing=Array.from(new Set((uids||[]).filter(Boolean).map(String))).filter(function(uid){
+  const allUids=Array.from(new Set((uids||[]).filter(Boolean).map(String)));
+  const missing=allUids.filter(function(uid){
     return !membersCache.some(function(p){return String(p.authUserId||p.\$id)===uid;});
   });
-  if(!missing.length)return;
-  try{
+  if(missing.length)try{
     const r=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',missing),Appwrite.Query.limit(missing.length)]);
     (r.documents||[]).forEach(function(p){
       const uid=String(p.authUserId||p.\$id);
@@ -5655,6 +5699,14 @@ async function ensureMembersCached(uids){
       if(idx>=0)membersCache[idx]=p;else membersCache.push(p);
       presenceByUid[uid]=computePresence(p);
     });
+  }catch(e){}
+  // Backfill de memberMetaByUid (tags de serveur, statut, etc.) — indépendant
+  // de membersCache : un uid peut déjà avoir un profil chargé sans son
+  // user_meta (ex. membres d'un serveur, jamais passés par loadMembers()).
+  const missingMeta=allUids.filter(function(uid){return !memberMetaByUid[uid];});
+  if(missingMeta.length)try{
+    const rm=await db.listDocuments(DB,'user_meta',[Appwrite.Query.equal('\$id',missingMeta),Appwrite.Query.limit(missingMeta.length)]);
+    (rm.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d;});
   }catch(e){}
 }
 function presenceDotHtml(uid,extraClass){
@@ -5704,7 +5756,7 @@ function renderMembers(){
       const p=entry.p,name=p.displayName||p.username||'User';
       return '<div class="row member-row" data-open-profile="'+esc(entry.uid)+'" data-name="'+esc(name)+'">'
         +rowAvatar(p,name,entry.uid)
-        +'<div class="info"><div class="n">'+esc(name)+' <span class="p" style="font-weight:400">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</span></div>'
+        +'<div class="info"><div class="n">'+esc(name)+userTagBadgeForUid(entry.uid)+' <span class="p" style="font-weight:400">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</span></div>'
         +'<div class="member-badges">'+badgeChipsHtml(entry.badges,'sm')+'</div></div>'
         +'</div>';
     }).join('');
@@ -5799,7 +5851,7 @@ function renderFriends(){
         +'<div class="row-del-action" data-del-friend="'+esc(f.friendId)+'" data-del-name="'+esc(f.name||'')+'"><span>🗑</span></div>'
         +'<div class="row" data-profile="'+esc(f.friendId)+'">'
         +rowAvatar(friendProfile(f.friendId),f.name||'?',f.friendId)
-        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div></div>';
+        +'<div class="info"><div class="n">'+esc(f.name||'Ami')+userTagBadgeForUid(f.friendId)+'</div><div class="p pr-label">'+esc((PRESENCE_DEFS[presenceByUid[String(f.friendId)]]||{}).label||'Hors ligne')+'</div></div></div></div>';
     }).join('');
   }
   box.innerHTML=h;
@@ -6168,7 +6220,7 @@ function renderDms(){
       +'<div class="row-del-action" data-del="'+esc(d.\$id)+'"><span>🗑</span></div>'
       +'<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
       +av
-      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':'')+'</div><div class="p">'+esc(sub)+'</div></div>'
+      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':userTagBadgeForUid(peerUid))+'</div><div class="p">'+esc(sub)+'</div></div>'
       +'<div class="row-time" data-ts="'+esc(ts||'')+'">'+esc(fmtRelTime(ts))+'</div>'
       +'</div></div>';
   }).join('');
@@ -6408,6 +6460,16 @@ const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon'];
 function parseProfileExtra(json){
   try{const o=JSON.parse(json||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}
 }
+function serverTagBadgeHtml(metaOrExtra){
+  const extra=(metaOrExtra&&metaOrExtra.profileExtraJson!==undefined)?parseProfileExtra(metaOrExtra.profileExtraJson):(metaOrExtra||{});
+  const tag=extra&&extra.displayedServerTag;
+  if(!tag||!tag.text)return '';
+  return '<span class="user-server-tag" style="border-color:'+esc(tag.color||'#7c3aed')+';color:'+esc(tag.color||'#7c3aed')+'" title="'+esc(tag.text)+'">'+esc(tag.text)+'</span>';
+}
+function userTagBadgeForUid(uid){
+  const meta=memberMetaByUid[String(uid)];
+  return meta?serverTagBadgeHtml(meta):'';
+}
 function buildProfileCardHtml(p,meta,badges,opts){
   p=p||{};meta=meta||{};opts=opts||{};
   const extra=parseProfileExtra(meta.profileExtraJson);
@@ -6463,7 +6525,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(p.statusManual&&p.statusManual!=='invisible'?'<span class="pc-presence-dot" style="background:'+presence.dot+'" title="'+esc(presence.label)+'"></span>':'')
     +'</div></div>'
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
-      +'<h3 class="pc-name" style="font-size:'+titleSize+'">'+esc(name)+'</h3>'
+      +'<h3 class="pc-name" style="font-size:'+titleSize+'">'+esc(name)+serverTagBadgeHtml(extra)+'</h3>'
       +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
       +(extra.customStatus?'<div class="pc-custom-status">'+esc(extra.customStatus)+'</div>':'')
       +(badges?'<div class="pc-badges">'+badgeChipsHtml(badges)+'</div>':'')
@@ -6627,7 +6689,7 @@ if(\$('ub-name'))\$('ub-name').addEventListener('click',function(){if(me)openPro
 function refreshSelfBar(){
   if(!meProfile)return;
   const name=meProfile.displayName||meProfile.username||(me&&me.name)||'Compte';
-  \$('ub-name').textContent=name;
+  \$('ub-name').innerHTML=esc(name)+(me?userTagBadgeForUid(me.\$id):'');
   const av=\$('ub-av');
   const myStatus=meProfile.statusManual||'online';
   const myDef=PRESENCE_DEFS[myStatus]||PRESENCE_DEFS.online;
@@ -7588,7 +7650,7 @@ function renderMessages(){
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return msgsCache.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
+      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -11461,6 +11523,7 @@ async function openServerDetail(serverId){
     const membersList=await db.listDocuments(DB,'server_members',[Appwrite.Query.equal('serverId',serverId),Appwrite.Query.limit(200)]);
     activeServerMembers=membersList.documents||[];
     activeServerMembership=me?activeServerMembers.find(function(m){return String(m.uid)===String(me.\$id)}):null;
+    try{await ensureMembersCached(activeServerMembers.map(function(m){return m.uid;}));}catch(e){}
   }catch(e){activeServerMembers=[];activeServerMembership=null;}
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   activeChannel=null;
@@ -11761,7 +11824,7 @@ function renderChannelMessages(){
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isWebhook?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isWebhook?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -12115,7 +12178,7 @@ function renderServerMembersTab(){
     const nameColor=serverTopRoleColor(m);
     return '<div class="srv-member-row">'
       +'<div class="av" style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:var(--elev)">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(m.username||'?')))+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(m.username||'Membre')+(isOwnerRow?' 👑':'')+(timedOut?' <span class="scr-sub">⏱️ jusqu\\'au '+esc(new Date(m.timeoutUntil).toLocaleString('fr-FR'))+'</span>':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(m.username||'Membre')+userTagBadgeForUid(m.uid)+(isOwnerRow?' 👑':'')+(timedOut?' <span class="scr-sub">⏱️ jusqu\\'au '+esc(new Date(m.timeoutUntil).toLocaleString('fr-FR'))+'</span>':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">'+actions+'</div>'
       +'</div>';
   }).join('')||'<div class="empty-hint">Aucun membre.</div>';
@@ -12479,7 +12542,8 @@ const AUDIT_ACTION_LABELS={
   event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'},
   webhook_create:{icon:'🔌',label:'a créé le webhook'},webhook_delete:{icon:'🔌',label:'a supprimé le webhook'},
   community_mode_on:{icon:'🏛️',label:'a activé le mode communauté'},community_mode_off:{icon:'🏛️',label:'a désactivé le mode communauté'},
-  emoji_create:{icon:'😀',label:'a ajouté l\\'emoji'},emoji_delete:{icon:'😀',label:'a supprimé l\\'emoji'}
+  emoji_create:{icon:'😀',label:'a ajouté l\\'emoji'},emoji_delete:{icon:'😀',label:'a supprimé l\\'emoji'},
+  tag_set:{icon:'🏷️',label:'a défini le tag du serveur :'},tag_remove:{icon:'🏷️',label:'a retiré le tag du serveur'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12790,6 +12854,14 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-emoji-add" style="width:100%">+ Ajouter l\\'emoji</button>'
       +'<div class="err" id="srv-emoji-err"></div>'
     +'</div>'):'')
+    +(isOwner?('<div class="set-card"><div class="set-section-label">🏷️ Tag du serveur</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Un court label 100% personnalisable (2 à 10 caractères) que tes membres pourront choisir d\\'afficher à côté de leur pseudo, partout sur XULTRA.</div>'
+      +(activeServer.tagText?('<div style="margin-bottom:10px">Aperçu : '+serverTagBadgeHtml({displayedServerTag:{text:activeServer.tagText,color:activeServer.tagColor}})+'</div>'):'')
+      +'<div class="set-row"><label>Texte du tag</label><input type="text" id="srv-tag-text" class="field-input" maxlength="10" value="'+esc(activeServer.tagText||'')+'" placeholder="XULTRA"></div>'
+      +'<div class="set-row"><label>Couleur</label><input type="color" id="srv-tag-color" value="'+esc(activeServer.tagColor||'#7c3aed')+'" style="width:60px;height:36px;padding:2px;background:none;border:1px solid rgba(167,139,250,.3);border-radius:8px"></div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-tag-save" style="flex:1">Enregistrer</button>'+(activeServer.tagText?'<button type="button" class="set-mini-btn danger" id="srv-tag-remove">Retirer</button>':'')+'</div>'
+      +'<div class="err" id="srv-tag-err"></div>'
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -12947,6 +13019,29 @@ async function renderServerSettingsTab(){
       }catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
     });
   });
+  const tagSaveBtn=\$('srv-tag-save');
+  if(tagSaveBtn)tagSaveBtn.onclick=async function(){
+    const tagText=(\$('srv-tag-text').value||'').trim();
+    const tagColor=(\$('srv-tag-color')&&\$('srv-tag-color').value)||'#7c3aed';
+    \$('srv-tag-err').textContent='';
+    if(tagText&&tagText.length<2){\$('srv-tag-err').textContent='2 caractères minimum';return}
+    this.disabled=true;this.textContent='Enregistrement…';
+    try{
+      await authPost('/api/servers/tag/set',{serverId:activeServer.\$id,tagText:tagText,tagColor:tagColor});
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast(tagText?'Tag du serveur enregistré ! 🏷️':'Tag retiré.');
+    }catch(e){\$('srv-tag-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+  const tagRemoveBtn=\$('srv-tag-remove');
+  if(tagRemoveBtn)tagRemoveBtn.onclick=async function(){
+    if(!confirm('Retirer le tag de ce serveur ? Les membres qui l\\'affichent ne le verront plus.'))return;
+    this.disabled=true;
+    try{
+      await authPost('/api/servers/tag/set',{serverId:activeServer.\$id,tagText:'',tagColor:activeServer.tagColor||'#7c3aed'});
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast('Tag retiré.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
+  };
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
     this.disabled=true;
@@ -14686,6 +14781,48 @@ async function handle(request) {
     }
   }
 
+  // Choix du tag de serveur affiché à côté de son pseudo (§ tags serveur).
+  // Stocké dans profileExtraJson (comme avatarFrame/pronouns) sous forme
+  // dénormalisée {serverId,text,color} : évite un aller-retour supplémentaire
+  // à chaque affichage d'un pseudo n'importe où sur le site, au prix d'un
+  // léger risque de décalage si le propriétaire change le tag ensuite (le
+  // client se resynchronise à chaque ouverture des paramètres du profil).
+  if (path === "/api/account/display-tag" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "").trim();
+      let tagPayload = null;
+      if (serverId) {
+        const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+        const isOwner = String(server.ownerId) === String(acc.$id);
+        if (!isOwner) {
+          const member = await getServerMembership(serverId, acc.$id);
+          if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+        }
+        if (!server.tagText) throw new Error("Ce serveur n'a pas de tag");
+        tagPayload = { serverId: serverId, text: server.tagText, color: server.tagColor || "#7c3aed" };
+      }
+      let meta = null;
+      try { meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }); } catch (e) {}
+      let extra = {};
+      try { extra = JSON.parse((meta && meta.profileExtraJson) || "{}") || {}; } catch (e) {}
+      if (tagPayload) extra.displayedServerTag = tagPayload; else delete extra.displayedServerTag;
+      const data = { profileExtraJson: JSON.stringify(extra) };
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data, permissions: lockedPerms } });
+      } catch (e) {
+        if (e && e.status === 404) await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data, permissions: lockedPerms } });
+        else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, tag: tagPayload }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/stories/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -15929,6 +16066,57 @@ async function handle(request) {
       const profile = await resolveProfile(acc.$id);
       await logServerAudit(emoji.serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "emoji_delete", emoji.name, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Tag de serveur (§ tags serveur) : un court label 100% personnalisable
+  // que le PROPRIÉTAIRE seul configure (jamais manage_server — c'est une
+  // identité visuelle du serveur, pas de la modération), que les membres
+  // peuvent ensuite choisir d'afficher à côté de leur pseudo partout sur le
+  // site (voir /api/account/display-tag).
+  if (path === "/api/servers/tag/set" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire du serveur peut gérer son tag");
+      const tagText = String((body && body.tagText) || "").trim().slice(0, 10);
+      const tagColor = /^#[0-9a-fA-F]{6}$/.test((body && body.tagColor) || "") ? body.tagColor : "#7c3aed";
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
+        method: "PATCH", asAdmin: true, body: { data: { tagText: tagText, tagColor: tagColor } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, tagText ? "tag_set" : "tag_remove", tagText || "", {});
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/tag/list-mine" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const owned = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const memberships = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const memberServerIds = (memberships.documents || []).map(function (m) { return m.serverId; });
+      const memberServers = memberServerIds.length ? (await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "$id", values: memberServerIds })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true })).documents || [] : [];
+      const byId = {};
+      (owned.documents || []).concat(memberServers).forEach(function (s) { byId[s.$id] = s; });
+      const tagged = Object.values(byId).filter(function (s) { return !!s.tagText; }).map(function (s) {
+        return { serverId: s.$id, name: s.name, tagText: s.tagText, tagColor: s.tagColor || "#7c3aed" };
+      });
+      return new Response(JSON.stringify({ ok: true, servers: tagged }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
