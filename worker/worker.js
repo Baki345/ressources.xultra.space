@@ -872,6 +872,16 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .reaction-pill:hover{background:var(--hover)}
 .reaction-pill.mine{background:rgba(139,92,246,.28);border-color:#8b5cf6}
 .reaction-pill span{font-size:.66rem;color:var(--muted);font-weight:700}
+.poll-card{min-width:220px;max-width:100%}
+.poll-question{font-weight:800;margin-bottom:8px}
+.poll-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
+.poll-opt-row.ended{cursor:default}
+.poll-opt-bar{position:relative;flex:1;height:28px;border-radius:8px;background:rgba(255,255,255,.08);overflow:hidden;display:flex;align-items:center}
+.poll-opt-fill{position:absolute;inset:0 auto 0 0;background:rgba(139,92,246,.35);transition:width .25s ease}
+.poll-opt-row.mine .poll-opt-fill{background:rgba(139,92,246,.6)}
+.poll-opt-label{position:relative;padding:0 10px;font-size:.78rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poll-opt-pct{font-size:.68rem;color:var(--muted);flex-shrink:0;width:64px;text-align:right}
+.poll-meta{font-size:.66rem;color:var(--muted);margin-top:4px}
 .reply-preview{display:none;align-items:center;gap:8px;padding:7px 14px;border-top:1px solid var(--line);background:rgba(139,92,246,.08);font-size:.78rem}
 .reply-preview.show{display:flex}
 .reply-preview .rp-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
@@ -3462,6 +3472,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.44.0',date:'24 août 2026',time:'18:40',title:'Sondages intégrés dans les salons de serveur',
+    body:'Nouveau bouton 📊 dans la zone d\\'écriture d\\'un salon textuel pour créer un sondage : question, 2 à 10 options, choix unique ou multiple, durée de 1 heure à 7 jours. Les résultats s\\'affichent en direct sous forme de barres avec le pourcentage et le nombre de votes, ton propre vote est mis en évidence, et un sondage terminé passe automatiquement en lecture seule.'},
   {version:'2.43.0',date:'24 août 2026',time:'18:00',title:'Épinglage de messages et synchronisation des permissions par catégorie',
     body:'Tu peux maintenant épingler un message important (📌 dans le menu d\\'actions) en DM comme dans un salon de serveur, et consulter la liste des messages épinglés d\\'un coup d\\'œil (nouveau bouton 📌 en haut de la conversation), avec un clic pour retrouver le message d\\'origine — jusqu\\'à 50 par conversation/salon. Côté serveurs : les catégories ont maintenant leurs propres réglages de visibilité et de permissions par rôle, utilisables comme modèle — un bouton "Synchroniser" sur chaque salon lui applique ces réglages en un clic (une copie ponctuelle, pas un lien permanent).'},
   {version:'2.42.0',date:'24 août 2026',time:'17:15',title:'Serveurs : outils de modération — mode lent, verrouillage, AutoMod, bannissement renforcé',
@@ -9453,6 +9465,7 @@ function renderServerChannelContent(){
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="composer" id="srv-chan-composer">'
     +'<textarea id="srv-chan-input" placeholder="'+composerPlaceholder+'" rows="1" maxlength="4000"'+(lockedForMe?' disabled':'')+'></textarea>'
+    +'<button type="button" class="composer-btn" id="srv-chan-poll" title="Créer un sondage"'+(lockedForMe?' disabled':'')+'>📊</button>'
     +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(lockedForMe?' disabled':'')+'>😊</button>'
     +'<button type="button" class="send-btn" id="srv-chan-send"'+(lockedForMe?' disabled':'')+'>➤</button>'
     +'</div>';
@@ -9475,6 +9488,8 @@ function renderServerChannelContent(){
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
   const pinnedBtn=\$('srv-chan-pinned');
   if(pinnedBtn)pinnedBtn.onclick=function(){openPinnedMessages('channel');};
+  const pollBtn=\$('srv-chan-poll');
+  if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
   const quickLock=\$('srv-chan-quicklock');
   if(quickLock)quickLock.onclick=async function(){
     this.disabled=true;
@@ -9525,6 +9540,27 @@ async function loadChannelMessages(){
     }
   });
 }
+function pollCardHtml(m){
+  let poll=null;try{poll=JSON.parse(m.pollJson);}catch(e){}
+  if(!poll)return '';
+  const votes=poll.votes||{};
+  const counts=poll.options.map(function(_,i){return Object.values(votes).filter(function(v){return (Array.isArray(v)?v:[]).indexOf(i)>=0;}).length;});
+  const total=Object.keys(votes).length;
+  const mine=(me&&Array.isArray(votes[me.\$id]))?votes[me.\$id]:[];
+  const ended=new Date(poll.endsAt).getTime()<=Date.now();
+  return '<div class="poll-card" data-poll-mid="'+esc(m.\$id||'')+'">'
+    +'<div class="poll-question">📊 '+esc(poll.question)+'</div>'
+    +poll.options.map(function(opt,i){
+      const c=counts[i]||0;
+      const pct=total?Math.round(c/total*100):0;
+      const votedHere=mine.indexOf(i)>=0;
+      return '<div class="poll-opt-row'+(votedHere?' mine':'')+(ended?' ended':'')+'" data-poll-vote="'+i+'">'
+        +'<div class="poll-opt-bar"><div class="poll-opt-fill" style="width:'+pct+'%"></div><span class="poll-opt-label">'+(votedHere?'✅ ':'')+esc(opt)+'</span></div>'
+        +'<span class="poll-opt-pct">'+pct+'% ('+c+')</span></div>';
+    }).join('')
+    +'<div class="poll-meta">'+total+' vote'+(total!==1?'s':'')+' · '+(ended?'Terminé':('se termine '+fmtRelTime(poll.endsAt)))+(poll.multi?' · Choix multiple':'')+'</div>'
+    +'</div>';
+}
 function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
@@ -9538,8 +9574,9 @@ function renderChannelMessages(){
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
+    const body=m.pollJson?pollCardHtml(m):highlightRoleMentions(esc(m.text||''));
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+highlightRoleMentions(esc(m.text||''))+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
       +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div></div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
@@ -9556,6 +9593,15 @@ function renderChannelMessages(){
       const mid=el.closest('.msg').getAttribute('data-mid');
       const m=activeChannelMessages.find(function(x){return x.\$id===mid});
       if(m)toggleChannelReaction(m,el.getAttribute('data-chan-react-toggle'));
+    });
+  });
+  box.querySelectorAll('[data-poll-vote]').forEach(function(el){
+    if(el.classList.contains('ended'))return;
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const mid=el.closest('[data-poll-mid]').getAttribute('data-poll-mid');
+      const m=activeChannelMessages.find(function(x){return x.\$id===mid});
+      if(m)toggleChannelVote(m,parseInt(el.getAttribute('data-poll-vote'),10));
     });
   });
   box.querySelectorAll('.msg[data-mid]').forEach(function(el){
@@ -9579,6 +9625,15 @@ async function toggleChannelReaction(m,emoji){
     renderChannelMessages();
   }catch(e){showToast((e&&e.message)||'Action impossible','error');}
 }
+async function toggleChannelVote(m,optionIndex){
+  try{
+    const r=await authPost('/api/servers/channels/messages/vote',{serverId:activeServer.\$id,messageId:m.\$id,optionIndex:optionIndex});
+    m.pollJson=r.message.pollJson;
+    const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
+    if(cached)cached.pollJson=m.pollJson;
+    renderChannelMessages();
+  }catch(e){showToast((e&&e.message)||'Vote impossible','error');}
+}
 function confirmDeleteChannelMessage(m){
   showSlideConfirm('Supprimer ce message pour tout le monde ? Action irréversible.',async function(){
     try{
@@ -9599,6 +9654,47 @@ async function sendServerChannelMessage(){
     if(replyToId)clearReplyTarget('channel');
   }
   catch(e){showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
+}
+const POLL_DURATIONS=[[1,'1 heure'],[6,'6 heures'],[24,'24 heures'],[72,'3 jours'],[168,'7 jours']];
+function openPollBuilder(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  let optRows=2;
+  function optionInputHtml(i){
+    return '<input type="text" class="field-input poll-opt-input" data-poll-opt="'+i+'" maxlength="80" placeholder="Option '+(i+1)+'" style="margin-bottom:6px">';
+  }
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:80vh;overflow-y:auto;text-align:left">'
+    +'<div class="set-section-label">📊 Nouveau sondage</div>'
+    +'<input type="text" id="poll-question" class="field-input" maxlength="300" placeholder="Pose ta question…" style="margin-bottom:10px">'
+    +'<div id="poll-options">'+[0,1].map(optionInputHtml).join('')+'</div>'
+    +'<button type="button" class="set-mini-btn" id="poll-add-opt" style="margin-bottom:10px">+ Ajouter une option</button>'
+    +'<label class="srv-perm-check" style="margin-bottom:10px"><input type="checkbox" id="poll-multi"> Choix multiple autorisé</label>'
+    +'<div class="set-row"><label>Durée</label><select id="poll-duration" class="field-input">'+POLL_DURATIONS.map(function(d){return '<option value="'+d[0]+'"'+(d[0]===24?' selected':'')+'>'+d[1]+'</option>';}).join('')+'</select></div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-main" id="poll-create">Créer le sondage</button><button type="button" class="set-mini-btn" id="poll-cancel">Annuler</button></div>'
+    +'<div class="err" id="poll-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('poll-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('poll-add-opt').onclick=function(){
+    if(optRows>=10){showToast('10 options maximum.','error');return}
+    \$('poll-options').insertAdjacentHTML('beforeend',optionInputHtml(optRows));
+    optRows++;
+  };
+  \$('poll-create').onclick=async function(){
+    const question=(\$('poll-question').value||'').trim();
+    const options=Array.from(overlay.querySelectorAll('[data-poll-opt]')).map(function(i){return (i.value||'').trim();}).filter(Boolean);
+    if(!question){\$('poll-err').textContent='Question requise';return}
+    if(options.length<2){\$('poll-err').textContent='Au moins 2 options requises';return}
+    this.disabled=true;this.textContent='Création…';
+    try{
+      const replyToId=(replyTargetKind==='channel'&&replyTarget)?replyTarget.\$id:'';
+      await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,replyToId:replyToId,poll:{question:question,options:options,multi:\$('poll-multi').checked,durationHours:parseInt(\$('poll-duration').value,10)}});
+      if(replyToId)clearReplyTarget('channel');
+      close();
+    }catch(e){\$('poll-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer le sondage';}
+  };
 }
 function serverRoleBadgesHtml(member){
   const roleIds=member.roleIds||[];
@@ -12673,8 +12769,22 @@ async function handle(request) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
-      const text = String((body && body.text) || "").trim().slice(0, 4000);
       const replyToId = String((body && body.replyToId) || "").slice(0, 64);
+      // Sondage intégré (§3, §27) : question + 2 à 10 options, choix unique ou
+      // multiple, durée 1h à 7 jours. Le texte du message reprend la question
+      // (aperçus, recherche, signalement continuent de fonctionner sans rien
+      // savoir des sondages).
+      let pollJson = "";
+      let text = String((body && body.text) || "").trim().slice(0, 4000);
+      if (body && body.poll) {
+        const question = String(body.poll.question || "").trim().slice(0, 300);
+        const options = (Array.isArray(body.poll.options) ? body.poll.options : []).map(function (o) { return String(o || "").trim().slice(0, 80); }).filter(Boolean).slice(0, 10);
+        const durationHours = [1, 6, 24, 72, 168].indexOf(Number(body.poll.durationHours)) >= 0 ? Number(body.poll.durationHours) : 24;
+        if (!question) throw new Error("Question du sondage requise");
+        if (options.length < 2) throw new Error("Un sondage a besoin d'au moins 2 options");
+        text = question;
+        pollJson = JSON.stringify({ question: question, options: options, multi: !!body.poll.multi, endsAt: new Date(Date.now() + durationHours * 3600000).toISOString(), votes: {} });
+      }
       if (!text) throw new Error("Message vide");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
@@ -12712,7 +12822,7 @@ async function handle(request) {
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson }, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
@@ -12745,6 +12855,47 @@ async function handle(request) {
         method: "PATCH", asAdmin: true, body: { data: { reactionsJson: reactionsJson } }
       });
       return new Response(JSON.stringify({ ok: true, reactionsJson: reactionsJson }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/messages/vote" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const messageId = String((body && body.messageId) || "");
+      const optionIndex = Number(body && body.optionIndex);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.serverId) !== String(serverId)) throw new Error("Message introuvable dans ce serveur");
+      if (!msg.pollJson) throw new Error("Ce message n'est pas un sondage");
+      let poll = null;
+      try { poll = JSON.parse(msg.pollJson); } catch (e) {}
+      if (!poll) throw new Error("Sondage invalide");
+      if (!Number.isInteger(optionIndex) || optionIndex < 0 || optionIndex >= poll.options.length) throw new Error("Option invalide");
+      if (new Date(poll.endsAt).getTime() <= Date.now()) throw new Error("Ce sondage est terminé");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, msg.channelId);
+      if (!access.access.view) throw new Error("Tu n'as pas accès à ce salon");
+      const uid = String(acc.$id);
+      poll.votes = poll.votes || {};
+      const mine = (Array.isArray(poll.votes[uid]) ? poll.votes[uid] : []).map(Number);
+      const already = mine.indexOf(optionIndex) >= 0;
+      let updatedMine;
+      if (poll.multi) {
+        updatedMine = already ? mine.filter(function (i) { return i !== optionIndex; }) : mine.concat([optionIndex]);
+      } else {
+        // Choix unique : voter pour une autre option remplace le vote précédent ;
+        // re-cliquer sur son option actuelle le retire (annuler son vote).
+        updatedMine = already ? [] : [optionIndex];
+      }
+      if (updatedMine.length) poll.votes[uid] = updatedMine; else delete poll.votes[uid];
+      const pollJson = JSON.stringify(poll);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, {
+        method: "PATCH", asAdmin: true, body: { data: { pollJson: pollJson } }
+      });
+      return new Response(JSON.stringify({ ok: true, message: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
