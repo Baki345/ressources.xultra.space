@@ -15,6 +15,17 @@ const MAINT_GATE = "xu_gate_Z-5olSXEZ3Gw3rgQPqhR_Y-o";
 // dérivés et expirables.
 const TURN_HOST = "169.58.159.89";
 const TURN_SHARED_SECRET = "c59e5de56df5dbb2d928b6f2347a0ac2479ae88471fcaf0454de87bcae849926";
+// Workers AI (correction de texte ✨) appelée en simple HTTPS via l'API REST
+// Cloudflare, PAS via le binding natif "ai" — ce binding exige un Worker au
+// format ES module, alors que ce fichier est en syntaxe service-worker
+// (addEventListener) depuis le début ; migrer tout le fichier pour un seul
+// binding aurait été un risque disproportionné. Le token utilisé est un
+// secret Cloudflare chiffré (CF_AI_TOKEN, posé via l'API /secrets — jamais
+// dans ce fichier ni dans git, GitHub bloque de toute façon tout push
+// contenant un token Cloudflare reconnu), scope "Workers AI: Edit"
+// uniquement (testé : 403 sur /workers/scripts) — jamais le token de
+// déploiement, qui a lui le droit de redéployer du code.
+const CF_ACCOUNT_ID = "d69428d83fd24b06b7ddc68bf7c48ca1";
 async function generateTurnCredential(secret, username) {
   const enc = new TextEncoder();
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-1" }, false, ["sign"]);
@@ -12816,14 +12827,21 @@ async function handle(request) {
       const body = await request.json();
       const text = String((body && body.text) || "").trim().slice(0, 4000);
       if (!text) throw new Error("Rien à corriger");
-      if (typeof AI === "undefined" || !AI) throw new Error("Correction IA indisponible pour le moment");
-      const result = await AI.run("@cf/meta/llama-3.1-8b-instruct", {
-        messages: [
-          { role: "system", content: "Tu es un correcteur orthographique et grammatical. Corrige UNIQUEMENT l'orthographe, la grammaire, la conjugaison et la ponctuation du texte fourni par l'utilisateur. Ne change ni son sens, ni sa langue, ni son ton, ni les emojis qu'il contient. Ne reformule pas et ne réponds pas au message : renvoie SEULEMENT le texte corrigé, sans guillemets, sans explication, sans commentaire." },
-          { role: "user", content: text }
-        ],
-        max_tokens: 1024
+      if (typeof CF_AI_TOKEN === "undefined" || !CF_AI_TOKEN) throw new Error("Correction IA indisponible pour le moment");
+      const aiRes = await fetch("https://api.cloudflare.com/client/v4/accounts/" + CF_ACCOUNT_ID + "/ai/run/@cf/meta/llama-3.1-8b-instruct", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + CF_AI_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: "Tu es un correcteur orthographique et grammatical. Corrige UNIQUEMENT l'orthographe, la grammaire, la conjugaison et la ponctuation du texte fourni par l'utilisateur. Ne change ni son sens, ni sa langue, ni son ton, ni les emojis qu'il contient. Ne reformule pas et ne réponds pas au message : renvoie SEULEMENT le texte corrigé, sans guillemets, sans explication, sans commentaire." },
+            { role: "user", content: text }
+          ],
+          max_tokens: 1024
+        })
       });
+      const aiJson = await aiRes.json();
+      if (!aiRes.ok || !aiJson.success) throw new Error("Correction IA indisponible pour le moment");
+      const result = aiJson.result;
       let corrected = String((result && result.response) || "").trim();
       corrected = corrected.replace(/^["“„«]+|["”»]+$/g, "").trim();
       if (!corrected) throw new Error("Réponse vide de l'IA, réessaie");
