@@ -85,6 +85,7 @@ function randomInviteCode() {
 // serveur accumule les boosts actifs, et franchir un palier débloque des
 // avantages pour TOUT le serveur (contrairement à XULTRA+ qui reste un
 // avantage personnel du propriétaire).
+const SERVER_DISCOVERY_CATEGORIES = ["gaming", "musique", "art", "education", "technologie", "communaute", "autre"];
 const SERVER_BOOST_THRESHOLDS = [2, 5, 10];
 function serverBoostLevel(server) {
   let boosters = [];
@@ -1974,6 +1975,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <button type="button" class="icon-btn hidden" id="btn-new-group" title="Créer un groupe">👥+</button>
         <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un serveur">🏘️+</button>
         <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un serveur">🔗</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-discover" title="Découvrir des serveurs">🧭</button>
         <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
       </div>
     </div>
@@ -2495,6 +2497,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <div id="srv-join-preview"></div>
     <button type="button" class="btn-main" id="srv-join-submit">Rejoindre</button>
     <div class="err" id="srv-join-err"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-server-discover">
+  <div class="modal-box" style="max-width:480px">
+    <button type="button" class="modal-close" id="srv-discover-close">✕</button>
+    <h3>🧭 Découvrir des serveurs</h3>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <input type="text" id="srv-discover-search" class="field-input" placeholder="Rechercher…" style="flex:1;min-width:140px">
+      <select id="srv-discover-category" class="field-input" style="width:auto"><option value="">Toutes catégories</option></select>
+    </div>
+    <div id="srv-discover-list" style="max-height:50vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -3764,6 +3778,7 @@ function showView(v){
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
   if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
   if(\$('btn-server-join'))\$('btn-server-join').classList.toggle('hidden',v!=='servers');
+  if(\$('btn-server-discover'))\$('btn-server-discover').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
   if(\$('stories-bar'))\$('stories-bar').classList.toggle('hidden',v!=='dms');
   if(v==='servers'){
@@ -3837,6 +3852,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.54.0',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
+    body:'Nouveau bouton 🧭 à côté de Créer/Rejoindre un serveur : parcours les serveurs qu\\'un propriétaire a choisi de rendre publics, filtre par catégorie (Gaming, Musique, Art, Éducation, Technologie, Communauté…) ou recherche par nom, et rejoins en un clic — plus besoin de code d\\'invitation. Côté propriétaire (ou membre avec la permission "Gérer le serveur"), un nouveau réglage 🧭 Découverte permet d\\'activer la visibilité du serveur et de choisir sa catégorie.'},
   {version:'2.53.3',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
     body:'Le vrai fond du problème signalé plusieurs fois : quand le mot de passe du compte a été changé APRÈS l\\'activation de la sauvegarde des messages, cette sauvegarde reste chiffrée avec l\\'ancien mot de passe pour toujours — aucun mot de passe actuel ne peut plus la déchiffrer. La restauration échouait donc en silence à chaque tentative tout en affichant "Messages restaurés" (elle confondait "une sauvegarde existe" et "cette tentative a réussi"). Corrigé : un message honnête s\\'affiche maintenant dans ce cas précis, avec un bouton pour réinitialiser la sauvegarde et resynchroniser tous tes appareils pour la suite (l\\'historique déjà chiffré avec l\\'ancienne clé, lui, ne peut malheureusement plus être récupéré — aucun logiciel ne peut déchiffrer sans la bonne clé). Et pour que ça ne se reproduise plus : changer son mot de passe re-chiffre maintenant automatiquement la sauvegarde avec le nouveau.'},
   {version:'2.53.2',date:'25 août 2026',time:'00:15',title:'Correctif : « mot de passe incorrect » lors de la restauration des messages',
@@ -10703,6 +10720,8 @@ function serverIconHtml(s,sizeClass){
   const url=safeUrl(s&&s.icon);
   return url?'<img src="'+esc(url)+'" alt="">':esc(ini((s&&s.name)||'?'));
 }
+const SERVER_DISCOVERY_CATEGORIES=['gaming','musique','art','education','technologie','communaute','autre'];
+const SERVER_CATEGORY_LABELS={gaming:'🎮 Gaming',musique:'🎵 Musique',art:'🎨 Art',education:'📚 Éducation',technologie:'💻 Technologie',communaute:'👥 Communauté',autre:'✨ Autre'};
 const SERVER_BOOST_THRESHOLDS=[2,5,10];
 function serverBoostCount(s){
   let boosters=[];try{boosters=JSON.parse((s&&s.boostedByJson)||'[]');}catch(e){}
@@ -10801,6 +10820,57 @@ if(\$('srv-join-submit'))\$('srv-join-submit').addEventListener('click',async fu
   }catch(e){\$('srv-join-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Rejoindre';
 });
+
+let discoverServersCache=[];
+if(\$('btn-server-discover'))\$('btn-server-discover').addEventListener('click',function(){
+  \$('modal-server-discover').classList.remove('hidden');
+  \$('srv-discover-search').value='';
+  const catSel=\$('srv-discover-category');
+  if(catSel&&catSel.options.length<=1){
+    catSel.innerHTML='<option value="">Toutes catégories</option>'+SERVER_DISCOVERY_CATEGORIES.map(function(c){return '<option value="'+c+'">'+SERVER_CATEGORY_LABELS[c]+'</option>';}).join('');
+  }
+  loadDiscoverServers();
+});
+if(\$('srv-discover-close'))\$('srv-discover-close').addEventListener('click',function(){\$('modal-server-discover').classList.add('hidden');});
+if(\$('modal-server-discover'))\$('modal-server-discover').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+async function loadDiscoverServers(){
+  const list=\$('srv-discover-list');
+  list.innerHTML='<div class="scr-sub">Chargement…</div>';
+  try{
+    const category=(\$('srv-discover-category')&&\$('srv-discover-category').value)||'';
+    const r=await fetch('/api/servers/discovery/list'+(category?('?category='+encodeURIComponent(category)):''),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const j=await r.json();
+    discoverServersCache=(j&&j.servers)||[];
+    renderDiscoverList();
+  }catch(e){list.innerHTML='<div class="scr-sub">Erreur de chargement.</div>';}
+}
+function renderDiscoverList(){
+  const list=\$('srv-discover-list');if(!list)return;
+  const q=((\$('srv-discover-search')&&\$('srv-discover-search').value)||'').trim().toLowerCase();
+  const myIds=(myServers||[]).map(function(s){return String(s.\$id);});
+  const filtered=discoverServersCache.filter(function(s){return !q||s.name.toLowerCase().indexOf(q)>=0;});
+  if(!filtered.length){list.innerHTML='<div class="scr-sub">Aucun serveur trouvé.</div>';return}
+  list.innerHTML=filtered.map(function(s){
+    const already=myIds.indexOf(String(s.\$id))>=0;
+    return '<div class="srv-item" style="cursor:default"><div class="srv-item-icon">'+serverIconHtml(s)+'</div><div class="srv-item-info"><div class="srv-item-name">'+esc(s.name)+(s.category?(' <span class="soon-badge" style="font-size:10px">'+esc(SERVER_CATEGORY_LABELS[s.category]||s.category)+'</span>'):'')+'</div><div class="srv-item-sub">'+(s.memberCount||0)+' membre(s)'+(s.description?(' · '+esc(s.description.slice(0,60))):'')+'</div></div>'
+      +'<button type="button" class="set-mini-btn" data-discover-join="'+esc(s.\$id)+'"'+(already?' disabled':'')+'>'+(already?'Déjà membre':'Rejoindre')+'</button></div>';
+  }).join('');
+  list.querySelectorAll('[data-discover-join]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      const serverId=b.getAttribute('data-discover-join');
+      b.disabled=true;b.textContent='…';
+      try{
+        const res=await authPost('/api/servers/discovery/join',{serverId:serverId});
+        \$('modal-server-discover').classList.add('hidden');
+        showToast(res.alreadyMember?'Tu es déjà membre de ce serveur !':'Bienvenue dans le serveur ! 🎉');
+        await loadMyServers();
+        openServerDetail(res.server.\$id);
+      }catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;b.textContent='Rejoindre';}
+    });
+  });
+}
+if(\$('srv-discover-search'))\$('srv-discover-search').addEventListener('input',renderDiscoverList);
+if(\$('srv-discover-category'))\$('srv-discover-category').addEventListener('change',loadDiscoverServers);
 
 async function openServerDetail(serverId){
   try{
@@ -11637,7 +11707,8 @@ const AUDIT_ACTION_LABELS={
   category_create:{icon:'🗂️',label:'a créé la catégorie'},category_delete:{icon:'🗂️',label:'a supprimé la catégorie'},
   invite_regenerate:{icon:'🔗',label:'a régénéré l\\'invitation'},server_update:{icon:'⚙️',label:'a modifié les paramètres du serveur'},
   message_pin:{icon:'📌',label:'a épinglé un message de'},message_unpin:{icon:'📌',label:'a désépinglé un message de'},
-  thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'}
+  thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'},
+  server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -11906,6 +11977,11 @@ async function renderServerSettingsTab(){
     +'<div id="srv-automod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+automodWordsHtml(activeServer.autoModWordsJson)+'</div>'
     +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧭 Découverte</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Rends ce serveur visible dans Découvrir des serveurs pour que n\\'importe qui puisse le trouver et le rejoindre en un clic, sans code d\\'invitation.</div>'
+      +'<div class="set-toggle-row"><span>Serveur découvrable</span><div class="set-switch'+(activeServer.discoverable?' on':'')+'" id="srv-discoverable-toggle" data-on="'+(activeServer.discoverable?'1':'0')+'"></div></div>'
+      +'<div class="set-row"><label>Catégorie</label><select id="srv-discoverable-category" class="field-input">'+SERVER_DISCOVERY_CATEGORIES.map(function(c){return '<option value="'+c+'"'+(activeServer.category===c?' selected':'')+'>'+SERVER_CATEGORY_LABELS[c]+'</option>';}).join('')+'</select></div>'
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -11967,6 +12043,26 @@ async function renderServerSettingsTab(){
       if(b.disabled)return;
       try{await authPost('/api/servers/quality',{serverId:activeServer.\$id,screenQualityKey:b.getAttribute('data-srv-quality-screen')});await openServerDetail(activeServer.\$id);switchServerTab('settings');showToast('Qualité vidéo mise à jour.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
     });
+  });
+  const discoverableToggle=\$('srv-discoverable-toggle');
+  if(discoverableToggle)discoverableToggle.onclick=async function(){
+    const next=discoverableToggle.getAttribute('data-on')!=='1';
+    const category=(\$('srv-discoverable-category')&&\$('srv-discoverable-category').value)||'autre';
+    try{
+      await authPost('/api/servers/discovery/toggle',{serverId:activeServer.\$id,discoverable:next,category:category});
+      activeServer.discoverable=next;activeServer.category=category;
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast(next?'Serveur ajouté à Découvrir des serveurs. 🧭':'Serveur retiré de la découverte.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  const discoverableCategory=\$('srv-discoverable-category');
+  if(discoverableCategory)discoverableCategory.addEventListener('change',async function(){
+    if(!activeServer.discoverable)return;
+    try{
+      await authPost('/api/servers/discovery/toggle',{serverId:activeServer.\$id,discoverable:true,category:this.value});
+      activeServer.category=this.value;
+      showToast('Catégorie mise à jour.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
   });
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
@@ -14389,6 +14485,79 @@ async function handle(request) {
       const actorProfileVanity = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfileVanity && (actorProfileVanity.displayName || actorProfileVanity.username)) || acc.name, "invite_regenerate", updated.inviteCode, { vanity: true });
       return new Response(JSON.stringify({ ok: true, inviteCode: updated.inviteCode }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/discovery/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const discoverable = !!(body && body.discoverable);
+      let category = String((body && body.category) || "").trim().toLowerCase();
+      if (category && SERVER_DISCOVERY_CATEGORIES.indexOf(category) < 0) category = "autre";
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { discoverable: discoverable, category: category } } });
+      const actorProfileDisco = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfileDisco && (actorProfileDisco.displayName || actorProfileDisco.username)) || acc.name, discoverable ? "server_discoverable_on" : "server_discoverable_off", "", { category: category });
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/discovery/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const category = String(url.searchParams.get("category") || "").trim().toLowerCase();
+      const queries = [
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "discoverable", values: [true] })),
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })),
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [40] }))
+      ];
+      if (category && SERVER_DISCOVERY_CATEGORIES.indexOf(category) >= 0) {
+        queries.push("queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "category", values: [category] })));
+      }
+      const found = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" + queries.join("&"), { asAdmin: true });
+      const servers = found.documents || [];
+      const enriched = [];
+      for (const s of servers) {
+        const members = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [s.$id] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true }).catch(function () { return { total: 0 }; });
+        enriched.push({ $id: s.$id, name: s.name, description: s.description, icon: s.icon, banner: s.banner, category: s.category || "", memberCount: members.total || 0 });
+      }
+      return new Response(JSON.stringify({ ok: true, servers: enriched }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/discovery/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (!server.discoverable) throw new Error("Ce serveur n'est pas ouvert à la découverte");
+      let banned = [];
+      try { banned = JSON.parse(server.bannedUidsJson || "[]"); } catch (e) {}
+      if (banned.indexOf(String(acc.$id)) >= 0) throw new Error("Tu as été banni de ce serveur");
+      const already = await getServerMembership(server.$id, acc.$id);
+      if (already) return new Response(JSON.stringify({ ok: true, server: server, alreadyMember: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
+      });
+      return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
