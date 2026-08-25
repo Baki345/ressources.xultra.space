@@ -4016,6 +4016,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.56.1',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
+    body:'Deux bugs remontés corrigés : dans une conversation, le repère "Vu" disparaissait dès qu\\'un nouveau message était envoyé avant que le précédent ne soit lu, même si les messages précédents avaient bel et bien été vus — le repère s\\'affiche maintenant sur le dernier message effectivement lu, pas seulement sur le tout dernier envoyé. Et la vérification (invisible) des droits admin faite à chaque connexion affichait une fausse alerte rouge dans la console du navigateur pour tous les membres normaux — silencieuse désormais.'},
   {version:'2.56.0',date:'26 août 2026',time:'00:20',title:'Mot de passe oublié',
     body:'Nouveau lien "Mot de passe oublié ?" sur la page de connexion et dans Paramètres → Mon compte → Modifier le mot de passe : entre ton e-mail, tu reçois un lien pour en choisir un nouveau, sans avoir à connaître l\\'ancien. Pense à repasser ensuite par Paramètres → Confidentialité et sécurité → Messages chiffrés si tes anciennes conversations chiffrées deviennent illisibles sur un appareil après ce changement — c\\'est normal (l\\'ancienne clé de sauvegarde ne survit pas à un mot de passe oublié) et ce nouvel écran permet de resynchroniser.'},
   {version:'2.55.0',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
@@ -7383,28 +7385,44 @@ function initVoiceMsgPlayer(el){
   });
 }
 function computeSeenInfo(){
+  /* Cherche le DERNIER de mes messages qui a effectivement été vu, pas
+     forcément mon tout dernier message envoyé — sinon envoyer un nouveau
+     message avant que le précédent ne soit lu faisait disparaître toute
+     trace visuelle qu'un message ANTÉRIEUR avait bien été vu, alors que
+     lastReadJson s'en souvenait très bien : signalé comme bug ("le 3ème
+     message était marqué comme lu, mais quand j'en envoie un autre,
+     impossible de voir si les anciens ont été lus"). */
   if(!activeDm||!me)return {lastMineId:null,seenLabel:''};
-  let lastMine=null;
-  for(let i=msgsCache.length-1;i>=0;i--){if(msgsCache[i].uid===me.\$id){lastMine=msgsCache[i];break}}
-  if(!lastMine)return {lastMineId:null,seenLabel:''};
   const dm=dmsCache.find(function(d){return d.\$id===activeDm});
   const lastRead=parseJsonSafe(dm&&dm.lastReadJson,{});
-  const createdAt=new Date(lastMine.\$createdAt).getTime();
   if(activeDmIsGroup){
     const others=activeDmMembers.filter(function(u){return u!==String(me.\$id);});
-    const seenBy=others.filter(function(uid){const t=lastRead[uid];return t&&new Date(t).getTime()>=createdAt;});
-    if(!seenBy.length)return {lastMineId:lastMine.\$id,seenLabel:''};
-    const names=seenBy.map(function(uid){
-      const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid;});
-      return (p&&(p.displayName||p.username))||'Quelqu’un';
-    });
-    const label=names.length<=2?('Vu par '+names.join(' et ')):('Vu par '+names.length+' personnes');
-    return {lastMineId:lastMine.\$id,seenLabel:label};
+    for(let i=msgsCache.length-1;i>=0;i--){
+      const m=msgsCache[i];
+      if(m.uid!==me.\$id)continue;
+      const createdAt=new Date(m.\$createdAt).getTime();
+      const seenBy=others.filter(function(uid){const t=lastRead[uid];return t&&new Date(t).getTime()>=createdAt;});
+      if(seenBy.length){
+        const names=seenBy.map(function(uid){
+          const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid;});
+          return (p&&(p.displayName||p.username))||'Quelqu’un';
+        });
+        const label=names.length<=2?('Vu par '+names.join(' et ')):('Vu par '+names.length+' personnes');
+        return {lastMineId:m.\$id,seenLabel:label};
+      }
+    }
+    return {lastMineId:null,seenLabel:''};
   }
-  if(!activeDmPeerUid)return {lastMineId:lastMine.\$id,seenLabel:''};
+  if(!activeDmPeerUid)return {lastMineId:null,seenLabel:''};
   const peerRead=lastRead[activeDmPeerUid];
-  const seen=!!(peerRead&&new Date(peerRead).getTime()>=createdAt);
-  return {lastMineId:lastMine.\$id,seenLabel:seen?'Vu':''};
+  if(!peerRead)return {lastMineId:null,seenLabel:''};
+  const peerReadTime=new Date(peerRead).getTime();
+  for(let i=msgsCache.length-1;i>=0;i--){
+    const m=msgsCache[i];
+    if(m.uid!==me.\$id)continue;
+    if(new Date(m.\$createdAt).getTime()<=peerReadTime)return {lastMineId:m.\$id,seenLabel:'Vu'};
+  }
+  return {lastMineId:null,seenLabel:''};
 }
 /* ===== Emojis, réponses, réactions — partagés entre DM et salons de serveur ===== */
 const EMOJI_LIST=['😀','😂','🤣','😊','😍','😘','😉','😎','🤩','🥳','😭','😢','😡','🤬','😱','😴','🤔','🙄','😅','😇','🥰','😜','🤗','🤯','🥺','😏','🙃','😬','🤝','👍','👎','👏','🙏','💪','👌','✌️','🤙','🔥','💯','✨','🎉','❤️','🧡','💛','💚','💙','💜','🖤','💔','⭐','☠️','👀','🤡','💀','🚀','⚡','😈'];
@@ -13333,8 +13351,19 @@ async function handle(request) {
   if (path === "/api/admin/access") {
     const gate = await requireStaff(request, "view");
     if (!gate.ok) {
+      /* checkAdmin() appelle cette route SANS EXCEPTION à chaque connexion,
+         pour absolument tout le monde — "forbidden" (membre normal, pas
+         staff) est donc le cas le plus fréquent de tous, pas une vraie
+         erreur. Renvoyer un vrai 403 HTTP faisait apparaître une ligne rouge
+         dans la console de dev à chaque connexion pour la quasi-totalité des
+         membres, et a été signalé comme bug par un membre qui avait ouvert
+         ses outils de dev. Le client ne lit que le champ JSON "ok", jamais
+         le code HTTP : renvoyer 200 ici ne change rien côté client, juste la
+         console. "auth_required" (session invalide/expirée) reste, lui, un
+         vrai problème et garde son vrai statut. */
+      const status = gate.error === "forbidden" ? 200 : gate.status;
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
-        status: gate.status,
+        status: status,
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
