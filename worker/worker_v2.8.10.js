@@ -3407,27 +3407,22 @@ if(\$('e2e-bb-cancel'))\$('e2e-bb-cancel').addEventListener('click',function(){
   \$('e2e-bb-form').classList.add('hidden');
   \$('e2e-bb-ask').classList.remove('hidden');
 });
-async function submitE2EBackupPassword(){
-  const pass=\$('e2e-bb-pass').value||'';
-  if(!pass||!me||!me.email)return;
-  const btn=\$('e2e-bb-submit');
-  btn.disabled=true;btn.textContent='Vérification…';
+async function e2eVerifyAndSync(pass,restoreIntent){
+  /* ensureE2EKeys() ne vérifie jamais que le mot de passe fourni est le bon
+     — il dérive juste une clé de chiffrement à partir de ce qu'on lui donne
+     (normal pour les flux de connexion, où le mot de passe vient d'être
+     validé par Appwrite). Ici, c'est potentiellement la première fois qu'un
+     mot de passe est saisi SANS passer par une vraie connexion : sans cette
+     vérification, une faute de frappe créerait silencieusement une
+     sauvegarde chiffrée avec le mauvais mot de passe — inutilisable plus
+     tard, mais affichée comme un succès. On vérifie donc d'abord via une
+     vraie tentative de connexion (ouvre une session de plus, sans
+     conséquence : l'app gère déjà plusieurs sessions par appareil). */
   try{
-    /* ensureE2EKeys() ne vérifie jamais que le mot de passe fourni est le bon
-       — il dérive juste une clé de chiffrement à partir de ce qu'on lui donne
-       (normal pour les flux de connexion, où le mot de passe vient d'être
-       validé par Appwrite). Ici, c'est la première fois qu'un mot de passe
-       est saisi SANS passer par une vraie connexion : sans cette vérification,
-       une faute de frappe créerait silencieusement une sauvegarde chiffrée
-       avec le mauvais mot de passe — inutilisable plus tard, mais affichée
-       comme un succès. On vérifie donc d'abord via une vraie tentative de
-       connexion (ouvre une session de plus, sans conséquence : l'app gère
-       déjà plusieurs sessions par appareil). */
     await account.createEmailPasswordSession(me.email,pass);
-    const wasRestoreMode=e2eBannerMode==='restore';
     const status=await ensureE2EKeys(pass);
     if(status&&status.backedUp){
-      if(wasRestoreMode){
+      if(restoreIntent){
         /* La clé restaurée peut différer de celle générée temporairement au
            démarrage — sans vider ce cache, e2eThreadKey() continuerait de
            renvoyer la clé (fausse) déjà résolue cette session, et les
@@ -3438,10 +3433,10 @@ async function submitE2EBackupPassword(){
       }else{
         showToast('Sauvegarde activée — tes messages resteront lisibles sur tes autres appareils. 🔒');
       }
-      hideE2EBackupBanner();
-    }else{
-      showToast('Erreur réseau, réessaie.','error');
+      return {ok:true};
     }
+    showToast('Erreur réseau, réessaie.','error');
+    return {ok:false};
   }catch(e){
     /* Ce catch attrapait TOUTE erreur de createEmailPasswordSession comme "mot
        de passe incorrect" — y compris une vraie limite de débit Appwrite (429,
@@ -3457,7 +3452,17 @@ async function submitE2EBackupPassword(){
     }else{
       showToast('Erreur réseau, réessaie.','error');
     }
+    return {ok:false};
   }
+}
+async function submitE2EBackupPassword(){
+  const pass=\$('e2e-bb-pass').value||'';
+  if(!pass||!me||!me.email)return;
+  const btn=\$('e2e-bb-submit');
+  btn.disabled=true;btn.textContent='Vérification…';
+  const wasRestoreMode=e2eBannerMode==='restore';
+  const res=await e2eVerifyAndSync(pass,wasRestoreMode);
+  if(res.ok)hideE2EBackupBanner();
   btn.disabled=false;btn.textContent='Valider';
 }
 if(\$('e2e-bb-submit'))\$('e2e-bb-submit').addEventListener('click',submitE2EBackupPassword);
@@ -3772,6 +3777,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.53.1',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
+    body:'Jusqu\\'ici, un appareil qui ne pouvait pas encore lire tes messages chiffrés ne pouvait être réparé que via une petite bannière proposée automatiquement à la connexion, facile à manquer ou à fermer par erreur. Ajout dans Paramètres → Confidentialité et sécurité → Messages chiffrés : entre ton mot de passe à tout moment pour restaurer l\\'accès à tes messages sur l\\'appareil que tu utilises, sans attendre une bannière.'},
   {version:'2.53.0',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
     body:'Nouvelle section 🚀 Boosts dans les paramètres d\\'un serveur : n\\'importe quel membre peut le booster (geste gratuit et symbolique), et plus il y a de boosts actifs, plus le serveur débloque d\\'avantages pour TOUT le monde — palier 2 : qualité audio/vidéo XULTRA+ pour tous les membres, sans dépendre de l\\'abonnement du propriétaire ; palier 3 : le code d\\'invitation devient personnalisable (ex. "MONSERVEUR" au lieu d\\'une suite de caractères aléatoires).'},
   {version:'2.52.0',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
@@ -4735,6 +4742,10 @@ function renderSetPrivacy(box){
       +'<div class="set-row"><label>Qui peut t’envoyer des messages</label><div class="seg-group"><button type="button" class="seg-btn'+(privacy.dms==='everyone'?' on':'')+'" data-priv-dm="everyone">Tout le monde</button><button type="button" class="seg-btn'+(privacy.dms==='friends'?' on':'')+'" data-priv-dm="friends">Amis uniquement</button></div></div>'
       +'<div class="set-toggle-row"><span>Masquer mon statut en ligne</span><div class="set-switch'+(privacy.hideOnlineStatus?' on':'')+'" id="priv-hide-status" data-on="'+(privacy.hideOnlineStatus?'1':'0')+'"></div></div>'
     +'</div>'
+    +'<div class="set-card"><div class="set-section-label">Messages chiffrés</div>'
+      +'<div class="scr-sub" style="padding:0 4px 10px">Si tu vois « 🔒 Message illisible sur cet appareil », c\\'est que cet appareil n\\'a pas encore la bonne clé de déchiffrement. Entre ton mot de passe ci-dessous pour la restaurer — ça marche sur n\\'importe quel appareil, à tout moment, pas besoin d\\'attendre une bannière.</div>'
+      +'<div class="set-card-row" style="gap:8px;flex-wrap:wrap"><input type="password" id="priv-e2e-restore-pass" placeholder="Ton mot de passe" style="flex:1;min-width:160px;padding:8px 10px;border-radius:8px;background:var(--elev);border:1px solid rgba(255,255,255,.1);color:inherit"><button type="button" class="set-mini-btn" id="priv-e2e-restore-btn">Restaurer mes messages</button></div>'
+    +'</div>'
     +'<div class="set-card"><div class="set-section-label">Contenu</div>'+toggleRow('Flouter le contenu sensible (NSFW)','nsfwBlur',appPrefs.nsfwBlur)+'</div>'
     +'<div class="set-card"><div class="set-section-label">Données</div>'
       +toggleRow('Partager des données d’analyse anonymes','analyticsShare',appPrefs.analyticsShare)
@@ -4766,6 +4777,16 @@ function wireSetPrivacy(box,privacy){
   if(hideSt)hideSt.onclick=function(){savePrivacy(Object.assign({},privacy,{hideOnlineStatus:hideSt.getAttribute('data-on')!=='1'}));};
   const dataReq=\$('priv-data-request');
   if(dataReq)dataReq.onclick=function(){closeSettingsPanel();openBugModal(null);showToast('Décris ta demande dans le formulaire, on te répond vite !');};
+  const e2eRestoreBtn=\$('priv-e2e-restore-btn');
+  if(e2eRestoreBtn)e2eRestoreBtn.onclick=async function(){
+    const passInput=\$('priv-e2e-restore-pass');
+    const pass=(passInput&&passInput.value)||'';
+    if(!pass||!me||!me.email){showToast('Entre ton mot de passe.','error');return}
+    e2eRestoreBtn.disabled=true;e2eRestoreBtn.textContent='Vérification…';
+    await e2eVerifyAndSync(pass,true);
+    e2eRestoreBtn.disabled=false;e2eRestoreBtn.textContent='Restaurer mes messages';
+    if(passInput)passInput.value='';
+  };
 }
 function renderSetBlocked(box){
   const blocked=(friendsCache||[]).filter(function(f){return f.status==='blocked';});
