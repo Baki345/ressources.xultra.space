@@ -154,8 +154,16 @@ function computeChannelAccess(channel, roleIds) {
 // serveur dont il n'est même pas membre. Un membre qui obtient l'accès plus
 // tard ne recevra pas le direct sur les anciens messages, mais la route de
 // lecture (qui revérifie l'accès à chaque appel) reste la source de vérité.
-async function computeChannelMessagePermissions(serverId, channel) {
+async function computeChannelMessagePermissions(serverId, channel, threadUids) {
   try {
+    // Fil privé (§7) : lecture restreinte à ses propres membres invités, en
+    // plus (toujours) du propriétaire — jamais élargie aux autres membres du
+    // salon parent, même si le salon lui-même est public.
+    if (Array.isArray(threadUids)) {
+      const server0 = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const uids0 = Array.from(new Set([String(server0.ownerId)].concat(threadUids.map(String))));
+      return uids0.slice(0, 100).map(function (uid) { return "read(\"user:" + uid + "\")"; });
+    }
     const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
     const membersData = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
       "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -179,6 +187,20 @@ async function computeChannelMessagePermissions(serverId, channel) {
   } catch (e) {
     return []; // best-effort : le temps réel restera indisponible pour ce message, la lecture via la route fonctionne quand même
   }
+}
+// Un fil hérite des permissions de son salon parent — jamais d'overwrites
+// propres (§7, §30 point 4). Un fil PRIVÉ ajoute une restriction
+// supplémentaire à ses seuls membres invités (+ créateur + modération),
+// jamais un élargissement. Lève une erreur si l'accès est refusé.
+async function resolveThreadAccess(serverId, threadId, uid, channelAccess) {
+  const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { asAdmin: true });
+  if (String(thread.serverId) !== String(serverId) || String(thread.channelId) !== String(channelAccess.channel.$id)) throw new Error("Fil introuvable dans ce salon");
+  if (thread.private) {
+    const memberUids = (thread.memberUids || []).map(String);
+    const allowed = channelAccess.hasManage || String(thread.creatorUid) === String(uid) || memberUids.indexOf(String(uid)) >= 0;
+    if (!allowed) throw new Error("Tu n'as pas accès à ce fil privé");
+  }
+  return thread;
 }
 function sanitizeChannelOverwrites(list) {
   if (!Array.isArray(list)) return [];
@@ -3488,6 +3510,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.46.0',date:'25 août 2026',time:'12:00',title:'Fils de discussion dans les salons de serveur',
+    body:'Tu peux maintenant démarrer un fil de discussion à partir de n\\'importe quel message d\\'un salon textuel (dans son menu d\\'actions ⋯), pour continuer une conversation secondaire sans polluer le salon principal. Un fil peut être public (visible et rejoignable par tout le monde ayant accès au salon) ou privé (uniquement les membres invités). Le nouveau bouton 🧵 Fils en haut d\\'un salon liste tous ses fils, ouverts ou archivés ; un message qui a un fil affiche un petit lien vers celui-ci. Un fil peut être archivé par son créateur ou par un modérateur, et rouvert par un modérateur.'},
   {version:'2.45.2',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
     body:'Sur un écran court (clavier mobile ouvert, ou simplement un petit téléphone), la page de connexion/inscription et toutes les fenêtres (profil, paramètres, signalement, création de serveur…) pouvaient afficher un contenu coupé en haut et en bas dès qu\\'il dépassait la hauteur visible, sans aucun moyen de faire défiler pour voir le reste — un effet de bord du centrage automatique quand le contenu est plus grand que l\\'écran. Toutes ces fenêtres restent centrées quand tout tient, et défilent normalement sinon.'},
   {version:'2.45.1',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
@@ -7021,6 +7045,7 @@ function openMessageActionSheet(m,kind){
   let items='<button type="button" data-act="react">😊 Réagir</button>';
   items+='<button type="button" data-act="reply">↩️ Répondre</button>';
   if(kind==='dm'||canModerate)items+='<button type="button" data-act="pin">'+(m.pinned?'📌 Désépingler':'📌 Épingler')+'</button>';
+  if(kind==='channel'&&!activeThread)items+='<button type="button" data-act="mkthread">🧵 Créer un fil</button>';
   if(kind==='dm')items+='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
   if(mine||canModerate)items+='<button type="button" data-act="delall">🗑 Supprimer pour tout le monde</button>';
   if(!mine){
@@ -7048,6 +7073,7 @@ function openMessageActionSheet(m,kind){
     else if(a==='pin'){
       if(kind==='dm')toggleDmPin(m);else toggleChannelPin(m);
     }
+    else if(a==='mkthread')openThreadCreateForm(m);
     else if(a==='delme')deleteMessageForMe(m);
     else if(a==='delall'){
       if(kind==='dm')confirmDeleteMessageForAll(m);
@@ -9288,6 +9314,7 @@ const SERVER_PERM_DEFS=[
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
+let activeThread=null,channelThreadsCache=[];
 function serverHasPermission(permission){
   if(!activeServer||!me)return false;
   if(String(activeServer.ownerId)===String(me.\$id))return true;
@@ -9531,9 +9558,11 @@ function openServerChannel(channelId){
 }
 function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
+  if(activeThread)return renderThreadContent(box);
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   const showQuickLock=canManageChannels&&activeChannel.type==='text';
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>':'')
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
@@ -9581,6 +9610,8 @@ function renderServerChannelContent(){
   if(pinnedBtn)pinnedBtn.onclick=function(){openPinnedMessages('channel');};
   const searchBtn=\$('srv-chan-search');
   if(searchBtn)searchBtn.onclick=function(){openMessageSearch('channel');};
+  const threadsBtn=\$('srv-chan-threads');
+  if(threadsBtn)threadsBtn.onclick=function(){openThreadList();};
   const pollBtn=\$('srv-chan-poll');
   if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
   const quickLock=\$('srv-chan-quicklock');
@@ -9605,22 +9636,26 @@ function wireServerChannelBack(){
     if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
     clearReplyTarget('channel');
     activeChannel=null;
+    activeThread=null;
     renderServerChannelList();
   };
 }
 async function loadChannelMessages(){
   if(!activeChannel)return;
   clearReplyTarget('channel');
+  const forThread=activeThread?activeThread.\$id:'';
   try{
-    const r=await authPost('/api/servers/channels/messages/list',{serverId:activeServer.\$id,channelId:activeChannel.\$id});
+    const r=await authPost('/api/servers/channels/messages/list',{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:forThread});
     activeChannelMessages=r.messages||[];
   }catch(e){activeChannelMessages=[];}
+  if(!activeThread)await loadChannelThreads();
   renderChannelMessages();
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   const forChannel=activeChannel.\$id;
   channelMsgUnsub=client.subscribe('databases.'+DB+'.collections.server_channel_messages.documents',function(res){
     const payload=res.payload;
     if(!payload||String(payload.channelId)!==String(forChannel))return;
+    if(String(payload.threadId||'')!==String(forThread))return;
     if(eventIs(res.events,'.create')){
       activeChannelMessages.push(payload);
       renderChannelMessages();
@@ -9668,9 +9703,11 @@ function renderChannelMessages(){
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
     const body=m.pollJson?pollCardHtml(m):highlightRoleMentions(esc(m.text||''));
+    const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
+    const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div></div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -9679,6 +9716,14 @@ function renderChannelMessages(){
   });
   box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
     el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
+  });
+  box.querySelectorAll('[data-open-thread]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const tid=el.getAttribute('data-open-thread');
+      const t=channelThreadsCache.find(function(x){return x.\$id===tid});
+      if(t)openThread(t);
+    });
   });
   box.querySelectorAll('[data-chan-react-toggle]').forEach(function(el){
     el.addEventListener('click',function(e){
@@ -9743,10 +9788,123 @@ async function sendServerChannelMessage(){
   input.value='';
   const replyToId=(replyTargetKind==='channel'&&replyTarget)?replyTarget.\$id:'';
   try{
-    await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId});
+    await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId,threadId:activeThread?activeThread.\$id:''});
     if(replyToId)clearReplyTarget('channel');
   }
   catch(e){showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
+}
+async function loadChannelThreads(){
+  try{
+    const r=await authPost('/api/servers/threads/list',{serverId:activeServer.\$id,channelId:activeChannel.\$id});
+    channelThreadsCache=r.threads||[];
+  }catch(e){channelThreadsCache=[];}
+}
+async function openThreadList(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:80vh;overflow-y:auto;text-align:left">'
+    +'<div class="set-section-label">🧵 Fils de #'+esc(activeChannel.name)+'</div>'
+    +'<div id="thread-list" class="scr-sub">Chargement…</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-main" id="thread-new">+ Nouveau fil</button><button type="button" class="set-mini-btn" id="thread-close">Fermer</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('thread-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('thread-new').onclick=function(){close();openThreadCreateForm(null);};
+  await loadChannelThreads();
+  const box=\$('thread-list');if(!box)return;
+  const active=channelThreadsCache.filter(function(t){return !t.archived;});
+  const archived=channelThreadsCache.filter(function(t){return t.archived;});
+  function threadRow(t){
+    return '<div class="row" data-thread-open="'+esc(t.\$id)+'" style="cursor:pointer"><div class="info"><div class="n">'+(t.private?'🔒 ':'🧵 ')+esc(t.name)+'</div></div></div>';
+  }
+  box.innerHTML=(active.length?active.map(threadRow).join(''):'<div class="empty-hint">Aucun fil actif.</div>')
+    +(archived.length?('<div class="empty-hint" style="padding:10px 4px 2px">Archivés</div>'+archived.map(threadRow).join('')):'');
+  box.querySelectorAll('[data-thread-open]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const t=channelThreadsCache.find(function(x){return x.\$id===el.getAttribute('data-thread-open');});
+      if(t){close();openThread(t);}
+    });
+  });
+}
+function openThreadCreateForm(originMessage){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">🧵 Nouveau fil</div>'
+    +'<input type="text" id="thread-name" class="field-input" maxlength="100" placeholder="Nom du fil…" style="margin-bottom:10px">'
+    +'<label class="srv-perm-check" style="margin-bottom:10px"><input type="checkbox" id="thread-private"> 🔒 Fil privé (sur invitation)</label>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="thread-create-go">Créer</button><button type="button" class="set-mini-btn" id="thread-create-cancel">Annuler</button></div>'
+    +'<div class="err" id="thread-create-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('thread-create-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('thread-create-go').onclick=async function(){
+    const name=(\$('thread-name').value||'').trim();
+    if(!name){\$('thread-create-err').textContent='Nom requis';return}
+    this.disabled=true;this.textContent='Création…';
+    try{
+      const r=await authPost('/api/servers/threads/create',{serverId:activeServer.\$id,channelId:activeChannel.\$id,name:name,private:\$('thread-private').checked,originMessageId:originMessage?originMessage.\$id:''});
+      close();
+      openThread(r.thread);
+    }catch(e){\$('thread-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+  };
+}
+function openThread(thread){
+  activeThread=thread;
+  renderServerChannelContent();
+}
+function renderThreadContent(box){
+  const t=activeThread;
+  const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
+  const isCreator=me&&String(t.creatorUid)===String(me.\$id);
+  let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-thread-back">← #'+esc(activeChannel.name)+'</button>'
+    +((canManageChannels||isCreator)?'<button type="button" class="set-mini-btn'+(t.archived?'':' danger')+'" id="srv-thread-archive">'+(t.archived?'Rouvrir':'Archiver'):'')
+    +((canManageChannels||isCreator)?'</button>':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(t.private?'🔒 ':'🧵 ')+esc(t.name)+(t.archived?' · Archivé':'')+'</div>';
+  const archivedForMe=t.archived;
+  html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
+    +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
+    +'<div class="composer" id="srv-chan-composer">'
+    +'<textarea id="srv-chan-input" placeholder="'+(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…')+'" rows="1" maxlength="4000"'+(archivedForMe?' disabled':'')+'></textarea>'
+    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(archivedForMe?' disabled':'')+'>😊</button>'
+    +'<button type="button" class="send-btn" id="srv-chan-send"'+(archivedForMe?' disabled':'')+'>➤</button>'
+    +'</div>';
+  box.innerHTML=html;
+  \$('srv-thread-back').onclick=function(){
+    if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+    clearReplyTarget('channel');
+    activeThread=null;
+    renderServerChannelContent();
+  };
+  const archiveBtn=\$('srv-thread-archive');
+  if(archiveBtn)archiveBtn.onclick=async function(){
+    this.disabled=true;
+    try{
+      const r=await authPost('/api/servers/threads/archive',{serverId:activeServer.\$id,threadId:t.\$id,archived:!t.archived});
+      activeThread=r.thread;
+      renderServerChannelContent();
+      showToast(activeThread.archived?'Fil archivé.':'Fil rouvert.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
+  };
+  loadChannelMessages();
+  const sendBtn=\$('srv-chan-send');
+  if(sendBtn)sendBtn.onclick=sendServerChannelMessage;
+  const input=\$('srv-chan-input');
+  if(input)input.addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendServerChannelMessage();}});
+  const emojiBtn=\$('srv-chan-emoji');
+  if(emojiBtn)emojiBtn.addEventListener('click',function(e){
+    e.stopPropagation();
+    openEmojiPicker(emojiBtn,function(emo){
+      const inp=\$('srv-chan-input');
+      inp.value+=emo;inp.focus();
+    });
+  });
+  const replyClose=\$('srv-reply-preview-close');
+  if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
 }
 const POLL_DURATIONS=[[1,'1 heure'],[6,'6 heures'],[24,'24 heures'],[72,'3 jours'],[168,'7 jours']];
 function openPollBuilder(){
@@ -12843,13 +13001,32 @@ async function handle(request) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
+      const threadId = String((body && body.threadId) || "").slice(0, 64);
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
-      const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [60] })), { asAdmin: true });
-      const list = (msgs.documents || []).slice().reverse();
+      if (threadId) await resolveThreadAccess(serverId, threadId, acc.$id, access);
+      let list;
+      if (threadId) {
+        // Requête directe par threadId (index dédié) : sinon, sur un salon
+        // avec plusieurs fils actifs, les 60 derniers messages "du salon"
+        // pourraient être dominés par d'autres fils et ne contenir presque
+        // aucun message de CE fil précis.
+        const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "threadId", values: [threadId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [60] })), { asAdmin: true });
+        list = (msgs.documents || []).slice().reverse();
+      } else {
+        const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [60] })), { asAdmin: true });
+        // Filtré ici plutôt qu'en requête DB (Query.equal('threadId','') ne
+        // matcherait pas les messages existants créés avant l'ajout de ce
+        // champ, où l'attribut est absent/null plutôt qu'une chaîne vide —
+        // on aurait fait disparaître tous les anciens messages du salon).
+        list = (msgs.documents || []).filter(function (m) { return !m.threadId; }).slice().reverse();
+      }
       return new Response(JSON.stringify({ ok: true, messages: list }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -12863,6 +13040,7 @@ async function handle(request) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
+      const threadId = String((body && body.threadId) || "").slice(0, 64);
       const replyToId = String((body && body.replyToId) || "").slice(0, 64);
       // Sondage intégré (§3, §27) : question + 2 à 10 options, choix unique ou
       // multiple, durée 1h à 7 jours. Le texte du message reprend la question
@@ -12911,14 +13089,111 @@ async function handle(request) {
         const hit = autoModWords.find(function (w) { return w && lower.indexOf(String(w).toLowerCase()) >= 0; });
         if (hit) throw new Error("Message bloqué : contient un terme interdit sur ce serveur");
       }
+      let thread = null;
+      if (threadId) thread = await resolveThreadAccess(serverId, threadId, acc.$id, access);
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
+      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId }, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/threads/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const name = String((body && body.name) || "").trim().slice(0, 100);
+      const isPrivate = !!(body && body.private);
+      const originMessageId = String((body && body.originMessageId) || "").slice(0, 64);
+      if (!name) throw new Error("Nom du fil requis");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
+      if (!access.access.send) throw new Error("Tu ne peux pas créer de fil dans ce salon");
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, channelId: channelId, name: name, creatorUid: String(acc.$id), private: isPrivate, archived: false, memberUids: isPrivate ? [String(acc.$id)] : [], originMessageId: originMessageId } }
+      });
+      return new Response(JSON.stringify({ ok: true, thread: thread }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/threads/list" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      const threadsData = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const uid = String(acc.$id);
+      const visible = (threadsData.documents || []).filter(function (t) {
+        if (!t.private) return true;
+        return access.hasManage || String(t.creatorUid) === uid || (t.memberUids || []).map(String).indexOf(uid) >= 0;
+      });
+      return new Response(JSON.stringify({ ok: true, threads: visible }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/threads/archive" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const threadId = String((body && body.threadId) || "");
+      const archived = !!(body && body.archived);
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { asAdmin: true });
+      if (String(thread.serverId) !== String(serverId)) throw new Error("Fil introuvable");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, thread.channelId);
+      // Rouvrir un fil archivé est réservé à la modération (§7 : "seul Gérer
+      // les fils peut le rouvrir") ; l'archiver reste possible pour son
+      // créateur, pour clore sa propre discussion.
+      const isCreator = String(thread.creatorUid) === String(acc.$id);
+      const canAct = access.hasManage || (archived && isCreator);
+      if (!canAct) throw new Error("Tu ne peux pas modifier ce fil");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { method: "PATCH", asAdmin: true, body: { data: { archived: archived } } });
+      return new Response(JSON.stringify({ ok: true, thread: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/threads/members/add" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const threadId = String((body && body.threadId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { asAdmin: true });
+      if (String(thread.serverId) !== String(serverId)) throw new Error("Fil introuvable");
+      if (!thread.private) throw new Error("Ce fil n'est pas privé, tous les membres du salon y ont déjà accès");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, thread.channelId);
+      if (!access.hasManage && String(thread.creatorUid) !== String(acc.$id)) throw new Error("Tu ne peux pas ajouter de membre à ce fil");
+      const targetMember = await getServerMembership(serverId, targetUid);
+      if (!targetMember) throw new Error("Ce membre ne fait pas partie du serveur");
+      const memberUids = (thread.memberUids || []).map(String);
+      if (memberUids.indexOf(targetUid) < 0) memberUids.push(targetUid);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { method: "PATCH", asAdmin: true, body: { data: { memberUids: memberUids } } });
+      return new Response(JSON.stringify({ ok: true, thread: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
