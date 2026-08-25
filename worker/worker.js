@@ -1723,6 +1723,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
+        <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés">📌</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
       <div id="call-panel-anchor"></div>
@@ -3461,6 +3462,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.43.0',date:'24 août 2026',time:'18:00',title:'Épinglage de messages et synchronisation des permissions par catégorie',
+    body:'Tu peux maintenant épingler un message important (📌 dans le menu d\\'actions) en DM comme dans un salon de serveur, et consulter la liste des messages épinglés d\\'un coup d\\'œil (nouveau bouton 📌 en haut de la conversation), avec un clic pour retrouver le message d\\'origine — jusqu\\'à 50 par conversation/salon. Côté serveurs : les catégories ont maintenant leurs propres réglages de visibilité et de permissions par rôle, utilisables comme modèle — un bouton "Synchroniser" sur chaque salon lui applique ces réglages en un clic (une copie ponctuelle, pas un lien permanent).'},
   {version:'2.42.0',date:'24 août 2026',time:'17:15',title:'Serveurs : outils de modération — mode lent, verrouillage, AutoMod, bannissement renforcé',
     body:'Nouveaux outils pour la modération des salons textuels : mode lent (délai imposé entre deux messages d\\'un même membre, de 5s à 6h), verrouillage d\\'un salon en un clic (plus personne n\\'écrit sauf la modération, rien n\\'est supprimé), et une liste de mots interdits par serveur (AutoMod léger) qui bloque un message avant publication s\\'il en contient un. Le bannissement propose maintenant de supprimer aussi les messages récents du membre banni, sur une période au choix (1h à 7 jours).'},
   {version:'2.41.0',date:'24 août 2026',time:'16:30',title:'Serveurs : hiérarchie des rôles renforcée et permission Administrateur',
@@ -6768,7 +6771,7 @@ function renderMessages(){
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return msgsCache.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+'</div>'+seenTag+'</div></div>';
+      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -6822,6 +6825,60 @@ async function toggleDmReaction(m,emoji){
     renderMessages();
   }catch(e){showToast('Action impossible','error');}
 }
+async function toggleDmPin(m){
+  try{
+    if(!m.pinned){
+      const countQ=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',activeDm),Appwrite.Query.equal('pinned',true),Appwrite.Query.limit(1)]);
+      if((countQ.total||0)>=50){showToast('50 messages épinglés maximum dans cette conversation.','error');return}
+    }
+    const newPinned=!m.pinned;
+    await db.updateDocument(DB,'dms_messages',m.\$id,{pinned:newPinned});
+    m.pinned=newPinned;
+    const cached=msgsCache.find(function(x){return x.\$id===m.\$id});
+    if(cached)cached.pinned=newPinned;
+    showToast(newPinned?'Message épinglé.':'Message désépinglé.');
+    renderMessages();
+  }catch(e){showToast('Action impossible','error');}
+}
+async function openPinnedMessages(kind){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:70vh;overflow-y:auto"><div class="set-section-label">📌 Messages épinglés</div><div id="pinned-list" class="scr-sub">Chargement…</div><button type="button" class="as-cancel" id="pinned-close">Fermer</button></div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('pinned-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let list=[];
+  try{
+    if(kind==='dm'){
+      const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',activeDm),Appwrite.Query.equal('pinned',true),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
+      list=r.documents||[];
+    }else{
+      const r=await authPost('/api/servers/channels/messages/pinned',{serverId:activeServer.\$id,channelId:activeChannel.\$id});
+      list=r.messages||[];
+    }
+  }catch(e){list=[];}
+  const box=\$('pinned-list');if(!box)return;
+  if(!list.length){box.innerHTML='Aucun message épinglé pour l\\'instant.';return}
+  box.innerHTML=list.map(function(m){
+    const author=esc(m.displayName||m.username||'Quelqu\\'un');
+    const text=esc(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':'')));
+    return '<div class="msg-reply-quote" data-pinned-scroll="'+esc(m.\$id)+'" style="margin-bottom:8px;cursor:pointer"><b>'+author+'</b><span class="rq-text" style="white-space:normal">'+text+'</span></div>';
+  }).join('');
+  box.querySelectorAll('[data-pinned-scroll]').forEach(function(el){
+    el.addEventListener('click',function(){close();scrollToMessage(el.getAttribute('data-pinned-scroll'));});
+  });
+}
+async function toggleChannelPin(m){
+  try{
+    const r=await authPost('/api/servers/channels/messages/pin',{serverId:activeServer.\$id,messageId:m.\$id,pin:!m.pinned});
+    m.pinned=!m.pinned;
+    const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
+    if(cached)cached.pinned=m.pinned;
+    showToast(m.pinned?'Message épinglé.':'Message désépinglé.');
+    renderChannelMessages();
+  }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+}
 function attachMsgSwipe(el,m,kind){
   kind=kind||'dm';
   const bub=el.querySelector('.bub');if(!bub)return;
@@ -6861,6 +6918,7 @@ function openMessageActionSheet(m,kind){
   sheet.className='action-sheet-overlay';
   let items='<button type="button" data-act="react">😊 Réagir</button>';
   items+='<button type="button" data-act="reply">↩️ Répondre</button>';
+  if(kind==='dm'||canModerate)items+='<button type="button" data-act="pin">'+(m.pinned?'📌 Désépingler':'📌 Épingler')+'</button>';
   if(kind==='dm')items+='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
   if(mine||canModerate)items+='<button type="button" data-act="delall">🗑 Supprimer pour tout le monde</button>';
   if(!mine){
@@ -6885,6 +6943,9 @@ function openMessageActionSheet(m,kind){
       },180);
     }
     else if(a==='reply')setReplyTarget(m,kind);
+    else if(a==='pin'){
+      if(kind==='dm')toggleDmPin(m);else toggleChannelPin(m);
+    }
     else if(a==='delme')deleteMessageForMe(m);
     else if(a==='delall'){
       if(kind==='dm')confirmDeleteMessageForAll(m);
@@ -9296,8 +9357,10 @@ function renderServerOverviewTab(){
   if(activeChannel)renderServerChannelContent();
   else renderServerChannelList();
 }
-function serverChannelRowHtml(c){
-  return '<div class="srv-channel-row" data-srv-chan="'+esc(c.\$id)+'"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>';
+function serverChannelRowHtml(c,canManageChannels){
+  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+    +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
+    +'</div>';
 }
 function renderServerChannelList(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
@@ -9315,11 +9378,13 @@ function renderServerChannelList(){
   Object.keys(grouped).forEach(function(key){grouped[key].sort(function(a,b){return (a.position||0)-(b.position||0);});});
   const catIds=activeServerCategories.map(function(c){return c.\$id;}).filter(function(id){return grouped[id]&&grouped[id].length;});
   catIds.forEach(function(cid){
-    html+='<div class="srv-cat-label">'+esc(catMap[cid].name)+'</div>'+grouped[cid].map(serverChannelRowHtml).join('');
+    html+='<div class="srv-cat-label" style="display:flex;align-items:center;justify-content:space-between">'+esc(catMap[cid].name)
+      +(canManageChannels?'<button type="button" class="set-mini-btn" data-srv-cat-edit="'+esc(cid)+'" style="text-transform:none;letter-spacing:0">⚙️</button>':'')+'</div>'
+      +grouped[cid].map(function(c){return serverChannelRowHtml(c,canManageChannels);}).join('');
   });
   if(grouped['']&&grouped[''].length){
     if(catIds.length)html+='<div class="srv-cat-label">Sans catégorie</div>';
-    html+=grouped[''].map(serverChannelRowHtml).join('');
+    html+=grouped[''].map(function(c){return serverChannelRowHtml(c,canManageChannels);}).join('');
   }
   if(!activeServerChannels.length)html+='<div class="empty-hint">Aucun salon pour l\\'instant.'+(canManageChannels?' Crée-en un avec le bouton + Salon.':'')+'</div>';
   html+='<div class="scr-sub" style="margin-top:14px">'+activeServerMembers.length+' membre(s)</div>';
@@ -9339,6 +9404,18 @@ function renderServerChannelList(){
   box.querySelectorAll('[data-srv-chan]').forEach(function(el){
     el.addEventListener('click',function(){openServerChannel(el.getAttribute('data-srv-chan'));});
   });
+  box.querySelectorAll('[data-srv-chan-sync]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      syncChannelWithCategory(el.getAttribute('data-srv-chan-sync'));
+    });
+  });
+  box.querySelectorAll('[data-srv-cat-edit]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      openServerCategoryEditor(catMap[el.getAttribute('data-srv-cat-edit')]);
+    });
+  });
   const leaveBtn=\$('srv-leave-btn');
   if(leaveBtn)leaveBtn.onclick=async function(){
     if(!confirm('Quitter ce serveur ?'))return;
@@ -9355,6 +9432,7 @@ function renderServerChannelContent(){
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   const showQuickLock=canManageChannels&&activeChannel.type==='text';
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
   html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
@@ -9395,6 +9473,8 @@ function renderServerChannelContent(){
   });
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
+  const pinnedBtn=\$('srv-chan-pinned');
+  if(pinnedBtn)pinnedBtn.onclick=function(){openPinnedMessages('channel');};
   const quickLock=\$('srv-chan-quicklock');
   if(quickLock)quickLock.onclick=async function(){
     this.disabled=true;
@@ -9460,7 +9540,7 @@ function renderChannelMessages(){
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+highlightRoleMentions(esc(m.text||''))+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+'</div></div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span> · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div></div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -9778,6 +9858,63 @@ async function renderServerAuditTab(){
         +'</div>';
     }).join('');
 }
+async function syncChannelWithCategory(channelId){
+  const channel=activeServerChannels.find(function(c){return c.\$id===channelId});
+  if(!channel)return;
+  if(!confirm('Écraser les permissions de #'+(channel.name||'ce salon')+' avec celles de sa catégorie ?'))return;
+  try{
+    await authPost('/api/servers/categories/sync-channel',{serverId:activeServer.\$id,channelId:channelId});
+    await loadServerChannels();renderServerChannelList();
+    showToast('Salon synchronisé avec sa catégorie.');
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+function openServerCategoryEditor(category){
+  if(!category)return;
+  const box=\$('srv-detail-body');if(!box)return;
+  let currentOverwrites=[];try{currentOverwrites=JSON.parse(category.overwritesJson||'[]');}catch(e){currentOverwrites=[];}
+  const currentVisible=category.visibleRoleIds||[];
+  box.innerHTML='<button type="button" class="set-mini-btn" id="srv-catned-back" style="margin-bottom:12px">← Salons</button>'
+    +'<div class="set-card">'
+    +'<div class="set-row"><label>Nom de la catégorie</label><input type="text" id="srv-catned-name" class="field-input" maxlength="64" value="'+esc(category.name)+'"></div>'
+    +'<div class="set-section-label">Visibilité</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Sert de modèle pour les salons de cette catégorie — utilise « Synchroniser » sur un salon pour lui appliquer ces réglages. Ne change rien tant qu\\'on ne synchronise pas.</div>'
+    +activeServerRoles.map(function(r){
+      return '<label class="srv-perm-check"><input type="checkbox" data-srv-catned-role="'+esc(r.\$id)+'"'+(currentVisible.indexOf(r.\$id)>=0?' checked':'')+'> <span style="width:10px;height:10px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';display:inline-block"></span> '+esc(r.name)+'</label>';
+    }).join('')
+    +(activeServerRoles.length?('<div class="set-section-label">Permissions avancées par rôle (optionnel)</div>'
+      +activeServerRoles.map(function(r){
+        const ow=currentOverwrites.find(function(o){return o.roleId===r.\$id});
+        const viewVal=(ow&&ow.view)||'';
+        const sendVal=(ow&&ow.send)||'';
+        return '<div class="srv-ow-row" data-srv-catow-role="'+esc(r.\$id)+'" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-top:1px solid var(--line)">'
+          +'<span style="width:10px;height:10px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';display:inline-block;flex-shrink:0"></span><b style="flex:1;min-width:80px">'+esc(r.name)+'</b>'
+          +'<label class="scr-sub">Voir <select data-srv-catow-view class="field-input" style="display:inline-block;width:auto"><option value=""'+(viewVal===''?' selected':'')+'>Hérité</option><option value="allow"'+(viewVal==='allow'?' selected':'')+'>Autoriser</option><option value="deny"'+(viewVal==='deny'?' selected':'')+'>Refuser</option></select></label>'
+          +'<label class="scr-sub">Écrire <select data-srv-catow-send class="field-input" style="display:inline-block;width:auto"><option value=""'+(sendVal===''?' selected':'')+'>Hérité</option><option value="allow"'+(sendVal==='allow'?' selected':'')+'>Autoriser</option><option value="deny"'+(sendVal==='deny'?' selected':'')+'>Refuser</option></select></label>'
+          +'</div>';
+      }).join('')):'')
+    +'<button type="button" class="btn-main" id="srv-catned-save" style="margin-top:14px">Enregistrer</button>'
+    +'<div class="err" id="srv-catned-err"></div>'
+    +'</div>';
+  \$('srv-catned-back').onclick=function(){renderServerChannelList();};
+  \$('srv-catned-save').onclick=async function(){
+    const name=(\$('srv-catned-name').value||'').trim();
+    if(!name){\$('srv-catned-err').textContent='Nom requis';return}
+    this.disabled=true;this.textContent='...';
+    try{
+      const visibleRoleIds=Array.from(box.querySelectorAll('[data-srv-catned-role]')).filter(function(c){return c.checked;}).map(function(c){return c.getAttribute('data-srv-catned-role');});
+      const overwrites=activeServerRoles.map(function(r){
+        const row=box.querySelector('[data-srv-catow-role="'+r.\$id+'"]');
+        if(!row)return null;
+        const view=row.querySelector('[data-srv-catow-view]').value||null;
+        const send=row.querySelector('[data-srv-catow-send]').value||null;
+        if(!view&&!send)return null;
+        return {roleId:r.\$id,view:view,send:send};
+      }).filter(function(o){return !!o;});
+      await authPost('/api/servers/categories/update',{serverId:activeServer.\$id,categoryId:category.\$id,name:name,visibleRoleIds:visibleRoleIds,overwrites:overwrites});
+      await loadServerChannels();renderServerChannelList();showToast('Catégorie enregistrée.');
+    }catch(e){\$('srv-catned-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+}
 function openServerChannelEditor(channel){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   const isNew=!channel;
@@ -10022,6 +10159,7 @@ async function renderServerSettingsTab(){
   };
   if(automodInput)automodInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();automodAdd.click();}});
 }
+if(\$('btn-pinned'))\$('btn-pinned').addEventListener('click',function(){if(activeDm)openPinnedMessages('dm');});
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){
     if(!activeDm){showToast('Ouvre une conversation de groupe pour lancer un salon vocal.','error');return}
@@ -12336,8 +12474,39 @@ async function handle(request) {
       const data = {};
       if (typeof body.name === "string") data.name = body.name.trim().slice(0, 64);
       if (typeof body.position === "number") data.position = body.position;
+      if (Array.isArray(body.visibleRoleIds)) data.visibleRoleIds = body.visibleRoleIds.map(String);
+      if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { method: "PATCH", asAdmin: true, body: { data: data } });
       return new Response(JSON.stringify({ ok: true, category: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/categories/sync-channel" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server", "manage_channels"]);
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true });
+      if (String(channel.serverId) !== String(serverId)) throw new Error("Salon introuvable dans ce serveur");
+      if (!channel.categoryId) throw new Error("Ce salon n'a pas de catégorie");
+      const category = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + channel.categoryId, { asAdmin: true });
+      // Copie ponctuelle, pas un héritage dynamique (§5, §30) : écrase les
+      // overwrites du salon avec ceux de la catégorie MAINTENANT, sans lien
+      // permanent — un futur changement sur la catégorie ne re-touchera pas
+      // ce salon tant qu'on ne resynchronise pas explicitement.
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { visibleRoleIds: category.visibleRoleIds || [], overwritesJson: category.overwritesJson || "[]" } }
+      });
+      const actorProfileSync = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfileSync && (actorProfileSync.displayName || actorProfileSync.username)) || acc.name, "channel_sync_category", channel.name, { categoryId: channel.categoryId });
+      return new Response(JSON.stringify({ ok: true, channel: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -12603,6 +12772,55 @@ async function handle(request) {
         await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "message_delete", msg.username || msg.uid, { text: String(msg.text || "").slice(0, 200) });
       }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/messages/pin" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const messageId = String((body && body.messageId) || "");
+      const pin = !!body.pin;
+      const gate = await serverCheckPermission(serverId, acc.$id, ["moderate_members", "manage_channels", "manage_server"]);
+      if (!gate.ok) throw new Error(gate.error || "Tu ne peux pas épingler de message");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.serverId) !== String(serverId)) throw new Error("Message introuvable dans ce serveur");
+      if (pin && !msg.pinned) {
+        // Limite à 50 messages épinglés par salon (§27), comme la référence.
+        const countQ = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [msg.channelId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "pinned", values: [true] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        if ((countQ.total || 0) >= 50) throw new Error("Ce salon a déjà 50 messages épinglés (maximum)");
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { method: "PATCH", asAdmin: true, body: { data: { pinned: pin } } });
+      const actorProfilePin = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfilePin && (actorProfilePin.displayName || actorProfilePin.username)) || acc.name, pin ? "message_pin" : "message_unpin", msg.username || msg.uid, { text: String(msg.text || "").slice(0, 200) });
+      return new Response(JSON.stringify({ ok: true, message: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/messages/pinned" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (!access.access.view) throw new Error("Tu n'as pas accès à ce salon");
+      const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "pinned", values: [true] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, messages: msgs.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
