@@ -374,6 +374,19 @@ async function resolveProfile(authUserId) {
   }
 }
 
+async function getAcceptedFriendUids(uid) {
+  try {
+    const url = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [String(uid)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["accepted"] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
+    const data = await awFetch(url, { asAdmin: true });
+    return ((data && data.documents) || []).map(function (d) { return String(d.friendId); });
+  } catch (e) {
+    return [];
+  }
+}
+
 function isShamanAccount(acc, profile) {
   if (!acc) return false;
   if (SHAMAN_UIDS.has(String(acc.$id))) return true;
@@ -803,6 +816,51 @@ button{cursor:pointer;border:0;background:0}
 .search-box:focus{border-color:#7c3aed;background:#100a1a}
 .icon-btn{height:36px;width:36px;border-radius:999px;background:var(--elev);font-size:.9rem;flex-shrink:0}
 .icon-btn:hover{background:var(--hover)}
+.stories-bar{display:flex;gap:12px;overflow-x:auto;padding:12px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
+.stories-bar.hidden{display:none}
+.story-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:60px;cursor:pointer;background:none;border:0}
+.story-ring{position:relative;width:52px;height:52px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#7c3aed,#ec4899,#f59e0b);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.story-ring.seen{background:var(--line)}
+.story-ring.discover{background:linear-gradient(135deg,#22c55e,#0ea5e9)}
+.story-ring .av{width:100%;height:100%;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:.9rem;color:#f2ebff}
+.story-ring .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.story-plus{position:absolute;bottom:-2px;right:-2px;width:18px;height:18px;border-radius:50%;background:#7c3aed;border:2px solid #130c1c;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:900;color:#fff}
+.story-name{font-size:.68rem;color:var(--muted);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.story-viewer-overlay{position:fixed;inset:0;z-index:3000;background:#000;display:none;flex-direction:column}
+.story-viewer-overlay.show{display:flex}
+.story-viewer-bars{display:flex;gap:4px;padding:8px 8px 0}
+.story-viewer-bar{flex:1;height:3px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden}
+.story-viewer-bar-fill{height:100%;width:0%;background:#fff;transition:width .1s linear}
+.story-viewer-bar.done .story-viewer-bar-fill{width:100%;transition:none}
+.story-viewer-head{display:flex;align-items:center;gap:10px;padding:10px 12px;color:#fff}
+.story-viewer-head .av{width:32px;height:32px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:.8rem}
+.story-viewer-head .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.story-viewer-head .n{font-weight:700;font-size:.85rem}
+.story-viewer-head .t{font-size:.72rem;color:rgba(255,255,255,.6)}
+.story-viewer-head .spacer{flex:1}
+.story-viewer-head button{color:#fff;font-size:1.1rem;padding:4px 8px}
+.story-viewer-media{flex:1;display:flex;align-items:center;justify-content:center;position:relative;min-height:0}
+.story-viewer-media img,.story-viewer-media video{max-width:100%;max-height:100%;object-fit:contain}
+.story-viewer-caption{position:absolute;bottom:16px;left:16px;right:16px;color:#fff;font-size:.85rem;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.story-viewer-tap-l,.story-viewer-tap-r{position:absolute;top:0;bottom:0;width:35%}
+.story-viewer-tap-l{left:0}.story-viewer-tap-r{right:0}
+.story-viewer-foot{padding:10px 12px 16px;display:flex;justify-content:center}
+.story-viewer-foot button{color:#fff;font-size:.78rem;background:rgba(255,255,255,.1);padding:8px 14px;border-radius:999px}
+.discover-overlay{position:fixed;inset:0;z-index:2500;background:#0b0714;display:none;flex-direction:column}
+.discover-overlay.show{display:flex}
+.discover-head{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
+.discover-head h2{flex:1;font-size:1.05rem;font-weight:800}
+.discover-tabs{display:flex;gap:8px;padding:10px 14px}
+.discover-tabs button{flex:1;padding:8px;border-radius:10px;background:var(--elev);font-size:.82rem;font-weight:700}
+.discover-tabs button.on{background:#7c3aed;color:#fff}
+.discover-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 14px}
+.discover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
+.discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
+.discover-grid-item .n{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff;font-size:.7rem;font-weight:700}
+#discover-map{width:100%;height:100%;border-radius:12px;overflow:hidden}
+.leaflet-popup-content-wrapper{background:var(--elev);color:#f2ebff}
+.leaflet-popup-tip{background:var(--elev)}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
@@ -1739,6 +1797,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
       </div>
     </div>
+    <div class="stories-bar hidden" id="stories-bar"></div>
     <div class="list-body" id="list-body"></div>
     <div class="userbar">
       <div class="av" id="ub-av">?</div>
@@ -3100,6 +3159,7 @@ async function enterApp(e2ePassword){
     const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId));
     await ensureMembersCached(relevantUids);
   }catch(e){}
+  try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribePresenceWatcher();}catch(e){}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
@@ -3443,6 +3503,7 @@ function showView(v){
   if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
   if(\$('btn-server-join'))\$('btn-server-join').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
+  if(\$('stories-bar'))\$('stories-bar').classList.toggle('hidden',v!=='dms');
   if(v==='servers'){
     \$('chat-active').classList.add('hidden');
     if(activeServer){
@@ -3510,6 +3571,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.48.0',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
+    body:'Nouvelle barre "Stories" en haut de l\\'onglet Messages : publie une photo ou une vidéo qui disparaît après 1h, 6h, 24h ou 48h (à toi de choisir), visible soit uniquement par tes amis, soit publiquement. Appuie sur l\\'avatar de quelqu\\'un pour voir ses stories en plein écran (défilement automatique, comme sur les plateformes que tu connais déjà) ; sur les tiennes, tu vois qui les a vues. Les stories publiques se retrouvent aussi dans "Découvrir" (bouton 🌍 dans la barre), avec le choix entre un flux classique et une carte du monde façon Snap Map — active le partage de position au moment de publier si tu veux apparaître dessus.'},
   {version:'2.47.1',date:'25 août 2026',time:'15:10',title:'Journal d\\'audit : filtres et actions manquantes',
     body:'Le journal d\\'audit d\\'un serveur (onglet dédié, réservé à la modération) affiche maintenant un filtre par type d\\'action et une recherche par nom, utile dès qu\\'un serveur a un peu d\\'historique. Quelques actions qui étaient déjà enregistrées mais restaient sans libellé lisible (verrouillage de salon, synchronisation de catégorie, épinglage de message) s\\'affichent maintenant correctement, et l\\'archivage/réouverture d\\'un fil par la modération y apparaît aussi désormais.'},
   {version:'2.47.0',date:'25 août 2026',time:'14:30',title:'Salons forum',
@@ -7260,6 +7323,335 @@ function shareLocation(){
       await postMessage({type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})},'📍 Position',keyCtx);
     }catch(e){xlog('location_send_fail',{msg:(e&&e.message)||String(e)});showToast('Impossible d\\'envoyer la position, réessaie.','error');}
   },function(){alert('Impossible d\\'obtenir ta position.');},{enableHighAccuracy:false,timeout:8000});
+}
+
+/* ===== Stories (photo/vidéo éphémères, façon Instagram) ===== */
+let storiesCache=[];
+const STORY_MAX_BYTES=50*1024*1024;
+async function loadStories(){
+  if(!me||!db)return;
+  try{
+    const nowIso=new Date().toISOString();
+    const friendUids=(friendsCache||[]).filter(function(f){return f.status==='accepted';}).map(function(f){return String(f.friendId);});
+    const uidsToShow=Array.from(new Set([String(me.\$id)].concat(friendUids))).slice(0,100);
+    const r=await db.listDocuments(DB,'stories',[Appwrite.Query.equal('uid',uidsToShow),Appwrite.Query.greaterThan('expiresAt',nowIso),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    storiesCache=r.documents||[];
+  }catch(e){storiesCache=[];xlog('stories_load_fail',{msg:(e&&e.message)||String(e)});}
+  renderStoriesBar();
+}
+function storiesByUid(uid){
+  return storiesCache.filter(function(s){return String(s.uid)===String(uid);}).sort(function(a,b){return new Date(a.\$createdAt)-new Date(b.\$createdAt);});
+}
+function hasSeenAllStories(uid){
+  const mine=storiesByUid(uid);
+  if(!mine.length)return true;
+  return mine.every(function(s){
+    try{return JSON.parse(s.viewerUidsJson||'[]').map(String).indexOf(String(me.\$id))>=0;}catch(e){return false;}
+  });
+}
+function renderStoriesBar(){
+  const box=\$('stories-bar');if(!box||!me)return;
+  const myStories=storiesByUid(me.\$id);
+  const otherUids=Array.from(new Set(storiesCache.filter(function(s){return String(s.uid)!==String(me.\$id);}).map(function(s){return String(s.uid);})));
+  otherUids.sort(function(a,b){
+    const av=hasSeenAllStories(a)?1:0,bv=hasSeenAllStories(b)?1:0;
+    return av-bv;
+  });
+  const myAv=meProfile&&safeUrl(meProfile.avatar);
+  let html='<div class="story-item" id="story-add-btn"><div class="story-ring'+(myStories.length&&hasSeenAllStories(me.\$id)?' seen':'')+'"><div class="av">'+(myAv?'<img src="'+esc(myAv)+'" alt="">':esc(ini((meProfile&&meProfile.displayName)||me.name||'?')))+'</div><span class="story-plus">+</span></div><span class="story-name">Toi</span></div>';
+  otherUids.forEach(function(uid){
+    const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid;});
+    const name=(p&&(p.displayName||p.username))||'Membre';
+    const av=p&&safeUrl(p.avatar);
+    html+='<div class="story-item" data-story-open="'+esc(uid)+'"><div class="story-ring'+(hasSeenAllStories(uid)?' seen':'')+'"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div></div><span class="story-name">'+esc(name)+'</span></div>';
+  });
+  html+='<div class="story-item" id="story-discover-btn"><div class="story-ring discover"><div class="av" style="background:transparent">🌍</div></div><span class="story-name">Découvrir</span></div>';
+  box.innerHTML=html;
+  \$('story-add-btn').addEventListener('click',function(){
+    if(myStories.length)openStoryViewer(me.\$id,0);
+    else openStoryCreateForm();
+  });
+  \$('story-discover-btn').addEventListener('click',openDiscoverOverlay);
+  box.querySelectorAll('[data-story-open]').forEach(function(el){
+    el.addEventListener('click',function(){openStoryViewer(el.getAttribute('data-story-open'),0);});
+  });
+}
+function openStoryCreateForm(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">✨ Nouvelle story</div>'
+    +'<input type="file" id="story-file" accept="image/*,video/*" style="margin-bottom:10px">'
+    +'<div id="story-preview" style="margin-bottom:10px"></div>'
+    +'<input type="text" id="story-caption" class="field-input" maxlength="300" placeholder="Légende (optionnel)…" style="margin-bottom:10px">'
+    +'<div class="set-row"><label>Visibilité</label><div class="seg-group"><button type="button" class="seg-btn on" data-story-vis="friends">👥 Amis</button><button type="button" class="seg-btn" data-story-vis="public">🌍 Public</button></div></div>'
+    +'<div class="set-row"><label>Expire dans</label><select id="story-duration" class="field-input"><option value="1">1 heure</option><option value="6">6 heures</option><option value="24" selected>24 heures</option><option value="48">48 heures</option></select></div>'
+    +'<label class="srv-perm-check hidden" id="story-geo-row" style="margin-bottom:10px"><input type="checkbox" id="story-geo"> 📍 Partager ma position sur la carte (Découvrir → Carte, visible uniquement en Public)</label>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="story-publish">Publier</button><button type="button" class="set-mini-btn" id="story-cancel">Annuler</button></div>'
+    +'<div class="err" id="story-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('story-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let visibility='friends';
+  overlay.querySelectorAll('[data-story-vis]').forEach(function(b){
+    b.addEventListener('click',function(){
+      visibility=b.getAttribute('data-story-vis');
+      overlay.querySelectorAll('[data-story-vis]').forEach(function(x){x.classList.toggle('on',x===b);});
+      \$('story-geo-row').classList.toggle('hidden',visibility!=='public');
+    });
+  });
+  let selectedFile=null;
+  \$('story-file').addEventListener('change',function(){
+    selectedFile=this.files[0]||null;
+    const prev=\$('story-preview');
+    if(!selectedFile){prev.innerHTML='';return}
+    if(selectedFile.size>STORY_MAX_BYTES){\$('story-err').textContent='Fichier trop volumineux (50 Mo max).';selectedFile=null;this.value='';prev.innerHTML='';return}
+    \$('story-err').textContent='';
+    const url=URL.createObjectURL(selectedFile);
+    prev.innerHTML=selectedFile.type.indexOf('video/')===0
+      ?('<video src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px" muted></video>')
+      :('<img src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px">');
+  });
+  \$('story-publish').onclick=async function(){
+    if(!selectedFile){\$('story-err').textContent='Choisis une photo ou une vidéo';return}
+    this.disabled=true;this.textContent='Publication…';
+    try{
+      await createStory(selectedFile,visibility,parseInt(\$('story-duration').value,10),(\$('story-caption').value||'').trim(),visibility==='public'&&\$('story-geo').checked);
+      close();
+      showToast('Story publiée !');
+    }catch(e){\$('story-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
+  };
+}
+async function createStory(file,visibility,durationHours,caption,wantGeo){
+  const mediaType=file.type.indexOf('video/')===0?'video':'image';
+  const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+  const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+  let coords=null;
+  if(wantGeo&&navigator.geolocation){
+    coords=await new Promise(function(resolve){
+      navigator.geolocation.getCurrentPosition(
+        function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
+        function(){resolve(null);},
+        {enableHighAccuracy:false,timeout:8000}
+      );
+    });
+  }
+  const payload={mediaUrl:mediaUrl,mediaType:mediaType,visibility:visibility,durationHours:durationHours,caption:caption};
+  if(coords){payload.lat=coords.lat;payload.lng=coords.lng;}
+  await authPost('/api/stories/create',payload);
+  await loadStories();
+}
+let storyViewerState=null;
+function openStoryViewer(uid,startIndex){
+  const items=storiesByUid(uid);
+  if(!items.length)return;
+  storyViewerState={uid:uid,items:items,index:startIndex||0,raf:null};
+  let overlay=\$('story-viewer-overlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='story-viewer-overlay';overlay.className='story-viewer-overlay';document.body.appendChild(overlay);}
+  overlay.style.zIndex='';
+  overlay.classList.add('show');
+  renderStoryViewerFrame();
+}
+function closeStoryViewer(){
+  if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
+  storyViewerState=null;
+  const overlay=\$('story-viewer-overlay');
+  if(overlay)overlay.classList.remove('show');
+  loadStories();
+}
+function storyViewerNext(){
+  if(!storyViewerState)return;
+  if(storyViewerState.index<storyViewerState.items.length-1){
+    storyViewerState.index++;
+    renderStoryViewerFrame();
+  }else{
+    closeStoryViewer();
+  }
+}
+function storyViewerPrev(){
+  if(!storyViewerState)return;
+  if(storyViewerState.index>0){
+    storyViewerState.index--;
+    renderStoryViewerFrame();
+  }else{
+    closeStoryViewer();
+  }
+}
+function renderStoryViewerFrame(){
+  const st=storyViewerState;if(!st)return;
+  const overlay=\$('story-viewer-overlay');if(!overlay)return;
+  const s=st.items[st.index];
+  const isMine=me&&String(s.uid)===String(me.\$id);
+  const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(s.uid);});
+  const name=(p&&(p.displayName||p.username))||s.username||'Membre';
+  const av=p&&safeUrl(p.avatar);
+  let viewers=[];try{viewers=JSON.parse(s.viewerUidsJson||'[]');}catch(e){}
+  overlay.innerHTML='<div class="story-viewer-bars">'+st.items.map(function(x,i){return '<div class="story-viewer-bar'+(i<st.index?' done':'')+'" data-bar="'+i+'"><div class="story-viewer-bar-fill"></div></div>';}).join('')+'</div>'
+    +'<div class="story-viewer-head"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div><div class="n">'+esc(name)+'</div><div class="t">'+esc(fmtRelTime(s.\$createdAt))+'</div></div><div class="spacer"></div>'+(isMine?'<button type="button" id="story-delete-btn" title="Supprimer">🗑️</button>':'')+'<button type="button" id="story-close-btn" title="Fermer">✕</button></div>'
+    +'<div class="story-viewer-media" id="story-viewer-media"><div class="story-viewer-tap-l" id="story-tap-l"></div><div class="story-viewer-tap-r" id="story-tap-r"></div></div>'
+    +(s.caption?('<div class="story-viewer-caption">'+esc(s.caption)+'</div>'):'')
+    +(isMine?('<div class="story-viewer-foot"><button type="button" id="story-viewers-btn">👁 '+viewers.length+' vue'+(viewers.length!==1?'s':'')+'</button></div>'):'');
+  const mediaBox=\$('story-viewer-media');
+  const mediaEl=document.createElement(s.mediaType==='video'?'video':'img');
+  if(s.mediaType==='video'){mediaEl.autoplay=true;mediaEl.playsInline=true;}
+  mediaEl.src=s.mediaUrl;
+  mediaBox.insertBefore(mediaEl,mediaBox.firstChild);
+  \$('story-close-btn').onclick=closeStoryViewer;
+  \$('story-tap-l').onclick=storyViewerPrev;
+  \$('story-tap-r').onclick=storyViewerNext;
+  const delBtn=\$('story-delete-btn');
+  if(delBtn)delBtn.onclick=async function(){
+    if(!confirm('Supprimer cette story ?'))return;
+    try{await authPost('/api/stories/delete',{storyId:s.\$id});showToast('Story supprimée.');closeStoryViewer();}catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  const viewersBtn=\$('story-viewers-btn');
+  if(viewersBtn)viewersBtn.onclick=function(){openStoryViewersList(s.\$id);};
+  if(!isMine)authPost('/api/stories/view',{storyId:s.\$id}).catch(function(){});
+  function startProgress(totalMs){
+    const myIndex=st.index;
+    const bar=overlay.querySelector('[data-bar="'+myIndex+'"] .story-viewer-bar-fill');
+    if(!bar)return;
+    const startedAt=Date.now();
+    function tick(){
+      if(!storyViewerState||storyViewerState.index!==myIndex)return;
+      const elapsed=Date.now()-startedAt;
+      const pct=Math.min(100,(elapsed/totalMs)*100);
+      bar.style.width=pct+'%';
+      if(pct>=100){storyViewerNext();return}
+      storyViewerState.raf=requestAnimationFrame(tick);
+    }
+    tick();
+  }
+  if(s.mediaType==='video'){
+    mediaEl.addEventListener('loadedmetadata',function(){startProgress((mediaEl.duration||15)*1000);});
+    mediaEl.addEventListener('ended',storyViewerNext);
+  }else{
+    startProgress(5000);
+  }
+}
+async function openStoryViewersList(storyId){
+  try{
+    const r=await authPost('/api/stories/viewers',{storyId:storyId});
+    const overlay=document.createElement('div');
+    overlay.className='action-sheet-overlay show';
+    overlay.style.zIndex='3100';
+    overlay.innerHTML='<div class="action-sheet-card" style="max-height:70vh;overflow-y:auto;text-align:left">'
+      +'<div class="set-section-label">👁 Vu par</div>'
+      +((r.viewers&&r.viewers.length)?r.viewers.map(function(v){return '<div class="row"><div class="info"><div class="n">'+esc(v.displayName)+'</div></div></div>';}).join(''):'<div class="empty-hint">Personne n\\'a encore vu cette story.</div>')
+      +'<button type="button" class="set-mini-btn" id="story-viewers-close" style="margin-top:10px;width:100%">Fermer</button>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    \$('story-viewers-close').onclick=function(){overlay.remove();};
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Escape')return;
+  if(storyViewerState)closeStoryViewer();
+  else{const d=\$('discover-overlay');if(d&&d.classList.contains('show'))d.classList.remove('show');}
+});
+let discoverStoriesCache=[],discoverMode='feed';
+async function openDiscoverOverlay(){
+  let overlay=\$('discover-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.className='discover-overlay';
+    overlay.id='discover-overlay';
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="discover-close">← Retour</button><h2>🌍 Découvrir</h2></div>'
+      +'<div class="discover-tabs"><button type="button" id="discover-tab-feed" class="on">🖼️ Flux</button><button type="button" id="discover-tab-map">🗺️ Carte</button></div>'
+      +'<div class="discover-body" id="discover-body"></div>';
+    document.body.appendChild(overlay);
+    \$('discover-close').onclick=function(){overlay.classList.remove('show');};
+    \$('discover-tab-feed').onclick=function(){switchDiscoverMode('feed');};
+    \$('discover-tab-map').onclick=function(){switchDiscoverMode('map');};
+  }
+  overlay.classList.add('show');
+  await loadDiscoverStories();
+  switchDiscoverMode(discoverMode);
+}
+async function loadDiscoverStories(){
+  try{
+    const nowIso=new Date().toISOString();
+    const r=await db.listDocuments(DB,'stories',[Appwrite.Query.equal('visibility','public'),Appwrite.Query.greaterThan('expiresAt',nowIso),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    discoverStoriesCache=r.documents||[];
+  }catch(e){discoverStoriesCache=[];}
+}
+function switchDiscoverMode(mode){
+  discoverMode=mode;
+  \$('discover-tab-feed').classList.toggle('on',mode==='feed');
+  \$('discover-tab-map').classList.toggle('on',mode==='map');
+  if(mode==='feed')renderDiscoverFeed();
+  else renderDiscoverMap();
+}
+function renderDiscoverFeed(){
+  const box=\$('discover-body');if(!box)return;
+  if(!discoverStoriesCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center;margin-top:20px">Aucune story publique pour l’instant.</div>';return}
+  box.innerHTML='<div class="discover-grid">'+discoverStoriesCache.map(function(s){
+    return '<div class="discover-grid-item" data-discover-open="'+esc(s.\$id)+'">'
+      +(s.mediaType==='video'?('<video src="'+esc(s.mediaUrl)+'" muted></video>'):('<img src="'+esc(s.mediaUrl)+'" alt="">'))
+      +'<div class="n">'+esc(s.username||'Membre')+'</div></div>';
+  }).join('')+'</div>';
+  box.querySelectorAll('[data-discover-open]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const s=discoverStoriesCache.find(function(x){return x.\$id===el.getAttribute('data-discover-open');});
+      if(s)openDiscoverStorySingle(s);
+    });
+  });
+}
+function openDiscoverStorySingle(s){
+  storyViewerState={uid:s.uid,items:[s],index:0,raf:null};
+  let overlay=\$('story-viewer-overlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='story-viewer-overlay';overlay.className='story-viewer-overlay';document.body.appendChild(overlay);}
+  overlay.style.zIndex='3200';
+  overlay.classList.add('show');
+  renderStoryViewerFrame();
+}
+let leafletLoadPromise=null;
+function ensureLeafletLoaded(){
+  if(window.L)return Promise.resolve();
+  if(leafletLoadPromise)return leafletLoadPromise;
+  leafletLoadPromise=new Promise(function(resolve,reject){
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+    script.onload=function(){resolve();};
+    script.onerror=function(){reject(new Error('leaflet load failed'));};
+    document.head.appendChild(script);
+  });
+  return leafletLoadPromise;
+}
+let discoverMapInstance=null;
+async function renderDiscoverMap(){
+  const box=\$('discover-body');if(!box)return;
+  box.innerHTML='<div id="discover-map" style="height:calc(100dvh - 190px);position:relative"></div>';
+  try{await ensureLeafletLoaded();}
+  catch(e){box.innerHTML='<div class="empty-hint" style="text-align:center;margin-top:20px">Impossible de charger la carte.</div>';return}
+  const geoStories=discoverStoriesCache.filter(function(s){return s.lat!=null&&s.lng!=null;});
+  const center=geoStories.length?[geoStories[0].lat,geoStories[0].lng]:[20,0];
+  const zoom=geoStories.length?4:2;
+  if(discoverMapInstance){try{discoverMapInstance.remove();}catch(e){}discoverMapInstance=null;}
+  discoverMapInstance=L.map('discover-map').setView(center,zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(discoverMapInstance);
+  geoStories.forEach(function(s){
+    const marker=L.marker([s.lat,s.lng]).addTo(discoverMapInstance);
+    marker.bindPopup('<b>'+esc(s.username||'Membre')+'</b>'+(s.caption?('<br>'+esc(s.caption)):'')+'<br><a href="#" data-map-open-story="'+esc(s.\$id)+'">Voir la story</a>');
+    marker.on('popupopen',function(){
+      const link=document.querySelector('[data-map-open-story="'+s.\$id+'"]');
+      if(link)link.addEventListener('click',function(e){e.preventDefault();openDiscoverStorySingle(s);});
+    });
+  });
+  if(!geoStories.length){
+    const hint=document.createElement('div');
+    hint.className='empty-hint';
+    hint.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:var(--elev);padding:10px 16px;border-radius:10px';
+    hint.textContent='Aucune story géolocalisée pour l’instant.';
+    box.appendChild(hint);
+  }
 }
 
 /* ===== Messages vocaux (maintenir pour enregistrer) ===== */
@@ -12275,6 +12667,114 @@ async function handle(request) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+
+  if (path === "/api/stories/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const mediaUrl = String((body && body.mediaUrl) || "").trim().slice(0, 2000);
+      const mediaType = body && body.mediaType === "video" ? "video" : "image";
+      const visibility = body && body.visibility === "public" ? "public" : "friends";
+      const caption = String((body && body.caption) || "").trim().slice(0, 300);
+      const durationHours = [1, 6, 24, 48].indexOf(Number(body && body.durationHours)) >= 0 ? Number(body.durationHours) : 24;
+      const hasCoords = body && typeof body.lat === "number" && typeof body.lng === "number" && isFinite(body.lat) && isFinite(body.lng);
+      if (!mediaUrl) throw new Error("Média manquant");
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      // Visibilité "amis" (§ story) : mêmes lecteurs que la liste d'amis
+      // acceptés de l'auteur au moment de la publication — un ami ajouté ou
+      // retiré APRÈS coup ne change pas rétroactivement l'accès à une story
+      // déjà publiée, comme sur les plateformes de référence.
+      let perms;
+      if (visibility === "public") {
+        perms = ["read(\"any\")"];
+      } else {
+        const friendUids = await getAcceptedFriendUids(acc.$id);
+        perms = Array.from(new Set([String(acc.$id)].concat(friendUids))).slice(0, 100).map(function (uid) { return "read(\"user:" + uid + "\")"; });
+      }
+      const data = {
+        uid: String(acc.$id), username: uname, mediaUrl: mediaUrl, mediaType: mediaType, visibility: visibility,
+        caption: caption, expiresAt: new Date(Date.now() + durationHours * 3600000).toISOString(), viewerUidsJson: "[]"
+      };
+      if (visibility === "public" && hasCoords) { data.lat = Number(body.lat); data.lng = Number(body.lng); }
+      const story = await awFetch("/databases/" + AW_DB + "/collections/stories/documents", {
+        method: "POST", asAdmin: true, body: { documentId: "unique()", data: data, permissions: perms }
+      });
+      return new Response(JSON.stringify({ ok: true, story: story }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/stories/view" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const storyId = String((body && body.storyId) || "");
+      const story = await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { asAdmin: true });
+      if (new Date(story.expiresAt).getTime() <= Date.now()) throw new Error("Cette story a expiré");
+      // awFetch({asAdmin:true}) contourne les permissions Appwrite (clé API
+      // serveur) : sans ce contrôle, n'importe qui pouvait appeler cette route
+      // avec l'id d'une story "amis" à laquelle il n'a pas droit de lecture —
+      // la vue était quand même enregistrée et la route répondait ok:true,
+      // confirmant au passage l'existence de la story. On revérifie l'accès
+      // via les permissions RÉELLEMENT posées sur le document (mêmes
+      // read("any")/read("user:X") que ceux calculés à la création).
+      const storyPerms = story.$permissions || [];
+      const canRead = storyPerms.indexOf("read(\"any\")") >= 0 || storyPerms.indexOf("read(\"user:" + acc.$id + "\")") >= 0;
+      if (!canRead) throw new Error("Tu n'as pas accès à cette story");
+      // L'auteur ne s'ajoute pas lui-même à sa propre liste de vues.
+      if (String(story.uid) !== String(acc.$id)) {
+        let viewers = [];
+        try { viewers = JSON.parse(story.viewerUidsJson || "[]"); } catch (e) {}
+        if (viewers.map(String).indexOf(String(acc.$id)) < 0) {
+          viewers.push(String(acc.$id));
+          await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { method: "PATCH", asAdmin: true, body: { data: { viewerUidsJson: JSON.stringify(viewers.slice(-500)) } } });
+        }
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/stories/viewers" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const storyId = String((body && body.storyId) || "");
+      const story = await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { asAdmin: true });
+      if (String(story.uid) !== String(acc.$id)) throw new Error("Seul l'auteur peut voir qui a consulté sa story");
+      let viewers = [];
+      try { viewers = JSON.parse(story.viewerUidsJson || "[]"); } catch (e) {}
+      const profiles = [];
+      for (const uid of viewers) {
+        const p = await resolveProfile(uid);
+        profiles.push({ uid: uid, displayName: (p && (p.displayName || p.username)) || "Membre", avatar: p && p.avatar });
+      }
+      return new Response(JSON.stringify({ ok: true, viewers: profiles }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/stories/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const storyId = String((body && body.storyId) || "");
+      const story = await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { asAdmin: true });
+      if (String(story.uid) !== String(acc.$id)) throw new Error("Tu ne peux supprimer que tes propres stories");
+      await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
