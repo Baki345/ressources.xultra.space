@@ -988,6 +988,9 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .composer-btn{width:38px;height:38px;border-radius:10px;background:var(--elev);color:#c4b5fd;font-size:1.05rem;flex-shrink:0}
 .composer-btn:hover{background:var(--hover)}
 .composer-btn.hidden{display:none}
+.ai-fix-btn{background:linear-gradient(135deg,rgba(124,58,237,.18),rgba(236,72,153,.18));border:1px solid rgba(167,139,250,.3)}
+.ai-fix-btn:hover{background:linear-gradient(135deg,rgba(124,58,237,.32),rgba(236,72,153,.32))}
+.ai-fix-btn:disabled{opacity:.55;cursor:wait}
 #btn-voice{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .attach-menu{position:absolute;bottom:56px;left:14px;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:2px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:50;min-width:190px}
 .attach-menu.hidden{display:none}
@@ -1839,6 +1842,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre">➕</button>
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
+        <button type="button" class="composer-btn ai-fix-btn" id="btn-ai-fix" title="Corriger avec l'IA">✨</button>
         <button type="button" class="composer-btn" id="btn-emoji" title="Emoji">😊</button>
         <button type="button" class="composer-btn" id="btn-voice" title="Message vocal">🎤</button>
         <button type="button" class="send-btn hidden" id="btn-send">➤</button>
@@ -3571,6 +3575,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.49.0',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
+    body:'Petit bouton ✨ dans la zone d\\'écriture des messages privés, des salons de serveur et des fils — comme sur Samsung ou Google Clavier : un clic corrige l\\'orthographe, la grammaire et la ponctuation de ce que tu as écrit, sans changer le sens ni le ton. Pratique pour un message envoyé vite fait avec les pouces.'},
   {version:'2.48.0',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
     body:'Nouvelle barre "Stories" en haut de l\\'onglet Messages : publie une photo ou une vidéo qui disparaît après 1h, 6h, 24h ou 48h (à toi de choisir), visible soit uniquement par tes amis, soit publiquement. Appuie sur l\\'avatar de quelqu\\'un pour voir ses stories en plein écran (défilement automatique, comme sur les plateformes que tu connais déjà) ; sur les tiennes, tu vois qui les a vues. Les stories publiques se retrouvent aussi dans "Découvrir" (bouton 🌍 dans la barre), avec le choix entre un flux classique et une carte du monde façon Snap Map — active le partage de position au moment de publier si tu veux apparaître dessus.'},
   {version:'2.47.1',date:'25 août 2026',time:'15:10',title:'Journal d\\'audit : filtres et actions manquantes',
@@ -7219,6 +7225,22 @@ if(\$('btn-emoji'))\$('btn-emoji').addEventListener('click',function(e){
     input.focus();
   });
 });
+async function aiFixText(inputEl,btnEl){
+  if(!inputEl||!btnEl||btnEl.disabled)return;
+  const text=(inputEl.value||'').trim();
+  if(!text){showToast('Rien à corriger.','error');return}
+  const original=btnEl.textContent;
+  btnEl.disabled=true;btnEl.textContent='⏳';
+  try{
+    const r=await authPost('/api/ai/correct-text',{text:text});
+    inputEl.value=r.corrected||text;
+    inputEl.dispatchEvent(new Event('input'));
+    inputEl.focus();
+    showToast('Texte corrigé par l\\'IA.');
+  }catch(e){showToast((e&&e.message)||'Correction IA indisponible.','error');}
+  finally{btnEl.disabled=false;btnEl.textContent=original;}
+}
+if(\$('btn-ai-fix'))\$('btn-ai-fix').addEventListener('click',function(){aiFixText(\$('msg-input'),this);});
 if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',function(){clearReplyTarget('dm');});
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
@@ -9994,6 +10016,7 @@ function renderServerChannelContent(){
     +'<div class="composer" id="srv-chan-composer">'
     +'<textarea id="srv-chan-input" placeholder="'+composerPlaceholder+'" rows="1" maxlength="4000"'+(lockedForMe?' disabled':'')+'></textarea>'
     +'<button type="button" class="composer-btn" id="srv-chan-poll" title="Créer un sondage"'+(lockedForMe?' disabled':'')+'>📊</button>'
+    +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(lockedForMe?' disabled':'')+'>✨</button>'
     +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(lockedForMe?' disabled':'')+'>😊</button>'
     +'<button type="button" class="send-btn" id="srv-chan-send"'+(lockedForMe?' disabled':'')+'>➤</button>'
     +'</div>';
@@ -10012,6 +10035,8 @@ function renderServerChannelContent(){
       inp.value+=emo;inp.focus();
     });
   });
+  const aiFixBtn=\$('srv-chan-ai');
+  if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
   const pinnedBtn=\$('srv-chan-pinned');
@@ -10333,6 +10358,7 @@ function renderThreadContent(box){
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="composer" id="srv-chan-composer">'
     +'<textarea id="srv-chan-input" placeholder="'+(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…')+'" rows="1" maxlength="4000"'+(archivedForMe?' disabled':'')+'></textarea>'
+    +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(archivedForMe?' disabled':'')+'>✨</button>'
     +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(archivedForMe?' disabled':'')+'>😊</button>'
     +'<button type="button" class="send-btn" id="srv-chan-send"'+(archivedForMe?' disabled':'')+'>➤</button>'
     +'</div>';
@@ -10366,6 +10392,8 @@ function renderThreadContent(box){
       inp.value+=emo;inp.focus();
     });
   });
+  const aiFixBtn=\$('srv-chan-ai');
+  if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
 }
@@ -12773,6 +12801,33 @@ async function handle(request) {
       if (String(story.uid) !== String(acc.$id)) throw new Error("Tu ne peux supprimer que tes propres stories");
       await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { method: "DELETE", asAdmin: true });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/ai/correct-text" && request.method === "POST") {
+    // Correction orthographique/grammaticale à la demande (bouton ✨ dans les
+    // zones de texte des conversations) — via Workers AI, pas de clé externe
+    // à gérer. Réservé aux comptes connectés (coût par appel).
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const text = String((body && body.text) || "").trim().slice(0, 4000);
+      if (!text) throw new Error("Rien à corriger");
+      if (typeof AI === "undefined" || !AI) throw new Error("Correction IA indisponible pour le moment");
+      const result = await AI.run("@cf/meta/llama-3.1-8b-instruct", {
+        messages: [
+          { role: "system", content: "Tu es un correcteur orthographique et grammatical. Corrige UNIQUEMENT l'orthographe, la grammaire, la conjugaison et la ponctuation du texte fourni par l'utilisateur. Ne change ni son sens, ni sa langue, ni son ton, ni les emojis qu'il contient. Ne reformule pas et ne réponds pas au message : renvoie SEULEMENT le texte corrigé, sans guillemets, sans explication, sans commentaire." },
+          { role: "user", content: text }
+        ],
+        max_tokens: 1024
+      });
+      let corrected = String((result && result.response) || "").trim();
+      corrected = corrected.replace(/^["“„«]+|["”»]+$/g, "").trim();
+      if (!corrected) throw new Error("Réponse vide de l'IA, réessaie");
+      return new Response(JSON.stringify({ ok: true, corrected: corrected.slice(0, 4000) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
