@@ -86,6 +86,7 @@ function randomInviteCode() {
 // avantages pour TOUT le serveur (contrairement à XULTRA+ qui reste un
 // avantage personnel du propriétaire).
 const SERVER_DISCOVERY_CATEGORIES = ["gaming", "musique", "art", "education", "technologie", "communaute", "autre"];
+const CREATOR_QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
 const SERVER_BOOST_THRESHOLDS = [2, 5, 10];
 function serverBoostLevel(server) {
   let boosters = [];
@@ -542,6 +543,17 @@ function isShamanAccount(acc, profile) {
   return false;
 }
 
+async function requireCreatorBadge(request) {
+  const acc = await resolveSessionUser(request);
+  if (!acc) return { ok: false, status: 401, error: "auth_required" };
+  let badges = [];
+  try {
+    const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+    badges = JSON.parse((meta && meta.badgesJson) || "[]");
+  } catch (e) {}
+  if (badges.indexOf("creator") < 0) return { ok: false, status: 403, error: "Réservé aux créateurs de contenu — badge 🎬 requis" };
+  return { ok: true, acc };
+}
 async function requireShaman(request) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
@@ -1011,6 +1023,34 @@ button{cursor:pointer;border:0;background:0}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
 .discover-grid-item .n{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff;font-size:.7rem;font-weight:700}
+.crt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-top:4px}
+.crt-card{cursor:pointer;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);transition:transform .15s}
+.crt-card:hover{transform:translateY(-2px)}
+.crt-card-media{position:relative;aspect-ratio:9/13;background:#000;overflow:hidden}
+.crt-card-media img,.crt-card-media video{width:100%;height:100%;object-fit:cover}
+.crt-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none}
+.crt-card-info{padding:8px 10px}
+.crt-card-title{font-weight:700;font-size:.82rem;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.crt-card-meta{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);margin-bottom:3px;cursor:pointer}
+.crt-card-av{width:18px;height:18px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700}
+.crt-card-av img{width:100%;height:100%;object-fit:cover}
+.crt-card-stats{font-size:.68rem;color:var(--muted)}
+.crt-detail-media{border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px}
+.crt-detail-media img,.crt-detail-media video{width:100%;max-height:60vh;display:block;object-fit:contain;background:#000}
+.crt-detail-title{font-size:1.1rem;font-weight:800;margin-bottom:8px}
+.crt-detail-author{display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px}
+.crt-detail-author .crt-card-av{width:28px;height:28px;font-size:.75rem}
+.crt-detail-desc{font-size:.85rem;line-height:1.5;color:var(--muted);margin-bottom:10px;white-space:pre-wrap}
+.crt-detail-stats{font-size:.78rem;color:var(--muted);margin-bottom:10px}
+.crt-detail-actions{display:flex;gap:8px;margin-bottom:12px}
+.crt-quick-reacts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.crt-quick-react{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:5px 10px;font-size:.85rem;display:flex;align-items:center;gap:4px;transition:transform .1s}
+.crt-quick-react:active{transform:scale(1.1)}
+.crt-quick-react.on{background:rgba(167,139,250,.25);border-color:rgba(167,139,250,.5)}
+.crt-comment{display:flex;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
+.crt-comment:first-child{border-top:none}
+.crt-comment-body{flex:1;font-size:.82rem;line-height:1.4}
+.crt-comment-body b{display:block;font-size:.76rem;margin-bottom:2px}
 #discover-map{width:100%;height:100%;border-radius:12px;overflow:hidden;background:#0b0714}
 .leaflet-popup-content-wrapper{background:var(--elev);color:#f2ebff;border-radius:12px}
 .leaflet-popup-content-wrapper a{color:#c4b5fd;font-weight:700}
@@ -1952,6 +1992,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette">🎲</button>
     <button type="button" class="rail-btn" id="nav-casino" title="Casino">🎰</button>
+    <button type="button" class="rail-btn" id="nav-creators" title="Créateurs">🎬</button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
@@ -1965,6 +2006,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette">🎲</button>
     <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino">🎰</button>
+    <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs">🎬</button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
@@ -2181,6 +2223,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <div id="pm-render"></div>
       <div class="pm-btn-row">
         <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
+        <button type="button" class="btn-main hidden" id="pm-creator">🎬 Voir la chaîne</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
         <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
         <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil">🔗</button>
@@ -3850,6 +3893,8 @@ if(\$('nav-chatroulette'))\$('nav-chatroulette').addEventListener('click',openCh
 if(\$('nav-chatroulette-mobile'))\$('nav-chatroulette-mobile').addEventListener('click',openChatroulette);
 if(\$('nav-casino'))\$('nav-casino').addEventListener('click',openCasino);
 if(\$('nav-casino-mobile'))\$('nav-casino-mobile').addEventListener('click',openCasino);
+if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){openCreators();});
+if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -3857,6 +3902,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.55.0',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
+    body:'Nouveau bouton 🎬 dans la navigation : les membres avec le badge Créateur de Contenu peuvent publier des vidéos ou images visibles par toute la plateforme, avec compteur de vues, likes, réactions rapides et commentaires. Chaque créateur a son propre fil accessible en cliquant sur son pseudo dans le hub, ou via "🎬 Voir la chaîne" sur son profil — sa page ne montre que ses publications, comme une chaîne.'},
   {version:'2.54.1',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
     body:'Un nouveau badge holographique rejoint la collection — remis à la main par l\\'équipe aux créateurs qui font vivre XULTRA en dehors de la plateforme (vidéos, streams, tutos, communauté). Dégradé irisé qui tourne et scintille, anneau qui tourne autour comme les badges les plus rares. Un clic dessus, sur un profil ou dans le trombinoscope, ouvre une jolie carte de présentation avec sa description.'},
   {version:'2.54.0',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
@@ -6308,6 +6355,11 @@ async function openProfileModal(uid){
   const msgBtn=\$('pm-message');
   msgBtn.classList.toggle('hidden',!!isSelf);
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
+  const creatorBtn=\$('pm-creator');
+  if(creatorBtn){
+    creatorBtn.classList.toggle('hidden',badges.indexOf('creator')<0);
+    creatorBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openCreators(uid,name);};
+  }
   const friendBtn=\$('pm-friend');
   if(friendBtn){
     const rel=isSelf?null:friendsCache.find(function(f){return String(f.friendId)===String(uid)});
@@ -8641,6 +8693,247 @@ function openCasinoCreateForm(){
       renderCasinoBody();
       showToast('Duel créé, en attente d\\'un adversaire…');
     }catch(e){\$('casino-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+  };
+}
+
+/* ===== Créateurs de contenu (fil public, vues/likes/commentaires/réactions) ===== */
+const CREATOR_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
+let crtPosts=[],crtOffset=0,crtHasMore=true,crtViewUid=null,crtViewName='',crtLoading=false,crtDetailPost=null,crtDetailComments=[],crtMyBadges=null;
+async function getMyBadges(){
+  if(!me)return ['base'];
+  let meta=memberMetaByUid[me.\$id];
+  if(!meta){try{meta=await db.getDocument(DB,'user_meta',me.\$id);memberMetaByUid[me.\$id]=meta;}catch(e){meta=null}}
+  return parseBadges(meta);
+}
+async function openCreators(uid,name){
+  let overlay=\$('creators-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='creators-overlay';
+    overlay.className='discover-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  crtViewUid=uid||null;crtViewName=name||'';crtDetailPost=null;
+  crtMyBadges=await getMyBadges();
+  renderCreatorsShell();
+  await crtLoadFeed(true);
+}
+function closeCreators(){
+  const overlay=\$('creators-overlay');
+  if(overlay)overlay.classList.remove('show');
+}
+function renderCreatorsShell(){
+  const overlay=\$('creators-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="creators-close">← Retour</button><h2>🎬 '+(crtViewUid?esc(crtViewName||'Créateur'):'Créateurs')+'</h2></div>'
+    +'<div class="discover-body" id="creators-body"></div>';
+  \$('creators-close').onclick=closeCreators;
+}
+function crtFmtCount(n){
+  n=Number(n)||0;
+  if(n>=1000000)return (n/1000000).toFixed(1).replace('.0','')+'M';
+  if(n>=1000)return (n/1000).toFixed(1).replace('.0','')+'k';
+  return String(n);
+}
+async function crtLoadFeed(reset){
+  if(crtLoading)return;
+  crtLoading=true;
+  if(reset){crtPosts=[];crtOffset=0;crtHasMore=true;}
+  const box=\$('creators-body');
+  if(box&&reset)box.innerHTML='<div class="scr-sub">Chargement…</div>';
+  try{
+    const qs='?offset='+crtOffset+(crtViewUid?('&uid='+encodeURIComponent(crtViewUid)):'');
+    const r=await fetch('/api/creators/posts/feed'+qs,{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const j=await r.json();
+    if(j.ok){
+      const batch=j.posts||[];
+      crtPosts=crtPosts.concat(batch);
+      crtOffset+=batch.length;
+      crtHasMore=batch.length>=24;
+    }
+  }catch(e){}
+  crtLoading=false;
+  renderCreatorsBody();
+}
+function crtPostCardHtml(p){
+  const isVideo=p.mediaType==='video';
+  const mediaSrc=safeUrl(p.mediaUrl);
+  return '<div class="crt-card" data-crt-open="'+esc(p.\$id)+'">'
+    +'<div class="crt-card-media">'+(isVideo?('<video src="'+esc(mediaSrc)+'" muted preload="metadata"></video><span class="crt-play">▶</span>'):('<img src="'+esc(mediaSrc)+'" alt="" loading="lazy">'))+'</div>'
+    +'<div class="crt-card-info">'
+      +'<div class="crt-card-title">'+esc(p.title)+'</div>'
+      +'<div class="crt-card-meta" data-crt-author="'+esc(p.uid)+'"><div class="crt-card-av">'+(safeUrl(p.avatar)?('<img src="'+esc(safeUrl(p.avatar))+'" alt="">'):esc(ini(p.username||'?')))+'</div><span>'+esc(p.username||'Créateur')+'</span></div>'
+      +'<div class="crt-card-stats">👁️ '+crtFmtCount(p.viewCount)+' · ❤️ '+crtFmtCount(p.likeCount)+' · 💬 '+crtFmtCount(p.commentCount)+'</div>'
+    +'</div></div>';
+}
+function renderCreatorsBody(){
+  const box=\$('creators-body');if(!box)return;
+  if(crtDetailPost){crtRenderDetail();return}
+  const canPublish=crtMyBadges&&crtMyBadges.indexOf('creator')>=0;
+  box.innerHTML=(crtViewUid?'<button type="button" class="set-mini-btn" id="crt-back-all" style="margin-bottom:10px">← Tous les créateurs</button>':'')
+    +(canPublish?'<button type="button" class="btn-main" id="crt-publish-btn" style="width:100%;margin-bottom:14px">+ Publier</button>':'')
+    +(crtPosts.length?('<div class="crt-grid">'+crtPosts.map(crtPostCardHtml).join('')+'</div>'):('<div class="scr-sub">'+(crtViewUid?'Ce créateur n\\'a encore rien publié.':'Aucune publication pour l\\'instant — reviens bientôt !')+'</div>'))
+    +(crtHasMore&&crtPosts.length?'<button type="button" class="set-mini-btn" id="crt-load-more" style="width:100%;margin-top:12px">Charger plus</button>':'');
+  const backBtn=\$('crt-back-all');if(backBtn)backBtn.onclick=function(){openCreators(null,'');};
+  const pubBtn=\$('crt-publish-btn');if(pubBtn)pubBtn.onclick=crtOpenPublishForm;
+  const moreBtn=\$('crt-load-more');if(moreBtn)moreBtn.onclick=function(){crtLoadFeed(false);};
+  box.querySelectorAll('[data-crt-author]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const uid=el.getAttribute('data-crt-author');
+      const p=crtPosts.find(function(x){return String(x.uid)===String(uid);});
+      openCreators(uid,(p&&p.username)||'Créateur');
+    });
+  });
+  box.querySelectorAll('[data-crt-open]').forEach(function(el){
+    el.addEventListener('click',function(){crtOpenPost(el.getAttribute('data-crt-open'));});
+  });
+}
+async function crtOpenPost(postId){
+  const post=crtPosts.find(function(p){return p.\$id===postId;});
+  if(!post)return;
+  crtDetailPost=post;
+  crtDetailComments=[];
+  renderCreatorsBody();
+  authPost('/api/creators/posts/view',{postId:postId}).then(function(r){
+    if(r&&r.viewCount!=null){
+      post.viewCount=r.viewCount;
+      const el=\$('crt-detail-views');
+      if(el)el.textContent='👁️ '+crtFmtCount(post.viewCount);
+    }
+  }).catch(function(){});
+  try{
+    const r=await db.listDocuments(DB,'creator_post_comments',[Appwrite.Query.equal('postId',postId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    crtDetailComments=r.documents||[];
+  }catch(e){crtDetailComments=[];}
+  if(crtDetailPost&&crtDetailPost.\$id===postId)crtRenderDetail();
+}
+function crtCommentsHtml(){
+  if(!crtDetailComments.length)return '<div class="scr-sub">Aucun commentaire pour l\\'instant.</div>';
+  return crtDetailComments.map(function(c){
+    return '<div class="crt-comment"><div class="crt-card-av">'+(safeUrl(c.avatar)?('<img src="'+esc(safeUrl(c.avatar))+'" alt="">'):esc(ini(c.username||'?')))+'</div><div class="crt-comment-body"><b>'+esc(c.username||'Membre')+'</b><span>'+esc(c.text)+'</span></div></div>';
+  }).join('');
+}
+function crtRenderDetail(){
+  const box=\$('creators-body');if(!box)return;
+  const p=crtDetailPost;if(!p){renderCreatorsBody();return}
+  const isVideo=p.mediaType==='video';
+  const mediaSrc=safeUrl(p.mediaUrl);
+  let reactions={};try{reactions=JSON.parse(p.reactionsJson||'{}');}catch(e){}
+  box.innerHTML='<button type="button" class="set-mini-btn" id="crt-detail-back" style="margin-bottom:10px">← Retour</button>'
+    +'<div class="crt-detail-media">'+(isVideo?('<video src="'+esc(mediaSrc)+'" controls playsinline></video>'):('<img src="'+esc(mediaSrc)+'" alt="">'))+'</div>'
+    +'<h3 class="crt-detail-title">'+esc(p.title)+'</h3>'
+    +'<div class="crt-detail-author" data-crt-author="'+esc(p.uid)+'"><div class="crt-card-av">'+(safeUrl(p.avatar)?('<img src="'+esc(safeUrl(p.avatar))+'" alt="">'):esc(ini(p.username||'?')))+'</div><span>'+esc(p.username||'Créateur')+'</span></div>'
+    +(p.description?('<div class="crt-detail-desc">'+esc(p.description)+'</div>'):'')
+    +'<div class="crt-detail-stats" id="crt-detail-views">👁️ '+crtFmtCount(p.viewCount)+'</div>'
+    +'<div class="crt-detail-actions">'
+      +'<button type="button" class="set-mini-btn'+(p.likedByMe?' ok':'')+'" id="crt-like-btn">'+(p.likedByMe?'❤️':'🤍')+' <span id="crt-like-count">'+crtFmtCount(p.likeCount)+'</span></button>'
+      +(me&&String(p.uid)===String(me.\$id)?'<button type="button" class="set-mini-btn danger" id="crt-delete-btn">🗑 Supprimer</button>':'')
+    +'</div>'
+    +'<div class="crt-quick-reacts">'+CREATOR_QUICK_REACTIONS.map(function(r){
+      const mine=me&&Array.isArray(reactions[r])&&reactions[r].map(String).indexOf(String(me.\$id))>=0;
+      const count=Array.isArray(reactions[r])?reactions[r].length:0;
+      return '<button type="button" class="crt-quick-react'+(mine?' on':'')+'" data-crt-react="'+esc(r)+'">'+r+(count?(' '+count):'')+'</button>';
+    }).join('')+'</div>'
+    +'<div class="set-section-label">💬 Commentaires ('+(Number(p.commentCount)||0)+')</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px"><input type="text" id="crt-comment-input" class="field-input" maxlength="500" placeholder="Ajouter un commentaire…" style="flex:1"><button type="button" class="set-mini-btn" id="crt-comment-send">Envoyer</button></div>'
+    +'<div id="crt-comments-list">'+crtCommentsHtml()+'</div>';
+  \$('crt-detail-back').onclick=function(){crtDetailPost=null;renderCreatorsBody();};
+  box.querySelectorAll('[data-crt-author]').forEach(function(el){
+    el.addEventListener('click',function(){openCreators(el.getAttribute('data-crt-author'),p.username);});
+  });
+  \$('crt-like-btn').onclick=crtToggleLike;
+  const delBtn=\$('crt-delete-btn');if(delBtn)delBtn.onclick=crtDeletePost;
+  box.querySelectorAll('[data-crt-react]').forEach(function(el){
+    el.addEventListener('click',function(){crtToggleReaction(el.getAttribute('data-crt-react'));});
+  });
+  \$('crt-comment-send').onclick=crtSendComment;
+  \$('crt-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();crtSendComment();}});
+}
+async function crtToggleLike(){
+  const p=crtDetailPost;if(!p)return;
+  const btn=\$('crt-like-btn');if(btn)btn.disabled=true;
+  try{
+    const r=await authPost('/api/creators/posts/like/toggle',{postId:p.\$id});
+    p.likedByMe=r.liked;p.likeCount=r.likeCount;
+    crtRenderDetail();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
+}
+async function crtToggleReaction(emoji){
+  const p=crtDetailPost;if(!p)return;
+  try{
+    const r=await authPost('/api/creators/posts/reaction/toggle',{postId:p.\$id,emoji:emoji});
+    p.reactionsJson=r.reactionsJson;
+    crtRenderDetail();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+async function crtSendComment(){
+  const p=crtDetailPost;if(!p)return;
+  const input=\$('crt-comment-input');
+  const text=((input&&input.value)||'').trim();
+  if(!text)return;
+  const btn=\$('crt-comment-send');if(btn)btn.disabled=true;
+  try{
+    const r=await authPost('/api/creators/posts/comments/create',{postId:p.\$id,text:text});
+    crtDetailComments.unshift(r.comment);
+    p.commentCount=(Number(p.commentCount)||0)+1;
+    crtRenderDetail();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
+}
+async function crtDeletePost(){
+  const p=crtDetailPost;if(!p)return;
+  if(!confirm('Supprimer définitivement cette publication ?'))return;
+  try{
+    await authPost('/api/creators/posts/delete',{postId:p.\$id});
+    crtPosts=crtPosts.filter(function(x){return x.\$id!==p.\$id;});
+    crtDetailPost=null;
+    showToast('Publication supprimée.');
+    renderCreatorsBody();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+function crtOpenPublishForm(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
+    +'<div class="set-section-label">🎬 Nouvelle publication</div>'
+    +'<div class="set-row"><label>Titre</label><input type="text" id="crt-pub-title" class="field-input" maxlength="200" placeholder="Le titre de ta création"></div>'
+    +'<div class="set-row"><label>Description (optionnel)</label><textarea id="crt-pub-desc" class="field-input" maxlength="2000" rows="3" placeholder="Raconte-en plus…"></textarea></div>'
+    +'<div class="set-row"><label>Fichier (vidéo ou image, 50 Mo max)</label><input type="file" id="crt-pub-file" accept="video/*,image/*"></div>'
+    +'<div id="crt-pub-preview"></div>'
+    +'<button type="button" class="btn-main" id="crt-pub-go" style="width:100%;margin-top:10px">Publier</button>'
+    +'<div class="err" id="crt-pub-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let pickedFile=null;
+  \$('crt-pub-file').addEventListener('change',function(){
+    const f=this.files&&this.files[0];
+    if(!f)return;
+    if(f.size>STORY_MAX_BYTES){\$('crt-pub-err').textContent='Fichier trop volumineux (max 50 Mo).';this.value='';return}
+    if(!/^(video|image)\\//.test(f.type)){\$('crt-pub-err').textContent='Format non supporté.';this.value='';return}
+    pickedFile=f;
+    \$('crt-pub-err').textContent='';
+    const previewUrl=URL.createObjectURL(f);
+    const isVideo=f.type.indexOf('video/')===0;
+    \$('crt-pub-preview').innerHTML=isVideo
+      ?('<video src="'+previewUrl+'" style="width:100%;max-height:200px;border-radius:10px;margin-top:8px" controls></video>')
+      :('<img src="'+previewUrl+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px">');
+  });
+  \$('crt-pub-go').onclick=async function(){
+    const title=(\$('crt-pub-title').value||'').trim();
+    if(!title){\$('crt-pub-err').textContent='Titre requis';return}
+    if(!pickedFile){\$('crt-pub-err').textContent='Choisis un fichier';return}
+    this.disabled=true;this.textContent='Publication…';\$('crt-pub-err').textContent='';
+    try{
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),pickedFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      const mediaType=pickedFile.type.indexOf('video/')===0?'video':'image';
+      await authPost('/api/creators/posts/create',{title:title,description:(\$('crt-pub-desc').value||'').trim(),mediaUrl:mediaUrl,mediaType:mediaType});
+      close();
+      showToast('Publié ! 🎉');
+      openCreators(null,'');
+    }catch(e){\$('crt-pub-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
   };
 }
 
@@ -14153,6 +14446,172 @@ async function handle(request) {
         body: { data: { status: "resolved", opponentUid: String(acc.$id), opponentName: opponentName, winnerUid: winnerUid, resultJson: JSON.stringify(result) } }
       });
       return new Response(JSON.stringify({ ok: true, duel: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/create" && request.method === "POST") {
+    const gate = await requireCreatorBadge(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const title = String((body && body.title) || "").trim().slice(0, 200);
+      const description = String((body && body.description) || "").trim().slice(0, 2000);
+      const mediaUrl = String((body && body.mediaUrl) || "").trim().slice(0, 500);
+      const mediaType = ["video", "image"].indexOf(body && body.mediaType) >= 0 ? body.mediaType : "";
+      const thumbnailUrl = String((body && body.thumbnailUrl) || "").trim().slice(0, 500);
+      if (!title) throw new Error("Titre requis");
+      if (!mediaUrl || !mediaType) throw new Error("Fichier requis");
+      const profile = await resolveProfile(gate.acc.$id);
+      const username = (profile && (profile.displayName || profile.username)) || gate.acc.name || "Créateur";
+      const avatar = (profile && profile.avatar) || "";
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { uid: String(gate.acc.$id), username: username, avatar: avatar, title: title, description: description, mediaUrl: mediaUrl, mediaType: mediaType, thumbnailUrl: thumbnailUrl, viewCount: 0, likeCount: 0, commentCount: 0, reactionsJson: "{}" } }
+      });
+      return new Response(JSON.stringify({ ok: true, post: post }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const postId = String((body && body.postId) || "");
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
+      const profile = await resolveProfile(acc.$id);
+      if (String(post.uid) !== String(acc.$id) && !isShamanAccount(acc, profile)) throw new Error("Tu ne peux supprimer que tes propres publications");
+      await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "DELETE", asAdmin: true });
+      const likes = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+      for (const l of (likes.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents/" + l.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      const comments = await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+      for (const c of (comments.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents/" + c.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/feed" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const uidFilter = String(url.searchParams.get("uid") || "");
+      const offset = Math.max(0, parseInt(url.searchParams.get("offset") || "0", 10) || 0);
+      const queries = [
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })),
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [24] })),
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "offset", values: [offset] }))
+      ];
+      if (uidFilter) queries.push("queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uidFilter] })));
+      const found = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents?" + queries.join("&"), { asAdmin: true });
+      const posts = found.documents || [];
+      let likedIds = [];
+      if (posts.length) {
+        const likes = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: posts.map(function (p) { return p.$id; }) })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true }).catch(function () { return { documents: [] }; });
+        likedIds = (likes.documents || []).map(function (l) { return String(l.postId); });
+      }
+      const enriched = posts.map(function (p) { return Object.assign({}, p, { likedByMe: likedIds.indexOf(String(p.$id)) >= 0 }); });
+      return new Response(JSON.stringify({ ok: true, posts: enriched, total: found.total || 0 }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/view" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const postId = String((body && body.postId) || "");
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { viewCount: (Number(post.viewCount) || 0) + 1 } } });
+      return new Response(JSON.stringify({ ok: true, viewCount: updated.viewCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/like/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const postId = String((body && body.postId) || "");
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const already = (existing.documents || [])[0];
+      let liked;
+      if (already) {
+        await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents/" + already.$id, { method: "DELETE", asAdmin: true });
+        liked = false;
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { postId: postId, uid: String(acc.$id) } } });
+        liked = true;
+      }
+      const newCount = Math.max(0, (Number(post.likeCount) || 0) + (liked ? 1 : -1));
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { likeCount: newCount } } });
+      return new Response(JSON.stringify({ ok: true, liked: liked, likeCount: updated.likeCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/reaction/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const postId = String((body && body.postId) || "");
+      const emoji = String((body && body.emoji) || "").slice(0, 8);
+      if (CREATOR_QUICK_REACTIONS.indexOf(emoji) < 0) throw new Error("Réaction invalide");
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
+      let reactions = {};
+      try { reactions = JSON.parse(post.reactionsJson || "{}"); } catch (e) {}
+      const uid = String(acc.$id);
+      const list = Array.isArray(reactions[emoji]) ? reactions[emoji].map(String) : [];
+      const idx = list.indexOf(uid);
+      if (idx >= 0) list.splice(idx, 1); else list.push(uid);
+      if (list.length) reactions[emoji] = list; else delete reactions[emoji];
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { reactionsJson: JSON.stringify(reactions) } } });
+      return new Response(JSON.stringify({ ok: true, reactionsJson: updated.reactionsJson }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/creators/posts/comments/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const postId = String((body && body.postId) || "");
+      const text = String((body && body.text) || "").trim().slice(0, 500);
+      if (!text) throw new Error("Commentaire vide");
+      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
+      const profile = await resolveProfile(acc.$id);
+      const username = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const avatar = (profile && profile.avatar) || "";
+      const comment = await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { postId: postId, uid: String(acc.$id), username: username, avatar: avatar, text: text } }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { commentCount: (Number(post.commentCount) || 0) + 1 } } });
+      return new Response(JSON.stringify({ ok: true, comment: comment }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
