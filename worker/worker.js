@@ -140,19 +140,21 @@ function computeChannelAccess(channel, roleIds) {
 // bloquait aussi le temps réel : Appwrite ne pousse un événement realtime
 // qu'aux utilisateurs qui ont explicitement la permission de lire le document
 // concerné, donc personne ne recevait jamais les nouveaux messages en direct
-// (d'où "il faut actualiser la page"). Pour un salon public, un simple
-// read("users") suffit et ne change rien à la confidentialité puisque
-// n'importe quel membre peut déjà le lire via la route. Pour un salon
-// restreint, on énumère qui a effectivement accès à l'instant T et on ne
-// leur accorde la lecture qu'à eux — un membre qui obtient le rôle plus tard
-// ne recevra pas le direct sur les anciens messages, mais la route de lecture
-// (qui revérifie l'accès à chaque appel) reste la source de vérité.
+// (d'où "il faut actualiser la page").
+//
+// On énumère TOUJOURS les membres ayant effectivement accès, y compris pour
+// un salon non restreint — jamais read("users"). Un ancien raccourci
+// accordait read("users") (= n'importe quel utilisateur connecté sur TOUTE
+// la plateforme, pas seulement les membres de ce serveur) dès qu'un salon
+// n'avait aucune restriction de rôle, en s'appuyant sur le fait que la route
+// de lecture revérifie l'appartenance — mais ça supposait que personne
+// n'interroge jamais la collection directement. La recherche de messages
+// (requête client directe via l'SDK) l'a fait, révélant que n'importe quel
+// compte de la plateforme pouvait lire les messages d'un salon public d'un
+// serveur dont il n'est même pas membre. Un membre qui obtient l'accès plus
+// tard ne recevra pas le direct sur les anciens messages, mais la route de
+// lecture (qui revérifie l'accès à chaque appel) reste la source de vérité.
 async function computeChannelMessagePermissions(serverId, channel) {
-  const visible = channel.visibleRoleIds || [];
-  let overwrites = [];
-  try { overwrites = JSON.parse(channel.overwritesJson || "[]"); } catch (e) {}
-  const restricted = visible.length > 0 || overwrites.some(function (o) { return o && (o.view === "deny" || o.view === "allow"); });
-  if (!restricted) return ["read(\"users\")"];
   try {
     const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
     const membersData = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
@@ -1733,6 +1735,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
+        <button type="button" class="ub-btn" id="btn-search" title="Rechercher">🔍</button>
         <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés">📌</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
       </div>
@@ -3472,6 +3475,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.45.1',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
+    body:'Un salon de serveur sans restriction de rôle accordait la lecture de ses messages à "n\\'importe quel compte connecté sur XULTRA", pas seulement aux membres de ce serveur — un raccourci technique pour le temps réel qui supposait (à tort) que personne n\\'interrogerait la base directement. Découvert en développant la recherche de messages. Corrigé : seuls les membres réels du serveur reçoivent désormais l\\'accès en lecture, salon restreint ou non.'},
+  {version:'2.45.0',date:'24 août 2026',time:'19:15',title:'Recherche de messages (DM et salons de serveur)',
+    body:'Nouveau bouton 🔍 en haut d\\'une conversation privée ou d\\'un salon textuel : recherche par mots-clés, période (aujourd\\'hui / cette semaine / ce mois / tout) et filtre "épinglés uniquement". Un clic sur un résultat retrouve directement le message dans la conversation.'},
   {version:'2.44.0',date:'24 août 2026',time:'18:40',title:'Sondages intégrés dans les salons de serveur',
     body:'Nouveau bouton 📊 dans la zone d\\'écriture d\\'un salon textuel pour créer un sondage : question, 2 à 10 options, choix unique ou multiple, durée de 1 heure à 7 jours. Les résultats s\\'affichent en direct sous forme de barres avec le pourcentage et le nombre de votes, ton propre vote est mis en évidence, et un sondage terminé passe automatiquement en lecture seule.'},
   {version:'2.43.0',date:'24 août 2026',time:'18:00',title:'Épinglage de messages et synchronisation des permissions par catégorie',
@@ -6881,6 +6888,74 @@ async function openPinnedMessages(kind){
     el.addEventListener('click',function(){close();scrollToMessage(el.getAttribute('data-pinned-scroll'));});
   });
 }
+const SEARCH_PERIOD_PRESETS=[['all','Tout'],['today',"Aujourd'hui"],['week','Cette semaine'],['month','Ce mois']];
+function searchPeriodCutoff(key){
+  const now=new Date();
+  if(key==='today'){const d=new Date(now);d.setHours(0,0,0,0);return d.toISOString();}
+  if(key==='week'){const d=new Date(now.getTime()-7*86400000);return d.toISOString();}
+  if(key==='month'){const d=new Date(now.getTime()-30*86400000);return d.toISOString();}
+  return null;
+}
+async function openMessageSearch(kind){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:80vh;overflow-y:auto;text-align:left">'
+    +'<div class="set-section-label">🔍 Rechercher'+(kind==='dm'?' dans la conversation':' dans le salon')+'</div>'
+    +'<input type="text" id="search-query" class="field-input" placeholder="Mots-clés…" style="margin-bottom:8px">'
+    +'<div class="seg-group" id="search-period" style="margin-bottom:8px">'+SEARCH_PERIOD_PRESETS.map(function(p,i){return '<button type="button" class="seg-btn'+(i===0?' on':'')+'" data-search-period="'+p[0]+'">'+p[1]+'</button>';}).join('')+'</div>'
+    +'<label class="srv-perm-check" style="margin-bottom:10px"><input type="checkbox" id="search-pinned-only"> 📌 Épinglés uniquement</label>'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px"><button type="button" class="btn-main" id="search-go">Rechercher</button><button type="button" class="set-mini-btn" id="search-cancel">Fermer</button></div>'
+    +'<div id="search-results" class="scr-sub"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('search-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let period='all';
+  overlay.querySelectorAll('[data-search-period]').forEach(function(b){
+    b.addEventListener('click',function(){
+      period=b.getAttribute('data-search-period');
+      overlay.querySelectorAll('[data-search-period]').forEach(function(x){x.classList.toggle('on',x===b);});
+    });
+  });
+  async function runSearch(){
+    const q=(\$('search-query').value||'').trim();
+    const pinnedOnly=\$('search-pinned-only').checked;
+    const resBox=\$('search-results');
+    resBox.textContent='Recherche…';
+    try{
+      const queries=[];
+      if(kind==='dm')queries.push(Appwrite.Query.equal('threadId',activeDm));
+      else queries.push(Appwrite.Query.equal('channelId',activeChannel.\$id));
+      if(q)queries.push(Appwrite.Query.search('text',q));
+      if(pinnedOnly)queries.push(Appwrite.Query.equal('pinned',true));
+      const cutoff=searchPeriodCutoff(period);
+      if(cutoff)queries.push(Appwrite.Query.greaterThanEqual('\$createdAt',cutoff));
+      queries.push(Appwrite.Query.orderDesc('\$createdAt'));
+      queries.push(Appwrite.Query.limit(50));
+      const r=await db.listDocuments(DB,kind==='dm'?'dms_messages':'server_channel_messages',queries);
+      const list=r.documents||[];
+      if(!list.length){resBox.textContent='Aucun résultat.';return}
+      resBox.innerHTML=list.map(function(m){
+        const author=esc(m.displayName||m.username||'Quelqu\\'un');
+        const text=esc(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':'')));
+        return '<div class="msg-reply-quote" data-search-scroll="'+esc(m.\$id)+'" style="margin-bottom:8px;cursor:pointer"><b>'+author+'</b><span class="rq-text" style="white-space:normal">'+text+'</span><span style="font-size:.62rem;color:var(--muted);display:block;margin-top:2px">'+esc(fmtRelTime(m.\$createdAt))+(m.pinned?' · 📌':'')+'</span></div>';
+      }).join('');
+      resBox.querySelectorAll('[data-search-scroll]').forEach(function(el){
+        el.addEventListener('click',function(){
+          close();
+          const mid=el.getAttribute('data-search-scroll');
+          const inCache=(kind==='dm'?msgsCache:activeChannelMessages).some(function(x){return x.\$id===mid});
+          if(inCache)scrollToMessage(mid);
+          else showToast('Ce message n\\'est pas dans les '+(kind==='dm'?'60 derniers messages chargés':'60 derniers messages chargés')+'.','error');
+        });
+      });
+    }catch(e){resBox.textContent='Erreur de recherche.';}
+  }
+  \$('search-go').onclick=runSearch;
+  \$('search-query').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();runSearch();}});
+  setTimeout(function(){\$('search-query').focus();},50);
+}
 async function toggleChannelPin(m){
   try{
     const r=await authPost('/api/servers/channels/messages/pin',{serverId:activeServer.\$id,messageId:m.\$id,pin:!m.pinned});
@@ -9444,6 +9519,7 @@ function renderServerChannelContent(){
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   const showQuickLock=canManageChannels&&activeChannel.type==='text';
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
@@ -9488,6 +9564,8 @@ function renderServerChannelContent(){
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
   const pinnedBtn=\$('srv-chan-pinned');
   if(pinnedBtn)pinnedBtn.onclick=function(){openPinnedMessages('channel');};
+  const searchBtn=\$('srv-chan-search');
+  if(searchBtn)searchBtn.onclick=function(){openMessageSearch('channel');};
   const pollBtn=\$('srv-chan-poll');
   if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
   const quickLock=\$('srv-chan-quicklock');
@@ -10256,6 +10334,7 @@ async function renderServerSettingsTab(){
   if(automodInput)automodInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();automodAdd.click();}});
 }
 if(\$('btn-pinned'))\$('btn-pinned').addEventListener('click',function(){if(activeDm)openPinnedMessages('dm');});
+if(\$('btn-search'))\$('btn-search').addEventListener('click',function(){if(activeDm)openMessageSearch('dm');});
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){
     if(!activeDm){showToast('Ouvre une conversation de groupe pour lancer un salon vocal.','error');return}
