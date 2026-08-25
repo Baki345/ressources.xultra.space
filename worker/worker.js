@@ -1903,6 +1903,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <form id="pane-login" autocomplete="on">
       <div class="field"><label>Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" placeholder="toi@exemple.com ou pseudo#1234"/></div>
       <div class="field"><label>Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
+      <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0">Mot de passe oublié ?</button>
       <label class="remember-row" for="in-remember">
         <input type="checkbox" id="in-remember" checked/>
         <span>Rester connecté</span>
@@ -2139,6 +2140,29 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <div class="err" id="mfa-err" style="min-height:1.2em;margin:4px 0 8px"></div>
     <button type="button" class="btn-main" id="mfa-verify-btn" style="width:100%">Vérifier</button>
     <button type="button" id="mfa-toggle-recovery" style="margin-top:10px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer">Utiliser un code de secours</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-forgot-password">
+  <div class="modal-box" style="width:min(360px,100%)">
+    <button type="button" class="modal-close" id="fp-close">✕</button>
+    <h3>🔑 Mot de passe oublié</h3>
+    <div class="sc-desc">Entre l'adresse e-mail de ton compte XULTRA : si elle correspond à un compte, on t'envoie un lien pour choisir un nouveau mot de passe.</div>
+    <div class="field"><label>Email</label><input id="fp-email" type="email" autocomplete="username" placeholder="toi@exemple.com"/></div>
+    <div class="err" id="fp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
+    <button type="button" class="btn-main" id="fp-send" style="width:100%">Envoyer le lien</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-reset-password">
+  <div class="modal-box" style="width:min(360px,100%)">
+    <button type="button" class="modal-close" id="rp-close">✕</button>
+    <h3>🔑 Nouveau mot de passe</h3>
+    <div class="sc-desc">Choisis un nouveau mot de passe pour ton compte XULTRA.</div>
+    <div class="field"><label>Nouveau mot de passe</label><input id="rp-new-pass" type="password" minlength="8" autocomplete="new-password"/></div>
+    <div class="field"><label>Confirmer le mot de passe</label><input id="rp-new-pass2" type="password" minlength="8" autocomplete="new-password"/></div>
+    <div class="err" id="rp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
+    <button type="button" class="btn-main" id="rp-submit" style="width:100%">Réinitialiser mon mot de passe</button>
   </div>
 </div>
 
@@ -3629,6 +3653,96 @@ async function verifyTurnstile(which){
     return true;
   }catch(e){showErrTxt('Vérification anti-robot indisponible, réessaie');return false}
 }
+/* ===== Mot de passe oublié (récupération par e-mail Appwrite) ===== */
+function openForgotPasswordModal(prefillEmail){
+  const emailInput=\$('fp-email');
+  if(emailInput)emailInput.value=prefillEmail||'';
+  \$('fp-err').textContent='';
+  \$('modal-forgot-password').classList.remove('hidden');
+  setTimeout(function(){if(emailInput)emailInput.focus();},50);
+}
+if(\$('btn-forgot-password'))\$('btn-forgot-password').addEventListener('click',function(e){
+  e.preventDefault();
+  const loginEmail=(\$('in-email')&&\$('in-email').value)||'';
+  openForgotPasswordModal(/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(loginEmail)?loginEmail:'');
+});
+if(\$('fp-close'))\$('fp-close').addEventListener('click',function(){\$('modal-forgot-password').classList.add('hidden');});
+if(\$('modal-forgot-password'))\$('modal-forgot-password').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
+if(\$('fp-send'))\$('fp-send').addEventListener('click',async function(){
+  const email=((\$('fp-email')&&\$('fp-email').value)||'').trim();
+  const err=\$('fp-err');
+  err.textContent='';
+  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){err.textContent='Email invalide';return}
+  if(!ensureSdk()){err.textContent='SDK non chargé, réessaie dans un instant';return}
+  this.disabled=true;this.textContent='Envoi…';
+  try{
+    await account.createRecovery(email,location.origin+'/?mode=recovery');
+    showToast('Si un compte existe avec cet e-mail, un lien de réinitialisation vient d\\'être envoyé. 📩');
+    \$('modal-forgot-password').classList.add('hidden');
+  }catch(e){
+    /* Un email inconnu renvoie une vraie erreur Appwrite (404/400) — l'afficher
+       distinctement du cas générique permettrait à quelqu'un de vérifier si un
+       email donné est inscrit sur XULTRA (énumération de comptes). On affiche
+       donc le même message de succès générique dans ce cas précis ; seules les
+       vraies pannes (réseau, limite de débit) restent signalées normalement. */
+    const code=e&&e.code;
+    if(code===404||code===400){
+      showToast('Si un compte existe avec cet e-mail, un lien de réinitialisation vient d\\'être envoyé. 📩');
+      \$('modal-forgot-password').classList.add('hidden');
+    }else if(code===429){
+      err.textContent='Trop de tentatives, réessaie dans quelques minutes.';
+    }else{
+      err.textContent=(e&&e.message)||'Erreur, réessaie.';
+    }
+  }
+  this.disabled=false;this.textContent='Envoyer le lien';
+});
+let pendingRecovery=null;
+function closeResetPasswordModal(){
+  \$('modal-reset-password').classList.add('hidden');
+  pendingRecovery=null;
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+}
+if(\$('rp-close'))\$('rp-close').addEventListener('click',closeResetPasswordModal);
+if(\$('modal-reset-password'))\$('modal-reset-password').addEventListener('click',function(e){if(e.target===this)closeResetPasswordModal();});
+if(\$('rp-submit'))\$('rp-submit').addEventListener('click',async function(){
+  const pass=(\$('rp-new-pass').value||'');
+  const pass2=(\$('rp-new-pass2').value||'');
+  const err=\$('rp-err');
+  err.textContent='';
+  if(pass.length<8){err.textContent='8 caractères minimum';return}
+  if(pass!==pass2){err.textContent='Les mots de passe ne correspondent pas';return}
+  if(!pendingRecovery){err.textContent='Lien invalide ou expiré, redemande-en un nouveau.';return}
+  if(!ensureSdk()){err.textContent='SDK non chargé, réessaie dans un instant';return}
+  this.disabled=true;this.textContent='Réinitialisation…';
+  try{
+    await account.updateRecovery(pendingRecovery.userId,pendingRecovery.secret,pass);
+    \$('modal-reset-password').classList.add('hidden');
+    pendingRecovery=null;
+    try{history.replaceState(null,'',location.pathname);}catch(e){}
+    showToast('Mot de passe réinitialisé — connecte-toi avec le nouveau. 🔒 Si tes anciens messages chiffrés deviennent illisibles sur un appareil, va dans Paramètres → Confidentialité et sécurité → Messages chiffrés pour les resynchroniser.');
+  }catch(e){
+    /* Appwrite renvoie ici un message technique en anglais ("Invalid token
+       passed in the request.") — pas adapté à afficher tel quel dans une
+       interface en français. Le cas le plus courant est de loin un lien
+       expiré/déjà utilisé, donc on affiche directement ce message-là plutôt
+       que le texte brut renvoyé par l'API. */
+    err.textContent='Lien invalide ou expiré, redemande un nouveau lien.';
+  }
+  this.disabled=false;this.textContent='Réinitialiser mon mot de passe';
+});
+async function handlePasswordRecoveryLink(){
+  let uid='',secret='';
+  try{
+    const params=new URLSearchParams(location.search);
+    if(params.get('mode')!=='recovery')return;
+    uid=params.get('userId')||'';secret=params.get('secret')||'';
+  }catch(e){}
+  if(!uid||!secret)return;
+  if(!ensureSdk())return;
+  pendingRecovery={userId:uid,secret:secret};
+  \$('modal-reset-password').classList.remove('hidden');
+}
 async function doLogin(){
   xlog('login_click',{});
   showErrTxt('');
@@ -3902,6 +4016,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.56.0',date:'26 août 2026',time:'00:20',title:'Mot de passe oublié',
+    body:'Nouveau lien "Mot de passe oublié ?" sur la page de connexion et dans Paramètres → Mon compte → Modifier le mot de passe : entre ton e-mail, tu reçois un lien pour en choisir un nouveau, sans avoir à connaître l\\'ancien. Pense à repasser ensuite par Paramètres → Confidentialité et sécurité → Messages chiffrés si tes anciennes conversations chiffrées deviennent illisibles sur un appareil après ce changement — c\\'est normal (l\\'ancienne clé de sauvegarde ne survit pas à un mot de passe oublié) et ce nouvel écran permet de resynchroniser.'},
   {version:'2.55.0',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
     body:'Nouveau bouton 🎬 dans la navigation : les membres avec le badge Créateur de Contenu peuvent publier des vidéos ou images visibles par toute la plateforme, avec compteur de vues, likes, réactions rapides et commentaires. Chaque créateur a son propre fil accessible en cliquant sur son pseudo dans le hub, ou via "🎬 Voir la chaîne" sur son profil — sa page ne montre que ses publications, comme une chaîne.'},
   {version:'2.54.1',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
@@ -4579,7 +4695,7 @@ function renderSetAccount(box){
     +'</div>'
     +'<div class="set-card hidden" id="acc-name-form"><div class="set-row"><label>Nouveau pseudo</label><input type="text" id="acc-name-input" class="field-input" maxlength="64"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-name-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-name-cancel">Annuler</button></div></div>'
     +'<div class="set-card hidden" id="acc-email-form"><div class="set-row"><label>Nouvel e-mail</label><input type="email" id="acc-email-input" class="field-input"></div><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-email-pass" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-email-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-email-cancel">Annuler</button></div><div class="err" id="acc-email-err" style="min-height:1em;margin-top:6px"></div></div>'
-    +'<div class="set-card hidden" id="acc-pass-form"><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-pass-old" class="field-input"></div><div class="set-row"><label>Nouveau mot de passe</label><input type="password" id="acc-pass-new" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-pass-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-pass-cancel">Annuler</button></div><div class="err" id="acc-pass-err" style="min-height:1em;margin-top:6px"></div></div>'
+    +'<div class="set-card hidden" id="acc-pass-form"><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-pass-old" class="field-input"></div><div class="set-row"><label>Nouveau mot de passe</label><input type="password" id="acc-pass-new" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-pass-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-pass-cancel">Annuler</button></div><div class="err" id="acc-pass-err" style="min-height:1em;margin-top:6px"></div><button type="button" id="acc-forgot-pass" style="margin-top:10px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0">Tu ne te souviens plus de ton mot de passe actuel ?</button></div>'
     +'<div class="set-card">'
       +'<div class="set-section-label">Sécurité</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">'+((me&&me.mfa)?'Activée — ton compte est protégé par un code à usage unique.':'Ajoute une couche de sécurité à ton compte.')+'</div></div><button type="button" class="set-mini-btn'+((me&&me.mfa)?' danger':'')+'" id="acc-mfa-toggle">'+((me&&me.mfa)?'Désactiver':'Activer')+'</button></div>'
@@ -4685,6 +4801,8 @@ function wireSetAccount(box,name){
       \$('acc-pass-form').classList.add('hidden');
     }catch(e){err.textContent=(e&&e.message)||'Mot de passe actuel incorrect';passSave.disabled=false;}
   };
+  const forgotPassBtn=\$('acc-forgot-pass');
+  if(forgotPassBtn)forgotPassBtn.onclick=function(){openForgotPasswordModal((me&&me.email)||'');};
   const disableSwitch=\$('acc-disable-switch');
   if(disableSwitch)disableSwitch.onclick=async function(){
     const willDisable=disableSwitch.getAttribute('data-on')!=='1';
@@ -12576,6 +12694,7 @@ async function handleEmailVerificationLink(){
   let vUserId='',vSecret='';
   try{
     const params=new URLSearchParams(location.search);
+    if(params.get('mode')==='recovery')return;
     vUserId=params.get('userId')||'';vSecret=params.get('secret')||'';
   }catch(e){}
   if(!vUserId||!vSecret)return;
@@ -12593,6 +12712,7 @@ function boot(){
   waitSdk(async function(){
     xlog('sdk_ready',{});
     await handleEmailVerificationLink();
+    await handlePasswordRecoveryLink();
     const s=readSession();
     if(!s){xlog('boot_no_session',{});return}
     try{
