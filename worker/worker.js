@@ -64,7 +64,7 @@ function mintLiveKitParticipantToken(identity, name, room) {
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
-const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log"];
+const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events"];
 async function logServerAudit(serverId, actorUid, actorName, action, targetName, details) {
   try {
     await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents", {
@@ -1637,6 +1637,8 @@ a.bug-att-item{display:block}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
 .srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
+.srv-event-card{margin-bottom:10px}
+.srv-event-card.srv-event-past{opacity:.55}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
@@ -2145,6 +2147,7 @@ a.bug-att-item{display:block}
       <div class="srv-tabs" id="srv-tabs">
         <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
         <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
+        <button type="button" class="srv-tab" data-srv-tab="events">📅 Événements</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-audit-btn" data-srv-tab="audit">Journal</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
@@ -4045,6 +4048,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.58.0',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
+    body:'Nouvel onglet 📅 Événements dans chaque serveur : les membres avec la permission "Gérer les événements" peuvent en créer (titre, description, date de début/fin, salon lié ou lieu externe) ; tout le monde peut voir la liste et cliquer "🙋 Je participe" pour s\\'inscrire. Compteur d\\'intéressés en direct, et annulation possible par le créateur ou la modération — tracée dans le journal d\\'audit.'},
   {version:'2.57.2',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
     body:'Suite à une idée reçue dans la Boîte à idées ("juste des boutons avec des emojis, je ne sais pas ce que c\\'est") : les boutons icône-seule autour du profil (🔗 copier le lien, ⛔ bloquer, 🚩 signaler, 📷 changer photo/bannière, 🎲 randomiser le tag, ✕ retirer une photo, thèmes et contours d\\'avatar) affichent maintenant une info-bulle stylée aux couleurs XULTRA au survol, plus rapide et plus lisible que la bulle générique du navigateur.'},
   {version:'2.57.1',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
@@ -11217,7 +11222,8 @@ const SERVER_PERM_DEFS=[
   {key:'moderate_members',icon:'⏱️',label:'Modérer les membres',desc:'Mettre en timeout (silence temporaire) et supprimer les messages des autres.'},
   {key:'kick_members',icon:'👢',label:'Expulser des membres',desc:'Retirer un membre du serveur (il peut revenir avec un code d\\'invitation).'},
   {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'},
-  {key:'view_audit_log',icon:'📜',label:'Voir le journal d\\'audit',desc:'Consulter l\\'historique des actions de modération du serveur.'}
+  {key:'view_audit_log',icon:'📜',label:'Voir le journal d\\'audit',desc:'Consulter l\\'historique des actions de modération du serveur.'},
+  {key:'manage_events',icon:'📅',label:'Gérer les événements',desc:'Créer et annuler des événements planifiés du serveur.'}
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
@@ -11442,6 +11448,7 @@ function switchServerTab(tab){
   document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-srv-tab')===tab);});
   if(tab==='overview')renderServerOverviewTab();
   else if(tab==='members')renderServerMembersTab();
+  else if(tab==='events')renderServerEventsTab();
   else if(tab==='roles')renderServerRolesTab();
   else if(tab==='audit')renderServerAuditTab();
   else if(tab==='settings')renderServerSettingsTab();
@@ -12068,6 +12075,113 @@ function renderServerMembersTab(){
     b.addEventListener('click',function(){openServerTimeoutPicker(b.getAttribute('data-srv-timeout'));});
   });
 }
+let activeServerEvents=[];
+async function renderServerEventsTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  box.innerHTML='<div class="scr-sub">Chargement…</div>';
+  try{
+    const r=await fetch('/api/servers/events/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+    const j=await r.json();
+    activeServerEvents=(j&&j.events)||[];
+  }catch(e){activeServerEvents=[];}
+  renderServerEventsList();
+}
+function fmtEventDate(iso){
+  try{return new Date(iso).toLocaleString('fr-FR',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return iso}
+}
+function renderServerEventsList(){
+  const box=\$('srv-detail-body');if(!box)return;
+  const canCreate=serverHasPermission('manage_events');
+  const events=activeServerEvents.filter(function(e){return e.status!=='cancelled';});
+  box.innerHTML=(canCreate?'<button type="button" class="btn-main" id="srv-event-create-btn" style="width:100%;margin-bottom:14px">+ Créer un événement</button>':'')
+    +(events.length?events.map(function(ev){
+      const past=new Date(ev.startAt).getTime()<Date.now();
+      const channel=ev.channelId?activeServerChannels.find(function(c){return c.\$id===ev.channelId}):null;
+      const whereLabel=channel?('#'+esc(channel.name)):(ev.location?esc(ev.location):'');
+      const canManage=canCreate||(me&&String(ev.creatorUid)===String(me.\$id));
+      return '<div class="set-card srv-event-card'+(past?' srv-event-past':'')+'">'
+        +'<div class="set-section-label">'+esc(ev.title)+(past?' · Terminé':'')+'</div>'
+        +'<div class="scr-sub">📅 '+esc(fmtEventDate(ev.startAt))+(whereLabel?(' · '+whereLabel):'')+'</div>'
+        +(ev.description?'<div class="scr-sub" style="margin-top:4px;white-space:pre-wrap">'+esc(ev.description)+'</div>':'')
+        +'<div class="scr-sub" style="margin-top:4px">🙋 '+ev.interestedCount+' intéressé'+(ev.interestedCount!==1?'s':'')+' · par '+esc(ev.creatorName||'Membre')+'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">'
+          +(!past?'<button type="button" class="set-mini-btn'+(ev.imGoing?' ok':'')+'" data-srv-event-rsvp="'+esc(ev.\$id)+'">'+(ev.imGoing?'✅ J\\'y vais':'🙋 Je participe')+'</button>':'')
+          +(canManage&&!past?'<button type="button" class="set-mini-btn danger" data-srv-event-cancel="'+esc(ev.\$id)+'">Annuler</button>':'')
+        +'</div>'
+      +'</div>';
+    }).join(''):'<div class="empty-hint">Aucun événement à venir'+(canCreate?' — sois le premier à en créer un !':'.')+'</div>');
+  const createBtn=\$('srv-event-create-btn');if(createBtn)createBtn.onclick=openServerEventCreateForm;
+  box.querySelectorAll('[data-srv-event-rsvp]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;
+      const id=b.getAttribute('data-srv-event-rsvp');
+      try{
+        const r=await authPost('/api/servers/events/rsvp',{eventId:id});
+        const ev=activeServerEvents.find(function(x){return x.\$id===id;});
+        if(ev){ev.imGoing=r.going;ev.interestedCount=r.interestedCount;}
+        renderServerEventsList();
+      }catch(e2){showToast((e2&&e2.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+  box.querySelectorAll('[data-srv-event-cancel]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Annuler cet événement ?'))return;
+      b.disabled=true;
+      try{
+        await authPost('/api/servers/events/cancel',{eventId:b.getAttribute('data-srv-event-cancel')});
+        showToast('Événement annulé.');
+        await renderServerEventsTab();
+      }catch(e2){showToast((e2&&e2.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+}
+function openServerEventCreateForm(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const channelOptions=activeServerChannels.map(function(c){return '<option value="'+esc(c.\$id)+'">#'+esc(c.name)+'</option>';}).join('');
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
+    +'<div class="set-section-label">📅 Nouvel événement</div>'
+    +'<div class="set-row"><label>Titre</label><input type="text" id="ev-title" class="field-input" maxlength="200" placeholder="Soirée jeux, AMA, sortie…"></div>'
+    +'<div class="set-row"><label>Description (optionnel)</label><textarea id="ev-desc" class="field-input" maxlength="2000" rows="3"></textarea></div>'
+    +'<div class="set-row"><label>Début</label><input type="datetime-local" id="ev-start" class="field-input"></div>'
+    +'<div class="set-row"><label>Fin (optionnel)</label><input type="datetime-local" id="ev-end" class="field-input"></div>'
+    +'<div class="set-row"><label>Salon lié (optionnel)</label><select id="ev-channel" class="field-input"><option value="">Aucun</option>'+channelOptions+'</select></div>'
+    +'<div class="set-row"><label>Lieu externe (optionnel, si pas de salon)</label><input type="text" id="ev-location" class="field-input" maxlength="200" placeholder="Discord vocal, lien, adresse…"></div>'
+    +'<button type="button" class="btn-main" id="ev-create-go" style="width:100%;margin-top:6px">Créer</button>'
+    +'<div class="err" id="ev-create-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('ev-create-go').onclick=async function(){
+    const title=(\$('ev-title').value||'').trim();
+    const startVal=\$('ev-start').value;
+    if(!title){\$('ev-create-err').textContent='Titre requis';return}
+    if(!startVal){\$('ev-create-err').textContent='Date de début requise';return}
+    const startAt=new Date(startVal);
+    if(isNaN(startAt.getTime())||startAt.getTime()<Date.now()-60000){\$('ev-create-err').textContent='La date de début doit être dans le futur';return}
+    let endAt=null;
+    const endVal=\$('ev-end').value;
+    if(endVal){
+      const parsed=new Date(endVal);
+      if(!isNaN(parsed.getTime())){
+        if(parsed.getTime()<startAt.getTime()){\$('ev-create-err').textContent='La fin doit être après le début';return}
+        endAt=parsed.toISOString();
+      }
+    }
+    this.disabled=true;this.textContent='Création…';\$('ev-create-err').textContent='';
+    try{
+      await authPost('/api/servers/events/create',{
+        serverId:activeServer.\$id,title:title,description:(\$('ev-desc').value||'').trim(),
+        startAt:startAt.toISOString(),endAt:endAt,
+        channelId:\$('ev-channel').value||'',location:(\$('ev-location').value||'').trim()
+      });
+      close();
+      showToast('Événement créé ! 📅');
+      await renderServerEventsTab();
+    }catch(e){\$('ev-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+  };
+}
 const TIMEOUT_PRESETS=[{label:'5 minutes',minutes:5},{label:'10 minutes',minutes:10},{label:'1 heure',minutes:60},{label:'1 jour',minutes:1440},{label:'1 semaine',minutes:10080}];
 function openServerTimeoutPicker(uid){
   const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
@@ -12237,7 +12351,8 @@ const AUDIT_ACTION_LABELS={
   invite_regenerate:{icon:'🔗',label:'a régénéré l\\'invitation'},server_update:{icon:'⚙️',label:'a modifié les paramètres du serveur'},
   message_pin:{icon:'📌',label:'a épinglé un message de'},message_unpin:{icon:'📌',label:'a désépinglé un message de'},
   thread_archive:{icon:'🧵',label:'a archivé le fil'},thread_reopen:{icon:'🧵',label:'a rouvert le fil'},
-  server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'}
+  server_discoverable_on:{icon:'🧭',label:'a rendu le serveur découvrable'},server_discoverable_off:{icon:'🧭',label:'a retiré le serveur de la découverte'},
+  event_create:{icon:'📅',label:'a créé l\\'événement'},event_cancel:{icon:'📅',label:'a annulé l\\'événement'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -15266,6 +15381,118 @@ async function handle(request) {
         body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
       });
       return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/events/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_events");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const title = String((body && body.title) || "").trim().slice(0, 200);
+      const description = String((body && body.description) || "").trim().slice(0, 2000);
+      const location = String((body && body.location) || "").trim().slice(0, 200);
+      const channelId = String((body && body.channelId) || "").trim();
+      const coverImage = String((body && body.coverImage) || "").trim().slice(0, 500);
+      const startAt = new Date((body && body.startAt) || "");
+      if (!title) throw new Error("Titre requis");
+      if (isNaN(startAt.getTime()) || startAt.getTime() < Date.now() - 60000) throw new Error("Date de début invalide ou déjà passée");
+      let endAt = null;
+      if (body && body.endAt) {
+        const parsed = new Date(body.endAt);
+        if (!isNaN(parsed.getTime())) {
+          if (parsed.getTime() < startAt.getTime()) throw new Error("La fin doit être après le début");
+          endAt = parsed.toISOString();
+        }
+      }
+      const profile = await resolveProfile(acc.$id);
+      const creatorName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const event = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, creatorUid: String(acc.$id), creatorName: creatorName, title: title, description: description, location: location, channelId: channelId, coverImage: coverImage, status: "scheduled", interestedUidsJson: JSON.stringify([String(acc.$id)]), startAt: startAt.toISOString(), endAt: endAt } }
+      });
+      await logServerAudit(serverId, acc.$id, creatorName, "event_create", title, {});
+      return new Response(JSON.stringify({ ok: true, event: event }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/events/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!isOwner) {
+        const member = await getServerMembership(serverId, acc.$id);
+        if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      }
+      const found = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "startAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const events = (found.documents || []).map(function (e) {
+        let interested = [];
+        try { interested = JSON.parse(e.interestedUidsJson || "[]"); } catch (err) {}
+        return Object.assign({}, e, { interestedCount: interested.length, imGoing: interested.map(String).indexOf(String(acc.$id)) >= 0 });
+      });
+      return new Response(JSON.stringify({ ok: true, events: events }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/events/rsvp" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const eventId = String((body && body.eventId) || "");
+      const event = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents/" + eventId, { asAdmin: true });
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + event.serverId, { asAdmin: true });
+      const isOwner = String(server.ownerId) === String(acc.$id);
+      if (!isOwner) {
+        const member = await getServerMembership(event.serverId, acc.$id);
+        if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      }
+      if (event.status !== "scheduled") throw new Error("Cet événement n'est plus ouvert aux inscriptions");
+      let interested = [];
+      try { interested = JSON.parse(event.interestedUidsJson || "[]"); } catch (err) {}
+      interested = interested.map(String);
+      const uid = String(acc.$id);
+      const idx = interested.indexOf(uid);
+      const going = idx < 0;
+      if (going) interested.push(uid); else interested.splice(idx, 1);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents/" + eventId, { method: "PATCH", asAdmin: true, body: { data: { interestedUidsJson: JSON.stringify(interested) } } });
+      return new Response(JSON.stringify({ ok: true, going: going, interestedCount: interested.length, event: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/events/cancel" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const eventId = String((body && body.eventId) || "");
+      const event = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents/" + eventId, { asAdmin: true });
+      const isCreator = String(event.creatorUid) === String(acc.$id);
+      if (!isCreator) {
+        const gate = await serverCheckPermission(event.serverId, acc.$id, "manage_events");
+        if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_events/documents/" + eventId, { method: "PATCH", asAdmin: true, body: { data: { status: "cancelled" } } });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(event.serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "event_cancel", event.title, {});
+      return new Response(JSON.stringify({ ok: true, event: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
