@@ -468,6 +468,52 @@ async function chatroulettePartnerUid(session, myUid) {
   return String(session.uid1) === String(myUid) ? String(session.uid2) : String(session.uid1);
 }
 
+// Casino virtuel (jetons fictifs, sans valeur réelle — "pour l'instant" par
+// design explicite : la conversion en argent réel n'est ni prévue ni
+// implémentée). Portefeuille et résolution des parties entièrement
+// server-side, jamais un champ modifiable côté client, pour qu'un simple
+// appel db.updateDocument() depuis la console du navigateur ne permette pas
+// de s'auto-créditer des jetons.
+const CASINO_GAMES = ["coinflip", "dice"];
+const CASINO_MIN_STAKE = 10;
+const CASINO_MAX_STAKE = 5000;
+const CASINO_STARTING_CHIPS = 1000;
+async function casinoGetOrCreateWallet(uid) {
+  const q = await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+  const existing = (q.documents || [])[0];
+  if (existing) return existing;
+  return awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents", {
+    method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: String(uid), chips: CASINO_STARTING_CHIPS } }
+  });
+}
+function casinoRandomByte() {
+  return crypto.getRandomValues(new Uint8Array(1))[0];
+}
+function casinoRollDie() {
+  // Rejet d'échantillonnage pour éviter le léger biais d'un simple modulo 6
+  // sur un octet (256 n'est pas un multiple de 6).
+  let b;
+  do { b = casinoRandomByte(); } while (b >= 252);
+  return (b % 6) + 1;
+}
+function casinoResolveGame(gameType) {
+  if (gameType === "coinflip") {
+    // Pile = le créateur du duel, Face = celui qui l'a rejoint — un seul
+    // tirage détermine à la fois le résultat affiché et le gagnant.
+    const isPile = casinoRandomByte() % 2 === 0;
+    return { game: "coinflip", flip: isPile ? "pile" : "face", winnerIndex: isPile ? 0 : 1 };
+  }
+  // dice : chaque camp lance 2 dés, la somme la plus haute gagne, égalité = push
+  const creatorRoll = [casinoRollDie(), casinoRollDie()];
+  const joinerRoll = [casinoRollDie(), casinoRollDie()];
+  const creatorSum = creatorRoll[0] + creatorRoll[1];
+  const joinerSum = joinerRoll[0] + joinerRoll[1];
+  const winnerIndex = creatorSum === joinerSum ? -1 : (creatorSum > joinerSum ? 0 : 1);
+  return { game: "dice", creatorRoll: creatorRoll, joinerRoll: joinerRoll, winnerIndex: winnerIndex };
+}
+
 function isShamanAccount(acc, profile) {
   if (!acc) return false;
   if (SHAMAN_UIDS.has(String(acc.$id))) return true;
@@ -970,6 +1016,7 @@ button{cursor:pointer;border:0;background:0}
 .cr-chat-head .n{font-weight:700;font-size:.9rem}
 .cr-chat-head .spacer{flex:1}
 #cr-call-btn.on{color:#22c55e}
+.casino-balance{font-weight:800;font-size:.95rem;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);border-radius:999px;padding:6px 14px;flex-shrink:0}
 #chatroulette-overlay .msgs{padding:12px 14px}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
@@ -1884,6 +1931,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette">🎲</button>
+    <button type="button" class="rail-btn" id="nav-casino" title="Casino">🎰</button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
@@ -1896,6 +1944,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
     <button type="button" class="rail-btn" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
     <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette">🎲</button>
+    <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino">🎰</button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs">🏘️</button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
   </nav>
@@ -3700,6 +3749,8 @@ async function refreshStatusPanel(){
 if(\$('nav-status'))\$('nav-status').addEventListener('click',openStatusPanel);
 if(\$('nav-chatroulette'))\$('nav-chatroulette').addEventListener('click',openChatroulette);
 if(\$('nav-chatroulette-mobile'))\$('nav-chatroulette-mobile').addEventListener('click',openChatroulette);
+if(\$('nav-casino'))\$('nav-casino').addEventListener('click',openCasino);
+if(\$('nav-casino-mobile'))\$('nav-casino-mobile').addEventListener('click',openCasino);
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -3707,6 +3758,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.52.0',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
+    body:'Chatroulette : l\\'appel vocal démarre maintenant automatiquement dès la mise en relation, plus besoin de le proposer manuellement (la caméra, elle, reste toujours ton propre choix). Nouveau 🎰 Casino (juste sous 🎲 Chatroulette) : jetons fictifs sans valeur réelle, pour défier d\\'autres membres en duel — pile ou face et dés pour commencer, d\\'autres jeux à venir. Et dans Paramètres → Confidentialité et sécurité → Utilisateurs bloqués, retrouve enfin la liste de qui tu as bloqué pour débloquer en un clic.'},
   {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
     body:'Dans Chatroulette, un bouton 🎥 dédié apparaît maintenant dès qu\\'un appel est connecté, pour activer ta caméra sans avoir à chercher — chacun garde le contrôle de la sienne, rien ne s\\'active jamais chez l\\'autre automatiquement. Par ailleurs, État du système, Nouveautés, Boîte à idées et Équipe & Badges — jusqu\\'ici invisibles sur téléphone — sont maintenant accessibles depuis le menu ⋯ à côté de ton nom.'},
   {version:'2.51.0',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
@@ -4277,6 +4330,7 @@ const SETTINGS_GROUPS=[
     {key:'subscription',icon:'⭐',title:'Abonnement'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
+    {key:'blocked',icon:'🚫',title:'Utilisateurs bloqués'},
     {key:'myreports',icon:'🚩',title:'Mes signalements'},
     {key:'devices',icon:'💻',title:'Appareils'},
     {key:'connections',icon:'🔗',title:'Connexions'},
@@ -4338,6 +4392,7 @@ function renderSettingsSection(key){
   const box=\$('settings-content');if(!box)return;
   const renderers={
     account:renderSetAccount,subscription:renderSetSubscription,profiles:renderSetProfiles,privacy:renderSetPrivacy,
+    blocked:renderSetBlocked,
     devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
@@ -4695,6 +4750,29 @@ function wireSetPrivacy(box,privacy){
   if(hideSt)hideSt.onclick=function(){savePrivacy(Object.assign({},privacy,{hideOnlineStatus:hideSt.getAttribute('data-on')!=='1'}));};
   const dataReq=\$('priv-data-request');
   if(dataReq)dataReq.onclick=function(){closeSettingsPanel();openBugModal(null);showToast('Décris ta demande dans le formulaire, on te répond vite !');};
+}
+function renderSetBlocked(box){
+  const blocked=(friendsCache||[]).filter(function(f){return f.status==='blocked';});
+  box.innerHTML='<h2>Utilisateurs bloqués</h2><div class="sc-desc">Les personnes bloquées ne peuvent plus t\\'envoyer de messages ni te contacter en chatroulette.</div>'
+    +'<div class="set-card" id="blocked-list-card">'
+    +(blocked.length?blocked.map(function(f){
+      const uid=String(f.friendId);
+      const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid;});
+      const name=(p&&(p.displayName||p.username))||f.name||'Utilisateur';
+      const av=p&&safeUrl(p.avatar);
+      return '<div class="set-card-row"><div class="scr-info" style="display:flex;align-items:center;gap:10px">'
+        +'<div class="av" style="width:32px;height:32px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">'+(av?'<img src="'+esc(av)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(name)))+'</div>'
+        +'<div class="scr-label">'+esc(name)+'</div></div>'
+        +'<button type="button" class="set-mini-btn" data-unblock-uid="'+esc(uid)+'">Débloquer</button></div>';
+    }).join(''):'<div class="scr-sub">Tu n\\'as bloqué personne pour l\\'instant.</div>')
+    +'</div>';
+  box.querySelectorAll('[data-unblock-uid]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;b.textContent='…';
+      await unblockUser(b.getAttribute('data-unblock-uid'));
+      renderSetBlocked(box);
+    });
+  });
 }
 
 async function loadDeviceSessions(box){
@@ -5264,8 +5342,14 @@ async function blockUser(uid){
 async function unblockUser(uid){
   if(!uid||!me)return;
   try{
+    // Débloquer ne rétablit PAS automatiquement une amitié : un compte
+    // bloqué sans avoir jamais été ami (le cas le plus courant, ex. depuis
+    // le chatroulette) se retrouvait à tort marqué "accepted" — une fausse
+    // amitié créée à partir d'un simple blocage. On supprime la relation
+    // plutôt que de deviner un statut ; redevenir ami repasse par une
+    // vraie demande.
     const row=friendsCache.find(function(f){return String(f.userId)===String(me.\$id)&&String(f.friendId)===String(uid)});
-    if(row)await db.updateDocument(DB,'ultravoc_friends',row.\$id,{status:'accepted'});
+    if(row)await db.deleteDocument(DB,'ultravoc_friends',row.\$id);
     await loadFriends();
     if(view==='friends')renderFriends();
     if(view==='dms')renderDms();
@@ -8093,6 +8177,13 @@ function crEnterWaiting(){
     crEnterChat(p);
   });
 }
+function crDialPartner(session){
+  if(activeCallDoc||incomingCallDoc)return;
+  const partnerUid=chatroulettePartnerUid(session);
+  if(!partnerUid)return;
+  const partnerP=membersCache.find(function(x){return String(x.authUserId||x.\$id)===partnerUid;});
+  startCall(partnerUid,(partnerP&&(partnerP.displayName||partnerP.username))||'Chatroulette');
+}
 async function crEnterChat(session){
   crTeardownSubs();
   crSession=session;crState='chat';crMessages=[];
@@ -8116,38 +8207,33 @@ async function crEnterChat(session){
       crTeardownSubs();
       crSession=null;crState='landing';
       renderChatroulette();
-      return;
-    }
-    let requested=[];try{requested=JSON.parse(p.callRequestedByJson||'[]');}catch(e){}
-    crUpdateCallBtn(requested);
-    if(requested.length>=2&&!activeCallDoc&&!incomingCallDoc&&String(p.uid1)===String(me.\$id)){
-      const partnerUid=chatroulettePartnerUid(p);
-      const partnerP=membersCache.find(function(x){return String(x.authUserId||x.\$id)===partnerUid;});
-      startCall(partnerUid,(partnerP&&(partnerP.displayName||partnerP.username))||'Chatroulette');
     }
   });
-}
-function crUpdateCallBtn(requested){
-  const btn=\$('cr-call-btn');if(!btn)return;
-  const mine=me&&requested.map(String).indexOf(String(me.\$id))>=0;
-  btn.classList.toggle('on',mine);
-  btn.disabled=mine;
-  btn.title=mine?'En attente de ton partenaire…':'Proposer un appel vocal';
+  // L'appel vocal démarre automatiquement dès la mise en relation, sans
+  // étape manuelle supplémentaire — uid1 (déterministe : celui qui
+  // attendait déjà) appelle systématiquement, l'autre reçoit l'écran
+  // d'appel entrant standard du site (accepter/refuser), exactement comme
+  // n'importe quel autre appel XULTRA. La caméra reste elle TOUJOURS
+  // manuelle et individuelle (bouton 🎥 une fois connecté, voir
+  // crSyncCallUi) : seul le point le plus sensible d'Omegle (vidéo imposée
+  // à un inconnu) reste protégé.
+  if(String(session.uid1)===String(me.\$id))crDialPartner(session);
 }
 let crCallSyncInterval=null;
 function crSyncCallUi(){
   const camBtn=\$('cr-cam-btn'),callBtn=\$('cr-call-btn');
   if(!camBtn||!callBtn||!crSession)return;
   const partnerUid=chatroulettePartnerUid(crSession);
-  // Le micro/vocal se démarre via la poignée de main à double consentement
-  // (voir crEnterChat) ; une fois l'appel EFFECTIVEMENT connecté avec ce
-  // partenaire précis, on affiche un bouton caméra propre au chatroulette
-  // (plutôt que de compter sur la barre d'appel flottante générique, facile
-  // à ne pas remarquer) — active ma caméra pour ce côté-ci reste ma propre
-  // décision individuelle, jamais automatique.
+  // Une fois l'appel EFFECTIVEMENT connecté avec ce partenaire précis, on
+  // affiche un bouton caméra propre au chatroulette (plutôt que de compter
+  // sur la barre d'appel flottante générique, facile à ne pas remarquer) —
+  // activer sa caméra reste TOUJOURS une décision individuelle, jamais
+  // automatique. Le bouton "Rappeler" ne sert que de filet de secours (mic
+  // refusé la première fois, appel raccroché par erreur…) puisque l'appel
+  // se lance déjà tout seul à la mise en relation.
   const inCallWithPartner=!!(activeCallDoc&&String(callPeerUid)===String(partnerUid));
   camBtn.classList.toggle('hidden',!inCallWithPartner);
-  callBtn.classList.toggle('hidden',inCallWithPartner);
+  callBtn.classList.toggle('hidden',inCallWithPartner||!!incomingCallDoc);
   if(inCallWithPartner){
     const camOn=!!camSender;
     camBtn.classList.toggle('on',camOn);
@@ -8178,7 +8264,7 @@ function renderChatroulette(){
       +'<div class="discover-body cr-center">'
       +'<div style="font-size:3rem">🎲</div>'
       +'<h3>Discute avec un membre au hasard</h3>'
-      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de XULTRA au hasard, pour un chat texte. Passe au suivant quand tu veux. L\\'appel vocal/vidéo reste toujours facultatif : il ne démarre que si vous l\\'activez TOUS LES DEUX, jamais automatiquement.</p>'
+      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de XULTRA au hasard : chat texte ET appel vocal démarrent directement. Passe au suivant quand tu veux. La caméra reste elle toujours facultative : elle ne s\\'active jamais automatiquement, seulement si tu appuies toi-même sur 🎥.</p>'
       +'<p class="scr-sub" style="max-width:420px">Sois respectueux·se — le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation.</p>'
       +'<button type="button" class="btn-main" id="cr-start" style="width:auto;padding:14px 32px">Commencer</button>'
       +'</div>';
@@ -8202,7 +8288,7 @@ function renderChatroulette(){
   overlay.innerHTML='<div class="cr-chat-head">'
     +'<div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div>'
     +'<div class="n">'+esc(name)+'</div><div class="spacer"></div>'
-    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Proposer un appel vocal">📞</button>'
+    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Rappeler">📞</button>'
     +'<button type="button" class="ub-btn hidden" id="cr-cam-btn" title="Activer ma caméra">🎥</button>'
     +'<button type="button" class="ub-btn" id="cr-report-btn" title="Signaler">🚨</button>'
     +'<button type="button" class="ub-btn" id="cr-skip-btn" title="Suivant">⏭️</button>'
@@ -8216,13 +8302,7 @@ function renderChatroulette(){
     +'<button type="button" class="send-btn" id="cr-send">➤</button>'
     +'</div>';
   renderCrMessages();
-  let requestedInit=[];try{requestedInit=JSON.parse((crSession&&crSession.callRequestedByJson)||'[]');}catch(e){}
-  crUpdateCallBtn(requestedInit);
-  \$('cr-call-btn').onclick=async function(){
-    if(!crSession||this.disabled)return;
-    try{await authPost('/api/chatroulette/call-request',{sessionId:crSession.\$id});}
-    catch(e){showToast((e&&e.message)||'Erreur','error');}
-  };
+  \$('cr-call-btn').onclick=function(){if(crSession)crDialPartner(crSession);};
   \$('cr-cam-btn').onclick=function(){toggleCamera();};
   crSyncCallUi();
   if(crCallSyncInterval)clearInterval(crCallSyncInterval);
@@ -8253,6 +8333,154 @@ function renderChatroulette(){
   });
   \$('cr-ai-fix').addEventListener('click',function(){aiFixText(\$('cr-input'),\$('cr-ai-fix'));});
 }
+/* ===== Casino virtuel (jetons fictifs, duels PvP entre membres) ===== */
+let casinoChips=0,casinoOpenDuels=[],casinoDuelUnsub=null;
+const casinoShownResults=new Set();
+const CASINO_GAME_LABELS={coinflip:'🪙 Pile ou face',dice:'🎲 Dés'};
+const CASINO_MIN_STAKE_CLIENT=10,CASINO_MAX_STAKE_CLIENT=5000;
+async function openCasino(){
+  let overlay=\$('casino-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='casino-overlay';
+    overlay.className='discover-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  renderCasinoShell();
+  try{const r=await authPost('/api/casino/wallet',{});casinoChips=r.chips||0;}catch(e){}
+  await loadCasinoDuels();
+  renderCasinoBody();
+  casinoSubscribe();
+}
+function closeCasino(){
+  const overlay=\$('casino-overlay');
+  if(overlay)overlay.classList.remove('show');
+  if(casinoDuelUnsub){try{casinoDuelUnsub();}catch(e){}casinoDuelUnsub=null;}
+}
+function casinoSubscribe(){
+  if(casinoDuelUnsub)return;
+  casinoDuelUnsub=client.subscribe('databases.'+DB+'.collections.casino_duels.documents',function(res){
+    const p=res.payload;if(!p)return;
+    if(eventIs(res.events,'.create')&&p.status==='open'){
+      casinoOpenDuels.unshift(p);
+      renderCasinoBody();
+      return;
+    }
+    if(eventIs(res.events,'.update')){
+      casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==p.\$id;});
+      renderCasinoBody();
+      if(me&&p.status==='resolved'&&(String(p.creatorUid)===String(me.\$id)||String(p.opponentUid)===String(me.\$id)))casinoShowResult(p);
+    }
+  });
+}
+async function loadCasinoDuels(){
+  try{
+    const r=await db.listDocuments(DB,'casino_duels',[Appwrite.Query.equal('status','open'),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
+    casinoOpenDuels=r.documents||[];
+  }catch(e){casinoOpenDuels=[];}
+}
+function casinoShowResult(duel){
+  if(casinoShownResults.has(duel.\$id))return;
+  casinoShownResults.add(duel.\$id);
+  let result={};try{result=JSON.parse(duel.resultJson||'{}');}catch(e){}
+  const isPush=!duel.winnerUid;
+  const won=!isPush&&String(duel.winnerUid)===String(me.\$id);
+  let msg;
+  if(isPush)msg='🤝 Égalité — ta mise de '+duel.stake+' jetons t\\'a été rendue.';
+  else if(won)msg='🎉 Tu as gagné '+(duel.stake*2)+' jetons !';
+  else msg='💀 Tu as perdu '+duel.stake+' jetons.';
+  if(result.game==='dice'&&result.creatorRoll&&result.joinerRoll)msg+=' ('+result.creatorRoll.join('+')+' vs '+result.joinerRoll.join('+')+')';
+  else if(result.game==='coinflip')msg+=' (Résultat : '+(result.flip==='pile'?'Pile':'Face')+')';
+  showToast(msg,(won||isPush)?undefined:'error');
+  refreshCasinoWallet();
+}
+async function refreshCasinoWallet(){
+  try{const r=await authPost('/api/casino/wallet',{});casinoChips=r.chips||0;}catch(e){}
+  const bal=\$('casino-balance');if(bal)bal.textContent='🪙 '+casinoChips;
+}
+function renderCasinoShell(){
+  const overlay=\$('casino-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="casino-close">← Retour</button><h2>🎰 Casino</h2><div class="casino-balance" id="casino-balance">🪙 …</div></div>'
+    +'<div class="discover-body" id="casino-body"></div>';
+  \$('casino-close').onclick=closeCasino;
+}
+function renderCasinoBody(){
+  const box=\$('casino-body');if(!box)return;
+  const bal=\$('casino-balance');if(bal)bal.textContent='🪙 '+casinoChips;
+  const mine=me&&me.\$id;
+  box.innerHTML='<div class="scr-sub" style="margin-bottom:10px">Jetons fictifs, pour le fun — pas de valeur réelle, pas d\\'échange contre de l\\'argent. D\\'autres jeux arriveront plus tard.</div>'
+    +'<button type="button" class="btn-main" id="casino-create-btn" style="width:100%;margin-bottom:14px">+ Créer un duel</button>'
+    +'<div class="set-section-label">Duels ouverts</div>'
+    +(casinoOpenDuels.length?casinoOpenDuels.map(function(d){
+      const isMine=mine&&String(d.creatorUid)===String(mine);
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(CASINO_GAME_LABELS[d.gameType]||d.gameType)+' · 🪙 '+d.stake+'</div><div class="scr-sub">'+esc(d.creatorName||'Membre')+'</div></div>'
+        +(isMine?('<button type="button" class="set-mini-btn danger" data-casino-cancel="'+esc(d.\$id)+'">Annuler</button>'):('<button type="button" class="btn-main" style="width:auto;padding:8px 16px" data-casino-join="'+esc(d.\$id)+'">Rejoindre</button>'))
+        +'</div>';
+    }).join(''):'<div class="scr-sub">Aucun duel ouvert pour l\\'instant — sois le premier à en créer un !</div>');
+  box.querySelectorAll('[data-casino-join]').forEach(function(b){
+    b.addEventListener('click',function(){casinoJoinDuel(b.getAttribute('data-casino-join'),b);});
+  });
+  box.querySelectorAll('[data-casino-cancel]').forEach(function(b){
+    b.addEventListener('click',function(){casinoCancelDuel(b.getAttribute('data-casino-cancel'),b);});
+  });
+  \$('casino-create-btn').onclick=openCasinoCreateForm;
+}
+async function casinoJoinDuel(duelId,btn){
+  if(btn)btn.disabled=true;
+  try{
+    const r=await authPost('/api/casino/duel/join',{duelId:duelId});
+    casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==duelId;});
+    renderCasinoBody();
+    if(r.duel)casinoShowResult(r.duel);
+  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
+}
+async function casinoCancelDuel(duelId,btn){
+  if(btn)btn.disabled=true;
+  try{
+    await authPost('/api/casino/duel/cancel',{duelId:duelId});
+    casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==duelId;});
+    renderCasinoBody();
+    refreshCasinoWallet();
+    showToast('Duel annulé, mise remboursée.');
+  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
+}
+function openCasinoCreateForm(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">+ Nouveau duel</div>'
+    +'<div class="set-row"><label>Jeu</label><div class="seg-group"><button type="button" class="seg-btn on" data-casino-game="coinflip">🪙 Pile ou face</button><button type="button" class="seg-btn" data-casino-game="dice">🎲 Dés</button></div></div>'
+    +'<div class="set-row"><label>Mise ('+CASINO_MIN_STAKE_CLIENT+' à '+CASINO_MAX_STAKE_CLIENT+' jetons)</label><input type="number" id="casino-stake-input" class="field-input" min="'+CASINO_MIN_STAKE_CLIENT+'" max="'+CASINO_MAX_STAKE_CLIENT+'" value="100"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="casino-create-go">Créer</button><button type="button" class="set-mini-btn" id="casino-create-cancel">Annuler</button></div>'
+    +'<div class="err" id="casino-create-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('casino-create-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let gameType='coinflip';
+  overlay.querySelectorAll('[data-casino-game]').forEach(function(b){
+    b.addEventListener('click',function(){
+      gameType=b.getAttribute('data-casino-game');
+      overlay.querySelectorAll('[data-casino-game]').forEach(function(x){x.classList.toggle('on',x===b);});
+    });
+  });
+  \$('casino-create-go').onclick=async function(){
+    const stake=parseInt(\$('casino-stake-input').value,10);
+    if(!stake||stake<CASINO_MIN_STAKE_CLIENT||stake>CASINO_MAX_STAKE_CLIENT){\$('casino-create-err').textContent='Mise invalide.';return}
+    if(stake>casinoChips){\$('casino-create-err').textContent='Tu n\\'as pas assez de jetons.';return}
+    this.disabled=true;this.textContent='Création…';
+    try{
+      const r=await authPost('/api/casino/duel/create',{gameType:gameType,stake:stake});
+      casinoChips=r.chips!=null?r.chips:casinoChips;
+      close();
+      renderCasinoBody();
+      showToast('Duel créé, en attente d\\'un adversaire…');
+    }catch(e){\$('casino-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
+  };
+}
+
 /* ===== Messages vocaux (maintenir pour enregistrer) ===== */
 let vrState=null,vrTimerId=null,vrRafId=null,vrAudioCtx=null,vrAnalyser=null;
 let vrPending=false,vrStopRequested=false;
@@ -13534,21 +13762,102 @@ async function handle(request) {
     }
   }
 
-  if (path === "/api/chatroulette/call-request" && request.method === "POST") {
+  if (path === "/api/casino/wallet" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const wallet = await casinoGetOrCreateWallet(acc.$id);
+      return new Response(JSON.stringify({ ok: true, chips: wallet.chips }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/casino/duel/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
-      const sessionId = String((body && body.sessionId) || "");
-      const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true });
-      if (String(session.uid1) !== String(acc.$id) && String(session.uid2) !== String(acc.$id)) throw new Error("Tu ne fais pas partie de cette session");
-      if (session.status !== "active") throw new Error("Cette session est terminée");
-      let requested = [];
-      try { requested = JSON.parse(session.callRequestedByJson || "[]"); } catch (e) {}
-      requested = requested.map(String);
-      if (requested.indexOf(String(acc.$id)) < 0) requested.push(String(acc.$id));
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: { callRequestedByJson: JSON.stringify(requested) } } });
-      return new Response(JSON.stringify({ ok: true, session: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const gameType = CASINO_GAMES.indexOf(body && body.gameType) >= 0 ? body.gameType : "";
+      const stake = Math.floor(Number(body && body.stake));
+      if (!gameType) throw new Error("Jeu invalide");
+      if (!Number.isFinite(stake) || stake < CASINO_MIN_STAKE || stake > CASINO_MAX_STAKE) throw new Error("Mise invalide (entre " + CASINO_MIN_STAKE + " et " + CASINO_MAX_STAKE + " jetons)");
+      const wallet = await casinoGetOrCreateWallet(acc.$id);
+      if (wallet.chips < stake) throw new Error("Pas assez de jetons");
+      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + wallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: wallet.chips - stake } } });
+      const profile = await resolveProfile(acc.$id);
+      const creatorName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { creatorUid: String(acc.$id), creatorName: creatorName, gameType: gameType, stake: stake, status: "open", opponentUid: "", opponentName: "", winnerUid: "", resultJson: "" } }
+      });
+      return new Response(JSON.stringify({ ok: true, duel: duel, chips: wallet.chips - stake }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/casino/duel/cancel" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const duelId = String((body && body.duelId) || "");
+      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { asAdmin: true });
+      if (String(duel.creatorUid) !== String(acc.$id)) throw new Error("Tu ne peux annuler que tes propres duels");
+      if (duel.status !== "open") throw new Error("Ce duel n'est plus annulable");
+      const wallet = await casinoGetOrCreateWallet(acc.$id);
+      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + wallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: wallet.chips + Number(duel.stake) } } });
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { method: "PATCH", asAdmin: true, body: { data: { status: "cancelled" } } });
+      return new Response(JSON.stringify({ ok: true, duel: updated, chips: wallet.chips + Number(duel.stake) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/casino/duel/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const duelId = String((body && body.duelId) || "");
+      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { asAdmin: true });
+      if (duel.status !== "open") throw new Error("Ce duel n'est plus disponible");
+      if (String(duel.creatorUid) === String(acc.$id)) throw new Error("Tu ne peux pas rejoindre ton propre duel");
+      const joinerWallet = await casinoGetOrCreateWallet(acc.$id);
+      const stake = Number(duel.stake);
+      if (joinerWallet.chips < stake) throw new Error("Pas assez de jetons");
+      // Verrou optimiste : on ne débite le rejoignant et on ne résout la
+      // partie qu'APRÈS avoir réussi à faire passer le duel de "open" à
+      // "resolved" via une réécriture complète — si un autre appel a résolu
+      // le duel entre-temps (statut déjà changé), la relecture juste avant
+      // l'échoue naturellement puisqu'on revérifie duel.status ci-dessus à
+      // chaque tentative, mais deux requêtes concurrentes pourraient encore
+      // lire "open" toutes les deux avant que l'une n'écrive — best-effort
+      // pour un casino fictif, pas un système financier réel.
+      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + joinerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: joinerWallet.chips - stake } } });
+      const profile = await resolveProfile(acc.$id);
+      const opponentName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const result = casinoResolveGame(duel.gameType);
+      const creatorWon = result.winnerIndex === 0;
+      const winnerUid = result.winnerIndex === -1 ? "" : (creatorWon ? String(duel.creatorUid) : String(acc.$id));
+      if (result.winnerIndex === -1) {
+        // Égalité : on rembourse les deux mises plutôt que d'en désigner un
+        // gagnant arbitraire. joinerWallet.chips est encore la valeur AVANT
+        // le débit fait plus haut, donc la réécrire telle quelle annule
+        // exactement ce débit.
+        const creatorWallet = await casinoGetOrCreateWallet(duel.creatorUid);
+        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + creatorWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: creatorWallet.chips + stake } } });
+        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + joinerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: joinerWallet.chips } } });
+      } else {
+        const winnerWallet = await casinoGetOrCreateWallet(winnerUid);
+        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + winnerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: winnerWallet.chips + stake * 2 } } });
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { status: "resolved", opponentUid: String(acc.$id), opponentName: opponentName, winnerUid: winnerUid, resultJson: JSON.stringify(result) } }
+      });
+      return new Response(JSON.stringify({ ok: true, duel: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
