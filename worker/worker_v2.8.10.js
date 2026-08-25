@@ -1010,6 +1010,7 @@ button{cursor:pointer;border:0;background:0}
 .ub-popover button{text-align:left;padding:9px 10px;border-radius:8px;font-size:.8rem;font-weight:700;color:#f2ebff;background:transparent;display:flex;align-items:center;gap:8px}
 .ub-popover button:hover{background:rgba(255,255,255,.07)}
 .ub-popover button.hidden{display:none}
+.mobile-only-menu-item{display:none}
 .ub-popover .pr-dot{position:static;width:9px;height:9px;border:0;flex-shrink:0}
 .userbar .av{position:relative;width:34px;height:34px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.82rem;overflow:hidden}
 .userbar .av img{width:100%;height:100%;object-fit:cover}
@@ -1763,6 +1764,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   #app:not(.chat-open) .chat-col{display:none}
   .rail{display:none}
   #app.chat-open .rail{display:none}
+  .mobile-only-menu-item{display:flex}
   .tabbar{display:flex;order:3;height:calc(56px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);flex-shrink:0;background:#0a0610;border-top:1px solid var(--line)}
   #app.chat-open .tabbar{display:none}
   .tabbar .rail-btn{flex:1;width:auto;height:56px;border-radius:0;background:transparent}
@@ -1924,6 +1926,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
       <button type="button" class="ub-btn" id="ub-more" title="Plus d'options">⋯</button>
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
+        <button type="button" id="ub-status-mobile" class="mobile-only-menu-item">🖥️ État du système</button>
+        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item">📋 Nouveautés</button>
+        <button type="button" id="ub-suggestions-mobile" class="mobile-only-menu-item">💡 Boîte à idées</button>
+        <button type="button" id="ub-team-mobile" class="mobile-only-menu-item">🏅 Équipe & Badges</button>
         <button type="button" id="ub-push">🔕 Activer les notifications</button>
         <button type="button" id="ub-settings">⚙️ Paramètres</button>
         <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
@@ -3701,6 +3707,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
+    body:'Dans Chatroulette, un bouton 🎥 dédié apparaît maintenant dès qu\\'un appel est connecté, pour activer ta caméra sans avoir à chercher — chacun garde le contrôle de la sienne, rien ne s\\'active jamais chez l\\'autre automatiquement. Par ailleurs, État du système, Nouveautés, Boîte à idées et Équipe & Badges — jusqu\\'ici invisibles sur téléphone — sont maintenant accessibles depuis le menu ⋯ à côté de ton nom.'},
   {version:'2.51.0',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
     body:'Nouveau bouton 🎲 dans la barre de navigation, sous Membres : mise en relation aléatoire avec un autre membre de XULTRA pour un chat texte. Passe au suivant quand tu veux, quitte à tout moment. L\\'appel vocal/vidéo reste entièrement facultatif : il ne démarre que si les DEUX personnes l\\'activent, jamais automatiquement. Le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation — les signalements arrivent dans le même circuit de modération que le reste du site, et les personnes que tu as bloquées ne te seront jamais proposées.'},
   {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
@@ -4988,6 +4996,10 @@ async function renderSetMyReports(box){
 }
 
 if(\$('ub-settings'))\$('ub-settings').addEventListener('click',function(){closeUbPopovers();openSettingsPanel();});
+if(\$('ub-status-mobile'))\$('ub-status-mobile').addEventListener('click',function(){closeUbPopovers();openStatusPanel();});
+if(\$('ub-changelog-mobile'))\$('ub-changelog-mobile').addEventListener('click',function(){closeUbPopovers();openChangelogPanel();});
+if(\$('ub-suggestions-mobile'))\$('ub-suggestions-mobile').addEventListener('click',function(){closeUbPopovers();openSuggestionsPanel();});
+if(\$('ub-team-mobile'))\$('ub-team-mobile').addEventListener('click',function(){closeUbPopovers();openTeamPanel();});
 if(\$('set-close'))\$('set-close').addEventListener('click',closeSettingsPanel);
 if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e){if(e.target===this)closeSettingsPanel();});
 
@@ -8030,6 +8042,7 @@ function chatroulettePartnerUid(session){
 function crTeardownSubs(){
   if(crMsgUnsub){try{crMsgUnsub();}catch(e){}crMsgUnsub=null;}
   if(crSessionUnsub){try{crSessionUnsub();}catch(e){}crSessionUnsub=null;}
+  if(crCallSyncInterval){clearInterval(crCallSyncInterval);crCallSyncInterval=null;}
 }
 async function openChatroulette(){
   let overlay=\$('chatroulette-overlay');
@@ -8119,7 +8132,27 @@ function crUpdateCallBtn(requested){
   const mine=me&&requested.map(String).indexOf(String(me.\$id))>=0;
   btn.classList.toggle('on',mine);
   btn.disabled=mine;
-  btn.title=mine?'En attente de ton partenaire…':'Proposer un appel';
+  btn.title=mine?'En attente de ton partenaire…':'Proposer un appel vocal';
+}
+let crCallSyncInterval=null;
+function crSyncCallUi(){
+  const camBtn=\$('cr-cam-btn'),callBtn=\$('cr-call-btn');
+  if(!camBtn||!callBtn||!crSession)return;
+  const partnerUid=chatroulettePartnerUid(crSession);
+  // Le micro/vocal se démarre via la poignée de main à double consentement
+  // (voir crEnterChat) ; une fois l'appel EFFECTIVEMENT connecté avec ce
+  // partenaire précis, on affiche un bouton caméra propre au chatroulette
+  // (plutôt que de compter sur la barre d'appel flottante générique, facile
+  // à ne pas remarquer) — active ma caméra pour ce côté-ci reste ma propre
+  // décision individuelle, jamais automatique.
+  const inCallWithPartner=!!(activeCallDoc&&String(callPeerUid)===String(partnerUid));
+  camBtn.classList.toggle('hidden',!inCallWithPartner);
+  callBtn.classList.toggle('hidden',inCallWithPartner);
+  if(inCallWithPartner){
+    const camOn=!!camSender;
+    camBtn.classList.toggle('on',camOn);
+    camBtn.title=camOn?'Couper ma caméra':'Activer ma caméra';
+  }
 }
 async function crSendMessage(){
   const input=\$('cr-input');
@@ -8169,7 +8202,8 @@ function renderChatroulette(){
   overlay.innerHTML='<div class="cr-chat-head">'
     +'<div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div>'
     +'<div class="n">'+esc(name)+'</div><div class="spacer"></div>'
-    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Proposer un appel">🎙️</button>'
+    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Proposer un appel vocal">📞</button>'
+    +'<button type="button" class="ub-btn hidden" id="cr-cam-btn" title="Activer ma caméra">🎥</button>'
     +'<button type="button" class="ub-btn" id="cr-report-btn" title="Signaler">🚨</button>'
     +'<button type="button" class="ub-btn" id="cr-skip-btn" title="Suivant">⏭️</button>'
     +'<button type="button" class="ub-btn" id="cr-leave-btn" title="Quitter">✕</button>'
@@ -8189,6 +8223,10 @@ function renderChatroulette(){
     try{await authPost('/api/chatroulette/call-request',{sessionId:crSession.\$id});}
     catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
+  \$('cr-cam-btn').onclick=function(){toggleCamera();};
+  crSyncCallUi();
+  if(crCallSyncInterval)clearInterval(crCallSyncInterval);
+  crCallSyncInterval=setInterval(crSyncCallUi,1000);
   \$('cr-report-btn').onclick=function(){
     if(!crSession)return;
     reportOnSuccessCallback=function(){closeChatroulette();};
