@@ -3594,6 +3594,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.49.2',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
+    body:'À la publication d\\'une story publique, choisis maintenant comment elle apparaît sur la carte "Découvrir" : Précise (ta position réelle), Approximative (ta position réelle, floutée à l\\'échelle du quartier pour rester discret) ou Simulée (touche une petite carte pour placer ta story où tu veux, sans lien avec ta position réelle) — ou "Aucune" si tu ne veux pas apparaître dessus du tout.'},
   {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs XULTRA + capture directe caméra',
     body:'La carte "Découvrir" passe à un fond de carte sombre assorti au thème violet de XULTRA (au lieu des tuiles claires par défaut), avec des repères personnalisés et un vrai correctif d\\'affichage (la carte pouvait rester à moitié grise à l\\'ouverture). Et à la création d\\'une story, trois choix désormais : Galerie, Photo ou Vidéo — les deux derniers ouvrent directement l\\'appareil photo de ton téléphone, sans avoir à sortir d\\'un fichier existant (mais ça reste entièrement facultatif, la galerie marche toujours aussi bien).'},
   {version:'2.49.0',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
@@ -7436,7 +7438,17 @@ function openStoryCreateForm(){
     +'<input type="text" id="story-caption" class="field-input" maxlength="300" placeholder="Légende (optionnel)…" style="margin-bottom:10px">'
     +'<div class="set-row"><label>Visibilité</label><div class="seg-group"><button type="button" class="seg-btn on" data-story-vis="friends">👥 Amis</button><button type="button" class="seg-btn" data-story-vis="public">🌍 Public</button></div></div>'
     +'<div class="set-row"><label>Expire dans</label><select id="story-duration" class="field-input"><option value="1">1 heure</option><option value="6">6 heures</option><option value="24" selected>24 heures</option><option value="48">48 heures</option></select></div>'
-    +'<label class="srv-perm-check hidden" id="story-geo-row" style="margin-bottom:10px"><input type="checkbox" id="story-geo"> 📍 Partager ma position sur la carte (Découvrir → Carte, visible uniquement en Public)</label>'
+    +'<div class="set-row hidden" id="story-geo-row"><label>Position sur la carte (Découvrir → Carte)</label>'
+    +'<div class="seg-group" style="flex-wrap:wrap">'
+    +'<button type="button" class="seg-btn on" data-story-geo="none">Aucune</button>'
+    +'<button type="button" class="seg-btn" data-story-geo="precise">📍 Précise</button>'
+    +'<button type="button" class="seg-btn" data-story-geo="approx">🌐 Approximative</button>'
+    +'<button type="button" class="seg-btn" data-story-geo="simulate">✏️ Simulée</button>'
+    +'</div></div>'
+    +'<div class="hidden" id="story-geo-sim-wrap" style="margin-bottom:10px">'
+    +'<div class="scr-sub" style="margin-bottom:6px">Touche la carte pour choisir l\\'emplacement affiché.</div>'
+    +'<div id="story-geo-sim-map" style="height:200px;border-radius:10px;overflow:hidden"></div>'
+    +'</div>'
     +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="story-publish">Publier</button><button type="button" class="set-mini-btn" id="story-cancel">Annuler</button></div>'
     +'<div class="err" id="story-err"></div>'
     +'</div>';
@@ -7445,11 +7457,38 @@ function openStoryCreateForm(){
   \$('story-cancel').onclick=close;
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
   let visibility='friends';
+  let geoMode='none';
+  let simulatedCoords=null;
+  let storyGeoMap=null,storyGeoMarker=null;
+  async function initStorySimMap(){
+    if(storyGeoMap)return;
+    try{await ensureLeafletLoaded();}catch(e){showToast('Impossible de charger la carte.','error');return}
+    const mapBox=\$('story-geo-sim-map');if(!mapBox)return;
+    storyGeoMap=L.map('story-geo-sim-map',{zoomControl:true}).setView([20,0],2);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap contributors © CARTO',subdomains:'abcd',maxZoom:18}).addTo(storyGeoMap);
+    storyGeoMap.on('click',function(e){
+      simulatedCoords={lat:e.latlng.lat,lng:e.latlng.lng};
+      if(storyGeoMarker)storyGeoMap.removeLayer(storyGeoMarker);
+      storyGeoMarker=L.marker([e.latlng.lat,e.latlng.lng],{icon:xultraMapMarkerIcon()}).addTo(storyGeoMap);
+      \$('story-err').textContent='';
+    });
+    setTimeout(function(){if(storyGeoMap)storyGeoMap.invalidateSize();},100);
+  }
   overlay.querySelectorAll('[data-story-vis]').forEach(function(b){
     b.addEventListener('click',function(){
       visibility=b.getAttribute('data-story-vis');
       overlay.querySelectorAll('[data-story-vis]').forEach(function(x){x.classList.toggle('on',x===b);});
       \$('story-geo-row').classList.toggle('hidden',visibility!=='public');
+      if(visibility!=='public')\$('story-geo-sim-wrap').classList.add('hidden');
+    });
+  });
+  overlay.querySelectorAll('[data-story-geo]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      geoMode=b.getAttribute('data-story-geo');
+      overlay.querySelectorAll('[data-story-geo]').forEach(function(x){x.classList.toggle('on',x===b);});
+      const simWrap=\$('story-geo-sim-wrap');
+      simWrap.classList.toggle('hidden',geoMode!=='simulate');
+      if(geoMode==='simulate')await initStorySimMap();
     });
   });
   let selectedFile=null;
@@ -7472,20 +7511,21 @@ function openStoryCreateForm(){
   \$('story-file-video').addEventListener('change',onStoryFilePicked);
   \$('story-publish').onclick=async function(){
     if(!selectedFile){\$('story-err').textContent='Choisis une photo ou une vidéo';return}
+    if(visibility==='public'&&geoMode==='simulate'&&!simulatedCoords){\$('story-err').textContent='Touche la carte pour choisir un emplacement, ou passe sur "Aucune".';return}
     this.disabled=true;this.textContent='Publication…';
     try{
-      await createStory(selectedFile,visibility,parseInt(\$('story-duration').value,10),(\$('story-caption').value||'').trim(),visibility==='public'&&\$('story-geo').checked);
+      await createStory(selectedFile,visibility,parseInt(\$('story-duration').value,10),(\$('story-caption').value||'').trim(),visibility==='public'?geoMode:'none',simulatedCoords);
       close();
       showToast('Story publiée !');
     }catch(e){\$('story-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
   };
 }
-async function createStory(file,visibility,durationHours,caption,wantGeo){
+async function createStory(file,visibility,durationHours,caption,geoMode,simulatedCoords){
   const mediaType=file.type.indexOf('video/')===0?'video':'image';
   const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
   const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
   let coords=null;
-  if(wantGeo&&navigator.geolocation){
+  if((geoMode==='precise'||geoMode==='approx')&&navigator.geolocation){
     coords=await new Promise(function(resolve){
       navigator.geolocation.getCurrentPosition(
         function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
@@ -7493,6 +7533,14 @@ async function createStory(file,visibility,durationHours,caption,wantGeo){
         {enableHighAccuracy:false,timeout:8000}
       );
     });
+    if(coords&&geoMode==='approx'){
+      // Floute à l'échelle d'un quartier (quelques km) plutôt que la position
+      // exacte — décalage aléatoire borné, pas un simple arrondi, pour ne pas
+      // retomber systématiquement sur les mêmes coordonnées "en grille".
+      coords={lat:coords.lat+(Math.random()-0.5)*0.06,lng:coords.lng+(Math.random()-0.5)*0.06};
+    }
+  }else if(geoMode==='simulate'&&simulatedCoords){
+    coords=simulatedCoords;
   }
   const payload={mediaUrl:mediaUrl,mediaType:mediaType,visibility:visibility,durationHours:durationHours,caption:caption};
   if(coords){payload.lat=coords.lat;payload.lng=coords.lng;}
