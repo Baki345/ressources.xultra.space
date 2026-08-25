@@ -3461,6 +3461,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.42.0',date:'24 août 2026',time:'17:15',title:'Serveurs : outils de modération — mode lent, verrouillage, AutoMod, bannissement renforcé',
+    body:'Nouveaux outils pour la modération des salons textuels : mode lent (délai imposé entre deux messages d\\'un même membre, de 5s à 6h), verrouillage d\\'un salon en un clic (plus personne n\\'écrit sauf la modération, rien n\\'est supprimé), et une liste de mots interdits par serveur (AutoMod léger) qui bloque un message avant publication s\\'il en contient un. Le bannissement propose maintenant de supprimer aussi les messages récents du membre banni, sur une période au choix (1h à 7 jours).'},
   {version:'2.41.0',date:'24 août 2026',time:'16:30',title:'Serveurs : hiérarchie des rôles renforcée et permission Administrateur',
     body:'Un modérateur pouvait jusqu\\'ici expulser, bannir ou mettre en timeout un autre membre portant un rôle égal ou supérieur au sien (y compris un autre modérateur), et retirer un rôle qu\\'il n\\'aurait pas eu le droit d\\'attribuer — la hiérarchie des rôles n\\'était vérifiée qu\\'à moitié. Elle s\\'applique maintenant partout : impossible d\\'agir sur, d\\'attribuer OU de retirer un rôle égal ou supérieur au sien, propriétaire excepté. Nouvelle permission "Administrateur" qui contourne toutes les autres permissions (mais jamais la hiérarchie des rôles ni le statut du propriétaire).'},
   {version:'2.40.2',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
@@ -9351,9 +9353,11 @@ function openServerChannel(channelId){
 function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
+  const showQuickLock=canManageChannels&&activeChannel.type==='text';
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+    +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':'#')+' '+esc(activeChannel.name)+'</div>';
+  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
@@ -9364,12 +9368,15 @@ function renderServerChannelContent(){
     if(voiceBtn)voiceBtn.onclick=function(){joinVoiceRoom('channel',activeChannel.\$id,activeServer.name+' · '+activeChannel.name);};
     return;
   }
+  const canBypassLock=canManageChannels||serverHasPermission('administrator');
+  const lockedForMe=activeChannel.locked&&!canBypassLock;
+  const composerPlaceholder=lockedForMe?'🔒 Ce salon est verrouillé':(Number(activeChannel.slowmodeSeconds)>0?'🐢 Mode lent actif — Écrire dans #'+esc(activeChannel.name):'Écrire dans #'+esc(activeChannel.name));
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="composer" id="srv-chan-composer">'
-    +'<textarea id="srv-chan-input" placeholder="Écrire dans #'+esc(activeChannel.name)+'" rows="1" maxlength="4000"></textarea>'
-    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji">😊</button>'
-    +'<button type="button" class="send-btn" id="srv-chan-send">➤</button>'
+    +'<textarea id="srv-chan-input" placeholder="'+composerPlaceholder+'" rows="1" maxlength="4000"'+(lockedForMe?' disabled':'')+'></textarea>'
+    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(lockedForMe?' disabled':'')+'>😊</button>'
+    +'<button type="button" class="send-btn" id="srv-chan-send"'+(lockedForMe?' disabled':'')+'>➤</button>'
     +'</div>';
   box.innerHTML=html;
   wireServerChannelBack();
@@ -9388,6 +9395,19 @@ function renderServerChannelContent(){
   });
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
+  const quickLock=\$('srv-chan-quicklock');
+  if(quickLock)quickLock.onclick=async function(){
+    this.disabled=true;
+    try{
+      const newLocked=!activeChannel.locked;
+      await authPost('/api/servers/channels/update',{serverId:activeServer.\$id,channelId:activeChannel.\$id,locked:newLocked});
+      activeChannel.locked=newLocked;
+      const idx=activeServerChannels.findIndex(function(c){return c.\$id===activeChannel.\$id});
+      if(idx>=0)activeServerChannels[idx].locked=newLocked;
+      renderServerChannelContent();
+      showToast(newLocked?'Salon verrouillé.':'Salon déverrouillé.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
+  };
 }
 function wireServerChannelBack(){
   const editBtn=\$('srv-chan-edit');
@@ -9563,10 +9583,7 @@ function renderServerMembersTab(){
     });
   });
   box.querySelectorAll('[data-srv-ban]').forEach(function(b){
-    b.addEventListener('click',async function(){
-      if(!confirm('Bannir définitivement ce membre ?'))return;
-      try{await authPost('/api/servers/members/ban',{serverId:activeServer.\$id,uid:b.getAttribute('data-srv-ban')});await openServerDetail(activeServer.\$id);switchServerTab('members');showToast('Membre banni.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
-    });
+    b.addEventListener('click',function(){openBanActionSheet(b.getAttribute('data-srv-ban'));});
   });
   box.querySelectorAll('[data-srv-role-assign]').forEach(function(b){
     b.addEventListener('click',function(){openServerRoleAssign(b.getAttribute('data-srv-role-assign'));});
@@ -9599,6 +9616,32 @@ function openServerTimeoutPicker(uid){
         await openServerDetail(activeServer.\$id);switchServerTab('members');
         showToast(minutes?'Membre mis en timeout.':'Timeout levé.');
       }catch(e){\$('srv-to-err').textContent=(e&&e.message)||'Erreur';b.disabled=false;}
+    });
+  });
+}
+const BAN_DELETE_PRESETS=[{label:'Aucune suppression',hours:0},{label:'Dernière heure',hours:1},{label:'6 heures',hours:6},{label:'12 heures',hours:12},{label:'24 heures',hours:24},{label:'3 jours',hours:72},{label:'7 jours',hours:168}];
+function openBanActionSheet(uid){
+  const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
+  if(!member)return;
+  const box=\$('srv-detail-body');if(!box)return;
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-section-label">Bannir '+esc(member.username||'ce membre')+'</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Supprimer aussi ses messages envoyés dans ce serveur, sur la période choisie :</div>'
+    +BAN_DELETE_PRESETS.map(function(p){return '<button type="button" class="set-mini-btn'+(p.hours?' danger':'')+'" data-srv-ban-hours="'+p.hours+'" style="margin:0 6px 8px 0">'+p.label+'</button>';}).join('')
+    +'<div style="margin-top:10px"><button type="button" class="set-mini-btn" id="srv-ban-cancel">Annuler</button></div>'
+    +'<div class="err" id="srv-ban-err"></div>'
+    +'</div>';
+  \$('srv-ban-cancel').onclick=function(){switchServerTab('members');};
+  box.querySelectorAll('[data-srv-ban-hours]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      const hours=parseInt(b.getAttribute('data-srv-ban-hours'),10);
+      if(!confirm('Bannir définitivement '+(member.username||'ce membre')+' ?'))return;
+      b.disabled=true;
+      try{
+        const r=await authPost('/api/servers/members/ban',{serverId:activeServer.\$id,uid:uid,deleteMessageHours:hours});
+        await openServerDetail(activeServer.\$id);switchServerTab('members');
+        showToast('Membre banni.'+(r.deletedMessages?' '+r.deletedMessages+' message(s) supprimé(s).':''));
+      }catch(e){\$('srv-ban-err').textContent=(e&&e.message)||'Erreur';b.disabled=false;}
     });
   });
 }
@@ -9751,6 +9794,13 @@ function openServerChannelEditor(channel){
       +'<option value="__new__">+ Nouvelle catégorie…</option>'
     +'</select></div>'
     +'<div class="set-row hidden" id="srv-chaned-newcat-row"><label>Nom de la nouvelle catégorie</label><input type="text" id="srv-chaned-newcat" class="field-input" maxlength="64"></div>'
+    +((channel&&channel.type==='text')?(
+      '<div class="set-row"><label>Mode lent</label><select id="srv-chaned-slowmode" class="field-input">'
+      +[[0,'Désactivé'],[5,'5 s'],[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[600,'10 min'],[900,'15 min'],[1800,'30 min'],[3600,'1 h'],[7200,'2 h'],[21600,'6 h']]
+        .map(function(o){return '<option value="'+o[0]+'"'+((Number(channel.slowmodeSeconds)||0)===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')
+      +'</select></div>'
+      +'<label class="srv-perm-check"><input type="checkbox" id="srv-chaned-locked"'+(channel.locked?' checked':'')+'> 🔒 Salon verrouillé (personne ne peut écrire, sauf la modération)</label>'
+    ):'')
     +'<div class="set-section-label">Visibilité</div>'
     +'<div class="scr-sub" style="margin-bottom:8px">Aucun rôle coché = visible par tout le monde. Coche des rôles pour restreindre ce salon.</div>'
     +activeServerRoles.map(function(r){
@@ -9808,7 +9858,11 @@ function openServerChannelEditor(channel){
       if(isNew){
         await authPost('/api/servers/channels/create',{serverId:activeServer.\$id,name:name,type:chanType,categoryId:categoryId,visibleRoleIds:visibleRoleIds,overwrites:overwrites,position:activeServerChannels.length});
       }else{
-        await authPost('/api/servers/channels/update',{serverId:activeServer.\$id,channelId:channel.\$id,name:name,categoryId:categoryId,visibleRoleIds:visibleRoleIds,overwrites:overwrites});
+        const payload={serverId:activeServer.\$id,channelId:channel.\$id,name:name,categoryId:categoryId,visibleRoleIds:visibleRoleIds,overwrites:overwrites};
+        const slowEl=\$('srv-chaned-slowmode'),lockEl=\$('srv-chaned-locked');
+        if(slowEl)payload.slowmodeSeconds=parseInt(slowEl.value,10)||0;
+        if(lockEl)payload.locked=lockEl.checked;
+        await authPost('/api/servers/channels/update',payload);
       }
       await loadServerChannels();renderServerChannelList();showToast('Salon enregistré.');
     }catch(e){\$('srv-chaned-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent=isNew?'Créer le salon':'Enregistrer';}
@@ -9858,6 +9912,13 @@ function openServerRoleEditor(role){
   };
 }
 let srvIconFile=null,srvBannerFile=null;
+function automodWordsHtml(json){
+  let words=[];try{words=JSON.parse(json||'[]');}catch(e){}
+  if(!words.length)return '<span class="scr-sub">Aucun mot bloqué pour l\\'instant.</span>';
+  return words.map(function(w){
+    return '<span class="srv-role-pill" style="background:rgba(239,68,68,.15);color:#fca5a5">'+esc(w)+' <button type="button" data-automod-del="'+esc(w)+'" style="margin-left:4px;color:inherit;font-weight:900">✕</button></span>';
+  }).join('');
+}
 async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
@@ -9874,6 +9935,11 @@ async function renderServerSettingsTab(){
     +'<div class="set-row"><label>Bannière</label><div class="srv-detail-banner" id="srv-set-banner-preview" style="height:70px;border-radius:10px;cursor:pointer'+(safeUrl(activeServer.banner)?';background-image:url('+JSON.stringify(safeUrl(activeServer.banner))+')':'')+'"></div><input type="file" id="srv-set-banner-file" accept="image/*" class="hidden"></div>'
     +'<button type="button" class="btn-main" id="srv-set-save">Enregistrer</button>'
     +'<div class="err" id="srv-set-err"></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🤖 AutoMod — mots interdits</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Un message contenant l\\'un de ces mots (insensible à la casse) est bloqué automatiquement avant publication, pour tout le monde sauf la modération.</div>'
+    +'<div id="srv-automod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+automodWordsHtml(activeServer.autoModWordsJson)+'</div>'
+    +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
     +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité XULTRA+</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
@@ -9929,6 +9995,32 @@ async function renderServerSettingsTab(){
     if(!confirm('Supprimer définitivement ce serveur ? Cette action est irréversible.'))return;
     try{await authPost('/api/servers/delete',{serverId:activeServer.\$id});closeServerDetail();await loadMyServers();renderServersListView();showToast('Serveur supprimé.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
+  async function saveAutoModWords(words){
+    await authPost('/api/servers/update',{serverId:activeServer.\$id,autoModWords:words});
+    activeServer.autoModWordsJson=JSON.stringify(words);
+    \$('srv-automod-list').innerHTML=automodWordsHtml(activeServer.autoModWordsJson);
+    wireAutomodDelButtons();
+  }
+  function wireAutomodDelButtons(){
+    \$('srv-automod-list').querySelectorAll('[data-automod-del]').forEach(function(b){
+      b.onclick=function(){
+        let words=[];try{words=JSON.parse(activeServer.autoModWordsJson||'[]');}catch(e){}
+        words=words.filter(function(w){return w!==b.getAttribute('data-automod-del');});
+        saveAutoModWords(words).catch(function(e){showToast((e&&e.message)||'Erreur','error');});
+      };
+    });
+  }
+  wireAutomodDelButtons();
+  const automodAdd=\$('srv-automod-add'),automodInput=\$('srv-automod-input');
+  if(automodAdd)automodAdd.onclick=function(){
+    const w=(automodInput.value||'').trim();
+    if(!w)return;
+    let words=[];try{words=JSON.parse(activeServer.autoModWordsJson||'[]');}catch(e){}
+    if(words.indexOf(w)<0)words.push(w);
+    automodInput.value='';
+    saveAutoModWords(words).catch(function(e){showToast((e&&e.message)||'Erreur','error');});
+  };
+  if(automodInput)automodInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();automodAdd.click();}});
 }
 if(\$('btn-call-start'))\$('btn-call-start').addEventListener('click',function(){
   if(activeDmIsGroup){
@@ -11822,6 +11914,10 @@ async function handle(request) {
       if (typeof body.description === "string") data.description = body.description.trim().slice(0, 500);
       if (typeof body.icon === "string") data.icon = body.icon.slice(0, 500);
       if (typeof body.banner === "string") data.banner = body.banner.slice(0, 500);
+      if (Array.isArray(body.autoModWords)) {
+        const words = body.autoModWords.map(function (w) { return String(w).trim().slice(0, 40); }).filter(Boolean).slice(0, 100);
+        data.autoModWordsJson = JSON.stringify(words);
+      }
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
       const actorProfile5 = await resolveProfile(acc.$id);
@@ -12080,6 +12176,9 @@ async function handle(request) {
       const serverId = String((body && body.serverId) || "");
       const targetUid = String((body && body.uid) || "");
       const unban = !!body.unban;
+      // Suppression rétroactive des messages du banni sur tout le serveur (§13) :
+      // 0 = aucune, sinon fenêtre en heures (1, 6, 12, 24, 72, 168).
+      const deleteMessageHours = [0, 1, 6, 12, 24, 72, 168].indexOf(Number(body.deleteMessageHours)) >= 0 ? Number(body.deleteMessageHours) : 0;
       const gate = await serverCheckPermission(serverId, acc.$id, "ban_members");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       if (String(gate.server.ownerId) === targetUid) throw new Error("Impossible de bannir le propriétaire");
@@ -12087,17 +12186,32 @@ async function handle(request) {
       let banned = [];
       try { banned = JSON.parse(gate.server.bannedUidsJson || "[]"); } catch (e) {}
       let member = null;
+      let deletedCount = 0;
       if (unban) {
         banned = banned.filter(function (u) { return u !== targetUid; });
       } else {
         if (banned.indexOf(targetUid) < 0) banned.push(targetUid);
         member = await getServerMembership(serverId, targetUid);
         if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+        if (deleteMessageHours > 0) {
+          const cutoff = new Date(Date.now() - deleteMessageHours * 3600000).toISOString();
+          const queries = [
+            "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })),
+            "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [targetUid] })),
+            "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThanEqual", attribute: "$createdAt", values: [cutoff] })),
+            "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }))
+          ].join("&");
+          const toDelete = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" + queries, { asAdmin: true });
+          for (const m of (toDelete.documents || [])) {
+            await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+            deletedCount++;
+          }
+        }
       }
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
       const actorProfile = await resolveProfile(acc.$id);
-      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && member.username) || targetUid, {});
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && member.username) || targetUid, deletedCount ? { deletedMessages: deletedCount } : {});
+      return new Response(JSON.stringify({ ok: true, deletedMessages: deletedCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -12295,7 +12409,13 @@ async function handle(request) {
       if (typeof body.position === "number") data.position = body.position;
       if (Array.isArray(body.visibleRoleIds)) data.visibleRoleIds = body.visibleRoleIds.map(String);
       if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
+      if (typeof body.slowmodeSeconds === "number") data.slowmodeSeconds = Math.max(0, Math.min(21600, Math.round(body.slowmodeSeconds)));
+      if (typeof body.locked === "boolean") data.locked = body.locked;
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      if (typeof body.locked === "boolean") {
+        const actorProfileLock = await resolveProfile(acc.$id);
+        await logServerAudit(serverId, acc.$id, (actorProfileLock && (actorProfileLock.displayName || actorProfileLock.username)) || acc.name, body.locked ? "channel_lock" : "channel_unlock", updated.name || channelId, {});
+      }
       return new Response(JSON.stringify({ ok: true, channel: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -12390,6 +12510,34 @@ async function handle(request) {
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
+      // Le verrouillage gèle le salon pour tout le monde sauf qui peut le gérer
+      // (§13 : refuser "Envoyer des messages" sans supprimer le contenu).
+      if (access.channel.locked && !access.hasManage) throw new Error("Ce salon est verrouillé par la modération");
+      // Mode lent : délai minimum entre deux messages du même membre dans ce
+      // salon, contourné par qui peut gérer le salon/serveur (§3).
+      const slowmodeSeconds = Number(access.channel.slowmodeSeconds) || 0;
+      if (slowmodeSeconds > 0 && !access.hasManage) {
+        const lastMsgQ = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        const last = (lastMsgQ.documents || [])[0];
+        if (last) {
+          const elapsedMs = Date.now() - new Date(last.$createdAt).getTime();
+          const remaining = slowmodeSeconds - Math.floor(elapsedMs / 1000);
+          if (remaining > 0) throw new Error("Mode lent actif : réessaie dans " + remaining + "s");
+        }
+      }
+      // AutoMod léger : blocage par mots-clés interdits, définis par serveur
+      // (§14). Comparaison insensible à la casse, sous-chaîne simple.
+      let autoModWords = [];
+      try { autoModWords = JSON.parse(access.server.autoModWordsJson || "[]"); } catch (e) {}
+      if (autoModWords.length && !access.hasManage) {
+        const lower = text.toLowerCase();
+        const hit = autoModWords.find(function (w) { return w && lower.indexOf(String(w).toLowerCase()) >= 0; });
+        if (hit) throw new Error("Message bloqué : contient un terme interdit sur ce serveur");
+      }
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
