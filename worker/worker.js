@@ -3510,6 +3510,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.47.0',date:'25 août 2026',time:'14:30',title:'Salons forum',
+    body:'Nouveau type de salon "📋 Forum" (au choix à la création d\\'un salon) : au lieu d\\'un fil de discussion unique, chaque publication a son propre titre et devient une conversation à part entière — exactement comme un fil, avec réponses, réactions et emojis. Le bouton "+ Nouveau post" en haut du salon ouvre un petit formulaire (titre + contenu), et la liste des posts s\\'affiche triée du plus récent au plus ancien.'},
   {version:'2.46.0',date:'25 août 2026',time:'12:00',title:'Fils de discussion dans les salons de serveur',
     body:'Tu peux maintenant démarrer un fil de discussion à partir de n\\'importe quel message d\\'un salon textuel (dans son menu d\\'actions ⋯), pour continuer une conversation secondaire sans polluer le salon principal. Un fil peut être public (visible et rejoignable par tout le monde ayant accès au salon) ou privé (uniquement les membres invités). Le nouveau bouton 🧵 Fils en haut d\\'un salon liste tous ses fils, ouverts ou archivés ; un message qui a un fil affiche un petit lien vers celui-ci. Un fil peut être archivé par son créateur ou par un modérateur, et rouvert par un modérateur.'},
   {version:'2.45.2',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
@@ -9487,7 +9489,7 @@ function renderServerOverviewTab(){
   else renderServerChannelList();
 }
 function serverChannelRowHtml(c,canManageChannels){
-  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':c.type==='forum'?'📋':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
     +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
     +'</div>';
 }
@@ -9560,14 +9562,14 @@ function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
   if(activeThread)return renderThreadContent(box);
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
-  const showQuickLock=canManageChannels&&activeChannel.type==='text';
+  const showQuickLock=canManageChannels&&(activeChannel.type==='text'||activeChannel.type==='forum');
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>':'')
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
     +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':activeChannel.type==='forum'?'📋':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
@@ -9576,6 +9578,18 @@ function renderServerChannelContent(){
     wireServerChannelBack();
     const voiceBtn=\$('srv-voice-join');
     if(voiceBtn)voiceBtn.onclick=function(){joinVoiceRoom('channel',activeChannel.\$id,activeServer.name+' · '+activeChannel.name);};
+    return;
+  }
+  if(activeChannel.type==='forum'){
+    const canPostHere=!activeChannel.locked||canManageChannels;
+    html+='<div class="srv-chan-msgs" id="srv-forum-posts"><div class="empty-hint" style="text-align:center">Chargement…</div></div>'
+      +'<div style="padding:10px"><button type="button" class="btn-main" id="srv-forum-new-post" style="width:100%"'+(canPostHere?'':' disabled')+'>'+(canPostHere?'+ Nouveau post':'🔒 Salon verrouillé')+'</button></div>';
+    box.innerHTML=html;
+    wireServerChannelBack();
+    wireQuickLock();
+    loadForumPosts();
+    const newPostBtn=\$('srv-forum-new-post');
+    if(newPostBtn)newPostBtn.onclick=function(){if(canPostHere)openForumPostCreateForm();};
     return;
   }
   const canBypassLock=canManageChannels||serverHasPermission('administrator');
@@ -9614,8 +9628,12 @@ function renderServerChannelContent(){
   if(threadsBtn)threadsBtn.onclick=function(){openThreadList();};
   const pollBtn=\$('srv-chan-poll');
   if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
+  wireQuickLock();
+}
+function wireQuickLock(){
   const quickLock=\$('srv-chan-quicklock');
-  if(quickLock)quickLock.onclick=async function(){
+  if(!quickLock)return;
+  quickLock.onclick=async function(){
     this.disabled=true;
     try{
       const newLocked=!activeChannel.locked;
@@ -9857,6 +9875,57 @@ function openThread(thread){
   activeThread=thread;
   renderServerChannelContent();
 }
+async function loadForumPosts(){
+  await loadChannelThreads();
+  renderForumPostsList();
+}
+function renderForumPostsList(){
+  const box=\$('srv-forum-posts');if(!box)return;
+  if(!channelThreadsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun post pour l’instant. Sois le premier à publier !</div>';return}
+  const sorted=channelThreadsCache.slice().sort(function(a,b){return new Date(b.\$createdAt)-new Date(a.\$createdAt);});
+  box.innerHTML=sorted.map(function(t){
+    const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(t.creatorUid)});
+    const authorColor=authorMember?serverTopRoleColor(authorMember):null;
+    const authorName=(authorMember&&authorMember.username)||'Membre';
+    return '<div class="row" data-forum-post="'+esc(t.\$id)+'" style="cursor:pointer;padding:10px 8px;border-bottom:1px solid var(--line2,rgba(255,255,255,.06))">'
+      +'<div class="n" style="font-weight:700">'+(t.archived?'🔒 ':'📝 ')+esc(t.name)+'</div>'
+      +'<div class="scr-sub" style="font-size:.78rem;margin-top:2px"><span'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(authorName)+'</span> · '+esc(fmtClockTime(t.\$createdAt))+(t.archived?' · Archivé':'')+'</div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-forum-post]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const t=channelThreadsCache.find(function(x){return x.\$id===el.getAttribute('data-forum-post');});
+      if(t)openThread(t);
+    });
+  });
+}
+function openForumPostCreateForm(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">📝 Nouveau post</div>'
+    +'<input type="text" id="forum-post-title" class="field-input" maxlength="100" placeholder="Titre…" style="margin-bottom:10px">'
+    +'<textarea id="forum-post-body" class="field-input" maxlength="4000" rows="5" placeholder="Contenu du post…" style="margin-bottom:10px"></textarea>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="forum-post-go">Publier</button><button type="button" class="set-mini-btn" id="forum-post-cancel">Annuler</button></div>'
+    +'<div class="err" id="forum-post-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('forum-post-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('forum-post-go').onclick=async function(){
+    const title=(\$('forum-post-title').value||'').trim();
+    const text=(\$('forum-post-body').value||'').trim();
+    if(!title){\$('forum-post-err').textContent='Titre requis';return}
+    if(!text){\$('forum-post-err').textContent='Contenu requis';return}
+    this.disabled=true;this.textContent='Publication…';
+    try{
+      const r=await authPost('/api/servers/forum/post/create',{serverId:activeServer.\$id,channelId:activeChannel.\$id,title:title,text:text});
+      close();
+      openThread(r.thread);
+    }catch(e){\$('forum-post-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
+  };
+}
 function renderThreadContent(box){
   const t=activeThread;
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
@@ -9864,7 +9933,7 @@ function renderThreadContent(box){
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-thread-back">← #'+esc(activeChannel.name)+'</button>'
     +((canManageChannels||isCreator)?'<button type="button" class="set-mini-btn'+(t.archived?'':' danger')+'" id="srv-thread-archive">'+(t.archived?'Rouvrir':'Archiver'):'')
     +((canManageChannels||isCreator)?'</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(t.private?'🔒 ':'🧵 ')+esc(t.name)+(t.archived?' · Archivé':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(t.private?'🔒 ':activeChannel.type==='forum'?'📝 ':'🧵 ')+esc(t.name)+(t.archived?' · Archivé':'')+'</div>';
   const archivedForMe=t.archived;
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
@@ -10271,7 +10340,7 @@ function openServerChannelEditor(channel){
   box.innerHTML='<button type="button" class="set-mini-btn" id="srv-chaned-back" style="margin-bottom:12px">← Salons</button>'
     +'<div class="set-card">'
     +'<div class="set-row"><label>Nom du salon</label><input type="text" id="srv-chaned-name" class="field-input" maxlength="64" value="'+esc(channel?channel.name:'')+'" placeholder="général"></div>'
-    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button></div></div>'):'')
+    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button><button type="button" class="seg-btn" data-srv-chaned-type="forum">📋 Forum</button></div></div>'):'')
     +'<div class="set-row"><label>Catégorie</label><select id="srv-chaned-cat" class="field-input">'
       +'<option value="">Sans catégorie</option>'
       +activeServerCategories.map(function(c){return '<option value="'+esc(c.\$id)+'"'+((channel&&channel.categoryId===c.\$id)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')
@@ -12896,7 +12965,7 @@ async function handle(request) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const name = String((body && body.name) || "").trim().slice(0, 64);
       if (!name) throw new Error("Nom de salon requis");
-      const type = body.type === "voice" ? "voice" : "text";
+      const type = body.type === "voice" ? "voice" : body.type === "forum" ? "forum" : "text";
       const visibleRoleIds = Array.isArray(body.visibleRoleIds) ? body.visibleRoleIds.map(String) : [];
       const overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
@@ -12953,6 +13022,10 @@ async function handle(request) {
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       for (const m of (msgs.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      const threads = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const t of (threads.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + t.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
       await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "DELETE", asAdmin: true });
       const actorProfile10 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile10 && (actorProfile10.displayName || actorProfile10.username)) || acc.name, "channel_delete", (chanDoc && chanDoc.name) || channelId, {});
@@ -13003,7 +13076,9 @@ async function handle(request) {
       const channelId = String((body && body.channelId) || "");
       const threadId = String((body && body.threadId) || "").slice(0, 64);
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
-      if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
+      // Un salon forum n'a pas de fil de discussion "racine" : chaque post EST
+      // un fil, donc on n'y liste jamais les messages hors fil (§30).
+      if (access.channel.type !== "text" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type de lecture");
       if (threadId) await resolveThreadAccess(serverId, threadId, acc.$id, access);
       let list;
       if (threadId) {
@@ -13059,7 +13134,10 @@ async function handle(request) {
       }
       if (!text) throw new Error("Message vide");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
-      if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
+      // Un salon forum n'accepte pas de message "hors post" (§30) — la création
+      // d'un post passe par /api/servers/forum/post/create, qui crée fil + premier
+      // message ensemble ; ici on n'autorise que les réponses DANS un post existant.
+      if (access.channel.type !== "text" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type d'écriture");
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
       // Le verrouillage gèle le salon pour tout le monde sauf qui peut le gérer
       // (§13 : refuser "Envoyer des messages" sans supprimer le contenu).
@@ -13194,6 +13272,63 @@ async function handle(request) {
       if (memberUids.indexOf(targetUid) < 0) memberUids.push(targetUid);
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + threadId, { method: "PATCH", asAdmin: true, body: { data: { memberUids: memberUids } } });
       return new Response(JSON.stringify({ ok: true, thread: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/forum/post/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const title = String((body && body.title) || "").trim().slice(0, 100);
+      const text = String((body && body.text) || "").trim().slice(0, 4000);
+      if (!title) throw new Error("Titre du post requis");
+      if (!text) throw new Error("Le post ne peut pas être vide");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "forum") throw new Error("Ce salon n'est pas un salon forum");
+      if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas publier pour le moment" : "Tu ne peux pas publier dans ce salon");
+      if (access.channel.locked && !access.hasManage) throw new Error("Ce salon est verrouillé par la modération");
+      const slowmodeSeconds = Number(access.channel.slowmodeSeconds) || 0;
+      if (slowmodeSeconds > 0 && !access.hasManage) {
+        const lastMsgQ = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        const last = (lastMsgQ.documents || [])[0];
+        if (last) {
+          const elapsedMs = Date.now() - new Date(last.$createdAt).getTime();
+          const remaining = slowmodeSeconds - Math.floor(elapsedMs / 1000);
+          if (remaining > 0) throw new Error("Mode lent actif : réessaie dans " + remaining + "s");
+        }
+      }
+      let autoModWords = [];
+      try { autoModWords = JSON.parse(access.server.autoModWordsJson || "[]"); } catch (e) {}
+      if (autoModWords.length && !access.hasManage) {
+        const lowerAll = (title + " " + text).toLowerCase();
+        const hit = autoModWords.find(function (w) { return w && lowerAll.indexOf(String(w).toLowerCase()) >= 0; });
+        if (hit) throw new Error("Post bloqué : contient un terme interdit sur ce serveur");
+      }
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      // Un post de forum EST un fil (§30) : pas de collection dédiée, on crée le
+      // fil d'abord (sans message d'origine), puis le premier message pointant
+      // dessus, puis on relie les deux — réutilise entièrement le modèle "fils".
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, channelId: channelId, name: title, creatorUid: String(acc.$id), private: false, archived: false, memberUids: [], originMessageId: "" } }
+      });
+      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: "", pollJson: "", threadId: thread.$id }, permissions: msgPerms }
+      });
+      const updatedThread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + thread.$id, { method: "PATCH", asAdmin: true, body: { data: { originMessageId: msg.$id } } });
+      return new Response(JSON.stringify({ ok: true, thread: updatedThread, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
