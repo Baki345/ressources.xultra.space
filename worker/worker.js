@@ -869,9 +869,17 @@ button{cursor:pointer;border:0;background:0}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
 .discover-grid-item .n{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff;font-size:.7rem;font-weight:700}
-#discover-map{width:100%;height:100%;border-radius:12px;overflow:hidden}
-.leaflet-popup-content-wrapper{background:var(--elev);color:#f2ebff}
+#discover-map{width:100%;height:100%;border-radius:12px;overflow:hidden;background:#0b0714}
+.leaflet-popup-content-wrapper{background:var(--elev);color:#f2ebff;border-radius:12px}
+.leaflet-popup-content-wrapper a{color:#c4b5fd;font-weight:700}
 .leaflet-popup-tip{background:var(--elev)}
+.leaflet-popup-close-button{color:#c4b5fd!important}
+.xultra-map-pin{background:transparent;border:0}
+.xultra-map-pin-dot{display:block;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);border:2px solid #f2ebff;box-shadow:0 0 0 4px rgba(124,58,237,.35),0 2px 8px rgba(0,0,0,.5)}
+.leaflet-control-zoom a{background:var(--elev)!important;color:#c4b5fd!important;border-color:var(--line)!important}
+.leaflet-control-zoom a:hover{background:var(--hover)!important}
+.leaflet-control-attribution{background:rgba(19,12,28,.85)!important;color:var(--muted)!important}
+.leaflet-control-attribution a{color:#c4b5fd!important}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
@@ -3586,6 +3594,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs XULTRA + capture directe caméra',
+    body:'La carte "Découvrir" passe à un fond de carte sombre assorti au thème violet de XULTRA (au lieu des tuiles claires par défaut), avec des repères personnalisés et un vrai correctif d\\'affichage (la carte pouvait rester à moitié grise à l\\'ouverture). Et à la création d\\'une story, trois choix désormais : Galerie, Photo ou Vidéo — les deux derniers ouvrent directement l\\'appareil photo de ton téléphone, sans avoir à sortir d\\'un fichier existant (mais ça reste entièrement facultatif, la galerie marche toujours aussi bien).'},
   {version:'2.49.0',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
     body:'Petit bouton ✨ dans la zone d\\'écriture des messages privés, des salons de serveur et des fils — comme sur Samsung ou Google Clavier : un clic corrige l\\'orthographe, la grammaire et la ponctuation de ce que tu as écrit, sans changer le sens ni le ton. Pratique pour un message envoyé vite fait avec les pouces.'},
   {version:'2.48.0',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
@@ -7414,7 +7424,14 @@ function openStoryCreateForm(){
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
     +'<div class="set-section-label">✨ Nouvelle story</div>'
-    +'<input type="file" id="story-file" accept="image/*,video/*" style="margin-bottom:10px">'
+    +'<div style="display:flex;gap:8px;margin-bottom:10px">'
+    +'<button type="button" class="set-mini-btn" id="story-src-gallery" style="flex:1">📁 Galerie</button>'
+    +'<button type="button" class="set-mini-btn" id="story-src-photo" style="flex:1">📷 Photo</button>'
+    +'<button type="button" class="set-mini-btn" id="story-src-video" style="flex:1">🎥 Vidéo</button>'
+    +'</div>'
+    +'<input type="file" id="story-file" accept="image/*,video/*" class="hidden">'
+    +'<input type="file" id="story-file-photo" accept="image/*" capture="environment" class="hidden">'
+    +'<input type="file" id="story-file-video" accept="video/*" capture="environment" class="hidden">'
     +'<div id="story-preview" style="margin-bottom:10px"></div>'
     +'<input type="text" id="story-caption" class="field-input" maxlength="300" placeholder="Légende (optionnel)…" style="margin-bottom:10px">'
     +'<div class="set-row"><label>Visibilité</label><div class="seg-group"><button type="button" class="seg-btn on" data-story-vis="friends">👥 Amis</button><button type="button" class="seg-btn" data-story-vis="public">🌍 Public</button></div></div>'
@@ -7436,7 +7453,10 @@ function openStoryCreateForm(){
     });
   });
   let selectedFile=null;
-  \$('story-file').addEventListener('change',function(){
+  \$('story-src-gallery').addEventListener('click',function(){\$('story-file').click();});
+  \$('story-src-photo').addEventListener('click',function(){\$('story-file-photo').click();});
+  \$('story-src-video').addEventListener('click',function(){\$('story-file-video').click();});
+  function onStoryFilePicked(){
     selectedFile=this.files[0]||null;
     const prev=\$('story-preview');
     if(!selectedFile){prev.innerHTML='';return}
@@ -7444,9 +7464,12 @@ function openStoryCreateForm(){
     \$('story-err').textContent='';
     const url=URL.createObjectURL(selectedFile);
     prev.innerHTML=selectedFile.type.indexOf('video/')===0
-      ?('<video src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px" muted></video>')
+      ?('<video src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px" controls></video>')
       :('<img src="'+url+'" style="max-width:100%;max-height:180px;border-radius:10px">');
-  });
+  }
+  \$('story-file').addEventListener('change',onStoryFilePicked);
+  \$('story-file-photo').addEventListener('change',onStoryFilePicked);
+  \$('story-file-video').addEventListener('change',onStoryFilePicked);
   \$('story-publish').onclick=async function(){
     if(!selectedFile){\$('story-err').textContent='Choisis une photo ou une vidéo';return}
     this.disabled=true;this.textContent='Publication…';
@@ -7646,19 +7669,36 @@ function ensureLeafletLoaded(){
   if(window.L)return Promise.resolve();
   if(leafletLoadPromise)return leafletLoadPromise;
   leafletLoadPromise=new Promise(function(resolve,reject){
+    let cssReady=false,jsReady=false;
+    function checkDone(){if(cssReady&&jsReady)resolve();}
+    // Leaflet a besoin de sa propre feuille de style (position/overflow du
+    // conteneur) posée AVANT l'initialisation de la carte, sinon les tuiles
+    // s'affichent décalées/coupées jusqu'au prochain redimensionnement — on
+    // attend donc explicitement le chargement du CSS, pas seulement du JS.
     const link=document.createElement('link');
     link.rel='stylesheet';
     link.href='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css';
+    link.onload=function(){cssReady=true;checkDone();};
+    link.onerror=function(){reject(new Error('leaflet css load failed'));};
     document.head.appendChild(link);
     const script=document.createElement('script');
     script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
-    script.onload=function(){resolve();};
-    script.onerror=function(){reject(new Error('leaflet load failed'));};
+    script.onload=function(){jsReady=true;checkDone();};
+    script.onerror=function(){reject(new Error('leaflet js load failed'));};
     document.head.appendChild(script);
   });
   return leafletLoadPromise;
 }
 let discoverMapInstance=null;
+function xultraMapMarkerIcon(){
+  return L.divIcon({
+    className:'xultra-map-pin',
+    html:'<span class="xultra-map-pin-dot"></span>',
+    iconSize:[22,22],
+    iconAnchor:[11,11],
+    popupAnchor:[0,-12]
+  });
+}
 async function renderDiscoverMap(){
   const box=\$('discover-body');if(!box)return;
   box.innerHTML='<div id="discover-map" style="height:calc(100dvh - 190px);position:relative"></div>';
@@ -7668,16 +7708,28 @@ async function renderDiscoverMap(){
   const center=geoStories.length?[geoStories[0].lat,geoStories[0].lng]:[20,0];
   const zoom=geoStories.length?4:2;
   if(discoverMapInstance){try{discoverMapInstance.remove();}catch(e){}discoverMapInstance=null;}
-  discoverMapInstance=L.map('discover-map').setView(center,zoom);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(discoverMapInstance);
+  discoverMapInstance=L.map('discover-map',{zoomControl:false}).setView(center,zoom);
+  L.control.zoom({position:'bottomright'}).addTo(discoverMapInstance);
+  // Fond de carte sombre (CARTO Dark Matter, pas de clé requise) plutôt que
+  // les tuiles OSM classiques trop claires/colorées pour coller au thème
+  // violet sombre XULTRA.
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'© OpenStreetMap contributors © CARTO',
+    subdomains:'abcd',
+    maxZoom:20
+  }).addTo(discoverMapInstance);
   geoStories.forEach(function(s){
-    const marker=L.marker([s.lat,s.lng]).addTo(discoverMapInstance);
+    const marker=L.marker([s.lat,s.lng],{icon:xultraMapMarkerIcon()}).addTo(discoverMapInstance);
     marker.bindPopup('<b>'+esc(s.username||'Membre')+'</b>'+(s.caption?('<br>'+esc(s.caption)):'')+'<br><a href="#" data-map-open-story="'+esc(s.\$id)+'">Voir la story</a>');
     marker.on('popupopen',function(){
       const link=document.querySelector('[data-map-open-story="'+s.\$id+'"]');
       if(link)link.addEventListener('click',function(e){e.preventDefault();openDiscoverStorySingle(s);});
     });
   });
+  // Leaflet calcule sa taille à l'initialisation ; si le conteneur n'était
+  // pas encore à sa taille finale (transition d'ouverture de l'overlay), on
+  // force un recalcul juste après pour éviter une carte à moitié grise.
+  setTimeout(function(){if(discoverMapInstance)discoverMapInstance.invalidateSize();},100);
   if(!geoStories.length){
     const hint=document.createElement('div');
     hint.className='empty-hint';
