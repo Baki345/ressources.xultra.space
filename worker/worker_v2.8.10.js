@@ -215,6 +215,35 @@ async function computeChannelMessagePermissions(serverId, channel, threadUids) {
     return []; // best-effort : le temps réel restera indisponible pour ce message, la lecture via la route fonctionne quand même
   }
 }
+// Crossposte un message d'un salon 📢 Annonces vers chaque salon qui le
+// suit (§ channel follows) — best-effort, une erreur sur UN suivi (salon
+// cible supprimé, etc.) ne doit jamais faire échouer le message d'origine
+// ni bloquer les autres suivis. Permissions du message copié TOUJOURS
+// recalculées pour le salon CIBLE (jamais copiées telles quelles), pour
+// rester scopées à qui peut réellement voir ce salon-là — même logique
+// que les messages de webhook.
+async function crosspostAnnouncementMessage(sourceChannelId, sourceServerName, sourceChannelName, sourceServerIcon, text, stickerUrl) {
+  try {
+    const follows = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sourceChannelId", values: [sourceChannelId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+    for (const f of (follows.documents || [])) {
+      try {
+        const targetChannel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + f.targetChannelId, { asAdmin: true });
+        if (!targetChannel || String(targetChannel.serverId) !== String(f.targetServerId) || targetChannel.type !== "text") continue;
+        const msgPerms = await computeChannelMessagePermissions(f.targetServerId, targetChannel);
+        await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+          method: "POST", asAdmin: true,
+          body: {
+            documentId: "unique()",
+            data: { channelId: f.targetChannelId, serverId: f.targetServerId, uid: "crosspost:" + sourceChannelId, username: "📢 " + sourceServerName + " · #" + sourceChannelName, text: text, replyToId: "", pollJson: "", threadId: "", stickerUrl: stickerUrl || "", avatarUrl: sourceServerIcon || "" },
+            permissions: msgPerms
+          }
+        });
+      } catch (e) {}
+    }
+  } catch (e) {}
+}
 // Un fil hérite des permissions de son salon parent — jamais d'overwrites
 // propres (§7, §30 point 4). Un fil PRIVÉ ajoute une restriction
 // supplémentaire à ses seuls membres invités (+ créateur + modération),
@@ -4111,6 +4140,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.67.0',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
+    body:'Nouveau type de salon 📢 Annonces (au choix à la création d\\'un salon). Depuis un salon d\\'annonces, le bouton 🔗 Suivre permet à n\\'importe quel membre de le relier à un salon texte d\\'un AUTRE serveur qu\\'il gère (il faut "Gérer les salons" côté cible) : chaque nouveau message publié directement dans le salon d\\'annonces (hors fils et sondages) y est alors automatiquement recopié, repéré "📢 SUIVI". Les salons suivis se gèrent et se désabonnent depuis les paramètres du serveur cible.'},
   {version:'2.66.0',date:'26 août 2026',time:'10:15',title:'Statut personnalisé : emoji et disparition automatique',
     body:'Dans l\\'éditeur de profil, le statut personnalisé a maintenant son propre bouton 😊 pour choisir un emoji sans avoir à le taper ou le copier, et un réglage « Le statut disparaît » (jamais, dans 30 min/1h/4h, aujourd\\'hui, cette semaine) — passé ce délai, il s\\'efface tout seul de ta fiche profil, pas besoin d\\'y repenser.'},
   {version:'2.65.0',date:'26 août 2026',time:'09:30',title:'Serveurs : widget embarquable',
@@ -11668,7 +11699,7 @@ function renderServerOverviewTab(){
   else renderServerChannelList();
 }
 function serverChannelRowHtml(c,canManageChannels){
-  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':c.type==='forum'?'📋':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':c.type==='forum'?'📋':c.type==='announcement'?'📢':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
     +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
     +'</div>';
 }
@@ -11745,14 +11776,16 @@ function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
   if(activeThread)return renderThreadContent(box);
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
-  const showQuickLock=canManageChannels&&(activeChannel.type==='text'||activeChannel.type==='forum');
+  const isTextLike=activeChannel.type==='text'||activeChannel.type==='announcement';
+  const showQuickLock=canManageChannels&&(isTextLike||activeChannel.type==='forum');
   let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
-    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>':'')
-    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
-    +(activeChannel.type==='text'?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
+    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>':'')
+    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
+    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
+    +(activeChannel.type==='announcement'?'<button type="button" class="set-mini-btn" id="srv-chan-follow">🔗 Suivre</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':activeChannel.type==='forum'?'📋':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':activeChannel.type==='forum'?'📋':activeChannel.type==='announcement'?'📢':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
@@ -11814,6 +11847,8 @@ function renderServerChannelContent(){
   if(threadsBtn)threadsBtn.onclick=function(){openThreadList();};
   const pollBtn=\$('srv-chan-poll');
   if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
+  const followBtn=\$('srv-chan-follow');
+  if(followBtn)followBtn.onclick=function(){openChannelFollowForm();};
   wireQuickLock();
 }
 function wireQuickLock(){
@@ -11901,6 +11936,8 @@ function renderChannelMessages(){
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
     const isWebhook=typeof m.uid==='string'&&m.uid.indexOf('webhook:')===0;
+    const isCrosspost=typeof m.uid==='string'&&m.uid.indexOf('crosspost:')===0;
+    const isSynthetic=isWebhook||isCrosspost;
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(m.avatarUrl)||safeUrl(authorProfile&&authorProfile.avatar);
     const name=m.username||'Membre';
@@ -11910,9 +11947,9 @@ function renderChannelMessages(){
     const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):replaceCustomEmojis(highlightRoleMentions(esc(m.text||''))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isWebhook?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isWebhook?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('[data-profile]').forEach(function(el){
@@ -12431,6 +12468,44 @@ function openServerWebhookCreateForm(){
     }catch(e){\$('wh-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
+function openChannelFollowForm(){
+  if(!activeChannel||activeChannel.type!=='announcement')return;
+  if(!myServers.length){showToast('Tu dois faire partie d\\'un serveur pour pouvoir y suivre ce salon.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const serverOptions=myServers.map(function(s){return '<option value="'+esc(s.\$id)+'">'+esc(s.name)+'</option>';}).join('');
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
+    +'<div class="set-section-label">🔗 Suivre #'+esc(activeChannel.name)+'</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Chaque nouveau message posté dans ce salon d\\'annonces sera automatiquement recopié dans le salon choisi ci-dessous. Il faut gérer les salons du serveur cible.</div>'
+    +'<div class="set-row"><label>Serveur cible</label><select id="cf-server" class="field-input">'+serverOptions+'</select></div>'
+    +'<div class="set-row"><label>Salon cible</label><select id="cf-channel" class="field-input"><option value="">Chargement…</option></select></div>'
+    +'<button type="button" class="btn-main" id="cf-go" style="width:100%;margin-top:6px">Suivre</button>'
+    +'<div class="err" id="cf-err"></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  async function loadTargetChannels(){
+    const sel=\$('cf-channel');sel.innerHTML='<option value="">Chargement…</option>';
+    try{
+      const r=await authPost('/api/servers/channels/list',{serverId:\$('cf-server').value});
+      const textChans=(r.channels||[]).filter(function(c){return c.type==='text';});
+      sel.innerHTML=textChans.length?textChans.map(function(c){return '<option value="'+esc(c.\$id)+'">#'+esc(c.name)+'</option>';}).join(''):'<option value="">Aucun salon texte</option>';
+    }catch(e){sel.innerHTML='<option value="">Erreur de chargement</option>';}
+  }
+  \$('cf-server').addEventListener('change',loadTargetChannels);
+  loadTargetChannels();
+  \$('cf-go').onclick=async function(){
+    const targetChannelId=\$('cf-channel').value;
+    if(!targetChannelId){\$('cf-err').textContent='Choisis un salon cible';return}
+    this.disabled=true;this.textContent='Suivi en cours…';\$('cf-err').textContent='';
+    try{
+      await authPost('/api/servers/channels/follow',{sourceChannelId:activeChannel.\$id,targetServerId:\$('cf-server').value,targetChannelId:targetChannelId});
+      close();
+      showToast('Salon suivi ! Les nouveaux messages y seront recopiés automatiquement. 🔗');
+    }catch(e){\$('cf-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Suivre';}
+  };
+}
 let shownWelcomeScreenServerIds=new Set();
 async function maybeShowWelcomeScreen(serverId){
   try{
@@ -12679,7 +12754,8 @@ const AUDIT_ACTION_LABELS={
   emoji_create:{icon:'😀',label:'a ajouté l\\'emoji'},emoji_delete:{icon:'😀',label:'a supprimé l\\'emoji'},
   tag_set:{icon:'🏷️',label:'a défini le tag du serveur :'},tag_remove:{icon:'🏷️',label:'a retiré le tag du serveur'},
   sticker_create:{icon:'🖼️',label:'a ajouté le sticker'},sticker_delete:{icon:'🖼️',label:'a supprimé le sticker'},
-  widget_enable:{icon:'🧩',label:'a activé le widget du serveur'},widget_disable:{icon:'🧩',label:'a désactivé le widget du serveur'}
+  widget_enable:{icon:'🧩',label:'a activé le widget du serveur'},widget_disable:{icon:'🧩',label:'a désactivé le widget du serveur'},
+  channel_follow_add:{icon:'📢',label:'a abonné ce serveur au salon'},channel_follow_remove:{icon:'📢',label:'a désabonné ce serveur d\\'un salon suivi'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12791,7 +12867,7 @@ function openServerChannelEditor(channel){
   box.innerHTML='<button type="button" class="set-mini-btn" id="srv-chaned-back" style="margin-bottom:12px">← Salons</button>'
     +'<div class="set-card">'
     +'<div class="set-row"><label>Nom du salon</label><input type="text" id="srv-chaned-name" class="field-input" maxlength="64" value="'+esc(channel?channel.name:'')+'" placeholder="général"></div>'
-    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button><button type="button" class="seg-btn" data-srv-chaned-type="forum">📋 Forum</button></div></div>'):'')
+    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button><button type="button" class="seg-btn" data-srv-chaned-type="forum">📋 Forum</button><button type="button" class="seg-btn" data-srv-chaned-type="announcement">📢 Annonces</button></div></div>'):'')
     +'<div class="set-row"><label>Catégorie</label><select id="srv-chaned-cat" class="field-input">'
       +'<option value="">Sans catégorie</option>'
       +activeServerCategories.map(function(c){return '<option value="'+esc(c.\$id)+'"'+((channel&&channel.categoryId===c.\$id)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')
@@ -12923,7 +12999,7 @@ function automodWordsHtml(json){
     return '<span class="srv-role-pill" style="background:rgba(239,68,68,.15);color:#fca5a5">'+esc(w)+' <button type="button" data-automod-del="'+esc(w)+'" style="margin-left:4px;color:inherit;font-weight:900">✕</button></span>';
   }).join('');
 }
-let srvWebhooksCache=[];
+let srvWebhooksCache=[],srvChannelFollowsCache=[];
 async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
@@ -12935,7 +13011,12 @@ async function renderServerSettingsTab(){
       const jwh=await rwh.json();
       srvWebhooksCache=(jwh&&jwh.webhooks)||[];
     }catch(e){srvWebhooksCache=[];}
-  }else{srvWebhooksCache=[];}
+    try{
+      const rcf=await fetch('/api/servers/channels/follows/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
+      const jcf=await rcf.json();
+      srvChannelFollowsCache=(jcf&&jcf.follows)||[];
+    }catch(e){srvChannelFollowsCache=[];}
+  }else{srvWebhooksCache=[];srvChannelFollowsCache=[];}
   const boostLevel=serverBoostLevel(activeServer);
   const boostCount=serverBoostCount(activeServer);
   const boostedByMe=serverIsBoostedByMe(activeServer);
@@ -12966,6 +13047,14 @@ async function renderServerSettingsTab(){
           +'<button type="button" class="set-mini-btn danger" data-srv-wh-del="'+esc(w.\$id)+'">Supprimer</button></div>';
       }).join(''):'<div class="scr-sub">Aucun webhook pour l\\'instant.</div>')
       +'<button type="button" class="btn-main" id="srv-wh-create-btn" style="width:100%;margin-top:8px">+ Créer un webhook</button>'
+    +'</div>'):'')
+    +(canWebhooks?('<div class="set-card"><div class="set-section-label">📢 Salons d\\'annonces suivis</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Les salons 📢 Annonces d\\'autres serveurs que ce serveur suit — chaque nouveau message y est recopié automatiquement. Pour suivre un salon, ouvre-le sur son serveur d\\'origine et clique 🔗 Suivre.</div>'
+      +(srvChannelFollowsCache.length?srvChannelFollowsCache.map(function(f){
+        const chan=activeServerChannels.find(function(c){return c.\$id===f.targetChannelId;});
+        return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(f.sourceServerName)+' · #'+esc(f.sourceChannelName)+'</div><div class="scr-sub">vers #'+esc(chan?chan.name:'salon supprimé')+'</div></div>'
+          +'<button type="button" class="set-mini-btn danger" data-srv-follow-del="'+esc(f.\$id)+'">Désabonner</button></div>';
+      }).join(''):'<div class="scr-sub">Aucun salon suivi pour l\\'instant.</div>')
     +'</div>'):'')
     +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧭 Découverte</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Rends ce serveur visible dans Découvrir des serveurs pour que n\\'importe qui puisse le trouver et le rejoindre en un clic, sans code d\\'invitation.</div>'
@@ -13101,6 +13190,17 @@ async function renderServerSettingsTab(){
   });
   const whCreateBtn=\$('srv-wh-create-btn');
   if(whCreateBtn)whCreateBtn.onclick=openServerWebhookCreateForm;
+  box.querySelectorAll('[data-srv-follow-del]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      if(!confirm('Désabonner ce serveur de ce salon d\\'annonces ?'))return;
+      b.disabled=true;
+      try{
+        await authPost('/api/servers/channels/unfollow',{followId:b.getAttribute('data-srv-follow-del')});
+        await openServerDetail(activeServer.\$id);switchServerTab('settings');
+        showToast('Désabonné.');
+      }catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
   const discoverableToggle=\$('srv-discoverable-toggle');
   if(discoverableToggle)discoverableToggle.onclick=async function(){
     const next=discoverableToggle.getAttribute('data-on')!=='1';
@@ -16156,6 +16256,95 @@ async function handle(request) {
     }
   }
 
+  // Suivi de salon d'annonces (§ channel follows, façon Discord "Follow
+  // Channel") : n'importe quel membre voyant un salon 📢 Annonces peut le
+  // "suivre" vers un salon texte d'un AUTRE serveur qu'il gère — chaque
+  // nouveau message posté directement (pas en fil, pas un sondage) dans le
+  // salon source est alors recopié dans le salon cible. Deux permissions
+  // distinctes des deux côtés : voir le salon source (accès normal), et
+  // manage_channels sur le serveur CIBLE (créer un suivi, c'est un peu
+  // comme créer un webhook entrant).
+  if (path === "/api/servers/channels/follow" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sourceChannelId = String((body && body.sourceChannelId) || "");
+      const targetServerId = String((body && body.targetServerId) || "");
+      const targetChannelId = String((body && body.targetChannelId) || "");
+      const sourceChannel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + sourceChannelId, { asAdmin: true });
+      if (sourceChannel.type !== "announcement") throw new Error("Seul un salon d'annonces peut être suivi");
+      // L'appelant doit pouvoir VOIR le salon source (accès de lecture normal
+      // à son serveur d'origine) — jamais un accès public non vérifié.
+      await serverResolveChannelAccess(sourceChannel.serverId, acc.$id, sourceChannelId);
+      const gate = await serverCheckPermission(targetServerId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée sur le serveur cible");
+      const targetChannel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + targetChannelId, { asAdmin: true });
+      if (String(targetChannel.serverId) !== String(targetServerId) || targetChannel.type !== "text") throw new Error("Le salon cible doit être un salon texte de ce serveur");
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sourceChannelId", values: [sourceChannelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "targetServerId", values: [targetServerId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      if ((existing.documents || []).length) throw new Error("Ce salon est déjà suivi par ce serveur");
+      const follow = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { sourceChannelId: sourceChannelId, sourceServerId: sourceChannel.serverId, targetChannelId: targetChannelId, targetServerId: targetServerId, followerUid: String(acc.$id) } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(targetServerId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "channel_follow_add", "#" + sourceChannel.name, { targetChannelId: targetChannelId });
+      return new Response(JSON.stringify({ ok: true, follow: follow }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/unfollow" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const followId = String((body && body.followId) || "");
+      const follow = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents/" + followId, { asAdmin: true });
+      const gate = await serverCheckPermission(follow.targetServerId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents/" + followId, { method: "DELETE", asAdmin: true });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(follow.targetServerId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "channel_follow_remove", "", {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/channels/follows/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const targetServerId = String(url.searchParams.get("serverId") || "");
+      const gate = await serverCheckPermission(targetServerId, acc.$id, "manage_channels");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "targetServerId", values: [targetServerId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const follows = [];
+      for (const f of (found.documents || [])) {
+        let sourceServerName = "Serveur supprimé", sourceChannelName = "salon supprimé";
+        try {
+          const s = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + f.sourceServerId, { asAdmin: true });
+          sourceServerName = s.name;
+        } catch (e) {}
+        try {
+          const c = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + f.sourceChannelId, { asAdmin: true });
+          sourceChannelName = c.name;
+        } catch (e) {}
+        follows.push(Object.assign({}, f, { sourceServerName: sourceServerName, sourceChannelName: sourceChannelName }));
+      }
+      return new Response(JSON.stringify({ ok: true, follows: follows }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/servers/webhooks/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -16979,7 +17168,7 @@ async function handle(request) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const name = String((body && body.name) || "").trim().slice(0, 64);
       if (!name) throw new Error("Nom de salon requis");
-      const type = body.type === "voice" ? "voice" : body.type === "forum" ? "forum" : "text";
+      const type = body.type === "voice" ? "voice" : body.type === "forum" ? "forum" : body.type === "announcement" ? "announcement" : "text";
       const visibleRoleIds = Array.isArray(body.visibleRoleIds) ? body.visibleRoleIds.map(String) : [];
       const overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
@@ -17092,7 +17281,7 @@ async function handle(request) {
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       // Un salon forum n'a pas de fil de discussion "racine" : chaque post EST
       // un fil, donc on n'y liste jamais les messages hors fil (§30).
-      if (access.channel.type !== "text" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type de lecture");
+      if (access.channel.type !== "text" && access.channel.type !== "announcement" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type de lecture");
       if (threadId) await resolveThreadAccess(serverId, threadId, acc.$id, access);
       let list;
       if (threadId) {
@@ -17160,7 +17349,7 @@ async function handle(request) {
       // Un salon forum n'accepte pas de message "hors post" (§30) — la création
       // d'un post passe par /api/servers/forum/post/create, qui crée fil + premier
       // message ensemble ; ici on n'autorise que les réponses DANS un post existant.
-      if (access.channel.type !== "text" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type d'écriture");
+      if (access.channel.type !== "text" && access.channel.type !== "announcement" && !(access.channel.type === "forum" && threadId)) throw new Error("Ce salon n'accepte pas ce type d'écriture");
       if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
       assertRulesAccepted(access.server, access.member, access.hasManage);
       // Le verrouillage gèle le salon pour tout le monde sauf qui peut le gérer
@@ -17200,6 +17389,16 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl }, permissions: msgPerms }
       });
+      // Publication auto : un message posté directement dans un salon 📢
+      // Annonces (jamais une réponse dans un fil, jamais un sondage) part
+      // vers tous les salons qui le suivent, sur n'importe quel serveur.
+      if (access.channel.type === "announcement" && !threadId && !pollJson) {
+        // Awaité (pas fire-and-forget) : ce Worker tourne en syntaxe
+        // service-worker sans event.waitUntil() ici, donc toute promesse
+        // encore en vol au moment où la réponse part risquerait d'être
+        // interrompue avant la fin du crosspost.
+        await crosspostAnnouncementMessage(channelId, access.server.name, access.channel.name, access.server.icon, text, stickerUrl).catch(function () {});
+      }
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -17218,7 +17417,7 @@ async function handle(request) {
       const originMessageId = String((body && body.originMessageId) || "").slice(0, 64);
       if (!name) throw new Error("Nom du fil requis");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
-      if (access.channel.type !== "text") throw new Error("Ce salon n'est pas un salon texte");
+      if (access.channel.type !== "text" && access.channel.type !== "announcement") throw new Error("Ce salon n'est pas un salon texte");
       if (!access.access.send) throw new Error("Tu ne peux pas créer de fil dans ce salon");
       assertRulesAccepted(access.server, access.member, access.hasManage);
       const thread = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents", {
