@@ -1273,6 +1273,34 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
 .snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
 .snap-viewer-timer{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;min-width:38px;height:38px;padding:0 10px;border-radius:19px;background:rgba(0,0,0,.5);color:#fff;font-size:1rem;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:2;font-variant-numeric:tabular-nums}
+.snap-studio-overlay{position:fixed;inset:0;z-index:9100;background:#000}
+.snap-studio-camera-view{position:absolute;inset:0;display:flex;flex-direction:column}
+.snap-studio-camera-view.hidden{display:none}
+.snap-studio-camera-view video{flex:1;width:100%;height:100%;object-fit:cover;background:#000}
+.snap-studio-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
+.snap-studio-flip{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
+.snap-studio-filters{position:absolute;left:0;right:0;bottom:132px;display:flex;gap:10px;overflow-x:auto;padding:0 16px;z-index:3;scrollbar-width:none}
+.snap-studio-filters::-webkit-scrollbar{display:none}
+.snap-studio-filter-swatch{flex:0 0 auto;width:56px;height:56px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;position:relative}
+.snap-studio-filter-swatch.on{border-color:#fff;box-shadow:0 0 0 2px rgba(124,58,237,.6)}
+.snap-studio-filter-swatch span{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:.68rem;color:#fff;white-space:nowrap;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+.snap-studio-bottom{position:absolute;left:0;right:0;bottom:calc(24px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-around;padding:0 24px;z-index:3}
+.snap-studio-gallery{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:1.3rem;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.snap-studio-capture{width:74px;height:74px;border-radius:50%;background:transparent;border:5px solid #fff;cursor:pointer;transition:transform .15s,border-color .15s}
+.snap-studio-capture:active{transform:scale(.92)}
+.snap-studio-capture.recording{border-color:#ef4444;box-shadow:0 0 0 6px rgba(239,68,68,.35)}
+.snap-studio-hint{position:absolute;left:0;right:0;bottom:calc(112px + env(safe-area-inset-bottom));text-align:center;color:rgba(255,255,255,.75);font-size:.78rem;z-index:3}
+.snap-studio-edit-view{position:absolute;inset:0;z-index:4;background:#000;display:flex}
+.snap-studio-edit-media{position:relative;flex:1;overflow:hidden}
+.snap-studio-edit-media img,.snap-studio-edit-media video{width:100%;height:100%;object-fit:contain;background:#000}
+.snap-studio-text-layer-wrap{position:absolute;inset:0}
+.snap-text-layer{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;touch-action:none;cursor:grab}
+.snap-text-layer span{font-weight:800;font-size:1.4rem;text-shadow:0 2px 6px rgba(0,0,0,.6);outline:none;min-width:20px}
+.snap-text-layer-del{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+.snap-text-layer-colors{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.5);padding:5px;border-radius:10px}
+.snap-text-layer-colors button{width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.5);cursor:pointer;padding:0}
+.snap-studio-add-text{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:24px;min-width:44px;height:44px;padding:0 16px;border-radius:22px;background:rgba(255,255,255,.15);color:#fff;font-weight:800;border:none;z-index:5;cursor:pointer}
+.snap-studio-send{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1.3rem;border:none;z-index:5;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,.5)}
 .dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
 .gp-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .gp-theme-swatch{height:44px;border-radius:10px;border:2px solid transparent;cursor:pointer;background-color:#2a1548}
@@ -4175,6 +4203,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.73.0',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
+    body:'👻 Snap éphémère ouvre maintenant un vrai studio de prise de vue en direct (comme sur Snap) : appuie pour une photo, maintiens pour filmer une vidéo, avec caméra avant/arrière, 8 filtres à appliquer en direct (Chaud, Froid, N&B, Éclatant, Vintage, Noir, Rêve…) et — pour les photos — des calques de texte à faire glisser où tu veux, en 8 couleurs. L\\'import depuis la galerie reste disponible d\\'un tap sur 🖼️. Une fois envoyé, le fichier suit exactement le même circuit que les autres snaps (chiffrement, minuteur de visionnage, streak).'},
   {version:'2.72.0',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
     body:'XULTRA a enfin un favicon (un "X" dégradé violet-rose, dessiné pour l\\'occasion) et le logo de connexion s\\'accompagne maintenant de ce même symbole. Les 12 boutons de la barre de navigation (Messages, Amis, Membres, Serveurs…) et les 5 boutons de la zone d\\'écriture des messages privés passent des emojis à de vraies icônes SVG dessinées sur-mesure, plus nettes et cohérentes. Première vague — d\\'autres coins du site (paramètres, salons de serveur…) suivront.'},
   {version:'2.71.0',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
@@ -8484,6 +8514,235 @@ document.addEventListener('click',function(e){
 });
 let pendingSnapEphemeral=false,pendingSnapDuration=0;
 const SNAP_DURATIONS=[{v:3,label:'3 secondes'},{v:5,label:'5 secondes'},{v:10,label:'10 secondes'},{v:0,label:'Sans limite (fermeture manuelle)'}];
+/* ===== Studio de snap — capture photo/vidéo en direct, filtres, calques
+   texte, façon Snapchat, entièrement construit avec getUserMedia + canvas
+   (aucune lib externe). Le résultat final (photo ou vidéo, filtre et texte
+   déjà "cuits" dedans) redevient un simple File réutilisant handleFileAttach,
+   donc tout le pipeline d'envoi (chiffrement, upload, streak…) reste unique. ===== */
+const SNAP_FILTERS=[
+  {key:'none',label:'Normal',css:'none'},
+  {key:'warm',label:'Chaud',css:'saturate(1.3) sepia(.15) contrast(1.05)'},
+  {key:'cool',label:'Froid',css:'saturate(1.2) hue-rotate(-10deg) contrast(1.05) brightness(1.03)'},
+  {key:'bw',label:'N&B',css:'grayscale(1) contrast(1.1)'},
+  {key:'vivid',label:'Éclatant',css:'saturate(1.6) contrast(1.15)'},
+  {key:'vintage',label:'Vintage',css:'sepia(.35) contrast(.95) brightness(1.05) saturate(.85)'},
+  {key:'noir',label:'Noir',css:'grayscale(1) contrast(1.4) brightness(.9)'},
+  {key:'dream',label:'Rêve',css:'saturate(1.2) brightness(1.08) contrast(.95)'}
+];
+const SNAP_TEXT_COLORS=['#ffffff','#000000','#ef4444','#f59e0b','#22c55e','#3b82f6','#7c3aed','#ec4899'];
+let studioStream=null,studioFacing='user',studioFilter='none',studioRecording=false,studioMediaRecorder=null,studioRecordChunks=[],studioDrawLoopId=null,studioCaptured=null,studioTextLayers=[],studioDragCtx=null;
+async function openSnapStudio(){
+  const overlay=document.createElement('div');
+  overlay.id='snap-studio-overlay';
+  overlay.className='snap-studio-overlay';
+  overlay.innerHTML='<div class="snap-studio-camera-view" id="snap-studio-camera-view">'
+    +'<video id="snap-studio-video" autoplay muted playsinline></video>'
+    +'<canvas id="snap-studio-canvas" class="hidden"></canvas>'
+    +'<button type="button" class="snap-studio-close" id="snap-studio-close">✕</button>'
+    +'<button type="button" class="snap-studio-flip" id="snap-studio-flip">🔄</button>'
+    +'<div class="snap-studio-filters" id="snap-studio-filters"></div>'
+    +'<div class="snap-studio-bottom">'
+      +'<button type="button" class="snap-studio-gallery" id="snap-studio-gallery">🖼️</button>'
+      +'<button type="button" class="snap-studio-capture" id="snap-studio-capture"></button>'
+      +'<div style="width:44px"></div>'
+    +'</div>'
+    +'<div class="snap-studio-hint">Appuie pour une photo, maintiens pour filmer</div>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  studioFilter='none';studioTextLayers=[];studioCaptured=null;
+  \$('snap-studio-filters').innerHTML=SNAP_FILTERS.map(function(f){
+    return '<button type="button" class="snap-studio-filter-swatch'+(f.key==='none'?' on':'')+'" data-studio-filter="'+f.key+'" style="filter:'+f.css+'"><span>'+esc(f.label)+'</span></button>';
+  }).join('');
+  \$('snap-studio-filters').querySelectorAll('[data-studio-filter]').forEach(function(b){
+    b.addEventListener('click',function(){
+      studioFilter=b.getAttribute('data-studio-filter');
+      \$('snap-studio-filters').querySelectorAll('[data-studio-filter]').forEach(function(x){x.classList.toggle('on',x===b);});
+      const def=SNAP_FILTERS.find(function(f){return f.key===studioFilter;});
+      \$('snap-studio-video').style.filter=def?def.css:'none';
+    });
+  });
+  \$('snap-studio-close').onclick=closeSnapStudio;
+  \$('snap-studio-flip').onclick=function(){studioFacing=studioFacing==='user'?'environment':'user';startStudioCamera();};
+  \$('snap-studio-gallery').onclick=function(){
+    closeSnapStudio();
+    openSnapDurationPicker(function(dur){pendingSnapEphemeral=true;pendingSnapDuration=dur;\$('file-image').click();});
+  };
+  const captureBtn=\$('snap-studio-capture');
+  let pressTimer=null,isHolding=false;
+  captureBtn.addEventListener('pointerdown',function(){
+    isHolding=false;
+    pressTimer=setTimeout(function(){isHolding=true;startStudioRecording();captureBtn.classList.add('recording');},280);
+  });
+  captureBtn.addEventListener('pointerup',function(){
+    clearTimeout(pressTimer);
+    if(isHolding){captureBtn.classList.remove('recording');stopStudioRecording();}
+    else studioCapturePhoto();
+  });
+  captureBtn.addEventListener('pointerleave',function(){
+    if(isHolding){clearTimeout(pressTimer);captureBtn.classList.remove('recording');stopStudioRecording();isHolding=false;}
+  });
+  await startStudioCamera();
+}
+async function startStudioCamera(){
+  try{
+    if(studioStream)studioStream.getTracks().forEach(function(t){t.stop();});
+    studioStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:studioFacing},audio:true});
+    const video=\$('snap-studio-video');
+    if(video){video.srcObject=studioStream;video.style.filter=(SNAP_FILTERS.find(function(f){return f.key===studioFilter;})||{}).css||'none';}
+  }catch(e){showToast('Impossible d\\'accéder à la caméra : '+((e&&e.message)||'permission refusée'),'error');closeSnapStudio();}
+}
+function closeSnapStudio(){
+  if(studioStream){studioStream.getTracks().forEach(function(t){t.stop();});studioStream=null;}
+  if(studioDrawLoopId){cancelAnimationFrame(studioDrawLoopId);studioDrawLoopId=null;}
+  const ov=\$('snap-studio-overlay');if(ov)ov.remove();
+}
+function studioCapturePhoto(){
+  const video=\$('snap-studio-video');if(!video||!video.videoWidth)return;
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  ctx.filter=(SNAP_FILTERS.find(function(f){return f.key===studioFilter;})||{}).css||'none';
+  ctx.drawImage(video,0,0,canvas.width,canvas.height);
+  studioCaptured={type:'image',canvas:canvas};
+  openSnapStudioEditor();
+}
+function startStudioRecording(){
+  const video=\$('snap-studio-video');if(!video||!video.videoWidth||!studioStream)return;
+  const canvas=document.createElement('canvas');
+  canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+  const ctx=canvas.getContext('2d');
+  const filterCss=(SNAP_FILTERS.find(function(f){return f.key===studioFilter;})||{}).css||'none';
+  function draw(){
+    ctx.filter=filterCss;
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    studioDrawLoopId=requestAnimationFrame(draw);
+  }
+  draw();
+  const canvasStream=canvas.captureStream(30);
+  const audioTracks=studioStream.getAudioTracks();
+  if(audioTracks.length)canvasStream.addTrack(audioTracks[0]);
+  studioRecordChunks=[];
+  try{
+    studioMediaRecorder=new MediaRecorder(canvasStream,{mimeType:MediaRecorder.isTypeSupported('video/webm;codecs=vp9')?'video/webm;codecs=vp9':'video/webm'});
+  }catch(e){showToast('Enregistrement vidéo non supporté sur cet appareil.','error');cancelAnimationFrame(studioDrawLoopId);studioDrawLoopId=null;return}
+  studioMediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size)studioRecordChunks.push(e.data);};
+  studioMediaRecorder.onstop=function(){
+    if(studioDrawLoopId){cancelAnimationFrame(studioDrawLoopId);studioDrawLoopId=null;}
+    const blob=new Blob(studioRecordChunks,{type:'video/webm'});
+    if(blob.size<2000){showToast('Enregistrement trop court.','error');return}
+    studioCaptured={type:'video',blob:blob};
+    openSnapStudioEditor();
+  };
+  studioMediaRecorder.start();
+  studioRecording=true;
+}
+function stopStudioRecording(){
+  if(studioMediaRecorder&&studioRecording){studioMediaRecorder.stop();studioRecording=false;}
+}
+function openSnapStudioEditor(){
+  const view=\$('snap-studio-camera-view');if(view)view.classList.add('hidden');
+  const isVideo=studioCaptured.type==='video';
+  const previewSrc=isVideo?URL.createObjectURL(studioCaptured.blob):studioCaptured.canvas.toDataURL('image/jpeg',.92);
+  const overlay=\$('snap-studio-overlay');
+  const editEl=document.createElement('div');
+  editEl.className='snap-studio-edit-view';
+  editEl.id='snap-studio-edit-view';
+  editEl.innerHTML='<div class="snap-studio-edit-media" id="snap-studio-edit-media">'
+    +(isVideo?('<video src="'+previewSrc+'" autoplay muted loop playsinline></video>'):('<img src="'+previewSrc+'" alt="">'))
+    +'<div class="snap-studio-text-layer-wrap" id="snap-studio-text-layer-wrap"></div>'
+  +'</div>'
+  +'<button type="button" class="snap-studio-close" id="snap-studio-edit-close">✕</button>'
+  +(isVideo?'':'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text">Aa</button>')
+  +'<button type="button" class="snap-studio-send" id="snap-studio-send">➤</button>';
+  overlay.appendChild(editEl);
+  \$('snap-studio-edit-close').onclick=function(){
+    editEl.remove();
+    if(view)view.classList.remove('hidden');
+    studioCaptured=null;studioTextLayers=[];
+  };
+  const addTextBtn=\$('snap-studio-add-text');
+  if(addTextBtn)addTextBtn.onclick=function(){
+    studioTextLayers.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),text:'Texte',x:50,y:50,color:'#ffffff'});
+    renderStudioTextLayers();
+  };
+  \$('snap-studio-send').onclick=function(){finishStudioSend(isVideo);};
+}
+function renderStudioTextLayers(){
+  const wrap=\$('snap-studio-text-layer-wrap');if(!wrap)return;
+  wrap.innerHTML=studioTextLayers.map(function(t){
+    return '<div class="snap-text-layer" data-layer-id="'+t.id+'" style="left:'+t.x+'%;top:'+t.y+'%;color:'+esc(t.color)+'"><span contenteditable="true" data-layer-edit="'+t.id+'">'+esc(t.text)+'</span><button type="button" class="snap-text-layer-del" data-layer-del="'+t.id+'">✕</button><div class="snap-text-layer-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-layer-color="'+t.id+'" data-color="'+c+'" style="background:'+c+'"></button>';}).join('')+'</div></div>';
+  }).join('');
+  wrap.querySelectorAll('[data-layer-id]').forEach(function(el){
+    const id=el.getAttribute('data-layer-id');
+    el.addEventListener('pointerdown',function(e){
+      if(e.target.closest('[data-layer-edit]')||e.target.closest('[data-layer-del]')||e.target.closest('[data-layer-color]'))return;
+      const rect=wrap.getBoundingClientRect();
+      studioDragCtx={id:id,rect:rect};
+      e.preventDefault();
+    });
+  });
+  wrap.querySelectorAll('[data-layer-edit]').forEach(function(el){
+    el.addEventListener('input',function(){
+      const t=studioTextLayers.find(function(x){return x.id===el.getAttribute('data-layer-edit');});
+      if(t)t.text=el.textContent;
+    });
+  });
+  wrap.querySelectorAll('[data-layer-del]').forEach(function(el){
+    el.addEventListener('click',function(){
+      studioTextLayers=studioTextLayers.filter(function(x){return x.id!==el.getAttribute('data-layer-del');});
+      renderStudioTextLayers();
+    });
+  });
+  wrap.querySelectorAll('[data-layer-color]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const t=studioTextLayers.find(function(x){return x.id===el.getAttribute('data-layer-color');});
+      if(t){t.color=el.getAttribute('data-color');renderStudioTextLayers();}
+    });
+  });
+}
+document.addEventListener('pointermove',function(e){
+  if(!studioDragCtx)return;
+  const wrap=\$('snap-studio-text-layer-wrap');if(!wrap)return;
+  const rect=wrap.getBoundingClientRect();
+  const t=studioTextLayers.find(function(x){return x.id===studioDragCtx.id;});
+  if(!t)return;
+  t.x=Math.max(5,Math.min(95,((e.clientX-rect.left)/rect.width)*100));
+  t.y=Math.max(5,Math.min(95,((e.clientY-rect.top)/rect.height)*100));
+  const el=wrap.querySelector('[data-layer-id="'+t.id+'"]');
+  if(el){el.style.left=t.x+'%';el.style.top=t.y+'%';}
+});
+document.addEventListener('pointerup',function(){studioDragCtx=null;});
+async function finishStudioSend(isVideo){
+  if(!activeDm||!studioCaptured)return;
+  let file;
+  if(isVideo){
+    file=new File([studioCaptured.blob],'snap.webm',{type:'video/webm'});
+  }else{
+    // Cuit les calques de texte directement dans l'image finale — ce que
+    // l'expéditeur voit dans l'éditeur est exactement ce qui part.
+    const srcCanvas=studioCaptured.canvas;
+    const mediaEl=\$('snap-studio-edit-media');
+    const displayRect=mediaEl?mediaEl.getBoundingClientRect():{width:srcCanvas.width,height:srcCanvas.height};
+    const scaleX=srcCanvas.width/displayRect.width,scaleY=srcCanvas.height/displayRect.height;
+    const ctx=srcCanvas.getContext('2d');
+    studioTextLayers.forEach(function(t){
+      const fontSize=Math.round(28*scaleX);
+      ctx.font='bold '+fontSize+'px sans-serif';
+      ctx.fillStyle=t.color;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
+      ctx.fillText(t.text,srcCanvas.width*(t.x/100),srcCanvas.height*(t.y/100));
+      ctx.shadowBlur=0;
+    });
+    const blob=await new Promise(function(res){srcCanvas.toBlob(res,'image/jpeg',.92);});
+    file=new File([blob],'snap.jpg',{type:'image/jpeg'});
+  }
+  closeSnapStudio();
+  openSnapDurationPicker(function(dur){
+    handleFileAttach(file,'auto',true,dur);
+  });
+}
 function openSnapDurationPicker(onPick){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
@@ -8508,9 +8767,7 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
     if(kind==='image'){pendingSnapEphemeral=false;\$('file-image').click();}
     else if(kind==='snap'){
       if(activeDmIsGroup){showToast('Les snaps éphémères ne sont possibles qu\\'en conversation privée.','error');return}
-      openSnapDurationPicker(function(dur){
-        pendingSnapEphemeral=true;pendingSnapDuration=dur;\$('file-image').click();
-      });
+      openSnapStudio();
     }
     else if(kind==='file')\$('file-generic').click();
     else if(kind==='gif')openGifPicker();
