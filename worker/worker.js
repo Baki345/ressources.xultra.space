@@ -65,6 +65,10 @@ function mintLiveKitParticipantToken(identity, name, room) {
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
 const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events", "manage_expressions"];
+// Anti-spam pour les avis "capture d'écran" (§ vie privée) : un seul avis par
+// personne et par conversation/salon toutes les SCREENSHOT_COOLDOWN_MS,
+// vérifié côté serveur (jamais fiable côté client seul).
+const SCREENSHOT_COOLDOWN_MS = 20000;
 async function logServerAudit(serverId, actorUid, actorName, action, targetName, details) {
   try {
     await awFetch("/databases/" + AW_DB + "/collections/server_audit_log/documents", {
@@ -1317,6 +1321,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .mf-name{font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .mf-size{font-size:.68rem;color:var(--muted)}
 .msg-location{display:flex;flex-direction:column;gap:2px;background:rgba(255,255,255,.06);border-radius:12px;padding:10px 14px;text-decoration:none;color:#f2ebff;font-size:.85rem;font-weight:700}
+.upload-progress-bub{min-width:190px}
+.upload-progress-info{display:flex;justify-content:space-between;gap:10px;font-size:.8rem;font-weight:700;margin-bottom:6px}
+.upload-progress-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.upload-progress-bar{height:6px;border-radius:4px;background:rgba(255,255,255,.15);overflow:hidden}
+.upload-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:4px;transition:width .15s ease}
+.upload-progress-size{margin-top:5px;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.msg-system-notice{width:100%;text-align:center;font-size:.74rem;color:var(--muted);padding:4px 0;margin:2px 0}
 .msg.mine .msg-location{background:rgba(255,255,255,.16)}
 .msg-location span{font-size:.7rem;color:var(--muted);font-weight:600}
 .msg.mine .msg-location span{color:rgba(255,255,255,.7)}
@@ -4203,6 +4214,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.74.0',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
+    body:'Dans les messages privés, colle une image copiée (capture, image copiée d\\'un site…) directement dans la zone de texte : elle s\\'envoie automatiquement, avec une barre de progression qui affiche le poids envoyé sur le poids total. Et désormais, dans les DM comme dans les salons de serveur, si quelqu\\'un prend une capture d\\'écran (touche Impr écran sous Windows — malheureusement indétectable sur Mac et mobile, aucune app web n\\'a accès à cette information là-bas), un petit avis "a pris une capture d\\'écran" s\\'affiche dans la conversation, avec une limite d\\'un avis toutes les 20 secondes pour éviter le spam.'},
   {version:'2.73.1',date:'26 août 2026',time:'16:20',title:'Correctif : plusieurs listes pouvaient sembler vides après une longue session',
     body:'Comme pour le sélecteur de tag de serveur (correctif précédent), plusieurs autres écrans utilisaient un jeton de session parfois périmé au lieu d\\'en redemander un frais : la découverte de serveurs, les émojis/stickers d\\'un serveur, les événements, l\\'écran d\\'accueil, les webhooks, les salons suivis et le fil des créateurs. Dans de rares cas (session ouverte depuis un moment, onglet resté en arrière-plan…) ces listes pouvaient sembler vides sans message d\\'erreur. Tous ces écrans redemandent maintenant systématiquement un jeton frais, comme le reste du site.'},
   {version:'2.73.0',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
@@ -5733,6 +5746,23 @@ document.addEventListener('keydown',function(e){
   if(e.key==='Escape'){
     if(closeTopmostOverlay())return;
     closeUbPopovers();
+  }
+});
+// Avis "capture d'écran" façon Snapchat : au mieux, limite du web — seule la
+// touche Impr écran de Windows arrive jusqu'à la page (keyup, pas keydown,
+// pour une fiabilité maximale entre navigateurs). Les raccourcis capture de
+// macOS (⌘⇧3/4/5), l'Outil Capture Windows (⊞⇧S) et les captures mobiles ne
+// génèrent aucun événement clavier dans une page web — indétectables ici,
+// aucune API navigateur ne le permet.
+let lastScreenshotNotifyAt=0;
+document.addEventListener('keyup',function(e){
+  if(e.key!=='PrintScreen')return;
+  if(Date.now()-lastScreenshotNotifyAt<3000)return;
+  lastScreenshotNotifyAt=Date.now();
+  if(activeDm){
+    authPost('/api/dms/screenshot-notify',{dmId:activeDm}).catch(function(){});
+  }else if(activeServer&&activeChannel){
+    authPost('/api/servers/channels/screenshot-notify',{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:''}).catch(function(){});
   }
 });
 
@@ -8147,6 +8177,7 @@ function renderMessages(){
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
   const seenInfo=computeSeenInfo();
   box.innerHTML=msgsCache.map(function(m){
+    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran</div>';
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
@@ -8506,6 +8537,17 @@ if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
   \$('btn-voice').classList.toggle('hidden',has);
   if(has)notifyTyping();else clearTypingState();
 });
+if(\$('msg-input'))\$('msg-input').addEventListener('paste',function(e){
+  if(!activeDm)return;
+  const items=(e.clipboardData&&e.clipboardData.items)||[];
+  let file=null;
+  for(let i=0;i<items.length;i++){
+    if(items[i].kind==='file'){file=items[i].getAsFile();break}
+  }
+  if(!file)return;
+  e.preventDefault();
+  handleFileAttach(file,'auto',false,0);
+});
 if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
 
 /* ===== Pièces jointes ===== */
@@ -8777,6 +8819,65 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
   });
 });
 const MAX_ATTACH_BYTES=25*1024*1024;
+const UPLOAD_CHUNK_SIZE=5*1024*1024;
+function uploadFileWithProgress(file,onProgress){
+  // Au-delà de 5 Mo on garde le découpage par blocs du SDK Appwrite lui-même
+  // (un envoi en un seul bloc s'est montré instable en test au-delà de cette
+  // taille) — la progression avance alors palier par palier (par bloc envoyé).
+  if(file.size>UPLOAD_CHUNK_SIZE){
+    return storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())],function(p){
+      if(onProgress)onProgress(p.sizeUploaded,file.size);
+    });
+  }
+  // En dessous, un envoi direct en un seul bloc via XHR donne une progression
+  // fluide et continue (fetch() ne l'expose pas côté navigateur).
+  return new Promise(function(resolve,reject){
+    try{
+      const xhr=new XMLHttpRequest();
+      const fd=new FormData();
+      const fileId=Appwrite.ID.unique();
+      fd.append('fileId',fileId);
+      fd.append('file',file,file.name||'upload');
+      fd.append('permissions[]',Appwrite.Permission.read(Appwrite.Role.any()));
+      xhr.open('POST',PROXY_EP+'/storage/buckets/'+BUCKET+'/files',true);
+      xhr.withCredentials=true;
+      const hdrs=(client&&client.headers)||{};
+      Object.keys(hdrs).forEach(function(k){try{xhr.setRequestHeader(k,hdrs[k]);}catch(e){}});
+      xhr.upload.onprogress=function(e){if(onProgress)onProgress(e.loaded,e.lengthComputable?e.total:file.size);};
+      xhr.onload=function(){
+        if(xhr.status>=200&&xhr.status<400){if(onProgress)onProgress(file.size,file.size);resolve({\$id:fileId});}
+        else{
+          let msg='Upload échoué ('+xhr.status+')';
+          try{const j=JSON.parse(xhr.responseText);if(j&&j.message)msg=j.message;}catch(e){}
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror=function(){reject(new Error('Upload échoué (réseau)'));};
+      xhr.send(fd);
+    }catch(e){reject(e);}
+  });
+}
+function createUploadProgressRow(file){
+  const box=\$('msgs');if(!box)return null;
+  const label=file.name||(file.type&&file.type.indexOf('video/')===0?'Vidéo':'Image');
+  const row=document.createElement('div');
+  row.className='msg mine';
+  row.innerHTML='<div class="av"></div><div><div class="bub upload-progress-bub">'
+    +'<div class="upload-progress-info"><span class="upload-progress-name">'+esc(label)+'</span><span class="upload-progress-pct">0%</span></div>'
+    +'<div class="upload-progress-bar"><div class="upload-progress-fill" style="width:0%"></div></div>'
+    +'<div class="upload-progress-size">0 o / '+esc(fmtSize(file.size))+'</div>'
+    +'</div></div>';
+  box.appendChild(row);
+  box.scrollTop=box.scrollHeight;
+  return row;
+}
+function updateUploadProgressRow(row,loaded,total){
+  if(!row)return;
+  const pct=total?Math.min(100,Math.round(loaded/total*100)):0;
+  const pctEl=row.querySelector('.upload-progress-pct');if(pctEl)pctEl.textContent=pct+'%';
+  const fillEl=row.querySelector('.upload-progress-fill');if(fillEl)fillEl.style.width=pct+'%';
+  const sizeEl=row.querySelector('.upload-progress-size');if(sizeEl)sizeEl.textContent=fmtSize(loaded)+' / '+fmtSize(total);
+}
 async function handleFileAttach(file,kindHint,ephemeral,durationSec){
   if(!file||!activeDm)return;
   if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
@@ -8787,6 +8888,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
     else type='file';
   }
   if(ephemeral&&type!=='image'&&type!=='video'){showToast('Un snap éphémère doit être une photo ou une vidéo.','error');return}
+  let progressRow=null;
   try{
     const keyCtx=await e2eGetMessageKeyContext();
     let uploadBlob=file,enc=false;
@@ -8794,7 +8896,8 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
       const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,file);
       uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});enc=true;
     }
-    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
+    progressRow=createUploadProgressRow(file);
+    const up=await uploadFileWithProgress(uploadBlob,function(loaded,total){updateUploadProgressRow(progressRow,loaded,total);});
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
     if(ephemeral)data.snapDurationSec=durationSec||0;
@@ -8809,7 +8912,10 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
         updateDmStreakUi(r.streak);
       }catch(e){}
     }
-  }catch(e){alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});}
+  }catch(e){
+    if(progressRow)progressRow.remove();
+    alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});
+  }
 }
 if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration);pendingSnapEphemeral=false;pendingSnapDuration=0;this.value='';});
 if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
@@ -12591,6 +12697,7 @@ function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
   box.innerHTML=activeChannelMessages.map(function(m){
+    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.username||'Quelqu\\'un')+' a pris une capture d\\'écran</div>';
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
@@ -18185,6 +18292,43 @@ async function handle(request) {
     }
   }
 
+  // Avis "capture d'écran" en salon — même principe que la version DM
+  // ci-dessus (route serveur-autoritaire, throttle anti-spam serveur).
+  if (path === "/api/servers/channels/screenshot-notify" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const threadId = String((body && body.threadId) || "").slice(0, 64);
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (!access.access.send) throw new Error("Tu ne peux pas écrire dans ce salon");
+      const lastQ = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "type", values: ["sysshot"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const last = (lastQ.documents || [])[0];
+      if (last && (Date.now() - new Date(last.$createdAt).getTime()) < SCREENSHOT_COOLDOWN_MS) {
+        return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      let thread = null;
+      if (threadId) thread = await resolveThreadAccess(serverId, threadId, acc.$id, access);
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: uname + " a pris une capture d'écran", type: "sysshot", threadId: threadId }, permissions: msgPerms }
+      });
+      return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/servers/threads/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -18757,6 +18901,42 @@ async function handle(request) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { method: "PATCH", asAdmin: true, body: { data: { mediaUrl: "", viewedAt: new Date().toISOString() } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Avis "capture d'écran" en DM (façon Snapchat) : le client détecte au mieux
+  // (touche Impr écran sous Windows — indétectable sur Mac/mobile, limite du
+  // web) et déclenche cette route, qui écrit elle-même le message système
+  // "vu" — jamais le client, pour empêcher un client modifié de spammer ou
+  // d'usurper l'identité de l'auteur. Anti-spam : throttle serveur ci-dessous.
+  if (path === "/api/dms/screenshot-notify" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const dmId = String((body && body.dmId) || "");
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmId, { asAdmin: true });
+      const members = (dm.members || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
+      const lastQ = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "threadId", values: [dmId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "type", values: ["sysshot"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const last = (lastQ.documents || [])[0];
+      if (last && (Date.now() - new Date(last.$createdAt).getTime()) < SCREENSHOT_COOLDOWN_MS) {
+        return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const profile = await resolveProfile(acc.$id);
+      const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Quelqu'un";
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { threadId: dmId, uid: String(acc.$id), displayName: displayName, type: "sysshot", text: displayName + " a pris une capture d'écran", mediaUrl: "" } }
+      });
+      return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
