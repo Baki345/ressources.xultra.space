@@ -3583,6 +3583,10 @@ async function enterApp(e2ePassword){
     const sharedUid=new URLSearchParams(location.search).get('profile');
     if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
   }catch(e){}
+  try{
+    const inviteCode=new URLSearchParams(location.search).get('invite');
+    if(inviteCode){openServerJoinModal(inviteCode.toUpperCase());history.replaceState(null,'',location.pathname);}
+  }catch(e){}
 }
 let e2eBannerMode='activate';
 function showE2EBanner(mode){
@@ -4099,6 +4103,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.65.0',date:'26 août 2026',time:'09:30',title:'Serveurs : widget embarquable',
+    body:'Nouvelle section 🧩 Widget dans les paramètres du serveur : une fois activé, une URL publique renvoie le nom, l\\'icône, le nombre de membres et un lien d\\'invitation du serveur — pratique pour l\\'afficher sur un site externe. Volontairement minimaliste : jamais la liste des membres en ligne, leur présence ne sera jamais diffusée publiquement sans leur consentement. Les liens d\\'invitation (ex. xultra.space/?invite=CODE) ouvrent maintenant directement la fenêtre pour rejoindre le serveur, code déjà rempli.'},
   {version:'2.64.0',date:'26 août 2026',time:'08:45',title:'Serveurs : stickers',
     body:'Nouvelle section 🖼️ Stickers dans les paramètres du serveur (jusqu\\'à 20 par serveur, même permission que les emojis) : des images plus grandes que les emojis, postées comme un message à part entière — parfait pour réagir sans un mot. Ils apparaissent en haut du sélecteur d\\'emoji habituel dans les salons, un clic suffit pour les envoyer.'},
   {version:'2.63.0',date:'26 août 2026',time:'08:00',title:'Serveurs : écran d\\'accueil',
@@ -11458,10 +11464,12 @@ if(\$('srv-create-submit'))\$('srv-create-submit').addEventListener('click',asyn
   this.disabled=false;this.textContent='Créer mon serveur';
 });
 
-if(\$('btn-server-join'))\$('btn-server-join').addEventListener('click',function(){
-  \$('srv-join-code').value='';\$('srv-join-preview').innerHTML='';\$('srv-join-err').textContent='';
+function openServerJoinModal(prefillCode){
+  \$('srv-join-code').value=prefillCode||'';\$('srv-join-preview').innerHTML='';\$('srv-join-err').textContent='';
   \$('modal-server-join').classList.remove('hidden');
-});
+  if(prefillCode)\$('srv-join-code').dispatchEvent(new Event('input'));
+}
+if(\$('btn-server-join'))\$('btn-server-join').addEventListener('click',function(){openServerJoinModal('');});
 if(\$('srv-join-close'))\$('srv-join-close').addEventListener('click',function(){\$('modal-server-join').classList.add('hidden');});
 if(\$('modal-server-join'))\$('modal-server-join').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
 let srvJoinPreviewTimer=null;
@@ -12636,7 +12644,8 @@ const AUDIT_ACTION_LABELS={
   community_mode_on:{icon:'🏛️',label:'a activé le mode communauté'},community_mode_off:{icon:'🏛️',label:'a désactivé le mode communauté'},
   emoji_create:{icon:'😀',label:'a ajouté l\\'emoji'},emoji_delete:{icon:'😀',label:'a supprimé l\\'emoji'},
   tag_set:{icon:'🏷️',label:'a défini le tag du serveur :'},tag_remove:{icon:'🏷️',label:'a retiré le tag du serveur'},
-  sticker_create:{icon:'🖼️',label:'a ajouté le sticker'},sticker_delete:{icon:'🖼️',label:'a supprimé le sticker'}
+  sticker_create:{icon:'🖼️',label:'a ajouté le sticker'},sticker_delete:{icon:'🖼️',label:'a supprimé le sticker'},
+  widget_enable:{icon:'🧩',label:'a activé le widget du serveur'},widget_disable:{icon:'🧩',label:'a désactivé le widget du serveur'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -12972,6 +12981,11 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-welcome-save" style="width:100%">Enregistrer</button>'
       +'<div class="err" id="srv-welcome-err"></div>'
     +'</div>'):'')
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧩 Widget</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Un petit embed public à afficher sur un site externe : nom, icône, nombre de membres et lien d\\'invitation. Jamais la liste des membres — leur présence ne sera jamais diffusée publiquement.</div>'
+      +'<div class="set-toggle-row"><span>Widget activé</span><div class="set-switch'+(activeServer.widgetEnabled?' on':'')+'" id="srv-widget-toggle" data-on="'+(activeServer.widgetEnabled?'1':'0')+'"></div></div>'
+      +(activeServer.widgetEnabled?('<div class="set-row"><label>URL du widget (JSON)</label><input type="text" id="srv-widget-url" class="field-input" readonly value="'+esc(location.origin+'/api/servers/widget/'+activeServer.\$id+'.json')+'"></div><button type="button" class="set-mini-btn" id="srv-widget-copy">Copier l\\'URL</button>'):'')
+    +'</div>'):'')
     +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
@@ -13223,6 +13237,21 @@ async function renderServerSettingsTab(){
       this.disabled=false;this.textContent='Enregistrer';
     };
   }
+  const widgetToggle=\$('srv-widget-toggle');
+  if(widgetToggle)widgetToggle.onclick=async function(){
+    const next=widgetToggle.getAttribute('data-on')!=='1';
+    try{
+      await authPost('/api/servers/widget/toggle',{serverId:activeServer.\$id,enabled:next});
+      activeServer.widgetEnabled=next;
+      await openServerDetail(activeServer.\$id);switchServerTab('settings');
+      showToast(next?'Widget activé. 🧩':'Widget désactivé.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  const widgetCopyBtn=\$('srv-widget-copy');
+  if(widgetCopyBtn)widgetCopyBtn.onclick=function(){
+    const url=\$('srv-widget-url').value;
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject()).then(function(){showToast('URL copiée !');}).catch(function(){showToast(url,'error');});
+  };
   const boostBtn=\$('srv-boost-toggle');
   if(boostBtn)boostBtn.onclick=async function(){
     this.disabled=true;
@@ -16316,6 +16345,52 @@ async function handle(request) {
       const profile = await resolveProfile(acc.$id);
       await logServerAudit(sticker.serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, "sticker_delete", sticker.name, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Widget de serveur : un embed public, SANS authentification, pensé pour
+  // être affiché sur un site externe. Volontairement minimaliste (nom, icône,
+  // nombre de membres, lien d'invitation) — jamais la liste des membres en
+  // ligne avec pseudo/avatar : ces gens n'ont jamais consenti à voir leur
+  // présence diffusée publiquement à n'importe quel site tiers. Seul le
+  // PROPRIÉTAIRE ou "manage_server" peut activer/désactiver l'embed.
+  if (path === "/api/servers/widget/toggle" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const enabled = !!(body && body.enabled);
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
+        method: "PATCH", asAdmin: true, body: { data: { widgetEnabled: enabled } }
+      });
+      const profile = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, enabled ? "widget_enable" : "widget_disable", "", {});
+      return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (/^\/api\/servers\/widget\/[^/]+\.json$/.test(path) && request.method === "GET") {
+    try {
+      const serverId = path.split("/")[4].replace(/\.json$/, "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true }).catch(function () { return null; });
+      if (!server || !server.widgetEnabled) {
+        return new Response(JSON.stringify({ ok: false, error: "widget_disabled" }), { status: 404, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const membersCount = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      return new Response(JSON.stringify({
+        ok: true, id: server.$id, name: server.name, icon: server.icon || "",
+        member_count: (membersCount.total != null ? membersCount.total : (membersCount.documents || []).length),
+        instant_invite: url.origin + "/?invite=" + encodeURIComponent(server.inviteCode || "")
+      }), { headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "public, max-age=60" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
