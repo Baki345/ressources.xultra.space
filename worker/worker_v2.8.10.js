@@ -1295,6 +1295,15 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-studio-flip{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
 .snap-studio-timer-btn{position:absolute;top:calc(16px + env(safe-area-inset-top));left:64px;height:38px;padding:0 12px;border-radius:19px;background:rgba(0,0,0,.5);color:#fff;font-size:.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer;white-space:nowrap}
 .snap-studio-timer-btn.on{background:rgba(124,58,237,.75)}
+.snap-studio-torch-btn{position:absolute;top:calc(16px + env(safe-area-inset-top));left:112px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
+.snap-studio-torch-btn.hidden{display:none}
+.snap-studio-torch-btn.on{background:rgba(124,58,237,.75)}
+.snap-studio-zoom-wrap{position:absolute;right:16px;top:96px;bottom:212px;width:32px;display:flex;align-items:center;justify-content:center;z-index:3}
+.snap-studio-zoom-wrap.hidden{display:none}
+.snap-studio-zoom{writing-mode:vertical-lr;direction:rtl;width:6px;height:100%;accent-color:#7c3aed;cursor:pointer}
+.snap-studio-focus-ring-layer{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden}
+.snap-studio-focus-ring{position:absolute;width:64px;height:64px;margin-left:-32px;margin-top:-32px;border:2px solid #ffd60a;border-radius:8px;animation:snapFocusRing .6s ease-out forwards}
+@keyframes snapFocusRing{0%{transform:scale(1.3);opacity:0}20%{opacity:1}100%{transform:scale(1);opacity:0}}
 .snap-studio-countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:5rem;font-weight:900;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.6);z-index:4;pointer-events:none}
 .snap-studio-countdown.hidden{display:none}
 .snap-studio-filters{position:absolute;left:0;right:0;bottom:132px;display:flex;gap:10px;overflow-x:auto;padding:0 16px;z-index:3;scrollbar-width:none}
@@ -1315,6 +1324,8 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-layer{position:absolute;display:flex;align-items:center;gap:6px;touch-action:none;cursor:grab;transform-origin:center center}
 .snap-layer-content{font-weight:800;font-size:1.4rem;text-shadow:0 2px 6px rgba(0,0,0,.6);outline:none;min-width:20px;white-space:nowrap}
 .snap-layer-sticker .snap-layer-content{font-size:2.6rem;text-shadow:none}
+.snap-layer-xmoji-content{width:64px;height:64px;display:block}
+.snap-layer-xmoji-content svg{width:100%;height:100%;display:block}
 .snap-layer-del{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
 .snap-layer-resize{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(124,58,237,.9);cursor:nwse-resize;flex:0 0 auto;touch-action:none}
 .snap-text-layer-colors{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.5);padding:5px;border-radius:10px}
@@ -4252,6 +4263,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.80.0',date:'26 août 2026',time:'23:00',title:'Studio Ephem : zoom, flash, mise au point, rotation, recadrage et sticker xMoji',
+    body:'Bloc 3 du studio Ephem : zoom et flash 🔦 pendant la prise de vue (affichés seulement si ton appareil les supporte), mise au point en tapant sur l\\'image, un bouton 🔄 pour faire pivoter la photo par quarts de tour, un bouton ✂️ pour la recadrer (originale, carrée, 4:5 ou 9:16), et un nouveau type de sticker : ton xMoji, ajoutable directement depuis l\\'éditeur si tu en as configuré un.'},
   {version:'2.79.0',date:'26 août 2026',time:'22:00',title:'Studio Ephem : dessin libre et sauvegarde sur l\\'appareil',
     body:'Bloc 2 du studio Ephem façon Snap : un nouveau bouton ✏️ ouvre un mode dessin libre — trace au doigt directement sur ta photo, choisis parmi 8 couleurs, annule le dernier trait d\\'un tap. Et un bouton 💾 permet d\\'enregistrer la photo (avec dessin, texte et stickers) directement sur l\\'appareil avant ou sans l\\'envoyer.'},
   {version:'2.78.0',date:'26 août 2026',time:'21:00',title:'Studio Ephem : calques redimensionnables, stickers, retardateur et glisser pour changer de filtre',
@@ -8638,6 +8651,9 @@ async function openSnapStudio(){
     +'<button type="button" class="snap-studio-close" id="snap-studio-close">✕</button>'
     +'<button type="button" class="snap-studio-flip" id="snap-studio-flip">🔄</button>'
     +'<button type="button" class="snap-studio-timer-btn" id="snap-studio-timer-btn" title="Retardateur">⏱</button>'
+    +'<button type="button" class="snap-studio-torch-btn hidden" id="snap-studio-torch-btn" title="Flash">🔦</button>'
+    +'<div class="snap-studio-zoom-wrap hidden" id="snap-studio-zoom-wrap"><input type="range" id="snap-studio-zoom" class="snap-studio-zoom"></div>'
+    +'<div class="snap-studio-focus-ring-layer" id="snap-studio-focus-layer"></div>'
     +'<div class="snap-studio-filters" id="snap-studio-filters"></div>'
     +'<div class="snap-studio-bottom">'
       +'<button type="button" class="snap-studio-gallery" id="snap-studio-gallery">🖼️</button>'
@@ -8682,7 +8698,7 @@ async function openSnapStudio(){
   videoEl.addEventListener('pointerup',function(e){
     if(swipeStartX===null)return;
     const dx=e.clientX-swipeStartX;swipeStartX=null;
-    if(Math.abs(dx)<50)return;
+    if(Math.abs(dx)<50){studioTapToFocus(e,videoEl.getBoundingClientRect());return}
     const idx=STUDIO_FILTER_KEYS.indexOf(studioFilter);
     const nextIdx=dx<0?Math.min(STUDIO_FILTER_KEYS.length-1,idx+1):Math.max(0,idx-1);
     selectStudioFilter(STUDIO_FILTER_KEYS[nextIdx]);
@@ -8721,7 +8737,58 @@ async function startStudioCamera(){
     studioStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:studioFacing},audio:true});
     const video=\$('snap-studio-video');
     if(video){video.srcObject=studioStream;video.style.filter=(SNAP_FILTERS.find(function(f){return f.key===studioFilter;})||{}).css||'none';}
+    setupStudioTrackControls();
   }catch(e){showToast('Impossible d\\'accéder à la caméra : '+((e&&e.message)||'permission refusée'),'error');closeSnapStudio();}
+}
+// Zoom/flash/mise au point : entièrement soumis à ce que le navigateur ET
+// l'appareil exposent réellement via getCapabilities() — jamais un bouton
+// affiché qui échouerait en silence. Support inégal connu (surtout iOS
+// Safari, où presque rien de tout ça n'est exposé) : chaque contrôle reste
+// simplement caché si la capacité n'existe pas, plutôt que de prétendre
+// fonctionner partout.
+function setupStudioTrackControls(){
+  const zoomWrap=\$('snap-studio-zoom-wrap');
+  const torchBtn=\$('snap-studio-torch-btn');
+  if(zoomWrap)zoomWrap.classList.add('hidden');
+  if(torchBtn){torchBtn.classList.add('hidden');torchBtn.classList.remove('on');}
+  const track=studioStream&&studioStream.getVideoTracks()[0];
+  if(!track||typeof track.getCapabilities!=='function')return;
+  let caps={};
+  try{caps=track.getCapabilities()||{};}catch(e){return}
+  if(caps.zoom&&zoomWrap){
+    zoomWrap.classList.remove('hidden');
+    const slider=\$('snap-studio-zoom');
+    slider.min=caps.zoom.min;slider.max=caps.zoom.max;slider.step=caps.zoom.step||.1;
+    let current=caps.zoom.min;
+    try{current=(track.getSettings()||{}).zoom||caps.zoom.min;}catch(e){}
+    slider.value=current;
+    slider.oninput=function(){track.applyConstraints({advanced:[{zoom:parseFloat(slider.value)}]}).catch(function(){});};
+  }
+  if(caps.torch&&torchBtn){
+    torchBtn.classList.remove('hidden');
+    let torchOn=false;
+    torchBtn.onclick=function(){
+      const next=!torchOn;
+      track.applyConstraints({advanced:[{torch:next}]}).then(function(){torchOn=next;torchBtn.classList.toggle('on',torchOn);}).catch(function(){showToast('Flash indisponible sur cet appareil.','error');});
+    };
+  }
+}
+function studioTapToFocus(e,rect){
+  const layer=\$('snap-studio-focus-layer');
+  if(layer){
+    const ring=document.createElement('div');
+    ring.className='snap-studio-focus-ring';
+    ring.style.left=(e.clientX-rect.left)+'px';ring.style.top=(e.clientY-rect.top)+'px';
+    layer.appendChild(ring);
+    setTimeout(function(){ring.remove();},600);
+  }
+  const track=studioStream&&studioStream.getVideoTracks()[0];
+  if(!track||typeof track.getCapabilities!=='function')return;
+  let caps={};try{caps=track.getCapabilities()||{};}catch(err){return}
+  if(caps.focusMode&&caps.focusMode.indexOf('single-shot')>=0){
+    const x=(e.clientX-rect.left)/rect.width,y=(e.clientY-rect.top)/rect.height;
+    track.applyConstraints({advanced:[{focusMode:'single-shot',pointsOfInterest:[{x:x,y:y}]}]}).catch(function(){});
+  }
 }
 function closeSnapStudio(){
   if(studioStream){studioStream.getTracks().forEach(function(t){t.stop();});studioStream=null;}
@@ -8771,6 +8838,10 @@ function startStudioRecording(){
 function stopStudioRecording(){
   if(studioMediaRecorder&&studioRecording){studioMediaRecorder.stop();studioRecording=false;}
 }
+function studioHasXmoji(){
+  const myExtra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
+  return !!(myExtra.useBitmoji&&myExtra.bitmoji);
+}
 function openSnapStudioEditor(){
   const view=\$('snap-studio-camera-view');if(view)view.classList.add('hidden');
   const isVideo=studioCaptured.type==='video';
@@ -8788,7 +8859,10 @@ function openSnapStudioEditor(){
   +(isVideo?'':'<div class="snap-studio-edit-tools" id="snap-studio-edit-tools">'
     +'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text" title="Ajouter du texte">Aa</button>'
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-sticker" title="Ajouter un sticker">😀</button>'
+    +(studioHasXmoji()?'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-xmoji" title="Ajouter mon xMoji">🙂</button>':'')
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-draw" title="Dessiner">✏️</button>'
+    +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-rotate" title="Pivoter">🔄</button>'
+    +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-crop" title="Recadrer">✂️</button>'
   +'</div>')
   +(isVideo?'':'<div class="snap-studio-draw-tools hidden" id="snap-studio-draw-tools">'
     +'<div class="snap-studio-draw-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-draw-color="'+c+'" style="background:'+c+'"'+(c==='#ffffff'?' class="on"':'')+'></button>';}).join('')+'</div>'
@@ -8815,6 +8889,17 @@ function openSnapStudioEditor(){
       renderStudioLayers();
     });
   };
+  const addXmojiBtn=\$('snap-studio-add-xmoji');
+  if(addXmojiBtn)addXmojiBtn.onclick=function(){
+    const myExtra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
+    if(!myExtra.useBitmoji||!myExtra.bitmoji)return;
+    studioLayers.push({id:'x'+Date.now()+Math.random().toString(36).slice(2,6),type:'xmoji',bitmoji:myExtra.bitmoji,x:50,y:50,scale:1.6,rotation:0});
+    renderStudioLayers();
+  };
+  const rotateBtn=\$('snap-studio-rotate');
+  if(rotateBtn)rotateBtn.onclick=rotateStudioPhoto90;
+  const cropBtn=\$('snap-studio-crop');
+  if(cropBtn)cropBtn.onclick=function(){openStudioCropPicker();};
   if(!isVideo)initStudioDrawTool();
   \$('snap-studio-send').onclick=function(){finishStudioSend(isVideo);};
   const saveBtn=\$('snap-studio-save');
@@ -8907,7 +8992,15 @@ function cloneCanvas(src){
 // Cuit le dessin libre puis les calques sur une COPIE de la photo capturée —
 // jamais l'original (studioCaptured.canvas), pour pouvoir enregistrer et
 // envoyer sans que la seconde opération double les calques sur la première.
-function bakeStudioPhotoCanvas(){
+function loadImagePromise(src){
+  return new Promise(function(resolve,reject){
+    const img=new Image();
+    img.onload=function(){resolve(img);};
+    img.onerror=reject;
+    img.src=src;
+  });
+}
+async function bakeStudioPhotoCanvas(){
   const copy=cloneCanvas(studioCaptured.canvas);
   const mediaEl=\$('snap-studio-edit-media');
   const displayRect=mediaEl?mediaEl.getBoundingClientRect():{width:copy.width,height:copy.height};
@@ -8915,7 +9008,7 @@ function bakeStudioPhotoCanvas(){
   const ctx=copy.getContext('2d');
   const drawCanvas=\$('snap-studio-draw-canvas');
   if(drawCanvas&&studioDrawDirty)ctx.drawImage(drawCanvas,0,0,copy.width,copy.height);
-  studioLayers.forEach(function(t){
+  for(const t of studioLayers){
     ctx.save();
     ctx.translate(copy.width*(t.x/100),copy.height*(t.y/100));
     ctx.rotate(t.rotation*Math.PI/180);
@@ -8924,6 +9017,13 @@ function bakeStudioPhotoCanvas(){
     if(t.type==='sticker'){
       ctx.font=Math.round(48*scaleX)+'px sans-serif';
       ctx.fillText(t.emoji,0,0);
+    }else if(t.type==='xmoji'){
+      const size=Math.round(64*scaleX);
+      try{
+        const svgUrl='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(renderBitmojiSvg(t.bitmoji))));
+        const img=await loadImagePromise(svgUrl);
+        ctx.drawImage(img,-size/2,-size/2,size,size);
+      }catch(e){}
     }else{
       ctx.font='bold '+Math.round(28*scaleX)+'px sans-serif';
       ctx.fillStyle=t.color;
@@ -8931,12 +9031,80 @@ function bakeStudioPhotoCanvas(){
       ctx.fillText(t.text,0,0);
     }
     ctx.restore();
-  });
+  }
   return copy;
 }
-function saveStudioPhotoToDevice(){
+// Pivote/recadre la photo capturée en place (studioCaptured.canvas) et
+// remappe les calques existants dans le même repère fractionnel que
+// bakeStudioPhotoCanvas() (x/y en % des dimensions du canvas), pour qu'ils
+// restent alignés avec le contenu après transformation. Le dessin libre en
+// cours est réinitialisé : redimensionner/faire pivoter changerait ses
+// pixels de façon incohérente, mieux vaut repartir d'un canvas de dessin
+// propre (comme à l'ouverture initiale de l'éditeur) que de le déformer.
+function rotateStudioPhoto90(){
   if(!studioCaptured||studioCaptured.type!=='image')return;
-  const copy=bakeStudioPhotoCanvas();
+  const src=studioCaptured.canvas;
+  const rotated=document.createElement('canvas');
+  rotated.width=src.height;rotated.height=src.width;
+  const ctx=rotated.getContext('2d');
+  ctx.translate(rotated.width/2,rotated.height/2);
+  ctx.rotate(Math.PI/2);
+  ctx.drawImage(src,-src.width/2,-src.height/2);
+  studioLayers.forEach(function(t){
+    const nx=100-t.y,ny=t.x;
+    t.x=nx;t.y=ny;t.rotation=(t.rotation+90)%360;
+  });
+  studioCaptured.canvas=rotated;
+  const img=document.querySelector('#snap-studio-edit-media img');
+  if(img)img.src=rotated.toDataURL('image/jpeg',.92);
+  studioDrawDirty=false;studioDrawHistory=[];
+  renderStudioLayers();
+  initStudioDrawTool();
+}
+function cropStudioPhoto(ratio){
+  if(!studioCaptured||studioCaptured.type!=='image'||!ratio)return;
+  const src=studioCaptured.canvas;
+  const srcRatio=src.width/src.height;
+  let cw,ch,cx,cy;
+  if(srcRatio>ratio){ch=src.height;cw=ch*ratio;cy=0;cx=(src.width-cw)/2;}
+  else{cw=src.width;ch=cw/ratio;cx=0;cy=(src.height-ch)/2;}
+  const cropped=document.createElement('canvas');
+  cropped.width=Math.max(1,Math.round(cw));cropped.height=Math.max(1,Math.round(ch));
+  cropped.getContext('2d').drawImage(src,cx,cy,cw,ch,0,0,cropped.width,cropped.height);
+  studioLayers.forEach(function(t){
+    const oldPxX=(t.x/100)*src.width,oldPxY=(t.y/100)*src.height;
+    t.x=Math.max(2,Math.min(98,((oldPxX-cx)/cw)*100));
+    t.y=Math.max(2,Math.min(98,((oldPxY-cy)/ch)*100));
+  });
+  studioCaptured.canvas=cropped;
+  const img=document.querySelector('#snap-studio-edit-media img');
+  if(img)img.src=cropped.toDataURL('image/jpeg',.92);
+  studioDrawDirty=false;studioDrawHistory=[];
+  renderStudioLayers();
+  initStudioDrawTool();
+}
+function openStudioCropPicker(){
+  const presets=[{label:'Originale',ratio:null},{label:'Carrée (1:1)',ratio:1},{label:'Portrait (4:5)',ratio:4/5},{label:'Story (9:16)',ratio:9/16}];
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">✂️ Recadrer</div>'
+    +presets.map(function(p,i){return '<button type="button" class="set-card-row" data-crop-idx="'+i+'" style="width:100%;cursor:pointer"><div class="scr-info"><div class="scr-label">'+esc(p.label)+'</div></div></button>';}).join('')
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelectorAll('[data-crop-idx]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const p=presets[parseInt(b.getAttribute('data-crop-idx'),10)];
+      close();
+      if(p&&p.ratio)cropStudioPhoto(p.ratio);
+    });
+  });
+}
+async function saveStudioPhotoToDevice(){
+  if(!studioCaptured||studioCaptured.type!=='image')return;
+  const copy=await bakeStudioPhotoCanvas();
   copy.toBlob(function(blob){
     if(!blob)return;
     const url=URL.createObjectURL(blob);
@@ -8959,6 +9127,8 @@ function renderStudioLayers(){
     const transform='translate(-50%,-50%) rotate('+t.rotation+'deg) scale('+t.scale+')';
     const content=t.type==='sticker'
       ? '<span class="snap-layer-content">'+t.emoji+'</span>'
+      : t.type==='xmoji'
+      ? '<span class="snap-layer-content snap-layer-xmoji-content">'+renderBitmojiSvg(t.bitmoji)+'</span>'
       : '<span class="snap-layer-content" contenteditable="true" data-layer-edit="'+t.id+'" style="color:'+esc(t.color)+'">'+esc(t.text)+'</span>';
     const colors=t.type==='text'?('<div class="snap-text-layer-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-layer-color="'+t.id+'" data-color="'+c+'" style="background:'+c+'"></button>';}).join('')+'</div>'):'';
     return '<div class="snap-layer snap-layer-'+t.type+'" data-layer-id="'+t.id+'" style="left:'+t.x+'%;top:'+t.y+'%;transform:'+transform+'">'
@@ -9035,7 +9205,7 @@ async function finishStudioSend(isVideo){
     // Même fonction de cuisson que "Enregistrer sur l'appareil" (dessin +
     // calques sur une copie de la photo) — ce que l'expéditeur voit dans
     // l'éditeur est exactement ce qui part, que ce soit envoyé ou sauvegardé.
-    const copy=bakeStudioPhotoCanvas();
+    const copy=await bakeStudioPhotoCanvas();
     const blob=await new Promise(function(res){copy.toBlob(res,'image/jpeg',.92);});
     file=new File([blob],'snap.jpg',{type:'image/jpeg'});
   }
