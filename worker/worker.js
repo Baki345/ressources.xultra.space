@@ -4140,6 +4140,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.67.1',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
+    body:'Le sélecteur de tag de serveur récupérait la liste des serveurs avec un jeton de session parfois périmé (jusqu\\'à 15 minutes après la connexion), au lieu d\\'en redemander un frais comme le reste du site — dans ce cas la requête échouait silencieusement et le panneau affichait "Rejoins ou crée un serveur avec un tag configuré" même si un tag existait bel et bien. Corrigé.'},
   {version:'2.67.0',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
     body:'Nouveau type de salon 📢 Annonces (au choix à la création d\\'un salon). Depuis un salon d\\'annonces, le bouton 🔗 Suivre permet à n\\'importe quel membre de le relier à un salon texte d\\'un AUTRE serveur qu\\'il gère (il faut "Gérer les salons" côté cible) : chaque nouveau message publié directement dans le salon d\\'annonces (hors fils et sondages) y est alors automatiquement recopié, repéré "📢 SUIVI". Les salons suivis se gèrent et se désabonnent depuis les paramètres du serveur cible.'},
   {version:'2.66.0',date:'26 août 2026',time:'10:15',title:'Statut personnalisé : emoji et disparition automatique',
@@ -5160,8 +5162,7 @@ async function loadServerTagPicker(currentTag){
   const holder=\$('prof-tag-picker');if(!holder)return;
   let servers=[];
   try{
-    const r=await fetch('/api/servers/tag/list-mine',{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const j=await r.json();
+    const j=await authGet('/api/servers/tag/list-mine');
     servers=(j&&j.servers)||[];
   }catch(e){}
   if(!servers.length&&!currentTag){holder.innerHTML='<div class="scr-sub">Rejoins ou crée un serveur avec un tag configuré pour pouvoir l\\'afficher ici.</div>';return}
