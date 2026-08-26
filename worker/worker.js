@@ -4203,6 +4203,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.73.1',date:'26 août 2026',time:'16:20',title:'Correctif : plusieurs listes pouvaient sembler vides après une longue session',
+    body:'Comme pour le sélecteur de tag de serveur (correctif précédent), plusieurs autres écrans utilisaient un jeton de session parfois périmé au lieu d\\'en redemander un frais : la découverte de serveurs, les émojis/stickers d\\'un serveur, les événements, l\\'écran d\\'accueil, les webhooks, les salons suivis et le fil des créateurs. Dans de rares cas (session ouverte depuis un moment, onglet resté en arrière-plan…) ces listes pouvaient sembler vides sans message d\\'erreur. Tous ces écrans redemandent maintenant systématiquement un jeton frais, comme le reste du site.'},
   {version:'2.73.0',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
     body:'👻 Snap éphémère ouvre maintenant un vrai studio de prise de vue en direct (comme sur Snap) : appuie pour une photo, maintiens pour filmer une vidéo, avec caméra avant/arrière, 8 filtres à appliquer en direct (Chaud, Froid, N&B, Éclatant, Vintage, Noir, Rêve…) et — pour les photos — des calques de texte à faire glisser où tu veux, en 8 couleurs. L\\'import depuis la galerie reste disponible d\\'un tap sur 🖼️. Une fois envoyé, le fichier suit exactement le même circuit que les autres snaps (chiffrement, minuteur de visionnage, streak).'},
   {version:'2.72.0',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
@@ -9790,8 +9792,7 @@ async function crtLoadFeed(reset){
   if(box&&reset)box.innerHTML='<div class="scr-sub">Chargement…</div>';
   try{
     const qs='?offset='+crtOffset+(crtViewUid?('&uid='+encodeURIComponent(crtViewUid)):'');
-    const r=await fetch('/api/creators/posts/feed'+qs,{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const j=await r.json();
+    const j=await authGet('/api/creators/posts/feed'+qs);
     if(j.ok){
       const batch=j.posts||[];
       crtPosts=crtPosts.concat(batch);
@@ -12245,8 +12246,7 @@ async function loadDiscoverServers(){
   list.innerHTML='<div class="scr-sub">Chargement…</div>';
   try{
     const category=(\$('srv-discover-category')&&\$('srv-discover-category').value)||'';
-    const r=await fetch('/api/servers/discovery/list'+(category?('?category='+encodeURIComponent(category)):''),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const j=await r.json();
+    const j=await authGet('/api/servers/discovery/list'+(category?('?category='+encodeURIComponent(category)):''));
     discoverServersCache=(j&&j.servers)||[];
     renderDiscoverList();
   }catch(e){list.innerHTML='<div class="scr-sub">Erreur de chargement.</div>';}
@@ -12297,13 +12297,11 @@ async function openServerDetail(serverId){
   activeChannel=null;
   await loadServerChannels();
   try{
-    const rEm=await fetch('/api/servers/emojis/list?serverId='+encodeURIComponent(serverId),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const jEm=await rEm.json();
+    const jEm=await authGet('/api/servers/emojis/list?serverId='+encodeURIComponent(serverId));
     activeServerEmojis=(jEm&&jEm.emojis)||[];
   }catch(e){activeServerEmojis=[];}
   try{
-    const rSt=await fetch('/api/servers/stickers/list?serverId='+encodeURIComponent(serverId),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const jSt=await rSt.json();
+    const jSt=await authGet('/api/servers/stickers/list?serverId='+encodeURIComponent(serverId));
     activeServerStickers=(jSt&&jSt.stickers)||[];
   }catch(e){activeServerStickers=[];}
   \$('srv-detail-name').textContent=activeServer.name;
@@ -12995,8 +12993,7 @@ async function renderServerEventsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   box.innerHTML='<div class="scr-sub">Chargement…</div>';
   try{
-    const r=await fetch('/api/servers/events/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const j=await r.json();
+    const j=await authGet('/api/servers/events/list?serverId='+encodeURIComponent(activeServer.\$id));
     activeServerEvents=(j&&j.events)||[];
   }catch(e){activeServerEvents=[];}
   renderServerEventsList();
@@ -13170,9 +13167,7 @@ function openChannelFollowForm(){
 let shownWelcomeScreenServerIds=new Set();
 async function maybeShowWelcomeScreen(serverId){
   try{
-    const r=await fetch('/api/servers/welcome-screen/get?serverId='+encodeURIComponent(serverId),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-    const j=await r.json();
-    if(!j||!j.ok)return;
+    const j=await authGet('/api/servers/welcome-screen/get?serverId='+encodeURIComponent(serverId));
     if(!j.welcomeMessage&&!(j.channels&&j.channels.length))return;
     if(activeServer&&activeServer.\$id===serverId)openServerWelcomeScreen(j);
   }catch(e){}
@@ -13675,13 +13670,11 @@ async function renderServerSettingsTab(){
   }else{srvGuildPageCache=null;}
   if(canWebhooks){
     try{
-      const rwh=await fetch('/api/servers/webhooks/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-      const jwh=await rwh.json();
+      const jwh=await authGet('/api/servers/webhooks/list?serverId='+encodeURIComponent(activeServer.\$id));
       srvWebhooksCache=(jwh&&jwh.webhooks)||[];
     }catch(e){srvWebhooksCache=[];}
     try{
-      const rcf=await fetch('/api/servers/channels/follows/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
-      const jcf=await rcf.json();
+      const jcf=await authGet('/api/servers/channels/follows/list?serverId='+encodeURIComponent(activeServer.\$id));
       srvChannelFollowsCache=(jcf&&jcf.follows)||[];
     }catch(e){srvChannelFollowsCache=[];}
   }else{srvWebhooksCache=[];srvChannelFollowsCache=[];}
