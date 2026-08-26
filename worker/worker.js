@@ -64,7 +64,7 @@ function mintLiveKitParticipantToken(identity, name, room) {
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
-const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events", "manage_expressions"];
+const SERVER_PERMISSIONS = ["administrator", "manage_server", "manage_channels", "manage_roles", "manage_invites", "kick_members", "ban_members", "mute_members", "manage_voice", "moderate_members", "view_audit_log", "manage_events", "manage_expressions", "manage_nicknames"];
 // Anti-spam pour les avis "capture d'écran" (§ vie privée) : un seul avis par
 // personne et par conversation/salon toutes les SCREENSHOT_COOLDOWN_MS,
 // vérifié côté serveur (jamais fiable côté client seul).
@@ -329,6 +329,16 @@ async function getMemberAuthorityPosition(serverId, uid, server) {
 // permission de modération — pouvaient s'expulser/bannir entre eux ou agir
 // sur un rôle supérieur au leur, du moment que la permission générique
 // (kick_members/ban_members/moderate_members) était accordée.
+// Le pseudo propre au serveur (s'il existe) prime sur le nom global pour tout
+// ce qui s'affiche DANS ce serveur (messages, posts de forum, avis de
+// capture d'écran) — access.member est déjà chargé la plupart du temps
+// (évite un fetch en plus), sauf pour le propriétaire (serverResolveChannelAccess
+// ne le charge pas dans ce cas, jamais bloqué par les permissions de toute façon).
+async function resolveServerMemberDisplayName(serverId, uid, access, profile, accName) {
+  const member = access && access.member ? access.member : await getServerMembership(serverId, uid);
+  if (member && member.nickname) return member.nickname;
+  return (profile && (profile.displayName || profile.username)) || accName || "Membre";
+}
 async function assertCanModerateTarget(serverId, actorUid, targetUid, server) {
   if (String(server.ownerId) === String(actorUid)) return;
   const actorAuthority = await getMemberAuthorityPosition(serverId, actorUid, server);
@@ -4214,6 +4224,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.76.0',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
+    body:'Chaque membre peut désormais se donner un pseudo qui ne s\\'affiche que sur un serveur donné (nom, messages, mentions, journal d\\'audit…) sans toucher au nom global du compte — comme sur Discord. Change le tien depuis l\\'onglet Membres du serveur (bouton 🏷️ Pseudo). Les propriétaires peuvent accorder une nouvelle permission "Gérer les pseudos" à un rôle pour laisser des modérateurs renommer les autres membres (jamais le propriétaire, jamais quelqu\\'un d\\'un rang égal ou supérieur).'},
   {version:'2.75.0',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
     body:'Les salons de serveur passent aux mêmes fonctionnalités que les messages privés (à l\\'exception des streaks 🔥 et des Ephem 👻, qui restent propres aux DM) : envoie des photos, vidéos et fichiers (avec barre de progression), colle une image directement dans la zone de texte, ajoute un GIF, partage ta position, ou maintiens le nouveau bouton micro pour un message vocal — exactement comme en DM. Et pendant qu\\'on y était : Bitmoji est renommé xMoji, et Snap devient Ephem, partout sur le site.'},
   {version:'2.74.0',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
@@ -12255,7 +12267,8 @@ const SERVER_PERM_DEFS=[
   {key:'ban_members',icon:'🔨',label:'Bannir des membres',desc:'Expulser définitivement, sans possibilité de revenir.'},
   {key:'view_audit_log',icon:'📜',label:'Voir le journal d\\'audit',desc:'Consulter l\\'historique des actions de modération du serveur.'},
   {key:'manage_events',icon:'📅',label:'Gérer les événements',desc:'Créer et annuler des événements planifiés du serveur.'},
-  {key:'manage_expressions',icon:'😀',label:'Gérer les expressions',desc:'Ajouter et supprimer les emojis personnalisés du serveur.'}
+  {key:'manage_expressions',icon:'😀',label:'Gérer les expressions',desc:'Ajouter et supprimer les emojis personnalisés du serveur.'},
+  {key:'manage_nicknames',icon:'🏷️',label:'Gérer les pseudos',desc:'Modifier le pseudo affiché des autres membres sur ce serveur. Chaque membre peut toujours changer le sien.'}
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
@@ -13173,12 +13186,16 @@ function renderServerMembersTab(){
   const canBan=serverHasPermission('ban_members');
   const canRoles=serverHasPermission('manage_roles');
   const canModerate=serverHasPermission('moderate_members');
+  const canNicknames=serverHasPermission('manage_nicknames');
   box.innerHTML=activeServerMembers.map(function(m){
     const isOwnerRow=String(activeServer.ownerId)===String(m.uid);
+    const isSelfRow=me&&String(m.uid)===String(me.\$id);
     const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(m.uid)});
     const avatarUrl=safeUrl(prof&&prof.avatar);
     const timedOut=m.timeoutUntil&&new Date(m.timeoutUntil).getTime()>Date.now();
+    const displayName=m.nickname||m.username||'Membre';
     let actions='';
+    if(isSelfRow||(canNicknames&&!isOwnerRow))actions+='<button type="button" class="set-mini-btn" data-srv-nick="'+esc(m.uid)+'">🏷️ Pseudo</button>';
     if(!isOwnerRow){
       if(canRoles)actions+='<button type="button" class="set-mini-btn" data-srv-role-assign="'+esc(m.uid)+'">Rôles</button>';
       if(canModerate)actions+='<button type="button" class="set-mini-btn'+(timedOut?' danger':'')+'" data-srv-timeout="'+esc(m.uid)+'">'+(timedOut?'⏱️ En timeout':'Timeout')+'</button>';
@@ -13187,11 +13204,14 @@ function renderServerMembersTab(){
     }
     const nameColor=serverTopRoleColor(m);
     return '<div class="srv-member-row">'
-      +'<div class="av" style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:var(--elev)">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(m.username||'?')))+'</div>'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(m.username||'Membre')+userTagBadgeForUid(m.uid)+(isOwnerRow?' 👑':'')+(timedOut?' <span class="scr-sub">⏱️ jusqu\\'au '+esc(new Date(m.timeoutUntil).toLocaleString('fr-FR'))+'</span>':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
+      +'<div class="av" style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:var(--elev)">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(displayName)))+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem'+(nameColor?';color:'+esc(nameColor):'')+'">'+esc(displayName)+userTagBadgeForUid(m.uid)+(isOwnerRow?' 👑':'')+(m.nickname?' <span class="scr-sub">('+esc(m.username||'')+')</span>':'')+(timedOut?' <span class="scr-sub">⏱️ jusqu\\'au '+esc(new Date(m.timeoutUntil).toLocaleString('fr-FR'))+'</span>':'')+'</div><div>'+serverRoleBadgesHtml(m)+'</div></div>'
       +'<div style="display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end">'+actions+'</div>'
       +'</div>';
   }).join('')||'<div class="empty-hint">Aucun membre.</div>';
+  box.querySelectorAll('[data-srv-nick]').forEach(function(b){
+    b.addEventListener('click',function(){openServerNicknamePicker(b.getAttribute('data-srv-nick'));});
+  });
   box.querySelectorAll('[data-srv-kick]').forEach(function(b){
     b.addEventListener('click',async function(){
       if(!confirm('Expulser ce membre ?'))return;
@@ -13455,13 +13475,36 @@ function openServerRulesGate(){
   };
 }
 const TIMEOUT_PRESETS=[{label:'5 minutes',minutes:5},{label:'10 minutes',minutes:10},{label:'1 heure',minutes:60},{label:'1 jour',minutes:1440},{label:'1 semaine',minutes:10080}];
+function openServerNicknamePicker(uid){
+  const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
+  if(!member)return;
+  const isSelf=me&&String(uid)===String(me.\$id);
+  const box=\$('srv-detail-body');if(!box)return;
+  box.innerHTML='<div class="set-card">'
+    +'<div class="set-section-label">🏷️ Pseudo '+(isSelf?'(moi)':('de '+esc(member.username||'ce membre')))+' sur ce serveur</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Affiché à la place du nom habituel, seulement sur ce serveur. Laisse vide pour revenir au nom normal.</div>'
+    +'<input type="text" id="srv-nick-input" class="field-input" maxlength="32" placeholder="'+esc(member.username||'Pseudo')+'" value="'+esc(member.nickname||'')+'" style="margin-bottom:12px">'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-nick-save">Enregistrer</button><button type="button" class="set-mini-btn" id="srv-nick-cancel">Annuler</button></div>'
+    +'<div class="err" id="srv-nick-err"></div>'
+    +'</div>';
+  \$('srv-nick-cancel').onclick=function(){switchServerTab('members');};
+  \$('srv-nick-save').onclick=async function(){
+    this.disabled=true;this.textContent='...';
+    try{
+      const nickname=(\$('srv-nick-input').value||'').trim();
+      await authPost('/api/servers/members/nickname/set',{serverId:activeServer.\$id,uid:uid,nickname:nickname});
+      await openServerDetail(activeServer.\$id);switchServerTab('members');
+      showToast(nickname?'Pseudo mis à jour.':'Pseudo réinitialisé.');
+    }catch(e){\$('srv-nick-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Enregistrer';}
+  };
+}
 function openServerTimeoutPicker(uid){
   const member=activeServerMembers.find(function(m){return String(m.uid)===String(uid)});
   if(!member)return;
   const timedOut=member.timeoutUntil&&new Date(member.timeoutUntil).getTime()>Date.now();
   const box=\$('srv-detail-body');if(!box)return;
   box.innerHTML='<div class="set-card">'
-    +'<div class="set-section-label">Timeout de '+esc(member.username||'ce membre')+'</div>'
+    +'<div class="set-section-label">Timeout de '+esc(member.nickname||member.username||'ce membre')+'</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Le membre pourra toujours lire les salons mais ne pourra plus écrire ni rejoindre le vocal pendant la durée choisie.</div>'
     +TIMEOUT_PRESETS.map(function(p){return '<button type="button" class="set-mini-btn" data-srv-to-mins="'+p.minutes+'" style="margin:0 6px 8px 0">'+p.label+'</button>';}).join('')
     +(timedOut?'<button type="button" class="set-mini-btn danger" data-srv-to-mins="0" style="margin:0 6px 8px 0">Lever le timeout</button>':'')
@@ -13487,7 +13530,7 @@ function openBanActionSheet(uid){
   if(!member)return;
   const box=\$('srv-detail-body');if(!box)return;
   box.innerHTML='<div class="set-card">'
-    +'<div class="set-section-label">Bannir '+esc(member.username||'ce membre')+'</div>'
+    +'<div class="set-section-label">Bannir '+esc(member.nickname||member.username||'ce membre')+'</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Supprimer aussi ses messages envoyés dans ce serveur, sur la période choisie :</div>'
     +BAN_DELETE_PRESETS.map(function(p){return '<button type="button" class="set-mini-btn'+(p.hours?' danger':'')+'" data-srv-ban-hours="'+p.hours+'" style="margin:0 6px 8px 0">'+p.label+'</button>';}).join('')
     +'<div style="margin-top:10px"><button type="button" class="set-mini-btn" id="srv-ban-cancel">Annuler</button></div>'
@@ -13497,7 +13540,7 @@ function openBanActionSheet(uid){
   box.querySelectorAll('[data-srv-ban-hours]').forEach(function(b){
     b.addEventListener('click',async function(){
       const hours=parseInt(b.getAttribute('data-srv-ban-hours'),10);
-      if(!confirm('Bannir définitivement '+(member.username||'ce membre')+' ?'))return;
+      if(!confirm('Bannir définitivement '+(member.nickname||member.username||'ce membre')+' ?'))return;
       b.disabled=true;
       try{
         const r=await authPost('/api/servers/members/ban',{serverId:activeServer.\$id,uid:uid,deleteMessageHours:hours});
@@ -13514,7 +13557,7 @@ function openServerRoleAssign(uid){
   const current=member.roleIds||[];
   const box=\$('srv-detail-body');if(!box)return;
   box.innerHTML='<div class="set-card">'
-    +'<div class="set-section-label">Rôles de '+esc(member.username||'ce membre')+'</div>'
+    +'<div class="set-section-label">Rôles de '+esc(member.nickname||member.username||'ce membre')+'</div>'
     +activeServerRoles.map(function(r){
       return '<label class="srv-perm-check"><input type="checkbox" data-srv-assign-role="'+esc(r.\$id)+'"'+(current.indexOf(r.\$id)>=0?' checked':'')+'> <span style="width:10px;height:10px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';display:inline-block"></span> <b>'+esc(r.name)+'</b></label>';
     }).join('')
@@ -13541,7 +13584,7 @@ function openServerRoleMembers(role){
     +activeServerMembers.map(function(m){
       const isOwnerRow=String(m.uid)===isOwnerUid;
       const has=(m.roleIds||[]).indexOf(role.\$id)>=0;
-      return '<label class="srv-perm-check"><input type="checkbox" data-srv-rm-member="'+esc(m.uid)+'"'+(has?' checked':'')+(isOwnerRow?' disabled':'')+'> <b>'+esc(m.username||'Membre')+'</b>'+(isOwnerRow?' 👑':'')+'</label>';
+      return '<label class="srv-perm-check"><input type="checkbox" data-srv-rm-member="'+esc(m.uid)+'"'+(has?' checked':'')+(isOwnerRow?' disabled':'')+'> <b>'+esc(m.nickname||m.username||'Membre')+'</b>'+(isOwnerRow?' 👑':'')+'</label>';
     }).join('')
     +'<div style="display:flex;gap:8px;margin-top:14px"><button type="button" class="btn-main" id="srv-rm-save">Enregistrer</button></div>'
     +'<div class="err" id="srv-rm-err"></div>'
@@ -17865,7 +17908,7 @@ async function handle(request) {
       }
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
       const actorProfile4 = await resolveProfile(acc.$id);
-      await logServerAudit(serverId, acc.$id, (actorProfile4 && (actorProfile4.displayName || actorProfile4.username)) || acc.name, "role_assign", member.username || targetUid, { roleIds: roleIds });
+      await logServerAudit(serverId, acc.$id, (actorProfile4 && (actorProfile4.displayName || actorProfile4.username)) || acc.name, "role_assign", member.nickname || member.username || targetUid, { roleIds: roleIds });
       return new Response(JSON.stringify({ ok: true, member: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -17919,7 +17962,7 @@ async function handle(request) {
       const member = await getServerMembership(serverId, targetUid);
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
       const actorProfile = await resolveProfile(acc.$id);
-      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "kick", (member && member.username) || targetUid, {});
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "kick", (member && (member.nickname || member.username)) || targetUid, {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -17968,7 +18011,7 @@ async function handle(request) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
       const actorProfile = await resolveProfile(acc.$id);
-      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && member.username) || targetUid, deletedCount ? { deletedMessages: deletedCount } : {});
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && (member.nickname || member.username)) || targetUid, deletedCount ? { deletedMessages: deletedCount } : {});
       return new Response(JSON.stringify({ ok: true, deletedMessages: deletedCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -18000,8 +18043,41 @@ async function handle(request) {
         await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: until } } });
       }
       const actorProfile = await resolveProfile(acc.$id);
-      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, minutes ? "timeout" : "timeout_clear", member.username || targetUid, { minutes: minutes });
+      await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, minutes ? "timeout" : "timeout_clear", member.nickname || member.username || targetUid, { minutes: minutes });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Pseudo propre à ce serveur (§ uniformité Discord) : chaque membre peut
+  // toujours changer le sien ; changer celui d'un autre demande
+  // "manage_nicknames" ET la même hiérarchie de rôle que kick/ban/timeout
+  // (assertCanModerateTarget) — jamais sur le propriétaire.
+  if (path === "/api/servers/members/nickname/set" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || acc.$id);
+      const nickname = String((body && body.nickname) || "").trim().slice(0, 32);
+      const isSelf = String(targetUid) === String(acc.$id);
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (!isSelf) {
+        const gate = await serverCheckPermission(serverId, acc.$id, "manage_nicknames");
+        if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+        if (String(server.ownerId) === targetUid) throw new Error("Impossible de modifier le pseudo du propriétaire");
+        await assertCanModerateTarget(serverId, acc.$id, targetUid, server);
+      }
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Tu n'es pas membre de ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { nickname: nickname } } });
+      if (!isSelf) {
+        const actorProfile = await resolveProfile(acc.$id);
+        await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "nickname_set", member.username || targetUid, { nickname: nickname });
+      }
+      return new Response(JSON.stringify({ ok: true, nickname: nickname }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -18390,7 +18466,7 @@ async function handle(request) {
       let thread = null;
       if (threadId) thread = await resolveThreadAccess(serverId, threadId, acc.$id, access);
       const profile = await resolveProfile(acc.$id);
-      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const uname = await resolveServerMemberDisplayName(serverId, acc.$id, access, profile, acc.name);
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
@@ -18437,7 +18513,7 @@ async function handle(request) {
       let thread = null;
       if (threadId) thread = await resolveThreadAccess(serverId, threadId, acc.$id, access);
       const profile = await resolveProfile(acc.$id);
-      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const uname = await resolveServerMemberDisplayName(serverId, acc.$id, access, profile, acc.name);
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
@@ -18591,7 +18667,7 @@ async function handle(request) {
         if (hit) throw new Error("Post bloqué : contient un terme interdit sur ce serveur");
       }
       const profile = await resolveProfile(acc.$id);
-      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const uname = await resolveServerMemberDisplayName(serverId, acc.$id, access, profile, acc.name);
       // Un post de forum EST un fil (§30) : pas de collection dédiée, on crée le
       // fil d'abord (sans message d'origine), puis le premier message pointant
       // dessus, puis on relie les deux — réutilise entièrement le modèle "fils".
