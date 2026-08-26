@@ -1247,7 +1247,7 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .reply-preview .rp-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .reply-preview .rp-info b{color:#c4b5fd}
 .reply-preview .rp-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
-.emoji-picker-pop{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(280px,90vw);max-height:260px;overflow-y:auto;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:5500;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.emoji-picker-pop{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(280px,90vw);max-height:260px;overflow-y:auto;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:9300;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .emoji-picker-pop.hidden{display:none}
 .emoji-picker-pop button{font-size:1.25rem;padding:5px;border-radius:8px;line-height:1}
 .emoji-picker-pop button:hover{background:var(--elev)}
@@ -1293,6 +1293,10 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-studio-camera-view video{flex:1;width:100%;height:100%;object-fit:cover;background:#000}
 .snap-studio-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
 .snap-studio-flip{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer}
+.snap-studio-timer-btn{position:absolute;top:calc(16px + env(safe-area-inset-top));left:64px;height:38px;padding:0 12px;border-radius:19px;background:rgba(0,0,0,.5);color:#fff;font-size:.85rem;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:3;border:none;cursor:pointer;white-space:nowrap}
+.snap-studio-timer-btn.on{background:rgba(124,58,237,.75)}
+.snap-studio-countdown{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:5rem;font-weight:900;color:#fff;text-shadow:0 4px 20px rgba(0,0,0,.6);z-index:4;pointer-events:none}
+.snap-studio-countdown.hidden{display:none}
 .snap-studio-filters{position:absolute;left:0;right:0;bottom:132px;display:flex;gap:10px;overflow-x:auto;padding:0 16px;z-index:3;scrollbar-width:none}
 .snap-studio-filters::-webkit-scrollbar{display:none}
 .snap-studio-filter-swatch{flex:0 0 auto;width:56px;height:56px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;position:relative}
@@ -1308,12 +1312,15 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-studio-edit-media{position:relative;flex:1;overflow:hidden}
 .snap-studio-edit-media img,.snap-studio-edit-media video{width:100%;height:100%;object-fit:contain;background:#000}
 .snap-studio-text-layer-wrap{position:absolute;inset:0}
-.snap-text-layer{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;touch-action:none;cursor:grab}
-.snap-text-layer span{font-weight:800;font-size:1.4rem;text-shadow:0 2px 6px rgba(0,0,0,.6);outline:none;min-width:20px}
-.snap-text-layer-del{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+.snap-layer{position:absolute;display:flex;align-items:center;gap:6px;touch-action:none;cursor:grab;transform-origin:center center}
+.snap-layer-content{font-weight:800;font-size:1.4rem;text-shadow:0 2px 6px rgba(0,0,0,.6);outline:none;min-width:20px;white-space:nowrap}
+.snap-layer-sticker .snap-layer-content{font-size:2.6rem;text-shadow:none}
+.snap-layer-del{width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:.7rem;display:flex;align-items:center;justify-content:center;cursor:pointer;flex:0 0 auto}
+.snap-layer-resize{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid rgba(124,58,237,.9);cursor:nwse-resize;flex:0 0 auto;touch-action:none}
 .snap-text-layer-colors{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(0,0,0,.5);padding:5px;border-radius:10px}
 .snap-text-layer-colors button{width:16px;height:16px;border-radius:50%;border:1px solid rgba(255,255,255,.5);cursor:pointer;padding:0}
-.snap-studio-add-text{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:24px;min-width:44px;height:44px;padding:0 16px;border-radius:22px;background:rgba(255,255,255,.15);color:#fff;font-weight:800;border:none;z-index:5;cursor:pointer}
+.snap-studio-edit-tools{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:24px;display:flex;gap:10px;z-index:5}
+.snap-studio-add-text,.snap-studio-add-sticker{min-width:44px;height:44px;padding:0 16px;border-radius:22px;background:rgba(255,255,255,.15);color:#fff;font-weight:800;font-size:1.1rem;border:none;cursor:pointer}
 .snap-studio-send{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1.3rem;border:none;z-index:5;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,.5)}
 .dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
 .gp-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
@@ -4236,6 +4243,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.78.0',date:'26 août 2026',time:'21:00',title:'Studio Ephem : calques redimensionnables, stickers, retardateur et glisser pour changer de filtre',
+    body:'Les calques du studio Ephem (texte) se redimensionnent et pivotent maintenant d\\'un geste, comme sur Snap : une poignée en bas à droite du calque, à faire glisser pour l\\'agrandir/réduire et le tourner en même temps. Nouveau : ajoute des stickers emoji, déplaçables et redimensionnables exactement comme le texte. Et pour la prise de vue : un retardateur (3s/10s) avant la photo, et glisser à gauche/droite sur l\\'aperçu change de filtre sans passer par le bandeau de vignettes. D\\'autres blocs de fonctionnalités façon Snap arrivent (dessin libre, sauvegarde, etc.).'},
   {version:'2.77.0',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
     body:'Nouvel onglet 📊 Aperçu dans les paramètres du serveur (visible à qui peut gérer le serveur) : nombre de membres, total de messages envoyés, un graphique des messages et des nouveaux membres sur les 7 derniers jours, et la liste des salons les plus actifs. De quoi voir d\\'un coup d\\'œil comment vit la communauté.'},
   {version:'2.76.0',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
@@ -8604,7 +8613,8 @@ const SNAP_FILTERS=[
   {key:'dream',label:'Rêve',css:'saturate(1.2) brightness(1.08) contrast(.95)'}
 ];
 const SNAP_TEXT_COLORS=['#ffffff','#000000','#ef4444','#f59e0b','#22c55e','#3b82f6','#7c3aed','#ec4899'];
-let studioStream=null,studioFacing='user',studioFilter='none',studioRecording=false,studioMediaRecorder=null,studioRecordChunks=[],studioDrawLoopId=null,studioCaptured=null,studioTextLayers=[],studioDragCtx=null;
+let studioStream=null,studioFacing='user',studioFilter='none',studioRecording=false,studioMediaRecorder=null,studioRecordChunks=[],studioDrawLoopId=null,studioCaptured=null,studioLayers=[],studioDragCtx=null,studioTimerSec=0;
+const STUDIO_FILTER_KEYS=SNAP_FILTERS.map(function(f){return f.key;});
 async function openSnapStudio(){
   const overlay=document.createElement('div');
   overlay.id='snap-studio-overlay';
@@ -8612,37 +8622,72 @@ async function openSnapStudio(){
   overlay.innerHTML='<div class="snap-studio-camera-view" id="snap-studio-camera-view">'
     +'<video id="snap-studio-video" autoplay muted playsinline></video>'
     +'<canvas id="snap-studio-canvas" class="hidden"></canvas>'
+    +'<div class="snap-studio-countdown hidden" id="snap-studio-countdown"></div>'
     +'<button type="button" class="snap-studio-close" id="snap-studio-close">✕</button>'
     +'<button type="button" class="snap-studio-flip" id="snap-studio-flip">🔄</button>'
+    +'<button type="button" class="snap-studio-timer-btn" id="snap-studio-timer-btn" title="Retardateur">⏱</button>'
     +'<div class="snap-studio-filters" id="snap-studio-filters"></div>'
     +'<div class="snap-studio-bottom">'
       +'<button type="button" class="snap-studio-gallery" id="snap-studio-gallery">🖼️</button>'
       +'<button type="button" class="snap-studio-capture" id="snap-studio-capture"></button>'
       +'<div style="width:44px"></div>'
     +'</div>'
-    +'<div class="snap-studio-hint">Appuie pour une photo, maintiens pour filmer</div>'
+    +'<div class="snap-studio-hint">Appuie pour une photo, maintiens pour filmer · glisse pour changer de filtre</div>'
   +'</div>';
   document.body.appendChild(overlay);
-  studioFilter='none';studioTextLayers=[];studioCaptured=null;
+  studioFilter='none';studioLayers=[];studioCaptured=null;studioTimerSec=0;
   \$('snap-studio-filters').innerHTML=SNAP_FILTERS.map(function(f){
     return '<button type="button" class="snap-studio-filter-swatch'+(f.key==='none'?' on':'')+'" data-studio-filter="'+f.key+'" style="filter:'+f.css+'"><span>'+esc(f.label)+'</span></button>';
   }).join('');
+  function selectStudioFilter(key){
+    studioFilter=key;
+    \$('snap-studio-filters').querySelectorAll('[data-studio-filter]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-studio-filter')===key);});
+    const def=SNAP_FILTERS.find(function(f){return f.key===key;});
+    \$('snap-studio-video').style.filter=def?def.css:'none';
+    const on=\$('snap-studio-filters').querySelector('.on');
+    if(on)on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+  }
   \$('snap-studio-filters').querySelectorAll('[data-studio-filter]').forEach(function(b){
-    b.addEventListener('click',function(){
-      studioFilter=b.getAttribute('data-studio-filter');
-      \$('snap-studio-filters').querySelectorAll('[data-studio-filter]').forEach(function(x){x.classList.toggle('on',x===b);});
-      const def=SNAP_FILTERS.find(function(f){return f.key===studioFilter;});
-      \$('snap-studio-video').style.filter=def?def.css:'none';
-    });
+    b.addEventListener('click',function(){selectStudioFilter(b.getAttribute('data-studio-filter'));});
   });
   \$('snap-studio-close').onclick=closeSnapStudio;
   \$('snap-studio-flip').onclick=function(){studioFacing=studioFacing==='user'?'environment':'user';startStudioCamera();};
+  const timerBtn=\$('snap-studio-timer-btn');
+  timerBtn.onclick=function(){
+    studioTimerSec=studioTimerSec===0?3:(studioTimerSec===3?10:0);
+    timerBtn.textContent=studioTimerSec?('⏱ '+studioTimerSec+'s'):'⏱';
+    timerBtn.classList.toggle('on',studioTimerSec>0);
+  };
   \$('snap-studio-gallery').onclick=function(){
     closeSnapStudio();
     openSnapDurationPicker(function(dur){pendingSnapEphemeral=true;pendingSnapDuration=dur;\$('file-image').click();});
   };
+  // Glisser à gauche/droite sur l'aperçu change de filtre, comme sur Snap —
+  // en plus du choix direct dans le bandeau de vignettes.
+  const videoEl=\$('snap-studio-video');
+  let swipeStartX=null;
+  videoEl.addEventListener('pointerdown',function(e){swipeStartX=e.clientX;});
+  videoEl.addEventListener('pointerup',function(e){
+    if(swipeStartX===null)return;
+    const dx=e.clientX-swipeStartX;swipeStartX=null;
+    if(Math.abs(dx)<50)return;
+    const idx=STUDIO_FILTER_KEYS.indexOf(studioFilter);
+    const nextIdx=dx<0?Math.min(STUDIO_FILTER_KEYS.length-1,idx+1):Math.max(0,idx-1);
+    selectStudioFilter(STUDIO_FILTER_KEYS[nextIdx]);
+  });
   const captureBtn=\$('snap-studio-capture');
   let pressTimer=null,isHolding=false;
+  function runCaptureCountdown(seconds,onDone){
+    const el=\$('snap-studio-countdown');
+    el.classList.remove('hidden');
+    let remaining=seconds;
+    el.textContent=remaining;
+    const iv=setInterval(function(){
+      remaining--;
+      if(remaining<=0){clearInterval(iv);el.classList.add('hidden');onDone();}
+      else el.textContent=remaining;
+    },1000);
+  }
   captureBtn.addEventListener('pointerdown',function(){
     isHolding=false;
     pressTimer=setTimeout(function(){isHolding=true;startStudioRecording();captureBtn.classList.add('recording');},280);
@@ -8650,6 +8695,7 @@ async function openSnapStudio(){
   captureBtn.addEventListener('pointerup',function(){
     clearTimeout(pressTimer);
     if(isHolding){captureBtn.classList.remove('recording');stopStudioRecording();}
+    else if(studioTimerSec>0)runCaptureCountdown(studioTimerSec,studioCapturePhoto);
     else studioCapturePhoto();
   });
   captureBtn.addEventListener('pointerleave',function(){
@@ -8726,64 +8772,108 @@ function openSnapStudioEditor(){
     +'<div class="snap-studio-text-layer-wrap" id="snap-studio-text-layer-wrap"></div>'
   +'</div>'
   +'<button type="button" class="snap-studio-close" id="snap-studio-edit-close">✕</button>'
-  +(isVideo?'':'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text">Aa</button>')
+  +(isVideo?'':'<div class="snap-studio-edit-tools">'
+    +'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text" title="Ajouter du texte">Aa</button>'
+    +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-sticker" title="Ajouter un sticker">😀</button>'
+  +'</div>')
   +'<button type="button" class="snap-studio-send" id="snap-studio-send">➤</button>';
   overlay.appendChild(editEl);
   \$('snap-studio-edit-close').onclick=function(){
     editEl.remove();
     if(view)view.classList.remove('hidden');
-    studioCaptured=null;studioTextLayers=[];
+    studioCaptured=null;studioLayers=[];
   };
   const addTextBtn=\$('snap-studio-add-text');
   if(addTextBtn)addTextBtn.onclick=function(){
-    studioTextLayers.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),text:'Texte',x:50,y:50,color:'#ffffff'});
-    renderStudioTextLayers();
+    studioLayers.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,6),type:'text',text:'Texte',x:50,y:50,scale:1,rotation:0,color:'#ffffff'});
+    renderStudioLayers();
+  };
+  const addStickerBtn=\$('snap-studio-add-sticker');
+  if(addStickerBtn)addStickerBtn.onclick=function(){
+    openEmojiPicker(addStickerBtn,function(emo){
+      studioLayers.push({id:'s'+Date.now()+Math.random().toString(36).slice(2,6),type:'sticker',emoji:emo,x:50,y:50,scale:1.6,rotation:0});
+      renderStudioLayers();
+    });
   };
   \$('snap-studio-send').onclick=function(){finishStudioSend(isVideo);};
 }
-function renderStudioTextLayers(){
+// Calques génériques (texte + sticker emoji), façon Snap/Instagram : glisser
+// le corps déplace, la poignée en bas à droite change taille ET rotation en
+// un seul geste (distance/angle depuis le centre du calque), une transform
+// CSS translate+rotate+scale gère l'affichage — reprise à l'identique en
+// canvas (translate/rotate/scale) au moment de cuire le calque dans l'image
+// finale, donc ce qu'on voit ici est exactement ce qui part.
+function renderStudioLayers(){
   const wrap=\$('snap-studio-text-layer-wrap');if(!wrap)return;
-  wrap.innerHTML=studioTextLayers.map(function(t){
-    return '<div class="snap-text-layer" data-layer-id="'+t.id+'" style="left:'+t.x+'%;top:'+t.y+'%;color:'+esc(t.color)+'"><span contenteditable="true" data-layer-edit="'+t.id+'">'+esc(t.text)+'</span><button type="button" class="snap-text-layer-del" data-layer-del="'+t.id+'">✕</button><div class="snap-text-layer-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-layer-color="'+t.id+'" data-color="'+c+'" style="background:'+c+'"></button>';}).join('')+'</div></div>';
+  wrap.innerHTML=studioLayers.map(function(t){
+    const transform='translate(-50%,-50%) rotate('+t.rotation+'deg) scale('+t.scale+')';
+    const content=t.type==='sticker'
+      ? '<span class="snap-layer-content">'+t.emoji+'</span>'
+      : '<span class="snap-layer-content" contenteditable="true" data-layer-edit="'+t.id+'" style="color:'+esc(t.color)+'">'+esc(t.text)+'</span>';
+    const colors=t.type==='text'?('<div class="snap-text-layer-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-layer-color="'+t.id+'" data-color="'+c+'" style="background:'+c+'"></button>';}).join('')+'</div>'):'';
+    return '<div class="snap-layer snap-layer-'+t.type+'" data-layer-id="'+t.id+'" style="left:'+t.x+'%;top:'+t.y+'%;transform:'+transform+'">'
+      +content
+      +'<button type="button" class="snap-layer-del" data-layer-del="'+t.id+'">✕</button>'
+      +'<div class="snap-layer-resize" data-layer-resize="'+t.id+'"></div>'
+      +colors
+      +'</div>';
   }).join('');
   wrap.querySelectorAll('[data-layer-id]').forEach(function(el){
     const id=el.getAttribute('data-layer-id');
     el.addEventListener('pointerdown',function(e){
-      if(e.target.closest('[data-layer-edit]')||e.target.closest('[data-layer-del]')||e.target.closest('[data-layer-color]'))return;
-      const rect=wrap.getBoundingClientRect();
-      studioDragCtx={id:id,rect:rect};
+      if(e.target.closest('[data-layer-edit]')||e.target.closest('[data-layer-del]')||e.target.closest('[data-layer-color]')||e.target.closest('[data-layer-resize]'))return;
+      studioDragCtx={id:id,mode:'move'};
       e.preventDefault();
+    });
+  });
+  wrap.querySelectorAll('[data-layer-resize]').forEach(function(el){
+    el.addEventListener('pointerdown',function(e){
+      e.preventDefault();e.stopPropagation();
+      const id=el.getAttribute('data-layer-resize');
+      const t=studioLayers.find(function(x){return x.id===id;});
+      if(!t)return;
+      const layerEl=wrap.querySelector('[data-layer-id="'+id+'"]');
+      const rect=layerEl.getBoundingClientRect();
+      const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+      studioDragCtx={id:id,mode:'resize',cx:cx,cy:cy,startDist:Math.hypot(e.clientX-cx,e.clientY-cy)||1,startAngle:Math.atan2(e.clientY-cy,e.clientX-cx)*180/Math.PI,startScale:t.scale,startRotation:t.rotation};
     });
   });
   wrap.querySelectorAll('[data-layer-edit]').forEach(function(el){
     el.addEventListener('input',function(){
-      const t=studioTextLayers.find(function(x){return x.id===el.getAttribute('data-layer-edit');});
+      const t=studioLayers.find(function(x){return x.id===el.getAttribute('data-layer-edit');});
       if(t)t.text=el.textContent;
     });
   });
   wrap.querySelectorAll('[data-layer-del]').forEach(function(el){
     el.addEventListener('click',function(){
-      studioTextLayers=studioTextLayers.filter(function(x){return x.id!==el.getAttribute('data-layer-del');});
-      renderStudioTextLayers();
+      studioLayers=studioLayers.filter(function(x){return x.id!==el.getAttribute('data-layer-del');});
+      renderStudioLayers();
     });
   });
   wrap.querySelectorAll('[data-layer-color]').forEach(function(el){
     el.addEventListener('click',function(){
-      const t=studioTextLayers.find(function(x){return x.id===el.getAttribute('data-layer-color');});
-      if(t){t.color=el.getAttribute('data-color');renderStudioTextLayers();}
+      const t=studioLayers.find(function(x){return x.id===el.getAttribute('data-layer-color');});
+      if(t){t.color=el.getAttribute('data-color');renderStudioLayers();}
     });
   });
 }
 document.addEventListener('pointermove',function(e){
   if(!studioDragCtx)return;
   const wrap=\$('snap-studio-text-layer-wrap');if(!wrap)return;
-  const rect=wrap.getBoundingClientRect();
-  const t=studioTextLayers.find(function(x){return x.id===studioDragCtx.id;});
+  const t=studioLayers.find(function(x){return x.id===studioDragCtx.id;});
   if(!t)return;
-  t.x=Math.max(5,Math.min(95,((e.clientX-rect.left)/rect.width)*100));
-  t.y=Math.max(5,Math.min(95,((e.clientY-rect.top)/rect.height)*100));
+  if(studioDragCtx.mode==='move'){
+    const rect=wrap.getBoundingClientRect();
+    t.x=Math.max(5,Math.min(95,((e.clientX-rect.left)/rect.width)*100));
+    t.y=Math.max(5,Math.min(95,((e.clientY-rect.top)/rect.height)*100));
+  }else if(studioDragCtx.mode==='resize'){
+    const dist=Math.hypot(e.clientX-studioDragCtx.cx,e.clientY-studioDragCtx.cy)||1;
+    const angle=Math.atan2(e.clientY-studioDragCtx.cy,e.clientX-studioDragCtx.cx)*180/Math.PI;
+    t.scale=Math.max(.4,Math.min(4,studioDragCtx.startScale*(dist/studioDragCtx.startDist)));
+    t.rotation=studioDragCtx.startRotation+(angle-studioDragCtx.startAngle);
+  }
   const el=wrap.querySelector('[data-layer-id="'+t.id+'"]');
-  if(el){el.style.left=t.x+'%';el.style.top=t.y+'%';}
+  if(el){el.style.left=t.x+'%';el.style.top=t.y+'%';el.style.transform='translate(-50%,-50%) rotate('+t.rotation+'deg) scale('+t.scale+')';}
 });
 document.addEventListener('pointerup',function(){studioDragCtx=null;});
 async function finishStudioSend(isVideo){
@@ -8792,22 +8882,31 @@ async function finishStudioSend(isVideo){
   if(isVideo){
     file=new File([studioCaptured.blob],'snap.webm',{type:'video/webm'});
   }else{
-    // Cuit les calques de texte directement dans l'image finale — ce que
+    // Cuit les calques (texte + stickers) directement dans l'image finale —
+    // même transform translate/rotate/scale que l'aperçu CSS, donc ce que
     // l'expéditeur voit dans l'éditeur est exactement ce qui part.
     const srcCanvas=studioCaptured.canvas;
     const mediaEl=\$('snap-studio-edit-media');
     const displayRect=mediaEl?mediaEl.getBoundingClientRect():{width:srcCanvas.width,height:srcCanvas.height};
-    const scaleX=srcCanvas.width/displayRect.width,scaleY=srcCanvas.height/displayRect.height;
+    const scaleX=srcCanvas.width/displayRect.width;
     const ctx=srcCanvas.getContext('2d');
-    studioTextLayers.forEach(function(t){
-      const fontSize=Math.round(28*scaleX);
-      ctx.font='bold '+fontSize+'px sans-serif';
-      ctx.fillStyle=t.color;
+    studioLayers.forEach(function(t){
+      ctx.save();
+      ctx.translate(srcCanvas.width*(t.x/100),srcCanvas.height*(t.y/100));
+      ctx.rotate(t.rotation*Math.PI/180);
+      ctx.scale(t.scale,t.scale);
       ctx.textAlign='center';
       ctx.textBaseline='middle';
-      ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
-      ctx.fillText(t.text,srcCanvas.width*(t.x/100),srcCanvas.height*(t.y/100));
-      ctx.shadowBlur=0;
+      if(t.type==='sticker'){
+        ctx.font=Math.round(48*scaleX)+'px sans-serif';
+        ctx.fillText(t.emoji,0,0);
+      }else{
+        ctx.font='bold '+Math.round(28*scaleX)+'px sans-serif';
+        ctx.fillStyle=t.color;
+        ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
+        ctx.fillText(t.text,0,0);
+      }
+      ctx.restore();
     });
     const blob=await new Promise(function(res){srcCanvas.toBlob(res,'image/jpeg',.92);});
     file=new File([blob],'snap.jpg',{type:'image/jpeg'});
