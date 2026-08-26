@@ -793,6 +793,7 @@ const APP = `<!DOCTYPE html>
 <meta name="theme-color" content="#0d0814"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <title>XULTRA</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%237c3aed%22%2F%3E%3Cstop%20offset%3D%2250%25%22%20stop-color%3D%22%23a855f7%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ec4899%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2213%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M14%2014l20%2020M34%2014L14%2034%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2236%22%20cy%3D%2212%22%20r%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/>
 <script>
 (function(){
   var shown=false;
@@ -878,6 +879,7 @@ button{cursor:pointer;border:0;background:0}
 }
 .logo-wrap{position:relative}
 .logo-particles{position:absolute;inset:-14px;pointer-events:none;overflow:visible;z-index:0}
+.logo-mark{position:relative;z-index:1;display:flex;justify-content:center;margin-bottom:6px;filter:drop-shadow(0 6px 16px rgba(124,58,237,.5))}
 .logo-particle{position:absolute;border-radius:50%;background:radial-gradient(circle,#c4b5fd,#7c3aed);opacity:0;animation:logoParticleFloat 4.5s ease-in-out infinite}
 @keyframes logoParticleFloat{
   0%{opacity:0;transform:translateY(6px) scale(.5)}
@@ -2010,6 +2012,7 @@ a.bug-att-item{display:block}
   <div id="auth" class="card">
     <div class="logo-wrap">
       <div class="logo-particles" id="logo-particles"></div>
+      <div class="logo-mark"><svg viewBox="0 0 48 48" width="44" height="44"><defs><linearGradient id="logoMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="50%" stop-color="#a855f7"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#logoMarkGrad)"/><path d="M14 14l20 20M34 14L14 34" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="36" cy="12" r="3" fill="#fff"/></svg></div>
       <div class="logo">XULTRA</div>
     </div>
     <div class="logo-sub">Messages · Amis · Profils</div>
@@ -2105,28 +2108,28 @@ a.bug-att-item{display:block}
 
 <div id="app" class="hidden">
   <nav class="rail">
-    <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages">💬</button>
-    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
-    <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres">🌐</button>
-    <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette">🎲</button>
-    <button type="button" class="rail-btn" id="nav-casino" title="Casino">🎰</button>
-    <button type="button" class="rail-btn" id="nav-creators" title="Créateurs">🎬</button>
-    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs">🏘️</button>
-    <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin">🛡️</button>
-    <button type="button" class="rail-btn" id="nav-status" title="État du système">🖥️</button>
-    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés">📋</button>
-    <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées">💡</button>
-    <button type="button" class="rail-btn" id="nav-team" title="Équipe & Badges">🏅</button>
+    <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
+    <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
+    <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
   </nav>
   <nav class="tabbar">
-    <button type="button" class="rail-btn on" data-view="dms" title="Messages">💬</button>
-    <button type="button" class="rail-btn" data-view="friends" title="Amis">👥<span class="rail-badge hidden rail-friends-badge">0</span></button>
-    <button type="button" class="rail-btn" data-view="members" title="Membres">🌐</button>
-    <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette">🎲</button>
-    <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino">🎰</button>
-    <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs">🎬</button>
-    <button type="button" class="rail-btn" data-view="servers" title="Serveurs">🏘️</button>
-    <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin">🛡️</button>
+    <button type="button" class="rail-btn on" data-view="dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
+    <button type="button" class="rail-btn" data-view="friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
+    <button type="button" class="rail-btn" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
+    <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
+    <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
   <aside class="list-col">
     <div class="list-head">
@@ -2188,12 +2191,12 @@ a.bug-att-item{display:block}
       <div class="msgs" id="msgs"></div>
       <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
       <div class="composer" id="composer">
-        <button type="button" class="composer-btn" id="btn-attach" title="Joindre">➕</button>
+        <button type="button" class="composer-btn" id="btn-attach" title="Joindre"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
-        <button type="button" class="composer-btn ai-fix-btn" id="btn-ai-fix" title="Corriger avec l'IA">✨</button>
-        <button type="button" class="composer-btn" id="btn-emoji" title="Emoji">😊</button>
-        <button type="button" class="composer-btn" id="btn-voice" title="Message vocal">🎤</button>
-        <button type="button" class="send-btn hidden" id="btn-send">➤</button>
+        <button type="button" class="composer-btn ai-fix-btn" id="btn-ai-fix" title="Corriger avec l'IA"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.4 4L17 8.4 13.4 9.8 12 14l-1.4-4.2L7 8.4l3.6-1.4L12 3z"/><path d="M19 14l.7 2 2 .8-2 .8-.7 2-.7-2-2-.8 2-.8z"/></svg></button>
+        <button type="button" class="composer-btn" id="btn-emoji" title="Emoji"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8 14c1 1.6 2.5 2.5 4 2.5s3-.9 4-2.5"/></svg></button>
+        <button type="button" class="composer-btn" id="btn-voice" title="Message vocal"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>
+        <button type="button" class="send-btn hidden" id="btn-send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M3 11.5L20 4l-6.5 17-3-6.5L3 11.5z"/></svg></button>
         <div class="attach-menu hidden" id="attach-menu">
           <button type="button" data-attach="image">🖼️<span>Photo / Vidéo</span></button>
           <button type="button" data-attach="snap">👻<span>Snap éphémère (vu une fois)</span></button>
@@ -4172,6 +4175,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.72.0',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
+    body:'XULTRA a enfin un favicon (un "X" dégradé violet-rose, dessiné pour l\\'occasion) et le logo de connexion s\\'accompagne maintenant de ce même symbole. Les 12 boutons de la barre de navigation (Messages, Amis, Membres, Serveurs…) et les 5 boutons de la zone d\\'écriture des messages privés passent des emojis à de vraies icônes SVG dessinées sur-mesure, plus nettes et cohérentes. Première vague — d\\'autres coins du site (paramètres, salons de serveur…) suivront.'},
   {version:'2.71.0',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
     body:'À l\\'envoi d\\'un snap éphémère, choisis maintenant combien de temps il reste visible pour le destinataire (3s, 5s, 10s, ou sans limite jusqu\\'à fermeture manuelle) — un petit compte à rebours s\\'affiche pendant le visionnage. Et surtout : quand quelqu\\'un ouvre ton snap, tu le vois marqué "vu" instantanément dans la conversation, sans avoir à recharger la page.'},
   {version:'2.70.0',date:'26 août 2026',time:'14:00',title:'Bitmoji XULTRA — ton avatar 2D personnalisable',
