@@ -45,9 +45,10 @@ xultra_export/
 │   ├── SCHEMA_SUMMARY.json
 │   ├── users_sample.json
 │   └── collections/*.json    ← schéma de chaque collection
-└── config/
-    ├── MAINT_GATE.txt        ← token bypass maintenance
-    └── SECRETS.md            ← secrets / IDs
+├── config/
+│   ├── MAINT_GATE.txt        ← token bypass maintenance
+│   └── SECRETS.md            ← secrets / IDs
+└── desktop/                  ← application de bureau (Electron), voir desktop/README.md
 ```
 
 ---
