@@ -2000,6 +2000,17 @@ a.bug-att-item{display:block}
 .set-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:16px}
 .set-card-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .set-card-row:last-child{border-bottom:0}
+.srv-insights-stats{display:flex;gap:24px}
+.srv-insights-stat .n{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+.srv-insights-stat .l{font-size:.72rem;color:var(--muted);margin-top:2px}
+.srv-insights-bars{display:flex;align-items:flex-end;gap:6px;height:110px;margin-top:10px}
+.srv-insights-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.srv-insights-bar-count{font-size:.66rem;color:var(--muted);margin-bottom:3px}
+.srv-insights-bar{width:100%;max-width:26px;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#a855f7,#7c3aed);min-height:3px}
+.srv-insights-bar.mem{background:linear-gradient(180deg,#22c55e,#0891b2)}
+.srv-insights-bar-label{font-size:.62rem;color:var(--muted);margin-top:5px;text-transform:capitalize}
+.srv-insights-chan-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:.85rem;border-bottom:1px solid rgba(255,255,255,.05)}
+.srv-insights-chan-row:last-child{border-bottom:0}
 .set-card-row .scr-info{flex:1;min-width:0}
 .set-card-row .scr-label{font-size:.84rem;font-weight:700}
 .set-card-row .scr-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
@@ -2295,6 +2306,7 @@ a.bug-att-item{display:block}
         <button type="button" class="srv-tab" data-srv-tab="events">📅 Événements</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-audit-btn" data-srv-tab="audit">Journal</button>
+        <button type="button" class="srv-tab hidden" id="srv-tab-insights-btn" data-srv-tab="insights">📊 Aperçu</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
       </div>
       <div class="admin-body" id="srv-detail-body"></div>
@@ -4224,6 +4236,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.77.0',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
+    body:'Nouvel onglet 📊 Aperçu dans les paramètres du serveur (visible à qui peut gérer le serveur) : nombre de membres, total de messages envoyés, un graphique des messages et des nouveaux membres sur les 7 derniers jours, et la liste des salons les plus actifs. De quoi voir d\\'un coup d\\'œil comment vit la communauté.'},
   {version:'2.76.0',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
     body:'Chaque membre peut désormais se donner un pseudo qui ne s\\'affiche que sur un serveur donné (nom, messages, mentions, journal d\\'audit…) sans toucher au nom global du compte — comme sur Discord. Change le tien depuis l\\'onglet Membres du serveur (bouton 🏷️ Pseudo). Les propriétaires peuvent accorder une nouvelle permission "Gérer les pseudos" à un rôle pour laisser des modérateurs renommer les autres membres (jamais le propriétaire, jamais quelqu\\'un d\\'un rang égal ou supérieur).'},
   {version:'2.75.0',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
@@ -12489,6 +12503,7 @@ async function openServerDetail(serverId){
   const canAudit=serverHasPermission('view_audit_log')||canSettings;
   \$('srv-tab-roles-btn').classList.toggle('hidden',!canRoles);
   \$('srv-tab-audit-btn').classList.toggle('hidden',!canAudit);
+  \$('srv-tab-insights-btn').classList.toggle('hidden',!canSettings);
   \$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
   activeServerTab='overview';
   switchServerTab('overview');
@@ -12514,6 +12529,7 @@ function switchServerTab(tab){
   else if(tab==='events')renderServerEventsTab();
   else if(tab==='roles')renderServerRolesTab();
   else if(tab==='audit')renderServerAuditTab();
+  else if(tab==='insights')renderServerInsightsTab();
   else if(tab==='settings')renderServerSettingsTab();
 }
 document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){
@@ -13674,7 +13690,8 @@ const AUDIT_ACTION_LABELS={
   tag_set:{icon:'🏷️',label:'a défini le tag du serveur :'},tag_remove:{icon:'🏷️',label:'a retiré le tag du serveur'},
   sticker_create:{icon:'🖼️',label:'a ajouté le sticker'},sticker_delete:{icon:'🖼️',label:'a supprimé le sticker'},
   widget_enable:{icon:'🧩',label:'a activé le widget du serveur'},widget_disable:{icon:'🧩',label:'a désactivé le widget du serveur'},
-  channel_follow_add:{icon:'📢',label:'a abonné ce serveur au salon'},channel_follow_remove:{icon:'📢',label:'a désabonné ce serveur d\\'un salon suivi'}
+  channel_follow_add:{icon:'📢',label:'a abonné ce serveur au salon'},channel_follow_remove:{icon:'📢',label:'a désabonné ce serveur d\\'un salon suivi'},
+  nickname_set:{icon:'🏷️',label:'a changé le pseudo de'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -13719,6 +13736,36 @@ async function renderServerAuditTab(){
   \$('srv-audit-search').addEventListener('input',renderList);
   \$('srv-audit-filter').addEventListener('change',renderList);
   renderList();
+}
+function srvInsightsDayLabel(iso){
+  try{return new Date(iso+'T00:00:00Z').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric'});}catch(e){return iso}
+}
+function srvInsightsBarsHtml(days,extraClass){
+  const max=Math.max(1,Math.max.apply(null,days.map(function(d){return d.count;})));
+  return '<div class="srv-insights-bars">'+days.map(function(d){
+    const pct=Math.round(d.count/max*100);
+    return '<div class="srv-insights-bar-col"><div class="srv-insights-bar-count">'+d.count+'</div><div class="srv-insights-bar'+(extraClass?' '+extraClass:'')+'" style="height:'+Math.max(pct,4)+'%"></div><div class="srv-insights-bar-label">'+esc(srvInsightsDayLabel(d.date))+'</div></div>';
+  }).join('')+'</div>';
+}
+async function renderServerInsightsTab(){
+  const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  box.innerHTML='<div class="empty-hint">Chargement…</div>';
+  let data=null;
+  try{data=await authGet('/api/servers/insights/get?serverId='+encodeURIComponent(activeServer.\$id));}
+  catch(e){box.innerHTML='<div class="empty-hint">Impossible de charger les statistiques.</div>';return}
+  const CHAN_ICON={voice:'🔊',forum:'📋',announcement:'📢'};
+  box.innerHTML='<div class="set-card">'
+    +'<div class="srv-insights-stats">'
+    +'<div class="srv-insights-stat"><div class="n">'+data.memberCount+'</div><div class="l">Membres</div></div>'
+    +'<div class="srv-insights-stat"><div class="n">'+data.messageCount+'</div><div class="l">Messages au total</div></div>'
+    +'</div></div>'
+    +'<div class="set-card"><div class="set-section-label">💬 Messages — 7 derniers jours</div>'+srvInsightsBarsHtml(data.messagesByDay)+'</div>'
+    +'<div class="set-card"><div class="set-section-label">👋 Nouveaux membres — 7 derniers jours</div>'+srvInsightsBarsHtml(data.newMembersByDay,'mem')+'</div>'
+    +'<div class="set-card"><div class="set-section-label">📌 Salons les plus actifs</div>'
+    +(data.topChannels.length?data.topChannels.map(function(c){
+      return '<div class="srv-insights-chan-row"><span>'+(CHAN_ICON[c.type]||'#')+' '+esc(c.name)+'</span><b>'+c.count+'</b></div>';
+    }).join(''):'<div class="empty-hint">Aucun message pour l\\'instant.</div>')
+    +'</div>';
 }
 async function syncChannelWithCategory(channelId){
   const channel=activeServerChannels.find(function(c){return c.\$id===channelId});
@@ -18078,6 +18125,57 @@ async function handle(request) {
         await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "nickname_set", member.username || targetUid, { nickname: nickname });
       }
       return new Response(JSON.stringify({ ok: true, nickname: nickname }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Aperçu/analytics serveur, réservé à qui peut gérer le serveur. Comme
+  // Appwrite n'a pas de compteur agrégé par jour, chaque point de la
+  // tendance est une requête "total seulement" (limit:1, seul le total
+  // compte) sur une fenêtre de date — 7 jours × 2 métriques + salons, le
+  // tout en parallèle (Promise.all) pour rester rapide malgré le nombre de
+  // sous-requêtes.
+  if (path === "/api/servers/insights/get" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, "manage_server");
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const countOnly = function (collection, extraQueries) {
+        return awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents?" +
+          extraQueries.map(function (q) { return "queries[]=" + encodeURIComponent(JSON.stringify(q)); }).join("&") +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true })
+          .then(function (r) { return r.total || 0; }).catch(function () { return 0; });
+      };
+      const serverEq = { method: "equal", attribute: "serverId", values: [serverId] };
+      const [memberCount, messageCount] = await Promise.all([
+        countOnly("server_members", [serverEq]),
+        countOnly("server_channel_messages", [serverEq])
+      ]);
+      const DAYS = 7;
+      const dayBounds = [];
+      const today = new Date();
+      for (let i = DAYS - 1; i >= 0; i--) {
+        const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - i));
+        const end = new Date(start.getTime() + 86400000);
+        dayBounds.push({ start: start.toISOString(), end: end.toISOString(), label: start.toISOString().slice(0, 10) });
+      }
+      const rangeQ = function (d) { return [serverEq, { method: "greaterThanEqual", attribute: "$createdAt", values: [d.start] }, { method: "lessThan", attribute: "$createdAt", values: [d.end] }]; };
+      const [messagesByDay, newMembersByDay] = await Promise.all([
+        Promise.all(dayBounds.map(function (d) { return countOnly("server_channel_messages", rangeQ(d)).then(function (count) { return { date: d.label, count: count }; }); })),
+        Promise.all(dayBounds.map(function (d) { return countOnly("server_members", rangeQ(d)).then(function (count) { return { date: d.label, count: count }; }); }))
+      ]);
+      const channelsQ = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify(serverEq)) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [8] })), { asAdmin: true });
+      const topChannels = await Promise.all((channelsQ.documents || []).map(function (c) {
+        return countOnly("server_channel_messages", [{ method: "equal", attribute: "channelId", values: [c.$id] }])
+          .then(function (count) { return { channelId: c.$id, name: c.name, type: c.type, count: count }; });
+      }));
+      topChannels.sort(function (a, b) { return b.count - a.count; });
+      return new Response(JSON.stringify({ ok: true, memberCount: memberCount, messageCount: messageCount, messagesByDay: messagesByDay, newMembersByDay: newMembersByDay, topChannels: topChannels }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
