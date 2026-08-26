@@ -1322,6 +1322,15 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-studio-edit-tools{position:absolute;bottom:calc(28px + env(safe-area-inset-bottom));left:24px;display:flex;gap:10px;z-index:5}
 .snap-studio-add-text,.snap-studio-add-sticker{min-width:44px;height:44px;padding:0 16px;border-radius:22px;background:rgba(255,255,255,.15);color:#fff;font-weight:800;font-size:1.1rem;border:none;cursor:pointer}
 .snap-studio-send{position:absolute;bottom:calc(24px + env(safe-area-inset-bottom));right:20px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1.3rem;border:none;z-index:5;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,.5)}
+.snap-studio-save{position:absolute;bottom:calc(30px + env(safe-area-inset-bottom));right:84px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:1.05rem;border:none;z-index:5;cursor:pointer}
+.snap-studio-draw-canvas{position:absolute;pointer-events:none;touch-action:none}
+.snap-studio-draw-canvas.active{pointer-events:auto;cursor:crosshair}
+.snap-studio-draw-tools{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:center;gap:12px;z-index:6;padding:0 16px}
+.snap-studio-draw-colors{display:flex;gap:6px;background:rgba(0,0,0,.5);padding:6px;border-radius:20px}
+.snap-studio-draw-colors button{width:22px;height:22px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.snap-studio-draw-colors button.on{border-color:#fff}
+.snap-studio-draw-undo,.snap-studio-draw-done{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:1rem;border:none;cursor:pointer;flex:0 0 auto}
+.snap-studio-draw-done{background:linear-gradient(135deg,#7c3aed,#ec4899)}
 .dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
 .gp-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .gp-theme-swatch{height:44px;border-radius:10px;border:2px solid transparent;cursor:pointer;background-color:#2a1548}
@@ -4243,6 +4252,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.79.0',date:'26 août 2026',time:'22:00',title:'Studio Ephem : dessin libre et sauvegarde sur l\\'appareil',
+    body:'Bloc 2 du studio Ephem façon Snap : un nouveau bouton ✏️ ouvre un mode dessin libre — trace au doigt directement sur ta photo, choisis parmi 8 couleurs, annule le dernier trait d\\'un tap. Et un bouton 💾 permet d\\'enregistrer la photo (avec dessin, texte et stickers) directement sur l\\'appareil avant ou sans l\\'envoyer.'},
   {version:'2.78.0',date:'26 août 2026',time:'21:00',title:'Studio Ephem : calques redimensionnables, stickers, retardateur et glisser pour changer de filtre',
     body:'Les calques du studio Ephem (texte) se redimensionnent et pivotent maintenant d\\'un geste, comme sur Snap : une poignée en bas à droite du calque, à faire glisser pour l\\'agrandir/réduire et le tourner en même temps. Nouveau : ajoute des stickers emoji, déplaçables et redimensionnables exactement comme le texte. Et pour la prise de vue : un retardateur (3s/10s) avant la photo, et glisser à gauche/droite sur l\\'aperçu change de filtre sans passer par le bandeau de vignettes. D\\'autres blocs de fonctionnalités façon Snap arrivent (dessin libre, sauvegarde, etc.).'},
   {version:'2.77.0',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
@@ -8614,6 +8625,7 @@ const SNAP_FILTERS=[
 ];
 const SNAP_TEXT_COLORS=['#ffffff','#000000','#ef4444','#f59e0b','#22c55e','#3b82f6','#7c3aed','#ec4899'];
 let studioStream=null,studioFacing='user',studioFilter='none',studioRecording=false,studioMediaRecorder=null,studioRecordChunks=[],studioDrawLoopId=null,studioCaptured=null,studioLayers=[],studioDragCtx=null,studioTimerSec=0;
+let studioDrawColor='#ffffff',studioDrawDirty=false,studioDrawHistory=[],studioDrawStroking=false;
 const STUDIO_FILTER_KEYS=SNAP_FILTERS.map(function(f){return f.key;});
 async function openSnapStudio(){
   const overlay=document.createElement('div');
@@ -8769,19 +8781,27 @@ function openSnapStudioEditor(){
   editEl.id='snap-studio-edit-view';
   editEl.innerHTML='<div class="snap-studio-edit-media" id="snap-studio-edit-media">'
     +(isVideo?('<video src="'+previewSrc+'" autoplay muted loop playsinline></video>'):('<img src="'+previewSrc+'" alt="">'))
+    +'<canvas class="snap-studio-draw-canvas" id="snap-studio-draw-canvas"></canvas>'
     +'<div class="snap-studio-text-layer-wrap" id="snap-studio-text-layer-wrap"></div>'
   +'</div>'
   +'<button type="button" class="snap-studio-close" id="snap-studio-edit-close">✕</button>'
-  +(isVideo?'':'<div class="snap-studio-edit-tools">'
+  +(isVideo?'':'<div class="snap-studio-edit-tools" id="snap-studio-edit-tools">'
     +'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text" title="Ajouter du texte">Aa</button>'
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-sticker" title="Ajouter un sticker">😀</button>'
+    +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-draw" title="Dessiner">✏️</button>'
   +'</div>')
+  +(isVideo?'':'<div class="snap-studio-draw-tools hidden" id="snap-studio-draw-tools">'
+    +'<div class="snap-studio-draw-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-draw-color="'+c+'" style="background:'+c+'"'+(c==='#ffffff'?' class="on"':'')+'></button>';}).join('')+'</div>'
+    +'<button type="button" class="snap-studio-draw-undo" id="snap-studio-draw-undo" title="Annuler le dernier trait">↩️</button>'
+    +'<button type="button" class="snap-studio-draw-done" id="snap-studio-draw-done" title="Terminer le dessin">✓</button>'
+  +'</div>')
+  +(isVideo?'':'<button type="button" class="snap-studio-save" id="snap-studio-save" title="Enregistrer sur l\\'appareil">💾</button>')
   +'<button type="button" class="snap-studio-send" id="snap-studio-send">➤</button>';
   overlay.appendChild(editEl);
   \$('snap-studio-edit-close').onclick=function(){
     editEl.remove();
     if(view)view.classList.remove('hidden');
-    studioCaptured=null;studioLayers=[];
+    studioCaptured=null;studioLayers=[];studioDrawHistory=[];studioDrawDirty=false;
   };
   const addTextBtn=\$('snap-studio-add-text');
   if(addTextBtn)addTextBtn.onclick=function(){
@@ -8795,7 +8815,137 @@ function openSnapStudioEditor(){
       renderStudioLayers();
     });
   };
+  if(!isVideo)initStudioDrawTool();
   \$('snap-studio-send').onclick=function(){finishStudioSend(isVideo);};
+  const saveBtn=\$('snap-studio-save');
+  if(saveBtn)saveBtn.onclick=saveStudioPhotoToDevice;
+}
+// Dessin libre — un mode à part du système de calques (trait continu, pas un
+// élément positionné/redimensionnable) : un canvas transparent posé sur la
+// photo, actif seulement pendant le mode dessin (pointer-events coupés le
+// reste du temps pour ne pas gêner les calques). "Annuler" restaure un
+// instantané pris juste avant chaque trait plutôt que de rejouer un
+// historique vectoriel — plus simple, largement suffisant pour quelques
+// traits successifs.
+// Aire réellement visible d'un média en object-fit:contain dans son
+// conteneur (rectangle "letterboxé") — le canvas de dessin est calé
+// dessus, pas sur le conteneur entier, pour que le trait ne s'étire jamais
+// une fois recopié sur la photo (dont le ratio caméra diffère souvent du
+// ratio de l'écran).
+function studioContainedRect(containerW,containerH,mediaW,mediaH){
+  if(!mediaW||!mediaH)return {x:0,y:0,w:containerW,h:containerH};
+  const containerRatio=containerW/containerH,mediaRatio=mediaW/mediaH;
+  let w,h;
+  if(mediaRatio>containerRatio){w=containerW;h=containerW/mediaRatio;}
+  else{h=containerH;w=containerH*mediaRatio;}
+  return {x:(containerW-w)/2,y:(containerH-h)/2,w:w,h:h};
+}
+function initStudioDrawTool(){
+  studioDrawColor='#ffffff';studioDrawDirty=false;studioDrawHistory=[];studioDrawStroking=false;
+  const mediaEl=\$('snap-studio-edit-media');
+  const canvas=\$('snap-studio-draw-canvas');
+  if(!mediaEl||!canvas||!studioCaptured||!studioCaptured.canvas)return;
+  const containerRect=mediaEl.getBoundingClientRect();
+  const photo=studioCaptured.canvas;
+  const box=studioContainedRect(containerRect.width,containerRect.height,photo.width,photo.height);
+  canvas.style.left=box.x+'px';canvas.style.top=box.y+'px';
+  canvas.style.width=box.w+'px';canvas.style.height=box.h+'px';
+  canvas.width=Math.max(1,Math.round(box.w));
+  canvas.height=Math.max(1,Math.round(box.h));
+  const ctx=canvas.getContext('2d');
+  ctx.lineCap='round';ctx.lineJoin='round';ctx.lineWidth=7;
+  function setActive(active){
+    canvas.classList.toggle('active',active);
+    \$('snap-studio-draw-tools').classList.toggle('hidden',!active);
+    \$('snap-studio-edit-tools').classList.toggle('hidden',active);
+    \$('snap-studio-send').classList.toggle('hidden',active);
+    const saveBtn=\$('snap-studio-save');if(saveBtn)saveBtn.classList.toggle('hidden',active);
+  }
+  const drawBtn=\$('snap-studio-add-draw');
+  if(drawBtn)drawBtn.onclick=function(){setActive(true);};
+  \$('snap-studio-draw-done').onclick=function(){setActive(false);};
+  \$('snap-studio-draw-tools').querySelectorAll('[data-draw-color]').forEach(function(b){
+    b.addEventListener('click',function(){
+      studioDrawColor=b.getAttribute('data-draw-color');
+      \$('snap-studio-draw-tools').querySelectorAll('[data-draw-color]').forEach(function(x){x.classList.toggle('on',x===b);});
+    });
+  });
+  \$('snap-studio-draw-undo').onclick=function(){
+    const snapshot=studioDrawHistory.pop();
+    if(snapshot)ctx.putImageData(snapshot,0,0);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+    studioDrawDirty=studioDrawHistory.length>0;
+  };
+  canvas.addEventListener('pointerdown',function(e){
+    if(!canvas.classList.contains('active'))return;
+    try{studioDrawHistory.push(ctx.getImageData(0,0,canvas.width,canvas.height));}catch(err){}
+    if(studioDrawHistory.length>20)studioDrawHistory.shift();
+    studioDrawStroking=true;studioDrawDirty=true;
+    const p=studioDrawPoint(canvas,e);
+    ctx.strokeStyle=studioDrawColor;
+    ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+  });
+  canvas.addEventListener('pointermove',function(e){
+    if(!studioDrawStroking)return;
+    const p=studioDrawPoint(canvas,e);
+    ctx.lineTo(p.x,p.y);ctx.stroke();
+  });
+  function endStroke(){studioDrawStroking=false;}
+  canvas.addEventListener('pointerup',endStroke);
+  canvas.addEventListener('pointerleave',endStroke);
+}
+function studioDrawPoint(canvas,e){
+  const rect=canvas.getBoundingClientRect();
+  return {x:(e.clientX-rect.left)*(canvas.width/rect.width),y:(e.clientY-rect.top)*(canvas.height/rect.height)};
+}
+function cloneCanvas(src){
+  const c=document.createElement('canvas');
+  c.width=src.width;c.height=src.height;
+  c.getContext('2d').drawImage(src,0,0);
+  return c;
+}
+// Cuit le dessin libre puis les calques sur une COPIE de la photo capturée —
+// jamais l'original (studioCaptured.canvas), pour pouvoir enregistrer et
+// envoyer sans que la seconde opération double les calques sur la première.
+function bakeStudioPhotoCanvas(){
+  const copy=cloneCanvas(studioCaptured.canvas);
+  const mediaEl=\$('snap-studio-edit-media');
+  const displayRect=mediaEl?mediaEl.getBoundingClientRect():{width:copy.width,height:copy.height};
+  const scaleX=copy.width/displayRect.width;
+  const ctx=copy.getContext('2d');
+  const drawCanvas=\$('snap-studio-draw-canvas');
+  if(drawCanvas&&studioDrawDirty)ctx.drawImage(drawCanvas,0,0,copy.width,copy.height);
+  studioLayers.forEach(function(t){
+    ctx.save();
+    ctx.translate(copy.width*(t.x/100),copy.height*(t.y/100));
+    ctx.rotate(t.rotation*Math.PI/180);
+    ctx.scale(t.scale,t.scale);
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(t.type==='sticker'){
+      ctx.font=Math.round(48*scaleX)+'px sans-serif';
+      ctx.fillText(t.emoji,0,0);
+    }else{
+      ctx.font='bold '+Math.round(28*scaleX)+'px sans-serif';
+      ctx.fillStyle=t.color;
+      ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
+      ctx.fillText(t.text,0,0);
+    }
+    ctx.restore();
+  });
+  return copy;
+}
+function saveStudioPhotoToDevice(){
+  if(!studioCaptured||studioCaptured.type!=='image')return;
+  const copy=bakeStudioPhotoCanvas();
+  copy.toBlob(function(blob){
+    if(!blob)return;
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download='ephem-'+Date.now()+'.jpg';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+    showToast('Photo enregistrée sur l\\'appareil.');
+  },'image/jpeg',.92);
 }
 // Calques génériques (texte + sticker emoji), façon Snap/Instagram : glisser
 // le corps déplace, la poignée en bas à droite change taille ET rotation en
@@ -8882,33 +9032,11 @@ async function finishStudioSend(isVideo){
   if(isVideo){
     file=new File([studioCaptured.blob],'snap.webm',{type:'video/webm'});
   }else{
-    // Cuit les calques (texte + stickers) directement dans l'image finale —
-    // même transform translate/rotate/scale que l'aperçu CSS, donc ce que
-    // l'expéditeur voit dans l'éditeur est exactement ce qui part.
-    const srcCanvas=studioCaptured.canvas;
-    const mediaEl=\$('snap-studio-edit-media');
-    const displayRect=mediaEl?mediaEl.getBoundingClientRect():{width:srcCanvas.width,height:srcCanvas.height};
-    const scaleX=srcCanvas.width/displayRect.width;
-    const ctx=srcCanvas.getContext('2d');
-    studioLayers.forEach(function(t){
-      ctx.save();
-      ctx.translate(srcCanvas.width*(t.x/100),srcCanvas.height*(t.y/100));
-      ctx.rotate(t.rotation*Math.PI/180);
-      ctx.scale(t.scale,t.scale);
-      ctx.textAlign='center';
-      ctx.textBaseline='middle';
-      if(t.type==='sticker'){
-        ctx.font=Math.round(48*scaleX)+'px sans-serif';
-        ctx.fillText(t.emoji,0,0);
-      }else{
-        ctx.font='bold '+Math.round(28*scaleX)+'px sans-serif';
-        ctx.fillStyle=t.color;
-        ctx.shadowColor='rgba(0,0,0,.6)';ctx.shadowBlur=6;
-        ctx.fillText(t.text,0,0);
-      }
-      ctx.restore();
-    });
-    const blob=await new Promise(function(res){srcCanvas.toBlob(res,'image/jpeg',.92);});
+    // Même fonction de cuisson que "Enregistrer sur l'appareil" (dessin +
+    // calques sur une copie de la photo) — ce que l'expéditeur voit dans
+    // l'éditeur est exactement ce qui part, que ce soit envoyé ou sauvegardé.
+    const copy=bakeStudioPhotoCanvas();
+    const blob=await new Promise(function(res){copy.toBlob(res,'image/jpeg',.92);});
     file=new File([blob],'snap.jpg',{type:'image/jpeg'});
   }
   closeSnapStudio();
