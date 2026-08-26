@@ -1270,6 +1270,7 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-viewer-overlay{position:fixed;inset:0;z-index:9000;background:#000;display:flex;align-items:center;justify-content:center}
 .snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
 .snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
+.snap-viewer-timer{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;min-width:38px;height:38px;padding:0 10px;border-radius:19px;background:rgba(0,0,0,.5);color:#fff;font-size:1rem;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:2;font-variant-numeric:tabular-nums}
 .dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
 .gp-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .gp-theme-swatch{height:44px;border-radius:10px;border:2px solid transparent;cursor:pointer;background-color:#2a1548}
@@ -4171,6 +4172,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.71.0',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
+    body:'À l\\'envoi d\\'un snap éphémère, choisis maintenant combien de temps il reste visible pour le destinataire (3s, 5s, 10s, ou sans limite jusqu\\'à fermeture manuelle) — un petit compte à rebours s\\'affiche pendant le visionnage. Et surtout : quand quelqu\\'un ouvre ton snap, tu le vois marqué "vu" instantanément dans la conversation, sans avoir à recharger la page.'},
   {version:'2.70.0',date:'26 août 2026',time:'14:00',title:'Bitmoji XULTRA — ton avatar 2D personnalisable',
     body:'Nouvel onglet 🎭 Bitmoji dans l\\'éditeur de profil : compose un avatar 2D façon Bitmoji entièrement dessiné pour XULTRA (teint, forme du visage, coiffure et couleur, yeux, sourcils, bouche, tenue et couleur, accessoire, fond), avec aperçu en direct et un bouton 🎲 pour un tirage aléatoire. Active "Utiliser mon Bitmoji comme photo de profil" pour l\\'afficher à la place de ta photo sur ta fiche profil et dans la barre utilisateur.'},
   {version:'2.69.0',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
@@ -6475,6 +6478,18 @@ function subscribeDmDeleteWatcher(){
 function subscribeDmMessagesWatcher(){
   try{
     client.subscribe('databases.'+DB+'.collections.dms_messages.documents',function(res){
+      if(eventIs(res.events,'.update')){
+        // Propage en direct les changements sur un message existant (snap
+        // marqué "vu", réaction, épinglage…) — sans ça, seule la personne qui
+        // agit voit l'effet tant de suite ; l'autre doit recharger la page
+        // pour, par exemple, voir que son snap éphémère vient d'être ouvert.
+        const p=res.payload;
+        if(p&&p.threadId===activeDm){
+          const idx=msgsCache.findIndex(function(x){return x.\$id===p.\$id;});
+          if(idx>=0){msgsCache[idx]=p;renderMessages();}
+        }
+        return;
+      }
       if(!eventIs(res.events,'.create'))return;
       const p=res.payload;if(!p||!me)return;
       if(String(p.uid)===String(me.\$id))return;
@@ -7770,7 +7785,7 @@ function renderMsgBody(m,text,mediaUrl){
     if(mine){
       return '<div class="msg-snap-placeholder">👻 <span>Snap envoyé — pas encore ouvert</span></div>';
     }
-    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'">👻 <span>Appuie pour voir le snap</span></div>';
+    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'">👻 <span>Appuie pour voir le snap'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span></div>';
   }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
@@ -7800,24 +7815,37 @@ function wireSnapPlaceholders(container){
   if(!container)return;
   container.querySelectorAll('[data-snap-view]').forEach(function(el){
     el.addEventListener('click',function(){
-      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'));
+      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'),parseInt(el.getAttribute('data-snap-dur'),10)||0);
     });
   });
 }
-function openSnapViewer(messageId,url,type){
+function openSnapViewer(messageId,url,type,durationSec){
   if(!url){showToast('Snap indisponible.','error');return}
   const overlay=document.createElement('div');
   overlay.className='snap-viewer-overlay';
   overlay.innerHTML='<button type="button" class="snap-viewer-close" id="snap-viewer-close">✕</button>'
-    +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline controls></video>'):('<img src="'+esc(url)+'" alt="">'));
+    +(durationSec?'<div class="snap-viewer-timer" id="snap-viewer-timer">'+durationSec+'</div>':'')
+    +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline'+(durationSec?'':' controls')+'></video>'):('<img src="'+esc(url)+'" alt="">'));
   document.body.appendChild(overlay);
   authPost('/api/dms/media/view',{messageId:messageId}).then(function(){
     const m=msgsCache.find(function(x){return x.\$id===messageId;});
     if(m){m.viewedAt=new Date().toISOString();m.mediaUrl='';}
   }).catch(function(){});
+  let autoCloseTimer=null,countdownTimer=null;
   function close(){
+    if(autoCloseTimer)clearTimeout(autoCloseTimer);
+    if(countdownTimer)clearInterval(countdownTimer);
     overlay.remove();
     if(activeDm)renderMessages();
+  }
+  if(durationSec>0){
+    let remaining=durationSec;
+    const timerEl=\$('snap-viewer-timer');
+    countdownTimer=setInterval(function(){
+      remaining--;
+      if(timerEl)timerEl.textContent=String(Math.max(remaining,0));
+    },1000);
+    autoCloseTimer=setTimeout(close,durationSec*1000);
   }
   \$('snap-viewer-close').onclick=close;
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
@@ -8449,7 +8477,25 @@ document.addEventListener('click',function(e){
   const menu=\$('attach-menu');
   if(menu&&!menu.classList.contains('hidden')&&!menu.contains(e.target)&&e.target!==\$('btn-attach'))menu.classList.add('hidden');
 });
-let pendingSnapEphemeral=false;
+let pendingSnapEphemeral=false,pendingSnapDuration=0;
+const SNAP_DURATIONS=[{v:3,label:'3 secondes'},{v:5,label:'5 secondes'},{v:10,label:'10 secondes'},{v:0,label:'Sans limite (fermeture manuelle)'}];
+function openSnapDurationPicker(onPick){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">👻 Combien de temps ce snap reste visible ?</div>'
+    +SNAP_DURATIONS.map(function(d){return '<button type="button" class="set-card-row" data-snap-dur="'+d.v+'" style="width:100%;cursor:pointer"><div class="scr-info"><div class="scr-label">'+esc(d.label)+'</div></div></button>';}).join('')
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelectorAll('[data-snap-dur]').forEach(function(b){
+    b.addEventListener('click',function(){
+      close();
+      onPick(parseInt(b.getAttribute('data-snap-dur'),10)||0);
+    });
+  });
+}
 document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
   btn.addEventListener('click',function(){
     const kind=btn.getAttribute('data-attach');
@@ -8457,7 +8503,9 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
     if(kind==='image'){pendingSnapEphemeral=false;\$('file-image').click();}
     else if(kind==='snap'){
       if(activeDmIsGroup){showToast('Les snaps éphémères ne sont possibles qu\\'en conversation privée.','error');return}
-      pendingSnapEphemeral=true;\$('file-image').click();
+      openSnapDurationPicker(function(dur){
+        pendingSnapEphemeral=true;pendingSnapDuration=dur;\$('file-image').click();
+      });
     }
     else if(kind==='file')\$('file-generic').click();
     else if(kind==='gif')openGifPicker();
@@ -8465,7 +8513,7 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
   });
 });
 const MAX_ATTACH_BYTES=25*1024*1024;
-async function handleFileAttach(file,kindHint,ephemeral){
+async function handleFileAttach(file,kindHint,ephemeral,durationSec){
   if(!file||!activeDm)return;
   if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
   let type=kindHint;
@@ -8485,6 +8533,7 @@ async function handleFileAttach(file,kindHint,ephemeral){
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
+    if(ephemeral)data.snapDurationSec=durationSec||0;
     let preview=ephemeral?'👻 Snap éphémère':'📎 Pièce jointe';
     if(type==='image'&&!ephemeral){preview='📷 Photo';}
     else if(type==='video'&&!ephemeral){preview='🎬 Vidéo';}
@@ -8498,7 +8547,7 @@ async function handleFileAttach(file,kindHint,ephemeral){
     }
   }catch(e){alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});}
 }
-if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral);pendingSnapEphemeral=false;this.value='';});
+if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration);pendingSnapEphemeral=false;pendingSnapDuration=0;this.value='';});
 if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
 
 let gifSearchTimeout=null;
