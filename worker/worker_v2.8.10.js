@@ -226,7 +226,7 @@ async function computeChannelMessagePermissions(serverId, channel, threadUids) {
 // recalculées pour le salon CIBLE (jamais copiées telles quelles), pour
 // rester scopées à qui peut réellement voir ce salon-là — même logique
 // que les messages de webhook.
-async function crosspostAnnouncementMessage(sourceChannelId, sourceServerName, sourceChannelName, sourceServerIcon, text, stickerUrl) {
+async function crosspostAnnouncementMessage(sourceChannelId, sourceServerName, sourceChannelName, sourceServerIcon, text, stickerUrl, mediaType, mediaUrl, mime) {
   try {
     const follows = await awFetch("/databases/" + AW_DB + "/collections/channel_follows/documents?" +
       "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sourceChannelId", values: [sourceChannelId] })) +
@@ -240,7 +240,7 @@ async function crosspostAnnouncementMessage(sourceChannelId, sourceServerName, s
           method: "POST", asAdmin: true,
           body: {
             documentId: "unique()",
-            data: { channelId: f.targetChannelId, serverId: f.targetServerId, uid: "crosspost:" + sourceChannelId, username: "📢 " + sourceServerName + " · #" + sourceChannelName, text: text, replyToId: "", pollJson: "", threadId: "", stickerUrl: stickerUrl || "", avatarUrl: sourceServerIcon || "" },
+            data: { channelId: f.targetChannelId, serverId: f.targetServerId, uid: "crosspost:" + sourceChannelId, username: "📢 " + sourceServerName + " · #" + sourceChannelName, text: text, replyToId: "", pollJson: "", threadId: "", stickerUrl: stickerUrl || "", avatarUrl: sourceServerIcon || "", type: mediaType || "", mediaUrl: mediaUrl || "", mime: mime || "" },
             permissions: msgPerms
           }
         });
@@ -2238,7 +2238,7 @@ a.bug-att-item{display:block}
         <button type="button" class="send-btn hidden" id="btn-send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M3 11.5L20 4l-6.5 17-3-6.5L3 11.5z"/></svg></button>
         <div class="attach-menu hidden" id="attach-menu">
           <button type="button" data-attach="image">🖼️<span>Photo / Vidéo</span></button>
-          <button type="button" data-attach="snap">👻<span>Snap éphémère (vu une fois)</span></button>
+          <button type="button" data-attach="snap">👻<span>Ephem (vu une fois)</span></button>
           <button type="button" data-attach="file">📄<span>Fichier</span></button>
           <button type="button" data-attach="gif">🎞️<span>GIF</span></button>
           <button type="button" data-attach="location">📍<span>Position</span></button>
@@ -2437,7 +2437,7 @@ a.bug-att-item{display:block}
         <div class="pe-tabs" id="pe-tabs">
           <button type="button" class="pe-tab on" data-tab="general">Général</button>
           <button type="button" class="pe-tab" data-tab="style">Style</button>
-          <button type="button" class="pe-tab" data-tab="bitmoji">Bitmoji</button>
+          <button type="button" class="pe-tab" data-tab="bitmoji">xMoji</button>
           <button type="button" class="pe-tab" data-tab="social">Réseaux</button>
         </div>
         <div class="pe-pane" data-pane="general">
@@ -2499,9 +2499,9 @@ a.bug-att-item{display:block}
           <button type="button" class="btn-main" id="pe-randomize-style" style="margin-top:4px">🎲 Style aléatoire</button>
         </div>
         <div class="pe-pane hidden" data-pane="bitmoji">
-          <div class="pe-hint">🎭 Un avatar 2D façon Bitmoji, 100% personnalisable — jamais une vraie photo, dessiné à partir de tes choix.</div>
+          <div class="pe-hint">🎭 Un avatar 2D xMoji, 100% personnalisable — jamais une vraie photo, dessiné à partir de tes choix.</div>
           <div id="bm-preview" style="width:140px;height:140px;margin:0 auto 10px;border-radius:50%;overflow:hidden;background:#111;border:2px solid rgba(167,139,250,.3)"></div>
-          <label class="pe-field"><span>Utiliser mon Bitmoji comme photo de profil</span><div class="set-switch" id="bm-use-toggle"></div></label>
+          <label class="pe-field"><span>Utiliser mon xMoji comme photo de profil</span><div class="set-switch" id="bm-use-toggle"></div></label>
           <div class="pe-field"><span>Teint</span><div class="pe-swatches" id="bm-skin-swatches"></div></div>
           <div class="pe-field"><span>Forme du visage</span><div class="seg-group" id="bm-face-seg"></div></div>
           <div class="pe-field"><span>Coiffure</span><div class="seg-group" id="bm-hair-seg"></div></div>
@@ -2513,7 +2513,7 @@ a.bug-att-item{display:block}
           <div class="pe-field"><span>Couleur de la tenue</span><div class="pe-swatches" id="bm-outfitcolor-swatches"></div></div>
           <div class="pe-field"><span>Accessoire</span><div class="seg-group" id="bm-accessory-seg"></div></div>
           <div class="pe-field"><span>Fond</span><div class="pe-swatches" id="bm-bg-swatches"></div></div>
-          <button type="button" class="btn-main" id="bm-randomize" style="margin-top:4px">🎲 Bitmoji aléatoire</button>
+          <button type="button" class="btn-main" id="bm-randomize" style="margin-top:4px">🎲 xMoji aléatoire</button>
         </div>
         <div class="pe-pane hidden" data-pane="social">
           <label class="pe-field"><span>📸 Instagram</span><input type="text" id="pe-social-instagram" class="field-input" placeholder="pseudo ou lien complet"/></label>
@@ -4214,6 +4214,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.75.0',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
+    body:'Les salons de serveur passent aux mêmes fonctionnalités que les messages privés (à l\\'exception des streaks 🔥 et des Ephem 👻, qui restent propres aux DM) : envoie des photos, vidéos et fichiers (avec barre de progression), colle une image directement dans la zone de texte, ajoute un GIF, partage ta position, ou maintiens le nouveau bouton micro pour un message vocal — exactement comme en DM. Et pendant qu\\'on y était : Bitmoji est renommé xMoji, et Snap devient Ephem, partout sur le site.'},
   {version:'2.74.0',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
     body:'Dans les messages privés, colle une image copiée (capture, image copiée d\\'un site…) directement dans la zone de texte : elle s\\'envoie automatiquement, avec une barre de progression qui affiche le poids envoyé sur le poids total. Et désormais, dans les DM comme dans les salons de serveur, si quelqu\\'un prend une capture d\\'écran (touche Impr écran sous Windows — malheureusement indétectable sur Mac et mobile, aucune app web n\\'a accès à cette information là-bas), un petit avis "a pris une capture d\\'écran" s\\'affiche dans la conversation, avec une limite d\\'un avis toutes les 20 secondes pour éviter le spam.'},
   {version:'2.73.1',date:'26 août 2026',time:'16:20',title:'Correctif : plusieurs listes pouvaient sembler vides après une longue session',
@@ -7847,12 +7849,12 @@ function renderMsgBody(m,text,mediaUrl){
   if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
     const mine=m.uid===(me&&me.\$id);
     if(m.viewedAt){
-      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Snap vu par le destinataire':'Snap vu')+'</span></div>';
+      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Ephem vu par le destinataire':'Ephem vu')+'</span></div>';
     }
     if(mine){
-      return '<div class="msg-snap-placeholder">👻 <span>Snap envoyé — pas encore ouvert</span></div>';
+      return '<div class="msg-snap-placeholder">👻 <span>Ephem envoyé — pas encore ouvert</span></div>';
     }
-    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'">👻 <span>Appuie pour voir le snap'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span></div>';
+    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span></div>';
   }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
@@ -7887,7 +7889,7 @@ function wireSnapPlaceholders(container){
   });
 }
 function openSnapViewer(messageId,url,type,durationSec){
-  if(!url){showToast('Snap indisponible.','error');return}
+  if(!url){showToast('Ephem indisponible.','error');return}
   const overlay=document.createElement('div');
   overlay.className='snap-viewer-overlay';
   overlay.innerHTML='<button type="button" class="snap-viewer-close" id="snap-viewer-close">✕</button>'
@@ -8555,6 +8557,8 @@ if(\$('btn-attach'))\$('btn-attach').addEventListener('click',function(e){e.stop
 document.addEventListener('click',function(e){
   const menu=\$('attach-menu');
   if(menu&&!menu.classList.contains('hidden')&&!menu.contains(e.target)&&e.target!==\$('btn-attach'))menu.classList.add('hidden');
+  const chanMenu=\$('srv-attach-menu');
+  if(chanMenu&&!chanMenu.classList.contains('hidden')&&!chanMenu.contains(e.target)&&e.target!==\$('srv-chan-attach'))chanMenu.classList.add('hidden');
 });
 let pendingSnapEphemeral=false,pendingSnapDuration=0;
 const SNAP_DURATIONS=[{v:3,label:'3 secondes'},{v:5,label:'5 secondes'},{v:10,label:'10 secondes'},{v:0,label:'Sans limite (fermeture manuelle)'}];
@@ -8791,7 +8795,7 @@ function openSnapDurationPicker(onPick){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
-    +'<div class="set-section-label">👻 Combien de temps ce snap reste visible ?</div>'
+    +'<div class="set-section-label">👻 Combien de temps cet Ephem reste visible ?</div>'
     +SNAP_DURATIONS.map(function(d){return '<button type="button" class="set-card-row" data-snap-dur="'+d.v+'" style="width:100%;cursor:pointer"><div class="scr-info"><div class="scr-label">'+esc(d.label)+'</div></div></button>';}).join('')
     +'</div>';
   document.body.appendChild(overlay);
@@ -8857,8 +8861,8 @@ function uploadFileWithProgress(file,onProgress){
     }catch(e){reject(e);}
   });
 }
-function createUploadProgressRow(file){
-  const box=\$('msgs');if(!box)return null;
+function createUploadProgressRow(file,containerId){
+  const box=\$(containerId||'msgs');if(!box)return null;
   const label=file.name||(file.type&&file.type.indexOf('video/')===0?'Vidéo':'Image');
   const row=document.createElement('div');
   row.className='msg mine';
@@ -8887,7 +8891,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
     else if(file.type.indexOf('video/')===0)type='video';
     else type='file';
   }
-  if(ephemeral&&type!=='image'&&type!=='video'){showToast('Un snap éphémère doit être une photo ou une vidéo.','error');return}
+  if(ephemeral&&type!=='image'&&type!=='video'){showToast('Un Ephem doit être une photo ou une vidéo.','error');return}
   let progressRow=null;
   try{
     const keyCtx=await e2eGetMessageKeyContext();
@@ -8901,7 +8905,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
     if(ephemeral)data.snapDurationSec=durationSec||0;
-    let preview=ephemeral?'👻 Snap éphémère':'📎 Pièce jointe';
+    let preview=ephemeral?'👻 Ephem':'📎 Pièce jointe';
     if(type==='image'&&!ephemeral){preview='📷 Photo';}
     else if(type==='video'&&!ephemeral){preview='🎬 Vidéo';}
     else if(type==='file'){data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});preview='📄 '+file.name;}
@@ -8917,12 +8921,34 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
     alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});
   }
 }
+async function handleChannelFileAttach(file,kindHint){
+  if(!file||!activeChannel)return;
+  if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
+  let type=kindHint;
+  if(kindHint==='auto'){
+    if(file.type.indexOf('image/')===0)type='image';
+    else if(file.type.indexOf('video/')===0)type='video';
+    else type='file';
+  }
+  let progressRow=null;
+  try{
+    progressRow=createUploadProgressRow(file,'srv-chan-msgs');
+    const up=await uploadFileWithProgress(file,function(loaded,total){updateUploadProgressRow(progressRow,loaded,total);});
+    const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    const data={serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:'',type:type,mediaUrl:fileUrl,mime:file.type};
+    if(type==='file')data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});
+    await authPost('/api/servers/channels/messages/send',data);
+  }catch(e){
+    if(progressRow)progressRow.remove();
+    showToast('Envoi impossible : '+((e&&e.message)||e),'error');xlog('chan_attach_fail',{msg:(e&&e.message)||String(e)});
+  }
+}
 if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration);pendingSnapEphemeral=false;pendingSnapDuration=0;this.value='';});
 if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
 
 let gifSearchTimeout=null;
 function openGifPicker(){
-  if(!activeDm){alert('Ouvre une conversation directe.');return}
+  if(!activeDm&&!(activeServer&&activeChannel)){alert('Ouvre une conversation ou un salon.');return}
   \$('gif-search').value='';
   \$('modal-gif').classList.remove('hidden');
   loadGifs('drôle');
@@ -8948,12 +8974,17 @@ if(\$('gif-close'))\$('gif-close').addEventListener('click',function(){\$('modal
 if(\$('modal-gif'))\$('modal-gif').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 async function sendGif(gifUrl){
   \$('modal-gif').classList.add('hidden');
-  try{await postMessage({type:'gif',mediaUrl:gifUrl},'🎞️ GIF');}
-  catch(e){xlog('gif_send_fail',{msg:(e&&e.message)||String(e)});}
+  try{
+    if(activeDm){
+      await postMessage({type:'gif',mediaUrl:gifUrl},'🎞️ GIF');
+    }else if(activeServer&&activeChannel){
+      await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:'',type:'gif',mediaUrl:gifUrl});
+    }
+  }catch(e){xlog('gif_send_fail',{msg:(e&&e.message)||String(e)});showToast('Envoi du GIF impossible.','error');}
 }
 
 function shareLocation(){
-  if(!activeDm){alert('Ouvre une conversation directe.');return}
+  if(!activeDm&&!(activeServer&&activeChannel)){alert('Ouvre une conversation ou un salon.');return}
   if(!navigator.geolocation){alert('Géolocalisation non supportée sur cet appareil.');return}
   navigator.geolocation.getCurrentPosition(async function(pos){
     try{
@@ -8963,8 +8994,12 @@ function shareLocation(){
          conversation, et un échec de création du document ne remontait
          qu'à xlog (aucun message d'erreur visible : on clique, "rien ne se
          passe"). */
-      const keyCtx=await e2eGetMessageKeyContext();
-      await postMessage({type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})},'📍 Position',keyCtx);
+      if(activeDm){
+        const keyCtx=await e2eGetMessageKeyContext();
+        await postMessage({type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})},'📍 Position',keyCtx);
+      }else if(activeServer&&activeChannel){
+        await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:'',type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})});
+      }
     }catch(e){xlog('location_send_fail',{msg:(e&&e.message)||String(e)});showToast('Impossible d\\'envoyer la position, réessaie.','error');}
   },function(){alert('Impossible d\\'obtenir ta position.');},{enableHighAccuracy:false,timeout:8000});
 }
@@ -10092,16 +10127,22 @@ function crtOpenPublishForm(){
 }
 
 /* ===== Messages vocaux (maintenir pour enregistrer) ===== */
+/* ===== Message vocal — commun aux DM et aux salons de serveur (§ uniformité).
+   Un seul état d'enregistrement global (vrState, une seule capture possible à
+   la fois de toute façon) mais les ids d'éléments DOM et la façon d'envoyer
+   le résultat dépendent d'où on a démarré — d'où voiceCtx, positionné juste
+   avant de lancer l'enregistrement et lu par toutes les fonctions ci-dessous
+   au lieu d'ids DM codés en dur comme avant. ===== */
 let vrState=null,vrTimerId=null,vrRafId=null,vrAudioCtx=null,vrAnalyser=null;
-let vrPending=false,vrStopRequested=false;
+let vrPending=false,vrStopRequested=false,voiceCtx=null;
 function vrBuildLiveWave(){
-  const el=\$('vr-live-wave');if(!el)return;
+  const el=\$(voiceCtx.ids.liveWave);if(!el)return;
   el.innerHTML='';
   for(let i=0;i<40;i++){const b=document.createElement('span');b.style.height='10%';el.appendChild(b);}
 }
 let vrLastTickAt=0;
 function vrTick(){
-  if(!vrState||!vrAnalyser){vrRafId=null;return}
+  if(!vrState||!vrAnalyser||!voiceCtx){vrRafId=null;return}
   const now=Date.now();
   if(now-vrLastTickAt<90){vrRafId=requestAnimationFrame(vrTick);return}
   vrLastTickAt=now;
@@ -10109,7 +10150,7 @@ function vrTick(){
   vrAnalyser.getByteFrequencyData(data);
   let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];
   const level=Math.min(100,Math.max(8,Math.round((sum/data.length/140)*100)));
-  const wave=\$('vr-live-wave');
+  const wave=\$(voiceCtx.ids.liveWave);
   if(wave){
     const first=wave.firstElementChild;
     if(first)wave.appendChild(first);
@@ -10118,56 +10159,57 @@ function vrTick(){
   vrRafId=requestAnimationFrame(vrTick);
 }
 function vrUpdateTimer(){
-  if(!vrState)return;
-  const el=\$('vr-timer');if(el)el.textContent=fmtDur((Date.now()-vrState.startTime)/1000);
+  if(!vrState||!voiceCtx)return;
+  const el=\$(voiceCtx.ids.timer);if(el)el.textContent=fmtDur((Date.now()-vrState.startTime)/1000);
 }
 function startVoiceRecording(clientX){
-  if(vrState||!activeDm){vrPending=false;\$('composer').classList.remove('recording');return}
+  if(vrState||!voiceCtx){vrPending=false;if(voiceCtx)\$(voiceCtx.ids.composer).classList.remove('recording');return}
+  const ctx=voiceCtx;
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     vrPending=false;
     if(vrStopRequested){
       stream.getTracks().forEach(function(t){t.stop()});
-      \$('composer').classList.remove('recording');
+      \$(ctx.ids.composer).classList.remove('recording');
       return;
     }
     vrState={stream:stream,chunks:[],startX:clientX,startTime:Date.now(),canceled:false,dragDx:0};
     let rec;
-    try{rec=new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(function(t){t.stop()});vrState=null;\$('composer').classList.remove('recording');alert('Enregistrement vocal indisponible sur ce navigateur');return}
+    try{rec=new MediaRecorder(stream);}catch(e){stream.getTracks().forEach(function(t){t.stop()});vrState=null;\$(ctx.ids.composer).classList.remove('recording');alert('Enregistrement vocal indisponible sur ce navigateur');return}
     vrState.recorder=rec;
     rec.ondataavailable=function(e){if(e.data&&e.data.size&&vrState)vrState.chunks.push(e.data)};
     rec.onstop=function(){
       stream.getTracks().forEach(function(t){t.stop()});
       const st=vrState;vrState=null;
-      \$('composer').classList.remove('recording');
+      \$(ctx.ids.composer).classList.remove('recording');
       if(vrTimerId){clearInterval(vrTimerId);vrTimerId=null;}
       if(vrRafId){cancelAnimationFrame(vrRafId);vrRafId=null;}
       if(vrAnalyser){try{vrAnalyser.disconnect();}catch(e2){}vrAnalyser=null;}
       const durationMs=Date.now()-st.startTime;
       if(st.canceled)return;
       if(durationMs>=400&&st.chunks.length){
-        finishVoiceRecording(st.chunks,rec.mimeType||'audio/webm',durationMs);
+        finishVoiceRecording(ctx,st.chunks,rec.mimeType||'audio/webm',durationMs);
       } else {
         alert('Message trop court — maintiens le bouton plus longtemps.');
       }
     };
     rec.start();
-    \$('composer').classList.add('recording');
-    \$('voice-record').style.transform='';
-    \$('voice-record').classList.remove('will-cancel');
+    \$(ctx.ids.composer).classList.add('recording');
+    \$(ctx.ids.voiceRecord).style.transform='';
+    \$(ctx.ids.voiceRecord).classList.remove('will-cancel');
     vrBuildLiveWave();
     vrUpdateTimer();
     vrTimerId=setInterval(vrUpdateTimer,200);
     try{
-      const ctx=vrAudioCtx;
-      if(ctx){
-        const src=ctx.createMediaStreamSource(stream);
-        vrAnalyser=ctx.createAnalyser();vrAnalyser.fftSize=256;
+      const actx=vrAudioCtx;
+      if(actx){
+        const src=actx.createMediaStreamSource(stream);
+        vrAnalyser=actx.createAnalyser();vrAnalyser.fftSize=256;
         src.connect(vrAnalyser);
         if(!vrRafId)vrRafId=requestAnimationFrame(vrTick);
       }
     }catch(e){}
     if(vrStopRequested)stopVoiceRecording();
-  }).catch(function(){vrPending=false;\$('composer').classList.remove('recording');alert('Micro refusé ou indisponible');});
+  }).catch(function(){vrPending=false;\$(ctx.ids.composer).classList.remove('recording');alert('Micro refusé ou indisponible');});
 }
 function cancelVoiceRecording(){
   if(!vrState)return;
@@ -10178,29 +10220,39 @@ function stopVoiceRecording(){
   if(!vrState)return;
   if(vrState.recorder&&vrState.recorder.state!=='inactive')vrState.recorder.stop();
 }
-async function finishVoiceRecording(chunks,mimeType,durationMs){
+async function finishVoiceRecording(ctx,chunks,mimeType,durationMs){
   try{
     const blob=new Blob(chunks,{type:mimeType});
     const ext=mimeType.indexOf('ogg')>=0?'ogg':(mimeType.indexOf('mp4')>=0?'m4a':'webm');
-    const keyCtx=await e2eGetMessageKeyContext();
-    let uploadBlob=blob,enc=false;
-    if(keyCtx&&keyCtx.aesKey){
-      const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,blob);
-      uploadBlob=encBlob;enc=true;
+    if(ctx.kind==='dm'){
+      const keyCtx=await e2eGetMessageKeyContext();
+      let uploadBlob=blob,enc=false;
+      if(keyCtx&&keyCtx.aesKey){
+        const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,blob);
+        uploadBlob=encBlob;enc=true;
+      }
+      const file=new File([uploadBlob],'voice-'+Date.now()+'.'+(enc?'bin':ext),{type:enc?'application/octet-stream':mimeType});
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal',keyCtx);
+    }else if(ctx.kind==='channel'){
+      const file=new File([blob],'voice-'+Date.now()+'.'+ext,{type:mimeType});
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      await authPost('/api/servers/channels/messages/send',{serverId:ctx.target.serverId,channelId:ctx.target.channelId,threadId:ctx.target.threadId||'',type:'audio',mediaUrl:fileUrl,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})});
     }
-    const file=new File([uploadBlob],'voice-'+Date.now()+'.'+(enc?'bin':ext),{type:enc?'application/octet-stream':mimeType});
-    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
-    const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-    await postMessage({type:'audio',mediaUrl:fileUrl,enc:enc,mime:mimeType,text:JSON.stringify({duration:durationMs/1000})},'🎤 Message vocal',keyCtx);
   }catch(e){showToast('Envoi du message vocal impossible : '+((e&&e.message)||e),'error');xlog('voice_send_fail',{msg:(e&&e.message)||String(e)});}
 }
-(function wireVoiceButton(){
-  const btn=\$('btn-voice');if(!btn)return;
+function wireVoiceButton(btnId,ctxFactory){
+  const btn=\$(btnId);if(!btn)return;
   btn.style.touchAction='none';
   let pid=null;
   btn.addEventListener('pointerdown',function(e){
     e.preventDefault();
     if(vrPending||vrState)return;
+    const ctx=ctxFactory();
+    if(!ctx)return;
+    voiceCtx=ctx;
     pid=e.pointerId;
     try{btn.setPointerCapture(e.pointerId);}catch(err){}
     vrPending=true;vrStopRequested=false;
@@ -10208,15 +10260,15 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
       vrAudioCtx=vrAudioCtx||new (window.AudioContext||window.webkitAudioContext)();
       if(vrAudioCtx.state==='suspended')vrAudioCtx.resume().catch(function(){});
     }catch(e2){vrAudioCtx=null;}
-    \$('composer').classList.add('recording');
+    \$(voiceCtx.ids.composer).classList.add('recording');
     startVoiceRecording(e.clientX);
   });
   btn.addEventListener('pointermove',function(e){
-    if(!vrState||e.pointerId!==pid)return;
+    if(!vrState||e.pointerId!==pid||!voiceCtx)return;
     const dx=Math.min(0,e.clientX-vrState.startX);
     vrState.dragDx=dx;
-    \$('voice-record').style.transform='translateX('+(Math.max(dx,-140))+'px)';
-    \$('voice-record').classList.toggle('will-cancel',dx<-100);
+    \$(voiceCtx.ids.voiceRecord).style.transform='translateX('+(Math.max(dx,-140))+'px)';
+    \$(voiceCtx.ids.voiceRecord).classList.toggle('will-cancel',dx<-100);
   });
   btn.addEventListener('pointerup',function(e){
     if(e.pointerId!==pid)return;
@@ -10233,7 +10285,11 @@ async function finishVoiceRecording(chunks,mimeType,durationMs){
     vrStopRequested=true;
     if(vrState)cancelVoiceRecording();
   });
-})();
+}
+wireVoiceButton('btn-voice',function(){
+  if(!activeDm)return null;
+  return {kind:'dm',ids:{composer:'composer',voiceRecord:'voice-record',liveWave:'vr-live-wave',timer:'vr-timer'}};
+});
 
 if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function(){
   \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
@@ -12537,6 +12593,64 @@ function openServerChannel(channelId){
   if(!activeChannel)return;
   renderServerChannelContent();
 }
+/* ===== Composer de salon — mêmes fonctionnalités que les DM (pièces jointes,
+   GIF, position, message vocal), sauf les streaks 🔥 et les Ephem 👻 qui
+   restent propres aux DM. Un seul gabarit HTML pour les deux vues qui
+   partagent la même barre de saisie (salon normal + fil) afin qu'elles ne
+   dérivent jamais l'une de l'autre. ===== */
+function srvChanComposerHtml(placeholder,disabled,includePoll){
+  return '<div class="composer" id="srv-chan-composer">'
+    +'<button type="button" class="composer-btn" id="srv-chan-attach" title="Joindre"'+(disabled?' disabled':'')+'><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>'
+    +'<textarea id="srv-chan-input" placeholder="'+placeholder+'" rows="1" maxlength="4000"'+(disabled?' disabled':'')+'></textarea>'
+    +(includePoll?('<button type="button" class="composer-btn" id="srv-chan-poll" title="Créer un sondage"'+(disabled?' disabled':'')+'>📊</button>'):'')
+    +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(disabled?' disabled':'')+'>✨</button>'
+    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(disabled?' disabled':'')+'>😊</button>'
+    +'<button type="button" class="composer-btn" id="srv-chan-voice" title="Message vocal"'+(disabled?' disabled':'')+'><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>'
+    +'<button type="button" class="send-btn hidden" id="srv-chan-send"'+(disabled?' disabled':'')+'>➤</button>'
+    +'<div class="attach-menu hidden" id="srv-attach-menu">'
+      +'<button type="button" data-chan-attach="image">🖼️<span>Photo / Vidéo</span></button>'
+      +'<button type="button" data-chan-attach="file">📄<span>Fichier</span></button>'
+      +'<button type="button" data-chan-attach="gif">🎞️<span>GIF</span></button>'
+      +'<button type="button" data-chan-attach="location">📍<span>Position</span></button>'
+    +'</div>'
+    +'<div class="voice-record" id="srv-voice-record">'
+      +'<span class="vr-mic">🎤</span>'
+      +'<div class="vr-live-wave" id="srv-vr-live-wave"></div>'
+      +'<div class="vr-timer" id="srv-vr-timer">0:00</div>'
+      +'<div class="vr-cancel-hint">◀ Glisser pour annuler</div>'
+    +'</div>'
+    +'</div>'
+    +'<input type="file" id="srv-file-image" class="hidden-input" accept="image/*,video/*"/>'
+    +'<input type="file" id="srv-file-generic" class="hidden-input"/>';
+}
+function wireSrvChanComposerExtra(disabled){
+  if(disabled)return;
+  const attachBtn=\$('srv-chan-attach');
+  if(attachBtn)attachBtn.addEventListener('click',function(e){e.stopPropagation();\$('srv-attach-menu').classList.toggle('hidden')});
+  document.querySelectorAll('#srv-attach-menu [data-chan-attach]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const kind=btn.getAttribute('data-chan-attach');
+      \$('srv-attach-menu').classList.add('hidden');
+      if(kind==='image')\$('srv-file-image').click();
+      else if(kind==='file')\$('srv-file-generic').click();
+      else if(kind==='gif')openGifPicker();
+      else if(kind==='location')shareLocation();
+    });
+  });
+  if(\$('srv-file-image'))\$('srv-file-image').addEventListener('change',function(){handleChannelFileAttach(this.files[0],'auto');this.value='';});
+  if(\$('srv-file-generic'))\$('srv-file-generic').addEventListener('change',function(){handleChannelFileAttach(this.files[0],'file');this.value='';});
+  const input=\$('srv-chan-input');
+  if(input)input.addEventListener('input',function(){
+    const has=this.value.trim().length>0;
+    \$('srv-chan-send').classList.toggle('hidden',!has);
+    \$('srv-chan-voice').classList.toggle('hidden',has);
+  });
+  wireVoiceButton('srv-chan-voice',function(){
+    if(!activeChannel)return null;
+    return {kind:'channel',ids:{composer:'srv-chan-composer',voiceRecord:'srv-voice-record',liveWave:'srv-vr-live-wave',timer:'srv-vr-timer'},
+      target:{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:''}};
+  });
+}
 function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
   if(activeThread)return renderThreadContent(box);
@@ -12578,13 +12692,7 @@ function renderServerChannelContent(){
   const composerPlaceholder=lockedForMe?'🔒 Ce salon est verrouillé':(Number(activeChannel.slowmodeSeconds)>0?'🐢 Mode lent actif — Écrire dans #'+esc(activeChannel.name):'Écrire dans #'+esc(activeChannel.name));
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
-    +'<div class="composer" id="srv-chan-composer">'
-    +'<textarea id="srv-chan-input" placeholder="'+composerPlaceholder+'" rows="1" maxlength="4000"'+(lockedForMe?' disabled':'')+'></textarea>'
-    +'<button type="button" class="composer-btn" id="srv-chan-poll" title="Créer un sondage"'+(lockedForMe?' disabled':'')+'>📊</button>'
-    +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(lockedForMe?' disabled':'')+'>✨</button>'
-    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(lockedForMe?' disabled':'')+'>😊</button>'
-    +'<button type="button" class="send-btn" id="srv-chan-send"'+(lockedForMe?' disabled':'')+'>➤</button>'
-    +'</div>';
+    +srvChanComposerHtml(composerPlaceholder,lockedForMe,true);
   box.innerHTML=html;
   wireServerChannelBack();
   loadChannelMessages();
@@ -12597,7 +12705,7 @@ function renderServerChannelContent(){
     e.stopPropagation();
     openEmojiPicker(emojiBtn,function(emo){
       const inp=\$('srv-chan-input');
-      inp.value+=emo;inp.focus();
+      inp.value+=emo;inp.dispatchEvent(new Event('input'));inp.focus();
     },activeServerEmojis,activeServerStickers,function(sticker){sendServerSticker(sticker.\$id);});
   });
   const aiFixBtn=\$('srv-chan-ai');
@@ -12614,6 +12722,7 @@ function renderServerChannelContent(){
   if(pollBtn)pollBtn.onclick=function(){if(!pollBtn.disabled)openPollBuilder();};
   const followBtn=\$('srv-chan-follow');
   if(followBtn)followBtn.onclick=function(){openChannelFollowForm();};
+  wireSrvChanComposerExtra(lockedForMe);
   wireQuickLock();
 }
 function wireQuickLock(){
@@ -12710,7 +12819,8 @@ function renderChannelMessages(){
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
-    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):replaceCustomEmojis(highlightRoleMentions(esc(m.text||''))));
+    const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
+    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightRoleMentions(esc(m.text||'')))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
@@ -12718,6 +12828,11 @@ function renderChannelMessages(){
       +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
+  box.querySelectorAll('.msg-media img').forEach(function(el){
+    el.addEventListener('click',function(){window.open(el.src,'_blank')});
+  });
+  box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  mountLinkPreviews(box);
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
     el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-profile'));});
@@ -12794,6 +12909,8 @@ async function sendServerChannelMessage(){
   const text=(input.value||'').trim();
   if(!text)return;
   input.value='';
+  if(\$('srv-chan-send'))\$('srv-chan-send').classList.add('hidden');
+  if(\$('srv-chan-voice'))\$('srv-chan-voice').classList.remove('hidden');
   const replyToId=(replyTargetKind==='channel'&&replyTarget)?replyTarget.\$id:'';
   try{
     await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId,threadId:activeThread?activeThread.\$id:''});
@@ -12933,12 +13050,7 @@ function renderThreadContent(box){
   const archivedForMe=t.archived;
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
-    +'<div class="composer" id="srv-chan-composer">'
-    +'<textarea id="srv-chan-input" placeholder="'+(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…')+'" rows="1" maxlength="4000"'+(archivedForMe?' disabled':'')+'></textarea>'
-    +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(archivedForMe?' disabled':'')+'>✨</button>'
-    +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(archivedForMe?' disabled':'')+'>😊</button>'
-    +'<button type="button" class="send-btn" id="srv-chan-send"'+(archivedForMe?' disabled':'')+'>➤</button>'
-    +'</div>';
+    +srvChanComposerHtml(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…',archivedForMe,false);
   box.innerHTML=html;
   \$('srv-thread-back').onclick=function(){
     if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
@@ -12966,13 +13078,14 @@ function renderThreadContent(box){
     e.stopPropagation();
     openEmojiPicker(emojiBtn,function(emo){
       const inp=\$('srv-chan-input');
-      inp.value+=emo;inp.focus();
+      inp.value+=emo;inp.dispatchEvent(new Event('input'));inp.focus();
     },activeServerEmojis,activeServerStickers,function(sticker){sendServerSticker(sticker.\$id);});
   });
   const aiFixBtn=\$('srv-chan-ai');
   if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
+  wireSrvChanComposerExtra(archivedForMe);
 }
 const POLL_DURATIONS=[[1,'1 heure'],[6,'6 heures'],[24,'24 heures'],[72,'3 jours'],[168,'7 jours']];
 function openPollBuilder(){
@@ -18208,6 +18321,13 @@ async function handle(request) {
       const threadId = String((body && body.threadId) || "").slice(0, 64);
       const replyToId = String((body && body.replyToId) || "").slice(0, 64);
       const stickerId = String((body && body.stickerId) || "").slice(0, 64);
+      // Médias (§ uniformité DM/salons) : même vocabulaire de types que les DM
+      // (image/video/file/audio/gif/location), le fichier est déjà téléversé
+      // côté client avant cet appel — cette route n'enregistre que le message.
+      const CHAN_MEDIA_TYPES = ["image", "video", "file", "audio", "gif", "location"];
+      const mediaType = CHAN_MEDIA_TYPES.indexOf(String((body && body.type) || "")) >= 0 ? String(body.type) : "";
+      const mediaUrl = mediaType && mediaType !== "location" ? String((body && body.mediaUrl) || "").slice(0, 1000) : "";
+      const mime = String((body && body.mime) || "").slice(0, 100);
       // Sondage intégré (§3, §27) : question + 2 à 10 options, choix unique ou
       // multiple, durée 1h à 7 jours. Le texte du message reprend la question
       // (aperçus, recherche, signalement continuent de fonctionner sans rien
@@ -18231,7 +18351,7 @@ async function handle(request) {
         if (!sticker || String(sticker.serverId) !== String(serverId)) throw new Error("Sticker introuvable sur ce serveur");
         stickerUrl = sticker.imageUrl;
       }
-      if (!text && !stickerUrl) throw new Error("Message vide");
+      if (!text && !stickerUrl && !mediaUrl && mediaType !== "location") throw new Error("Message vide");
       const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
       // Un salon forum n'accepte pas de message "hors post" (§30) — la création
       // d'un post passe par /api/servers/forum/post/create, qui crée fil + premier
@@ -18274,7 +18394,7 @@ async function handle(request) {
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl, type: mediaType, mediaUrl: mediaUrl, mime: mime }, permissions: msgPerms }
       });
       // Publication auto : un message posté directement dans un salon 📢
       // Annonces (jamais une réponse dans un fil, jamais un sondage) part
@@ -18284,7 +18404,7 @@ async function handle(request) {
         // service-worker sans event.waitUntil() ici, donc toute promesse
         // encore en vol au moment où la réponse part risquerait d'être
         // interrompue avant la fin du crosspost.
-        await crosspostAnnouncementMessage(channelId, access.server.name, access.channel.name, access.server.icon, text, stickerUrl).catch(function () {});
+        await crosspostAnnouncementMessage(channelId, access.server.name, access.channel.name, access.server.icon, text, stickerUrl, mediaType, mediaUrl, mime).catch(function () {});
       }
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
@@ -18890,7 +19010,7 @@ async function handle(request) {
       const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + msg.threadId, { asAdmin: true }).catch(function () { return null; });
       const members = ((dm && dm.members) || []).map(String);
       if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
-      if (String(msg.uid) === String(acc.$id)) throw new Error("Tu ne peux pas \"voir\" ton propre snap");
+      if (String(msg.uid) === String(acc.$id)) throw new Error("Tu ne peux pas \"voir\" ton propre Ephem");
       if (msg.mediaMode !== "ephemeral") throw new Error("Ce média n'est pas éphémère");
       if (!msg.mediaUrl || msg.viewedAt) {
         return new Response(JSON.stringify({ ok: true, alreadyViewed: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
