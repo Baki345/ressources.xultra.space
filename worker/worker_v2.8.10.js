@@ -1263,6 +1263,14 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .vr-timer{font-size:.8rem;font-weight:800;color:#fca5a5;flex-shrink:0;font-variant-numeric:tabular-nums}
 .vr-mic{font-size:1.15rem;flex-shrink:0;animation:cbPulse 1s ease-in-out infinite}
 .msg-media img,.msg-media video{max-width:220px;max-height:260px;border-radius:10px;display:block;cursor:pointer;object-fit:cover}
+.msg-snap-placeholder{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;background:linear-gradient(120deg,#4c1d95,#7c3aed,#4c1d95);background-size:200% 200%;animation:bugHeroShift 6s ease infinite;font-weight:800;font-size:.85rem;color:#fff}
+.msg-snap-placeholder.viewed{background:rgba(255,255,255,.06);animation:none;color:var(--muted);font-weight:700}
+.msg-snap-placeholder.tappable{cursor:pointer}
+.msg-snap-placeholder.tappable:active{transform:scale(.97)}
+.snap-viewer-overlay{position:fixed;inset:0;z-index:9000;background:#000;display:flex;align-items:center;justify-content:center}
+.snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
+.snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
+.dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
 .gif-media{position:relative;display:inline-block}
 .gif-freeze{position:absolute;inset:0;width:100%;height:100%;display:none;border-radius:10px;cursor:pointer;object-fit:cover}
 body.gif-hover-mode .gif-freeze.ready{display:block}
@@ -2165,7 +2173,7 @@ a.bug-att-item{display:block}
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?</div>
-        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
+        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="dm-streak-badge hidden" id="ch-streak"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
         <button type="button" class="ub-btn" id="btn-search" title="Rechercher">🔍</button>
         <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés">📌</button>
@@ -2183,6 +2191,7 @@ a.bug-att-item{display:block}
         <button type="button" class="send-btn hidden" id="btn-send">➤</button>
         <div class="attach-menu hidden" id="attach-menu">
           <button type="button" data-attach="image">🖼️<span>Photo / Vidéo</span></button>
+          <button type="button" data-attach="snap">👻<span>Snap éphémère (vu une fois)</span></button>
           <button type="button" data-attach="file">📄<span>Fichier</span></button>
           <button type="button" data-attach="gif">🎞️<span>GIF</span></button>
           <button type="button" data-attach="location">📍<span>Position</span></button>
@@ -4140,6 +4149,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.68.0',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
+    body:'Nouvelle option 👻 Snap éphémère dans le trombone des messages privés : une photo ou vidéo qui se supprime réellement du serveur dès que le destinataire l\\'ouvre (vu une fois, comme sur Snapchat) — jamais possible en groupe, seulement en conversation 1:1. Envoie-en un chaque jour avec la même personne pour construire un streak 🔥, affiché en haut de la conversation et dans la liste des messages : il grandit tant que vous vous envoyez chacun au moins un snap le même jour, et repart de zéro si un jour est manqué.'},
   {version:'2.67.1',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
     body:'Le sélecteur de tag de serveur récupérait la liste des serveurs avec un jeton de session parfois périmé (jusqu\\'à 15 minutes après la connexion), au lieu d\\'en redemander un frais comme le reste du site — dans ce cas la requête échouait silencieusement et le panneau affichait "Rejoins ou crée un serveur avec un tag configuré" même si un tag existait bel et bien. Corrigé.'},
   {version:'2.67.0',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
@@ -6288,11 +6299,13 @@ function renderDms(){
     const av=group?'<div class="av">'+avInner+'</div>':'<div class="av" data-profile="'+esc(peerUid)+'">'+avInner+presenceDotHtml(peerUid)+'</div>';
     const sub=group?((d.members||[]).length+' membres'+(d.lastMessage?' · '+d.lastMessage:'')):(d.lastMessage||'');
     const ts=d.\$updatedAt||d.\$createdAt;
+    let streak=null;if(!group)try{streak=JSON.parse(d.streakJson||'{}');}catch(e){}
+    const streakHtml=(streak&&streak.count>0)?('<span class="dm-streak-badge">🔥 '+streak.count+'</span>'):'';
     return '<div class="row-swipe" data-dm-wrap="'+esc(d.\$id)+'">'
       +'<div class="row-del-action" data-del="'+esc(d.\$id)+'"><span>🗑</span></div>'
       +'<div class="row" data-dm="'+esc(d.\$id)+'" data-title="'+esc(title)+'">'
       +av
-      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':userTagBadgeForUid(peerUid))+'</div><div class="p">'+esc(sub)+'</div></div>'
+      +'<div class="info"><div class="n">'+esc(title)+(group?' <span class="tag-mod">GROUPE</span>':userTagBadgeForUid(peerUid))+streakHtml+'</div><div class="p">'+esc(sub)+'</div></div>'
       +'<div class="row-time" data-ts="'+esc(ts||'')+'">'+esc(fmtRelTime(ts))+'</div>'
       +'</div></div>';
   }).join('');
@@ -7270,6 +7283,14 @@ async function openDm(threadId,title,peerUid){
   updateChatHeaderPresence();
   updateTypingIndicator();
   markDmRead(threadId);
+  let streak=null;try{streak=JSON.parse((dm&&dm.streakJson)||'{}');}catch(e){}
+  updateDmStreakUi(!activeDmIsGroup&&streak&&streak.count>0?streak:null);
+}
+function updateDmStreakUi(streak){
+  const el=\$('ch-streak');if(!el)return;
+  if(!streak||!streak.count){el.classList.add('hidden');el.innerHTML='';return}
+  el.classList.remove('hidden');
+  el.innerHTML='🔥 <span>'+streak.count+'</span>';
 }
 async function markDmRead(threadId){
   const dm=dmsCache.find(function(d){return d.\$id===threadId});
@@ -7463,6 +7484,16 @@ function fmtDur(sec){
 function renderMsgBody(m,text,mediaUrl){
   const t=m.type||'text';
   const url=safeUrl(mediaUrl);
+  if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
+    const mine=m.uid===(me&&me.\$id);
+    if(m.viewedAt){
+      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Snap vu par le destinataire':'Snap vu')+'</span></div>';
+    }
+    if(mine){
+      return '<div class="msg-snap-placeholder">👻 <span>Snap envoyé — pas encore ouvert</span></div>';
+    }
+    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'">👻 <span>Appuie pour voir le snap</span></div>';
+  }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
   if(t==='gif'&&url)return '<div class="msg-media gif-media"><img class="gif-img" src="'+esc(url)+'" loading="lazy"/><canvas class="gif-freeze"></canvas></div>';
@@ -7486,6 +7517,32 @@ function renderMsgBody(m,text,mediaUrl){
   const firstLink=firstUrl(text);
   if(!firstLink)return linkedText;
   return linkedText+'<div class="link-preview-card" data-lp-url="'+esc(firstLink)+'"></div>';
+}
+function wireSnapPlaceholders(container){
+  if(!container)return;
+  container.querySelectorAll('[data-snap-view]').forEach(function(el){
+    el.addEventListener('click',function(){
+      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'));
+    });
+  });
+}
+function openSnapViewer(messageId,url,type){
+  if(!url){showToast('Snap indisponible.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='snap-viewer-overlay';
+  overlay.innerHTML='<button type="button" class="snap-viewer-close" id="snap-viewer-close">✕</button>'
+    +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline controls></video>'):('<img src="'+esc(url)+'" alt="">'));
+  document.body.appendChild(overlay);
+  authPost('/api/dms/media/view',{messageId:messageId}).then(function(){
+    const m=msgsCache.find(function(x){return x.\$id===messageId;});
+    if(m){m.viewedAt=new Date().toISOString();m.mediaUrl='';}
+  }).catch(function(){});
+  function close(){
+    overlay.remove();
+    if(activeDm)renderMessages();
+  }
+  \$('snap-viewer-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
 }
 function firstUrl(text){
   const m=String(text||'').match(/https?:\\/\\/[^\\s<]+/);
@@ -7575,6 +7632,7 @@ async function hydrateEncryptedMessages(){
     wrap.innerHTML=renderMsgBody(m,result.text,result.mediaUrl);
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+    wireSnapPlaceholders(wrap);
     mountLinkPreviews(wrap);
     mountGifFreeze(wrap);
   }
@@ -7765,6 +7823,7 @@ function renderMessages(){
   box.querySelectorAll('.msg-media img').forEach(function(el){
     el.addEventListener('click',function(){window.open(el.src,'_blank')});
   });
+  wireSnapPlaceholders(box);
   box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
     el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
   });
@@ -8112,18 +8171,23 @@ document.addEventListener('click',function(e){
   const menu=\$('attach-menu');
   if(menu&&!menu.classList.contains('hidden')&&!menu.contains(e.target)&&e.target!==\$('btn-attach'))menu.classList.add('hidden');
 });
+let pendingSnapEphemeral=false;
 document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
   btn.addEventListener('click',function(){
     const kind=btn.getAttribute('data-attach');
     \$('attach-menu').classList.add('hidden');
-    if(kind==='image')\$('file-image').click();
+    if(kind==='image'){pendingSnapEphemeral=false;\$('file-image').click();}
+    else if(kind==='snap'){
+      if(activeDmIsGroup){showToast('Les snaps éphémères ne sont possibles qu\\'en conversation privée.','error');return}
+      pendingSnapEphemeral=true;\$('file-image').click();
+    }
     else if(kind==='file')\$('file-generic').click();
     else if(kind==='gif')openGifPicker();
     else if(kind==='location')shareLocation();
   });
 });
 const MAX_ATTACH_BYTES=25*1024*1024;
-async function handleFileAttach(file,kindHint){
+async function handleFileAttach(file,kindHint,ephemeral){
   if(!file||!activeDm)return;
   if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
   let type=kindHint;
@@ -8132,6 +8196,7 @@ async function handleFileAttach(file,kindHint){
     else if(file.type.indexOf('video/')===0)type='video';
     else type='file';
   }
+  if(ephemeral&&type!=='image'&&type!=='video'){showToast('Un snap éphémère doit être une photo ou une vidéo.','error');return}
   try{
     const keyCtx=await e2eGetMessageKeyContext();
     let uploadBlob=file,enc=false;
@@ -8141,16 +8206,22 @@ async function handleFileAttach(file,kindHint){
     }
     const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),uploadBlob,[Appwrite.Permission.read(Appwrite.Role.any())]);
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-    const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type};
-    let preview='📎 Pièce jointe';
-    if(type==='image'){preview='📷 Photo';}
-    else if(type==='video'){preview='🎬 Vidéo';}
-    else{data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});preview='📄 '+file.name;}
+    const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
+    let preview=ephemeral?'👻 Snap éphémère':'📎 Pièce jointe';
+    if(type==='image'&&!ephemeral){preview='📷 Photo';}
+    else if(type==='video'&&!ephemeral){preview='🎬 Vidéo';}
+    else if(type==='file'){data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});preview='📄 '+file.name;}
     await postMessage(data,preview,keyCtx);
+    if(ephemeral){
+      try{
+        const r=await authPost('/api/dms/streak/bump',{dmId:activeDm});
+        updateDmStreakUi(r.streak);
+      }catch(e){}
+    }
   }catch(e){alert('Envoi impossible : '+((e&&e.message)||e));xlog('attach_fail',{msg:(e&&e.message)||String(e)});}
 }
-if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto');this.value='';});
-if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file');this.value='';});
+if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral);pendingSnapEphemeral=false;this.value='';});
+if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
 
 let gifSearchTimeout=null;
 function openGifPicker(){
@@ -17908,6 +17979,81 @@ async function handle(request) {
       });
     }
   }
+  // Streaks DM (façon Snapchat) : incrémente d'un jour quand les DEUX
+  // participants d'une conversation 1:1 ont chacun envoyé au moins un snap
+  // éphémère le même jour calendaire (UTC) — jamais un simple message texte.
+  // Algorithme volontairement simple et auditable : pendingUids accumule qui
+  // a envoyé "aujourd'hui" ; dès que les deux y sont, le streak avance d'un
+  // cran SEULEMENT si la dernière confirmation datait d'hier (sinon repart
+  // de 1, comme un vrai streak cassé).
+  function bumpStreakState(streak, senderUid, peerUid, todayStr) {
+    let s = streak && typeof streak === "object" ? streak : {};
+    let count = Number(s.count) || 0;
+    let lastCompleteDate = s.lastCompleteDate || null;
+    let pendingDate = s.pendingDate || null;
+    let pendingUids = Array.isArray(s.pendingUids) ? s.pendingUids.map(String) : [];
+    if (pendingDate !== todayStr) { pendingUids = []; pendingDate = todayStr; }
+    if (pendingUids.indexOf(String(senderUid)) < 0) pendingUids.push(String(senderUid));
+    if (pendingUids.indexOf(String(senderUid)) >= 0 && pendingUids.indexOf(String(peerUid)) >= 0) {
+      const yesterday = new Date(new Date(todayStr + "T00:00:00Z").getTime() - 86400000).toISOString().slice(0, 10);
+      count = (lastCompleteDate === yesterday) ? count + 1 : 1;
+      lastCompleteDate = todayStr;
+      pendingUids = [];
+    }
+    return { count: count, lastCompleteDate: lastCompleteDate, pendingDate: pendingDate, pendingUids: pendingUids };
+  }
+  if (path === "/api/dms/streak/bump" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const dmId = String((body && body.dmId) || "");
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmId, { asAdmin: true });
+      const members = (dm.members || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
+      if (members.length !== 2) return new Response(JSON.stringify({ ok: true, streak: null }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const peerUid = members.find(function (u) { return u !== String(acc.$id); });
+      let streak = {}; try { streak = JSON.parse(dm.streakJson || "{}"); } catch (e) {}
+      const today = new Date().toISOString().slice(0, 10);
+      const next = bumpStreakState(streak, acc.$id, peerUid, today);
+      await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmId, { method: "PATCH", asAdmin: true, body: { data: { streakJson: JSON.stringify(next) } } });
+      return new Response(JSON.stringify({ ok: true, streak: next }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Média éphémère en DM (façon Snapchat) : le destinataire (jamais
+  // l'expéditeur) déclenche cette route en ouvrant le snap. Le fichier de
+  // stockage est réellement supprimé côté serveur (pas juste masqué côté
+  // client) — sinon "éphémère" ne voudrait rien dire, l'URL resterait
+  // accessible indéfiniment à qui la devine.
+  if (path === "/api/dms/media/view" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const messageId = String((body && body.messageId) || "");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { asAdmin: true });
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + msg.threadId, { asAdmin: true }).catch(function () { return null; });
+      const members = ((dm && dm.members) || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
+      if (String(msg.uid) === String(acc.$id)) throw new Error("Tu ne peux pas \"voir\" ton propre snap");
+      if (msg.mediaMode !== "ephemeral") throw new Error("Ce média n'est pas éphémère");
+      if (!msg.mediaUrl || msg.viewedAt) {
+        return new Response(JSON.stringify({ ok: true, alreadyViewed: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const fileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(msg.mediaUrl);
+      if (fileMatch) {
+        await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { method: "PATCH", asAdmin: true, body: { data: { mediaUrl: "", viewedAt: new Date().toISOString() } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/push/notify" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) {
