@@ -2365,7 +2365,15 @@ a.bug-att-item{display:block}
           <label class="pe-field"><span>Nom affiché</span><input type="text" id="pe-name" maxlength="64" class="field-input"/></label>
           <label class="pe-field"><span>Tag <button type="button" class="pe-mini-btn" id="pe-tag-random" title="Randomiser" data-tip="Tirer un nouveau tag au hasard">🎲</button></span><input type="text" id="pe-tag" maxlength="4" class="field-input" placeholder="0000"/></label>
           <label class="pe-field"><span>Pronoms</span><input type="text" id="pe-pronouns" maxlength="24" class="field-input" placeholder="il/lui, elle/elle, iel…"/></label>
-          <label class="pe-field"><span>Statut personnalisé</span><input type="text" id="pe-custom-status" maxlength="60" class="field-input" placeholder="🎮 En train de coder…"/></label>
+          <label class="pe-field"><span>Statut personnalisé</span><div style="display:flex;gap:6px"><input type="text" id="pe-custom-status" maxlength="60" class="field-input" placeholder="En train de coder…" style="flex:1"/><button type="button" class="pe-mini-btn" id="pe-custom-status-emoji" title="Ajouter un emoji" data-tip="Ajouter un emoji">😊</button></div></label>
+          <label class="pe-field"><span>Le statut disparaît</span><select id="pe-custom-status-expiry" class="field-input">
+            <option value="">Ne jamais effacer</option>
+            <option value="1800000">Dans 30 minutes</option>
+            <option value="3600000">Dans 1 heure</option>
+            <option value="14400000">Dans 4 heures</option>
+            <option value="today">Aujourd'hui</option>
+            <option value="week">Cette semaine</option>
+          </select></label>
           <label class="pe-field"><span>Bio</span><textarea id="pe-bio" maxlength="500" class="field-input" style="height:80px;padding-top:9px;resize:vertical"></textarea></label>
           <label class="pe-field"><span>Alignement de la bio</span>
             <select id="pe-bio-pos" class="field-input"><option value="center">Centré</option><option value="left">Gauche</option></select>
@@ -4103,6 +4111,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.66.0',date:'26 août 2026',time:'10:15',title:'Statut personnalisé : emoji et disparition automatique',
+    body:'Dans l\\'éditeur de profil, le statut personnalisé a maintenant son propre bouton 😊 pour choisir un emoji sans avoir à le taper ou le copier, et un réglage « Le statut disparaît » (jamais, dans 30 min/1h/4h, aujourd\\'hui, cette semaine) — passé ce délai, il s\\'efface tout seul de ta fiche profil, pas besoin d\\'y repenser.'},
   {version:'2.65.0',date:'26 août 2026',time:'09:30',title:'Serveurs : widget embarquable',
     body:'Nouvelle section 🧩 Widget dans les paramètres du serveur : une fois activé, une URL publique renvoie le nom, l\\'icône, le nombre de membres et un lien d\\'invitation du serveur — pratique pour l\\'afficher sur un site externe. Volontairement minimaliste : jamais la liste des membres en ligne, leur présence ne sera jamais diffusée publiquement sans leur consentement. Les liens d\\'invitation (ex. xultra.space/?invite=CODE) ouvrent maintenant directement la fenêtre pour rejoindre le serveur, code déjà rempli.'},
   {version:'2.64.0',date:'26 août 2026',time:'08:45',title:'Serveurs : stickers',
@@ -6557,7 +6567,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
       +'<h3 class="pc-name" style="font-size:'+titleSize+'">'+esc(name)+serverTagBadgeHtml(extra)+'</h3>'
       +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
-      +(extra.customStatus?'<div class="pc-custom-status">'+esc(extra.customStatus)+'</div>':'')
+      +((extra.customStatus&&!(extra.customStatusExpiresAt&&new Date(extra.customStatusExpiresAt).getTime()<=Date.now()))?'<div class="pc-custom-status">'+esc(extra.customStatus)+'</div>':'')
       +(badges?'<div class="pc-badges">'+badgeChipsHtml(badges)+'</div>':'')
       +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ XULTRA+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
@@ -6802,6 +6812,7 @@ function openProfileEditPanel(p,meta){
     socialLinks:parseSocialLinks(meta&&meta.socialLinksJson),
     pronouns:extra.pronouns||'',
     customStatus:extra.customStatus||'',
+    customStatusExpiresAt:extra.customStatusExpiresAt||'',
     avatarFrame:AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none',
     avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
     cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none'
@@ -6811,7 +6822,9 @@ function openProfileEditPanel(p,meta){
   \$('pe-bio').value=peDraft.bio;
   \$('pe-bio-pos').value=peDraft.bioPos;
   \$('pe-pronouns').value=peDraft.pronouns;
+  if(peDraft.customStatusExpiresAt&&new Date(peDraft.customStatusExpiresAt).getTime()<=Date.now()){peDraft.customStatus='';peDraft.customStatusExpiresAt='';}
   \$('pe-custom-status').value=peDraft.customStatus;
+  \$('pe-custom-status-expiry').value='';
   \$('pe-bgtype').value=peDraft.bgType;
   \$('pe-bgcolor').value=peDraft.bgColor;
   \$('pe-btncolor').value=peDraft.btnColor;
@@ -6899,7 +6912,7 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
   });
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
@@ -6944,6 +6957,27 @@ function wirePeInputs(){
   bindInput('pe-spotify','spotify');
   bindInput('pe-pronouns','pronouns');
   bindInput('pe-custom-status','customStatus');
+  function computeStatusExpiry(sel){
+    if(!sel)return '';
+    if(sel==='today'){const d=new Date();d.setHours(23,59,59,999);return d.toISOString();}
+    if(sel==='week'){const d=new Date();const daysLeft=7-d.getDay();d.setDate(d.getDate()+(daysLeft===7?0:daysLeft));d.setHours(23,59,59,999);return d.toISOString();}
+    const ms=parseInt(sel,10);
+    return isNaN(ms)?'':new Date(Date.now()+ms).toISOString();
+  }
+  if(\$('pe-custom-status-expiry'))\$('pe-custom-status-expiry').addEventListener('change',function(){
+    peDraft.customStatusExpiresAt=computeStatusExpiry(this.value);
+  });
+  if(\$('pe-custom-status-emoji'))\$('pe-custom-status-emoji').addEventListener('click',function(e){
+    e.stopPropagation();
+    const btn=this;
+    openEmojiPicker(btn,function(emo){
+      const inp=\$('pe-custom-status');
+      inp.value=(emo+' '+inp.value).trim();
+      peDraft.customStatus=inp.value;
+      updatePePreview();
+      inp.focus();
+    });
+  });
   SOCIAL_DEFS.forEach(function(def){
     const el=\$('pe-social-'+def.key);
     if(el)el.addEventListener('input',function(){peDraft.socialLinks[def.key]=this.value;updatePePreview();});
@@ -7055,7 +7089,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
-        profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
+        profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder})
       });
     }catch(e){extraSaveFailed=true;xlog('profile_extra_save_fail',{msg:(e&&e.message)||String(e)});}
     refreshSelfBar();
