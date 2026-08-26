@@ -1271,6 +1271,10 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
 .snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
 .dm-streak-badge{display:inline-flex;align-items:center;gap:3px;font-size:.72rem;font-weight:800;color:#fb923c;margin-left:6px}
+.gp-theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gp-theme-swatch{height:44px;border-radius:10px;border:2px solid transparent;cursor:pointer;background-color:#2a1548}
+.gp-theme-swatch.on{border-color:#fff;box-shadow:0 0 0 2px #7c3aed}
+.gp-theme-swatch[data-gp-theme="custom"]{background:repeating-linear-gradient(45deg,#1a1030,#1a1030 6px,#241a3d 6px,#241a3d 12px)}
 .gif-media{position:relative;display:inline-block}
 .gif-freeze{position:absolute;inset:0;width:100%;height:100%;display:none;border-radius:10px;cursor:pointer;object-fit:cover}
 body.gif-hover-mode .gif-freeze.ready{display:block}
@@ -4149,6 +4153,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.69.0',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
+    body:'Clique sur le tag d\\'un serveur (comme le badge Bug Hunter) : une petite page de présentation s\\'ouvre, avec l\\'icône, le nom et une description de la guilde. Le propriétaire peut la personnaliser depuis les paramètres du serveur — 7 thèmes animés au choix (Aurore, Feu, Océan, Vide stellaire, Coucher de soleil, Matrice…) avec dégradés qui bougent et effets de particules (étincelles, braises, étoiles, bulles, neige), couleurs du titre et du texte, ou carrément écrire son propre CSS pour un design 100% sur-mesure.'},
   {version:'2.68.0',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
     body:'Nouvelle option 👻 Snap éphémère dans le trombone des messages privés : une photo ou vidéo qui se supprime réellement du serveur dès que le destinataire l\\'ouvre (vu une fois, comme sur Snapchat) — jamais possible en groupe, seulement en conversation 1:1. Envoie-en un chaque jour avec la même personne pour construire un streak 🔥, affiché en haut de la conversation et dans la liste des messages : il grandit tant que vous vous envoyez chacun au moins un snap le même jour, et repart de zéro si un jour est manqué.'},
   {version:'2.67.1',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
@@ -6549,11 +6555,132 @@ function serverTagBadgeHtml(metaOrExtra){
   const extra=(metaOrExtra&&metaOrExtra.profileExtraJson!==undefined)?parseProfileExtra(metaOrExtra.profileExtraJson):(metaOrExtra||{});
   const tag=extra&&extra.displayedServerTag;
   if(!tag||!tag.text)return '';
-  return '<span class="user-server-tag" style="border-color:'+esc(tag.color||'#7c3aed')+';color:'+esc(tag.color||'#7c3aed')+'" title="'+esc(tag.text)+'">'+esc(tag.text)+'</span>';
+  return '<span class="user-server-tag" data-guild-tag="'+esc(tag.serverId||'')+'" style="border-color:'+esc(tag.color||'#7c3aed')+';color:'+esc(tag.color||'#7c3aed')+'" title="'+esc(tag.text)+'">'+esc(tag.text)+'</span>';
 }
 function userTagBadgeForUid(uid){
   const meta=memberMetaByUid[String(uid)];
   return meta?serverTagBadgeHtml(meta):'';
+}
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-guild-tag]');
+  if(!el)return;
+  const serverId=el.getAttribute('data-guild-tag');
+  if(!serverId)return;
+  e.stopPropagation();
+  openGuildTagPage(serverId);
+});
+const GUILD_PAGE_THEMES=[
+  {key:'default',label:'Sobre'},
+  {key:'aurora',label:'Aurore'},
+  {key:'fire',label:'Feu'},
+  {key:'ocean',label:'Océan'},
+  {key:'void',label:'Vide stellaire'},
+  {key:'sunset',label:'Coucher de soleil'},
+  {key:'matrix',label:'Matrice'},
+  {key:'custom',label:'CSS personnalisé'}
+];
+const GUILD_THEME_BG={
+  default:'background:linear-gradient(135deg,#2a1548,#180c28)',
+  aurora:'background:linear-gradient(120deg,#0f2027,#2c5364,#7c3aed,#0f2027);background-size:300% 300%;animation:guildBgShift 12s ease infinite',
+  fire:'background:linear-gradient(120deg,#3a0d0d,#7c1d1d,#f97316,#3a0d0d);background-size:300% 300%;animation:guildBgShift 8s ease infinite',
+  ocean:'background:linear-gradient(120deg,#04293a,#064663,#2dd4bf,#04293a);background-size:300% 300%;animation:guildBgShift 10s ease infinite',
+  void:'background:linear-gradient(160deg,#000,#150826,#000);background-size:200% 200%;animation:guildBgShift 15s ease infinite',
+  sunset:'background:linear-gradient(120deg,#1a0933,#7c2d6b,#f97316,#1a0933);background-size:300% 300%;animation:guildBgShift 9s ease infinite',
+  matrix:'background:linear-gradient(180deg,#000,#001a00,#000)',
+  custom:'background:linear-gradient(135deg,#2a1548,#180c28)'
+};
+const GUILD_PARTICLE_DEFS=[
+  {key:'none',label:'Aucune'},
+  {key:'sparkle',label:'✨ Étincelles'},
+  {key:'embers',label:'🔥 Braises'},
+  {key:'stars',label:'⭐ Étoiles'},
+  {key:'bubbles',label:'🫧 Bulles'},
+  {key:'snow',label:'❄️ Neige'}
+];
+const GUILD_PARTICLE_COLORS={sparkle:'#e9d5ff',embers:'#fb923c',stars:'#ffffff',bubbles:'#7dd3fc',snow:'#ffffff'};
+function guildParticlesHtml(kind){
+  const color=GUILD_PARTICLE_COLORS[kind];
+  if(!color)return '';
+  let html='';
+  for(let i=0;i<26;i++){
+    const left=Math.round(Math.random()*100);
+    const size=(kind==='bubbles'?(4+Math.random()*8):(1.5+Math.random()*3)).toFixed(1);
+    const dur=(kind==='bubbles'?(8+Math.random()*10):(kind==='snow'?(10+Math.random()*12):(4+Math.random()*8))).toFixed(1);
+    const delay=(-Math.random()*dur).toFixed(1);
+    const drift=Math.round((Math.random()-0.5)*60);
+    html+='<span class="guild-particle" style="left:'+left+'%;width:'+size+'px;height:'+size+'px;background:'+color+';animation-duration:'+dur+'s;animation-delay:'+delay+'s;--drift:'+drift+'px"></span>';
+  }
+  return html;
+}
+function sanitizeGuildCssClient(css){
+  return String(css||'').slice(0,4000).replace(/@import[^;]*;?/gi,'').replace(/url\\s*\\([^)]*\\)/gi,'none').replace(/<\\/style/gi,'');
+}
+function openGuildPagePreview(server,page){
+  if(\$('guild-page-overlay'))\$('guild-page-overlay').remove();
+  const overlay=document.createElement('div');
+  overlay.id='guild-page-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:420px"><button type="button" id="guild-page-close" class="modal-close" style="position:absolute;top:8px;right:8px;z-index:5">✕</button><div id="guild-page-host" style="border-radius:18px;overflow:hidden;min-height:280px;box-shadow:0 20px 60px rgba(0,0,0,.6)"></div></div>';
+  document.body.appendChild(overlay);
+  \$('guild-page-close').onclick=function(){overlay.remove();};
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  const host=\$('guild-page-host');
+  const shadow=host.attachShadow({mode:'open'});
+  renderGuildPageShadow(shadow,server,Object.assign({},page,{customCss:sanitizeGuildCssClient(page.customCss)}));
+  const editBtn=shadow.querySelector('#guild-edit-btn');
+  if(editBtn)editBtn.remove();
+}
+async function openGuildTagPage(serverId){
+  if(\$('guild-page-overlay'))return;
+  const overlay=document.createElement('div');
+  overlay.id='guild-page-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:420px"><button type="button" id="guild-page-close" class="modal-close" style="position:absolute;top:8px;right:8px;z-index:5">✕</button><div id="guild-page-host" style="border-radius:18px;overflow:hidden;min-height:280px;box-shadow:0 20px 60px rgba(0,0,0,.6)"></div></div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('guild-page-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  const host=\$('guild-page-host');
+  const shadow=host.attachShadow({mode:'open'});
+  shadow.innerHTML='<div style="padding:60px 20px;text-align:center;color:#fff;font-family:inherit">Chargement…</div>';
+  try{
+    const r=await fetch('/api/servers/tag-page/get?serverId='+encodeURIComponent(serverId));
+    const j=await r.json();
+    if(!j.ok)throw new Error();
+    renderGuildPageShadow(shadow,j.server,j.page);
+  }catch(e){shadow.innerHTML='<div style="padding:60px 20px;text-align:center;color:#fff">Page introuvable.</div>';}
+}
+function renderGuildPageShadow(shadow,server,page){
+  const isOwnerHere=me&&server&&String(server.ownerId)===String(me.\$id);
+  const bg=GUILD_THEME_BG[page.themeKey]||GUILD_THEME_BG.default;
+  const customCss=page.themeKey==='custom'?(page.customCss||''):'';
+  shadow.innerHTML=''
+    +'<style>'
+    +'@keyframes guildBgShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}'
+    +'@keyframes guildFloat{0%{transform:translateY(0) translateX(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-320px) translateX(var(--drift,0px));opacity:0}}'
+    +'.guild-wrap{position:relative;'+bg+';padding:36px 24px 28px;text-align:center;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}'
+    +'.guild-particle{position:absolute;bottom:-10px;border-radius:50%;pointer-events:none;animation:guildFloat linear infinite}'
+    +'.guild-icon{width:76px;height:76px;border-radius:22px;margin:0 auto 14px;overflow:hidden;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;color:#fff;position:relative;z-index:1;box-shadow:0 8px 24px rgba(0,0,0,.4)}'
+    +'.guild-icon img{width:100%;height:100%;object-fit:cover}'
+    +'.guild-name{font-size:1.3rem;font-weight:800;position:relative;z-index:1;margin-bottom:6px}'
+    +'.guild-tag-pill{display:inline-block;padding:3px 12px;border-radius:999px;font-size:.7rem;font-weight:800;letter-spacing:.04em;position:relative;z-index:1;margin-bottom:14px;border:1px solid currentColor}'
+    +'.guild-desc{font-size:.85rem;line-height:1.5;position:relative;z-index:1;white-space:pre-wrap;min-height:1em}'
+    +'.guild-edit-btn{position:relative;z-index:1;margin-top:16px;padding:8px 16px;border-radius:10px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-weight:700;font-size:.78rem;cursor:pointer}'
+    +(customCss?('/* --- CSS personnalisé du propriétaire (assaini côté serveur) --- */\\n'+customCss):'')
+    +'</style>'
+    +'<div class="guild-wrap">'
+    +guildParticlesHtml(page.particles)
+    +'<div class="guild-icon">'+(server.icon?('<img src="'+esc(server.icon)+'" alt="">'):esc((server.name||'?').slice(0,1).toUpperCase()))+'</div>'
+    +'<div class="guild-name" style="color:'+esc(page.titleColor||'#ffffff')+'">'+esc(server.name)+'</div>'
+    +(server.tagText?('<div class="guild-tag-pill" style="color:'+esc(server.tagColor||'#7c3aed')+'">'+esc(server.tagText)+'</div>'):'')
+    +'<div class="guild-desc" style="color:'+esc(page.textColor||'#e8e0ff')+'">'+esc(page.description||(isOwnerHere?'Ajoute une description pour présenter ta guilde…':''))+'</div>'
+    +(isOwnerHere?'<button type="button" class="guild-edit-btn" id="guild-edit-btn">✏️ Modifier la page</button>':'')
+    +'</div>';
+  const editBtn=shadow.querySelector('#guild-edit-btn');
+  if(editBtn)editBtn.addEventListener('click',function(){
+    const ov=\$('guild-page-overlay');if(ov)ov.remove();
+    openServerDetail(server.id).then(function(){switchServerTab('settings');});
+  });
 }
 function buildProfileCardHtml(p,meta,badges,opts){
   p=p||{};meta=meta||{};opts=opts||{};
@@ -13071,12 +13198,19 @@ function automodWordsHtml(json){
     return '<span class="srv-role-pill" style="background:rgba(239,68,68,.15);color:#fca5a5">'+esc(w)+' <button type="button" data-automod-del="'+esc(w)+'" style="margin-left:4px;color:inherit;font-weight:900">✕</button></span>';
   }).join('');
 }
-let srvWebhooksCache=[],srvChannelFollowsCache=[];
+let srvWebhooksCache=[],srvChannelFollowsCache=[],srvGuildPageCache=null;
 async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
   const canWebhooks=isOwner||serverHasPermission('manage_channels');
+  if(isOwner&&activeServer.tagText){
+    try{
+      const rgp=await fetch('/api/servers/tag-page/get?serverId='+encodeURIComponent(activeServer.\$id));
+      const jgp=await rgp.json();
+      srvGuildPageCache=(jgp&&jgp.page)||null;
+    }catch(e){srvGuildPageCache=null;}
+  }else{srvGuildPageCache=null;}
   if(canWebhooks){
     try{
       const rwh=await fetch('/api/servers/webhooks/list?serverId='+encodeURIComponent(activeServer.\$id),{headers:{'Authorization':'Bearer '+(readStoredJwt()||'')}});
@@ -13168,6 +13302,19 @@ async function renderServerSettingsTab(){
       +'<div class="set-row"><label>Couleur</label><input type="color" id="srv-tag-color" value="'+esc(activeServer.tagColor||'#7c3aed')+'" style="width:60px;height:36px;padding:2px;background:none;border:1px solid rgba(167,139,250,.3);border-radius:8px"></div>'
       +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-tag-save" style="flex:1">Enregistrer</button>'+(activeServer.tagText?'<button type="button" class="set-mini-btn danger" id="srv-tag-remove">Retirer</button>':'')+'</div>'
       +'<div class="err" id="srv-tag-err"></div>'
+    +'</div>'):'')
+    +((isOwner&&activeServer.tagText&&srvGuildPageCache)?('<div class="set-card"><div class="set-section-label">🎨 Page du tag</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">La petite page qui s\\'ouvre quand quelqu\\'un clique sur le tag de ce serveur — comme un badge. Décris ta guilde, choisis un thème animé ou code ton propre CSS.</div>'
+      +'<div class="set-row"><label>Description</label><textarea id="gp-desc" class="field-input" maxlength="2000" rows="3">'+esc(srvGuildPageCache.description||'')+'</textarea></div>'
+      +'<div class="set-row"><label>Thème</label><div class="gp-theme-grid" id="gp-theme-grid">'+GUILD_PAGE_THEMES.map(function(t){
+        return '<button type="button" class="gp-theme-swatch'+(srvGuildPageCache.themeKey===t.key?' on':'')+'" data-gp-theme="'+t.key+'" style="'+(GUILD_THEME_BG[t.key]||'')+'" title="'+esc(t.label)+'"></button>';
+      }).join('')+'</div></div>'
+      +'<div class="set-row hidden" id="gp-css-row"><label>CSS personnalisé (appliqué sur <code>.guild-wrap</code>, <code>.guild-name</code>, <code>.guild-desc</code>…)</label><textarea id="gp-css" class="field-input" maxlength="4000" rows="6" style="font-family:monospace;font-size:.78rem" placeholder=".guild-wrap{background:radial-gradient(circle,#111,#000)}">'+esc(srvGuildPageCache.customCss||'')+'</textarea><div class="scr-sub" style="margin-top:4px">Les <code>url()</code> et <code>@import</code> sont retirés automatiquement (sécurité).</div></div>'
+      +'<div class="set-row"><label>Couleur du titre</label><input type="color" id="gp-title-color" value="'+esc(srvGuildPageCache.titleColor||'#ffffff')+'" style="width:60px;height:36px;padding:2px;background:none;border:1px solid rgba(167,139,250,.3);border-radius:8px"></div>'
+      +'<div class="set-row"><label>Couleur du texte</label><input type="color" id="gp-text-color" value="'+esc(srvGuildPageCache.textColor||'#e8e0ff')+'" style="width:60px;height:36px;padding:2px;background:none;border:1px solid rgba(167,139,250,.3);border-radius:8px"></div>'
+      +'<div class="set-row"><label>Particules</label><select id="gp-particles" class="field-input">'+GUILD_PARTICLE_DEFS.map(function(p){return '<option value="'+p.key+'"'+(srvGuildPageCache.particles===p.key?' selected':'')+'>'+esc(p.label)+'</option>';}).join('')+'</select></div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="gp-save" style="flex:1">Enregistrer</button><button type="button" class="set-mini-btn" id="gp-preview">👁️ Aperçu</button></div>'
+      +'<div class="err" id="gp-err"></div>'
     +'</div>'):'')
     +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">👋 Écran d\\'accueil</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Mets en avant jusqu\\'à 5 salons avec un emoji et une courte description, montrés aux membres à leur arrivée pour les orienter.</div>'
@@ -13400,6 +13547,43 @@ async function renderServerSettingsTab(){
       showToast('Tag retiré.');
     }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
   };
+  if(\$('gp-theme-grid')){
+    let gpTheme=srvGuildPageCache.themeKey||'default';
+    const cssRow=\$('gp-css-row');
+    if(cssRow)cssRow.classList.toggle('hidden',gpTheme!=='custom');
+    \$('gp-theme-grid').querySelectorAll('[data-gp-theme]').forEach(function(b){
+      b.addEventListener('click',function(){
+        gpTheme=b.getAttribute('data-gp-theme');
+        \$('gp-theme-grid').querySelectorAll('[data-gp-theme]').forEach(function(x){x.classList.toggle('on',x===b);});
+        if(cssRow)cssRow.classList.toggle('hidden',gpTheme!=='custom');
+      });
+    });
+    function collectGuildPageDraft(){
+      return {
+        serverId:activeServer.\$id,
+        description:(\$('gp-desc').value||'').trim(),
+        themeKey:gpTheme,
+        customCss:\$('gp-css')?(\$('gp-css').value||''):'',
+        titleColor:\$('gp-title-color').value,
+        textColor:\$('gp-text-color').value,
+        particles:\$('gp-particles').value
+      };
+    }
+    const gpSaveBtn=\$('gp-save');
+    if(gpSaveBtn)gpSaveBtn.onclick=async function(){
+      this.disabled=true;this.textContent='Enregistrement…';\$('gp-err').textContent='';
+      try{
+        await authPost('/api/servers/tag-page/set',collectGuildPageDraft());
+        showToast('Page du tag enregistrée ! 🎨');
+      }catch(e){\$('gp-err').textContent=(e&&e.message)||'Erreur';}
+      this.disabled=false;this.textContent='Enregistrer';
+    };
+    const gpPreviewBtn=\$('gp-preview');
+    if(gpPreviewBtn)gpPreviewBtn.onclick=function(){
+      const draft=collectGuildPageDraft();
+      openGuildPagePreview({id:activeServer.\$id,ownerId:activeServer.ownerId,name:activeServer.name,icon:activeServer.icon,tagText:activeServer.tagText,tagColor:activeServer.tagColor},draft);
+    };
+  }
   if(\$('srv-welcome-rows')){
     let welcomeDraft=[];
     try{welcomeDraft=JSON.parse(activeServer.welcomeScreenChannelsJson||'[]')||[];}catch(e){welcomeDraft=[];}
@@ -16737,6 +16921,75 @@ async function handle(request) {
         return { serverId: s.$id, name: s.name, tagText: s.tagText, tagColor: s.tagColor || "#7c3aed" };
       });
       return new Response(JSON.stringify({ ok: true, servers: tagged }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Page de présentation de la guilde, ouverte en cliquant le tag du serveur
+  // (comme le badge Bug Hunter) — PUBLIQUE, sans authentification : le tag
+  // est déjà visible publiquement partout sur le site, sa fiche l'est donc
+  // aussi. Le CSS perso du propriétaire est assaini (ni @import ni url(),
+  // qui permettraient de charger une ressource distante à des fins de
+  // pistage) puis rendu côté client dans un Shadow DOM — l'encapsulation
+  // réelle du navigateur, pas une tentative de ré-écrire les sélecteurs.
+  const GUILD_PAGE_THEMES = ["default", "aurora", "fire", "ocean", "void", "sunset", "matrix", "custom"];
+  function sanitizeGuildCss(css) {
+    let out = String(css || "").slice(0, 4000);
+    out = out.replace(/@import[^;]*;?/gi, "");
+    out = out.replace(/url\s*\([^)]*\)/gi, "none");
+    out = out.replace(/<\/style/gi, "");
+    return out;
+  }
+  if (path === "/api/servers/tag-page/get" && request.method === "GET") {
+    try {
+      const serverId = String(url.searchParams.get("serverId") || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true }).catch(function () { return null; });
+      if (!server) throw new Error("Serveur introuvable");
+      let page = null;
+      try { page = await awFetch("/databases/" + AW_DB + "/collections/server_guild_pages/documents/" + serverId, { asAdmin: true }); } catch (e) {}
+      return new Response(JSON.stringify({
+        ok: true,
+        server: { id: server.$id, ownerId: server.ownerId, name: server.name, icon: server.icon || "", tagText: server.tagText || "", tagColor: server.tagColor || "#7c3aed" },
+        page: {
+          description: (page && page.description) || "",
+          themeKey: (page && page.themeKey) || "default",
+          customCss: (page && page.customCss) || "",
+          titleColor: (page && page.titleColor) || "#ffffff",
+          textColor: (page && page.textColor) || "#e8e0ff",
+          particles: (page && page.particles) || "none"
+        }
+      }), { headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "public, max-age=30" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/tag-page/set" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire du serveur peut personnaliser la page du tag");
+      const themeKey = GUILD_PAGE_THEMES.indexOf(body && body.themeKey) >= 0 ? body.themeKey : "default";
+      const hexOr = function (v, fallback) { return /^#[0-9a-fA-F]{6}$/.test(v || "") ? v : fallback; };
+      const data = {
+        description: String((body && body.description) || "").trim().slice(0, 2000),
+        themeKey: themeKey,
+        customCss: themeKey === "custom" ? sanitizeGuildCss(body && body.customCss) : "",
+        titleColor: hexOr(body && body.titleColor, "#ffffff"),
+        textColor: hexOr(body && body.textColor, "#e8e0ff"),
+        particles: ["none", "sparkle", "embers", "stars", "bubbles", "snow"].indexOf(body && body.particles) >= 0 ? body.particles : "none"
+      };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/server_guild_pages/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } catch (e) {
+        if (e && e.status === 404) await awFetch("/databases/" + AW_DB + "/collections/server_guild_pages/documents", { method: "POST", asAdmin: true, body: { documentId: serverId, data: Object.assign({ serverId: serverId }, data) } });
+        else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, page: data }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
