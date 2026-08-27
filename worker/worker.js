@@ -1572,6 +1572,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .upload-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:4px;transition:width .15s ease}
 .upload-progress-size{margin-top:5px;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .msg-system-notice{width:100%;text-align:center;font-size:.74rem;color:var(--muted);padding:4px 0;margin:2px 0}
+.msg-call-notice{align-self:center;width:auto;margin:6px 0;padding:6px 14px;border-radius:999px;background:rgba(124,58,237,.09);border:1px solid rgba(167,139,250,.18)}
 .msg.mine .msg-location{background:rgba(255,255,255,.16)}
 .msg-location span{font-size:.7rem;color:var(--muted);font-weight:600}
 .msg.mine .msg-location span{color:rgba(255,255,255,.7)}
@@ -2128,6 +2129,8 @@ a.bug-att-item{display:block}
 .cb-status{font-size:.76rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px}
 .cb-dot{width:7px;height:7px;border-radius:50%;background:#7c3aed;flex-shrink:0;animation:cbPulse 1.6s ease-in-out infinite}
 .cb-status.live .cb-dot{background:var(--online)}
+.cb-sub-warn{color:#facc15}
+.cb-sub-danger{color:#f87171;font-weight:700}
 @keyframes cbPulse{0%,100%{opacity:1}50%{opacity:.35}}
 .cb-gear{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#c4b5fd;font-size:.95rem;display:grid;place-items:center;flex-shrink:0;align-self:flex-start}
 .cb-gear:hover{background:rgba(255,255,255,.14)}
@@ -2151,14 +2154,20 @@ a.bug-att-item{display:block}
 .vstage-btn:hover{background:rgba(255,255,255,.16)}
 .vstage-btn.on{background:rgba(124,58,237,.5)}
 .vstage-btn:disabled{opacity:.35;pointer-events:none}
-.vgrid{display:grid;gap:6px;padding:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));grid-auto-rows:140px}
-.vgrid.n1{grid-template-columns:1fr;grid-auto-rows:220px}
+.vgrid{display:grid;gap:8px;padding:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.vgrid.n1{grid-template-columns:1fr}
 .vgrid.cinema{flex:1;min-height:0;padding:0 14px 14px;grid-auto-rows:1fr}
-.vtile{position:relative;border-radius:12px;overflow:hidden;background:#000;cursor:pointer;min-height:0;animation:vtileIn .18s ease;border:1px solid rgba(167,139,250,.12)}
+.vgrid.cinema .vtile{aspect-ratio:auto}
+/* Correctif remonté explicitement : une hauteur de grille fixe (140/220px)
+   combinée à object-fit:cover écrasait n'importe quel flux caméra qui
+   n'était pas pile au format attendu (portrait, webcam large...). Une
+   vraie proportion 16:9 par tuile laisse la grille respirer correctement
+   à toutes les tailles, cover ne recadrant plus que ce qu'il faut vraiment. */
+.vtile{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000;cursor:pointer;min-height:0;animation:vtileIn .18s ease;border:1px solid rgba(167,139,250,.14);box-shadow:0 6px 20px rgba(0,0,0,.35)}
 @keyframes vtileIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 .vtile video{width:100%;height:100%;object-fit:cover;display:block}
 .vtile .vlabel{position:absolute;left:6px;bottom:6px;padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.6);font-size:.66rem;font-weight:700;color:#f2ebff}
-.vtile.enlarged{grid-column:1/-1;grid-row:span 2}
+.vtile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:260px}
 .video-stage{position:fixed;inset:0;z-index:3200;background:#050308;display:flex;flex-direction:column}
 .video-stage.hidden{display:none}
 .vstage-top-bar{display:flex;align-items:center;justify-content:flex-end;padding:12px 14px;flex-shrink:0}
@@ -2976,8 +2985,8 @@ a.bug-att-item{display:block}
     <h3 id="ic-name">—</h3>
     <div class="call-sub" id="ic-sub">Appel vocal entrant…</div>
     <div class="call-modal-acts">
-      <button type="button" class="call-act decline" id="ic-decline" title="Refuser">✕</button>
-      <button type="button" class="call-act accept" id="ic-accept" title="Répondre">📞</button>
+      <button type="button" class="call-act decline" id="ic-decline" title="Refuser"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <button type="button" class="call-act accept" id="ic-accept" title="Répondre"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></button>
     </div>
   </div>
 </div>
@@ -3063,26 +3072,26 @@ a.bug-att-item{display:block}
     <div class="cb-av-wrap">
       <canvas class="cb-av-wave" id="cb-av-wave" width="76" height="76"></canvas>
       <div class="av" id="cb-av" data-profile="">?</div>
-      <div class="cb-av-mute hidden" id="cb-av-mute" title="Micro coupé chez l'interlocuteur">🔇</div>
+      <div class="cb-av-mute hidden" id="cb-av-mute" title="Micro coupé chez l'interlocuteur"><svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 4l16 16"/><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 9.8 4.6M18 11a6 6 0 0 1-.4 2.1M12 17v3M9 20h6"/></svg></div>
     </div>
     <div class="cb-info">
       <div class="cb-name" id="cb-name">En appel · 1 participant<span class="cb-peer-badges" id="cb-peer-badges"></span></div>
       <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
     </div>
-    <button type="button" class="cb-gear" id="cb-settings" title="Paramètres audio/vidéo">⚙️</button>
+    <button type="button" class="cb-gear" id="cb-settings" title="Paramètres audio/vidéo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="9" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg></button>
   </div>
   <div class="cb-controls">
-    <button type="button" class="cb-ctl" id="cb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
-    <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir"><span class="cb-ico">🎧</span></button>
-    <button type="button" class="cb-ctl" id="cb-cam" title="Caméra"><span class="cb-ico">📷</span></button>
-    <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
-    <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher"><span class="cb-ico">✕</span></button>
+    <button type="button" class="cb-ctl" id="cb-mute" title="Muet"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 16 0"/><rect x="3" y="12" width="4" height="7" rx="1.5"/><rect x="17" y="12" width="4" height="7" rx="1.5"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="cb-cam" title="Caméra"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.2l5-3v9.6l-5-3z"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 17.5v3"/></svg></span></button>
+    <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher"><span class="cb-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>
   </div>
   <div class="cb-video hidden" id="cb-video">
     <div class="cbv-top">
       <span class="cbv-label" id="cbv-label">Vidéo</span>
-      <button type="button" class="vstage-btn" id="cb-cinema" title="Mode cinéma">⛶</button>
-      <button type="button" class="vstage-btn" id="cb-mask" title="Masquer">▾</button>
+      <button type="button" class="vstage-btn" id="cb-cinema" title="Mode cinéma"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+      <button type="button" class="vstage-btn" id="cb-mask" title="Masquer"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
     </div>
   </div>
   <div class="live-pill" id="live-pill">
@@ -4987,6 +4996,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.1.0',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
+    body:'Icônes des boutons d\\'appel refaites en SVG (fini les emoji baveux). Les tuiles caméra ne sont plus écrasées dans une hauteur fixe : chaque flux garde un vrai format 16:9, quelle que soit sa source. Pendant l\\'établissement de la connexion, un état s\\'affiche en direct sous le minuteur ("Connexion RTC en cours…", "Reconnexion…"), comme sur Discord. Un message reste maintenant dans la conversation à la fin de chaque appel — heure, décroché ou non, durée. Et si deux personnes s\\'appellent au même moment, celle qui appelle en second voit directement "Cette personne vous appelle déjà" au lieu d\\'un appel fantôme.'},
   {version:'3.0.0',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
     body:'Deux idées de la Boîte à idées, proposées par Yani Neco : choisir une photo/vidéo affiche maintenant un aperçu juste au-dessus de la barre de message avant l\\'envoi (avec possibilité d\\'écrire une légende, ou d\\'annuler si ce n\\'était pas le bon fichier) au lieu de l\\'envoyer instantanément ; et un nouveau thème "⚫ OLED" (Paramètres → Apparence) passe les principales surfaces de l\\'appli en noir profond, pour ménager la batterie et les dalles OLED.'},
   {version:'2.99.0',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
@@ -9170,12 +9181,29 @@ function pinScrollBottomAfterImages(box){
     });
   });
 }
+// Message d'historique d'appel (idée demandée explicitement, façon Discord/
+// WhatsApp) : un même événement se lit différemment selon qui regarde — la
+// personne qui a raccroché sans réponse voit "Sans réponse", celle qui n'a
+// pas décroché voit "Appel manqué", pour le même appel "cancelled".
+function callHistoryHtml(m){
+  let d={};try{d=JSON.parse(m.text||'{}');}catch(e){}
+  const mine=String(d.callerId)===String(me&&me.\$id);
+  const dur=(d.outcome==='completed'&&d.durationSec)?(' · '+fmtDur(d.durationSec)):'';
+  const time=d.startedAt?(' · '+fmtClockTime(d.startedAt)):'';
+  let icon='📞',label;
+  if(d.outcome==='completed'){label='Appel terminé';}
+  else if(d.outcome==='declined'){icon='📵';label=mine?'Appel refusé':'Tu as refusé l\\'appel';}
+  else{icon='📵';label=mine?'Sans réponse':'Appel manqué';}
+  const dir=mine?'Appel sortant':'Appel entrant';
+  return '<div class="msg-system-notice msg-call-notice">'+icon+' '+esc(dir+' — '+label)+dur+time+'</div>';
+}
 function renderMessages(){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
   const seenInfo=computeSeenInfo();
   box.innerHTML=msgsCache.map(function(m){
     if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
+    if(m.type==='syscall')return callHistoryHtml(m);
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
@@ -12788,7 +12816,20 @@ function wireCallDiagnostics(pc){
      deviner : si iceConnectionState reste sur "checking" ou passe à "failed"
      malgré tout, c'est le relais TURN qui est en cause, pas l'app. */
   pc.oniceconnectionstatechange=function(){xlog('call_ice_state',{state:pc.iceConnectionState});};
-  pc.onconnectionstatechange=function(){xlog('call_conn_state',{state:pc.connectionState});};
+  // Affiche l'état de connexion en direct sous le minuteur (idée demandée
+  // explicitement, façon Discord : "Connexion RTC en cours…") — seulement
+  // une fois l'appel décroché des deux côtés (callLive) : avant ça,
+  // "Sonne…"/"En attente…" restent plus parlants qu'un état ICE brut, et le
+  // remplacer prématurément donnerait l'impression fausse que l'autre a déjà
+  // répondu.
+  pc.onconnectionstatechange=function(){
+    xlog('call_conn_state',{state:pc.connectionState});
+    if(callPc!==pc||!callLive)return;
+    if(pc.connectionState==='connecting')setCallStatusLabel('Connexion RTC en cours…');
+    else if(pc.connectionState==='connected')setCallStatusLabel('En appel…');
+    else if(pc.connectionState==='disconnected')setCallStatusLabel('Reconnexion…');
+    else if(pc.connectionState==='failed')setCallStatusLabel('Connexion perdue');
+  };
   pc.onicegatheringstatechange=function(){xlog('call_ice_gathering',{state:pc.iceGatheringState});};
 }
 const FALLBACK_ICE_SERVERS={iceServers:[
@@ -12827,6 +12868,11 @@ const AV_QUALITY={
 let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
 let callPeerUid=null, callPeerName=null, callIsCaller=false;
 let callTimerId=null, callTimeoutId=null, callStartedAt=null, currentCallLabel='';
+// callConnectedAt distingue "l'appel a sonné" (callStartedAt, posé dès
+// l'affichage de la barre) de "l'appel a vraiment été décroché" — sert
+// uniquement à calculer une durée réelle pour le message d'historique
+// d'appel laissé dans la conversation (voir logCallHistory).
+let callConnectedAt=null;
 let callUnsubs=[];
 let pendingLocalIce=[];
 let camStream=null, screenStream=null, camSender=null, screenSender=null;
@@ -13380,7 +13426,7 @@ async function acceptIncomingCall(){
     activeCallDoc=await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'accepted',answer:JSON.stringify(answer)});
     subscribeIceForCall(doc.\$id);
     subscribeCallDocLifecycle(doc.\$id);
-    callLive=true;
+    callLive=true;callConnectedAt=Date.now();
     rebuildMicChain();
     showCallBar(callPeerName,'En appel…',new Date(doc.\$createdAt).getTime());
     broadcastCallState();
@@ -13394,6 +13440,16 @@ async function declineIncomingCall(){
   dismissIncomingCall();
   if(!doc)return;
   try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e){}
+  logCallHistory(doc.\$id,'declined',0);
+}
+// Laisse une trace de l'appel dans la conversation (heure, décroché ou non,
+// durée) — idée demandée explicitement, façon Discord/WhatsApp. Appelée
+// seulement du côté qui écrit réellement le statut final sur le document
+// (jamais par le côté "passif" qui ne fait que réagir au changement distant
+// via skipRemoteUpdate), donc jamais en double des deux côtés à la fois.
+function logCallHistory(callId,outcome,durationSec){
+  if(!callId)return Promise.resolve();
+  return authPost('/api/calls/log',{callId:callId,outcome:outcome,durationSec:Math.max(0,Math.round(durationSec||0))}).catch(function(){});
 }
 
 async function startCall(peerUid,peerName){
@@ -13420,7 +13476,7 @@ async function startCall(peerUid,peerName){
     await pc.setLocalDescription(offer);
     const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
     const avatar=(meProfile&&meProfile.avatar)||'';
-    const started=await authPost('/api/calls/start',{calleeId:peerUid,offer:JSON.stringify(offer),callerName:name,callerAvatar:avatar});
+    const started=await authPost('/api/calls/start',{calleeId:peerUid,offer:JSON.stringify(offer),callerName:name,callerAvatar:avatar,dmId:activeDm||''});
     const doc=started.doc;
     activeCallDoc=doc;
     pendingLocalIce.forEach(function(c){sendSignal(doc.\$id,'ice',c)});
@@ -13437,8 +13493,17 @@ async function startCall(peerUid,peerName){
     xlog('call_start',{to:peerUid});
   }catch(e){
     xlog('call_start_fail',{msg:(e&&e.message)||String(e)});
-    alert('Impossible de démarrer l\\'appel : '+((e&&e.message)||e));
+    const msg=(e&&e.message)||String(e);
+    const peerAlreadyCalling=msg.indexOf('vous appelle déjà')>=0;
+    alert(peerAlreadyCalling?msg:('Impossible de démarrer l\\'appel : '+msg));
     cleanupCallLocal();
+    // Cas de collision (idée demandée explicitement) : si le refus vient du
+    // fait que l'autre personne nous appelle déjà, son appel entrant existe
+    // forcément côté serveur — on force une vérification immédiate plutôt que
+    // d'attendre passivement l'événement temps réel (déjà quasi-instantané en
+    // temps normal, mais ce cas précis est une course entre deux appels
+    // lancés à quelques millisecondes d'écart).
+    if(peerAlreadyCalling)Promise.resolve().then(checkPendingIncomingCall).catch(function(){});
   }
 }
 
@@ -13450,7 +13515,7 @@ function subscribeCallAnswer(callId){
       try{
         await callPc.setRemoteDescription(new RTCSessionDescription(JSON.parse(payload.answer)));
         if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
-        callLive=true;
+        callLive=true;callConnectedAt=Date.now();
         setCallStatusLabel('En appel…');
         /* Caméra/partage activés pendant la sonnerie (avant que l'appel soit
            "live") n'ont pas pu être renégociés à ce moment-là (callPc n'avait
@@ -13610,9 +13675,11 @@ function renderCallStatus(){
   const s=String(elapsed%60).padStart(2,'0');
   timeEl.textContent=m+':'+s;
   subEl.textContent=currentCallLabel;
+  subEl.classList.toggle('cb-sub-warn',currentCallLabel==='Reconnexion…'||currentCallLabel==='Connexion RTC en cours…');
+  subEl.classList.toggle('cb-sub-danger',currentCallLabel==='Connexion perdue');
   const n=callLive?2:1;
   nameEl.textContent='En appel · '+n+' participant'+(n>1?'s':'');
-  timeEl.parentElement.classList.toggle('live',currentCallLabel==='En appel…');
+  timeEl.parentElement.classList.toggle('live',callLive);
   const bar=\$('call-bar');
   if(bar){
     bar.classList.toggle('mood-live',callLive);
@@ -13626,7 +13693,7 @@ function cleanupCallLocal(){
   if(screenStream){screenStream.getTracks().forEach(function(t){t.stop()});screenStream=null;}
   camSender=null;screenSender=null;
   callLive=false;makingOffer=false;ignoreOffer=false;
-  callStartedAt=null;currentCallLabel='';
+  callStartedAt=null;currentCallLabel='';callConnectedAt=null;
   if(callTimerId){clearInterval(callTimerId);callTimerId=null;}
   if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
   if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
@@ -13669,9 +13736,13 @@ function cleanupCallLocal(){
 }
 async function endCall(finalStatus,skipRemoteUpdate){
   const doc=activeCallDoc;
+  const wasConnected=!!callConnectedAt;
+  const durationSec=wasConnected?(Date.now()-callConnectedAt)/1000:0;
+  const wasCaller=callIsCaller;
   cleanupCallLocal();
   if(doc&&!skipRemoteUpdate){
     try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:finalStatus||'ended'});}catch(e){}
+    logCallHistory(doc.\$id,wasConnected?'completed':(wasCaller?'cancelled':'missed'),durationSec);
   }
 }
 
@@ -18159,7 +18230,21 @@ async function handle(request) {
       const offer = String((body && body.offer) || "");
       const callerName = String((body && body.callerName) || acc.name || "User").slice(0, 120);
       const callerAvatar = String((body && body.callerAvatar) || "");
+      const dmId = String((body && body.dmId) || "");
       if (!calleeId || !offer || calleeId === acc.$id) throw new Error("paramètres invalides");
+      // Collision entre deux appels simultanés (idée demandée explicitement) :
+      // avant de créer un nouvel appel, on vérifie s'il n'y en a pas déjà un
+      // en cours impliquant l'une des deux personnes. Le cas le plus important
+      // est "l'autre personne est justement déjà en train de m'appeler" — un
+      // message clair plutôt qu'un double appel silencieux et confus.
+      const pendingQ = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["ringing", "accepted"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const pending = pendingQ.documents || [];
+      const reverseCall = pending.find(function (d) { return String(d.callerId) === calleeId && String(d.calleeId) === acc.$id; });
+      if (reverseCall) throw new Error("Cette personne vous appelle déjà — décroche son appel !");
+      if (pending.some(function (d) { return String(d.callerId) === acc.$id && String(d.calleeId) === calleeId; })) throw new Error("Tu appelles déjà cette personne.");
+      if (pending.some(function (d) { return String(d.callerId) === calleeId || String(d.calleeId) === calleeId; })) throw new Error("Cette personne est déjà en appel.");
       const perms = [
         "read(\"user:" + acc.$id + "\")", "read(\"user:" + calleeId + "\")",
         "update(\"user:" + acc.$id + "\")", "update(\"user:" + calleeId + "\")",
@@ -18169,7 +18254,7 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: {
           documentId: "unique()",
-          data: { callerId: acc.$id, calleeId, callerName, callerAvatar, status: "ringing", offer, answer: "" },
+          data: { callerId: acc.$id, calleeId, callerName, callerAvatar, status: "ringing", offer, answer: "", dmId },
           permissions: perms
         }
       });
@@ -18180,6 +18265,47 @@ async function handle(request) {
         });
       } catch (e2) {}
       return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/calls/log" && request.method === "POST") {
+    // Historique d'appel (idée demandée explicitement, façon Discord/WhatsApp) :
+    // laisse un message système dans la conversation à la fin d'un appel —
+    // décroché ou non, refusé, annulé — avec sa durée réelle si applicable.
+    // Appelé une seule fois, uniquement par le côté qui écrit vraiment le
+    // statut final sur le document direct_calls (voir endCall/declineIncomingCall
+    // côté client, qui distinguent "j'agis" de "je ne fais que réagir").
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const callId = String((body && body.callId) || "");
+      const outcome = String((body && body.outcome) || "");
+      const durationSec = Math.max(0, Math.round(Number((body && body.durationSec) || 0)));
+      if (!callId || ["completed", "missed", "declined", "cancelled"].indexOf(outcome) === -1) throw new Error("paramètres invalides");
+      const call = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents/" + callId, { asAdmin: true });
+      if ([call.callerId, call.calleeId].map(String).indexOf(acc.$id) === -1) throw new Error("forbidden");
+      const dmId = String(call.dmId || "");
+      if (!dmId) return new Response(JSON.stringify({ ok: true, skipped: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: {
+            threadId: dmId, uid: String(call.callerId), displayName: call.callerName || "",
+            type: "syscall", mediaUrl: "",
+            text: JSON.stringify({ callerId: call.callerId, calleeId: call.calleeId, outcome, durationSec, startedAt: call.$createdAt })
+          }
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
