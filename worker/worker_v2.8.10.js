@@ -1444,10 +1444,12 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .msg-snap-placeholder.viewed{background:rgba(255,255,255,.06);animation:none;color:var(--muted);font-weight:700}
 .msg-snap-placeholder.tappable{cursor:pointer}
 .msg-snap-placeholder.tappable:active{transform:scale(.97)}
+.msg-snap-noshot{font-size:.85em;opacity:.9}
 .snap-viewer-overlay{position:fixed;inset:0;z-index:9000;background:#000;display:flex;align-items:center;justify-content:center}
 .snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
 .snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
 .snap-viewer-timer{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;min-width:38px;height:38px;padding:0 10px;border-radius:19px;background:rgba(0,0,0,.5);color:#fff;font-size:1rem;font-weight:800;display:flex;align-items:center;justify-content:center;z-index:2;font-variant-numeric:tabular-nums}
+.snap-viewer-noshot{position:absolute;bottom:calc(20px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:6px 14px;border-radius:999px;background:rgba(239,68,68,.22);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:.76rem;font-weight:700;z-index:2;white-space:nowrap}
 .snap-studio-overlay{position:fixed;inset:0;z-index:9100;background:#000}
 .snap-studio-camera-view{position:absolute;inset:0;display:flex;flex-direction:column}
 .snap-studio-camera-view.hidden{display:none}
@@ -4932,6 +4934,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.95.0',date:'27 août 2026',time:'15:00',title:'Ephem : option "Empêcher les captures d\\'écran"',
+    body:'En envoyant un Ephem, un nouvel interrupteur "🚫 Empêcher les captures d\\'écran" est disponible avant de choisir la durée. Activé : le destinataire est prévenu avant même d\\'ouvrir l\\'Ephem, le clic droit/glisser/appui long sont désactivés sur l\\'image ou la vidéo, et si une capture d\\'écran Windows est détectée pendant le visionnage, l\\'Ephem se ferme immédiatement en plus de t\\'avertir. Important à savoir : aucune app web ne peut réellement empêcher une capture d\\'écran (Mac, mobile et outils tiers restent hors de portée d\\'un navigateur) — c\\'est un frein sérieux, pas un verrou technique, exactement comme sur les autres plateformes du même genre.'},
   {version:'2.94.0',date:'27 août 2026',time:'14:00',title:'Visite guidée pour les nouveaux comptes',
     body:'Première connexion : une petite visite guidée met en lumière les boutons principaux (Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, profil, notifications…) un par un, avec une bulle d\\'explication et un bouton Suivant. Elle ne s\\'affiche qu\\'une seule fois — possible de passer à tout moment, et de la revoir plus tard depuis Paramètres → Avancé → Visite guidée.'},
   {version:'2.93.0',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
@@ -6546,6 +6550,15 @@ document.addEventListener('keyup',function(e){
   if(e.key!=='PrintScreen')return;
   if(Date.now()-lastScreenshotNotifyAt<3000)return;
   lastScreenshotNotifyAt=Date.now();
+  // Un Ephem envoyé avec "Empêcher les captures d'écran" activé réagit plus
+  // fort qu'une capture de conversation normale : fermeture immédiate en
+  // plus de l'avis — le contenu redevient inaccessible dès la détection,
+  // au lieu de rester affiché après coup.
+  if(activeSnapViewerState&&activeSnapViewerState.noScreenshot){
+    activeSnapViewerState.close();
+    if(activeDm)authPost('/api/dms/screenshot-notify',{dmId:activeDm,ephem:true}).catch(function(){});
+    return;
+  }
   if(activeDm){
     authPost('/api/dms/screenshot-notify',{dmId:activeDm}).catch(function(){});
   }else if(activeServer&&activeChannel){
@@ -8702,13 +8715,14 @@ function renderMsgBody(m,text,mediaUrl){
   const url=safeUrl(mediaUrl);
   if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
     const mine=m.uid===(me&&me.\$id);
+    const noShotTag=m.noScreenshot?' <span class="msg-snap-noshot" title="Captures d\\'écran découragées">🚫</span>':'';
     if(m.viewedAt){
-      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Ephem vu par le destinataire':'Ephem vu')+'</span></div>';
+      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Ephem vu par le destinataire':'Ephem vu')+'</span>'+noShotTag+'</div>';
     }
     if(mine){
-      return '<div class="msg-snap-placeholder">👻 <span>Ephem envoyé — pas encore ouvert</span></div>';
+      return '<div class="msg-snap-placeholder">👻 <span>Ephem envoyé — pas encore ouvert</span>'+noShotTag+'</div>';
     }
-    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span></div>';
+    return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'" data-snap-noshot="'+(m.noScreenshot?'1':'0')+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span>'+noShotTag+'</div>';
   }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
@@ -8738,17 +8752,23 @@ function wireSnapPlaceholders(container){
   if(!container)return;
   container.querySelectorAll('[data-snap-view]').forEach(function(el){
     el.addEventListener('click',function(){
-      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'),parseInt(el.getAttribute('data-snap-dur'),10)||0);
+      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'),parseInt(el.getAttribute('data-snap-dur'),10)||0,el.getAttribute('data-snap-noshot')==='1');
     });
   });
 }
-function openSnapViewer(messageId,url,type,durationSec){
+// État du visionneur Ephem actuellement ouvert (au plus un à la fois) —
+// consulté par la détection Impr écran globale plus bas dans ce fichier
+// pour réagir plus fort (fermeture immédiate + message dédié) quand l'Ephem
+// concerné a noScreenshot activé.
+let activeSnapViewerState=null;
+function openSnapViewer(messageId,url,type,durationSec,noScreenshot){
   if(!url){showToast('Ephem indisponible.','error');return}
   const overlay=document.createElement('div');
   overlay.className='snap-viewer-overlay';
   overlay.innerHTML='<button type="button" class="snap-viewer-close" id="snap-viewer-close">✕</button>'
     +(durationSec?'<div class="snap-viewer-timer" id="snap-viewer-timer">'+durationSec+'</div>':'')
-    +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline'+(durationSec?'':' controls')+'></video>'):('<img src="'+esc(url)+'" alt="">'));
+    +(noScreenshot?'<div class="snap-viewer-noshot">🚫 Captures d\\'écran découragées</div>':'')
+    +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline'+(durationSec?'':' controls')+(noScreenshot?' controlslist="nodownload" oncontextmenu="return false"':'')+'></video>'):('<img src="'+esc(url)+'" alt=""'+(noScreenshot?' draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none"':'')+'>'));
   document.body.appendChild(overlay);
   authPost('/api/dms/media/view',{messageId:messageId}).then(function(){
     const m=msgsCache.find(function(x){return x.\$id===messageId;});
@@ -8759,8 +8779,10 @@ function openSnapViewer(messageId,url,type,durationSec){
     if(autoCloseTimer)clearTimeout(autoCloseTimer);
     if(countdownTimer)clearInterval(countdownTimer);
     overlay.remove();
+    if(activeSnapViewerState&&activeSnapViewerState.close===close)activeSnapViewerState=null;
     if(activeDm)renderMessages();
   }
+  activeSnapViewerState={noScreenshot:!!noScreenshot,close:close};
   if(durationSec>0){
     let remaining=durationSec;
     const timerEl=\$('snap-viewer-timer');
@@ -9033,7 +9055,7 @@ function renderMessages(){
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
   const seenInfo=computeSeenInfo();
   box.innerHTML=msgsCache.map(function(m){
-    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran</div>';
+    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
@@ -9414,7 +9436,7 @@ document.addEventListener('click',function(e){
   const chanMenu=\$('srv-attach-menu');
   if(chanMenu&&!chanMenu.classList.contains('hidden')&&!chanMenu.contains(e.target)&&e.target!==\$('srv-chan-attach'))chanMenu.classList.add('hidden');
 });
-let pendingSnapEphemeral=false,pendingSnapDuration=0;
+let pendingSnapEphemeral=false,pendingSnapDuration=0,pendingSnapNoScreenshot=false;
 const SNAP_DURATIONS=[{v:3,label:'3 secondes'},{v:5,label:'5 secondes'},{v:10,label:'10 secondes'},{v:0,label:'Sans limite (fermeture manuelle)'}];
 /* ===== Studio de snap — capture photo/vidéo en direct, filtres, calques
    texte, façon Snapchat, entièrement construit avec getUserMedia + canvas
@@ -9483,7 +9505,7 @@ async function openSnapStudio(){
   };
   \$('snap-studio-gallery').onclick=function(){
     closeSnapStudio();
-    openSnapDurationPicker(function(dur){pendingSnapEphemeral=true;pendingSnapDuration=dur;\$('file-image').click();});
+    openSnapDurationPicker(function(dur,noScreenshot){pendingSnapEphemeral=true;pendingSnapDuration=dur;pendingSnapNoScreenshot=noScreenshot;\$('file-image').click();});
   };
   // Glisser à gauche/droite sur l'aperçu change de filtre, comme sur Snap —
   // en plus du choix direct dans le bandeau de vignettes.
@@ -10005,24 +10027,39 @@ async function finishStudioSend(isVideo){
     file=new File([blob],'snap.jpg',{type:'image/jpeg'});
   }
   closeSnapStudio();
-  openSnapDurationPicker(function(dur){
-    handleFileAttach(file,'auto',true,dur);
+  openSnapDurationPicker(function(dur,noScreenshot){
+    handleFileAttach(file,'auto',true,dur,noScreenshot);
   });
 }
 function openSnapDurationPicker(onPick){
+  let noScreenshot=false;
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
     +'<div class="set-section-label">👻 Combien de temps cet Ephem reste visible ?</div>'
     +SNAP_DURATIONS.map(function(d){return '<button type="button" class="set-card-row" data-snap-dur="'+d.v+'" style="width:100%;cursor:pointer"><div class="scr-info"><div class="scr-label">'+esc(d.label)+'</div></div></button>';}).join('')
+    // Choix imparfait par nature — voir le commentaire au-dessus de la
+    // détection Impr écran plus bas dans ce fichier : aucune API web ne
+    // permet de vraiment EMPÊCHER une capture d'écran (Mac, mobile, outils
+    // tiers restent hors de portée). Activer l'option gêne la sauvegarde
+    // occasionnelle (clic droit/glisser/appui long désactivés, aperçu fermé
+    // dès qu'une capture Windows est détectée) et prévient le destinataire
+    // par avance que ce n'est pas anodin — un frein sérieux, pas un verrou.
+    +'<div class="set-card-row" style="margin-top:10px"><div class="scr-info"><div class="scr-label">🚫 Empêcher les captures d\\'écran</div><div class="scr-sub">Gêne la sauvegarde et prévient si une capture Windows est détectée — pas une garantie absolue.</div></div><div class="set-switch" id="snap-noshot-switch" data-on="0"></div></div>'
     +'</div>';
   document.body.appendChild(overlay);
   function close(){overlay.remove();}
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  const noShotSwitch=overlay.querySelector('#snap-noshot-switch');
+  if(noShotSwitch)noShotSwitch.addEventListener('click',function(){
+    noScreenshot=!noScreenshot;
+    noShotSwitch.classList.toggle('on',noScreenshot);
+    noShotSwitch.setAttribute('data-on',noScreenshot?'1':'0');
+  });
   overlay.querySelectorAll('[data-snap-dur]').forEach(function(b){
     b.addEventListener('click',function(){
       close();
-      onPick(parseInt(b.getAttribute('data-snap-dur'),10)||0);
+      onPick(parseInt(b.getAttribute('data-snap-dur'),10)||0,noScreenshot);
     });
   });
 }
@@ -10100,7 +10137,7 @@ function updateUploadProgressRow(row,loaded,total){
   const fillEl=row.querySelector('.upload-progress-fill');if(fillEl)fillEl.style.width=pct+'%';
   const sizeEl=row.querySelector('.upload-progress-size');if(sizeEl)sizeEl.textContent=fmtSize(loaded)+' / '+fmtSize(total);
 }
-async function handleFileAttach(file,kindHint,ephemeral,durationSec){
+async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot){
   if(!file||!activeDm)return;
   if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
   let type=kindHint;
@@ -10122,7 +10159,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec){
     const up=await uploadFileWithProgress(uploadBlob,function(loaded,total){updateUploadProgressRow(progressRow,loaded,total);});
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
-    if(ephemeral)data.snapDurationSec=durationSec||0;
+    if(ephemeral){data.snapDurationSec=durationSec||0;if(noScreenshot)data.noScreenshot=true;}
     let preview=ephemeral?'👻 Ephem':'📎 Pièce jointe';
     if(type==='image'&&!ephemeral){preview='📷 Photo';}
     else if(type==='video'&&!ephemeral){preview='🎬 Vidéo';}
@@ -10161,7 +10198,7 @@ async function handleChannelFileAttach(file,kindHint){
     showToast('Envoi impossible : '+((e&&e.message)||e),'error');xlog('chan_attach_fail',{msg:(e&&e.message)||String(e)});
   }
 }
-if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration);pendingSnapEphemeral=false;pendingSnapDuration=0;this.value='';});
+if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration,pendingSnapNoScreenshot);pendingSnapEphemeral=false;pendingSnapDuration=0;pendingSnapNoScreenshot=false;this.value='';});
 if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
 
 let gifSearchTimeout=null;
@@ -14771,7 +14808,7 @@ function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
   box.innerHTML=activeChannelMessages.map(function(m){
-    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.username||'Quelqu\\'un')+' a pris une capture d\\'écran</div>';
+    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.username||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
@@ -21588,9 +21625,18 @@ async function handle(request) {
       }
       const profile = await resolveProfile(acc.$id);
       const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Quelqu'un";
+      // "ephem": true vient d'un Ephem publié avec noScreenshot activé, détecté
+      // pendant que son visionneur était ouvert (voir openSnapViewer côté
+      // client) — texte différent pour que l'auteur comprenne immédiatement
+      // que c'est SON Ephem protégé qui vient d'être capturé, pas un message
+      // quelconque de la conversation. Un simple booléen client, jamais de
+      // texte libre : rien à faire valider côté serveur, aucun risque d'y
+      // faire passer un message arbitraire.
+      const isEphem = !!(body && body.ephem);
+      const text = isEphem ? (displayName + " a peut-être capturé ton Ephem 👻") : (displayName + " a pris une capture d'écran");
       const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { threadId: dmId, uid: String(acc.$id), displayName: displayName, type: "sysshot", text: displayName + " a pris une capture d'écran", mediaUrl: "" } }
+        body: { documentId: "unique()", data: { threadId: dmId, uid: String(acc.$id), displayName: displayName, type: "sysshot", text: text, mediaUrl: "" } }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
