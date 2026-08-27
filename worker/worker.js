@@ -100,6 +100,15 @@ function serverBoostLevel(server) {
   for (let i = 0; i < SERVER_BOOST_THRESHOLDS.length; i++) { if (count >= SERVER_BOOST_THRESHOLDS[i]) level = i + 1; }
   return level;
 }
+// Shaman (compte plateforme, cf SHAMAN_UIDS) est traité comme le propriétaire
+// de N'IMPORTE QUEL serveur pour tout ce qui touche aux panels de paramètres
+// et à la modération — sans avoir besoin d'être membre. Volontairement PAS
+// utilisé pour les actions qui n'ont de sens qu'en tant que participant réel
+// (booster un serveur, s'inscrire à un événement, afficher un tag de
+// serveur sur son propre profil) : ça resterait incohérent même pour Shaman.
+function isServerOwnerOrShaman(server, uid) {
+  return String(server.ownerId) === String(uid) || SHAMAN_UIDS.has(String(uid));
+}
 async function getServerMembership(serverId, uid) {
   const q = "/databases/" + AW_DB + "/collections/server_members/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -111,7 +120,7 @@ async function getServerMembership(serverId, uid) {
 async function serverCheckPermission(serverId, uid, permissionOrList) {
   const wanted = Array.isArray(permissionOrList) ? permissionOrList : [permissionOrList];
   const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-  if (String(server.ownerId) === String(uid)) return { ok: true, server: server };
+  if (isServerOwnerOrShaman(server, uid)) return { ok: true, server: server };
   const member = await getServerMembership(serverId, uid);
   if (!member) return { ok: false, server: server, error: "Tu n'es pas membre de ce serveur" };
   const roleIds = member.roleIds || [];
@@ -340,7 +349,7 @@ async function serverResolveChannelAccess(serverId, uid, channelId) {
   const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
   const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true });
   if (String(channel.serverId) !== String(serverId)) throw new Error("Salon introuvable dans ce serveur");
-  const isOwner = String(server.ownerId) === String(uid);
+  const isOwner = isServerOwnerOrShaman(server, uid);
   if (isOwner) return { server: server, channel: channel, member: null, hasManage: true, access: { view: true, send: true } };
   const member = await getServerMembership(serverId, uid);
   if (!member) throw new Error("Tu n'es pas membre de ce serveur");
@@ -378,7 +387,7 @@ function assertRulesAccepted(server, member, hasManage) {
   throw new Error("rules_not_accepted");
 }
 async function getMemberAuthorityPosition(serverId, uid, server) {
-  if (String(server.ownerId) === String(uid)) return Infinity;
+  if (isServerOwnerOrShaman(server, uid)) return Infinity;
   const member = await getServerMembership(serverId, uid);
   if (!member) return -1;
   const roles = await serverGetMemberRoles(serverId, member);
@@ -403,7 +412,7 @@ async function resolveServerMemberDisplayName(serverId, uid, access, profile, ac
   return (profile && (profile.displayName || profile.username)) || accName || "Membre";
 }
 async function assertCanModerateTarget(serverId, actorUid, targetUid, server) {
-  if (String(server.ownerId) === String(actorUid)) return;
+  if (isServerOwnerOrShaman(server, actorUid)) return;
   const actorAuthority = await getMemberAuthorityPosition(serverId, actorUid, server);
   const targetAuthority = await getMemberAuthorityPosition(serverId, targetUid, server);
   if (targetAuthority >= actorAuthority) throw new Error("Tu ne peux pas agir sur un membre dont le rôle est égal ou supérieur au tien");
@@ -2383,6 +2392,7 @@ a.bug-att-item{display:block}
         <button type="button" class="admin-subtab" data-atab="team">Candidatures</button>
         <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
         <button type="button" class="admin-subtab" data-atab="logs">Logs</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="servers">Serveurs</button>
         <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance">Maintenance</button>
       </div>
       <div class="admin-body" id="admin-body"></div>
@@ -4331,6 +4341,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.82.0',date:'27 août 2026',time:'01:15',title:'Serveurs : accès total pour Shaman + précision sur la suppression des messages',
+    body:'Shaman a maintenant accès aux paramètres de N\\'IMPORTE QUEL serveur de la plateforme (nouvel onglet 🛡️ Panneau admin → Serveurs), même sans en être membre — traité partout comme le propriétaire. Par ailleurs, les propriétaires de serveur pouvaient déjà supprimer n\\'importe quel message de n\\'importe quel membre sur leur propre serveur (vérifié, aucun changement nécessaire sur ce point).'},
   {version:'2.81.0',date:'27 août 2026',time:'00:30',title:'Serveurs : nouveaux salons 🎤 Scène',
     body:'Nouveau type de salon pour les serveurs : la Scène. Tout le monde peut rejoindre pour écouter, mais seuls les orateurs (invités par la modération, ou qui lèvent la main puis sont acceptés) peuvent parler au micro. Sujet de scène personnalisable par la modération, liste des orateurs et des demandes de parole en temps réel, et possibilité de descendre de scène ou de retirer un orateur à tout moment.'},
   {version:'2.80.0',date:'26 août 2026',time:'23:00',title:'Studio Ephem : zoom, flash, mise au point, rotation, recadrage et sticker xMoji',
@@ -11020,6 +11032,7 @@ function showAdminTab(tab){
   else if(tab==='team')loadAdminTeamApplications().then(renderAdminTeamApplications).catch(adminErr);
   else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
   else if(tab==='logs')loadAdminLogs().then(renderAdminLogs).catch(adminErr);
+  else if(tab==='servers')loadAdminServers().then(renderAdminServers).catch(adminErr);
   else if(tab==='maintenance')loadAdminMaintenance().then(renderAdminMaintenance).catch(adminErr);
 }
 function adminErr(e){
@@ -11234,6 +11247,49 @@ function renderAdminBans(list){
   });
 }
 
+// Shaman peut ouvrir les paramètres de N'IMPORTE QUEL serveur de la
+// plateforme, pas seulement les siens (côté Worker, serverCheckPermission/
+// serverResolveChannelAccess/getMemberAuthorityPosition le traitent comme le
+// propriétaire de tous les serveurs) — cet onglet est le point d'entrée pour
+// y accéder sans en être membre. La collection "servers" est en lecture
+// publique (read("any")), un simple listDocuments suffit, pas besoin d'une
+// route admin dédiée.
+async function loadAdminServers(){
+  const r=await db.listDocuments(DB,'servers',[Appwrite.Query.limit(100),Appwrite.Query.orderDesc('\$createdAt')]);
+  return r.documents||[];
+}
+function renderAdminServers(list){
+  const box=\$('admin-body');if(!box)return;
+  box.innerHTML='<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
+    +'<input type="text" id="admin-srv-search" class="field-input" placeholder="Filtrer par nom…" style="flex:1;min-width:160px">'
+    +'<input type="text" id="admin-srv-openid" class="field-input" placeholder="Ouvrir par ID de serveur…" style="flex:1;min-width:160px">'
+    +'<button type="button" class="set-mini-btn" id="admin-srv-openid-btn">Ouvrir</button>'
+    +'</div><div id="admin-srv-list"></div>';
+  function openServerFromAdmin(serverId){
+    if(!serverId)return;
+    \$('admin-active').classList.add('hidden');
+    openServerDetail(serverId);
+  }
+  function renderList(){
+    const q=(\$('admin-srv-search').value||'').trim().toLowerCase();
+    const filtered=q?list.filter(function(s){return String(s.name||'').toLowerCase().indexOf(q)>=0;}):list;
+    const listBox=\$('admin-srv-list');
+    if(!filtered.length){listBox.innerHTML='<div class="empty-hint">Aucun serveur trouvé.</div>';return}
+    listBox.innerHTML=filtered.map(function(s){
+      return '<div class="admin-row">'
+        +'<div class="av">'+esc(ini(s.name||'?'))+'</div>'
+        +'<div class="info"><div class="n">'+esc(s.name||'(sans nom)')+'</div><div class="p">'+esc((s.description||'').slice(0,80))+' — propriétaire '+esc(s.ownerId)+' — '+esc(fmtRelTime(s.\$createdAt))+'</div></div>'
+        +'<div class="acts"><button type="button" data-admin-srv-open="'+esc(s.\$id)+'" class="ok">🔧 Ouvrir</button></div>'
+        +'</div>';
+    }).join('');
+    listBox.querySelectorAll('[data-admin-srv-open]').forEach(function(el){
+      el.onclick=function(){openServerFromAdmin(el.getAttribute('data-admin-srv-open'));};
+    });
+  }
+  \$('admin-srv-search').addEventListener('input',renderList);
+  \$('admin-srv-openid-btn').addEventListener('click',function(){openServerFromAdmin((\$('admin-srv-openid').value||'').trim());});
+  renderList();
+}
 const REPORT_REASON_LABELS={harcelement:'Harcèlement',contenu_inapproprie:'Contenu inapproprié',spam:'Spam',usurpation:'Usurpation d\\'identité',autre:'Autre'};
 const REPORT_STATUS_LABELS={pending:'En attente',reviewed:'Traité',dismissed:'Rejeté'};
 async function loadAdminReports(){
@@ -12768,6 +12824,7 @@ let activeThread=null,channelThreadsCache=[];
 function serverHasPermission(permission){
   if(!activeServer||!me)return false;
   if(String(activeServer.ownerId)===String(me.\$id))return true;
+  if(staffRole==='owner')return true;
   if(!activeServerMembership)return false;
   const roleIds=activeServerMembership.roleIds||[];
   return activeServerRoles.some(function(r){
@@ -17800,7 +17857,7 @@ async function handle(request) {
     try {
       const serverId = String(url.searchParams.get("serverId") || "");
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      const isOwner = String(server.ownerId) === String(acc.$id);
+      const isOwner = isServerOwnerOrShaman(server, acc.$id);
       if (!isOwner) {
         const member = await getServerMembership(serverId, acc.$id);
         if (!member) throw new Error("Tu n'es pas membre de ce serveur");
@@ -18126,7 +18183,7 @@ async function handle(request) {
       const serverId = String(url.searchParams.get("serverId") || "");
       const member = await getServerMembership(serverId, acc.$id);
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      const isOwner = String(server.ownerId) === String(acc.$id);
+      const isOwner = isServerOwnerOrShaman(server, acc.$id);
       if (!member && !isOwner) throw new Error("Tu n'es pas membre de ce serveur");
       const found = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -18195,7 +18252,7 @@ async function handle(request) {
       const serverId = String(url.searchParams.get("serverId") || "");
       const member = await getServerMembership(serverId, acc.$id);
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      const isOwner = String(server.ownerId) === String(acc.$id);
+      const isOwner = isServerOwnerOrShaman(server, acc.$id);
       if (!member && !isOwner) throw new Error("Tu n'es pas membre de ce serveur");
       const found = await awFetch("/databases/" + AW_DB + "/collections/server_stickers/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -18432,7 +18489,7 @@ async function handle(request) {
     try {
       const serverId = String(url.searchParams.get("serverId") || "");
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      const isOwner = String(server.ownerId) === String(acc.$id);
+      const isOwner = isServerOwnerOrShaman(server, acc.$id);
       if (!isOwner) {
         const member = await getServerMembership(serverId, acc.$id);
         if (!member) throw new Error("Tu n'es pas membre de ce serveur");
@@ -19247,7 +19304,7 @@ async function handle(request) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      const isOwner = String(server.ownerId) === String(acc.$id);
+      const isOwner = isServerOwnerOrShaman(server, acc.$id);
       let roleIds = [], hasManage = isOwner;
       if (!isOwner) {
         const member = await getServerMembership(serverId, acc.$id);
