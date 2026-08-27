@@ -53,6 +53,11 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Sans ça, Chromium ralentit les timers JS d'une fenêtre cachée (tray)
+      // pour économiser des ressources — inoffensif pour un simple onglet
+      // en arrière-plan, mais retarderait la sonnerie d'un appel entrant ou
+      // le traitement d'une notification tant que la fenêtre reste masquée.
+      backgroundThrottling: false,
     },
   });
 
@@ -233,6 +238,16 @@ if (!gotLock) {
     // natif via app.setBadgeCount ; Windows n'a pas cet équivalent, il faut y
     // superposer une petite icône ronde sur la barre des tâches à la place —
     // d'où les pastilles pré-générées dans build/badges/.
+    // Filet de sécurité pour "recevoir un appel/une notification en arrière-
+    // plan" : le clic sur une notification système déclenche déjà
+    // client.focus() côté Service Worker (voir SW_JS côté serveur), ce qui
+    // fonctionne pour un onglet de navigateur normal, mais son effet sur une
+    // BrowserWindow qu'on a explicitement cachée (.hide(), pas juste
+    // minimisée) n'est pas garanti selon l'OS. La page relaie donc aussi un
+    // postMessage du Service Worker vers cet appel IPC, qui rappelle
+    // showMainWindow() directement sur la vraie fenêtre — deux chemins pour
+    // le même résultat, dont un fiable à coup sûr.
+    ipcMain.handle('xultra:show-window', () => { showMainWindow(); return true; });
     ipcMain.handle('xultra:set-badge-count', (e, count) => {
       const n = Math.max(0, Number(count) || 0);
       if (process.platform === 'win32') {

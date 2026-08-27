@@ -13,4 +13,5 @@ contextBridge.exposeInMainWorld('xultraDesktop', {
   setStartMinimized: (value) => ipcRenderer.invoke('xultra:set-start-minimized', value),
   setMinimizeToTray: (value) => ipcRenderer.invoke('xultra:set-minimize-to-tray', value),
   setBadgeCount: (count) => ipcRenderer.invoke('xultra:set-badge-count', count),
+  showWindow: () => ipcRenderer.invoke('xultra:show-window'),
 });

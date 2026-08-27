@@ -456,7 +456,7 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   "  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){\n" +
   "    for(var i=0;i<list.length;i++){\n" +
   "      var c=list[i];\n" +
-  "      if('focus' in c){try{c.navigate(url);}catch(e){} return c.focus();}\n" +
+  "      if('focus' in c){try{c.navigate(url);}catch(e){} try{c.postMessage({type:'xultra-focus'});}catch(e){} return c.focus();}\n" +
   "    }\n" +
   "    if(self.clients.openWindow)return self.clients.openWindow(url);\n" +
   "  }));\n" +
@@ -946,6 +946,20 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:0}
 .hidden{display:none!important}
 
+#install-banner{
+  position:relative;z-index:50;display:flex;align-items:center;justify-content:center;gap:14px;
+  flex-wrap:wrap;padding:9px 16px;text-align:center;
+  background:linear-gradient(90deg,#7c3aed,#a855f7 55%,#ec4899);color:#fff;
+  font-size:.82rem;font-weight:600;
+}
+#install-banner-text{max-width:640px}
+.ib-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ib-install{background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);border-radius:999px;padding:6px 14px;font-weight:800;font-size:.8rem;color:#fff;white-space:nowrap}
+.ib-install:hover{background:rgba(255,255,255,.32)}
+#install-banner-close{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;opacity:.8;font-size:.85rem;flex-shrink:0}
+#install-banner-close:hover{opacity:1;background:rgba(255,255,255,.18)}
+@media (max-width:640px){#install-banner{font-size:.76rem;padding:8px 12px}}
+
 #stage{
   /* display:flex + margin:auto sur .stage-inner (pas place-items:center) :
      un centrage grid/flex "unsafe" sur un contenu plus haut que l'écran
@@ -1068,6 +1082,15 @@ button{cursor:pointer;border:0;background:0}
 .desktop-dl-others a{color:var(--muted);text-decoration:none}
 .desktop-dl-others a:hover{color:#e9d5ff;text-decoration:underline}
 .desktop-dl-others .dl-sep{color:var(--line)}
+.dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
+.dl-verify-toggle:hover{color:#e9d5ff}
+.dl-verify-box{margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;text-align:left}
+.dl-verify-row{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:.68rem}
+.dl-verify-row .dvr-label{color:var(--muted);flex-shrink:0;width:92px}
+.dl-verify-row .dvr-hash{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;word-break:break-all;flex:1;color:#c4b5fd}
+.dl-verify-row .dvr-copy{flex-shrink:0;color:var(--muted);text-decoration:underline;font-size:.68rem}
+.dl-verify-row .dvr-copy:hover{color:#e9d5ff}
+.dl-verify-note{font-size:.68rem;color:var(--muted);margin-top:6px}
 .ios-install-step{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;font-size:.85rem;line-height:1.4}
 .ios-install-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(124,58,237,.3);color:#e9d5ff;font-weight:800;font-size:.75rem;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:10px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
@@ -1108,8 +1131,8 @@ button{cursor:pointer;border:0;background:0}
 .dash .btn-out{width:100%;height:42px;border-radius:12px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f2ebff;margin-top:18px}
 
 /* Phase 2: app shell */
-:root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e}
-#app{display:none;height:calc(100dvh / var(--zoom-factor,1));position:relative;z-index:1}
+:root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px}
+#app{display:none;height:calc((100dvh - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:8px;flex-shrink:0}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
@@ -2260,6 +2283,13 @@ a.bug-att-item{display:block}
 </style>
 </head>
 <body>
+<div id="install-banner" class="hidden">
+  <span id="install-banner-text"></span>
+  <div class="ib-actions">
+    <button type="button" id="install-banner-btn" class="ib-install"></button>
+    <button type="button" id="install-banner-close" title="Fermer" aria-label="Fermer">✕</button>
+  </div>
+</div>
 <div id="stage">
  <div class="stage-inner">
   <div id="auth" class="card">
@@ -2323,6 +2353,8 @@ a.bug-att-item{display:block}
     <div class="desktop-dl" id="desktop-dl">
       <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
       <div class="desktop-dl-others" id="desktop-dl-others"></div>
+      <button type="button" class="dl-verify-toggle" id="dl-verify-toggle">🔒 Vérifier l'empreinte du fichier (SHA-256)</button>
+      <div class="dl-verify-box hidden" id="dl-verify-box"></div>
     </div>
   </div>
   <div class="showcase" id="showcase">
@@ -3299,67 +3331,153 @@ function openIosInstallSheet(){
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
   overlay.querySelector('#ios-install-close').onclick=close;
 }
+// Un Chromebook installe un .apk comme un Android normal (ARC++, le
+// conteneur Android intégré à ChromeOS) mais le fichier téléchargé
+// n'ouvre pas automatiquement l'installateur comme sur téléphone — il faut
+// l'ouvrir depuis l'appli Fichiers. D'où ces instructions avant de lancer
+// le téléchargement, plutôt qu'un clic direct qui laisserait l'utilisateur
+// face à un fichier .apk sans rien qui se passe.
+function openChromeosInstallSheet(dlHref){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">💻 Installer XULTRA sur Chromebook</div>'
+    +'<div class="scr-sub" style="margin-bottom:6px">XULTRA utilise l\\'appli Android — même fichier que sur téléphone, ça fonctionne aussi bien sur Chromebook :</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">1</span> Vérifie que le Play Store est activé (Paramètres → Applications → Applications Android intégrées)</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">2</span> Télécharge le fichier .apk ci-dessous</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">3</span> Ouvre l\\'appli Fichiers, dossier Téléchargements, puis appuie sur le .apk pour l\\'installer</div>'
+    +'<button type="button" class="btn-main" id="cros-install-dl" style="width:100%;margin-top:12px">📥 Télécharger le .apk</button>'
+    +'<button type="button" class="set-mini-btn" id="cros-install-close" style="width:100%;margin-top:8px">Fermer</button>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelector('#cros-install-close').onclick=close;
+  overlay.querySelector('#cros-install-dl').onclick=function(){location.href=dlHref;close();};
+}
+// Hébergés dans des buckets Appwrite Storage dédiés (lecture publique)
+// plutôt qu'en release GitHub : cette session n'a pas d'outil pour créer
+// une release avec des assets binaires, et les installeurs dépassent de
+// toute façon la limite d'envoi de fichier à l'utilisateur. Chaque fichier
+// a un ID FIXE (jamais de numéro de version dedans) — publier une nouvelle
+// version consiste à re-uploader sous le même ID, jamais besoin de
+// retoucher cette liste. Partagée entre le bouton de téléchargement et la
+// bannière d'installation (même liste, même détection de plateforme).
+const APP_STORAGE_BASE='https://fra.cloud.appwrite.io/v1/storage/buckets/desktop_builds/files/';
+const APP_STORAGE_PROJECT='6a73b975002f14dc6b91';
+// iOS n'a pas de fichier à télécharger (Apple ne permet pas d'installer une
+// app hors App Store) : fileId vaut null pour cette entrée, et le clic ouvre
+// les instructions "Ajouter à l'écran d'accueil" à la place — notifications
+// et appels fonctionnent quand même, via le PWA (§ manifest.webmanifest).
+// ChromeOS réutilise le même .apk qu'Android (ARC++) : même fileId, juste un
+// intitulé et des instructions d'installation différents.
+const APP_PLATFORMS=[
+  {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
+  {key:'android',label:'Android',fileId:'xultra_dl_android_apk',icon:'🤖'},
+  {key:'chromeos',label:'Chromebook',fileId:'xultra_dl_android_apk',icon:'💻'},
+  {key:'mac-arm',label:'Mac (Apple Silicon)',fileId:'xultra_dl_mac_arm64',icon:'🍎'},
+  {key:'mac-intel',label:'Mac (Intel)',fileId:'xultra_dl_mac_x64',icon:'🍎'},
+  {key:'linux-deb',label:'Linux (.deb)',fileId:'xultra_dl_linux_deb',icon:'🐧'},
+  {key:'linux-appimage',label:'Linux (AppImage)',fileId:'xultra_dl_linux_appimage',icon:'🐧'},
+  {key:'ios',label:'iPhone/iPad',fileId:null,icon:'🍎'}
+];
+// Empreintes SHA-256 des fichiers actuellement publiés (calculées après
+// chaque build, à mettre à jour manuellement si un fichier est republié) —
+// permet à qui le souhaite de vérifier qu'un fichier téléchargé n'a pas été
+// altéré, sans dépendre d'un compte ou d'un service tiers.
+const APP_CHECKSUMS={
+  win:'6074656a89d6ec83f7752e37fa9fc58c26765100ddfc4385e67867d42cf82768',
+  android:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
+  chromeos:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
+  'mac-arm':'80762524fda6cc813dec03da566a8dd4e91d5ba35ed33b7a88d22708c7cb0066',
+  'mac-intel':'b057717e6f0978a7e7d2351b929a88913ebee31bff5ebd82ba505fbc0cbcb657',
+  'linux-deb':'326afeecddd8c72d82be7d4764a30cd988b58582423dcaf2a80c6293c3ec28f5',
+  'linux-appimage':'9c5154f514d7bd3f91c856a1ec5fc3fa77b5a91978fac4732dad25be386345a9'
+};
+function appDlUrl(p){return APP_STORAGE_BASE+p.fileId+'/download?project='+APP_STORAGE_PROJECT;}
+function triggerAppPlatform(p){
+  if(p.key==='ios'){openIosInstallSheet();return}
+  if(p.key==='chromeos'){openChromeosInstallSheet(appDlUrl(p));return}
+  location.href=appDlUrl(p);
+}
+function detectAppPlatformKey(){
+  const ua=navigator.userAgent||'',platform=navigator.platform||'';
+  if(/CrOS/i.test(ua))return 'chromeos';
+  if(/iPhone|iPad|iPod/i.test(ua)||(platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+  if(/Android/i.test(ua))return 'android';
+  if(/Win/i.test(platform))return 'win';
+  // Un navigateur n'expose pas de façon fiable si un Mac est Apple Silicon
+  // ou Intel (Rosetta masque l'architecture réelle) — Apple Silicon est le
+  // choix par défaut le plus probable sur un Mac récent, l'autre lien reste
+  // juste en dessous pour qui en a besoin.
+  if(/Mac/i.test(platform))return 'mac-arm';
+  if(/Linux/i.test(platform))return 'linux-deb';
+  return 'win';
+}
 (function initAppDownload(){
   const btn=\$('desktop-dl-btn');if(!btn)return;
-  // Hébergés dans des buckets Appwrite Storage dédiés (lecture publique)
-  // plutôt qu'en release GitHub : cette session n'a pas d'outil pour créer
-  // une release avec des assets binaires, et les installeurs dépassent de
-  // toute façon la limite d'envoi de fichier à l'utilisateur. Chaque
-  // fichier a un ID FIXE (jamais de numéro de version dedans) — publier une
-  // nouvelle version consiste à re-uploader sous le même ID, donc ces liens
-  // n'auront plus jamais besoin d'être retouchés ici.
-  const STORAGE_BASE='https://fra.cloud.appwrite.io/v1/storage/buckets/desktop_builds/files/';
-  const STORAGE_PROJECT='6a73b975002f14dc6b91';
-  // iOS n'a pas de fichier à télécharger (Apple ne permet pas d'installer
-  // une app hors App Store) : dlUrl vaut null pour cette entrée, et le clic
-  // ouvre les instructions "Ajouter à l'écran d'accueil" à la place —
-  // notifications et appels fonctionnent quand même, via le PWA (§ manifest.webmanifest).
-  const PLATFORMS=[
-    {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
-    {key:'android',label:'Android',fileId:'xultra_dl_android_apk',icon:'🤖'},
-    {key:'mac-arm',label:'Mac (Apple Silicon)',fileId:'xultra_dl_mac_arm64',icon:'🍎'},
-    {key:'mac-intel',label:'Mac (Intel)',fileId:'xultra_dl_mac_x64',icon:'🍎'},
-    {key:'linux-deb',label:'Linux (.deb)',fileId:'xultra_dl_linux_deb',icon:'🐧'},
-    {key:'linux-appimage',label:'Linux (AppImage)',fileId:'xultra_dl_linux_appimage',icon:'🐧'},
-    {key:'ios',label:'iPhone/iPad',fileId:null,icon:'🍎'}
-  ];
-  function dlUrl(p){return STORAGE_BASE+p.fileId+'/download?project='+STORAGE_PROJECT;}
-  function triggerPlatform(p){
-    if(!p.fileId){openIosInstallSheet();return}
-    location.href=dlUrl(p);
-  }
-  function detectPlatformKey(){
-    const ua=navigator.userAgent||'',platform=navigator.platform||'';
-    if(/iPhone|iPad|iPod/i.test(ua)||(platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
-    if(/Android/i.test(ua))return 'android';
-    if(/Win/i.test(platform))return 'win';
-    // Un navigateur n'expose pas de façon fiable si un Mac est Apple
-    // Silicon ou Intel (Rosetta masque l'architecture réelle) — Apple
-    // Silicon est le choix par défaut le plus probable sur un Mac récent,
-    // l'autre lien reste juste en dessous pour qui en a besoin.
-    if(/Mac/i.test(platform))return 'mac-arm';
-    if(/Linux/i.test(platform))return 'linux-deb';
-    return 'win';
-  }
-  const primary=PLATFORMS.find(function(p){return p.key===detectPlatformKey();})||PLATFORMS[0];
-  const btnIcon=primary.key==='android'?'🤖':(primary.key==='ios'?'🍎':'💻');
+  const primary=APP_PLATFORMS.find(function(p){return p.key===detectAppPlatformKey();})||APP_PLATFORMS[0];
+  const btnIcon=primary.key==='android'?'🤖':(primary.key==='ios'?'🍎':(primary.key==='chromeos'?'💻':'💻'));
   btn.textContent=btnIcon+' '+(primary.fileId?'Télécharger pour ':'Installer sur ');
   const osSpan=document.createElement('span');osSpan.id='desktop-dl-os';osSpan.textContent=primary.label;
   btn.appendChild(osSpan);
-  btn.onclick=function(){triggerPlatform(primary);};
+  btn.onclick=function(){triggerAppPlatform(primary);};
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
-    othersBox.innerHTML=PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
+    othersBox.innerHTML=APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
       return '<a href="#" data-dl-key="'+p.key+'">'+p.icon+' '+p.label+'</a>';
     }).join('<span class="dl-sep">·</span>');
     othersBox.querySelectorAll('[data-dl-key]').forEach(function(a){
       a.addEventListener('click',function(e){
         e.preventDefault();
-        const p=PLATFORMS.find(function(x){return x.key===a.getAttribute('data-dl-key');});
-        if(p)triggerPlatform(p);
+        const p=APP_PLATFORMS.find(function(x){return x.key===a.getAttribute('data-dl-key');});
+        if(p)triggerAppPlatform(p);
       });
     });
   }
+  const verifyToggle=\$('dl-verify-toggle'),verifyBox=\$('dl-verify-box');
+  if(verifyToggle&&verifyBox)verifyToggle.onclick=function(){
+    if(verifyBox.classList.contains('hidden')){
+      if(!verifyBox.dataset.filled){
+        verifyBox.innerHTML=APP_PLATFORMS.filter(function(p){return APP_CHECKSUMS[p.key];}).map(function(p){
+          return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button></div>';
+        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>';
+        verifyBox.dataset.filled='1';
+        verifyBox.querySelectorAll('[data-copy-hash]').forEach(function(b){
+          b.onclick=function(){
+            const h=b.getAttribute('data-copy-hash');
+            (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(h):Promise.reject()).then(function(){showToast('Empreinte copiée !');}).catch(function(){});
+          };
+        });
+      }
+      verifyBox.classList.remove('hidden');
+    }else verifyBox.classList.add('hidden');
+  };
+})();
+(function initInstallBanner(){
+  const bar=\$('install-banner');if(!bar)return;
+  function isAlreadyInstalled(){
+    try{
+      if(window.xultraDesktop&&window.xultraDesktop.isDesktop)return true;
+      if(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)return true;
+      if(navigator.standalone)return true;
+    }catch(e){}
+    return false;
+  }
+  if(isAlreadyInstalled())return;
+  try{if(localStorage.getItem('xultra_install_banner_dismissed')==='1')return;}catch(e){}
+  const p=APP_PLATFORMS.find(function(x){return x.key===detectAppPlatformKey();})||APP_PLATFORMS[0];
+  \$('install-banner-text').textContent='Tu es sur '+p.label+' — installe l\\'appli XULTRA pour de meilleures notifications et pour recevoir tes appels même en arrière-plan.';
+  const installBtn=\$('install-banner-btn');
+  installBtn.textContent=p.icon+' Installer';
+  installBtn.onclick=function(){triggerAppPlatform(p);};
+  \$('install-banner-close').onclick=function(){
+    bar.classList.add('hidden');
+    document.documentElement.style.setProperty('--banner-h','0px');
+    try{localStorage.setItem('xultra_install_banner_dismissed','1');}catch(e){}
+  };
+  bar.classList.remove('hidden');
+  requestAnimationFrame(function(){document.documentElement.style.setProperty('--banner-h',bar.offsetHeight+'px');});
 })();
 (function initShowcase(){
   const track=\$('showcase-track'),dotsWrap=\$('showcase-dots');
@@ -4522,6 +4640,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.90.0',date:'27 août 2026',time:'10:30',title:'Bannière d\\'installation, version Chromebook, et empreintes de fichiers',
+    body:'Une bannière discrète (fermable, en haut du site) propose maintenant d\\'installer l\\'appli native XULTRA quand tu utilises la version navigateur, avec ta plateforme détectée automatiquement. Nouvelle entrée « Chromebook » dans les téléchargements (réutilise l\\'appli Android via ARC++, avec ses propres instructions d\\'installation). Chaque fichier téléchargeable affiche maintenant son empreinte SHA-256 (bouton « Vérifier l\\'empreinte du fichier »), pour qui veut confirmer qu\\'il n\\'a pas été altéré. Côté application de bureau, les notifications et appels entrants sont plus fiables quand la fenêtre est réduite dans la zone de notification (plus de ralentissement des tâches de fond, réouverture de la fenêtre garantie au clic sur une notification).'},
   {version:'2.89.0',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
     body:'Les paramètres liés à l\\'application de bureau XULTRA (§ Paramètres → Paramètres du système) sont maintenant réellement branchés : ouvrir XULTRA au démarrage de session, démarrer minimisé, et minimiser dans la barre des tâches à la fermeture sont désormais de vrais réglages (au lieu de "Bientôt disponible"). Le badge de messages non lus sur l\\'icône (§ Paramètres → Notifications) s\\'affiche maintenant aussi sur le dock/la barre des tâches de l\\'application de bureau, pas seulement dans l\\'onglet du navigateur. Au passage, l\\'icône de la zone de notification (system tray), absente par erreur des précédents installeurs, s\\'affiche enfin correctement.'},
   {version:'2.88.0',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
@@ -11273,6 +11393,19 @@ let pushSubscribed=false;
 async function registerServiceWorker(){
   if(!('serviceWorker' in navigator))return null;
   try{return await navigator.serviceWorker.register('/sw.js');}catch(e){xlog('sw_register_fail',{msg:(e&&e.message)||String(e)});return null}
+}
+// Relais du clic sur une notification (appel entrant, message…) vers la
+// vraie fenêtre Electron : le Service Worker appelle déjà client.focus(),
+// suffisant dans un onglet de navigateur normal, mais pas garanti de
+// ré-afficher une fenêtre explicitement masquée (.hide(), pas juste
+// minimisée) selon l'OS — ce message est le filet de sécurité qui passe par
+// le processus principal pour forcer l'affichage à coup sûr.
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='xultra-focus'){
+      try{if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&window.xultraDesktop.showWindow)window.xultraDesktop.showWindow();}catch(err){}
+    }
+  });
 }
 function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
