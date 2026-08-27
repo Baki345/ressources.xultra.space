@@ -18,6 +18,13 @@ comme dans un navigateur. Le desktop ajoute seulement des attentions natives :
   (nécessaires pour les appels et le studio de snap).
 - Une seule instance à la fois (relancer l'appli redonne le focus à la
   fenêtre existante au lieu d'en ouvrir une deuxième).
+- Badge de messages non lus sur l'icône de l'appli (dock macOS, launcher
+  Linux compatible D-Bus, superposition sur la barre des tâches Windows) —
+  relié au réglage "Badge sur l'icône" de XULTRA (§ Paramètres → Notifications).
+- Réglages système pilotables depuis XULTRA (§ Paramètres → Paramètres du
+  système) : ouverture au démarrage de session, démarrage minimisé, et
+  activer/désactiver la réduction dans la zone de notification à la
+  fermeture (par défaut activée, comme ci-dessus).
 
 ## Développement
 
@@ -41,18 +48,32 @@ est celle du favicon/logo web — `electron-builder` en dérive automatiquement
 les `.icns`/`.ico` nécessaires à chaque plateforme, aucune conversion manuelle
 n'est nécessaire.
 
+Note : le `.dmg` macOS ne peut être produit que depuis un vrai Mac (le
+paquet `dmg-license` qu'il utilise a une dépendance native `darwin`-only,
+impossible à installer sur Linux/Windows). Depuis un environnement non-Mac,
+utiliser `electron-builder --mac zip` pour obtenir uniquement le `.zip`
+(ce que ce dépôt distribue actuellement sur la page de téléchargement).
+
 ## Notes
 
-- `src/main.js` : processus principal (fenêtre, tray, menu, permissions).
+- `src/main.js` : processus principal (fenêtre, tray, menu, permissions,
+  badge, réglages système exposés via IPC).
 - `src/preload.js` : pont isolé (`contextIsolation`) qui expose
-  `window.xultraDesktop = { isDesktop: true, platform }` au site — permet un
-  jour de l'utiliser côté web pour adapter l'UI au contexte desktop, sans rien
-  exposer de Node/Electron à la page.
+  `window.xultraDesktop` au site (`isDesktop`, `platform`, `getOsSettings`,
+  `setOpenAtLogin`, `setStartMinimized`, `setMinimizeToTray`,
+  `setBadgeCount`) — utilisé par XULTRA pour ses paramètres système et son
+  badge de notifications, sans jamais exposer Node/Electron à la page.
 - `src/window-state.js` : persistance position/taille de fenêtre (fichier JSON
   dans le dossier `userData`, aucune dépendance externe).
+- `src/app-settings.js` : persistance des préférences "démarrer minimisé" /
+  "minimiser dans la barre des tâches" (même principe, fichier JSON séparé).
+- `build/badges/*.png` : pastilles rondes pré-générées (1 à 9, "9+") utilisées
+  comme icône de superposition sur la barre des tâches Windows pour le badge
+  de notifications (macOS/Linux utilisent l'API native `app.setBadgeCount`,
+  qui n'a pas besoin d'image).
 - Build vérifié dans ce dépôt via un lancement headless (`xvfb-run`) : le
   processus principal démarre sans erreur JS (création de fenêtre, tray, menu,
-  permissions). Le chargement réel de xultra.space et les fonctions caméra/
-  appels n'ont pas pu être testés visuellement depuis cet environnement
-  (pas de navigateur graphique ni de caméra ici) — à vérifier après le premier
-  lancement sur une vraie machine.
+  permissions, handlers IPC). Le chargement réel de xultra.space et les
+  fonctions caméra/appels/badge n'ont pas pu être testés visuellement depuis
+  cet environnement (pas de navigateur graphique ni de caméra ici) — à
+  vérifier après le premier lancement sur une vraie machine.

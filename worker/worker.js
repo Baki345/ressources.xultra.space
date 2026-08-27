@@ -4522,6 +4522,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.89.0',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
+    body:'Les paramètres liés à l\\'application de bureau XULTRA (§ Paramètres → Paramètres du système) sont maintenant réellement branchés : ouvrir XULTRA au démarrage de session, démarrer minimisé, et minimiser dans la barre des tâches à la fermeture sont désormais de vrais réglages (au lieu de "Bientôt disponible"). Le badge de messages non lus sur l\\'icône (§ Paramètres → Notifications) s\\'affiche maintenant aussi sur le dock/la barre des tâches de l\\'application de bureau, pas seulement dans l\\'onglet du navigateur. Au passage, l\\'icône de la zone de notification (system tray), absente par erreur des précédents installeurs, s\\'affiche enfin correctement.'},
   {version:'2.88.0',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
     body:'XULTRA s\\'installe maintenant comme une vraie application sur mobile. Sur Android : un fichier .apk à télécharger depuis le bouton 💻 devenu 📲 (à installer manuellement, hors Play Store — aucun compte Google Play n\\'a été ouvert), qui s\\'ouvre en plein écran sans barre d\\'adresse. Sur iPhone/iPad : Apple n\\'autorisant pas d\\'installation hors App Store, le même bouton ouvre les 3 étapes pour l\\'ajouter à l\\'écran d\\'accueil depuis Safari — aucun compte développeur Apple n\\'a été ouvert non plus. Dans les deux cas, les notifications (déjà en place sur le site) et les appels vidéo fonctionnent normalement, sans système séparé à maintenir.'},
   {version:'2.87.0',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
@@ -5975,13 +5977,34 @@ function renderSetLanguage(box){
   const en=\$('lang-en');
   if(en)en.onclick=function(){showToast('English support is coming soon!');};
 }
-function renderSetOs(box){
-  box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Options disponibles sur les futures applications de bureau XULTRA.</div>'
-    +'<div class="set-card">'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Ouvrir XULTRA au démarrage</div></div>'+soonBadge()+'</div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Démarrer minimisé</div></div>'+soonBadge()+'</div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Minimiser dans la barre des tâches</div></div>'+soonBadge()+'</div>'
-    +'</div>';
+async function renderSetOs(box){
+  const desktop=(typeof window!=='undefined')&&window.xultraDesktop&&window.xultraDesktop.isDesktop;
+  if(!desktop){
+    box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Ces options ne s\\'appliquent qu\\'à l\\'application de bureau XULTRA — tu es actuellement dans le navigateur.</div>'
+      +'<div class="set-card"><div class="scr-sub">Télécharge l\\'application de bureau (Windows, Mac, Linux) depuis la page de connexion pour débloquer le démarrage automatique et la gestion de la fenêtre.</div></div>';
+    return;
+  }
+  box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Comportement de l\\'application de bureau XULTRA sur cet ordinateur.</div><div class="set-card" id="os-set-card"><div class="scr-sub">Chargement…</div></div>';
+  let s;
+  try{s=await window.xultraDesktop.getOsSettings();}catch(e){s=null;}
+  const card=\$('os-set-card');if(!card)return;
+  if(!s){card.innerHTML='<div class="scr-sub">Impossible de lire les paramètres système.</div>';return}
+  card.innerHTML=
+    '<div class="set-card-row"><div class="scr-info"><div class="scr-label">Ouvrir XULTRA au démarrage</div><div class="scr-sub">Lance XULTRA automatiquement à l\\'ouverture de session.</div></div><div class="set-switch'+(s.openAtLogin?' on':'')+'" id="os-open-login" data-on="'+(s.openAtLogin?'1':'0')+'"></div></div>'
+    +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Démarrer minimisé</div><div class="scr-sub">La fenêtre reste dans la zone de notification au lancement automatique.</div></div><div class="set-switch'+(s.startMinimized?' on':'')+'" id="os-start-min" data-on="'+(s.startMinimized?'1':'0')+'"></div></div>'
+    +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Minimiser dans la barre des tâches</div><div class="scr-sub">Fermer la fenêtre la réduit dans la zone de notification au lieu de quitter l\\'application.</div></div><div class="set-switch'+(s.minimizeToTray?' on':'')+'" id="os-min-tray" data-on="'+(s.minimizeToTray?'1':'0')+'"></div></div>';
+  function wire(id,setter){
+    const el=\$(id);if(!el)return;
+    el.onclick=async function(){
+      const on=el.getAttribute('data-on')!=='1';
+      el.setAttribute('data-on',on?'1':'0');
+      el.classList.toggle('on',on);
+      try{await setter(on);}catch(e){showToast('Action impossible','error');el.setAttribute('data-on',on?'0':'1');el.classList.toggle('on',!on);}
+    };
+  }
+  wire('os-open-login',window.xultraDesktop.setOpenAtLogin);
+  wire('os-start-min',window.xultraDesktop.setStartMinimized);
+  wire('os-min-tray',window.xultraDesktop.setMinimizeToTray);
 }
 function renderSetAdvanced(box){
   box.innerHTML='<h2>Avancé</h2><div class="sc-desc">Options pour les curieux et les développeurs.</div>'
@@ -6526,6 +6549,15 @@ function updateNotifBadge(){
     if(navigator.setAppBadge){
       if(appPrefs&&appPrefs.notifBadge&&total>0)navigator.setAppBadge(total).catch(function(){});
       else if(navigator.clearAppBadge)navigator.clearAppBadge().catch(function(){});
+    }
+  }catch(e){}
+  // Application de bureau : navigator.setAppBadge n'est pas relié nativement
+  // par Electron (contrairement à un vrai navigateur ou à la TWA Android) —
+  // il faut explicitement demander au processus principal de poser le badge
+  // sur le dock/la barre des tâches.
+  try{
+    if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&window.xultraDesktop.setBadgeCount){
+      window.xultraDesktop.setBadgeCount((appPrefs&&appPrefs.notifBadge)?total:0);
     }
   }catch(e){}
 }

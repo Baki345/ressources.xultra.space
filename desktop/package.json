@@ -1,6 +1,6 @@
 {
   "name": "xultra-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Application de bureau XULTRA — enveloppe native pour xultra.space",
   "main": "src/main.js",
   "private": true,
@@ -34,21 +34,33 @@
     },
     "files": [
       "src/**/*",
-      "build/icon.png"
+      "build/icon.png",
+      "build/tray.png",
+      "build/tray@16.png",
+      "build/badges/**/*"
     ],
     "mac": {
       "icon": "build/icon.png",
       "category": "public.app-category.social-networking",
-      "target": ["dmg", "zip"]
+      "target": [
+        "dmg",
+        "zip"
+      ]
     },
     "win": {
       "icon": "build/icon.png",
-      "target": ["nsis", "portable"]
+      "target": [
+        "nsis",
+        "portable"
+      ]
     },
     "linux": {
       "icon": "build/icon.png",
       "category": "Network;Chat;",
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "maintainer": "contact@xultra.space"
     },
     "nsis": {

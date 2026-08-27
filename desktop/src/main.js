@@ -1,15 +1,29 @@
-const { app, BrowserWindow, Menu, Tray, shell, session, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, shell, session, nativeImage, ipcMain } = require('electron');
 const path = require('path');
 const windowState = require('./window-state');
+const appSettings = require('./app-settings');
 
 const APP_URL = 'https://xultra.space/';
 const ALLOWED_HOST = 'xultra.space';
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
 const TRAY_ICON_PATH = path.join(__dirname, '..', 'build', 'tray.png');
+const BADGES_DIR = path.join(__dirname, '..', 'build', 'badges');
+// Argument passé par Electron à l'exécutable relancé au démarrage de session
+// (voir setOpenAtLogin ci-dessous) : distingue un lancement automatique d'un
+// double-clic manuel, pour n'appliquer "démarrer minimisé" que dans ce cas.
+const HIDDEN_LAUNCH_ARG = '--xultra-hidden-launch';
 
 let mainWindow = null;
 let tray = null;
+let settings = appSettings.DEFAULTS;
 app.isQuitting = false;
+
+function wasLaunchedHidden() {
+  if (process.argv.includes(HIDDEN_LAUNCH_ARG)) return true;
+  // macOS ne passe pas l'argument (Login Items relance l'app normalement) ;
+  // Electron expose directement l'information dans ce cas.
+  try { return !!app.getLoginItemSettings().wasOpenedAsHidden; } catch (e) { return false; }
+}
 
 function isAllowedUrl(urlStr) {
   try {
@@ -45,7 +59,11 @@ function createMainWindow() {
   if (saved.isMaximized) mainWindow.maximize();
   windowState.track(app, mainWindow);
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  // "Démarrer minimisé" ne s'applique qu'à un lancement automatique au
+  // démarrage de session — un double-clic manuel sur l'icône doit toujours
+  // ouvrir la fenêtre, sinon l'appli semblerait ne pas se lancer du tout.
+  const startHidden = settings.startMinimized && wasLaunchedHidden();
+  if (!startHidden) mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.loadURL(APP_URL);
 
   // Liens/images ouverts avec window.open() : s'ils pointent vers xultra.space
@@ -76,14 +94,27 @@ function createMainWindow() {
     }
   });
 
-  // Comme Discord : fermer la fenêtre la réduit dans la zone de notification
-  // au lieu de quitter l'appli, sauf si l'utilisateur choisit vraiment "Quitter".
+  // Comme Discord par défaut : fermer la fenêtre la réduit dans la zone de
+  // notification au lieu de quitter l'appli — désactivable dans les
+  // paramètres XULTRA (§ Paramètres du système), sauf si l'utilisateur
+  // choisit vraiment "Quitter" depuis le menu ou l'icône de la zone de
+  // notification.
   mainWindow.on('close', (e) => {
-    if (!app.isQuitting && tray) {
+    if (!app.isQuitting && tray && settings.minimizeToTray) {
       e.preventDefault();
       mainWindow.hide();
     }
   });
+  // Sans ce reset, une réouverture depuis la zone de notification après une
+  // fermeture réelle (minimizeToTray désactivé) appellerait .show() sur une
+  // fenêtre déjà détruite.
+  mainWindow.on('closed', () => { mainWindow = null; });
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) { createMainWindow(); return; }
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 function createTray() {
@@ -93,11 +124,7 @@ function createTray() {
   const menu = Menu.buildFromTemplate([
     {
       label: 'Ouvrir XULTRA',
-      click: () => {
-        if (!mainWindow) return;
-        mainWindow.show();
-        mainWindow.focus();
-      },
+      click: showMainWindow,
     },
     { type: 'separator' },
     {
@@ -110,9 +137,8 @@ function createTray() {
   ]);
   tray.setContextMenu(menu);
   tray.on('click', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isVisible()) mainWindow.focus();
-    else mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) mainWindow.focus();
+    else showMainWindow();
   });
 }
 
@@ -170,12 +196,55 @@ if (!gotLock) {
   app.whenReady().then(() => {
     if (process.platform === 'win32') app.setAppUserModelId('space.xultra.desktop');
 
+    settings = appSettings.loadSettings(app);
+
     // Micro/caméra nécessaires pour les appels et le studio de snap ; on
     // n'autorise que xultra.space, tout le reste est refusé par défaut.
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
       const url = webContents.getURL();
       const allowed = ['media', 'notifications', 'clipboard-sanitized-write', 'fullscreen'];
       callback(isAllowedUrl(url) && allowed.includes(permission));
+    });
+
+    // Réglages "Paramètres du système" exposés à la page web via preload.js
+    // (window.xultraDesktop) — lus/écrits ici car app.setLoginItemSettings
+    // et le fichier de préférences ne sont accessibles que dans ce processus.
+    ipcMain.handle('xultra:get-os-settings', () => ({
+      openAtLogin: app.getLoginItemSettings().openAtLogin,
+      startMinimized: settings.startMinimized,
+      minimizeToTray: settings.minimizeToTray,
+    }));
+    ipcMain.handle('xultra:set-open-at-login', (e, value) => {
+      app.setLoginItemSettings({ openAtLogin: !!value, args: [HIDDEN_LAUNCH_ARG] });
+      return true;
+    });
+    ipcMain.handle('xultra:set-start-minimized', (e, value) => {
+      settings = { ...settings, startMinimized: !!value };
+      appSettings.saveSettings(app, settings);
+      return true;
+    });
+    ipcMain.handle('xultra:set-minimize-to-tray', (e, value) => {
+      settings = { ...settings, minimizeToTray: !!value };
+      appSettings.saveSettings(app, settings);
+      return true;
+    });
+    // Badge de messages non lus sur l'icône de l'appli : macOS et Linux (dock/
+    // launcher qui supporte l'API D-Bus LauncherEntry) ont un vrai compteur
+    // natif via app.setBadgeCount ; Windows n'a pas cet équivalent, il faut y
+    // superposer une petite icône ronde sur la barre des tâches à la place —
+    // d'où les pastilles pré-générées dans build/badges/.
+    ipcMain.handle('xultra:set-badge-count', (e, count) => {
+      const n = Math.max(0, Number(count) || 0);
+      if (process.platform === 'win32') {
+        if (!mainWindow || mainWindow.isDestroyed()) return true;
+        if (n === 0) { mainWindow.setOverlayIcon(null, ''); return true; }
+        const label = n > 9 ? '9plus' : String(n);
+        const img = nativeImage.createFromPath(path.join(BADGES_DIR, label + '.png'));
+        mainWindow.setOverlayIcon(img, n > 9 ? '9+ notifications non lues' : n + ' notification(s) non lue(s)');
+      } else {
+        app.setBadgeCount(n);
+      }
+      return true;
     });
 
     buildAppMenu();
@@ -189,10 +258,17 @@ if (!gotLock) {
   });
 
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      // La fenêtre reste accessible depuis la zone de notification tant que
-      // l'utilisateur n'a pas explicitement choisi "Quitter".
+    // "Minimiser dans la barre des tâches" désactivé : une fenêtre fermée
+    // est réellement fermée, donc quitter l'application comme n'importe
+    // quel logiciel de bureau classique, plutôt que de rester en tâche de
+    // fond sans fenêtre ni moyen évident de la rouvrir.
+    if (!settings.minimizeToTray) {
+      app.isQuitting = true;
+      app.quit();
+      return;
     }
+    // Sinon la fenêtre reste accessible depuis la zone de notification tant
+    // que l'utilisateur n'a pas explicitement choisi "Quitter".
   });
 
   app.on('before-quit', () => {
