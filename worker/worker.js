@@ -432,6 +432,11 @@ const DEFAULT_MAINT_MESSAGE = "Des améliorations de sécurité et de stabilité
 
 const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();});\n" +
   "self.addEventListener('activate',function(e){e.waitUntil(self.clients.claim());});\n" +
+  // Passthrough réseau explicite (jamais de cache/mode hors-ligne — hors
+  // scope) : certains contrôles d'installabilité PWA (Android/Chrome, la
+  // TWA) veulent qu'un fetch handler existe, même s'il ne fait rien de
+  // plus que laisser le navigateur gérer la requête normalement.
+  "self.addEventListener('fetch',function(e){});\n" +
   "self.addEventListener('push',function(event){\n" +
   "  var data={};\n" +
   "  try{data=event.data?event.data.json():{};}catch(e){}\n" +
@@ -888,6 +893,12 @@ const APP = `<!DOCTYPE html>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
 <title>XULTRA</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%237c3aed%22%2F%3E%3Cstop%20offset%3D%2250%25%22%20stop-color%3D%22%23a855f7%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ec4899%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2213%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M14%2014l20%2020M34%2014L14%2034%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2236%22%20cy%3D%2212%22%20r%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_apple_touch_icon/view?project=6a73b975002f14dc6b91"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="XULTRA"/>
 <script>
 (function(){
   var shown=false;
@@ -1057,6 +1068,8 @@ button{cursor:pointer;border:0;background:0}
 .desktop-dl-others a{color:var(--muted);text-decoration:none}
 .desktop-dl-others a:hover{color:#e9d5ff;text-decoration:underline}
 .desktop-dl-others .dl-sep{color:var(--line)}
+.ios-install-step{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;font-size:.85rem;line-height:1.4}
+.ios-install-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(124,58,237,.3);color:#e9d5ff;font-weight:800;font-size:.75rem;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:10px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
 .rp-banner{height:36px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
 .rp-banner-btn{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#f2ebff;font-size:.62rem;font-weight:700;backdrop-filter:blur(3px)}
@@ -3269,44 +3282,83 @@ function translateAuthError(msg){
 // "Latest", donc publier une nouvelle version du desktop (même nom de
 // fichier, contenu mis à jour) suffit à garder ces liens à jour — jamais
 // besoin de retoucher cette page.
-(function initDesktopDownload(){
+function openIosInstallSheet(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">🍎 Installer XULTRA sur iPhone/iPad</div>'
+    +'<div class="scr-sub" style="margin-bottom:6px">Apple n\\'autorise pas les applications installées en dehors de l\\'App Store — voici l\\'équivalent qui fonctionne vraiment, notifications comprises :</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">1</span> Ouvre <b>xultra.space</b> dans Safari</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">2</span> Appuie sur l\\'icône de partage en bas de l\\'écran</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">3</span> Choisis « Sur l\\'écran d\\'accueil »</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">4</span> Ouvre XULTRA depuis son icône — notifications et appels fonctionnent comme une vraie application</div>'
+    +'<button type="button" class="btn-main" id="ios-install-close" style="width:100%;margin-top:12px">Compris</button>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelector('#ios-install-close').onclick=close;
+}
+(function initAppDownload(){
   const btn=\$('desktop-dl-btn');if(!btn)return;
-  // Hébergés dans un bucket Appwrite Storage dédié (desktop_builds, lecture
-  // publique) plutôt qu'en release GitHub : cette session n'a pas d'outil
-  // pour créer une release avec des assets binaires, et les installeurs
-  // dépassent de toute façon la limite d'envoi de fichier à l'utilisateur.
-  // Chaque fichier a un ID FIXE (jamais de numéro de version dedans) —
-  // publier une nouvelle version du desktop consiste à re-uploader sous le
-  // même ID, donc ces liens n'auront plus jamais besoin d'être retouchés ici.
+  // Hébergés dans des buckets Appwrite Storage dédiés (lecture publique)
+  // plutôt qu'en release GitHub : cette session n'a pas d'outil pour créer
+  // une release avec des assets binaires, et les installeurs dépassent de
+  // toute façon la limite d'envoi de fichier à l'utilisateur. Chaque
+  // fichier a un ID FIXE (jamais de numéro de version dedans) — publier une
+  // nouvelle version consiste à re-uploader sous le même ID, donc ces liens
+  // n'auront plus jamais besoin d'être retouchés ici.
   const STORAGE_BASE='https://fra.cloud.appwrite.io/v1/storage/buckets/desktop_builds/files/';
   const STORAGE_PROJECT='6a73b975002f14dc6b91';
+  // iOS n'a pas de fichier à télécharger (Apple ne permet pas d'installer
+  // une app hors App Store) : dlUrl vaut null pour cette entrée, et le clic
+  // ouvre les instructions "Ajouter à l'écran d'accueil" à la place —
+  // notifications et appels fonctionnent quand même, via le PWA (§ manifest.webmanifest).
   const PLATFORMS=[
     {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
+    {key:'android',label:'Android',fileId:'xultra_dl_android_apk',icon:'🤖'},
     {key:'mac-arm',label:'Mac (Apple Silicon)',fileId:'xultra_dl_mac_arm64',icon:'🍎'},
     {key:'mac-intel',label:'Mac (Intel)',fileId:'xultra_dl_mac_x64',icon:'🍎'},
     {key:'linux-deb',label:'Linux (.deb)',fileId:'xultra_dl_linux_deb',icon:'🐧'},
-    {key:'linux-appimage',label:'Linux (AppImage)',fileId:'xultra_dl_linux_appimage',icon:'🐧'}
+    {key:'linux-appimage',label:'Linux (AppImage)',fileId:'xultra_dl_linux_appimage',icon:'🐧'},
+    {key:'ios',label:'iPhone/iPad',fileId:null,icon:'🍎'}
   ];
   function dlUrl(p){return STORAGE_BASE+p.fileId+'/download?project='+STORAGE_PROJECT;}
+  function triggerPlatform(p){
+    if(!p.fileId){openIosInstallSheet();return}
+    location.href=dlUrl(p);
+  }
   function detectPlatformKey(){
     const ua=navigator.userAgent||'',platform=navigator.platform||'';
+    if(/iPhone|iPad|iPod/i.test(ua)||(platform==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+    if(/Android/i.test(ua))return 'android';
     if(/Win/i.test(platform))return 'win';
     // Un navigateur n'expose pas de façon fiable si un Mac est Apple
     // Silicon ou Intel (Rosetta masque l'architecture réelle) — Apple
     // Silicon est le choix par défaut le plus probable sur un Mac récent,
     // l'autre lien reste juste en dessous pour qui en a besoin.
     if(/Mac/i.test(platform))return 'mac-arm';
-    if(/Linux/i.test(platform)&&!/Android/i.test(ua))return 'linux-deb';
+    if(/Linux/i.test(platform))return 'linux-deb';
     return 'win';
   }
   const primary=PLATFORMS.find(function(p){return p.key===detectPlatformKey();})||PLATFORMS[0];
-  \$('desktop-dl-os').textContent=primary.label;
-  btn.onclick=function(){location.href=dlUrl(primary);};
+  const btnIcon=primary.key==='android'?'🤖':(primary.key==='ios'?'🍎':'💻');
+  btn.textContent=btnIcon+' '+(primary.fileId?'Télécharger pour ':'Installer sur ');
+  const osSpan=document.createElement('span');osSpan.id='desktop-dl-os';osSpan.textContent=primary.label;
+  btn.appendChild(osSpan);
+  btn.onclick=function(){triggerPlatform(primary);};
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
     othersBox.innerHTML=PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
-      return '<a href="'+dlUrl(p)+'">'+p.icon+' '+p.label+'</a>';
+      return '<a href="#" data-dl-key="'+p.key+'">'+p.icon+' '+p.label+'</a>';
     }).join('<span class="dl-sep">·</span>');
+    othersBox.querySelectorAll('[data-dl-key]').forEach(function(a){
+      a.addEventListener('click',function(e){
+        e.preventDefault();
+        const p=PLATFORMS.find(function(x){return x.key===a.getAttribute('data-dl-key');});
+        if(p)triggerPlatform(p);
+      });
+    });
   }
 })();
 (function initShowcase(){
@@ -4470,6 +4522,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.88.0',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
+    body:'XULTRA s\\'installe maintenant comme une vraie application sur mobile. Sur Android : un fichier .apk à télécharger depuis le bouton 💻 devenu 📲 (à installer manuellement, hors Play Store — aucun compte Google Play n\\'a été ouvert), qui s\\'ouvre en plein écran sans barre d\\'adresse. Sur iPhone/iPad : Apple n\\'autorisant pas d\\'installation hors App Store, le même bouton ouvre les 3 étapes pour l\\'ajouter à l\\'écran d\\'accueil depuis Safari — aucun compte développeur Apple n\\'a été ouvert non plus. Dans les deux cas, les notifications (déjà en place sur le site) et les appels vidéo fonctionnent normalement, sans système séparé à maintenir.'},
   {version:'2.87.0',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
     body:'Un bouton 💻 sur l\\'écran de connexion propose désormais l\\'application de bureau XULTRA (Windows, Mac, Linux), avec ta plateforme détectée automatiquement et les autres versions juste en dessous.'},
   {version:'2.86.0',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
@@ -20966,6 +21020,46 @@ async function handle(request) {
   }
   if (path === "/sw.js") {
     return new Response(SW_JS, { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-cache", "Service-Worker-Allowed": "/" } });
+  }
+
+  // Manifeste PWA : icônes hébergées sur Appwrite Storage (lecture publique)
+  // plutôt qu'embarquées en base64 dans ce fichier, pour ne pas alourdir le
+  // Worker. display:"standalone" + icônes correctes suffisent à
+  // l'installabilité sur Android/desktop (Chrome) et donnent une belle icône
+  // à "Ajouter à l'écran d'accueil" sur iOS (Safari n'a pas de vraie notion
+  // d'installabilité, il utilise juste ce qu'il trouve).
+  if (path === "/manifest.webmanifest" || path === "/manifest.json") {
+    const iconBase = "https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/";
+    const iconProj = "?project=6a73b975002f14dc6b91";
+    const manifest = {
+      name: "XULTRA", short_name: "XULTRA",
+      description: "Messages, amis, serveurs et appels — chiffrés de bout en bout.",
+      start_url: "/", scope: "/", display: "standalone",
+      background_color: "#0d0814", theme_color: "#0d0814",
+      orientation: "portrait-primary",
+      icons: [
+        { src: iconBase + "xultra_icon_192/view" + iconProj, sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: iconBase + "xultra_icon_512/view" + iconProj, sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: iconBase + "xultra_icon_512_maskable/view" + iconProj, sizes: "512x512", type: "image/png", purpose: "maskable" }
+      ]
+    };
+    return new Response(JSON.stringify(manifest), { headers: { "Content-Type": "application/manifest+json; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
+  }
+
+  // Digital Asset Links : prouve à Android que le propriétaire de
+  // xultra.space a bien autorisé l'app Android (identifiée par son
+  // empreinte de certificat de signature) à s'ouvrir comme Trusted Web
+  // Activity SANS barre d'adresse Chrome — sans ce fichier, l'app
+  // s'ouvrirait quand même mais dans un onglet Chrome visible, moins
+  // "app native". Empreinte du certificat de signature de l'APK réellement
+  // publié (keystore généré pour cette app, jamais partagé ailleurs).
+  if (path === "/.well-known/assetlinks.json") {
+    const fingerprint = "64:56:42:73:58:66:97:1E:C7:18:0B:F6:92:DD:06:48:5A:A9:EF:EE:73:5E:5D:88:54:D5:AF:A5:98:DA:3F:E0";
+    const assetlinks = [{
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: { namespace: "android_app", package_name: "space.xultra.twa", sha256_cert_fingerprints: [fingerprint] }
+    }];
+    return new Response(JSON.stringify(assetlinks), { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=3600" } });
   }
 
   if (path === "/api/auth/login" && request.method === "POST") {
