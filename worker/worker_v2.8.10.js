@@ -1072,8 +1072,16 @@ button{cursor:pointer;border:0;background:0}
 .field select:focus,.field textarea:focus{border-color:#8b5cf6}
 .pm-btn-row{display:flex;gap:8px;align-items:stretch}
 .pm-btn-row .btn-main{flex:1}
-.btn-flag{width:44px;flex-shrink:0;border-radius:12px;background:rgba(239,68,68,.14);color:#fca5a5;font-size:1rem;transition:background .15s}
-.btn-flag:hover{background:rgba(239,68,68,.26)}
+/* Remonté par un utilisateur ("les boutons ne sont pas beaux, improvisé") :
+   les icônes utilitaires (copier le lien, bloquer, signaler) partageaient
+   le même style rouge alarmant que les vrais boutons dangereux, collées
+   sans distinction à la même hauteur que les CTA principaux — un rang
+   séparé, plus petit et neutre par défaut (le rouge n'apparaît qu'au survol
+   des actions qui le méritent vraiment) lit beaucoup plus proprement. */
+.pm-icon-row{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.pm-icon-btn{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:.92rem;display:grid;place-items:center;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease}
+.pm-icon-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16);color:#f2ebff;transform:translateY(-1px)}
+.pm-icon-btn.pm-icon-danger:hover{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.35);color:#fca5a5}
 .remember-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px;cursor:pointer;user-select:none}
 .remember-row input{flex-shrink:0;width:18px;height:18px;accent-color:#7c3aed;cursor:pointer}
 .remember-row span{color:#c4b5fd;font-size:.88rem;font-weight:600}
@@ -1693,7 +1701,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
 .pc-card{position:relative;transition:transform .1s ease;will-change:transform}
-.pc-banner{height:120px;position:relative;overflow:hidden}
+.pc-banner{height:172px;position:relative;overflow:hidden}
 .pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .pc-avwrap{display:flex;justify-content:center}
 .pc-av-frame{width:78px;height:78px;margin-top:-42px;position:relative;z-index:1;border-radius:50%}
@@ -1708,7 +1716,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-edit-banner-btn{top:8px;right:8px}
 .pc-edit-avatar-btn{right:-2px;bottom:-2px;width:24px;height:24px}
 .pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
-.pc-card.pc-centered .pc-banner{height:74px}
+.pc-card.pc-centered .pc-banner{height:112px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
 .pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before{
   content:'';position:absolute;inset:-5px;border-radius:50%;z-index:-1;
@@ -2706,9 +2714,11 @@ a.bug-att-item{display:block}
         <button type="button" class="btn-main hidden" id="pm-creator">🎬 Voir la chaîne</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
         <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
-        <button type="button" class="btn-flag" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil">🔗</button>
-        <button type="button" class="btn-flag" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
-        <button type="button" class="btn-flag" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
+      </div>
+      <div class="pm-icon-row">
+        <button type="button" class="pm-icon-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil">🔗</button>
+        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
+        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
       </div>
     </div>
   </div>
@@ -4776,6 +4786,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.93.0',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
+    body:'La bannière affichée en haut d\\'un profil est maintenant nettement plus grande. Les boutons d\\'action (copier le lien, bloquer, signaler) avaient un style improvisé — tous en rouge alarmant, collés à la même hauteur que les vrais boutons d\\'action (Ami, Message) : ils passent sur leur propre rangée, plus petits, neutres par défaut, la teinte rouge n\\'apparaissant plus qu\\'au survol des actions qui le justifient vraiment (bloquer, signaler).'},
   {version:'2.92.0',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
     body:'Une bonne chasse : le bouton "Activer les notifications" qui perdait son texte (ne gardait que l\\'icône) est corrigé — merci Yani Neco. L\\'édition de profil sur mobile ne pousse plus les options hors champ quand la bio est très longue — merci Yani Neco. Les demandes d\\'ami apparaissaient en double dans les notifications, l\\'une d\\'elles avec un bouton "Accepter" qui ne faisait jamais rien — merci NecoCrusader et 995mec, corrigé à la racine (et la notification d\\'une demande traitée disparaît enfin vraiment). Une photo de profil ajoutée uniquement via la galerie d\\'avatars n\\'apparaissait pas dans la barre utilisateur — merci hi. La bannière rouge "Script error." illisible en cas de bug est maintenant plus rarement déclenchée sans raison exploitable (les bibliothèques externes chargées par XULTRA remontent enfin leurs vraies erreurs) — merci ed_jo. Et un rebond de défilement qui pouvait faire "sortir du site" en mode d\\'affichage Compact est bloqué — merci warl0ck_l.'},
   {version:'2.91.0',date:'27 août 2026',time:'11:00',title:'Recadrage de bannière, stories à la une, et scan antivirus des applications',
