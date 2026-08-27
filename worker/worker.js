@@ -1177,6 +1177,13 @@ button{cursor:pointer;border:0;background:0}
 .rail-btn:hover,.rail-btn.on{border-radius:14px;background:#7c3aed}
 .rail-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;display:grid;place-items:center;border:2px solid #0a0610;line-height:1}
 .rail-badge.hidden{display:none}
+/* Simple pastille "nouveauté" (pas de compteur, juste oui/non) pour le
+   bouton Nouveautés/changelog — demandée explicitement pour inciter les
+   gens à cliquer dès qu'une entrée qu'ils n'ont pas encore vue existe. */
+.rail-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#ef4444;border:2px solid #0a0610}
+.rail-dot.hidden{display:none}
+.mobile-menu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle}
+.mobile-menu-dot.hidden{display:none}
 .list-col{width:var(--list-w);background:#130c1c;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
 .list-head{padding:16px 14px 10px}
 .list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
@@ -1779,6 +1786,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .pc-avwrap{display:flex;justify-content:center}
 .pc-av-frame{width:78px;height:78px;margin-top:-42px;position:relative;z-index:1;border-radius:50%}
+/* Bug remonté par Yani Neco : dans la fenêtre d'édition du profil, les
+   pastilles de choix de contour réutilisent .pc-av-frame uniquement pour son
+   effet de halo animé (::before), mais héritaient aussi de son margin-top
+   négatif pensé pour tirer un VRAI avatar sur sa bannière — la rangée entière
+   remontait par-dessus le titre de section juste au-dessus. */
+.pe-frame-swatch.pc-av-frame{margin-top:0}
 .pc-av{width:100%;height:100%;border-radius:50%;position:relative;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #15101f;overflow:hidden}
 .pc-av img.pc-av-img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:0;transition:opacity .5s ease}
 .pc-av img.pc-av-img.on{opacity:1}
@@ -2281,7 +2294,12 @@ a.bug-att-item{display:block}
 .tw-card.locked{opacity:.5;filter:grayscale(.6)}
 .tw-path .tw-card{margin-right:22px}
 .tw-path .tw-card:not(:last-child)::after{content:'';position:absolute;top:50%;left:100%;width:22px;height:3px;background:linear-gradient(90deg,var(--tw-accent,#7c3aed),rgba(255,255,255,.12));transform:translateY(-50%)}
-.tw-icon-ring{width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:1.55rem;background-size:220% 220%;animation:badgeShift 5s ease infinite;box-shadow:0 0 14px var(--tw-accent,#7c3aed)}
+/* Bug remonté par Yani Neco : sans position:relative ici, l'anneau tournant
+   ::after des badges "légendaires" (ex. badge-hunter5, voir plus haut) se
+   positionnait par rapport à .tw-card (150px) au lieu de ce cercle (56px) —
+   un immense ovale grandissant progressivement en tournant, au lieu d'un
+   petit anneau bien ajusté autour de l'icône. */
+.tw-icon-ring{position:relative;width:56px;height:56px;border-radius:50%;margin:0 auto 8px;display:grid;place-items:center;font-size:1.55rem;background-size:220% 220%;animation:badgeShift 5s ease infinite;box-shadow:0 0 14px var(--tw-accent,#7c3aed)}
 .tw-label{font-weight:900;font-size:.76rem;color:#f2ebff;margin-bottom:4px;letter-spacing:.01em}
 .tw-req{font-size:.68rem;color:var(--muted);line-height:1.4;margin-bottom:6px;min-height:2.6em}
 .tw-status{font-size:.66rem;font-weight:800;padding:3px 9px;border-radius:999px;display:inline-block}
@@ -2536,7 +2554,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn" id="nav-status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
     <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
   </nav>
@@ -2579,7 +2597,7 @@ a.bug-att-item{display:block}
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
         <button type="button" id="ub-status-mobile" class="mobile-only-menu-item">🖥️ État du système</button>
-        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item">📋 Nouveautés</button>
+        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item">📋 Nouveautés<span class="mobile-menu-dot hidden" id="ub-changelog-mobile-dot"></span></button>
         <button type="button" id="ub-suggestions-mobile" class="mobile-only-menu-item">💡 Boîte à idées</button>
         <button type="button" id="ub-team-mobile" class="mobile-only-menu-item">🏅 Équipe & Badges</button>
         <button type="button" id="ub-push">🔕 Activer les notifications</button>
@@ -4468,6 +4486,7 @@ async function enterApp(e2ePassword){
   try{subscribeFriendsWatcher();}catch(e){}
   try{subscribeNotifWatcher();await loadNotifications();updateNotifBadge();}catch(e){}
   try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+  try{startCallPolling();}catch(e){}
   try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
   startPresenceLoop();
@@ -4996,6 +5015,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.2.0',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
+    body:'Un très vieil appel jamais raccroché proprement (crash, fermeture du navigateur…) pouvait bloquer silencieusement tout nouvel appel pour toujours, expliquant "je ne reçois pas tes appels" — corrigé (la vérification anti-collision est maintenant limitée aux 2 dernières heures), avec un sondage de secours en plus de la connexion temps réel pour rattraper une notification d\\'appel manquée après une coupure réseau — merci "1e". Dans l\\'édition du profil, les pastilles de contour d\\'avatar remontaient par-dessus le titre de section au-dessus — merci Yani Neco. La recherche dans une conversation ne trouvait presque rien : les mots courts ("je", "tu"…) étaient silencieusement ignorés, et pour les conversations chiffrées de bout en bout, le texte cherché ne pouvait de toute façon jamais correspondre au texte chiffré stocké côté serveur — recherche déplacée côté client sur le texte déchiffré — merci "1e". Le bouton "Notifications activées" ne disait pas ce qui se passerait au clic — renommé en "Désactiver les notifications" — merci Yani Neco. Sur l\\'application de bureau, un échec d\\'activation des notifications ou de partage de position affiche maintenant un message clair expliquant la limitation de la plateforme, au lieu d\\'une erreur technique brute — merci "1e". Et l\\'anneau tournant du badge le plus prestigieux (LÉGENDE DU BUG) grandissait au lieu de rester un petit cercle bien ajusté à l\\'icône — merci Yani Neco.'},
   {version:'3.1.0',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
     body:'Icônes des boutons d\\'appel refaites en SVG (fini les emoji baveux). Les tuiles caméra ne sont plus écrasées dans une hauteur fixe : chaque flux garde un vrai format 16:9, quelle que soit sa source. Pendant l\\'établissement de la connexion, un état s\\'affiche en direct sous le minuteur ("Connexion RTC en cours…", "Reconnexion…"), comme sur Discord. Un message reste maintenant dans la conversation à la fin de chaque appel — heure, décroché ou non, durée. Et si deux personnes s\\'appellent au même moment, celle qui appelle en second voit directement "Cette personne vous appelle déjà" au lieu d\\'un appel fantôme.'},
   {version:'3.0.0',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
@@ -5283,10 +5304,25 @@ function renderChangelog(){
       +'</div></div>';
   }).join('');
 }
+// Pastille "nouveauté" sur le bouton Nouveautés (demandée explicitement) :
+// compare la version la plus récente du changelog à la dernière vue par CE
+// navigateur (localStorage, comme le reste des préférences d'affichage) —
+// aucune notion serveur nécessaire, le changelog est identique pour tout le
+// monde.
+function updateChangelogBadge(){
+  const latest=(CHANGELOG[0]&&CHANGELOG[0].version)||'';
+  let lastSeen='';try{lastSeen=localStorage.getItem('xultra_last_seen_changelog')||'';}catch(e){}
+  const isNew=!!latest&&latest!==lastSeen;
+  const dot=\$('nav-changelog-dot');if(dot)dot.classList.toggle('hidden',!isNew);
+  const mobileDot=\$('ub-changelog-mobile-dot');if(mobileDot)mobileDot.classList.toggle('hidden',!isNew);
+}
 function openChangelogPanel(){
   \$('modal-changelog').classList.remove('hidden');
   renderChangelog();
+  try{localStorage.setItem('xultra_last_seen_changelog',(CHANGELOG[0]&&CHANGELOG[0].version)||'');}catch(e){}
+  updateChangelogBadge();
 }
+try{updateChangelogBadge();}catch(e){}
 if(\$('nav-changelog'))\$('nav-changelog').addEventListener('click',openChangelogPanel);
 if(\$('cl-close'))\$('cl-close').addEventListener('click',function(){\$('modal-changelog').classList.add('hidden')});
 if(\$('modal-changelog'))\$('modal-changelog').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
@@ -8865,7 +8901,14 @@ function wireSnapPlaceholders(container){
   if(!container)return;
   container.querySelectorAll('[data-snap-view]').forEach(function(el){
     el.addEventListener('click',function(){
-      openSnapViewer(el.getAttribute('data-snap-view'),el.getAttribute('data-snap-url'),el.getAttribute('data-snap-type'),parseInt(el.getAttribute('data-snap-dur'),10)||0,el.getAttribute('data-snap-noshot')==='1');
+      const mid=el.getAttribute('data-snap-view'),url=el.getAttribute('data-snap-url');
+      xlog('snap_tap',{mid:mid,hasUrl:!!url});
+      try{
+        openSnapViewer(mid,url,el.getAttribute('data-snap-type'),parseInt(el.getAttribute('data-snap-dur'),10)||0,el.getAttribute('data-snap-noshot')==='1');
+      }catch(e){
+        xlog('snap_open_fail',{mid:mid,msg:(e&&e.message)||String(e)});
+        showToast('Impossible d\\'ouvrir l\\'Ephem.','error');
+      }
     });
   });
 }
@@ -8956,20 +8999,39 @@ function renderEncPlaceholder(m){
   return '<span class="enc-loading"><span class="enc-spin">🔒</span> Déchiffrement…</span>';
 }
 async function attemptDecryptMessage(m){
+  // Instrumentation ajoutée suite au bug remonté par Yani Neco ("Ephem ne
+  // s'ouvre pas (web)") : aucune trace exploitable n'existait pour ce chemin
+  // précis (déchiffrement d'un média Ephem), impossible à reproduire ni à
+  // confirmer sans repasser par un vrai navigateur avec les vraies clés E2E
+  // de comptes réels — ces événements permettront de localiser la cause
+  // exacte au prochain signalement au lieu de deviner à l'aveugle.
   let text=m.text||'',mediaUrl='',key=null;
-  try{key=await e2eResolveIncomingKey(m);}catch(e){key=null}
-  if(!key)return {ok:false};
+  try{key=await e2eResolveIncomingKey(m);}catch(e){xlog('e2e_key_resolve_fail',{mid:m.\$id,msg:(e&&e.message)||String(e)});key=null}
+  if(!key){xlog('e2e_decrypt_no_key',{mid:m.\$id,type:m.type,mediaMode:m.mediaMode});return {ok:false};}
   if(text){
-    try{text=await e2eDecryptTextWithKey(key,text);}catch(e){return {ok:false};}
+    try{text=await e2eDecryptTextWithKey(key,text);}catch(e){xlog('e2e_text_decrypt_fail',{mid:m.\$id,msg:(e&&e.message)||String(e)});return {ok:false};}
   }
   const srcUrl=safeUrl(m.mediaUrl);
   if(srcUrl){
     try{
       const blob=await e2eDecryptBlobWithKey(key,srcUrl,m.mime||'application/octet-stream');
       mediaUrl=URL.createObjectURL(blob);
-    }catch(e){return {ok:false};}
+    }catch(e){xlog('e2e_media_decrypt_fail',{mid:m.\$id,type:m.type,mediaMode:m.mediaMode,mime:m.mime,msg:(e&&e.message)||String(e)});return {ok:false};}
   }
   return {ok:true,text:text,mediaUrl:mediaUrl};
+}
+// Version allégée d'attemptDecryptMessage qui ne déchiffre QUE le texte,
+// jamais le média joint — utilisée par la recherche (runSearch) qui n'a
+// besoin que du texte en clair pour comparer, et n'a aucune raison de
+// télécharger/déchiffrer des images ou vidéos potentiellement lourdes
+// juste pour vérifier une correspondance de mots-clés.
+async function attemptDecryptMessageText(m){
+  if(!m.text)return '';
+  try{
+    const key=await e2eResolveIncomingKey(m);
+    if(!key)return '';
+    return await e2eDecryptTextWithKey(key,m.text);
+  }catch(e){return '';}
 }
 async function hydrateEncryptedMessages(){
   const forDm=activeDm;
@@ -9354,18 +9416,40 @@ async function openMessageSearch(kind){
       const queries=[];
       if(kind==='dm')queries.push(Appwrite.Query.equal('threadId',activeDm));
       else queries.push(Appwrite.Query.equal('channelId',activeChannel.\$id));
-      if(q)queries.push(Appwrite.Query.search('text',q));
       if(pinnedOnly)queries.push(Appwrite.Query.equal('pinned',true));
       const cutoff=searchPeriodCutoff(period);
       if(cutoff)queries.push(Appwrite.Query.greaterThanEqual('\$createdAt',cutoff));
       queries.push(Appwrite.Query.orderDesc('\$createdAt'));
-      queries.push(Appwrite.Query.limit(50));
+      // Filtrage texte fait CÔTÉ CLIENT plutôt que Query.search('text',q) —
+      // bug remonté par 1e ("je" ne trouvait rien alors que le message était
+      // bien là). Deux limites de la recherche plein texte d'Appwrite
+      // (MariaDB) en étaient la cause : les mots de moins de 3-4 lettres
+      // ("je", "tu", "ça"...) sont silencieusement ignorés par l'indexation,
+      // très pénalisant en français ; et pour une conversation chiffrée de
+      // bout en bout, le texte stocké côté serveur est chiffré — chercher un
+      // mot en clair dedans ne pouvait de toute façon jamais correspondre.
+      queries.push(Appwrite.Query.limit(q?300:50));
       const r=await db.listDocuments(DB,kind==='dm'?'dms_messages':'server_channel_messages',queries);
-      const list=r.documents||[];
+      let list=r.documents||[];
+      const plainByMid={};
+      if(q){
+        const needle=q.toLowerCase();
+        const matched=[];
+        for(const m of list){
+          let plain=m.text||'';
+          if(m.enc){plain=await attemptDecryptMessageText(m);}
+          if(plain&&plain.toLowerCase().indexOf(needle)>=0){plainByMid[m.\$id]=plain;matched.push(m);}
+          if(matched.length>=50)break;
+        }
+        list=matched;
+      }else{
+        list=list.slice(0,50);
+      }
       if(!list.length){resBox.textContent='Aucun résultat.';return}
       resBox.innerHTML=list.map(function(m){
         const author=esc(m.displayName||m.username||'Quelqu\\'un');
-        const text=esc(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':'')));
+        const plain=plainByMid[m.\$id];
+        const text=esc(plain||(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':''))));
         return '<div class="msg-reply-quote" data-search-scroll="'+esc(m.\$id)+'" style="margin-bottom:8px;cursor:pointer"><b>'+author+'</b><span class="rq-text" style="white-space:normal">'+text+'</span><span style="font-size:.62rem;color:var(--muted);display:block;margin-top:2px">'+esc(fmtRelTime(m.\$createdAt))+(m.pinned?' · 📌':'')+'</span></div>';
       }).join('');
       resBox.querySelectorAll('[data-search-scroll]').forEach(function(el){
@@ -10465,7 +10549,21 @@ function shareLocation(){
         await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:'',type:'location',text:JSON.stringify({lat:pos.coords.latitude,lng:pos.coords.longitude})});
       }
     }catch(e){xlog('location_send_fail',{msg:(e&&e.message)||String(e)});showToast('Impossible d\\'envoyer la position, réessaie.','error');}
-  },function(){alert('Impossible d\\'obtenir ta position.');},{enableHighAccuracy:false,timeout:8000});
+  },function(err){
+    xlog('geoloc_fail',{code:err&&err.code,msg:(err&&err.message)||String(err),desktop:!!(window.xultraDesktop&&window.xultraDesktop.isDesktop)});
+    // Bug remonté par 1e : sur l'application de bureau, la géolocalisation
+    // réseau de Chromium/Electron (sans GPS) échoue souvent faute de service
+    // de localisation système disponible (POSITION_UNAVAILABLE) — limitation
+    // de la plateforme, pas un bug XULTRA. Message clair plutôt qu'un
+    // "impossible" générique qui laisse croire à un problème XULTRA.
+    if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&err&&err.code===2){
+      alert('La localisation n\\'est pas disponible sur cette installation de l\\'application de bureau (aucun service de localisation système détecté). Utilise la version web dans ton navigateur pour partager ta position.');
+    }else if(err&&err.code===1){
+      alert('Localisation refusée. Autorise l\\'accès à la position dans les réglages pour partager ta position.');
+    }else{
+      alert('Impossible d\\'obtenir ta position.');
+    }
+  },{enableHighAccuracy:false,timeout:8000});
 }
 
 /* ===== Stories (photo/vidéo éphémères, façon Instagram) ===== */
@@ -12068,7 +12166,11 @@ async function refreshPushButtonState(){
   // perdait le libellé "Activer les notifications" du bouton statique
   // (textContent écrasait tout, pas seulement l'emoji), laissant une ligne
   // de menu avec juste une cloche et aucun texte.
-  btn.title=subscribed?'Notifications activées':'Activer les notifications';
+  // Suggestion (également Yani Neco) : "Notifications activées" décrit
+  // l'état actuel mais ne dit pas ce qui se passe au clic — comme pour
+  // Bloquer/Débloquer ailleurs dans l'appli, le libellé décrit maintenant
+  // l'action réalisée en cliquant, pas l'état courant.
+  btn.title=subscribed?'Désactiver les notifications':'Activer les notifications';
   btn.textContent=(subscribed?'🔔':'🔕')+' '+btn.title;
 }
 async function enablePushNotifications(){
@@ -12086,7 +12188,20 @@ async function enablePushNotifications(){
     if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:appKey});
     await authPost('/api/push/subscribe',{subscription:sub.toJSON()});
     xlog('push_subscribed',{});
-  }catch(e){xlog('push_subscribe_fail',{msg:(e&&e.message)||String(e)});alert('Impossible d\\'activer les notifications : '+((e&&e.message)||e));}
+  }catch(e){
+    xlog('push_subscribe_fail',{msg:(e&&e.message)||String(e),desktop:!!(window.xultraDesktop&&window.xultraDesktop.isDesktop)});
+    const msg=(e&&e.message)||String(e);
+    // Bug remonté par 1e : sur l'application de bureau, Chromium/Electron
+    // n'a pas toujours de service de push système configuré (limitation de
+    // la plateforme, pas un bug XULTRA) — l'erreur brute "push service not
+    // available" ne veut rien dire pour quelqu'un qui clique juste sur
+    // Activer les notifications. Message clair plutôt qu'un jargon technique.
+    if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&/push service/i.test(msg)){
+      alert('Les notifications push ne sont pas disponibles sur cette installation de l\\'application de bureau (limitation du système). Garde XULTRA ouvert en arrière-plan pour continuer à recevoir tes messages et appels — ou utilise la version web dans ton navigateur, où les notifications fonctionnent normalement.');
+    }else{
+      alert('Impossible d\\'activer les notifications : '+msg);
+    }
+  }
   await refreshPushButtonState();
 }
 async function disablePushNotifications(){
@@ -13360,12 +13475,30 @@ function subscribeIncomingCalls(){
 async function checkPendingIncomingCall(){
   if(!me||activeCallDoc||incomingCallDoc)return;
   try{
-    const r=await db.listDocuments(DB,'direct_calls',[Appwrite.Query.limit(20)]);
-    const docs=(r.documents||[]).filter(function(d){return String(d.calleeId)===String(me.\$id)&&d.status==='ringing'});
+    const r=await db.listDocuments(DB,'direct_calls',[
+      Appwrite.Query.equal('calleeId',me.\$id),
+      Appwrite.Query.equal('status','ringing'),
+      Appwrite.Query.orderDesc('\$createdAt'),
+      Appwrite.Query.limit(5)
+    ]);
+    const docs=r.documents||[];
     if(!docs.length)return;
-    docs.sort(function(a,b){return new Date(b.\$createdAt)-new Date(a.\$createdAt)});
     showIncomingCall(docs[0]);
   }catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+}
+// Filet de sécurité (bug remonté par 1e : "quand quelqu'un m'appelle je ne
+// reçois pas l'appel") : la souscription temps réel (subscribeIncomingCalls)
+// est le chemin normal, mais un WebSocket peut se couper silencieusement
+// (veille de l'appareil, coupure réseau, redémarrage edge...) sans que rien
+// ne le signale côté client — l'utilisateur reste "connecté" à l'écran mais
+// ne reçoit plus jamais aucun événement temps réel tant qu'il ne recharge
+// pas la page. Un sondage périodique complète la souscription plutôt que de
+// s'y substituer : coût négligeable (une requête filtrée, docs vides la
+// quasi-totalité du temps), et rattrape exactement ce cas de figure.
+let callPollIntervalId=null;
+function startCallPolling(){
+  if(callPollIntervalId)return;
+  callPollIntervalId=setInterval(function(){checkPendingIncomingCall();},25000);
 }
 
 let ringSubtitleTimeoutId=null;
@@ -18237,8 +18370,16 @@ async function handle(request) {
       // en cours impliquant l'une des deux personnes. Le cas le plus important
       // est "l'autre personne est justement déjà en train de m'appeler" — un
       // message clair plutôt qu'un double appel silencieux et confus.
+      // IMPORTANT : borné dans le temps (2h). Un appel abandonné (navigateur
+      // fermé, crash...) sans jamais repasser par endCall reste indéfiniment
+      // "ringing"/"accepted" en base — sans cette limite, un TRÈS vieux doc
+      // orphelin bloquait silencieusement absolument tout nouvel appel
+      // impliquant l'un des deux comptes concernés, pour toujours (bug
+      // remonté par 1e : "quand quelqu'un m'appelle je ne reçois pas l'appel").
+      const recentCutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const pendingQ = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["ringing", "accepted"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "$createdAt", values: [recentCutoff] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
       const pending = pendingQ.documents || [];
       const reverseCall = pending.find(function (d) { return String(d.callerId) === calleeId && String(d.calleeId) === acc.$id; });
