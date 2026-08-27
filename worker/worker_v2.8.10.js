@@ -1839,7 +1839,8 @@ a.bug-att-item{display:block}
 .chan-voice-stage{display:flex;flex-direction:column;height:calc(100dvh - 220px);min-height:320px}
 .chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:4px;overflow-y:auto;align-content:start}
 .cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease}
-.cvs-tile.speaking{border-color:#22c55e}
+@keyframes voiceSpeakGlow{0%,100%{box-shadow:0 0 0 2px rgba(57,255,20,.55),0 0 10px 3px rgba(57,255,20,.45)}50%{box-shadow:0 0 0 3px rgba(57,255,20,.95),0 0 18px 6px rgba(57,255,20,.85)}}
+.cvs-tile.speaking{border-color:#39ff14;animation:voiceSpeakGlow 1.1s ease-in-out infinite}
 .cvs-tile-video-wrap{position:absolute;inset:0}
 .cvs-tile-video-wrap.hidden{display:none}
 .cvs-tile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.3rem;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -1900,6 +1901,8 @@ a.bug-att-item{display:block}
 .srv-voice-member-av img{width:100%;height:100%;object-fit:cover}
 .srv-voice-member-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-voice-member-cam{flex-shrink:0;font-size:.72rem;opacity:.85}
+.srv-voice-member.speaking .srv-voice-member-av{animation:voiceSpeakGlow 1.1s ease-in-out infinite}
+.srv-voice-member.speaking .srv-voice-member-name{color:#39ff14}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
@@ -2919,7 +2922,6 @@ a.bug-att-item{display:block}
   <div class="gcb-participants" id="gcb-participants"></div>
   <div class="cb-controls">
     <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
-    <button type="button" class="cb-ctl hidden" id="gcb-camera" title="Caméra"><span class="cb-ico">📹</span></button>
     <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
   </div>
 </div>
@@ -4410,6 +4412,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.86.0',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
+    body:'Un salon vocal de serveur n\\'ouvre plus la petite barre d\\'appel flottante : à la place, la liste des salons affiche un anneau vert fluo animé autour de l\\'avatar de qui est en train de parler, en direct. Pour accéder aux boutons micro/caméra/quitter, il suffit d\\'ouvrir le salon (comme avant) — c\\'est désormais leur seul et unique emplacement.'},
   {version:'2.85.2',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
     body:'Cliquer sur un salon vocal dans la liste le rejoint directement — plus besoin d\\'un second clic sur "Rejoindre". Et une petite icône 📹 apparaît maintenant à côté du pseudo de chaque membre connecté qui a sa caméra active, visible même sans être soi-même dans l\\'appel.'},
   {version:'2.85.1',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
@@ -12838,10 +12842,11 @@ function drawParticipantWave(canvas,level){
 }
 function startGroupWaveformLoop(){
   if(groupWaveRaf)return;
+  let lastSpeakingSent=null,lastSpeakingSentAt=0;
   function draw(){
+    if(!groupRoom){groupWaveRaf=null;return}
     const bar=\$('group-call-bar');
-    if(!groupRoom||!bar||bar.classList.contains('hidden')){groupWaveRaf=null;return}
-    const box=\$('gcb-participants');
+    const box=(bar&&!bar.classList.contains('hidden'))?\$('gcb-participants'):null;
     if(box){
       box.querySelectorAll('.gcb-p').forEach(function(tile){
         const uid=tile.getAttribute('data-uid');
@@ -12878,6 +12883,20 @@ function startGroupWaveformLoop(){
         const muteEl=tile.querySelector('[data-cvs-mute]');
         if(muteEl)muteEl.classList.toggle('hidden',!muted);
       });
+    }
+    // Répercute MON état "en train de parler" sur mon document de présence
+    // (débit limité à 2/s max) — c'est ce qui permet à la liste des salons
+    // de montrer l'anneau vert fluo même chez quelqu'un qui n'est pas
+    // connecté à ce salon lui-même (il n'a pas accès aux niveaux audio
+    // LiveKit, seulement à ce que je publie dans Appwrite).
+    if(groupCallContextType==='channel'&&groupPresenceDocId){
+      const myLevel=groupRoom.localParticipant.audioLevel||0;
+      const nowSpeaking=myLevel>0.045;
+      const now=Date.now();
+      if(nowSpeaking!==lastSpeakingSent&&(now-lastSpeakingSentAt)>500){
+        lastSpeakingSent=nowSpeaking;lastSpeakingSentAt=now;
+        db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{speaking:nowSpeaking}).catch(function(){});
+      }
     }
     groupWaveRaf=requestAnimationFrame(draw);
   }
@@ -12956,15 +12975,22 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       startGroupHeartbeat();
       loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
     }
-    \$('group-call-bar').classList.remove('hidden');
-    \$('gcb-group-name').textContent=groupCallGroupName;
-    \$('gcb-mute').classList.remove('on');
-    // Caméra proposée uniquement pour les salons vocaux de serveur — pas les
-    // appels de groupe en DM (portée volontairement plus réduite pour cette
-    // première version, cf. discussion sur le screen 2).
-    \$('gcb-camera').classList.toggle('hidden',contextType!=='channel');
-    \$('gcb-camera').classList.remove('on');
-    renderGroupParticipants();
+    // La petite barre flottante ne sert plus que pour les appels de groupe
+    // en DM : un salon vocal de serveur n'a pas de widget persistant — ses
+    // seuls contrôles (micro/caméra/quitter) vivent dans la vue plein écran
+    // du salon (ouverte en cliquant dessus), et qui parle s'affiche
+    // directement dans la liste des salons (cf. serverChannelRowHtml).
+    if(contextType!=='channel'){
+      \$('group-call-bar').classList.remove('hidden');
+      \$('gcb-group-name').textContent=groupCallGroupName;
+      \$('gcb-mute').classList.remove('on');
+      renderGroupParticipants();
+    }else{
+      // Sans barre flottante pour lancer la boucle, on la démarre nous-même
+      // ici — sinon mon état "en train de parler" ne serait jamais poussé
+      // vers ma présence tant que je n'ouvre pas moi-même la vue du salon.
+      startGroupWaveformLoop();
+    }
     xlog('group_call_joined',{contextType:contextType,contextId:contextId});
     if(contextType==='channel'&&activeChannel&&activeChannel.\$id===contextId)renderServerChannelContent();
   }catch(e){
@@ -13068,10 +13094,6 @@ function updateStageControlsUi(){
     camBtn.classList.toggle('on',camOn);
     camBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
-  // Garde la caméra de la petite barre flottante synchronisée avec celle de
-  // la vue plein écran — deux boutons, un seul état de vérité (groupRoom).
-  const gcbCam=\$('gcb-camera');
-  if(gcbCam)gcbCam.classList.toggle('on',camOn);
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -13146,10 +13168,6 @@ if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
   await groupRoom.localParticipant.setMicrophoneEnabled(!enabledNow);
   \$('gcb-mute').classList.toggle('on',enabledNow);
   updateStageControlsUi();
-});
-if(\$('gcb-camera'))\$('gcb-camera').addEventListener('click',async function(){
-  await toggleStageCamera();
-  \$('gcb-camera').classList.toggle('on',!!(groupRoom&&groupRoom.localParticipant.isCameraEnabled));
 });
 if(\$('gcb-leave'))\$('gcb-leave').addEventListener('click',leaveGroupCall);
 window.addEventListener('pagehide',function(){
@@ -13559,7 +13577,7 @@ function serverChannelRowHtml(c,canManageChannels){
       const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(p.uid);});
       const name=p.username||(prof&&(prof.displayName||prof.username))||'Membre';
       const av=prof&&safeUrl(prof.avatar);
-      return '<div class="srv-voice-member" data-srv-voice-member="'+esc(p.uid)+'">'
+      return '<div class="srv-voice-member'+(p.speaking?' speaking':'')+'" data-srv-voice-member="'+esc(p.uid)+'">'
         +'<span class="srv-voice-member-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</span>'
         +'<span class="srv-voice-member-name">'+esc(name)+'</span>'
         +(p.cameraOn?'<span class="srv-voice-member-cam" title="Caméra active">📹</span>':'')
@@ -13593,6 +13611,26 @@ function subscribeServerVoicePresence(){
   serverVoicePresenceUnsub=client.subscribe('databases.'+DB+'.collections.server_voice_presence.documents',function(res){
     const payload=res.payload;
     if(!payload||String(payload.serverId)!==String(forServer)||!payload.channelId)return;
+    // "Qui parle" peut changer plusieurs fois par seconde pendant une
+    // conversation active — reconstruire toute la liste des salons à
+    // chaque fois ferait clignoter l'interface et perdre le focus d'un
+    // champ ouvert. Sur une simple mise à jour d'une présence déjà connue,
+    // on bascule juste les classes/icônes concernées sur la ligne existante.
+    if(eventIs(res.events,'.update')){
+      const cached=(serverVoicePresenceCache[payload.channelId]||[]).find(function(p){return String(p.uid)===String(payload.uid);});
+      if(cached){
+        cached.speaking=payload.speaking;cached.cameraOn=payload.cameraOn;
+        const row=document.querySelector('[data-srv-voice-member="'+payload.uid+'"]');
+        if(row){
+          row.classList.toggle('speaking',!!payload.speaking);
+          const camEl=row.querySelector('.srv-voice-member-cam');
+          if(payload.cameraOn&&!camEl)row.insertAdjacentHTML('beforeend','<span class="srv-voice-member-cam" title="Caméra active">📹</span>');
+          else if(!payload.cameraOn&&camEl)camEl.remove();
+        }
+        refreshChannelVoiceStageIfVisible();
+        return;
+      }
+    }
     loadServerVoicePresence().then(function(){
       if(activeServer&&String(activeServer.\$id)===String(forServer)&&!activeChannel)renderServerChannelList();
       refreshChannelVoiceStageIfVisible();
@@ -19550,7 +19588,7 @@ async function handle(request) {
       // session LiveKit où la caméra n'est jamais activée automatiquement,
       // même si un ancien document trainait avec cameraOn:true suite à une
       // déconnexion brutale (crash, batterie) sans passage par cleanupGroupCall().
-      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname, cameraOn: false };
+      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname, cameraOn: false, speaking: false };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: fullPerms } });
       } catch (e) {
