@@ -4,8 +4,16 @@
   "description": "Application de bureau XULTRA — enveloppe native pour xultra.space",
   "main": "src/main.js",
   "private": true,
-  "author": "XULTRA",
+  "author": {
+    "name": "XULTRA",
+    "email": "contact@xultra.space"
+  },
+  "homepage": "https://xultra.space",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Baki345/ressources.xultra.space.git"
+  },
   "scripts": {
     "start": "electron .",
     "dist:win": "electron-builder --win",
@@ -40,7 +48,8 @@
     "linux": {
       "icon": "build/icon.png",
       "category": "Network;Chat;",
-      "target": ["AppImage", "deb"]
+      "target": ["AppImage", "deb"],
+      "maintainer": "contact@xultra.space"
     },
     "nsis": {
       "oneClick": false,

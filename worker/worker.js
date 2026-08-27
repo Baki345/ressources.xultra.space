@@ -1050,6 +1050,13 @@ button{cursor:pointer;border:0;background:0}
 .btn-main:disabled{opacity:.6;cursor:wait}
 .err{min-height:1.2em;color:#fca5a5;font-size:.85rem;margin-top:10px;text-align:center}
 .hint{text-align:center;color:#9a8fb0;font-size:.7rem;margin-top:8px}
+.desktop-dl{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);text-align:center}
+.desktop-dl-btn{width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.14);color:#e9d5ff;font-weight:700;font-size:.85rem;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.desktop-dl-btn:hover{background:rgba(124,58,237,.24);border-color:rgba(167,139,250,.55)}
+.desktop-dl-others{margin-top:8px;font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.desktop-dl-others a{color:var(--muted);text-decoration:none}
+.desktop-dl-others a:hover{color:#e9d5ff;text-decoration:underline}
+.desktop-dl-others .dl-sep{color:var(--line)}
 .reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:10px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
 .rp-banner{height:36px;background:linear-gradient(135deg,rgba(124,58,237,.4),rgba(76,29,149,.55));background-size:cover;background-position:center;cursor:pointer;display:flex;align-items:flex-start;justify-content:flex-end;padding:6px;position:relative}
 .rp-banner-btn{padding:3px 9px;border-radius:999px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);color:#f2ebff;font-size:.62rem;font-weight:700;backdrop-filter:blur(3px)}
@@ -2300,6 +2307,10 @@ a.bug-att-item{display:block}
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
+    <div class="desktop-dl" id="desktop-dl">
+      <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
+      <div class="desktop-dl-others" id="desktop-dl-others"></div>
+    </div>
   </div>
   <div class="showcase" id="showcase">
     <div class="showcase-track" id="showcase-track">
@@ -3249,6 +3260,44 @@ function translateAuthError(msg){
     s.style.animationDelay=(Math.random()*4.5)+'s';
     s.style.animationDuration=(3.5+Math.random()*2.5)+'s';
     wrap.appendChild(s);
+  }
+})();
+// Application de bureau (Electron) — installeurs publiés en tant qu'assets
+// de la dernière release GitHub du dépôt, sous des noms de fichiers FIXES
+// (jamais de numéro de version dedans) : .../releases/latest/download/<nom>
+// redirige toujours vers l'asset portant ce nom sur la release marquée
+// "Latest", donc publier une nouvelle version du desktop (même nom de
+// fichier, contenu mis à jour) suffit à garder ces liens à jour — jamais
+// besoin de retoucher cette page.
+(function initDesktopDownload(){
+  const btn=\$('desktop-dl-btn');if(!btn)return;
+  const RELEASE_BASE='https://github.com/Baki345/ressources.xultra.space/releases/latest/download/';
+  const PLATFORMS=[
+    {key:'win',label:'Windows',file:'XULTRA-Setup.exe',icon:'🪟'},
+    {key:'mac-arm',label:'Mac (Apple Silicon)',file:'XULTRA-mac-arm64.zip',icon:'🍎'},
+    {key:'mac-intel',label:'Mac (Intel)',file:'XULTRA-mac-x64.zip',icon:'🍎'},
+    {key:'linux-deb',label:'Linux (.deb)',file:'XULTRA.deb',icon:'🐧'},
+    {key:'linux-appimage',label:'Linux (AppImage)',file:'XULTRA.AppImage',icon:'🐧'}
+  ];
+  function detectPlatformKey(){
+    const ua=navigator.userAgent||'',platform=navigator.platform||'';
+    if(/Win/i.test(platform))return 'win';
+    // Un navigateur n'expose pas de façon fiable si un Mac est Apple
+    // Silicon ou Intel (Rosetta masque l'architecture réelle) — Apple
+    // Silicon est le choix par défaut le plus probable sur un Mac récent,
+    // l'autre lien reste juste en dessous pour qui en a besoin.
+    if(/Mac/i.test(platform))return 'mac-arm';
+    if(/Linux/i.test(platform)&&!/Android/i.test(ua))return 'linux-deb';
+    return 'win';
+  }
+  const primary=PLATFORMS.find(function(p){return p.key===detectPlatformKey();})||PLATFORMS[0];
+  \$('desktop-dl-os').textContent=primary.label;
+  btn.onclick=function(){location.href=RELEASE_BASE+primary.file;};
+  const othersBox=\$('desktop-dl-others');
+  if(othersBox){
+    othersBox.innerHTML=PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
+      return '<a href="'+RELEASE_BASE+p.file+'">'+p.icon+' '+p.label+'</a>';
+    }).join('<span class="dl-sep">·</span>');
   }
 })();
 (function initShowcase(){
@@ -4412,6 +4461,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.87.0',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
+    body:'Un bouton 💻 sur l\\'écran de connexion propose désormais l\\'application de bureau XULTRA (Windows, Mac, Linux), avec ta plateforme détectée automatiquement et les autres versions juste en dessous.'},
   {version:'2.86.0',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
     body:'Un salon vocal de serveur n\\'ouvre plus la petite barre d\\'appel flottante : à la place, la liste des salons affiche un anneau vert fluo animé autour de l\\'avatar de qui est en train de parler, en direct. Pour accéder aux boutons micro/caméra/quitter, il suffit d\\'ouvrir le salon (comme avant) — c\\'est désormais leur seul et unique emplacement.'},
   {version:'2.85.2',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
