@@ -1561,6 +1561,28 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .action-sheet-overlay.show .action-sheet-card{transform:translateY(0)}
 .action-sheet-card button{text-align:left;padding:13px 14px;border-radius:10px;font-size:.85rem;font-weight:700;color:#f2ebff;background:transparent}
 .action-sheet-card button:hover{background:rgba(255,255,255,.06)}
+
+/* Visite guidée pour les nouveaux comptes : chaque étape découpe un "trou"
+   lumineux dans un fond assombri (box-shadow géant plutôt qu'un vrai
+   masque — la technique la plus simple et la plus robuste pour un rendu
+   qui s'adapte à n'importe quelle forme de bouton) et pointe une bulle
+   d'explication vers le bouton concerné. */
+.tut-overlay{position:fixed;inset:0;z-index:9000}
+.tut-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,2,10,.8);transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;pointer-events:none}
+.tut-card{position:fixed;background:linear-gradient(165deg,#1c1233,#100819);border:1px solid rgba(167,139,250,.4);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55);transition:top .25s ease,left .25s ease;animation:tutPop .18s ease}
+@keyframes tutPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.tut-arrow{position:absolute;width:14px;height:14px;background:#1c1233;border:1px solid rgba(167,139,250,.4);transform:rotate(45deg);border-radius:3px}
+.tut-step-label{font-size:.64rem;font-weight:800;letter-spacing:.07em;color:#a78bfa;text-transform:uppercase;margin-bottom:6px}
+.tut-title{font-size:.95rem;font-weight:800;margin-bottom:5px;color:#f2ebff}
+.tut-text{font-size:.82rem;color:var(--muted);line-height:1.45;margin-bottom:14px}
+.tut-actions{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tut-skip{font-size:.74rem;color:var(--muted);text-decoration:underline;flex-shrink:0}
+.tut-skip:hover{color:#f2ebff}
+.tut-dots{display:flex;gap:4px;flex:1;justify-content:center}
+.tut-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.18);transition:width .15s ease,background .15s ease}
+.tut-dot.on{background:#a78bfa;width:14px;border-radius:3px}
+.tut-next{padding:8px 16px;border-radius:999px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;font-weight:800;font-size:.78rem;flex-shrink:0;white-space:nowrap}
+.tut-next:hover{box-shadow:0 6px 18px rgba(124,58,237,.4)}
 .action-sheet-card button[data-act="delall"]{color:#fca5a5}
 .action-sheet-card button.as-cancel{margin-top:4px;text-align:center;color:var(--muted);border-top:1px solid rgba(255,255,255,.08);padding-top:12px;border-radius:0}
 .vm-play{width:30px;height:30px;border-radius:50%;background:rgba(167,139,250,.25);color:#c4b5fd;font-size:.75rem;flex-shrink:0;display:grid;place-items:center}
@@ -4191,6 +4213,129 @@ function invalidateE2EPeerCache(peerUid){
   delete threadKeyCache[peerUid];
 }
 
+// Visite guidée pour les nouveaux comptes : chaque étape cible un ou deux
+// sélecteurs candidats (le rail desktop ".rail" et la barre du bas mobile
+// ".tabbar" affichent les mêmes actions sous deux DOM différents, un seul
+// visible à la fois selon la largeur d'écran) — tutResolveTarget() choisit
+// celui réellement affiché au moment présent, et une étape sans cible
+// visible (ex. "Boîte à idées" sur mobile, rangée dans le menu ⋯ fermé) est
+// silencieusement sautée plutôt que de pointer vers du vide.
+const TUTORIAL_STEPS=[
+  {desktopSel:'#nav-dms',mobileSel:'.tabbar [data-view="dms"]',placement:'right',icon:'💬',title:'Messages',text:'Tes conversations privées et de groupe — c\\'est l\\'écran d\\'accueil.'},
+  {desktopSel:'#nav-friends',mobileSel:'.tabbar [data-view="friends"]',placement:'right',icon:'👥',title:'Amis',text:'Envoie des demandes d\\'ami et gère celles que tu reçois.'},
+  {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'Serveurs',text:'Rejoins ou crée des communautés avec salons textuels et vocaux.'},
+  {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
+  {desktopSel:'#nav-casino',mobileSel:'#nav-casino-mobile',placement:'right',icon:'🎰',title:'Casino',text:'Des mini-jeux et des duels amicaux avec tes amis.'},
+  {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
+  {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
+  {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
+  {desktopSel:'#ub-more',mobileSel:'#ub-more',placement:'top',icon:'⚙️',title:'Plus d\\'options',text:'Paramètres, signaler un bug, et le reste du menu ici.'}
+];
+let tutState=null;
+function tutResolveTarget(step){
+  const candidates=[step.desktopSel,step.mobileSel].filter(Boolean);
+  for(const sel of candidates){
+    try{
+      const el=document.querySelector(sel);
+      if(el){
+        const r=el.getBoundingClientRect();
+        if(r.width>0&&r.height>0)return el;
+      }
+    }catch(e){}
+  }
+  return null;
+}
+function buildTutorialDom(){
+  if(\$('tut-overlay'))return;
+  const overlay=document.createElement('div');
+  overlay.id='tut-overlay';overlay.className='tut-overlay';
+  overlay.innerHTML='<div class="tut-spot" id="tut-spot"></div>'
+    +'<div class="tut-card" id="tut-card">'
+      +'<div class="tut-arrow" id="tut-arrow"></div>'
+      +'<div class="tut-step-label" id="tut-step-label"></div>'
+      +'<div class="tut-title" id="tut-title"></div>'
+      +'<div class="tut-text" id="tut-text"></div>'
+      +'<div class="tut-actions"><button type="button" class="tut-skip" id="tut-skip">Passer</button><div class="tut-dots" id="tut-dots"></div><button type="button" class="tut-next" id="tut-next">Suivant</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  \$('tut-skip').onclick=function(){endTutorial();};
+  \$('tut-next').onclick=function(){tutNextStep();};
+  window.addEventListener('resize',function(){if(tutState)positionTutorialStep();});
+}
+function startTutorial(){
+  buildTutorialDom();
+  tutState={index:-1};
+  showTutorialStep(0);
+}
+function showTutorialStep(i){
+  while(i<TUTORIAL_STEPS.length&&!tutResolveTarget(TUTORIAL_STEPS[i]))i++;
+  if(!tutState||i>=TUTORIAL_STEPS.length){endTutorial();return}
+  tutState.index=i;
+  const step=TUTORIAL_STEPS[i];
+  \$('tut-step-label').textContent='Étape '+(i+1)+' / '+TUTORIAL_STEPS.length;
+  \$('tut-title').textContent=step.icon+' '+step.title;
+  \$('tut-text').textContent=step.text;
+  \$('tut-next').textContent=(i===TUTORIAL_STEPS.length-1)?'Terminer':'Suivant';
+  \$('tut-dots').innerHTML=TUTORIAL_STEPS.map(function(_,di){return '<span class="tut-dot'+(di===i?' on':'')+'"></span>';}).join('');
+  positionTutorialStep();
+}
+function positionTutorialStep(){
+  if(!tutState||tutState.index<0)return;
+  const step=TUTORIAL_STEPS[tutState.index];
+  const target=tutResolveTarget(step);
+  if(!target){tutNextStep();return}
+  const spot=\$('tut-spot'),card=\$('tut-card'),arrow=\$('tut-arrow');
+  if(!spot||!card||!arrow)return;
+  const r=target.getBoundingClientRect();
+  const pad=8,gap=14;
+  spot.style.top=(r.top-pad)+'px';
+  spot.style.left=(r.left-pad)+'px';
+  spot.style.width=(r.width+pad*2)+'px';
+  spot.style.height=(r.height+pad*2)+'px';
+  const cardW=Math.min(280,window.innerWidth-24);
+  card.style.width=cardW+'px';
+  let top,left;
+  if(step.placement==='right'){
+    const cardH=card.offsetHeight||160;
+    left=r.right+pad+gap;
+    if(left+cardW>window.innerWidth-12)left=Math.max(12,r.left-pad-gap-cardW);
+    top=Math.min(window.innerHeight-cardH-12,Math.max(12,r.top+r.height/2-cardH/2));
+    arrow.style.cssText='top:'+Math.max(10,Math.min(card.offsetHeight-24,r.top+r.height/2-top-7))+'px;left:-7px';
+  }else{
+    const cardH=card.offsetHeight||160;
+    left=Math.min(window.innerWidth-cardW-12,Math.max(12,r.left+r.width/2-cardW/2));
+    top=r.top-pad-gap-cardH;
+    if(top<12){
+      top=r.bottom+pad+gap;
+      arrow.style.cssText='top:-7px;left:'+Math.max(10,Math.min(cardW-24,r.left+r.width/2-left-7))+'px';
+    }else{
+      arrow.style.cssText='bottom:-7px;left:'+Math.max(10,Math.min(cardW-24,r.left+r.width/2-left-7))+'px';
+    }
+  }
+  card.style.top=top+'px';
+  card.style.left=left+'px';
+}
+function tutNextStep(){
+  if(!tutState)return;
+  showTutorialStep(tutState.index+1);
+}
+async function endTutorial(){
+  const overlay=\$('tut-overlay');
+  if(overlay)overlay.remove();
+  tutState=null;
+  try{await authPost('/api/account/complete-tutorial',{});}catch(e){}
+  if(me)memberMetaByUid[String(me.\$id)]=Object.assign({},memberMetaByUid[String(me.\$id)],{tutorialDone:true});
+}
+function maybeStartTutorial(){
+  if(!me)return;
+  const meta=memberMetaByUid[String(me.\$id)];
+  if(meta&&meta.tutorialDone)return;
+  // Laisse le rail/la barre utilisateur finir de se peindre (badges,
+  // avatar…) avant de mesurer leurs positions — sans ce délai, la toute
+  // première étape pouvait se caler sur une mise en page pas encore stable.
+  setTimeout(function(){if(!tutState)startTutorial();},700);
+}
+
 async function enterApp(e2ePassword){
   xlog('show_dash_start',{});
   let acc=null;
@@ -4246,6 +4391,7 @@ async function enterApp(e2ePassword){
     await ensureMembersCached(relevantUids);
     if(profile)refreshSelfBar();
   }catch(e){}
+  try{maybeStartTutorial();}catch(e){}
   try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await resumeMyLocationSharingIfEnabled();}catch(e){}
   try{subscribePresenceWatcher();}catch(e){}
@@ -4786,6 +4932,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.94.0',date:'27 août 2026',time:'14:00',title:'Visite guidée pour les nouveaux comptes',
+    body:'Première connexion : une petite visite guidée met en lumière les boutons principaux (Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, profil, notifications…) un par un, avec une bulle d\\'explication et un bouton Suivant. Elle ne s\\'affiche qu\\'une seule fois — possible de passer à tout moment, et de la revoir plus tard depuis Paramètres → Avancé → Visite guidée.'},
   {version:'2.93.0',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
     body:'La bannière affichée en haut d\\'un profil est maintenant nettement plus grande. Les boutons d\\'action (copier le lien, bloquer, signaler) avaient un style improvisé — tous en rouge alarmant, collés à la même hauteur que les vrais boutons d\\'action (Ami, Message) : ils passent sur leur propre rangée, plus petits, neutres par défaut, la teinte rouge n\\'apparaissant plus qu\\'au survol des actions qui le justifient vraiment (bloquer, signaler).'},
   {version:'2.92.0',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
@@ -6281,11 +6429,14 @@ async function renderSetOs(box){
 function renderSetAdvanced(box){
   box.innerHTML='<h2>Avancé</h2><div class="sc-desc">Options pour les curieux et les développeurs.</div>'
     +'<div class="set-card">'+toggleRow('Mode développeur (copier les IDs)','devMode',appPrefs.devMode)+'</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Visite guidée</div><div class="scr-sub">Revoir la présentation des boutons principaux.</div></div><button type="button" class="set-mini-btn" id="adv-replay-tutorial">🎓 Revoir</button></div></div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Accélération matérielle</div><div class="scr-sub">Utilise ta carte graphique pour fluidifier l’affichage.</div></div>'+soonBadge()+'</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Canal de mise à jour</div></div><span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">Stable</span></div>'
     +'</div>';
   wireGenericToggles(box);
+  const replayBtn=\$('adv-replay-tutorial');
+  if(replayBtn)replayBtn.onclick=function(){closeSettingsPanel();setTimeout(startTutorial,250);};
 }
 function renderSetActivity(box){
   const myStatus=(meProfile&&meProfile.statusManual)||'online';
@@ -6330,6 +6481,7 @@ if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e
 
 /* ===== Raccourcis clavier globaux ===== */
 function closeTopmostOverlay(){
+  if(\$('tut-overlay')){endTutorial();return true}
   if(\$('modal-status')&&!\$('modal-status').classList.contains('hidden')){closeStatusPanel();return true}
   if(\$('modal-bug')&&!\$('modal-bug').classList.contains('hidden')){closeBugModal();return true}
   if(\$('modal-settings')&&!\$('modal-settings').classList.contains('hidden')){closeSettingsPanel();return true}
@@ -17980,6 +18132,40 @@ async function handle(request) {
     }
     const result = await recomputeHunterBadge(acc.$id);
     return new Response(JSON.stringify({ ok: true, result: result }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+  }
+
+  // Visite guidée pour les nouveaux comptes : marque définitivement le
+  // tutoriel comme vu, pour qu'il ne se redéclenche plus jamais à une
+  // prochaine connexion — appelée qu'on aille au bout ou qu'on passe.
+  // tutorialDone vit dans user_meta (verrouillé en écriture admin-only comme
+  // le reste de la collection), d'où une route dédiée plutôt qu'un ajout à
+  // la liste blanche de update-meta ci-dessous (champs texte uniquement).
+  if (path === "/api/account/complete-tutorial" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const lockedPerms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { tutorialDone: true }, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: acc.$id, data: { tutorialDone: true }, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
   }
 
   if (path === "/api/account/update-meta" && request.method === "POST") {
