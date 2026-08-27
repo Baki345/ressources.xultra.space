@@ -1739,7 +1739,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-chainsmoker{background-image:linear-gradient(125deg,#292524,#78716c,#44403c,#a8a29e,#292524);color:#fff;border-color:rgba(249,115,22,.75);box-shadow:0 0 14px rgba(249,115,22,.6),0 0 26px rgba(74,222,128,.25);animation:badgeShift 4s ease infinite,badgePulse 2.2s ease-in-out infinite}
 .badge-chainsmoker::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(74,222,128,.55);animation:frameSpin 5s linear infinite;pointer-events:none}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
-.pm-scroll{overflow-y:auto;flex:1;min-height:0}
+.pm-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
 .pm-av{width:78px;height:78px;border-radius:50%;margin:-42px auto 0;position:relative;z-index:1;display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:4px solid #15101f;overflow:hidden}
 .pm-av img{width:100%;height:100%;object-fit:cover}
@@ -4967,6 +4967,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.99.0',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
+    body:'La photo affichée en haut d\\'une conversation ouverte se met maintenant à jour en direct dès que l\\'interlocuteur change son avatar, sans recharger la page — merci Yani Neco. Une fine ligne blanche apparaissait parfois en bas des fiches de profil (un débordement horizontal invisible qui faisait apparaître la barre de défilement du navigateur) — merci "1e". Le panneau de notifications affichait encore une ancienne alerte "nouveaux messages" après avoir lu la conversation directement depuis la liste (sans cliquer la notification elle-même) — merci Yani Neco. La liste de messages remontait légèrement à chaque mise à jour (statut Vu, nouveau message) le temps que les avatars finissent de charger, au lieu de rester ancrée en bas. Et par sécurité, le nom de la conversation apparaît maintenant dans la confirmation de suppression, pour repérer tout de suite un clic parti sur la mauvaise ligne avant que ce soit irréversible — merci 100coeur.'},
   {version:'2.98.0',date:'27 août 2026',time:'18:00',title:'Correctif : glisser-déposer souris qui bloquait le clic sur les listes',
     body:'Effet de bord du correctif précédent (menu d\\'actions des messages) : comme le geste "glisser pour révéler" était désormais toujours actif, un simple clic-glissé à la souris pour sélectionner du texte dans un message pouvait être pris à tort pour ce geste — merci Yani Neco. Même chose pour le bouton supprimer des conversations et de la liste d\\'amis, qui pouvait rester invisible en permanence sur certaines configurations d\\'ordinateur. Les deux ne s\\'engagent maintenant que pour un vrai doigt sur écran tactile ; sur ordinateur, un simple survol suffit à révéler les actions.'},
   {version:'2.97.0',date:'27 août 2026',time:'17:00',title:'🚬 Nouveau badge exclusif : CHAINSMOKER',
@@ -6746,7 +6748,22 @@ function subscribePresenceWatcher(){
       if(view==='dms')renderDms();
       else if(view==='friends')renderFriends();
       else if(view==='members')renderMembers();
-      if(activeDmPeerUid===uid&&\$('ch-presence'))updateChatHeaderPresence();
+      if(activeDmPeerUid===uid){
+        if(\$('ch-presence'))updateChatHeaderPresence();
+        // Bug remonté par Yani Neco : la photo affichée en haut d'une
+        // conversation ouverte ne se mettait jamais à jour après un
+        // changement d'avatar côté interlocuteur, sans recharger la page —
+        // openDm() ne la posait qu'une fois à l'ouverture. On la
+        // rafraîchit ici dès que son document "users" change en direct.
+        if(!activeDmIsGroup){
+          const avEl=\$('ch-av');
+          if(avEl){
+            const av=safeUrl(p.avatar);
+            const titleEl=\$('ch-title');
+            avEl.innerHTML=av?'<img src="'+esc(av)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini((titleEl&&titleEl.textContent)||'?'));
+          }
+        }
+      }
     });
   }catch(e){}
 }
@@ -7054,6 +7071,15 @@ function updateNotifBadge(){
       window.xultraDesktop.setBadgeCount((appPrefs&&appPrefs.notifBadge)?total:0);
     }
   }catch(e){}
+  // Bug remonté par Yani Neco : en ouvrant une conversation directement
+  // depuis la liste (pas via le clic sur la notification elle-même), le
+  // compteur se mettait bien à jour, mais le panneau de notifications déjà
+  // affiché à l'écran gardait l'ancienne entrée "X nouveaux messages" tant
+  // qu'on ne le fermait/rouvrait pas — cette fonction est appelée à chaque
+  // changement d'état (markDmRead compris), donc le bon endroit pour
+  // rafraîchir aussi son contenu visible en direct.
+  const notifPanel=\$('modal-notifications');
+  if(notifPanel&&!notifPanel.classList.contains('hidden'))renderNotifications();
 }
 async function openNotificationsPanel(){
   \$('modal-notifications').classList.remove('hidden');
@@ -7297,7 +7323,13 @@ function renderDms(){
       e.stopPropagation();
       const id=el.getAttribute('data-del');
       const dm=dmsCache.find(function(d){return d.\$id===id});
-      showSlideConfirm('Supprimer définitivement cette conversation pour tout le monde ? Tous les messages seront effacés.',function(){deleteConversationConfirmed(id);});
+      // Filet de sécurité (bug remonté par 100coeur : suppression d'une
+      // conversation qui semblait en effacer une autre) : le nom de la
+      // conversation ciblée est maintenant affiché dans la confirmation, pour
+      // repérer tout de suite un clic parti sur la mauvaise ligne avant que
+      // la suppression (irréversible) ne parte réellement.
+      const dmName=dm?dmTitleFor(dm):'cette conversation';
+      showSlideConfirm('Supprimer définitivement la conversation avec '+dmName+' pour tout le monde ? Tous les messages seront effacés.',function(){deleteConversationConfirmed(id);});
     });
   });
   startDmTimeRefresh();
@@ -9096,6 +9128,24 @@ function scrollToMessage(mid){
   try{box=document.querySelector('.msg[data-mid="'+CSS.escape(mid)+'"]');}catch(e){}
   if(box){box.scrollIntoView({behavior:'smooth',block:'center'});box.style.outline='2px solid #8b5cf6';setTimeout(function(){box.style.outline='';},900);}
 }
+// Bug remonté par Yani Neco : la liste de messages remonte légèrement à
+// chaque "actualisation dynamique" (statut Vu, nouveau message…) au lieu de
+// rester ancrée en bas. Cause : box.scrollTop=box.scrollHeight est posé tout
+// de suite après l'injection du HTML, avant que les avatars/images du lot
+// n'aient fini de charger — une fois chargés, leur vraie hauteur s'ajoute
+// SOUS le point où le scroll a été figé, ce qui donne l'impression que la
+// page remonte alors que scrollTop, lui, n'a pas bougé. On recorrige donc
+// la position à chaque chargement d'image, mais seulement si l'utilisateur
+// était encore tout en bas à cet instant précis (sinon ça l'interromprait
+// en train de relire d'anciens messages plus haut).
+function pinScrollBottomAfterImages(box){
+  box.querySelectorAll('img').forEach(function(img){
+    if(img.complete)return;
+    img.addEventListener('load',function(){
+      if(box.scrollHeight-box.scrollTop-box.clientHeight<80)box.scrollTop=box.scrollHeight;
+    });
+  });
+}
 function renderMessages(){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
@@ -9150,6 +9200,7 @@ function renderMessages(){
   mountLinkPreviews(box);
   mountGifFreeze(box);
   box.scrollTop=box.scrollHeight;
+  pinScrollBottomAfterImages(box);
 }
 async function toggleDmReaction(m,emoji){
   try{
@@ -14929,6 +14980,7 @@ function renderChannelMessages(){
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
     attachMsgSwipe(el,m,'channel');
   });
+  pinScrollBottomAfterImages(box);
 }
 async function toggleChannelReaction(m,emoji){
   try{
