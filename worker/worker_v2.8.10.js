@@ -1854,6 +1854,7 @@ a.bug-att-item{display:block}
 .cvs-ctrl-btn.on{background:rgba(124,58,237,.55)}
 .cvs-ctrl-btn.danger{background:#ef4444}
 .cvs-ctrl-btn.danger:hover{background:#dc2626}
+.cvs-ctrl-btn.stage-listener{opacity:.35;cursor:not-allowed}
 .e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .e2e-bb-row{display:flex;align-items:center;gap:8px}
 .e2e-bb-row.hidden{display:none}
@@ -2917,6 +2918,7 @@ a.bug-att-item{display:block}
   <div class="gcb-participants" id="gcb-participants"></div>
   <div class="cb-controls">
     <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
+    <button type="button" class="cb-ctl hidden" id="gcb-camera" title="Caméra"><span class="cb-ico">📹</span></button>
     <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
   </div>
 </div>
@@ -4407,6 +4409,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.85.1',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
+    body:'Petites finitions du salon vocal de serveur : rejoindre/quitter d\\'un autre membre ne fait plus clignoter les caméras déjà affichées (la grille ne touche plus que les tuiles qui changent). Bouton 📹 caméra ajouté aussi sur la petite barre d\\'appel flottante, pour l\\'activer sans avoir à rouvrir le salon. Et les boutons micro/caméra s\\'affichent grisés pour un simple auditeur d\\'un salon de scène.'},
   {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
     body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille façon Discord remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
   {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
@@ -12952,6 +12956,11 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
     \$('group-call-bar').classList.remove('hidden');
     \$('gcb-group-name').textContent=groupCallGroupName;
     \$('gcb-mute').classList.remove('on');
+    // Caméra proposée uniquement pour les salons vocaux de serveur — pas les
+    // appels de groupe en DM (portée volontairement plus réduite pour cette
+    // première version, cf. discussion sur le screen 2).
+    \$('gcb-camera').classList.toggle('hidden',contextType!=='channel');
+    \$('gcb-camera').classList.remove('on');
     renderGroupParticipants();
     xlog('group_call_joined',{contextType:contextType,contextId:contextId});
     if(contextType==='channel'&&activeChannel&&activeChannel.\$id===contextId)renderServerChannelContent();
@@ -12987,18 +12996,30 @@ function chanVoiceStageTileHtml(uid,name,avatarUrl){
     +'<div class="cvs-tile-mute hidden" data-cvs-mute="'+esc(uid)+'">🔇</div>'
     +'</div>';
 }
+// Ajoute/retire des tuiles au lieu de reconstruire toute la grille à chaque
+// connexion/déconnexion : sinon, la caméra déjà affichée de chacun se
+// détache et se rattache (flash/re-bufferisation) à chaque fois que
+// N'IMPORTE QUI d'autre rejoint ou quitte le salon — une tuile déjà en
+// place (vidéo comprise) n'est jamais touchée.
 function renderChannelVoiceStage(){
   const grid=\$('chan-voice-stage-grid');if(!grid||!groupRoom||!me)return;
   const list=[{identity:String(me.\$id),isLocal:true}];
   groupRoom.remoteParticipants.forEach(function(p){list.push({identity:p.identity,isLocal:false});});
-  grid.innerHTML=list.map(function(item){
+  const wantedIds=list.map(function(item){return item.identity;});
+  grid.querySelectorAll('.cvs-tile').forEach(function(tile){
+    if(wantedIds.indexOf(tile.getAttribute('data-cvs-uid'))<0)tile.remove();
+  });
+  list.forEach(function(item){
     const uid=item.identity;
+    if(grid.querySelector('[data-cvs-uid="'+uid+'"]'))return;
     const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
     const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
     const avatarUrl=safeUrl(prof&&prof.avatar);
-    return chanVoiceStageTileHtml(uid,name,avatarUrl);
-  }).join('');
-  list.forEach(function(item){attachStageVideoIfAny(item.identity,item.isLocal);});
+    const holder=document.createElement('div');
+    holder.innerHTML=chanVoiceStageTileHtml(uid,name,avatarUrl);
+    grid.appendChild(holder.firstChild);
+    attachStageVideoIfAny(uid,item.isLocal);
+  });
   updateStageControlsUi();
   startGroupWaveformLoop();
 }
@@ -13006,8 +13027,9 @@ function renderChannelVoiceStage(){
 // de la grille, sans reconstruire toute la grille — appelé au (dés)abonnement
 // d'une piste vidéo LiveKit ou à la (dés)activation de sa propre caméra.
 function attachStageVideoIfAny(identity,isLocal){
-  const wrap=document.querySelector('[data-cvs-video-wrap="'+identity+'"]');
-  const avatarEl=document.querySelector('[data-cvs-avatar="'+identity+'"]');
+  const grid=\$('chan-voice-stage-grid');if(!grid)return;
+  const wrap=grid.querySelector('[data-cvs-video-wrap="'+identity+'"]');
+  const avatarEl=grid.querySelector('[data-cvs-avatar="'+identity+'"]');
   if(!wrap)return;
   let pub=null;
   try{
@@ -13030,14 +13052,23 @@ function attachStageVideoIfAny(identity,isLocal){
 }
 function updateStageControlsUi(){
   if(!groupRoom)return;
+  const muted=!groupRoom.localParticipant.isMicrophoneEnabled;
+  const camOn=!!groupRoom.localParticipant.isCameraEnabled;
   const micBtn=\$('cvs-mic-btn');
   if(micBtn){
-    const muted=!groupRoom.localParticipant.isMicrophoneEnabled;
     micBtn.textContent=muted?'🔇':'🎤';
     micBtn.classList.toggle('danger',muted);
+    micBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
   const camBtn=\$('cvs-cam-btn');
-  if(camBtn)camBtn.classList.toggle('on',!!groupRoom.localParticipant.isCameraEnabled);
+  if(camBtn){
+    camBtn.classList.toggle('on',camOn);
+    camBtn.classList.toggle('stage-listener',!stageCanPublish);
+  }
+  // Garde la caméra de la petite barre flottante synchronisée avec celle de
+  // la vue plein écran — deux boutons, un seul état de vérité (groupRoom).
+  const gcbCam=\$('gcb-camera');
+  if(gcbCam)gcbCam.classList.toggle('on',camOn);
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -13104,6 +13135,11 @@ if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
   const enabledNow=groupRoom.localParticipant.isMicrophoneEnabled;
   await groupRoom.localParticipant.setMicrophoneEnabled(!enabledNow);
   \$('gcb-mute').classList.toggle('on',enabledNow);
+  updateStageControlsUi();
+});
+if(\$('gcb-camera'))\$('gcb-camera').addEventListener('click',async function(){
+  await toggleStageCamera();
+  \$('gcb-camera').classList.toggle('on',!!(groupRoom&&groupRoom.localParticipant.isCameraEnabled));
 });
 if(\$('gcb-leave'))\$('gcb-leave').addEventListener('click',leaveGroupCall);
 window.addEventListener('pagehide',function(){
