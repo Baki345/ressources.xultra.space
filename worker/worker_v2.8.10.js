@@ -1387,6 +1387,16 @@ body.theme-light{filter:invert(1) hue-rotate(180deg);background:#fff}
 body.theme-light img,body.theme-light video,body.theme-light canvas,body.theme-light [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
 body.theme-light.high-contrast{filter:invert(1) hue-rotate(180deg) contrast(1.18) saturate(1.12)}
 body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.theme-light.high-contrast canvas,body.theme-light.high-contrast [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
+/* Idée proposée par Yani Neco (Boîte à idées, "Thème OLED") : un noir
+   profond (#000 pur) plutôt que le violet très sombre habituel (#0d0814),
+   pour économiser la batterie et ménager les dalles OLED. Recolore les
+   principales surfaces de l'appli plutôt que d'inverser les couleurs comme
+   le thème clair (une inversion partirait du violet, jamais d'un vrai noir). */
+body.theme-oled,body.theme-oled #stage,body.theme-oled .rail,body.theme-oled .list-col,
+body.theme-oled .search-box,body.theme-oled .field-input,body.theme-oled .set-row select,
+body.theme-oled .pe-preview-col,body.theme-oled .cb-video,body.theme-oled .settings-sidebar{background:#000}
+body.theme-oled .emoji-picker-pop,body.theme-oled .attach-menu,body.theme-oled .modal-box,
+body.theme-oled .pe-frame-inner{background:#050505}
 /* Bug remonté par un utilisateur ("pas d'option de message en DM sur
    desktop") : ce bouton ne devenait cliquable qu'en survolant PILE la bulle
    (display:none→flex piloté par :hover), et ce survol lui-même dépendait
@@ -1433,6 +1443,15 @@ body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.the
 .reply-preview .rp-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .reply-preview .rp-info b{color:#c4b5fd}
 .reply-preview .rp-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
+/* Idée proposée par Yani Neco (Boîte à idées, "Aperçu avant envoi") : avant,
+   choisir une photo/vidéo l'envoyait tout de suite, sans possibilité de
+   vérifier qu'il s'agit du bon fichier ni d'ajouter une légende. */
+.attach-preview{display:none;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line);background:rgba(139,92,246,.08)}
+.attach-preview.show{display:flex}
+.attach-preview .ap-thumb{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--elev);display:grid;place-items:center;font-size:1.2rem}
+.attach-preview .ap-thumb img,.attach-preview .ap-thumb video{width:100%;height:100%;object-fit:cover}
+.attach-preview .ap-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;color:var(--muted)}
+.attach-preview .ap-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
 .emoji-picker-pop{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(280px,90vw);max-height:260px;overflow-y:auto;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:9300;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .emoji-picker-pop.hidden{display:none}
 .emoji-picker-pop button{font-size:1.25rem;padding:5px;border-radius:8px;line-height:1}
@@ -2581,6 +2600,7 @@ a.bug-att-item{display:block}
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
       <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
+      <div class="attach-preview" id="attach-preview"><div class="ap-thumb" id="ap-thumb"></div><span class="ap-info" id="ap-info"></span><button type="button" class="ap-close" id="attach-preview-close">✕</button></div>
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
@@ -4967,6 +4987,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.0.0',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
+    body:'Deux idées de la Boîte à idées, proposées par Yani Neco : choisir une photo/vidéo affiche maintenant un aperçu juste au-dessus de la barre de message avant l\\'envoi (avec possibilité d\\'écrire une légende, ou d\\'annuler si ce n\\'était pas le bon fichier) au lieu de l\\'envoyer instantanément ; et un nouveau thème "⚫ OLED" (Paramètres → Apparence) passe les principales surfaces de l\\'appli en noir profond, pour ménager la batterie et les dalles OLED.'},
   {version:'2.99.0',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
     body:'La photo affichée en haut d\\'une conversation ouverte se met maintenant à jour en direct dès que l\\'interlocuteur change son avatar, sans recharger la page — merci Yani Neco. Une fine ligne blanche apparaissait parfois en bas des fiches de profil (un débordement horizontal invisible qui faisait apparaître la barre de défilement du navigateur) — merci "1e". Le panneau de notifications affichait encore une ancienne alerte "nouveaux messages" après avoir lu la conversation directement depuis la liste (sans cliquer la notification elle-même) — merci Yani Neco. La liste de messages remontait légèrement à chaque mise à jour (statut Vu, nouveau message) le temps que les avatars finissent de charger, au lieu de rester ancrée en bas. Et par sécurité, le nom de la conversation apparaît maintenant dans la confirmation de suppression, pour repérer tout de suite un clic parti sur la mauvaise ligne avant que ce soit irréversible — merci 100coeur.'},
   {version:'2.98.0',date:'27 août 2026',time:'18:00',title:'Correctif : glisser-déposer souris qui bloquait le clic sur les listes',
@@ -5579,6 +5601,7 @@ function applyThemeMode(){
     try{isLight=window.matchMedia('(prefers-color-scheme: light)').matches;}catch(e){isLight=false;}
   }
   document.body.classList.toggle('theme-light',isLight);
+  document.body.classList.toggle('theme-oled',mode==='oled');
 }
 try{
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(appPrefs.theme==='system')applyThemeMode();});
@@ -6251,7 +6274,7 @@ function renderSetFamily(box){
 
 function renderSetAppearance(box){
   box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte XULTRA à ton goût.</div>'
-    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
+    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='oled'?' on':'')+'" data-theme-mode="oled">⚫ OLED</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-row"><label>Mode d’affichage</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.displayMode==='modern'?' on':'')+'" data-app-val="displayMode:modern">Moderne</button><button type="button" class="seg-btn'+(appPrefs.displayMode==='compact'?' on':'')+'" data-app-val="displayMode:compact">Compact</button></div></div>'
       +'<div class="set-row"><label>Taille de police <span class="val" id="app-font-val">'+appPrefs.msgFontSize+'px</span></label><input type="range" id="app-font-range" min="12" max="20" value="'+appPrefs.msgFontSize+'"></div>'
@@ -8540,6 +8563,7 @@ if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',functi
 let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=false, msgsCache=[];
 async function openDm(threadId,title,peerUid){
   clearReplyTarget('dm');
+  if(typeof clearAttachPreview==='function')clearAttachPreview();
   activeDm=threadId;
   const dm=dmsCache.find(function(d){return d.\$id===threadId});
   const members=(dm&&dm.members)?dm.members.map(String):(peerUid?[String(me.\$id),String(peerUid)]:[]);
@@ -8803,7 +8827,7 @@ function renderMsgBody(m,text,mediaUrl){
     return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'" data-snap-noshot="'+(m.noScreenshot?'1':'0')+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span>'+noShotTag+'</div>';
   }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
-  if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>';
+  if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='gif'&&url)return '<div class="msg-media gif-media"><img class="gif-img" src="'+esc(url)+'" loading="lazy"/><canvas class="gif-freeze"></canvas></div>';
   if(t==='file'&&url){
     let meta={};try{meta=JSON.parse(text||'{}');}catch(e){}
@@ -9478,6 +9502,18 @@ async function postMessage(data,lastMessagePreview,keyCtx){
 async function sendMessage(){
   const input=\$('msg-input');
   const text=(input.value||'').trim();
+  if(pendingAttachFile){
+    if(!activeDm||!me)return;
+    const file=pendingAttachFile;
+    clearAttachPreview();
+    input.value='';
+    \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
+    try{
+      await handleFileAttach(file,'auto',false,0,false,text.slice(0,2000));
+      clearTypingState();
+    }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
+    return;
+  }
   if(!text||!activeDm||!me)return;
   input.value='';
   \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
@@ -9516,7 +9552,7 @@ if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
-  const has=this.value.trim().length>0;
+  const has=this.value.trim().length>0||!!pendingAttachFile;
   \$('btn-send').classList.toggle('hidden',!has);
   \$('btn-voice').classList.toggle('hidden',has);
   if(has)notifyTyping();else clearTypingState();
@@ -9530,7 +9566,7 @@ if(\$('msg-input'))\$('msg-input').addEventListener('paste',function(e){
   }
   if(!file)return;
   e.preventDefault();
-  handleFileAttach(file,'auto',false,0);
+  showAttachPreview(file);
 });
 if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
 
@@ -9543,6 +9579,32 @@ document.addEventListener('click',function(e){
   if(chanMenu&&!chanMenu.classList.contains('hidden')&&!chanMenu.contains(e.target)&&e.target!==\$('srv-chan-attach'))chanMenu.classList.add('hidden');
 });
 let pendingSnapEphemeral=false,pendingSnapDuration=0,pendingSnapNoScreenshot=false;
+let pendingAttachFile=null,pendingAttachObjectUrl=null;
+function clearAttachPreview(){
+  pendingAttachFile=null;
+  if(pendingAttachObjectUrl){try{URL.revokeObjectURL(pendingAttachObjectUrl);}catch(e){}pendingAttachObjectUrl=null;}
+  const bar=\$('attach-preview');if(bar)bar.classList.remove('show');
+  const thumb=\$('ap-thumb');if(thumb)thumb.innerHTML='';
+  const info=\$('ap-info');if(info)info.textContent='';
+  const input=\$('msg-input');
+  const has=!!(input&&input.value.trim().length);
+  if(\$('btn-send'))\$('btn-send').classList.toggle('hidden',!has);
+  if(\$('btn-voice'))\$('btn-voice').classList.toggle('hidden',has);
+}
+function showAttachPreview(file){
+  pendingAttachFile=file;
+  const bar=\$('attach-preview'),thumb=\$('ap-thumb'),info=\$('ap-info');
+  if(!bar||!thumb||!info)return;
+  pendingAttachObjectUrl=URL.createObjectURL(file);
+  const isVideo=file.type.indexOf('video/')===0;
+  thumb.innerHTML=isVideo?('<video src="'+pendingAttachObjectUrl+'" muted></video>'):('<img src="'+pendingAttachObjectUrl+'" alt="">');
+  info.textContent='Légende facultative pour '+(isVideo?'ta vidéo':'ta photo')+' — écris-la ci-dessous puis envoie.';
+  bar.classList.add('show');
+  if(\$('btn-send'))\$('btn-send').classList.remove('hidden');
+  if(\$('btn-voice'))\$('btn-voice').classList.add('hidden');
+  const input=\$('msg-input');if(input)input.focus();
+}
+if(\$('attach-preview-close'))\$('attach-preview-close').addEventListener('click',clearAttachPreview);
 const SNAP_DURATIONS=[{v:3,label:'3 secondes'},{v:5,label:'5 secondes'},{v:10,label:'10 secondes'},{v:0,label:'Sans limite (fermeture manuelle)'}];
 /* ===== Studio de snap — capture photo/vidéo en direct, filtres, calques
    texte, façon Snapchat, entièrement construit avec getUserMedia + canvas
@@ -10243,7 +10305,7 @@ function updateUploadProgressRow(row,loaded,total){
   const fillEl=row.querySelector('.upload-progress-fill');if(fillEl)fillEl.style.width=pct+'%';
   const sizeEl=row.querySelector('.upload-progress-size');if(sizeEl)sizeEl.textContent=fmtSize(loaded)+' / '+fmtSize(total);
 }
-async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot){
+async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot,caption){
   if(!file||!activeDm)return;
   if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
   let type=kindHint;
@@ -10270,6 +10332,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot
     if(type==='image'&&!ephemeral){preview='📷 Photo';}
     else if(type==='video'&&!ephemeral){preview='🎬 Vidéo';}
     else if(type==='file'){data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});preview='📄 '+file.name;}
+    if(!ephemeral&&caption&&(type==='image'||type==='video')){data.text=caption;preview=caption.slice(0,100);}
     await postMessage(data,preview,keyCtx);
     if(ephemeral){
       try{
@@ -10304,7 +10367,19 @@ async function handleChannelFileAttach(file,kindHint){
     showToast('Envoi impossible : '+((e&&e.message)||e),'error');xlog('chan_attach_fail',{msg:(e&&e.message)||String(e)});
   }
 }
-if(\$('file-image'))\$('file-image').addEventListener('change',function(){handleFileAttach(this.files[0],'auto',pendingSnapEphemeral,pendingSnapDuration,pendingSnapNoScreenshot);pendingSnapEphemeral=false;pendingSnapDuration=0;pendingSnapNoScreenshot=false;this.value='';});
+if(\$('file-image'))\$('file-image').addEventListener('change',function(){
+  const file=this.files[0];
+  if(pendingSnapEphemeral){
+    // Un Ephem n'affiche jamais son contenu tant qu'il n'est pas ouvert par
+    // le destinataire (voir renderMsgBody) : une légende ou un aperçu avant
+    // envoi n'a pas de sens ici, on garde l'envoi immédiat existant.
+    handleFileAttach(file,'auto',true,pendingSnapDuration,pendingSnapNoScreenshot);
+  }else if(file){
+    showAttachPreview(file);
+  }
+  pendingSnapEphemeral=false;pendingSnapDuration=0;pendingSnapNoScreenshot=false;
+  this.value='';
+});
 if(\$('file-generic'))\$('file-generic').addEventListener('change',function(){handleFileAttach(this.files[0],'file',false);this.value='';});
 
 let gifSearchTimeout=null;
