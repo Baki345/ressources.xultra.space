@@ -919,6 +919,14 @@ const APP = `<!DOCTYPE html>
   }
   window.__xErrBanner=showErr;
   window.addEventListener('error',function(e){
+    // Signalé via Bug Hunter (ed_jo, "Ya une barre rouge") : un message
+    // toujours identique à "Script error. @ :0:0" n'est PAS un bug de cette
+    // bannière — c'est Chrome/Safari qui redige volontairement les détails
+    // d'une erreur venant d'un fichier externe chargé en cross-origin sans
+    // l'attribut crossorigin (mesure de sécurité standard, pas un bug
+    // XULTRA). Les balises de script externes (Appwrite, LiveKit, Turnstile,
+    // Leaflet) portent maintenant toutes cet attribut : les prochaines
+    // erreurs de ces bibliothèques afficheront enfin un vrai message exploitable.
     showErr((e&&e.message)+' @ '+(e&&e.filename)+':'+(e&&e.lineno)+':'+(e&&e.colno));
   });
   window.addEventListener('unhandledrejection',function(e){
@@ -937,7 +945,15 @@ const APP = `<!DOCTYPE html>
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+/* Bug remonté via Bug Hunter par warl0ck_l : sans ça, un rebond de défilement
+   au-delà du haut/bas de la page (le "pull to refresh"/retour du navigateur
+   de certains navigateurs mobiles et embarqués, ex. Quest Browser en VR)
+   pouvait faire "sortir du site" en scrollant — plus visible en mode
+   d'affichage Compact, où les messages plus courts vident vite l'écran.
+   html/body ne défilent jamais eux-mêmes (les colonnes internes ont leur
+   propre overflow-y), donc aucune perte de fonctionnalité à bloquer leur
+   propre rebond. */
+html,body{height:100%;overscroll-behavior:none}
 body{
   min-height:100dvh;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   background:#0d0814;color:#f2ebff;overflow-x:hidden;-webkit-tap-highlight-color:transparent;
@@ -1082,6 +1098,8 @@ button{cursor:pointer;border:0;background:0}
 .desktop-dl-others a{color:var(--muted);text-decoration:none}
 .desktop-dl-others a:hover{color:#e9d5ff;text-decoration:underline}
 .desktop-dl-others .dl-sep{color:var(--line)}
+.dl-vt-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:.7rem;font-weight:700;color:#86efac;text-decoration:none}
+.dl-vt-badge:hover{text-decoration:underline}
 .dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
 .dl-verify-toggle:hover{color:#e9d5ff}
 .dl-verify-box{margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;text-align:left}
@@ -1091,6 +1109,13 @@ button{cursor:pointer;border:0;background:0}
 .dl-verify-row .dvr-copy{flex-shrink:0;color:var(--muted);text-decoration:underline;font-size:.68rem}
 .dl-verify-row .dvr-copy:hover{color:#e9d5ff}
 .dl-verify-note{font-size:.68rem;color:var(--muted);margin-top:6px}
+
+.bcrop-card{max-width:520px}
+.bcrop-viewport{position:relative;width:100%;aspect-ratio:3/1;overflow:hidden;border-radius:10px;background:#000;cursor:grab;touch-action:none;margin-top:8px}
+.bcrop-viewport:active{cursor:grabbing}
+.bcrop-viewport img{position:absolute;top:0;left:0;user-select:none;pointer-events:none;max-width:none;will-change:transform}
+.bcrop-zoom-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:.9rem}
+.bcrop-zoom-row input[type=range]{flex:1}
 .ios-install-step{display:flex;align-items:flex-start;gap:10px;padding:8px 4px;font-size:.85rem;line-height:1.4}
 .ios-install-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(124,58,237,.3);color:#e9d5ff;font-weight:800;font-size:.75rem;display:flex;align-items:center;justify-content:center;margin-top:1px}
 .reg-preview{display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:16px;margin-bottom:10px;background:linear-gradient(135deg,rgba(124,58,237,.16),rgba(167,139,250,.06));border:1px solid rgba(167,139,250,.18)}
@@ -1709,6 +1734,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-spotify{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:999px;background:rgba(30,215,96,.16);border:1px solid rgba(30,215,96,.4);color:#6ee7a0;font-size:.76rem;font-weight:800;text-decoration:none}
 .pc-since{margin-top:16px;font-size:.68rem;opacity:.55}
 .pc-mutual{margin-top:10px;font-size:.72rem;opacity:.75;font-weight:700}
+.pc-highlights{margin-top:14px}
+.pc-hl-label{font-size:.68rem;font-weight:800;letter-spacing:.06em;opacity:.6;text-transform:uppercase;margin-bottom:6px}
+.pc-hl-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.pc-hl-item{flex-shrink:0;width:56px;height:56px;border-radius:50%;overflow:hidden;border:2px solid #7c3aed;padding:2px;background:var(--elev);cursor:pointer}
+.pc-hl-item img,.pc-hl-item video{width:100%;height:100%;object-fit:cover;border-radius:50%;pointer-events:none}
 .pc-card.border-glow{box-shadow:0 0 0 1px var(--pc-glow,#7c3aed),0 0 28px 2px color-mix(in srgb,var(--pc-glow,#7c3aed) 55%,transparent)}
 .pc-card.border-gradient{position:relative;isolation:isolate}
 .pc-card.border-gradient::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;background:linear-gradient(135deg,var(--pc-grad-a,#7c3aed),var(--pc-grad-b,#22c55e));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2}
@@ -1762,7 +1792,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-presence-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.05);font-size:.76rem;font-weight:700;color:var(--muted)}
 .pe-presence-btn.on{background:rgba(124,58,237,.28);color:#e9d5ff}
 .pe-presence-swatch{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-@media (max-width:720px){.pe-layout{flex-direction:column;overflow-y:auto}.pe-preview-col{width:auto;border-right:0;border-bottom:1px solid rgba(255,255,255,.06)}}
+/* Bug remonté via Bug Hunter par Yani Neco : sur mobile, un aperçu de
+   profil avec une bio très longue grandissait sans limite au-dessus des
+   vrais champs d'édition (la colonne entière défilait comme un seul bloc),
+   repoussant les onglets/options hors champ tant qu'on n'avait pas fini de
+   faire défiler tout l'aperçu. max-height + son propre overflow-y (déjà
+   posé sur la règle de base) rendent l'aperçu défilant indépendamment. */
+@media (max-width:720px){.pe-layout{flex-direction:column;overflow-y:auto}.pe-preview-col{width:auto;max-height:34vh;border-right:0;border-bottom:1px solid rgba(255,255,255,.06)}}
 .au-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-top:14px}
 .au-label{font-size:.62rem;font-weight:800;letter-spacing:.05em;color:var(--muted);text-transform:uppercase;margin-bottom:3px}
 .au-value{font-size:.82rem;word-break:break-all}
@@ -2352,6 +2388,7 @@ a.bug-att-item{display:block}
     <p class="hint">β3.0 — étape 1 : connexion</p>
     <div class="desktop-dl" id="desktop-dl">
       <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
+      <a class="dl-vt-badge hidden" id="dl-vt-badge" target="_blank" rel="noopener"></a>
       <div class="desktop-dl-others" id="desktop-dl-others"></div>
       <button type="button" class="dl-verify-toggle" id="dl-verify-toggle">🔒 Vérifier l'empreinte du fichier (SHA-256)</button>
       <div class="dl-verify-box hidden" id="dl-verify-box"></div>
@@ -3128,8 +3165,8 @@ a.bug-att-item{display:block}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js" crossorigin="anonymous"></script>
 <script>
 window.__awReady=false;
 (function poll(){
@@ -3314,6 +3351,81 @@ function translateAuthError(msg){
 // "Latest", donc publier une nouvelle version du desktop (même nom de
 // fichier, contenu mis à jour) suffit à garder ces liens à jour — jamais
 // besoin de retoucher cette page.
+// Recadrage de bannière (idée proposée par hi) : jusqu'ici, l'image choisie
+// partait telle quelle en fond avec background-size:cover, recadrée par le
+// centre géométrique sans aucun contrôle — mauvais quand le sujet
+// intéressant de la photo n'est pas au milieu. Ce modal fournit un vrai
+// cadre à ratio fixe (3:1, cohérent avec le rendu .pc-banner à la plupart
+// des largeurs d'écran), un glisser pour repositionner et un curseur pour
+// zoomer, puis exporte la zone visible en une image déjà recadrée — le
+// rendu "cover" en aval ne fait plus alors qu'un ajustement mineur.
+function openBannerCropModal(file,onDone){
+  const RATIO=3;
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card bcrop-card" style="text-align:left">'
+    +'<div class="set-section-label">✂️ Recadrer la bannière</div>'
+    +'<div class="bcrop-viewport" id="bcrop-viewport"><img id="bcrop-img" draggable="false" alt=""/></div>'
+    +'<div class="bcrop-zoom-row"><span>🔍</span><input type="range" id="bcrop-zoom" min="100" max="300" value="100"><span>➕</span></div>'
+    +'<div class="scr-sub" style="margin:6px 0 10px">Glisse l\\'image pour la repositionner, utilise le curseur pour zoomer.</div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="bcrop-confirm" style="flex:1">Valider</button><button type="button" class="set-mini-btn" id="bcrop-cancel">Annuler</button></div>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  const img=overlay.querySelector('#bcrop-img');
+  const viewport=overlay.querySelector('#bcrop-viewport');
+  const zoomRange=overlay.querySelector('#bcrop-zoom');
+  const objectUrl=URL.createObjectURL(file);
+  img.src=objectUrl;
+  let natW=0,natH=0,baseScale=1,scale=1,offX=0,offY=0,dragging=false,startX=0,startY=0,startOffX=0,startOffY=0,done=false;
+  function applyTransform(){
+    img.style.width=(natW*scale)+'px';
+    img.style.height=(natH*scale)+'px';
+    img.style.transform='translate('+offX+'px,'+offY+'px)';
+  }
+  function clampOffsets(){
+    const vw=viewport.clientWidth,vh=viewport.clientHeight;
+    const iw=natW*scale,ih=natH*scale;
+    offX=Math.max(Math.min(0,vw-iw),Math.min(0,offX));
+    offY=Math.max(Math.min(0,vh-ih),Math.min(0,offY));
+  }
+  img.onload=function(){
+    natW=img.naturalWidth;natH=img.naturalHeight;
+    const vw=viewport.clientWidth,vh=viewport.clientHeight;
+    baseScale=Math.max(vw/natW,vh/natH);
+    scale=baseScale;
+    offX=(vw-natW*scale)/2;offY=(vh-natH*scale)/2;
+    applyTransform();
+  };
+  zoomRange.addEventListener('input',function(){
+    const oldScale=scale;
+    scale=baseScale*(zoomRange.value/100);
+    const vw=viewport.clientWidth,vh=viewport.clientHeight,cx=vw/2,cy=vh/2;
+    offX=cx-(cx-offX)*(scale/oldScale);
+    offY=cy-(cy-offY)*(scale/oldScale);
+    clampOffsets();applyTransform();
+  });
+  function pStart(x,y){dragging=true;startX=x;startY=y;startOffX=offX;startOffY=offY;}
+  function pMove(x,y){if(!dragging)return;offX=startOffX+(x-startX);offY=startOffY+(y-startY);clampOffsets();applyTransform();}
+  function pEnd(){dragging=false;}
+  viewport.addEventListener('mousedown',function(e){pStart(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',function(e){pMove(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',pEnd);
+  viewport.addEventListener('touchstart',function(e){const t=e.touches[0];pStart(t.clientX,t.clientY);},{passive:true});
+  viewport.addEventListener('touchmove',function(e){const t=e.touches[0];pMove(t.clientX,t.clientY);e.preventDefault();},{passive:false});
+  viewport.addEventListener('touchend',pEnd);
+  function finish(result){if(done)return;done=true;URL.revokeObjectURL(objectUrl);overlay.remove();onDone(result);}
+  overlay.querySelector('#bcrop-cancel').onclick=function(){finish(null);};
+  overlay.addEventListener('click',function(e){if(e.target===overlay)finish(null);});
+  overlay.querySelector('#bcrop-confirm').onclick=function(){
+    const OUT_W=1200,OUT_H=Math.round(OUT_W/RATIO);
+    const vw=viewport.clientWidth,vh=viewport.clientHeight;
+    const sx=-offX/scale,sy=-offY/scale,sw=vw/scale,sh=vh/scale;
+    const canvas=document.createElement('canvas');
+    canvas.width=OUT_W;canvas.height=OUT_H;
+    canvas.getContext('2d').drawImage(img,sx,sy,sw,sh,0,0,OUT_W,OUT_H);
+    canvas.toBlob(function(blob){finish(blob);},'image/jpeg',0.9);
+  };
+}
 function openIosInstallSheet(){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
@@ -3394,6 +3506,20 @@ const APP_CHECKSUMS={
   'linux-deb':'326afeecddd8c72d82be7d4764a30cd988b58582423dcaf2a80c6293c3ec28f5',
   'linux-appimage':'9c5154f514d7bd3f91c856a1ec5fc3fa77b5a91978fac4732dad25be386345a9'
 };
+// Rapports VirusTotal publics des fichiers actuellement publiés (scannés à
+// la demande, résultat 0/75 détections pour chacun) — à rescanner et
+// remettre à jour manuellement si un fichier est republié. Un lien public
+// vers virustotal.com est un signal de confiance plus reconnaissable pour
+// un utilisateur non technique qu'une simple empreinte SHA-256.
+const APP_VT={
+  win:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6074656a89d6ec83f7752e37fa9fc58c26765100ddfc4385e67867d42cf82768'},
+  android:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'},
+  chromeos:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'},
+  'mac-arm':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/80762524fda6cc813dec03da566a8dd4e91d5ba35ed33b7a88d22708c7cb0066'},
+  'mac-intel':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/b057717e6f0978a7e7d2351b929a88913ebee31bff5ebd82ba505fbc0cbcb657'},
+  'linux-deb':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/326afeecddd8c72d82be7d4764a30cd988b58582423dcaf2a80c6293c3ec28f5'},
+  'linux-appimage':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/9c5154f514d7bd3f91c856a1ec5fc3fa77b5a91978fac4732dad25be386345a9'}
+};
 function appDlUrl(p){return APP_STORAGE_BASE+p.fileId+'/download?project='+APP_STORAGE_PROJECT;}
 function triggerAppPlatform(p){
   if(p.key==='ios'){openIosInstallSheet();return}
@@ -3422,6 +3548,12 @@ function detectAppPlatformKey(){
   const osSpan=document.createElement('span');osSpan.id='desktop-dl-os';osSpan.textContent=primary.label;
   btn.appendChild(osSpan);
   btn.onclick=function(){triggerAppPlatform(primary);};
+  const vtBadge=\$('dl-vt-badge'),vt=APP_VT[primary.key];
+  if(vtBadge&&vt){
+    vtBadge.href=vt.url;
+    vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
+    vtBadge.classList.remove('hidden');
+  }
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
     othersBox.innerHTML=APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
@@ -3440,7 +3572,8 @@ function detectAppPlatformKey(){
     if(verifyBox.classList.contains('hidden')){
       if(!verifyBox.dataset.filled){
         verifyBox.innerHTML=APP_PLATFORMS.filter(function(p){return APP_CHECKSUMS[p.key];}).map(function(p){
-          return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button></div>';
+          const vtP=APP_VT[p.key];
+          return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
         }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>';
         verifyBox.dataset.filled='1';
         verifyBox.querySelectorAll('[data-copy-hash]').forEach(function(b){
@@ -3546,6 +3679,7 @@ function renderTurnstile(which){
 if(TURNSTILE_SITE_KEY){
   const tsScript=document.createElement('script');
   tsScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js';
+  tsScript.crossOrigin='anonymous';
   tsScript.async=true;tsScript.defer=true;
   tsScript.onload=function(){renderTurnstile('login');};
   document.head.appendChild(tsScript);
@@ -3628,10 +3762,12 @@ if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',functio
   if(!file)return;
   if(file.size>8*1024*1024){showErrTxt('Bannière max 8 Mo');return}
   if(file.type.indexOf('image/')!==0){showErrTxt('Choisis une image');return}
-  regBannerFile=file;
-  const r=new FileReader();
-  r.onload=function(){regBannerUrl=r.result;updateRegPreview()};
-  r.readAsDataURL(file);
+  openBannerCropModal(file,function(blob){
+    if(!blob)return;
+    regBannerFile=new File([blob],'banner.jpg',{type:'image/jpeg'});
+    regBannerUrl=URL.createObjectURL(blob);
+    updateRegPreview();
+  });
 });
 
 async function serverLogin(identifier,pass){
@@ -4640,6 +4776,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.92.0',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
+    body:'Une bonne chasse : le bouton "Activer les notifications" qui perdait son texte (ne gardait que l\\'icône) est corrigé — merci Yani Neco. L\\'édition de profil sur mobile ne pousse plus les options hors champ quand la bio est très longue — merci Yani Neco. Les demandes d\\'ami apparaissaient en double dans les notifications, l\\'une d\\'elles avec un bouton "Accepter" qui ne faisait jamais rien — merci NecoCrusader et 995mec, corrigé à la racine (et la notification d\\'une demande traitée disparaît enfin vraiment). Une photo de profil ajoutée uniquement via la galerie d\\'avatars n\\'apparaissait pas dans la barre utilisateur — merci hi. La bannière rouge "Script error." illisible en cas de bug est maintenant plus rarement déclenchée sans raison exploitable (les bibliothèques externes chargées par XULTRA remontent enfin leurs vraies erreurs) — merci ed_jo. Et un rebond de défilement qui pouvait faire "sortir du site" en mode d\\'affichage Compact est bloqué — merci warl0ck_l.'},
+  {version:'2.91.0',date:'27 août 2026',time:'11:00',title:'Recadrage de bannière, stories à la une, et scan antivirus des applications',
+    body:'Deux idées de la Boîte à idées prennent vie, toutes deux proposées par hi : un vrai outil de recadrage (glisser-déposer + zoom) s\\'ouvre maintenant en choisissant une bannière de profil, pour cadrer précisément l\\'image au lieu de subir un centrage automatique ; et un nouveau bloc « ✨ À la une » sur les profils permet d\\'épingler des stories au-delà de leur expiration habituelle (bouton ⭐ dans le visionnage d\\'une de tes stories). Par ailleurs, les 5 installeurs de bureau et l\\'application Android/Chromebook ont été scannés par VirusTotal (0 détection sur 75 antivirus) — le résultat est affiché directement sur le bouton de téléchargement, avec un lien vers le rapport public complet.'},
   {version:'2.90.0',date:'27 août 2026',time:'10:30',title:'Bannière d\\'installation, version Chromebook, et empreintes de fichiers',
     body:'Une bannière discrète (fermable, en haut du site) propose maintenant d\\'installer l\\'appli native XULTRA quand tu utilises la version navigateur, avec ta plateforme détectée automatiquement. Nouvelle entrée « Chromebook » dans les téléchargements (réutilise l\\'appli Android via ARC++, avec ses propres instructions d\\'installation). Chaque fichier téléchargeable affiche maintenant son empreinte SHA-256 (bouton « Vérifier l\\'empreinte du fichier »), pour qui veut confirmer qu\\'il n\\'a pas été altéré. Côté application de bureau, les notifications et appels entrants sont plus fiables quand la fenêtre est réduite dans la zone de notification (plus de ralentissement des tâches de fond, réouverture de la fenêtre garantie au clic sur une notification).'},
   {version:'2.89.0',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
@@ -6536,6 +6676,21 @@ function renderFriends(){
     });
   });
 }
+// Bug remonté via Bug Hunter (NecoCrusader) : accepter ou refuser une
+// demande d'ami ne supprimait jamais le document de notification persistant
+// créé à l'ENVOI de la demande (sendFriendRequest) — la notification restait
+// donc affichée indéfiniment (et comptait dans le badge non-lu) même une
+// fois la demande traitée.
+async function dismissFriendRequestNotif(fromUid){
+  if(!me||!fromUid)return;
+  const stale=notifCache.filter(function(n){return n.type==='friend_request'&&String(n.fromUid)===String(fromUid);});
+  if(!stale.length)return;
+  for(const n of stale){
+    try{await db.deleteDocument(DB,'notifications',n.\$id);}catch(e){}
+  }
+  notifCache=notifCache.filter(function(n){return !(n.type==='friend_request'&&String(n.fromUid)===String(fromUid));});
+  updateNotifBadge();
+}
 async function acceptFriendRequest(reqDocId,fromUid){
   try{
     await db.updateDocument(DB,'ultravoc_friends',reqDocId,{status:'accepted'});
@@ -6572,6 +6727,7 @@ async function acceptFriendRequest(reqDocId,fromUid){
       }
     }catch(e){}
     sendNotification(fromUid,'friend_accepted',me.\$id,myName,myName+' a accepté ta demande d\\'ami');
+    await dismissFriendRequestNotif(fromUid);
     await loadFriends();if(view==='friends')renderFriends();
   }catch(e){xlog('friend_accept_fail',{msg:(e&&e.message)||String(e)});}
 }
@@ -6587,6 +6743,7 @@ async function rejectFriendRequest(reqDocId,fromUid){
         for(const d of (theirs.documents||[]))await db.deleteDocument(DB,'ultravoc_friends',d.\$id).catch(function(){});
       }catch(e){}
     }
+    await dismissFriendRequestNotif(fromUid);
     await loadFriends();if(view==='friends')renderFriends();
   }catch(e){xlog('friend_reject_fail',{msg:(e&&e.message)||String(e)});}
 }
@@ -6698,7 +6855,14 @@ function renderNotifications(){
   const entries=[];
   pendingReqs.forEach(function(f){entries.push({kind:'friend_request',id:f.\$id,fromUid:f.friendId,name:f.name,ts:f.\$createdAt});});
   dmEntries.forEach(function(e){entries.push(e);});
-  notifCache.forEach(function(n){entries.push({kind:n.type,id:n.\$id,fromUid:n.fromUid,name:n.fromName,text:n.text,ts:n.\$createdAt});});
+  // Bug remonté via Bug Hunter (NecoCrusader) : une demande d'ami crée à la
+  // fois l'entrée "en attente" ci-dessus (dérivée en direct de friendsCache,
+  // avec les vrais boutons Accepter/Refuser) ET un document notifications
+  // persistant du même type — sans ce filtre, la même demande apparaissait
+  // deux fois, et le bouton "Accepter" du doublon issu de notifCache
+  // utilisait l'id du document de notification (pas celui de la relation
+  // d'amitié), donc échouait toujours silencieusement.
+  notifCache.filter(function(n){return n.type!=='friend_request';}).forEach(function(n){entries.push({kind:n.type,id:n.\$id,fromUid:n.fromUid,name:n.fromName,text:n.text,ts:n.\$createdAt});});
   entries.sort(function(a,b){return new Date(b.ts)-new Date(a.ts);});
   \$('ntf-accept-all').classList.toggle('hidden',!pendingReqs.length);
   \$('ntf-decline-all').classList.toggle('hidden',!pendingReqs.length);
@@ -7406,6 +7570,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
       +(opts.mutualCount!=null&&opts.mutualCount>0?'<div class="pc-mutual">👥 '+opts.mutualCount+' ami'+(opts.mutualCount>1?'s':'')+' en commun</div>':'')
       +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+(opts.showLastSeen&&lastSeenTxt?' · '+esc(lastSeenTxt):'')+'</div>')
+      +(opts.showHighlights?'<div class="pc-highlights hidden" id="pc-highlights"></div>':'')
     +'</div>'
   +'</div>';
 }
@@ -7435,6 +7600,28 @@ function mountProfileCardExtras(container){
       card.addEventListener('mouseleave',function(){card.style.transform='';});
     }
   }
+}
+// Stories à la une (idée proposée par hi) : contrairement à storiesByUid()
+// qui ne montre que les stories encore actives (< 24h en général), pas de
+// filtre sur expiresAt ici — c'est tout leur intérêt, elles restent visibles
+// indéfiniment une fois mises à la une.
+async function loadAndRenderHighlights(uid,container){
+  if(!container)return;
+  let items=[];
+  try{
+    const r=await db.listDocuments(DB,'stories',[Appwrite.Query.equal('uid',uid),Appwrite.Query.equal('featured',true),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(20)]);
+    items=r.documents||[];
+  }catch(e){container.classList.add('hidden');return}
+  if(!items.length){container.classList.add('hidden');return}
+  container.classList.remove('hidden');
+  container.innerHTML='<div class="pc-hl-label">✨ À la une</div><div class="pc-hl-row">'+items.map(function(s,i){
+    return '<button type="button" class="pc-hl-item" data-hl-idx="'+i+'" title="'+esc(s.caption||'')+'">'
+      +(s.mediaType==='video'?('<video src="'+esc(s.mediaUrl)+'" muted preload="metadata" playsinline></video>'):('<img src="'+esc(safeUrl(s.mediaUrl)||'')+'" alt="">'))
+    +'</button>';
+  }).join('')+'</div>';
+  container.querySelectorAll('[data-hl-idx]').forEach(function(btn){
+    btn.onclick=function(){openHighlightsViewer(items,parseInt(btn.getAttribute('data-hl-idx'),10));};
+  });
 }
 async function openProfileModal(uid){
   let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
@@ -7469,9 +7656,10 @@ async function openProfileModal(uid){
   }
   const renderEl=\$('pm-render');
   if(renderEl){
-    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{mutualCount:mutualCount,showLastSeen:!isSelf});
+    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{mutualCount:mutualCount,showLastSeen:!isSelf,showHighlights:true});
     wireBadgeChips(renderEl.querySelector('.pc-badges'));
     mountProfileCardExtras(renderEl);
+    loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
   }
   const shareBtn=\$('pm-share');
   if(shareBtn){
@@ -7565,8 +7753,16 @@ function refreshSelfBar(){
   const myStatus=meProfile.statusManual||'online';
   const myDef=PRESENCE_DEFS[myStatus]||PRESENCE_DEFS.online;
   const myExtra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
+  // Bug remonté via Bug Hunter par hi : ajouter une photo UNIQUEMENT via la
+  // galerie d'avatars (sans jamais définir le champ "avatar" principal, resté
+  // vide) faisait bien apparaître la photo sur la carte de profil (qui, elle,
+  // retombe déjà sur la galerie) mais jamais dans la barre utilisateur en bas
+  // à gauche, qui ne regardait que ce champ précis — initiales affichées à la
+  // place malgré une vraie photo de profil déjà choisie.
+  const myGallery=Array.isArray(myExtra.avatarGallery)?myExtra.avatarGallery:[];
+  const myAvatarUrl=safeUrl(meProfile.avatar)||safeUrl(myGallery[0]);
   if(myExtra.useBitmoji&&myExtra.bitmoji)av.innerHTML=renderBitmojiSvg(myExtra.bitmoji)+'<span class="dot" style="background:'+myDef.dot+'"></span>';
-  else if(safeUrl(meProfile.avatar))av.innerHTML='<img src="'+esc(safeUrl(meProfile.avatar))+'" alt=""/><span class="dot" style="background:'+myDef.dot+'"></span>';
+  else if(myAvatarUrl)av.innerHTML='<img src="'+esc(myAvatarUrl)+'" alt=""/><span class="dot" style="background:'+myDef.dot+'"></span>';
   else av.innerHTML=esc(ini(name))+'<span class="dot" style="background:'+myDef.dot+'"></span>';
   const dotEl=\$('ub-presence-dot');if(dotEl)dotEl.style.background=myDef.dot;
   const statusEl=\$('ub-status');if(statusEl)statusEl.textContent=myDef.label;
@@ -7915,14 +8111,18 @@ function wirePeInputs(){
       updatePePreview();
     }catch(e){\$('pe-err').textContent='Envoi de la photo impossible.';}
   });
-  if(\$('pe-banner-file'))\$('pe-banner-file').addEventListener('change',async function(){
-    const f=this.files&&this.files[0];if(!f)return;
-    try{
-      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),f,[Appwrite.Permission.read(Appwrite.Role.any())]);
-      peDraft.bg=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-      peDraft.bgType='image';\$('pe-bgtype').value='image';
-      updatePePreview();
-    }catch(e){\$('pe-err').textContent='Envoi de la bannière impossible.';}
+  if(\$('pe-banner-file'))\$('pe-banner-file').addEventListener('change',function(){
+    const f=this.files&&this.files[0];this.value='';if(!f)return;
+    openBannerCropModal(f,async function(blob){
+      if(!blob)return;
+      try{
+        const cropped=new File([blob],'banner.jpg',{type:'image/jpeg'});
+        const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),cropped,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        peDraft.bg=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+        peDraft.bgType='image';\$('pe-bgtype').value='image';
+        updatePePreview();
+      }catch(e){\$('pe-err').textContent='Envoi de la bannière impossible.';}
+    });
   });
 }
 wirePeInputs();
@@ -10081,6 +10281,19 @@ function openStoryViewer(uid,startIndex){
   overlay.classList.add('show');
   renderStoryViewerFrame();
 }
+// Réutilise toute la mécanique du visionneur de stories normal (barres de
+// progression, tap gauche/droite, réponses…) pour les stories "à la une" —
+// seule différence : la liste vient d'une requête dédiée (sans filtre sur
+// expiresAt) plutôt que du cache des stories actives de storiesByUid().
+function openHighlightsViewer(items,startIndex){
+  if(!items||!items.length)return;
+  storyViewerState={uid:items[0].uid,items:items,index:startIndex||0,raf:null};
+  let overlay=\$('story-viewer-overlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='story-viewer-overlay';overlay.className='story-viewer-overlay';document.body.appendChild(overlay);}
+  overlay.style.zIndex='';
+  overlay.classList.add('show');
+  renderStoryViewerFrame();
+}
 function closeStoryViewer(){
   if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
   storyViewerState=null;
@@ -10130,7 +10343,7 @@ function renderStoryViewerFrame(){
   const av=p&&safeUrl(p.avatar);
   let viewers=[];try{viewers=JSON.parse(s.viewerUidsJson||'[]');}catch(e){}
   overlay.innerHTML='<div class="story-viewer-bars">'+st.items.map(function(x,i){return '<div class="story-viewer-bar'+(i<st.index?' done':'')+'" data-bar="'+i+'"><div class="story-viewer-bar-fill"></div></div>';}).join('')+'</div>'
-    +'<div class="story-viewer-head"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div><div class="n">'+esc(name)+'</div><div class="t">'+esc(fmtRelTime(s.\$createdAt))+'</div></div><div class="spacer"></div>'+(isMine?'<button type="button" id="story-delete-btn" title="Supprimer">🗑️</button>':'')+'<button type="button" id="story-close-btn" title="Fermer">✕</button></div>'
+    +'<div class="story-viewer-head"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div><div class="n">'+esc(name)+'</div><div class="t">'+esc(fmtRelTime(s.\$createdAt))+'</div></div><div class="spacer"></div>'+(isMine?('<button type="button" id="story-feature-btn" title="'+(s.featured?'Retirer de la une':'Mettre à la une')+'">'+(s.featured?'⭐':'☆')+'</button>'):'')+(isMine?'<button type="button" id="story-delete-btn" title="Supprimer">🗑️</button>':'')+'<button type="button" id="story-close-btn" title="Fermer">✕</button></div>'
     +'<div class="story-viewer-media" id="story-viewer-media"><div class="story-viewer-tap-l" id="story-tap-l"></div><div class="story-viewer-tap-r" id="story-tap-r"></div></div>'
     +(s.caption?('<div class="story-viewer-caption">'+esc(s.caption)+'</div>'):'')
     +(isMine?('<div class="story-viewer-foot"><button type="button" id="story-viewers-btn">👁 '+viewers.length+' vue'+(viewers.length!==1?'s':'')+'</button></div>')
@@ -10148,6 +10361,18 @@ function renderStoryViewerFrame(){
   if(delBtn)delBtn.onclick=async function(){
     if(!confirm('Supprimer cette story ?'))return;
     try{await authPost('/api/stories/delete',{storyId:s.\$id});showToast('Story supprimée.');closeStoryViewer();}catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  const featBtn=\$('story-feature-btn');
+  if(featBtn)featBtn.onclick=async function(){
+    const goingFeatured=!s.featured;
+    if(goingFeatured&&s.visibility!=='public'&&!confirm('Mettre cette story à la une la rend visible publiquement sur ton profil (même si elle était réservée à tes amis), et elle n\\'expirera plus. Continuer ?'))return;
+    featBtn.disabled=true;
+    try{
+      await authPost('/api/stories/feature',{storyId:s.\$id,featured:goingFeatured});
+      s.featured=goingFeatured;if(goingFeatured)s.visibility='public';
+      renderStoryViewerFrame();
+      showToast(goingFeatured?'Ajoutée à la une !':'Retirée de la une.');
+    }catch(e){showToast((e&&e.message)||'Action impossible','error');featBtn.disabled=false;}
   };
   const viewersBtn=\$('story-viewers-btn');
   if(viewersBtn)viewersBtn.onclick=function(){openStoryViewersList(s.\$id);};
@@ -10319,6 +10544,7 @@ function ensureLeafletLoaded(){
     document.head.appendChild(link);
     const script=document.createElement('script');
     script.src='https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js';
+    script.crossOrigin='anonymous';
     script.onload=function(){jsReady=true;checkDone();};
     script.onerror=function(){reject(new Error('leaflet js load failed'));};
     document.head.appendChild(script);
@@ -11428,8 +11654,12 @@ async function refreshPushButtonState(){
   }catch(e){}
   pushSubscribed=subscribed;
   btn.classList.toggle('on',subscribed);
-  btn.textContent=subscribed?'🔔':'🔕';
+  // Bug remonté via Bug Hunter par Yani Neco : ne remplacer que l'icône
+  // perdait le libellé "Activer les notifications" du bouton statique
+  // (textContent écrasait tout, pas seulement l'emoji), laissant une ligne
+  // de menu avec juste une cloche et aucun texte.
   btn.title=subscribed?'Notifications activées':'Activer les notifications';
+  btn.textContent=(subscribed?'🔔':'🔕')+' '+btn.title;
 }
 async function enablePushNotifications(){
   if(!pushSupported()){alert('Les notifications ne sont pas supportées sur ce navigateur.');return}
@@ -17912,6 +18142,42 @@ async function handle(request) {
         profiles.push({ uid: uid, displayName: (p && (p.displayName || p.username)) || "Membre", avatar: p && p.avatar });
       }
       return new Response(JSON.stringify({ ok: true, viewers: profiles }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Story à la une — idée proposée par hi dans la boîte à idées : garder
+  // certaines stories visibles en permanence sur le profil, au-delà de leur
+  // expiration normale (comme les "Stories à la une" d'Instagram).
+  if (path === "/api/stories/feature" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const storyId = String((body && body.storyId) || "");
+      const featured = !!(body && body.featured);
+      const story = await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { asAdmin: true });
+      if (String(story.uid) !== String(acc.$id)) throw new Error("Tu ne peux mettre à la une que tes propres stories");
+      if (featured) {
+        const existing = await awFetch(
+          "/databases/" + AW_DB + "/collections/stories/documents?queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "featured", values: [true] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })),
+          { asAdmin: true }
+        );
+        if ((existing.total || 0) >= 20) throw new Error("Maximum 20 stories à la une");
+      }
+      // Une story mise à la une doit rester visible à quiconque consulte le
+      // profil, pas seulement à l'audience "amis" au moment de la
+      // publication d'origine — ses permissions passent donc à read("any")
+      // au même titre qu'une story publique, de façon irréversible (les
+      // retirer au dé-featured rouvrirait une fenêtre de confusion sur qui
+      // a pu la voir entre-temps).
+      const patchBody = { data: { featured: featured } };
+      if (featured) patchBody.permissions = ["read(\"any\")"];
+      await awFetch("/databases/" + AW_DB + "/collections/stories/documents/" + storyId, { method: "PATCH", asAdmin: true, body: patchBody });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
