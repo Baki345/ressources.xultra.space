@@ -9,7 +9,7 @@ const AW_KEY = "standard_dbd86d5c813301a5cb4fb65415361244856cd53019bf52cdac23e40
 // Yani Neco (6a8faae2001043f4f5c5, badge 🚬 CHAINSMOKER) ajoutée le 27 août
 // 2026 à la demande explicite de Shaman : accès owner complet, à égalité
 // avec Shaman lui-même (panneau admin en entier, ban/modération de
-// n'importe qui, gestion des plans XULTRA+...) — voir isShamanAccount() et
+// n'importe qui, gestion des plans X1+...) — voir isShamanAccount() et
 // resolveStaffRole() plus bas, seuls points où ce Set fait autorité.
 const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5"]);
 const MAINT_GATE = "xu_gate_Z-5olSXEZ3Gw3rgQPqhR_Y-o";
@@ -100,7 +100,7 @@ function randomInviteCode() {
 // Boosts de serveur : geste symbolique et gratuit (pas de passerelle de
 // paiement) — chaque membre peut activer/désactiver son propre boost, le
 // serveur accumule les boosts actifs, et franchir un palier débloque des
-// avantages pour TOUT le serveur (contrairement à XULTRA+ qui reste un
+// avantages pour TOUT le serveur (contrairement à X1+ qui reste un
 // avantage personnel du propriétaire).
 const SERVER_DISCOVERY_CATEGORIES = ["gaming", "musique", "art", "education", "technologie", "communaute", "autre"];
 const CREATOR_QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
@@ -2847,7 +2847,7 @@ a.bug-att-item{display:block}
           <input type="file" id="pe-avatar-file" accept="image/*" hidden/>
           <input type="file" id="pe-banner-file" accept="image/*" hidden/>
           <div class="pe-hint">📷 Survole ta photo ou ta bannière dans l'aperçu pour les changer</div>
-          <div class="pe-field"><span>Galerie de photos (façon Telegram, défilement auto)</span>
+          <div class="pe-field"><span>Galerie de photos (défilement automatique)</span>
             <div class="pe-gallery" id="pe-gallery"></div>
             <label class="pe-mini-upload"><input type="file" id="pe-gallery-file" accept="image/*" hidden/>➕ Ajouter une photo</label>
           </div>
@@ -5015,10 +5015,12 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'XULTRA+ devient X1+',
+    body:'L\\'abonnement premium change de nom : XULTRA+ s\\'appelle désormais X1+, partout sur le site (profil, paramètres, boosts de serveur, badge Légende du Bug). Rien ne change dans ce que ça débloque.'},
   {version:'3.2.0',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
     body:'Un très vieil appel jamais raccroché proprement (crash, fermeture du navigateur…) pouvait bloquer silencieusement tout nouvel appel pour toujours, expliquant "je ne reçois pas tes appels" — corrigé (la vérification anti-collision est maintenant limitée aux 2 dernières heures), avec un sondage de secours en plus de la connexion temps réel pour rattraper une notification d\\'appel manquée après une coupure réseau — merci "1e". Dans l\\'édition du profil, les pastilles de contour d\\'avatar remontaient par-dessus le titre de section au-dessus — merci Yani Neco. La recherche dans une conversation ne trouvait presque rien : les mots courts ("je", "tu"…) étaient silencieusement ignorés, et pour les conversations chiffrées de bout en bout, le texte cherché ne pouvait de toute façon jamais correspondre au texte chiffré stocké côté serveur — recherche déplacée côté client sur le texte déchiffré — merci "1e". Le bouton "Notifications activées" ne disait pas ce qui se passerait au clic — renommé en "Désactiver les notifications" — merci Yani Neco. Sur l\\'application de bureau, un échec d\\'activation des notifications ou de partage de position affiche maintenant un message clair expliquant la limitation de la plateforme, au lieu d\\'une erreur technique brute — merci "1e". Et l\\'anneau tournant du badge le plus prestigieux (LÉGENDE DU BUG) grandissait au lieu de rester un petit cercle bien ajusté à l\\'icône — merci Yani Neco.'},
   {version:'3.1.0',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
-    body:'Icônes des boutons d\\'appel refaites en SVG (fini les emoji baveux). Les tuiles caméra ne sont plus écrasées dans une hauteur fixe : chaque flux garde un vrai format 16:9, quelle que soit sa source. Pendant l\\'établissement de la connexion, un état s\\'affiche en direct sous le minuteur ("Connexion RTC en cours…", "Reconnexion…"), comme sur Discord. Un message reste maintenant dans la conversation à la fin de chaque appel — heure, décroché ou non, durée. Et si deux personnes s\\'appellent au même moment, celle qui appelle en second voit directement "Cette personne vous appelle déjà" au lieu d\\'un appel fantôme.'},
+    body:'Icônes des boutons d\\'appel refaites en SVG (fini les emoji baveux). Les tuiles caméra ne sont plus écrasées dans une hauteur fixe : chaque flux garde un vrai format 16:9, quelle que soit sa source. Pendant l\\'établissement de la connexion, un état s\\'affiche en direct sous le minuteur ("Connexion RTC en cours…", "Reconnexion…"). Un message reste maintenant dans la conversation à la fin de chaque appel — heure, décroché ou non, durée. Et si deux personnes s\\'appellent au même moment, celle qui appelle en second voit directement "Cette personne vous appelle déjà" au lieu d\\'un appel fantôme.'},
   {version:'3.0.0',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
     body:'Deux idées de la Boîte à idées, proposées par Yani Neco : choisir une photo/vidéo affiche maintenant un aperçu juste au-dessus de la barre de message avant l\\'envoi (avec possibilité d\\'écrire une légende, ou d\\'annuler si ce n\\'était pas le bon fichier) au lieu de l\\'envoyer instantanément ; et un nouveau thème "⚫ OLED" (Paramètres → Apparence) passe les principales surfaces de l\\'appli en noir profond, pour ménager la batterie et les dalles OLED.'},
   {version:'2.99.0',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
@@ -5054,7 +5056,7 @@ const CHANGELOG=[
   {version:'2.85.1',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
     body:'Petites finitions du salon vocal de serveur : rejoindre/quitter d\\'un autre membre ne fait plus clignoter les caméras déjà affichées (la grille ne touche plus que les tuiles qui changent). Bouton 📹 caméra ajouté aussi sur la petite barre d\\'appel flottante, pour l\\'activer sans avoir à rouvrir le salon. Et les boutons micro/caméra s\\'affichent grisés pour un simple auditeur d\\'un salon de scène.'},
   {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
-    body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille façon Discord remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
+    body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
   {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
     body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
   {version:'2.83.0',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
@@ -5072,7 +5074,7 @@ const CHANGELOG=[
   {version:'2.77.0',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
     body:'Nouvel onglet 📊 Aperçu dans les paramètres du serveur (visible à qui peut gérer le serveur) : nombre de membres, total de messages envoyés, un graphique des messages et des nouveaux membres sur les 7 derniers jours, et la liste des salons les plus actifs. De quoi voir d\\'un coup d\\'œil comment vit la communauté.'},
   {version:'2.76.0',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
-    body:'Chaque membre peut désormais se donner un pseudo qui ne s\\'affiche que sur un serveur donné (nom, messages, mentions, journal d\\'audit…) sans toucher au nom global du compte — comme sur Discord. Change le tien depuis l\\'onglet Membres du serveur (bouton 🏷️ Pseudo). Les propriétaires peuvent accorder une nouvelle permission "Gérer les pseudos" à un rôle pour laisser des modérateurs renommer les autres membres (jamais le propriétaire, jamais quelqu\\'un d\\'un rang égal ou supérieur).'},
+    body:'Chaque membre peut désormais se donner un pseudo qui ne s\\'affiche que sur un serveur donné (nom, messages, mentions, journal d\\'audit…) sans toucher au nom global du compte. Change le tien depuis l\\'onglet Membres du serveur (bouton 🏷️ Pseudo). Les propriétaires peuvent accorder une nouvelle permission "Gérer les pseudos" à un rôle pour laisser des modérateurs renommer les autres membres (jamais le propriétaire, jamais quelqu\\'un d\\'un rang égal ou supérieur).'},
   {version:'2.75.0',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
     body:'Les salons de serveur passent aux mêmes fonctionnalités que les messages privés (à l\\'exception des streaks 🔥 et des Ephem 👻, qui restent propres aux DM) : envoie des photos, vidéos et fichiers (avec barre de progression), colle une image directement dans la zone de texte, ajoute un GIF, partage ta position, ou maintiens le nouveau bouton micro pour un message vocal — exactement comme en DM. Et pendant qu\\'on y était : Bitmoji est renommé xMoji, et Snap devient Ephem, partout sur le site.'},
   {version:'2.74.0',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
@@ -5090,7 +5092,7 @@ const CHANGELOG=[
   {version:'2.69.0',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
     body:'Clique sur le tag d\\'un serveur (comme le badge Bug Hunter) : une petite page de présentation s\\'ouvre, avec l\\'icône, le nom et une description de la guilde. Le propriétaire peut la personnaliser depuis les paramètres du serveur — 7 thèmes animés au choix (Aurore, Feu, Océan, Vide stellaire, Coucher de soleil, Matrice…) avec dégradés qui bougent et effets de particules (étincelles, braises, étoiles, bulles, neige), couleurs du titre et du texte, ou carrément écrire son propre CSS pour un design 100% sur-mesure.'},
   {version:'2.68.0',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
-    body:'Nouvelle option 👻 Snap éphémère dans le trombone des messages privés : une photo ou vidéo qui se supprime réellement du serveur dès que le destinataire l\\'ouvre (vu une fois, comme sur Snapchat) — jamais possible en groupe, seulement en conversation 1:1. Envoie-en un chaque jour avec la même personne pour construire un streak 🔥, affiché en haut de la conversation et dans la liste des messages : il grandit tant que vous vous envoyez chacun au moins un snap le même jour, et repart de zéro si un jour est manqué.'},
+    body:'Nouvelle option 👻 Snap éphémère dans le trombone des messages privés : une photo ou vidéo qui se supprime réellement du serveur dès que le destinataire l\\'ouvre (vu une fois) — jamais possible en groupe, seulement en conversation 1:1. Envoie-en un chaque jour avec la même personne pour construire un streak 🔥, affiché en haut de la conversation et dans la liste des messages : il grandit tant que vous vous envoyez chacun au moins un snap le même jour, et repart de zéro si un jour est manqué.'},
   {version:'2.67.1',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
     body:'Le sélecteur de tag de serveur récupérait la liste des serveurs avec un jeton de session parfois périmé (jusqu\\'à 15 minutes après la connexion), au lieu d\\'en redemander un frais comme le reste du site — dans ce cas la requête échouait silencieusement et le panneau affichait "Rejoins ou crée un serveur avec un tag configuré" même si un tag existait bel et bien. Corrigé.'},
   {version:'2.67.0',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
@@ -5138,7 +5140,7 @@ const CHANGELOG=[
   {version:'2.53.1',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
     body:'Jusqu\\'ici, un appareil qui ne pouvait pas encore lire tes messages chiffrés ne pouvait être réparé que via une petite bannière proposée automatiquement à la connexion, facile à manquer ou à fermer par erreur. Ajout dans Paramètres → Confidentialité et sécurité → Messages chiffrés : entre ton mot de passe à tout moment pour restaurer l\\'accès à tes messages sur l\\'appareil que tu utilises, sans attendre une bannière.'},
   {version:'2.53.0',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
-    body:'Nouvelle section 🚀 Boosts dans les paramètres d\\'un serveur : n\\'importe quel membre peut le booster (geste gratuit et symbolique), et plus il y a de boosts actifs, plus le serveur débloque d\\'avantages pour TOUT le monde — palier 2 : qualité audio/vidéo XULTRA+ pour tous les membres, sans dépendre de l\\'abonnement du propriétaire ; palier 3 : le code d\\'invitation devient personnalisable (ex. "MONSERVEUR" au lieu d\\'une suite de caractères aléatoires).'},
+    body:'Nouvelle section 🚀 Boosts dans les paramètres d\\'un serveur : n\\'importe quel membre peut le booster (geste gratuit et symbolique), et plus il y a de boosts actifs, plus le serveur débloque d\\'avantages pour TOUT le monde — palier 2 : qualité audio/vidéo X1+ pour tous les membres, sans dépendre de l\\'abonnement du propriétaire ; palier 3 : le code d\\'invitation devient personnalisable (ex. "MONSERVEUR" au lieu d\\'une suite de caractères aléatoires).'},
   {version:'2.52.0',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
     body:'Chatroulette : l\\'appel vocal démarre maintenant automatiquement dès la mise en relation, plus besoin de le proposer manuellement (la caméra, elle, reste toujours ton propre choix). Nouveau 🎰 Casino (juste sous 🎲 Chatroulette) : jetons fictifs sans valeur réelle, pour défier d\\'autres membres en duel — pile ou face et dés pour commencer, d\\'autres jeux à venir. Et dans Paramètres → Confidentialité et sécurité → Utilisateurs bloqués, retrouve enfin la liste de qui tu as bloqué pour débloquer en un clic.'},
   {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
@@ -5148,7 +5150,7 @@ const CHANGELOG=[
   {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
     body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. XULTRA détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
   {version:'2.49.3',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
-    body:'Tu peux maintenant sélectionner plusieurs photos/vidéos dans la galerie en une fois : elles se publient à la suite comme autant de stories séparées, avec les mêmes réglages (visibilité, durée, position). Le visionnage se rapproche encore plus d\\'Instagram : appuie et maintiens pour mettre en pause, réagis avec une réaction rapide ou réponds directement en message privé à la story de quelqu\\'un, et ton propre rond de story a maintenant son "+" toujours accessible pour en ajouter une de plus.'},
+    body:'Tu peux maintenant sélectionner plusieurs photos/vidéos dans la galerie en une fois : elles se publient à la suite comme autant de stories séparées, avec les mêmes réglages (visibilité, durée, position). Le visionnage s\\'enrichit encore : appuie et maintiens pour mettre en pause, réagis avec une réaction rapide ou réponds directement en message privé à la story de quelqu\\'un, et ton propre rond de story a maintenant son "+" toujours accessible pour en ajouter une de plus.'},
   {version:'2.49.2',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
     body:'À la publication d\\'une story publique, choisis maintenant comment elle apparaît sur la carte "Découvrir" : Précise (ta position réelle), Approximative (ta position réelle, floutée à l\\'échelle du quartier pour rester discret) ou Simulée (touche une petite carte pour placer ta story où tu veux, sans lien avec ta position réelle) — ou "Aucune" si tu ne veux pas apparaître dessus du tout.'},
   {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs XULTRA + capture directe caméra',
@@ -5206,13 +5208,13 @@ const CHANGELOG=[
   {version:'2.36.0',date:'23 août 2026',time:'22:15',title:'Hiérarchie des rôles et permissions par salon dans les Serveurs',
     body:'Les rôles ont maintenant une position : ceux du haut de la liste sont plus puissants (leur couleur prime sur le pseudo, et un membre ne peut plus créer, modifier, supprimer ou attribuer un rôle égal ou supérieur au sien — seul le propriétaire y échappe). Boutons ▲▼ pour réorganiser. Chaque salon accepte désormais des permissions avancées par rôle (Voir / Écrire : autoriser ou refuser), en plus de la visibilité simple. Les rôles marqués "mentionnable" sont surlignés quand on écrit @NomDuRôle dans un salon texte.'},
   {version:'2.35.0',date:'24 août 2026',time:'05:15',title:'Salons multiples et catégories dans les Serveurs',
-    body:'Chaque serveur peut maintenant avoir plusieurs salons texte et vocaux, organisés en catégories — comme sur Discord. Les membres avec la permission "Gérer les salons" (ou "Gérer le serveur") peuvent créer des salons, les ranger en catégories, et restreindre certains salons à des rôles précis (les autres ne les voient même pas dans la liste). Les salons texte ont maintenant un vrai chat en temps réel, et chaque salon vocal a son propre salon LiveKit indépendant.'},
+    body:'Chaque serveur peut maintenant avoir plusieurs salons texte et vocaux, organisés en catégories. Les membres avec la permission "Gérer les salons" (ou "Gérer le serveur") peuvent créer des salons, les ranger en catégories, et restreindre certains salons à des rôles précis (les autres ne les voient même pas dans la liste). Les salons texte ont maintenant un vrai chat en temps réel, et chaque salon vocal a son propre salon LiveKit indépendant.'},
   {version:'2.34.2',date:'24 août 2026',time:'04:20',title:'Correctif : les caméras envahissaient le chat pendant un appel privé',
     body:'Quand un appel vidéo était actif dans la conversation que tu regardais, les caméras s\\'affichaient en grand directement au-dessus des messages, poussant toute la conversation hors de vue. Elles démarrent maintenant réduites en une petite pastille discrète ("Webcam active · toucher pour afficher") — un simple tap suffit pour les afficher en grand quand tu veux vraiment les voir.'},
   {version:'2.34.1',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
     body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de XULTRA.'},
   {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
-    body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…) — comme sur Discord. Chaque serveur a son propre salon vocal persistant. Et si tu es XULTRA+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
+    body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…). Chaque serveur a son propre salon vocal persistant. Et si tu es X1+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
   {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
     body:'Corrigé : la photo de profil de l\\'interlocuteur n\\'apparaissait jamais dans l\\'en-tête d\\'une conversation privée (seulement ses initiales) — elle s\\'affiche maintenant correctement. Autre correctif plus important : la sauvegarde chiffrée qui permet de lire ses anciens messages en changeant d\\'appareil ne se déclenchait que lors d\\'une vraie reconnexion avec mot de passe — une session simplement restaurée à la réouverture de l\\'app (le cas le plus courant) ne l\\'activait jamais. Un petit bandeau propose maintenant de confirmer son mot de passe pour l\\'activer si ce n\\'est pas déjà fait, avec vérification du mot de passe avant de sauvegarder quoi que ce soit.'},
   {version:'2.32.1',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
@@ -5230,7 +5232,7 @@ const CHANGELOG=[
   {version:'2.29.0',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
     body:'Les appels vocaux et vidéo (en privé comme en groupe) passaient jusqu\\'ici par un relai gratuit tiers, souvent saturé — d\\'où les cas où la caméra restait noire ou le son ne passait pas chez l\\'un des deux. XULTRA a maintenant son propre serveur dédié pour relayer les appels quand une connexion directe entre deux appareils n\\'est pas possible (réseaux mobiles, certains routeurs). Ça devrait nettement améliorer la fiabilité des appels pour tout le monde.'},
   {version:'2.28.0',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
-    body:'Un nouvel onglet ⭐ Abonnement apparaît dans Paramètres → Mon compte. Si tu as XULTRA+ à vie (en devenant 👑 Légende du Bug, palier ultime du Bug Hunter), tu y retrouves ton statut et la date d\\'obtention. Sinon, un simple bouton « Je suis intéressé(e) » permet de nous faire savoir que XULTRA+ t\\'intéresse — ça nous aide à savoir si ça vaut le coup de le développer davantage.'},
+    body:'Un nouvel onglet ⭐ Abonnement apparaît dans Paramètres → Mon compte. Si tu as X1+ à vie (en devenant 👑 Légende du Bug, palier ultime du Bug Hunter), tu y retrouves ton statut et la date d\\'obtention. Sinon, un simple bouton « Je suis intéressé(e) » permet de nous faire savoir que X1+ t\\'intéresse — ça nous aide à savoir si ça vaut le coup de le développer davantage.'},
   {version:'2.27.2',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
     body:'Cliquer sur la cloche 🔔 ouvrait bien le panneau de notifications, mais te renvoyait aussitôt sur la liste d\\'amis derrière, à cause d\\'un vieux bout de code en double resté par erreur. Corrigé : la cloche ouvre maintenant seulement tes notifications, sans changer d\\'onglet.'},
   {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
@@ -5240,7 +5242,7 @@ const CHANGELOG=[
   {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
     body:'Cinq nouveaux bugs corrigés grâce à vos rapports. Les photos de profil manquaient aussi dans les messages privés (en plus de la liste d\\'amis) — corrigé. Les pronoms, le cadre de photo de profil et les préférences de confidentialité ne s\\'enregistraient plus depuis peu à cause d\\'un souci de permissions côté serveur — corrigé. Les clés d\\'accès ne se retrouvaient qu\\'avec l\\'e-mail exact et non le pseudo#tag, à cause d\\'un e-mail mal synchronisé après un changement d\\'adresse — corrigé. Et surtout : tes messages privés chiffrés ne sont plus perdus quand tu changes d\\'appareil ou de navigateur — ta clé de déchiffrement est maintenant sauvegardée (chiffrée avec ton mot de passe, jamais en clair) pour être restaurée automatiquement à ta prochaine connexion ailleurs.'},
   {version:'2.25.0',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
-    body:'Le badge 🐛 Bug Hunter a maintenant 5 paliers, du plus petit au plus grand : 🔍 Chasseur Novice (1 bug résolu), 🐛 Chasseur Confirmé (5), 🕷️ Chasseur Expert (10, débloque un accès en avant-première à certaines nouveautés), ⚔️ Exterminateur (25, accès en avant-première prioritaire), et 👑 Légende du Bug (50 — le sommet, avec XULTRA+ offert à vie). Chaque palier est plus stylé que le précédent, calculé automatiquement selon tes rapports de bugs résolus. Suis ta progression dans le panneau Bug Hunter.'},
+    body:'Le badge 🐛 Bug Hunter a maintenant 5 paliers, du plus petit au plus grand : 🔍 Chasseur Novice (1 bug résolu), 🐛 Chasseur Confirmé (5), 🕷️ Chasseur Expert (10, débloque un accès en avant-première à certaines nouveautés), ⚔️ Exterminateur (25, accès en avant-première prioritaire), et 👑 Légende du Bug (50 — le sommet, avec X1+ offert à vie). Chaque palier est plus stylé que le précédent, calculé automatiquement selon tes rapports de bugs résolus. Suis ta progression dans le panneau Bug Hunter.'},
   {version:'2.24.0',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
     body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour XULTRA, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
   {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
@@ -6090,12 +6092,12 @@ function renderSetSubscription(box){
   const grantedByLabel=meta.planAssignedBy==='hunter_tier5'?'👑 Palier Bug Hunter ultime — Légende du Bug (50 bugs résolus)':(meta.planAssignedBy||'');
   box.innerHTML='<h2>Abonnement</h2><div class="sc-desc">Ton statut sur XULTRA.</div>'
     +(isPlus?
-      ('<div class="set-card"><div class="pc-xultraplus" style="font-size:.85rem;padding:8px 16px">⭐ XULTRA+ À VIE</div>'
+      ('<div class="set-card"><div class="pc-xultraplus" style="font-size:.85rem;padding:8px 16px">⭐ X1+ À VIE</div>'
         +'<div class="scr-sub" style="margin-top:12px">Obtenu'+(grantedDate?(' le '+grantedDate):'')+' — '+esc(grantedByLabel)+'.</div>'
         +'<div class="scr-sub" style="margin-top:8px">Merci infiniment pour ton aide à améliorer XULTRA. Ce statut est permanent et ne te sera jamais retiré.</div></div>')
       :
-      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">XULTRA+ n\\'est pas encore en vente — mais tu peux l\\'obtenir gratuitement à vie en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div>'
-        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Envie de XULTRA+ ?</div><div class="scr-sub">'+(interested?'Merci ! On te préviendra dès que ce sera disponible.':'Dis-le-nous : ça nous aide à savoir si ça vaut le coup.')+'</div></div><button type="button" class="set-mini-btn" id="sub-interest-btn"'+(interested?' disabled':'')+'>'+(interested?'✓ Merci !':'Je suis intéressé(e)')+'</button></div>'
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">X1+ n\\'est pas encore en vente — mais tu peux l\\'obtenir gratuitement à vie en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div>'
+        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Envie de X1+ ?</div><div class="scr-sub">'+(interested?'Merci ! On te préviendra dès que ce sera disponible.':'Dis-le-nous : ça nous aide à savoir si ça vaut le coup.')+'</div></div><button type="button" class="set-mini-btn" id="sub-interest-btn"'+(interested?' disabled':'')+'>'+(interested?'✓ Merci !':'Je suis intéressé(e)')+'</button></div>'
         +'</div>'));
   wireSetSubscription(box);
 }
@@ -6684,7 +6686,7 @@ const BADGE_DEFS={
   hunter2:{icon:'🐛',label:'CHASSEUR CONFIRMÉ',color:'#22c55e',desc:"5 bugs traqués et corrigés grâce à toi. Tu commences vraiment à avoir l'œil pour repérer ce qui cloche."},
   hunter3:{icon:'🕷️',label:'CHASSEUR EXPERT',color:'#f59e0b',desc:"10 bugs validés et résolus — ce badge or qui brille pour de vrai. À partir de ce niveau, tu débloques un accès en avant-première à certaines nouvelles fonctionnalités avant tout le monde."},
   hunter4:{icon:'⚔️',label:'EXTERMINATEUR',color:'#ef4444',desc:"25 bugs éliminés. Un vrai fléau pour les failles de XULTRA. Ton accès en avant-première devient prioritaire : tu testes les nouveautés parmi les tout premiers."},
-  hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et XULTRA+ offert à vie en reconnaissance. Un immense merci."},
+  hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et X1+ offert à vie en reconnaissance. Un immense merci."},
   early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
   creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe XULTRA aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
   chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que XULTRA n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."}
@@ -7889,7 +7891,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
       +((extra.customStatus&&!(extra.customStatusExpiresAt&&new Date(extra.customStatusExpiresAt).getTime()<=Date.now()))?'<div class="pc-custom-status">'+esc(extra.customStatus)+'</div>':'')
       +(badges?'<div class="pc-badges">'+badgeChipsHtml(badges)+'</div>':'')
-      +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ XULTRA+ À VIE</div>':'')
+      +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ X1+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
@@ -14641,7 +14643,7 @@ function switchServerTab(tab){
 document.querySelectorAll('#srv-tabs .srv-tab').forEach(function(b){
   b.addEventListener('click',function(){switchServerTab(b.getAttribute('data-srv-tab'));});
 });
-const SERVER_QUALITY_LABELS={standard:'Standard (64 kbps)',high:'Haute fidélité XULTRA+ (256 kbps)','720p60':'720p · 60 img/s',"1080p60":'1080p · 60 img/s'};
+const SERVER_QUALITY_LABELS={standard:'Standard (64 kbps)',high:'Haute fidélité X1+ (256 kbps)','720p60':'720p · 60 img/s',"1080p60":'1080p · 60 img/s'};
 async function loadServerChannels(){
   if(!activeServer)return;
   try{
@@ -15669,7 +15671,7 @@ function openServerEventCreateForm(){
     +'<div class="set-row"><label>Début</label><input type="datetime-local" id="ev-start" class="field-input"></div>'
     +'<div class="set-row"><label>Fin (optionnel)</label><input type="datetime-local" id="ev-end" class="field-input"></div>'
     +'<div class="set-row"><label>Salon lié (optionnel)</label><select id="ev-channel" class="field-input"><option value="">Aucun</option>'+channelOptions+'</select></div>'
-    +'<div class="set-row"><label>Lieu externe (optionnel, si pas de salon)</label><input type="text" id="ev-location" class="field-input" maxlength="200" placeholder="Discord vocal, lien, adresse…"></div>'
+    +'<div class="set-row"><label>Lieu externe (optionnel, si pas de salon)</label><input type="text" id="ev-location" class="field-input" maxlength="200" placeholder="Salon vocal externe, lien, adresse…"</div>'
     +'<button type="button" class="btn-main" id="ev-create-go" style="width:100%;margin-top:6px">Créer</button>'
     +'<div class="err" id="ev-create-err"></div>'
     +'</div>';
@@ -16352,7 +16354,7 @@ async function renderServerSettingsTab(){
   if(isOwner&&!isPlus){
     try{const ownerMeta=await db.getDocument(DB,'user_meta',me.\$id);isPlus=!!(ownerMeta&&ownerMeta.plan==='plus');}catch(e){}
   }
-  const upsell='<div class="srv-upsell">⭐ Nécessite XULTRA+ (propriétaire) ou le palier de boost 2 — voir Paramètres → Abonnement, ou la section 🚀 Boosts ci-dessous</div>';
+  const upsell='<div class="srv-upsell">⭐ Nécessite X1+ (propriétaire) ou le palier de boost 2 — voir Paramètres → Abonnement, ou la section 🚀 Boosts ci-dessous</div>';
   box.innerHTML='<div class="set-card">'
     +'<div class="set-row"><label>Nom</label><input type="text" id="srv-set-name" class="field-input" maxlength="100" value="'+esc(activeServer.name)+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="srv-set-desc" class="field-input" maxlength="500" rows="3">'+esc(activeServer.description||'')+'</textarea></div>'
@@ -16455,7 +16457,7 @@ async function renderServerSettingsTab(){
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
     +SERVER_BOOST_THRESHOLDS.map(function(threshold,i){
       const lvl=i+1,unlocked=boostLevel>=lvl;
-      const perk=lvl===1?'Premier palier atteint — d\\'autres avantages arriveront à ce niveau':lvl===2?'Qualité audio/vidéo XULTRA+ débloquée pour tout le serveur':'Code d\\'invitation personnalisable';
+      const perk=lvl===1?'Premier palier atteint — d\\'autres avantages arriveront à ce niveau':lvl===2?'Qualité audio/vidéo X1+ débloquée pour tout le serveur':'Code d\\'invitation personnalisable';
       return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+(unlocked?'✅':'🔒')+' Palier '+lvl+' — '+threshold+' boosts</div><div class="scr-sub">'+esc(perk)+'</div></div></div>';
     }).join('')
     +'</div>'
@@ -16463,7 +16465,7 @@ async function renderServerSettingsTab(){
       +(boostLevel>=3?('<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>')
         :'<div class="srv-upsell">🚀 Nécessite le palier de boost 3 pour ce serveur</div>')
       +'</div>'):'')
-    +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité XULTRA+</div>'
+    +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité X1+</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité du partage d\\'écran</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.screenQualityKey||'720p60')==='720p60'?' on':'')+'" data-srv-quality-screen="720p60">720p60</button><button type="button" class="seg-btn'+(activeServer.screenQualityKey==='1080p60'?' on':'')+'" data-srv-quality-screen="1080p60"'+(isPlus?'':' disabled')+'>1080p60</button></div>'+(isPlus?'':upsell)+'</div>'
       +'</div>'
@@ -17214,7 +17216,7 @@ async function resolveLoginEmail(identifier) {
 
 // 5 paliers du badge Bug Hunter, calculés à partir du nombre de rapports de
 // bugs "resolved" appartenant à l'utilisateur. Le palier 5 (Légende du bug)
-// offre XULTRA+ à vie (user_meta.plan). Doit rester synchronisé avec
+// offre X1+ à vie (user_meta.plan). Doit rester synchronisé avec
 // HUNTER_TIERS côté client (dans le template APP) — même seuils, mêmes clés.
 const HUNTER_TIER_THRESHOLDS = [
   { tier: 1, min: 1, key: "hunter1" },
@@ -17263,7 +17265,7 @@ async function recomputeHunterBadge(uid) {
       }
     }
     if (targetTier && targetTier.tier === 5) {
-      // XULTRA+ à vie : pas de billing ni d'expiration dans cette appli, donc un
+      // X1+ à vie : pas de billing ni d'expiration dans cette appli, donc un
       // simple champ permanent suffit. Idempotent, jamais écrasé une fois posé.
       try {
         const meta2 = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, { asAdmin: true });
@@ -19297,7 +19299,7 @@ async function handle(request) {
   }
 
   if (path === "/api/account/plan-interest" && request.method === "POST") {
-    // Enregistre qu'un utilisateur a manifesté son intérêt pour XULTRA+ (bouton
+    // Enregistre qu'un utilisateur a manifesté son intérêt pour X1+ (bouton
     // dans Paramètres > Abonnement, pour un compte standard). Ne débloque rien :
     // sert uniquement à mesurer la demande. Même verrouillage que user_meta ailleurs.
     const acc = await resolveSessionUser(request);
@@ -19558,7 +19560,7 @@ async function handle(request) {
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
       if (String(server.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire peut changer la qualité");
       const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      // Deux chemins indépendants débloquent la meilleure qualité : XULTRA+
+      // Deux chemins indépendants débloquent la meilleure qualité : X1+
       // personnel du propriétaire (avantage individuel), OU le serveur a
       // atteint le palier de boost 2 (avantage collectif, gagné par les
       // membres — ne dépend pas du compte du propriétaire).
@@ -19568,12 +19570,12 @@ async function handle(request) {
       const data = {};
       if (typeof body.audioQualityKey === "string") {
         if (AUDIO_OK.indexOf(body.audioQualityKey) < 0) throw new Error("Qualité audio inconnue");
-        if (body.audioQualityKey !== "standard" && !isPlus) throw new Error("Cette qualité audio nécessite XULTRA+ ou que le serveur atteigne le palier de boost 2");
+        if (body.audioQualityKey !== "standard" && !isPlus) throw new Error("Cette qualité audio nécessite X1+ ou que le serveur atteigne le palier de boost 2");
         data.audioQualityKey = body.audioQualityKey;
       }
       if (typeof body.screenQualityKey === "string") {
         if (SCREEN_OK.indexOf(body.screenQualityKey) < 0) throw new Error("Qualité d'écran inconnue");
-        if (body.screenQualityKey !== "720p60" && !isPlus) throw new Error("Cette qualité de partage d'écran nécessite XULTRA+ ou que le serveur atteigne le palier de boost 2");
+        if (body.screenQualityKey !== "720p60" && !isPlus) throw new Error("Cette qualité de partage d'écran nécessite X1+ ou que le serveur atteigne le palier de boost 2");
         data.screenQualityKey = body.screenQualityKey;
       }
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
