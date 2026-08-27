@@ -3271,14 +3271,23 @@ function translateAuthError(msg){
 // besoin de retoucher cette page.
 (function initDesktopDownload(){
   const btn=\$('desktop-dl-btn');if(!btn)return;
-  const RELEASE_BASE='https://github.com/Baki345/ressources.xultra.space/releases/latest/download/';
+  // Hébergés dans un bucket Appwrite Storage dédié (desktop_builds, lecture
+  // publique) plutôt qu'en release GitHub : cette session n'a pas d'outil
+  // pour créer une release avec des assets binaires, et les installeurs
+  // dépassent de toute façon la limite d'envoi de fichier à l'utilisateur.
+  // Chaque fichier a un ID FIXE (jamais de numéro de version dedans) —
+  // publier une nouvelle version du desktop consiste à re-uploader sous le
+  // même ID, donc ces liens n'auront plus jamais besoin d'être retouchés ici.
+  const STORAGE_BASE='https://fra.cloud.appwrite.io/v1/storage/buckets/desktop_builds/files/';
+  const STORAGE_PROJECT='6a73b975002f14dc6b91';
   const PLATFORMS=[
-    {key:'win',label:'Windows',file:'XULTRA-Setup.exe',icon:'🪟'},
-    {key:'mac-arm',label:'Mac (Apple Silicon)',file:'XULTRA-mac-arm64.zip',icon:'🍎'},
-    {key:'mac-intel',label:'Mac (Intel)',file:'XULTRA-mac-x64.zip',icon:'🍎'},
-    {key:'linux-deb',label:'Linux (.deb)',file:'XULTRA.deb',icon:'🐧'},
-    {key:'linux-appimage',label:'Linux (AppImage)',file:'XULTRA.AppImage',icon:'🐧'}
+    {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
+    {key:'mac-arm',label:'Mac (Apple Silicon)',fileId:'xultra_dl_mac_arm64',icon:'🍎'},
+    {key:'mac-intel',label:'Mac (Intel)',fileId:'xultra_dl_mac_x64',icon:'🍎'},
+    {key:'linux-deb',label:'Linux (.deb)',fileId:'xultra_dl_linux_deb',icon:'🐧'},
+    {key:'linux-appimage',label:'Linux (AppImage)',fileId:'xultra_dl_linux_appimage',icon:'🐧'}
   ];
+  function dlUrl(p){return STORAGE_BASE+p.fileId+'/download?project='+STORAGE_PROJECT;}
   function detectPlatformKey(){
     const ua=navigator.userAgent||'',platform=navigator.platform||'';
     if(/Win/i.test(platform))return 'win';
@@ -3292,11 +3301,11 @@ function translateAuthError(msg){
   }
   const primary=PLATFORMS.find(function(p){return p.key===detectPlatformKey();})||PLATFORMS[0];
   \$('desktop-dl-os').textContent=primary.label;
-  btn.onclick=function(){location.href=RELEASE_BASE+primary.file;};
+  btn.onclick=function(){location.href=dlUrl(primary);};
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
     othersBox.innerHTML=PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
-      return '<a href="'+RELEASE_BASE+p.file+'">'+p.icon+' '+p.label+'</a>';
+      return '<a href="'+dlUrl(p)+'">'+p.icon+' '+p.label+'</a>';
     }).join('<span class="dl-sep">·</span>');
   }
 })();
