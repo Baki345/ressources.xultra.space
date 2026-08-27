@@ -56,11 +56,11 @@ async function signLiveKitJwt(payload) {
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(signingInput));
   return signingInput + "." + b64urlEncode(new Uint8Array(sig));
 }
-function mintLiveKitParticipantToken(identity, name, room) {
+function mintLiveKitParticipantToken(identity, name, room, canPublish) {
   const now = Math.floor(Date.now() / 1000);
   return signLiveKitJwt({
     iss: LIVEKIT_API_KEY, sub: identity, name: name, iat: now, nbf: now, exp: now + 6 * 3600,
-    video: { room: room, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true }
+    video: { room: room, roomJoin: true, canPublish: canPublish !== false, canSubscribe: true, canPublishData: true }
   });
 }
 // ===== Serveurs (communautés) : rôles, permissions, salon vocal persistant =====
@@ -218,6 +218,69 @@ async function computeChannelMessagePermissions(serverId, channel, threadUids) {
   } catch (e) {
     return []; // best-effort : le temps réel restera indisponible pour ce message, la lecture via la route fonctionne quand même
   }
+}
+// ===== Salons de scène (§ stage channels) =====
+// Repris de computeChannelMessagePermissions (mêmes règles de visibilité) mais
+// dédié à server_stage_state : un doc PAR salon de scène, jamais lu/écrit
+// directement par le client (toujours via ces routes /api/servers/stage/*),
+// sauf pour le temps réel où Appwrite exige que le lecteur ait explicitement
+// la permission "read" du document — d'où le recalcul de la liste précise des
+// membres ayant accès au salon, jamais un read("users") générique.
+async function computeChannelViewerReadPermissions(serverId, channel) {
+  try {
+    const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+    const membersData = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+    const rolesData = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+    const rolesById = {}; (rolesData.documents || []).forEach(function (r) { rolesById[r.$id] = r; });
+    const uids = [String(server.ownerId)];
+    (membersData.documents || []).forEach(function (m) {
+      const roleIds = m.roleIds || [];
+      const roles = roleIds.map(function (id) { return rolesById[id]; }).filter(Boolean);
+      const hasManage = roles.some(function (r) {
+        let perms = []; try { perms = JSON.parse(r.permissionsJson || "[]"); } catch (e) {}
+        return perms.indexOf("administrator") >= 0 || perms.indexOf("manage_server") >= 0 || perms.indexOf("manage_channels") >= 0;
+      });
+      const access = computeChannelAccess(channel, roleIds);
+      if (hasManage || access.view) uids.push(String(m.uid));
+    });
+    return Array.from(new Set(uids)).slice(0, 100).map(function (uid) { return "read(\"user:" + uid + "\")"; });
+  } catch (e) {
+    return [];
+  }
+}
+async function getOrCreateStageState(serverId, channel) {
+  const channelId = channel.$id;
+  try {
+    return await awFetch("/databases/" + AW_DB + "/collections/server_stage_state/documents/" + channelId, { asAdmin: true });
+  } catch (e) {
+    const perms = await computeChannelViewerReadPermissions(serverId, channel);
+    try {
+      return await awFetch("/databases/" + AW_DB + "/collections/server_stage_state/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: channelId, data: { serverId: serverId, channelId: channelId, topic: "", speakersJson: "[]", requestsJson: "[]" }, permissions: perms }
+      });
+    } catch (e2) {
+      // Deux personnes ont pu rejoindre le salon de scène tout neuf en même
+      // temps (get échoue pour les deux, la seconde création échoue) — la
+      // première a déjà créé le document, on le relit simplement.
+      return await awFetch("/databases/" + AW_DB + "/collections/server_stage_state/documents/" + channelId, { asAdmin: true });
+    }
+  }
+}
+async function updateStageState(serverId, channel, docId, data) {
+  const perms = await computeChannelViewerReadPermissions(serverId, channel);
+  return await awFetch("/databases/" + AW_DB + "/collections/server_stage_state/documents/" + docId, {
+    method: "PATCH", asAdmin: true, body: { data: data, permissions: perms }
+  });
+}
+async function serverIsStageModerator(serverId, uid, hasManage) {
+  if (hasManage) return true;
+  const gate = await serverCheckPermission(serverId, uid, "manage_voice");
+  return gate.ok;
 }
 // Crossposte un message d'un salon 📢 Annonces vers chaque salon qui le
 // suit (§ channel follows) — best-effort, une erreur sur UN suivi (salon
@@ -1769,6 +1832,11 @@ a.bug-att-item{display:block}
 .srv-chan-author{font-weight:800;font-size:.72rem;margin-right:4px}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+.srv-stage-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px}
+.srv-stage-topic-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
+.srv-stage-topic{font-weight:800;font-size:1rem}
+.srv-stage-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+.srv-stage-list .set-card-row{border-radius:10px;padding:8px 10px;border-bottom:none;background:rgba(255,255,255,.03)}
 .srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
 .srv-event-card{margin-bottom:10px}
 .srv-event-card.srv-event-past{opacity:.55}
@@ -4263,6 +4331,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.81.0',date:'27 août 2026',time:'00:30',title:'Serveurs : nouveaux salons 🎤 Scène',
+    body:'Nouveau type de salon pour les serveurs : la Scène. Tout le monde peut rejoindre pour écouter, mais seuls les orateurs (invités par la modération, ou qui lèvent la main puis sont acceptés) peuvent parler au micro. Sujet de scène personnalisable par la modération, liste des orateurs et des demandes de parole en temps réel, et possibilité de descendre de scène ou de retirer un orateur à tout moment.'},
   {version:'2.80.0',date:'26 août 2026',time:'23:00',title:'Studio Ephem : zoom, flash, mise au point, rotation, recadrage et sticker xMoji',
     body:'Bloc 3 du studio Ephem : zoom et flash 🔦 pendant la prise de vue (affichés seulement si ton appareil les supporte), mise au point en tapant sur l\\'image, un bouton 🔄 pour faire pivoter la photo par quarts de tour, un bouton ✂️ pour la recadrer (originale, carrée, 4:5 ou 9:16), et un nouveau type de sticker : ton xMoji, ajoutable directement depuis l\\'éditeur si tu en as configuré un.'},
   {version:'2.79.0',date:'26 août 2026',time:'22:00',title:'Studio Ephem : dessin libre et sauvegarde sur l\\'appareil',
@@ -12479,7 +12549,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
    Chaque participant n'envoie qu'un seul flux au serveur, qui le redistribue
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
-let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallGroupName='', groupWaveRaf=null;
+let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallGroupName='', groupWaveRaf=null, stageCanPublish=true;
 let groupPresenceDocId=null, groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
@@ -12578,7 +12648,7 @@ function wireGroupRoomEvents(room){
   });
 }
 const AUDIO_BITRATE_PRESETS={standard:64000,high:256000};
-async function joinVoiceRoom(contextType,contextId,roomLabel){
+async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
   if(!me)return;
   if(groupRoom){showToast('Tu es déjà dans un salon vocal.','error');return}
   if(typeof LivekitClient==='undefined'){showToast('Module d\\'appel indisponible, réessaie plus tard','error');xlog('livekit_sdk_missing',{});return}
@@ -12593,8 +12663,16 @@ async function joinVoiceRoom(contextType,contextId,roomLabel){
     groupRoom=room;groupCallContextType=contextType;groupCallContextId=contextId;groupCallGroupName=roomLabel||'Groupe';
     wireGroupRoomEvents(room);
     await room.connect(res.wsUrl,res.token);
+    // Sur un salon de scène, le jeton n'accorde le droit de publier qu'aux
+    // orateurs/modérateurs (res.canPublish) — un simple auditeur rejoint la
+    // room pour écouter sans jamais tenter d'activer son micro (le serveur
+    // LiveKit le refuserait de toute façon, autant ne pas déclencher la
+    // demande de permission micro du navigateur pour rien).
+    stageCanPublish=res.canPublish!==false;
     const audioBitrate=isServer?(AUDIO_BITRATE_PRESETS[res.audioQualityKey]||AUDIO_BITRATE_PRESETS.standard):AUDIO_BITRATE_PRESETS.standard;
-    await room.localParticipant.setMicrophoneEnabled(true,{audioPreset:{maxBitrate:audioBitrate}});
+    if(autoMic!==false&&stageCanPublish){
+      await room.localParticipant.setMicrophoneEnabled(true,{audioPreset:{maxBitrate:audioBitrate}});
+    }
     if(!isServer){
       try{
         const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
@@ -12637,7 +12715,7 @@ function cleanupGroupCall(){
     db.deleteDocument(DB,'group_call_presence',groupPresenceDocId).catch(function(){});
     groupPresenceDocId=null;
   }
-  groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';
+  groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';stageCanPublish=true;
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
 }
@@ -12648,6 +12726,7 @@ async function leaveGroupCall(){
 }
 if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
   if(!groupRoom)return;
+  if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir parler.','error');return}
   const enabledNow=groupRoom.localParticipant.isMicrophoneEnabled;
   await groupRoom.localParticipant.setMicrophoneEnabled(!enabledNow);
   \$('gcb-mute').classList.toggle('on',enabledNow);
@@ -12683,6 +12762,7 @@ const SERVER_PERM_DEFS=[
 ];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
+let stageState=null,stageStateUnsub=null,stageViewChannelId=null;
 let activeServerEmojis=[],activeServerStickers=[];
 let activeThread=null,channelThreadsCache=[];
 function serverHasPermission(permission){
@@ -12748,6 +12828,7 @@ function renderServersListView(){
 }
 function closeServerDetail(){
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+  if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
   activeServer=null;activeChannel=null;
   document.getElementById('app').classList.remove('chat-open');
   \$('server-active').classList.add('hidden');
@@ -12880,6 +12961,7 @@ async function openServerDetail(serverId){
     try{await ensureMembersCached(activeServerMembers.map(function(m){return m.uid;}));}catch(e){}
   }catch(e){activeServerMembers=[];activeServerMembership=null;}
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+  if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
   activeChannel=null;
   await loadServerChannels();
   try{
@@ -12946,7 +13028,7 @@ function renderServerOverviewTab(){
   else renderServerChannelList();
 }
 function serverChannelRowHtml(c,canManageChannels){
-  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(c.type==='voice'?'🔊':c.type==='forum'?'📋':c.type==='announcement'?'📢':'#')+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(srvChanTypeIcon(c.type))+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
     +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
     +'</div>';
 }
@@ -13077,9 +13159,16 @@ function wireSrvChanComposerExtra(disabled){
       target:{serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:''}};
   });
 }
+function srvChanTypeIcon(type){
+  return type==='voice'?'🔊':type==='stage'?'🎤':type==='forum'?'📋':type==='announcement'?'📢':'#';
+}
 function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
   if(activeThread)return renderThreadContent(box);
+  if(stageStateUnsub&&(activeChannel.type!=='stage'||activeChannel.\$id!==stageViewChannelId)){
+    try{stageStateUnsub();}catch(e){}
+    stageStateUnsub=null;stageViewChannelId=null;stageState=null;
+  }
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   const isTextLike=activeChannel.type==='text'||activeChannel.type==='announcement';
   const showQuickLock=canManageChannels&&(isTextLike||activeChannel.type==='forum');
@@ -13090,7 +13179,7 @@ function renderServerChannelContent(){
     +(activeChannel.type==='announcement'?'<button type="button" class="set-mini-btn" id="srv-chan-follow">🔗 Suivre</button>':'')
     +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
     +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(activeChannel.type==='voice'?'🔊':activeChannel.type==='forum'?'📋':activeChannel.type==='announcement'?'📢':'#')+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
@@ -13099,6 +13188,13 @@ function renderServerChannelContent(){
     wireServerChannelBack();
     const voiceBtn=\$('srv-voice-join');
     if(voiceBtn)voiceBtn.onclick=function(){joinVoiceRoom('channel',activeChannel.\$id,activeServer.name+' · '+activeChannel.name);};
+    return;
+  }
+  if(activeChannel.type==='stage'){
+    html+='<div class="srv-stage-card" id="srv-stage-body"><div class="empty-hint">Chargement…</div></div>';
+    box.innerHTML=html;
+    wireServerChannelBack();
+    loadStageChannel();
     return;
   }
   if(activeChannel.type==='forum'){
@@ -13151,6 +13247,140 @@ function renderServerChannelContent(){
   wireSrvChanComposerExtra(lockedForMe);
   wireQuickLock();
 }
+// Salon de scène : la position "orateur" est décidée par server_stage_state
+// (côté Worker, jamais localement) — cet écran n'en est qu'un reflet en
+// temps réel via Appwrite Realtime. Rejoindre/quitter le vocal LiveKit
+// réutilise group-call-bar (mêmes joinVoiceRoom/leaveGroupCall que les
+// salons vocaux normaux) ; seul le 4e argument (autoMic) change selon que
+// l'utilisateur rejoint en auditeur ou en orateur.
+async function loadStageChannel(){
+  if(!activeChannel)return;
+  const channelId=activeChannel.\$id,serverId=activeServer.\$id;
+  stageViewChannelId=channelId;
+  try{
+    stageState=await authPost('/api/servers/stage/state',{serverId:serverId,channelId:channelId});
+  }catch(e){
+    const bodyEl=\$('srv-stage-body');if(bodyEl)bodyEl.innerHTML='<div class="empty-hint">Impossible de charger la scène.</div>';
+    return;
+  }
+  if(!activeChannel||activeChannel.\$id!==channelId)return;
+  renderStageBody();
+  if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;}
+  stageStateUnsub=client.subscribe('databases.'+DB+'.collections.server_stage_state.documents.'+channelId,function(res){
+    if(!(eventIs(res.events,'.update')||eventIs(res.events,'.create')))return;
+    const payload=res.payload;
+    const wasSpeaker=!!(stageState&&stageState.amSpeaker);
+    let speakers=[],requests=[];
+    try{speakers=JSON.parse(payload.speakersJson||'[]');}catch(e){}
+    try{requests=JSON.parse(payload.requestsJson||'[]');}catch(e){}
+    const amSpeaker=!!(me&&speakers.some(function(s){return String(s.uid)===String(me.\$id);}));
+    const myRequestPending=!!(me&&requests.some(function(r){return String(r.uid)===String(me.\$id);}));
+    const wasMod=!!(stageState&&stageState.isMod);
+    stageState={topic:payload.topic||'',speakers:speakers,requests:wasMod?requests:[],isMod:wasMod,amSpeaker:amSpeaker,myRequestPending:myRequestPending};
+    if(activeChannel&&activeChannel.\$id===channelId)renderStageBody();
+    const inStageHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===channelId;
+    if(inStageHere&&wasSpeaker!==amSpeaker){
+      showToast(amSpeaker?'🎤 Tu es maintenant orateur sur cette scène !':'Tu as été renvoyé dans le public de la scène.');
+      const label=groupCallGroupName;
+      leaveGroupCall().then(function(){joinVoiceRoom('channel',channelId,label,amSpeaker);});
+    }
+  });
+}
+function renderStageBody(){
+  const bodyEl=\$('srv-stage-body');if(!bodyEl||!stageState||!activeChannel)return;
+  const s=stageState;
+  const inStageHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
+  let html='<div class="srv-stage-topic-row"><div class="srv-stage-topic">🎤 '+(s.topic?esc(s.topic):'<span class="scr-sub">Aucun sujet défini</span>')+'</div>'
+    +(s.isMod?'<button type="button" class="set-mini-btn" id="srv-stage-edit-topic">✏️</button>':'')+'</div>';
+  html+='<div class="set-section-label">Sur scène ('+s.speakers.length+')</div>'
+    +'<div class="srv-stage-list">'+(s.speakers.length?s.speakers.map(function(sp){
+      const isSelf=!!(me&&String(sp.uid)===String(me.\$id));
+      const canRemove=s.isMod||isSelf;
+      return '<div class="set-card-row"><div style="flex:1;min-width:0">🎤 <b>'+esc(sp.name)+'</b></div>'
+        +(canRemove?'<button type="button" class="set-mini-btn" data-stage-remove="'+esc(sp.uid)+'">'+(isSelf?'Descendre':'Retirer')+'</button>':'')
+        +'</div>';
+    }).join(''):'<div class="empty-hint">Personne sur scène pour l\\'instant.</div>')+'</div>';
+  if(s.isMod){
+    html+='<div class="set-section-label">🖐️ Demandes de parole ('+s.requests.length+')</div>'
+      +'<div class="srv-stage-list">'+(s.requests.length?s.requests.map(function(r){
+        return '<div class="set-card-row"><div style="flex:1;min-width:0"><b>'+esc(r.name)+'</b></div>'
+          +'<button type="button" class="set-mini-btn" data-stage-approve="'+esc(r.uid)+'">✅ Inviter</button>'
+          +'<button type="button" class="set-mini-btn danger" data-stage-decline="'+esc(r.uid)+'">✕</button>'
+          +'</div>';
+      }).join(''):'<div class="empty-hint">Aucune demande en attente.</div>')+'</div>';
+  }
+  let actionHtml;
+  if(!inStageHere){
+    actionHtml='<button type="button" class="btn-main" id="srv-stage-join" style="width:100%">🎧 Rejoindre la scène</button>';
+  }else if(s.amSpeaker){
+    actionHtml='<div class="scr-sub" style="text-align:center">🎤 Tu es orateur — utilise la barre en bas pour couper/réactiver ton micro.</div>';
+  }else if(s.myRequestPending){
+    actionHtml='<button type="button" class="set-mini-btn" id="srv-stage-cancel-request" style="width:100%">✋ Annuler ma demande de parole</button>';
+  }else{
+    actionHtml='<button type="button" class="btn-main" id="srv-stage-raise-hand" style="width:100%">🖐️ Demander la parole</button>';
+  }
+  html+='<div style="margin-top:6px">'+actionHtml+'</div>';
+  bodyEl.innerHTML=html;
+  wireStageBody();
+}
+function wireStageBody(){
+  const bodyEl=\$('srv-stage-body');if(!bodyEl||!activeChannel||!activeServer)return;
+  const serverId=activeServer.\$id,channelId=activeChannel.\$id;
+  const joinBtn=\$('srv-stage-join');
+  if(joinBtn)joinBtn.onclick=function(){
+    joinVoiceRoom('channel',channelId,activeServer.name+' · '+activeChannel.name,stageState.isMod||stageState.amSpeaker);
+  };
+  const raiseBtn=\$('srv-stage-raise-hand');
+  if(raiseBtn)raiseBtn.onclick=async function(){
+    raiseBtn.disabled=true;
+    try{
+      await authPost('/api/servers/stage/request-speak',{serverId:serverId,channelId:channelId});
+      stageState.myRequestPending=true;
+      renderStageBody();
+      showToast('Demande de parole envoyée.');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');raiseBtn.disabled=false;}
+  };
+  const cancelBtn=\$('srv-stage-cancel-request');
+  if(cancelBtn)cancelBtn.onclick=async function(){
+    cancelBtn.disabled=true;
+    try{
+      await authPost('/api/servers/stage/cancel-request',{serverId:serverId,channelId:channelId});
+      stageState.myRequestPending=false;
+      renderStageBody();
+    }catch(e){showToast((e&&e.message)||'Erreur','error');cancelBtn.disabled=false;}
+  };
+  const editTopicBtn=\$('srv-stage-edit-topic');
+  if(editTopicBtn)editTopicBtn.onclick=async function(){
+    const next=prompt('Sujet de la scène :',stageState.topic||'');
+    if(next===null)return;
+    try{
+      const r=await authPost('/api/servers/stage/set-topic',{serverId:serverId,channelId:channelId,topic:next});
+      stageState.topic=r.topic||'';
+      renderStageBody();
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+  };
+  bodyEl.querySelectorAll('[data-stage-remove]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;
+      try{await authPost('/api/servers/stage/remove-speaker',{serverId:serverId,channelId:channelId,uid:b.getAttribute('data-stage-remove')});}
+      catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+  bodyEl.querySelectorAll('[data-stage-approve]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;
+      try{await authPost('/api/servers/stage/add-speaker',{serverId:serverId,channelId:channelId,uid:b.getAttribute('data-stage-approve')});}
+      catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+  bodyEl.querySelectorAll('[data-stage-decline]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;
+      try{await authPost('/api/servers/stage/decline-request',{serverId:serverId,channelId:channelId,uid:b.getAttribute('data-stage-decline')});}
+      catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    });
+  });
+}
 function wireQuickLock(){
   const quickLock=\$('srv-chan-quicklock');
   if(!quickLock)return;
@@ -13173,6 +13403,7 @@ function wireServerChannelBack(){
   const back=\$('srv-chan-back');
   if(back)back.onclick=function(){
     if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+    if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
     clearReplyTarget('channel');
     activeChannel=null;
     activeThread=null;
@@ -14088,7 +14319,9 @@ const AUDIT_ACTION_LABELS={
   sticker_create:{icon:'🖼️',label:'a ajouté le sticker'},sticker_delete:{icon:'🖼️',label:'a supprimé le sticker'},
   widget_enable:{icon:'🧩',label:'a activé le widget du serveur'},widget_disable:{icon:'🧩',label:'a désactivé le widget du serveur'},
   channel_follow_add:{icon:'📢',label:'a abonné ce serveur au salon'},channel_follow_remove:{icon:'📢',label:'a désabonné ce serveur d\\'un salon suivi'},
-  nickname_set:{icon:'🏷️',label:'a changé le pseudo de'}
+  nickname_set:{icon:'🏷️',label:'a changé le pseudo de'},
+  stage_speaker_add:{icon:'🎤',label:'a invité sur scène'},stage_speaker_remove:{icon:'🎤',label:'a retiré de la scène'},
+  stage_topic_set:{icon:'🎤',label:'a défini le sujet de la scène :'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -14230,7 +14463,7 @@ function openServerChannelEditor(channel){
   box.innerHTML='<button type="button" class="set-mini-btn" id="srv-chaned-back" style="margin-bottom:12px">← Salons</button>'
     +'<div class="set-card">'
     +'<div class="set-row"><label>Nom du salon</label><input type="text" id="srv-chaned-name" class="field-input" maxlength="64" value="'+esc(channel?channel.name:'')+'" placeholder="général"></div>'
-    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button><button type="button" class="seg-btn" data-srv-chaned-type="forum">📋 Forum</button><button type="button" class="seg-btn" data-srv-chaned-type="announcement">📢 Annonces</button></div></div>'):'')
+    +(isNew?('<div class="set-row"><label>Type</label><div class="seg-group"><button type="button" class="seg-btn on" data-srv-chaned-type="text"># Texte</button><button type="button" class="seg-btn" data-srv-chaned-type="voice">🔊 Vocal</button><button type="button" class="seg-btn" data-srv-chaned-type="stage">🎤 Scène</button><button type="button" class="seg-btn" data-srv-chaned-type="forum">📋 Forum</button><button type="button" class="seg-btn" data-srv-chaned-type="announcement">📢 Annonces</button></div></div>'):'')
     +'<div class="set-row"><label>Catégorie</label><select id="srv-chaned-cat" class="field-input">'
       +'<option value="">Sans catégorie</option>'
       +activeServerCategories.map(function(c){return '<option value="'+esc(c.\$id)+'"'+((channel&&channel.categoryId===c.\$id)?' selected':'')+'>'+esc(c.name)+'</option>';}).join('')
@@ -18585,13 +18818,32 @@ async function handle(request) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
-      let server, room;
+      let server, room, canPublish = true;
       if (channelId) {
         const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
-        if (access.channel.type !== "voice") throw new Error("Ce salon n'est pas un salon vocal");
+        if (access.channel.type !== "voice" && access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon vocal");
         if (access.timedOut) throw new Error("Tu es en timeout, tu ne peux pas rejoindre le vocal pour le moment");
         server = access.server;
         room = "xu-channel-" + channelId;
+        if (access.channel.type === "stage") {
+          // Sur scène, seuls les modérateurs (auto-ajoutés comme orateurs à
+          // leur arrivée, comme sur Discord) et les membres déjà invités à
+          // parler (server_stage_state) reçoivent un jeton avec le droit de
+          // publier leur micro — tout le reste rejoint en simple auditeur.
+          const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+          const state = await getOrCreateStageState(serverId, access.channel);
+          let speakers = []; try { speakers = JSON.parse(state.speakersJson || "[]"); } catch (e) {}
+          const already = speakers.some(function (s) { return String(s.uid) === String(acc.$id); });
+          if (isMod && !already) {
+            const modProfile = await resolveProfile(acc.$id);
+            const modName = (modProfile && (modProfile.displayName || modProfile.username)) || acc.name || "Membre";
+            speakers.push({ uid: String(acc.$id), name: String(modName).slice(0, 60) });
+            await updateStageState(serverId, access.channel, state.$id, { speakersJson: JSON.stringify(speakers) }).catch(function () {});
+            canPublish = true;
+          } else {
+            canPublish = already;
+          }
+        }
       } else {
         server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
         const isOwner = String(server.ownerId) === String(acc.$id);
@@ -18604,11 +18856,190 @@ async function handle(request) {
       }
       const profile = await resolveProfile(acc.$id);
       const name = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      const token = await mintLiveKitParticipantToken(String(acc.$id), name, room);
+      const token = await mintLiveKitParticipantToken(String(acc.$id), name, room, canPublish);
       return new Response(JSON.stringify({
-        ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room,
+        ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room, canPublish: canPublish,
         audioQualityKey: server.audioQualityKey || "standard", screenQualityKey: server.screenQualityKey || "720p60"
       }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/state" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let speakers = [], requests = [];
+      try { speakers = JSON.parse(state.speakersJson || "[]"); } catch (e) {}
+      try { requests = JSON.parse(state.requestsJson || "[]"); } catch (e) {}
+      const myRequestPending = requests.some(function (r) { return String(r.uid) === String(acc.$id); });
+      return new Response(JSON.stringify({
+        ok: true, topic: state.topic || "", speakers: speakers, requests: isMod ? requests : [],
+        isMod: isMod, amSpeaker: speakers.some(function (s) { return String(s.uid) === String(acc.$id); }), myRequestPending: myRequestPending
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/request-speak" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      if (!access.access.send) throw new Error("Tu ne peux pas prendre la parole dans ce salon");
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let speakers = [], requests = [];
+      try { speakers = JSON.parse(state.speakersJson || "[]"); } catch (e) {}
+      try { requests = JSON.parse(state.requestsJson || "[]"); } catch (e) {}
+      if (speakers.some(function (s) { return String(s.uid) === String(acc.$id); })) throw new Error("Tu es déjà orateur sur cette scène");
+      if (!requests.some(function (r) { return String(r.uid) === String(acc.$id); })) {
+        const profile = await resolveProfile(acc.$id);
+        const name = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+        requests.push({ uid: String(acc.$id), name: String(name).slice(0, 60), at: new Date().toISOString() });
+        if (requests.length > 30) requests.shift();
+        await updateStageState(serverId, access.channel, state.$id, { requestsJson: JSON.stringify(requests) });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/cancel-request" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let requests = []; try { requests = JSON.parse(state.requestsJson || "[]"); } catch (e) {}
+      requests = requests.filter(function (r) { return String(r.uid) !== String(acc.$id); });
+      await updateStageState(serverId, access.channel, state.$id, { requestsJson: JSON.stringify(requests) });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/decline-request" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+      if (!isMod) throw new Error("Permission refusée");
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let requests = []; try { requests = JSON.parse(state.requestsJson || "[]"); } catch (e) {}
+      requests = requests.filter(function (r) { return String(r.uid) !== targetUid; });
+      await updateStageState(serverId, access.channel, state.$id, { requestsJson: JSON.stringify(requests) });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/add-speaker" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const targetUid = String((body && body.uid) || "");
+      if (!targetUid) throw new Error("Membre requis");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+      if (!isMod) throw new Error("Permission refusée");
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let speakers = [], requests = [];
+      try { speakers = JSON.parse(state.speakersJson || "[]"); } catch (e) {}
+      try { requests = JSON.parse(state.requestsJson || "[]"); } catch (e) {}
+      const fromRequest = requests.find(function (r) { return String(r.uid) === targetUid; });
+      requests = requests.filter(function (r) { return String(r.uid) !== targetUid; });
+      let targetName = fromRequest && fromRequest.name;
+      if (!targetName) {
+        const targetProfile = await resolveProfile(targetUid).catch(function () { return null; });
+        targetName = (targetProfile && (targetProfile.displayName || targetProfile.username)) || "Membre";
+      }
+      if (!speakers.some(function (s) { return String(s.uid) === targetUid; })) {
+        if (speakers.length >= 50) throw new Error("Trop d'orateurs sur cette scène");
+        speakers.push({ uid: targetUid, name: String(targetName).slice(0, 60) });
+      }
+      await updateStageState(serverId, access.channel, state.$id, { speakersJson: JSON.stringify(speakers), requestsJson: JSON.stringify(requests) });
+      const actorProfileStg = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfileStg && (actorProfileStg.displayName || actorProfileStg.username)) || acc.name, "stage_speaker_add", targetName, { channelId: channelId });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/remove-speaker" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const targetUid = String((body && body.uid) || acc.$id);
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+      if (!isMod && targetUid !== String(acc.$id)) throw new Error("Permission refusée");
+      const state = await getOrCreateStageState(serverId, access.channel);
+      let speakers = []; try { speakers = JSON.parse(state.speakersJson || "[]"); } catch (e) {}
+      const removed = speakers.find(function (s) { return String(s.uid) === targetUid; });
+      speakers = speakers.filter(function (s) { return String(s.uid) !== targetUid; });
+      await updateStageState(serverId, access.channel, state.$id, { speakersJson: JSON.stringify(speakers) });
+      if (isMod && targetUid !== String(acc.$id) && removed) {
+        const actorProfileStg2 = await resolveProfile(acc.$id);
+        await logServerAudit(serverId, acc.$id, (actorProfileStg2 && (actorProfileStg2.displayName || actorProfileStg2.username)) || acc.name, "stage_speaker_remove", removed.name || "Membre", { channelId: channelId });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/servers/stage/set-topic" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon de scène");
+      const isMod = await serverIsStageModerator(serverId, acc.$id, access.hasManage);
+      if (!isMod) throw new Error("Permission refusée");
+      const topic = String((body && body.topic) || "").trim().slice(0, 100);
+      const state = await getOrCreateStageState(serverId, access.channel);
+      await updateStageState(serverId, access.channel, state.$id, { topic: topic });
+      const actorProfileStg3 = await resolveProfile(acc.$id);
+      await logServerAudit(serverId, acc.$id, (actorProfileStg3 && (actorProfileStg3.displayName || actorProfileStg3.username)) || acc.name, "stage_topic_set", topic || "(aucun)", { channelId: channelId });
+      return new Response(JSON.stringify({ ok: true, topic: topic }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -18739,7 +19170,7 @@ async function handle(request) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const name = String((body && body.name) || "").trim().slice(0, 64);
       if (!name) throw new Error("Nom de salon requis");
-      const type = body.type === "voice" ? "voice" : body.type === "forum" ? "forum" : body.type === "announcement" ? "announcement" : "text";
+      const type = body.type === "voice" ? "voice" : body.type === "stage" ? "stage" : body.type === "forum" ? "forum" : body.type === "announcement" ? "announcement" : "text";
       const visibleRoleIds = Array.isArray(body.visibleRoleIds) ? body.visibleRoleIds.map(String) : [];
       const overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
