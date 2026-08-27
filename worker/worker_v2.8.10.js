@@ -1898,7 +1898,8 @@ a.bug-att-item{display:block}
 .srv-voice-member:hover{background:rgba(124,58,237,.1);color:#e9d5ff}
 .srv-voice-member-av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.62rem;font-weight:800}
 .srv-voice-member-av img{width:100%;height:100%;object-fit:cover}
-.srv-voice-member-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srv-voice-member-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srv-voice-member-cam{flex-shrink:0;font-size:.72rem;opacity:.85}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
@@ -4409,6 +4410,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.85.2',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
+    body:'Cliquer sur un salon vocal dans la liste le rejoint directement — plus besoin d\\'un second clic sur "Rejoindre". Et une petite icône 📹 apparaît maintenant à côté du pseudo de chaque membre connecté qui a sa caméra active, visible même sans être soi-même dans l\\'appel.'},
   {version:'2.85.1',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
     body:'Petites finitions du salon vocal de serveur : rejoindre/quitter d\\'un autre membre ne fait plus clignoter les caméras déjà affichées (la grille ne touche plus que les tuiles qui changent). Bouton 📹 caméra ajouté aussi sur la petite barre d\\'appel flottante, pour l\\'activer sans avoir à rouvrir le salon. Et les boutons micro/caméra s\\'affichent grisés pour un simple auditeur d\\'un salon de scène.'},
   {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
@@ -13077,6 +13080,13 @@ async function toggleStageCamera(){
   try{
     await groupRoom.localParticipant.setCameraEnabled(!enabledNow);
   }catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');return}
+  // Répercute l'état caméra sur le document de présence, pour que les
+  // membres qui regardent juste la liste des salons (sans être eux-mêmes
+  // dans l'appel) voient l'icône 📹 à côté du pseudo — la connexion LiveKit
+  // ne leur dit rien puisqu'ils n'ont pas rejoint la room.
+  if(groupPresenceDocId&&groupPresenceCollection==='server_voice_presence'){
+    db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{cameraOn:!enabledNow}).catch(function(){});
+  }
 }
 function wireChannelVoiceStage(){
   const micBtn=\$('cvs-mic-btn');
@@ -13552,6 +13562,7 @@ function serverChannelRowHtml(c,canManageChannels){
       return '<div class="srv-voice-member" data-srv-voice-member="'+esc(p.uid)+'">'
         +'<span class="srv-voice-member-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</span>'
         +'<span class="srv-voice-member-name">'+esc(name)+'</span>'
+        +(p.cameraOn?'<span class="srv-voice-member-cam" title="Caméra active">📹</span>':'')
         +'</div>';
     }).join('')+'</div>';
   }
@@ -13659,6 +13670,24 @@ function openServerChannel(channelId){
   activeChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
   if(!activeChannel)return;
   renderServerChannelContent();
+  // Un salon vocal se rejoint directement au clic sur son nom dans la liste
+  // — comme Discord — plutôt que d'exiger un second clic sur "Rejoindre"
+  // une fois la vue ouverte. startVoiceChannelJoin() ne fait rien si on est
+  // déjà connecté à CE salon, et refuse proprement si on est déjà dans un
+  // AUTRE salon vocal/appel.
+  if(activeChannel.type==='voice')startVoiceChannelJoin(activeChannel);
+}
+let joiningVoiceChannelId=null;
+function startVoiceChannelJoin(channel){
+  if(groupRoom&&groupCallContextType==='channel'&&groupCallContextId===channel.\$id)return;
+  if(groupRoom){showToast('Tu es déjà dans un salon vocal — quitte-le avant d\\'en rejoindre un autre.','error');return}
+  if(joiningVoiceChannelId===channel.\$id)return;
+  joiningVoiceChannelId=channel.\$id;
+  if(activeChannel&&activeChannel.\$id===channel.\$id)renderServerChannelContent();
+  joinVoiceRoom('channel',channel.\$id,activeServer.name+' · '+channel.name).finally(function(){
+    if(joiningVoiceChannelId===channel.\$id)joiningVoiceChannelId=null;
+    if(activeChannel&&activeChannel.\$id===channel.\$id)renderServerChannelContent();
+  });
 }
 /* ===== Composer de salon — mêmes fonctionnalités que les DM (pièces jointes,
    GIF, position, message vocal), sauf les streaks 🔥 et les Ephem 👻 qui
@@ -13749,12 +13778,13 @@ function renderServerChannelContent(){
       renderChannelVoiceStage();
       return;
     }
+    const isJoining=joiningVoiceChannelId===activeChannel.\$id;
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
-      +'<button type="button" class="btn-main" id="srv-voice-join">🎙️ Rejoindre</button></div>';
+      +'<button type="button" class="btn-main" id="srv-voice-join"'+(isJoining?' disabled':'')+'>'+(isJoining?'⏳ Connexion…':'🎙️ Rejoindre')+'</button></div>';
     box.innerHTML=html;
     wireServerChannelBack();
     const voiceBtn=\$('srv-voice-join');
-    if(voiceBtn)voiceBtn.onclick=function(){joinVoiceRoom('channel',activeChannel.\$id,activeServer.name+' · '+activeChannel.name);};
+    if(voiceBtn)voiceBtn.onclick=function(){startVoiceChannelJoin(activeChannel);};
     return;
   }
   if(activeChannel.type==='stage'){
@@ -19516,7 +19546,11 @@ async function handle(request) {
       // toujours le même document, donc rejoindre plusieurs fois écrase
       // proprement au lieu d'accumuler des doublons) tout en tenant dans la limite.
       const docId = "vp_" + (await sha256HexShort(channelId + ":" + acc.$id, 32));
-      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname };
+      // cameraOn repart toujours à false ici : rejoindre = une nouvelle
+      // session LiveKit où la caméra n'est jamais activée automatiquement,
+      // même si un ancien document trainait avec cameraOn:true suite à une
+      // déconnexion brutale (crash, batterie) sans passage par cleanupGroupCall().
+      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname, cameraOn: false };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: fullPerms } });
       } catch (e) {
