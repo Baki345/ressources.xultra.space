@@ -6,7 +6,12 @@ const AW_PID = "6a73b975002f14dc6b91";
 const AW_DB = "xultra";
 // API key: Worker-only (never sent to browser). Prefer Cloudflare Secret later.
 const AW_KEY = "standard_dbd86d5c813301a5cb4fb65415361244856cd53019bf52cdac23e405c1fee6a89de9302dc8dd652190e0e823ae2ef7329f33d59a5ae922a3d09ad7607ecbb0e006fd6942b18033bc694c115032e78f0cf3f0bd5cf1eb8a358f09f5df60aac51debe6c92d60a8703c9adec5ad1f25ac846fe07621113577c93b7a75eb3e218491";
-const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f"]);
+// Yani Neco (6a8faae2001043f4f5c5, badge 🚬 CHAINSMOKER) ajoutée le 27 août
+// 2026 à la demande explicite de Shaman : accès owner complet, à égalité
+// avec Shaman lui-même (panneau admin en entier, ban/modération de
+// n'importe qui, gestion des plans XULTRA+...) — voir isShamanAccount() et
+// resolveStaffRole() plus bas, seuls points où ce Set fait autorité.
+const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5"]);
 const MAINT_GATE = "xu_gate_Z-5olSXEZ3Gw3rgQPqhR_Y-o";
 // Serveur TURN dédié (coturn sur VPS), remplace le relai gratuit openrelay.metered.ca
 // qui causait des appels sans son/vidéo (surchargé, non fiable). Le secret sert à
