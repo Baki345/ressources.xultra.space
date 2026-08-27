@@ -1376,9 +1376,23 @@ body.theme-light{filter:invert(1) hue-rotate(180deg);background:#fff}
 body.theme-light img,body.theme-light video,body.theme-light canvas,body.theme-light [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
 body.theme-light.high-contrast{filter:invert(1) hue-rotate(180deg) contrast(1.18) saturate(1.12)}
 body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.theme-light.high-contrast canvas,body.theme-light.high-contrast [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
-.msg-menu-btn{display:none;position:absolute;top:-10px;right:-10px;width:24px;height:24px;border-radius:50%;background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#c4b5fd;font-size:.85rem;line-height:1;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+/* Bug remonté par un utilisateur ("pas d'option de message en DM sur
+   desktop") : ce bouton ne devenait cliquable qu'en survolant PILE la bulle
+   (display:none→flex piloté par :hover), et ce survol lui-même dépendait
+   d'une classe hover-reveal posée par JS selon IS_HOVER_DEVICE — une
+   détection qui peut se tromper sur certaines configurations desktop
+   (écran tactile, pilote de trackpad...), laissant alors le bouton
+   invisible EN PERMANENCE avec pour seul recours un glisser-déposer à la
+   souris sur la bulle, une interaction que personne ne devine. Remplacé
+   par une media query (hover:hover) — la détection native du navigateur,
+   plus fiable que sa réplique en JS — et une opacité plutôt qu'un
+   display:none : sur tactile (hover:none), le bouton reste visible en
+   permanence à faible opacité plutôt que de dépendre d'un survol
+   impossible sur ce type d'écran. */
+.msg-menu-btn{opacity:0;position:absolute;top:-10px;right:-10px;width:24px;height:24px;border-radius:50%;background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#c4b5fd;font-size:.85rem;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);transition:opacity .12s ease}
 .msg.mine .msg-menu-btn{right:auto;left:-10px}
-.msg.hover-reveal .bub:hover .msg-menu-btn{display:flex}
+@media (hover:hover){.msg:hover .msg-menu-btn{opacity:1}}
+@media (hover:none){.msg-menu-btn{opacity:.6}}
 .msg-menu-btn:hover{background:#2a1a45}
 .msg.mine .bub{background:#7c3aed}
 .msg .meta{font-size:.65rem;color:var(--muted);margin-top:3px}
@@ -4934,6 +4948,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.96.0',date:'27 août 2026',time:'16:00',title:'Correctif : menu d\\'actions des messages introuvable sur certains ordinateurs',
+    body:'En DM comme dans les salons de serveur, le bouton ⋯ (répondre, épingler, supprimer, signaler…) ne s\\'affichait que via un survol précis de la bulle, lui-même conditionné à une détection "cet appareil a une souris" qui pouvait se tromper sur certaines configurations (écran tactile, certains pilotes de pavé tactile) — le bouton restait alors invisible en permanence, sans aucun moyen évident d\\'accéder aux actions du message. Le bouton fonctionne maintenant indépendamment de cette détection, et reste visible en permanence (à faible opacité) sur les écrans tactiles au lieu de dépendre d\\'un survol impossible.'},
   {version:'2.95.0',date:'27 août 2026',time:'15:00',title:'Ephem : option "Empêcher les captures d\\'écran"',
     body:'En envoyant un Ephem, un nouvel interrupteur "🚫 Empêcher les captures d\\'écran" est disponible avant de choisir la durée. Activé : le destinataire est prévenu avant même d\\'ouvrir l\\'Ephem, le clic droit/glisser/appui long sont désactivés sur l\\'image ou la vidéo, et si une capture d\\'écran Windows est détectée pendant le visionnage, l\\'Ephem se ferme immédiatement en plus de t\\'avertir. Important à savoir : aucune app web ne peut réellement empêcher une capture d\\'écran (Mac, mobile et outils tiers restent hors de portée d\\'un navigateur) — c\\'est un frein sérieux, pas un verrou technique, exactement comme sur les autres plateformes du même genre.'},
   {version:'2.94.0',date:'27 août 2026',time:'14:00',title:'Visite guidée pour les nouveaux comptes',
@@ -9092,13 +9108,14 @@ function renderMessages(){
   box.querySelectorAll('.msg[data-mid]').forEach(function(el){
     const m=msgsCache.find(function(x){return x.\$id===el.getAttribute('data-mid')});
     if(!m)return;
-    if(IS_HOVER_DEVICE){
-      el.classList.add('hover-reveal');
-      const btn=el.querySelector('.msg-menu-btn');
-      if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
-    } else {
-      attachMsgSwipe(el,m);
-    }
+    // Le clic sur le bouton et le glisser tactile sont branchés dans tous
+    // les cas — la détection hover/tactile ne pilote plus que l'affichage
+    // du bouton (en CSS, voir .msg-menu-btn), jamais s'il est réellement
+    // cliquable : une détection erronée n'a alors plus aucune chance de
+    // rendre les actions du message totalement hors d'atteinte.
+    const btn=el.querySelector('.msg-menu-btn');
+    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
+    attachMsgSwipe(el,m);
   });
   mountLinkPreviews(box);
   mountGifFreeze(box);
@@ -14870,13 +14887,9 @@ function renderChannelMessages(){
   box.querySelectorAll('.msg[data-mid]').forEach(function(el){
     const m=activeChannelMessages.find(function(x){return x.\$id===el.getAttribute('data-mid')});
     if(!m)return;
-    if(IS_HOVER_DEVICE){
-      el.classList.add('hover-reveal');
-      const btn=el.querySelector('[data-chan-menu]');
-      if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
-    } else {
-      attachMsgSwipe(el,m,'channel');
-    }
+    const btn=el.querySelector('[data-chan-menu]');
+    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
+    attachMsgSwipe(el,m,'channel');
   });
 }
 async function toggleChannelReaction(m,emoji){
