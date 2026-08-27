@@ -41,6 +41,14 @@ async function generateTurnCredential(secret, username) {
 const LIVEKIT_WS_URL = "wss://voice.xultra.space";
 const LIVEKIT_API_KEY = "API51792402caf597ed";
 const LIVEKIT_API_SECRET = "c42e2c1881c2db44aec27002acbc8d8a019cff224719368af7de17f3ee514aac";
+// ID Appwrite déterministe court à partir d'une chaîne arbitraire (ex :
+// channelId+uid) — utile quand concaténer deux ID Appwrite bout à bout
+// dépasserait la limite de 36 caractères d'un documentId.
+async function sha256HexShort(str, len) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  const hex = Array.from(new Uint8Array(digest)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+  return hex.slice(0, len || 32);
+}
 function b64urlEncode(bytes) {
   let str = "";
   for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
@@ -1828,6 +1836,24 @@ a.bug-att-item{display:block}
 .gcb-p .cb-av-wave{width:88px;height:88px}
 .gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
+.chan-voice-stage{display:flex;flex-direction:column;height:calc(100dvh - 220px);min-height:320px}
+.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:4px;overflow-y:auto;align-content:start}
+.cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease}
+.cvs-tile.speaking{border-color:#22c55e}
+.cvs-tile-video-wrap{position:absolute;inset:0}
+.cvs-tile-video-wrap.hidden{display:none}
+.cvs-tile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.3rem;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cvs-tile-avatar.hidden{display:none}
+.cvs-tile-avatar img{width:100%;height:100%;object-fit:cover}
+.cvs-tile-name{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvs-tile-mute{position:absolute;right:10px;bottom:8px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center}
+.cvs-tile-mute.hidden{display:none}
+.chan-voice-stage-controls{display:flex;justify-content:center;gap:14px;padding:14px 4px 4px}
+.cvs-ctrl-btn{width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
+.cvs-ctrl-btn:hover{background:rgba(255,255,255,.16)}
+.cvs-ctrl-btn.on{background:rgba(124,58,237,.55)}
+.cvs-ctrl-btn.danger{background:#ef4444}
+.cvs-ctrl-btn.danger:hover{background:#dc2626}
 .e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 .e2e-bb-row{display:flex;align-items:center;gap:8px}
 .e2e-bb-row.hidden{display:none}
@@ -1865,6 +1891,13 @@ a.bug-att-item{display:block}
 .srv-chan-icon{color:var(--muted);font-weight:800;width:16px;text-align:center;flex-shrink:0}
 .srv-chan-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-chan-lock{font-size:.72rem;flex-shrink:0}
+.srv-chan-voice-count{font-size:.72rem;font-weight:700;color:var(--muted);flex-shrink:0}
+.srv-chan-voice-members{display:flex;flex-direction:column;gap:2px;padding:0 10px 8px 30px;margin-top:-4px}
+.srv-voice-member{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--muted)}
+.srv-voice-member:hover{background:rgba(124,58,237,.1);color:#e9d5ff}
+.srv-voice-member-av{width:20px;height:20px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.62rem;font-weight:800}
+.srv-voice-member-av img{width:100%;height:100%;object-fit:cover}
+.srv-voice-member-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
@@ -4374,6 +4407,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
+    body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille façon Discord remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
   {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
     body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
   {version:'2.83.0',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
@@ -12743,7 +12778,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
 let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallGroupName='', groupWaveRaf=null, stageCanPublish=true;
-let groupPresenceDocId=null, groupHeartbeatId=null;
+let groupPresenceDocId=null, groupPresenceCollection='group_call_presence', groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
     +'<div class="cb-av-wrap"><canvas class="cb-av-wave"></canvas>'
@@ -12817,23 +12852,52 @@ function startGroupWaveformLoop(){
         drawParticipantWave(tile.querySelector('canvas'),level);
       });
     }
+    // Même boucle pour les tuiles de la vue plein écran d'un salon vocal de
+    // serveur (si elle est affichée) — pas de second requestAnimationFrame
+    // séparé, juste une passe de plus par frame sur un autre jeu de tuiles.
+    const stageGrid=\$('chan-voice-stage-grid');
+    if(stageGrid){
+      stageGrid.querySelectorAll('.cvs-tile').forEach(function(tile){
+        const uid=tile.getAttribute('data-cvs-uid');
+        let level=0,muted=false;
+        if(me&&uid===String(me.\$id)){
+          level=groupRoom.localParticipant.audioLevel||0;
+          muted=!groupRoom.localParticipant.isMicrophoneEnabled;
+        }else{
+          const p=groupRoom.remoteParticipants.get(uid);
+          if(p){level=p.audioLevel||0;muted=!p.isMicrophoneEnabled;}
+        }
+        tile.classList.toggle('speaking',level>0.06);
+        const muteEl=tile.querySelector('[data-cvs-mute]');
+        if(muteEl)muteEl.classList.toggle('hidden',!muted);
+      });
+    }
     groupWaveRaf=requestAnimationFrame(draw);
   }
   draw();
 }
 function wireGroupRoomEvents(room){
-  room.on(LivekitClient.RoomEvent.ParticipantConnected,function(){renderGroupParticipants();});
-  room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){renderGroupParticipants();});
+  room.on(LivekitClient.RoomEvent.ParticipantConnected,function(){renderGroupParticipants();refreshChannelVoiceStageIfVisible();});
+  room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){renderGroupParticipants();refreshChannelVoiceStageIfVisible();});
   room.on(LivekitClient.RoomEvent.TrackSubscribed,function(track,pub,participant){
     if(track.kind==='audio'){
       const el=track.attach();
       el.dataset.participantIdentity=participant.identity;
       el.style.display='none';
       document.body.appendChild(el);
+    }else if(track.kind==='video'){
+      attachStageVideoIfAny(participant.identity,false);
     }
   });
-  room.on(LivekitClient.RoomEvent.TrackUnsubscribed,function(track){
+  room.on(LivekitClient.RoomEvent.TrackUnsubscribed,function(track,pub,participant){
     track.detach().forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
+    if(track.kind==='video')attachStageVideoIfAny(participant.identity,false);
+  });
+  room.on(LivekitClient.RoomEvent.LocalTrackPublished,function(pub){
+    if(pub.track&&pub.track.kind==='video'){attachStageVideoIfAny(String(me.\$id),true);updateStageControlsUi();}
+  });
+  room.on(LivekitClient.RoomEvent.LocalTrackUnpublished,function(pub){
+    if(pub.track&&pub.track.kind==='video'){attachStageVideoIfAny(String(me.\$id),true);updateStageControlsUi();}
   });
   room.on(LivekitClient.RoomEvent.Disconnected,function(){
     showToast('Salon vocal terminé.','error');
@@ -12867,6 +12931,7 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       await room.localParticipant.setMicrophoneEnabled(true,{audioPreset:{maxBitrate:audioBitrate}});
     }
     if(!isServer){
+      groupPresenceCollection='group_call_presence';
       try{
         const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
           {dmId:contextId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'},
@@ -12875,12 +12940,21 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
         groupPresenceDocId=pres.\$id;
       }catch(e){groupPresenceDocId=null;}
       startGroupHeartbeat();
+    }else if(contextType==='channel'){
+      groupPresenceCollection='server_voice_presence';
+      try{
+        const pres=await authPost('/api/servers/channels/voice-presence/join',{serverId:activeServer&&activeServer.\$id,channelId:contextId});
+        groupPresenceDocId=pres.docId;
+      }catch(e){groupPresenceDocId=null;}
+      startGroupHeartbeat();
+      loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
     }
     \$('group-call-bar').classList.remove('hidden');
     \$('gcb-group-name').textContent=groupCallGroupName;
     \$('gcb-mute').classList.remove('on');
     renderGroupParticipants();
     xlog('group_call_joined',{contextType:contextType,contextId:contextId});
+    if(contextType==='channel'&&activeChannel&&activeChannel.\$id===contextId)renderServerChannelContent();
   }catch(e){
     showToast('Impossible de rejoindre le salon vocal','error');
     xlog('group_call_join_fail',{msg:(e&&e.message)||String(e)});
@@ -12890,11 +12964,115 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
 }
 function joinGroupCall(dmId,groupName){return joinVoiceRoom('dm',dmId,groupName);}
 function joinServerVoice(serverId,serverName){return joinVoiceRoom('server',serverId,serverName);}
+/* ===== Vue plein écran d'un salon vocal de serveur (façon Discord) : quand
+   on ouvre le salon vocal auquel on est déjà connecté, la carte "Rejoindre"
+   fait place à une grille de tuiles (une par participant), caméra si
+   publiée sinon avatar — même connexion LiveKit que la petite barre
+   flottante, donc pas de reconnexion, juste un affichage plus riche. ===== */
+function channelVoiceStageHtml(){
+  return '<div class="chan-voice-stage">'
+    +'<div class="chan-voice-stage-grid" id="chan-voice-stage-grid"></div>'
+    +'<div class="chan-voice-stage-controls">'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">📹</button>'
+      +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">📞</button>'
+    +'</div>'
+  +'</div>';
+}
+function chanVoiceStageTileHtml(uid,name,avatarUrl){
+  return '<div class="cvs-tile" data-cvs-uid="'+esc(uid)+'">'
+    +'<div class="cvs-tile-video-wrap hidden" data-cvs-video-wrap="'+esc(uid)+'"></div>'
+    +'<div class="cvs-tile-avatar" data-cvs-avatar="'+esc(uid)+'">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="">':esc(ini(name||'?')))+'</div>'
+    +'<div class="cvs-tile-name">'+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+'</div>'
+    +'<div class="cvs-tile-mute hidden" data-cvs-mute="'+esc(uid)+'">🔇</div>'
+    +'</div>';
+}
+function renderChannelVoiceStage(){
+  const grid=\$('chan-voice-stage-grid');if(!grid||!groupRoom||!me)return;
+  const list=[{identity:String(me.\$id),isLocal:true}];
+  groupRoom.remoteParticipants.forEach(function(p){list.push({identity:p.identity,isLocal:false});});
+  grid.innerHTML=list.map(function(item){
+    const uid=item.identity;
+    const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
+    const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
+    const avatarUrl=safeUrl(prof&&prof.avatar);
+    return chanVoiceStageTileHtml(uid,name,avatarUrl);
+  }).join('');
+  list.forEach(function(item){attachStageVideoIfAny(item.identity,item.isLocal);});
+  updateStageControlsUi();
+  startGroupWaveformLoop();
+}
+// Rattache (ou détache) le flux vidéo caméra d'un participant dans sa tuile
+// de la grille, sans reconstruire toute la grille — appelé au (dés)abonnement
+// d'une piste vidéo LiveKit ou à la (dés)activation de sa propre caméra.
+function attachStageVideoIfAny(identity,isLocal){
+  const wrap=document.querySelector('[data-cvs-video-wrap="'+identity+'"]');
+  const avatarEl=document.querySelector('[data-cvs-avatar="'+identity+'"]');
+  if(!wrap)return;
+  let pub=null;
+  try{
+    if(isLocal)pub=groupRoom&&groupRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
+    else{const p=groupRoom&&groupRoom.remoteParticipants.get(identity);pub=p&&p.getTrackPublication(LivekitClient.Track.Source.Camera);}
+  }catch(e){}
+  const track=pub&&pub.track;
+  wrap.innerHTML='';
+  if(track){
+    const el=track.attach();
+    el.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+    if(isLocal)el.style.transform='scaleX(-1)';
+    wrap.appendChild(el);
+    wrap.classList.remove('hidden');
+    if(avatarEl)avatarEl.classList.add('hidden');
+  }else{
+    wrap.classList.add('hidden');
+    if(avatarEl)avatarEl.classList.remove('hidden');
+  }
+}
+function updateStageControlsUi(){
+  if(!groupRoom)return;
+  const micBtn=\$('cvs-mic-btn');
+  if(micBtn){
+    const muted=!groupRoom.localParticipant.isMicrophoneEnabled;
+    micBtn.textContent=muted?'🔇':'🎤';
+    micBtn.classList.toggle('danger',muted);
+  }
+  const camBtn=\$('cvs-cam-btn');
+  if(camBtn)camBtn.classList.toggle('on',!!groupRoom.localParticipant.isCameraEnabled);
+}
+async function toggleStageCamera(){
+  if(!groupRoom)return;
+  if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir activer ta caméra.','error');return}
+  const enabledNow=!!groupRoom.localParticipant.isCameraEnabled;
+  try{
+    await groupRoom.localParticipant.setCameraEnabled(!enabledNow);
+  }catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');return}
+}
+function wireChannelVoiceStage(){
+  const micBtn=\$('cvs-mic-btn');
+  if(micBtn)micBtn.onclick=async function(){
+    if(!groupRoom)return;
+    if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir parler.','error');return}
+    const enabledNow=groupRoom.localParticipant.isMicrophoneEnabled;
+    await groupRoom.localParticipant.setMicrophoneEnabled(!enabledNow);
+    \$('gcb-mute').classList.toggle('on',enabledNow);
+    updateStageControlsUi();
+  };
+  const camBtn=\$('cvs-cam-btn');
+  if(camBtn)camBtn.onclick=toggleStageCamera;
+  const leaveBtn=\$('cvs-leave-btn');
+  if(leaveBtn)leaveBtn.onclick=function(){leaveGroupCall();};
+}
+function refreshChannelVoiceStageIfVisible(){
+  if(!activeChannel||activeChannel.type!=='voice')return;
+  if(!groupRoom||groupCallContextType!=='channel'||groupCallContextId!==activeChannel.\$id)return;
+  if(!\$('chan-voice-stage-grid'))return;
+  renderChannelVoiceStage();
+}
 function startGroupHeartbeat(){
   stopGroupHeartbeat();
   groupHeartbeatId=setInterval(function(){
     if(!groupPresenceDocId)return;
-    db.updateDocument(DB,'group_call_presence',groupPresenceDocId,{username:(meProfile&&(meProfile.displayName||meProfile.username))||(me&&me.name)||'Membre'}).catch(function(){});
+    db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{username:(meProfile&&(meProfile.displayName||meProfile.username))||(me&&me.name)||'Membre'}).catch(function(){});
   },60000);
 }
 function stopGroupHeartbeat(){
@@ -12904,13 +13082,16 @@ function cleanupGroupCall(){
   if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
   stopGroupHeartbeat();
   document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
+  const wasChannelId=groupCallContextType==='channel'?groupCallContextId:null;
   if(groupPresenceDocId){
-    db.deleteDocument(DB,'group_call_presence',groupPresenceDocId).catch(function(){});
+    db.deleteDocument(DB,groupPresenceCollection,groupPresenceDocId).catch(function(){});
     groupPresenceDocId=null;
   }
   groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';stageCanPublish=true;
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
+  if(wasChannelId&&activeChannel&&activeChannel.\$id===wasChannelId)renderServerChannelContent();
+  if(wasChannelId)loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
 }
 async function leaveGroupCall(){
   if(!groupRoom)return;
@@ -13023,6 +13204,7 @@ function renderServersListView(){
 function closeServerDetail(){
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
+  if(serverVoicePresenceUnsub){try{serverVoicePresenceUnsub();}catch(e){}serverVoicePresenceUnsub=null;}
   activeServer=null;activeChannel=null;
   document.getElementById('app').classList.remove('chat-open');
   \$('server-active').classList.add('hidden');
@@ -13308,15 +13490,67 @@ async function loadServerChannels(){
     activeServerCategories=(r.categories||[]).slice().sort(function(a,b){return (a.position||0)-(b.position||0);});
     activeServerChannels=r.channels||[];
   }catch(e){activeServerCategories=[];activeServerChannels=[];}
+  await loadServerVoicePresence();
+  subscribeServerVoicePresence();
 }
 function renderServerOverviewTab(){
   if(activeChannel)renderServerChannelContent();
   else renderServerChannelList();
 }
+// Membres actuellement connectés à un salon vocal/scène, affichés en
+// dessous du salon dans la liste — façon Discord. serverVoicePresenceCache
+// est rafraîchi par loadServerVoicePresence()/l'abonnement temps réel, pas
+// recalculé ici (cette fonction ne fait que lire le cache déjà à jour).
 function serverChannelRowHtml(c,canManageChannels){
-  return '<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(srvChanTypeIcon(c.type))+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+  const isVoiceLike=c.type==='voice'||c.type==='stage';
+  const presence=isVoiceLike?(serverVoicePresenceCache[c.\$id]||[]):[];
+  let html='<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(srvChanTypeIcon(c.type))+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+    +(presence.length?('<span class="srv-chan-voice-count">'+presence.length+'</span>'):'')
     +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
     +'</div>';
+  if(presence.length){
+    html+='<div class="srv-chan-voice-members">'+presence.map(function(p){
+      const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(p.uid);});
+      const name=p.username||(prof&&(prof.displayName||prof.username))||'Membre';
+      const av=prof&&safeUrl(prof.avatar);
+      return '<div class="srv-voice-member" data-srv-voice-member="'+esc(p.uid)+'">'
+        +'<span class="srv-voice-member-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</span>'
+        +'<span class="srv-voice-member-name">'+esc(name)+'</span>'
+        +'</div>';
+    }).join('')+'</div>';
+  }
+  return html;
+}
+let serverVoicePresenceCache={},serverVoicePresenceUnsub=null;
+async function loadServerVoicePresence(){
+  serverVoicePresenceCache={};
+  if(!activeServer)return;
+  const voiceChanIds=(activeServerChannels||[]).filter(function(c){return c.type==='voice'||c.type==='stage';}).map(function(c){return c.\$id;});
+  if(!voiceChanIds.length)return;
+  try{
+    const r=await db.listDocuments(DB,'server_voice_presence',[Appwrite.Query.equal('channelId',voiceChanIds),Appwrite.Query.limit(200)]);
+    // Filet de sécurité identique à refreshGroupCallBadge() côté DM : une
+    // présence non rafraîchie depuis plus de 2 minutes (heartbeat coupé sans
+    // nettoyage propre) est traitée comme abandonnée.
+    const staleCutoff=Date.now()-120000;
+    (r.documents||[]).forEach(function(d){
+      if(new Date(d.\$updatedAt).getTime()<=staleCutoff)return;
+      (serverVoicePresenceCache[d.channelId]=serverVoicePresenceCache[d.channelId]||[]).push(d);
+    });
+  }catch(e){}
+}
+function subscribeServerVoicePresence(){
+  if(serverVoicePresenceUnsub){try{serverVoicePresenceUnsub();}catch(e){}serverVoicePresenceUnsub=null;}
+  if(!activeServer)return;
+  const forServer=activeServer.\$id;
+  serverVoicePresenceUnsub=client.subscribe('databases.'+DB+'.collections.server_voice_presence.documents',function(res){
+    const payload=res.payload;
+    if(!payload||String(payload.serverId)!==String(forServer)||!payload.channelId)return;
+    loadServerVoicePresence().then(function(){
+      if(activeServer&&String(activeServer.\$id)===String(forServer)&&!activeChannel)renderServerChannelList();
+      refreshChannelVoiceStageIfVisible();
+    });
+  });
 }
 function renderServerChannelList(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
@@ -13363,6 +13597,9 @@ function renderServerChannelList(){
   if(reopenWelcomeBtn)reopenWelcomeBtn.onclick=function(){maybeShowWelcomeScreen(activeServer.\$id);};
   box.querySelectorAll('[data-srv-chan]').forEach(function(el){
     el.addEventListener('click',function(){openServerChannel(el.getAttribute('data-srv-chan'));});
+  });
+  box.querySelectorAll('[data-srv-voice-member]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-srv-voice-member'));});
   });
   box.querySelectorAll('[data-srv-chan-sync]').forEach(function(el){
     el.addEventListener('click',function(e){
@@ -13468,8 +13705,16 @@ function renderServerChannelContent(){
   html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
+    if(inVoiceHere){
+      html+=channelVoiceStageHtml();
+      box.innerHTML=html;
+      wireServerChannelBack();
+      wireChannelVoiceStage();
+      renderChannelVoiceStage();
+      return;
+    }
     html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
-      +'<button type="button" class="btn-main" id="srv-voice-join"'+(inVoiceHere?' disabled':'')+'>'+(inVoiceHere?'✅ Tu es dans le salon':'🎙️ Rejoindre')+'</button></div>';
+      +'<button type="button" class="btn-main" id="srv-voice-join">🎙️ Rejoindre</button></div>';
     box.innerHTML=html;
     wireServerChannelBack();
     const voiceBtn=\$('srv-voice-join');
@@ -19202,6 +19447,48 @@ async function handle(request) {
       }));
       topChannels.sort(function (a, b) { return b.count - a.count; });
       return new Response(JSON.stringify({ ok: true, memberCount: memberCount, messageCount: messageCount, messagesByDay: messagesByDay, newMembersByDay: newMembersByDay, topChannels: topChannels }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Présence dans un salon vocal/scène : un document par (salon, membre),
+  // id déterministe channelId_uid pour que rejoindre plusieurs fois écrase
+  // proprement l'ancien document plutôt que d'en accumuler. Permissions de
+  // lecture recalculées comme pour server_stage_state — jamais read("any"),
+  // seulement les membres qui voient déjà ce salon peuvent voir qui y est
+  // connecté. La mise à jour périodique (heartbeat) et la suppression au
+  // départ restent des appels SDK directs côté client (permissions déjà
+  // posées ici pour l'auteur), même mécanique que la présence des appels de
+  // groupe en DM.
+  if (path === "/api/servers/channels/voice-presence/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (access.channel.type !== "voice" && access.channel.type !== "stage") throw new Error("Ce salon n'est pas un salon vocal");
+      const perms = await computeChannelViewerReadPermissions(serverId, access.channel);
+      const fullPerms = perms.concat(["update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]);
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      // channelId + "_" + uid dépasserait la limite de 36 caractères d'un ID
+      // Appwrite (deux ID Appwrite bout à bout, déjà 20 caractères chacun) —
+      // un hachage court reste déterministe (même salon + même membre =
+      // toujours le même document, donc rejoindre plusieurs fois écrase
+      // proprement au lieu d'accumuler des doublons) tout en tenant dans la limite.
+      const docId = "vp_" + (await sha256HexShort(channelId + ":" + acc.$id, 32));
+      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: fullPerms } });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents", { method: "POST", asAdmin: true, body: { documentId: docId, data: data, permissions: fullPerms } });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, docId: docId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
