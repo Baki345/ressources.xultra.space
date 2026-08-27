@@ -1188,6 +1188,11 @@ button{cursor:pointer;border:0;background:0}
 .leaflet-popup-close-button{color:#c4b5fd!important}
 .xultra-map-pin{background:transparent;border:0}
 .xultra-map-pin-dot{display:block;width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);border:2px solid #f2ebff;box-shadow:0 0 0 4px rgba(124,58,237,.35),0 2px 8px rgba(0,0,0,.5)}
+.xultra-map-friend-pin{background:transparent;border:0}
+.xultra-map-friend-avatar{width:44px;height:44px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1rem;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.5);cursor:pointer;transition:transform .15s ease}
+.xultra-map-friend-avatar:hover{transform:scale(1.08)}
+.xultra-map-friend-avatar img{width:100%;height:100%;object-fit:cover}
+.xultra-map-friend-avatar svg{width:100%;height:100%}
 .leaflet-control-zoom a{background:var(--elev)!important;color:#c4b5fd!important;border-color:var(--line)!important}
 .leaflet-control-zoom a:hover{background:var(--hover)!important}
 .leaflet-control-attribution{background:rgba(19,12,28,.85)!important;color:var(--muted)!important}
@@ -2146,6 +2151,7 @@ a.bug-att-item{display:block}
 .set-mini-btn{padding:6px 12px;border-radius:8px;background:rgba(124,58,237,.18);border:1px solid rgba(167,139,250,.35);color:#e9d5ff;font-size:.74rem;font-weight:700;flex-shrink:0}
 .set-mini-btn:hover{background:rgba(124,58,237,.3)}
 .set-mini-btn.danger{background:rgba(239,68,68,.14);border-color:rgba(239,68,68,.4);color:#fca5a5}
+.set-mini-btn.on{background:rgba(124,58,237,.4);border-color:rgba(167,139,250,.6);color:#fff}
 .set-mini-btn.danger:hover{background:rgba(239,68,68,.24)}
 .set-mini-btn[disabled]{opacity:.45;cursor:not-allowed}
 .settings-account-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
@@ -3829,6 +3835,7 @@ async function enterApp(e2ePassword){
     if(profile)refreshSelfBar();
   }catch(e){}
   try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await resumeMyLocationSharingIfEnabled();}catch(e){}
   try{subscribePresenceWatcher();}catch(e){}
   try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
   try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
@@ -4367,6 +4374,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
+    body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
   {version:'2.83.0',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
     body:'La fenêtre « Découvrir des serveurs » a un nouveau visage : un podium met en avant les 3 serveurs les plus actifs (le plus de membres, le moins de signalements), puis tous les autres serveurs apparaissent regroupés par catégorie, triés du plus petit au plus grand pour donner leur chance aux serveurs qui débutent. Cartes animées, effet de survol, et un aperçu qui s\\'ouvre au clic avant de rejoindre.'},
   {version:'2.82.0',date:'27 août 2026',time:'01:15',title:'Serveurs : accès total pour Shaman + précision sur la suppression des messages',
@@ -10014,14 +10023,38 @@ function xultraMapMarkerIcon(){
     popupAnchor:[0,-12]
   });
 }
+// Icône de calque friend-map : Bitmoji si configuré, sinon l'avatar de
+// profil, sinon les initiales — même ordre de priorité que partout ailleurs
+// dans l'app (refreshSelfBar, sticker xMoji du studio Ephem, etc.).
+function mapFriendAvatarIcon(friend){
+  let extra={};
+  try{extra=JSON.parse(friend.profileExtraJson||'{}');}catch(e){}
+  let inner;
+  if(extra.useBitmoji&&extra.bitmoji)inner=renderBitmojiSvg(extra.bitmoji);
+  else if(safeUrl(friend.avatar))inner='<img src="'+esc(safeUrl(friend.avatar))+'" alt="">';
+  else inner=esc(ini(friend.name||'?'));
+  return L.divIcon({
+    className:'xultra-map-friend-pin',
+    html:'<div class="xultra-map-friend-avatar">'+inner+'</div>',
+    iconSize:[44,44],
+    iconAnchor:[22,22],
+    popupAnchor:[0,-24]
+  });
+}
 async function renderDiscoverMap(){
   const box=\$('discover-body');if(!box)return;
-  box.innerHTML='<div id="discover-map" style="height:calc(100dvh - 190px);position:relative"></div>';
+  box.innerHTML='<div id="discover-map" style="height:calc(100dvh - 190px);position:relative"></div>'
+    +'<button type="button" class="set-mini-btn" id="discover-map-share-btn" style="position:absolute;top:12px;right:12px;z-index:1000"></button>';
+  updateLocationShareBtnLabel();
+  \$('discover-map-share-btn').addEventListener('click',openLocationShareSheet);
   try{await ensureLeafletLoaded();}
   catch(e){box.innerHTML='<div class="empty-hint" style="text-align:center;margin-top:20px">Impossible de charger la carte.</div>';return}
+  let friendsLocations=[];
+  try{const r=await authGet('/api/location/friends');friendsLocations=(r&&r.friends)||[];}catch(e){}
   const geoStories=discoverStoriesCache.filter(function(s){return s.lat!=null&&s.lng!=null;});
-  const center=geoStories.length?[geoStories[0].lat,geoStories[0].lng]:[20,0];
-  const zoom=geoStories.length?4:2;
+  const anchor=friendsLocations[0]||geoStories[0];
+  const center=anchor?[anchor.lat,anchor.lng]:[20,0];
+  const zoom=anchor?5:2;
   if(discoverMapInstance){try{discoverMapInstance.remove();}catch(e){}discoverMapInstance=null;}
   discoverMapInstance=L.map('discover-map',{zoomControl:false}).setView(center,zoom);
   L.control.zoom({position:'bottomright'}).addTo(discoverMapInstance);
@@ -10041,17 +10074,93 @@ async function renderDiscoverMap(){
       if(link)link.addEventListener('click',function(e){e.preventDefault();openDiscoverStorySingle(s);});
     });
   });
+  // Les amis qui partagent leur position s'affichent avec leur avatar/xMoji,
+  // au-dessus des autres marqueurs (zIndexOffset) — un clic ouvre directement
+  // leur profil, sans étape de popup intermédiaire (contrairement aux stories
+  // géolocalisées, où le popup sert à choisir "voir la story").
+  friendsLocations.forEach(function(f){
+    const marker=L.marker([f.lat,f.lng],{icon:mapFriendAvatarIcon(f),zIndexOffset:1000}).addTo(discoverMapInstance);
+    marker.bindTooltip(esc(f.name||'Ami'),{direction:'top',offset:[0,-24]});
+    marker.on('click',function(){openProfileModal(f.uid);});
+  });
   // Leaflet calcule sa taille à l'initialisation ; si le conteneur n'était
   // pas encore à sa taille finale (transition d'ouverture de l'overlay), on
   // force un recalcul juste après pour éviter une carte à moitié grise.
   setTimeout(function(){if(discoverMapInstance)discoverMapInstance.invalidateSize();},100);
-  if(!geoStories.length){
+  if(!geoStories.length&&!friendsLocations.length){
     const hint=document.createElement('div');
     hint.className='empty-hint';
     hint.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:var(--elev);padding:10px 16px;border-radius:10px';
-    hint.textContent='Aucune story géolocalisée pour l’instant.';
+    hint.textContent='Aucune story géolocalisée et aucun ami ne partage sa position pour l’instant.';
     box.appendChild(hint);
   }
+}
+function updateLocationShareBtnLabel(){
+  const btn=\$('discover-map-share-btn');if(!btn)return;
+  btn.textContent=myLocationSharingOn?'📍 Je partage ma position':'📍 Partager ma position';
+  btn.classList.toggle('on',myLocationSharingOn);
+}
+let myLocationSharingOn=false,myLocationRefreshTimer=null;
+async function resumeMyLocationSharingIfEnabled(){
+  try{
+    const r=await authGet('/api/location/my-settings');
+    if(r&&r.sharing){myLocationSharingOn=true;startMyLocationRefreshLoop();}
+  }catch(e){}
+}
+function startMyLocationRefreshLoop(){
+  if(myLocationRefreshTimer)return;
+  sendMyLocationOnce();
+  myLocationRefreshTimer=setInterval(sendMyLocationOnce,5*60*1000);
+}
+function stopMyLocationRefreshLoop(){
+  if(myLocationRefreshTimer){clearInterval(myLocationRefreshTimer);myLocationRefreshTimer=null;}
+}
+// Instantané volontairement, pas un suivi continu : getCurrentPosition()
+// une fois par appel, jamais watchPosition() — cohérent avec le
+// rafraîchissement toutes les ~5 minutes plutôt qu'un flux GPS permanent
+// (peu réaliste sur navigateur, gourmand en batterie, et plus intrusif que
+// nécessaire pour ce que la fonctionnalité doit offrir).
+function sendMyLocationOnce(){
+  if(!myLocationSharingOn||!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    authPost('/api/location/update',{lat:pos.coords.latitude,lng:pos.coords.longitude}).catch(function(){});
+  },function(){},{enableHighAccuracy:false,timeout:8000,maximumAge:120000});
+}
+async function openLocationShareSheet(){
+  let settings={sharing:false,visibleTo:[]};
+  try{settings=await authGet('/api/location/my-settings');}catch(e){}
+  const accepted=friendsCache.filter(function(f){return f.status==='accepted';});
+  const visibleSet=new Set((settings.visibleTo||[]).map(String));
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:70vh;overflow-y:auto">'
+    +'<div class="set-section-label">📍 Partager ma position</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Instantané, pas un suivi en direct : ta position se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert et le partage actif.</div>'
+    +'<label class="srv-perm-check"><input type="checkbox" id="loc-share-toggle"'+(settings.sharing?' checked':'')+'> Partager ma position</label>'
+    +(accepted.length
+      ? ('<div class="scr-sub" style="margin:10px 0 4px">Visible par :</div>'
+        +accepted.map(function(f){
+          return '<label class="srv-perm-check"><input type="checkbox" data-loc-friend="'+esc(f.friendId)+'"'+(visibleSet.has(String(f.friendId))?' checked':'')+'> '+esc(f.name||'Ami')+'</label>';
+        }).join(''))
+      : '<div class="scr-sub" style="margin:10px 0">Ajoute des amis pour pouvoir partager ta position avec eux.</div>')
+    +'<button type="button" class="btn-main" id="loc-share-save" style="width:100%;margin-top:14px">Enregistrer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelector('#loc-share-save').onclick=async function(){
+    const btn=this;btn.disabled=true;btn.textContent='…';
+    const sharing=overlay.querySelector('#loc-share-toggle').checked;
+    const visibleTo=Array.from(overlay.querySelectorAll('[data-loc-friend]:checked')).map(function(c){return c.getAttribute('data-loc-friend');});
+    try{
+      await authPost('/api/location/share-settings',{sharing:sharing,visibleTo:visibleTo});
+      myLocationSharingOn=sharing;
+      if(sharing)startMyLocationRefreshLoop();else stopMyLocationRefreshLoop();
+      close();
+      showToast(sharing?('Position partagée avec '+visibleTo.length+' ami(s).'):'Partage de position désactivé.');
+      updateLocationShareBtnLabel();
+    }catch(e){showToast((e&&e.message)||'Erreur','error');btn.disabled=false;btn.textContent='Enregistrer';}
+  };
 }
 
 /* ===== Chatroulette (appariement aléatoire entre membres, texte + appel
@@ -16467,6 +16576,98 @@ async function handle(request) {
       });
     }
   }
+  // ===== Carte des amis (§ partage de position) =====
+  // Instantané, pas un suivi GPS continu : chaque appareil renvoie sa
+  // position au mieux toutes les ~5 minutes tant que l'app est ouverte et
+  // le partage actif côté client — jamais en tâche de fond. La visibilité
+  // se choisit ami par ami (jamais "tous mes amis" par défaut), et les
+  // permissions du document sont recalculées à chaque changement de liste
+  // pour rester strictement scopées aux uids choisis (jamais read("any")
+  // ni read("users") sur des coordonnées GPS).
+  if (path === "/api/location/my-settings" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      let visibleTo = []; if (doc) try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
+      return new Response(JSON.stringify({ ok: true, sharing: !!(doc && doc.sharing), visibleTo: visibleTo }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/location/share-settings" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sharing = !!(body && body.sharing);
+      const requestedVisible = Array.isArray(body && body.visibleTo) ? body.visibleTo.map(String) : [];
+      const acceptedFriends = await getAcceptedFriendUids(acc.$id);
+      const visibleTo = requestedVisible.filter(function (uid) { return acceptedFriends.indexOf(uid) >= 0; }).slice(0, 200);
+      const perms = ["update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+        .concat(sharing ? visibleTo.map(function (uid) { return "read(\"user:" + uid + "\")"; }) : []);
+      const data = { uid: String(acc.$id), sharing: sharing, visibleToJson: JSON.stringify(visibleTo) };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ lat: 0, lng: 0 }, data), permissions: perms } });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, sharing: sharing, visibleTo: visibleTo }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/location/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const lat = Number(body && body.lat);
+      const lng = Number(body && body.lng);
+      if (!isFinite(lat) || !isFinite(lng)) throw new Error("Coordonnées invalides");
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (!doc || !doc.sharing) throw new Error("Active le partage de position avant d'envoyer ta position");
+      await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { lat: lat, lng: lng } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/location/friends" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const myUid = String(acc.$id);
+      const friendUids = await getAcceptedFriendUids(myUid);
+      const maxAgeMs = 2 * 3600 * 1000; // instantané éphémère : un partage non rafraîchi depuis 2h est traité comme périmé
+      const now = Date.now();
+      const results = await Promise.all(friendUids.map(async function (fuid) {
+        const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + fuid, { asAdmin: true }).catch(function () { return null; });
+        if (!doc || !doc.sharing) return null;
+        let visibleTo = []; try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
+        if (visibleTo.map(String).indexOf(myUid) < 0) return null;
+        if (now - new Date(doc.$updatedAt).getTime() > maxAgeMs) return null;
+        const profile = await resolveProfile(fuid);
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + fuid, { asAdmin: true }).catch(function () { return null; });
+        return {
+          uid: fuid,
+          name: (profile && (profile.displayName || profile.username)) || "Ami",
+          avatar: (profile && profile.avatar) || "",
+          profileExtraJson: (meta && meta.profileExtraJson) || "{}",
+          lat: doc.lat, lng: doc.lng, updatedAt: doc.$updatedAt
+        };
+      }));
+      return new Response(JSON.stringify({ ok: true, friends: results.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/admin/reports" && request.method === "GET") {
     const gate = await requireStaff(request, "view");
     if (!gate.ok) {
