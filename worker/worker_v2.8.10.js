@@ -1323,10 +1323,16 @@ button{cursor:pointer;border:0;background:0}
    ligne). Le seul mécanisme sûr est physique : .row (opaque, sans
    z-index) glisse pour révéler .row-del-action en dessous — jamais
    l'inverse. */
-.row-swipe.hover-reveal .row-del-action{opacity:0;transition:opacity .15s ease;pointer-events:none}
-.row-swipe.hover-reveal:hover .row-del-action{opacity:1;pointer-events:auto}
-.row-swipe.hover-reveal:hover .row{transform:translateX(-64px);transition:transform .15s ease}
-.row-swipe.hover-reveal .row{transition:transform .15s ease}
+/* Même bug remonté que pour .msg-menu-btn (voir plus bas) : dépendre d'une
+   classe hover-reveal posée par JS selon IS_HOVER_DEVICE peut se tromper sur
+   certaines configs desktop, rendant le bouton supprimer totalement
+   inatteignable. Remplacé par une media query (hover:hover) native. */
+.row-del-action{opacity:0;transition:opacity .15s ease;pointer-events:none}
+.row-swipe .row{transition:transform .15s ease}
+@media (hover:hover){
+  .row-swipe:hover .row-del-action{opacity:1;pointer-events:auto}
+  .row-swipe:hover .row{transform:translateX(-64px)}
+}
 .userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(20,13,32,.6));border:1px solid rgba(167,139,250,.16)}
 .ub-presence-btn{display:flex;align-items:center;gap:5px;background:transparent;padding:0;font-size:.66rem;color:var(--muted);font-weight:600;cursor:pointer}
 .ub-presence-btn:hover{color:#e9d5ff}
@@ -4961,6 +4967,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'2.98.0',date:'27 août 2026',time:'18:00',title:'Correctif : glisser-déposer souris qui bloquait le clic sur les listes',
+    body:'Effet de bord du correctif précédent (menu d\\'actions des messages) : comme le geste "glisser pour révéler" était désormais toujours actif, un simple clic-glissé à la souris pour sélectionner du texte dans un message pouvait être pris à tort pour ce geste — merci Yani Neco. Même chose pour le bouton supprimer des conversations et de la liste d\\'amis, qui pouvait rester invisible en permanence sur certaines configurations d\\'ordinateur. Les deux ne s\\'engagent maintenant que pour un vrai doigt sur écran tactile ; sur ordinateur, un simple survol suffit à révéler les actions.'},
   {version:'2.97.0',date:'27 août 2026',time:'17:00',title:'🚬 Nouveau badge exclusif : CHAINSMOKER',
     body:'Un nouveau badge fait son entrée, remis à la main comme "dev" ou "créateur de contenu" — ce n\\'est pas un palier qu\\'on débloque, c\\'est une reconnaissance. Le tout premier revient à Yani Neco : un vétéran du cercle de Shaman, présent depuis plus de 10 ans sur le web, un vrai maillon de la communauté.'},
   {version:'2.96.0',date:'27 août 2026',time:'16:00',title:'Correctif : menu d\\'actions des messages introuvable sur certains ordinateurs',
@@ -7296,13 +7304,19 @@ function renderDms(){
 }
 const IS_HOVER_DEVICE=(function(){try{return window.matchMedia('(hover:hover) and (pointer:fine)').matches;}catch(e){return false;}})();
 function attachRowSwipe(wrap){
-  if(IS_HOVER_DEVICE){wrap.classList.add('hover-reveal');return;}
   const row=wrap.querySelector('.row');if(!row)return;
   const MAXSWIPE=64;
   let startX=0,dragging=false,base=0,open=false;
   row.style.touchAction='pan-y';
   function setX(x){row.style.transform=x?'translateX('+x+'px)':'';}
   row.addEventListener('pointerdown',function(e){
+    /* Bug remonté par les Bug Hunters (même cause que .msg-menu-btn plus
+       haut) : sur souris, la révélation du bouton supprimer est maintenant
+       gérée entièrement par CSS (:hover), donc ce glisser tactile ne doit
+       s'engager que pour un vrai doigt — sinon un simple clic-glissé
+       souris déclenche ce geste au lieu de laisser l'utilisateur cliquer
+       normalement sur la ligne ou sur l'action révélée au survol. */
+    if(e.pointerType!=='touch')return;
     dragging=true;base=open?-MAXSWIPE:0;startX=e.clientX;
     row.style.transition='none';
     try{row.setPointerCapture(e.pointerId);}catch(err){}
@@ -9282,6 +9296,14 @@ function attachMsgSwipe(el,m,kind){
   let startX=0,dragging=false,triggered=false;
   bub.style.touchAction='pan-y';
   el.addEventListener('pointerdown',function(e){
+    // Bug remonté via Bug Hunter par Yani Neco : attacher ce glisser à TOUS
+    // les pointeurs (pas seulement tactile) capturait aussi le clic-glisser
+    // à la souris — le geste normal pour sélectionner du texte dans un
+    // message — et ouvrait le menu d'actions à sa place, rendant la
+    // sélection de texte quasiment impossible sur ordinateur. pointerType
+    // distingue le geste réel au moment où il a lieu, plus fiable qu'une
+    // détection "cet appareil a-t-il un écran tactile" faite à l'avance.
+    if(e.pointerType!=='touch')return;
     if(e.target.closest('a,button,.voice-msg,.msg-media img'))return;
     dragging=true;triggered=false;startX=e.clientX;
     bub.style.transition='none';
