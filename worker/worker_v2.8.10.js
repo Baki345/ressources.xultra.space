@@ -2362,6 +2362,22 @@ a.bug-att-item{display:block}
 .set-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:16px}
 .set-card-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .set-card-row:last-child{border-bottom:0}
+.oauth-doc-step{font-size:.85rem;line-height:1.55;color:var(--muted);margin-bottom:10px}
+.oauth-doc-step code{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 5px;font-size:.85em;color:#e9d5ff}
+.oauth-code-block{position:relative;margin-bottom:14px}
+.oauth-code-block pre{background:#0d0814;border:1px solid rgba(167,139,250,.2);border-radius:10px;padding:14px 16px;font-size:.76rem;line-height:1.6;color:#c4b5fd;overflow-x:auto;white-space:pre;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.oauth-code-copy{position:absolute;top:8px;right:8px;padding:5px 10px;border-radius:8px;background:rgba(124,58,237,.25);color:#e9d5ff;font-size:.7rem;font-weight:700}
+.oauth-code-copy:hover{background:rgba(124,58,237,.4)}
+.oauth-app-card{position:relative}
+.oauth-field-row{display:flex;align-items:center;gap:8px;padding:6px 0;flex-wrap:wrap}
+.oauth-field-row label{width:90px;flex-shrink:0;font-size:.72rem;font-weight:700;color:var(--muted)}
+.oauth-field-row code{background:rgba(255,255,255,.06);border-radius:6px;padding:3px 8px;font-size:.78rem;color:#f2ebff;word-break:break-all}
+.oauth-field-row .oauth-code-copy{position:static;padding:4px 8px}
+.oauth-secret-masked{letter-spacing:1px}
+.oauth-consent-icon{font-size:2.4rem;margin-bottom:8px}
+.oauth-consent-scopes{margin-top:16px;text-align:left;background:rgba(255,255,255,.03);border-radius:12px;padding:12px 14px}
+.oauth-scope-row{font-size:.82rem;padding:4px 0;color:#e9d5ff}
+.oauth-consent-warn{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:.78rem;text-align:left}
 .srv-insights-stats{display:flex;gap:24px}
 .srv-insights-stat .n{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
 .srv-insights-stat .l{font-size:.72rem;color:var(--muted);margin-top:2px}
@@ -3005,6 +3021,20 @@ a.bug-att-item{display:block}
     <div class="call-modal-acts">
       <button type="button" class="call-act decline" id="ic-decline" title="Refuser"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       <button type="button" class="call-act accept" id="ic-accept" title="Répondre"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-oauth-consent">
+  <div class="modal-box" style="text-align:center">
+    <div class="oauth-consent-icon" id="oauth-consent-icon">🔌</div>
+    <h3 id="oauth-consent-title">Chargement…</h3>
+    <div class="call-sub" id="oauth-consent-sub"></div>
+    <div class="oauth-consent-scopes" id="oauth-consent-scopes"></div>
+    <div class="oauth-consent-warn hidden" id="oauth-consent-warn">⚠️ L'URL de redirection ne correspond à aucune adresse enregistrée pour cette application. Ne continue pas si tu ne fais pas confiance à ce lien.</div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button type="button" class="set-mini-btn" id="oauth-consent-deny" style="flex:1">Refuser</button>
+      <button type="button" class="btn-main" id="oauth-consent-allow" style="flex:1">Autoriser</button>
     </div>
   </div>
 </div>
@@ -4499,7 +4529,65 @@ async function enterApp(e2ePassword){
     const inviteCode=new URLSearchParams(location.search).get('invite');
     if(inviteCode){openServerJoinModal(inviteCode.toUpperCase());history.replaceState(null,'',location.pathname);}
   }catch(e){}
+  try{maybeShowOauthConsent();}catch(e){}
 }
+// ===== "Se connecter avec XULTRA" — écran de consentement côté visiteur =====
+// Redirigé ici depuis /oauth/authorize?client_id=...&redirect_uri=...&state=...
+// par le site tiers ; ne s'affiche qu'une fois connecté à XULTRA (si besoin,
+// l'écran de connexion habituel s'affiche d'abord — cette vérification tourne
+// à nouveau juste après, une fois enterApp() terminé).
+let oauthConsentCtx=null;
+function maybeShowOauthConsent(){
+  if(location.pathname!=='/oauth/authorize')return;
+  const params=new URLSearchParams(location.search);
+  const clientId=params.get('client_id')||'';
+  const redirectUri=params.get('redirect_uri')||'';
+  const state=params.get('state')||'';
+  const scope=params.get('scope')||'identify';
+  if(!clientId||!redirectUri)return;
+  openOauthConsent(clientId,redirectUri,state,scope);
+}
+async function openOauthConsent(clientId,redirectUri,state,scope){
+  oauthConsentCtx={clientId:clientId,redirectUri:redirectUri,state:state,scope:scope};
+  \$('oauth-consent-title').textContent='Chargement…';
+  \$('oauth-consent-sub').textContent='';
+  \$('oauth-consent-scopes').innerHTML='';
+  \$('oauth-consent-warn').classList.add('hidden');
+  \$('oauth-consent-allow').disabled=false;
+  \$('oauth-consent-allow').classList.remove('hidden');
+  \$('modal-oauth-consent').classList.remove('hidden');
+  try{
+    const r=await fetch('/api/oauth/appinfo?client_id='+encodeURIComponent(clientId)+'&redirect_uri='+encodeURIComponent(redirectUri));
+    const j=await r.json();
+    if(!j.ok){
+      \$('oauth-consent-title').textContent='Application introuvable';
+      \$('oauth-consent-sub').textContent='Ce lien de connexion semble invalide ou a expiré.';
+      \$('oauth-consent-allow').classList.add('hidden');
+      return;
+    }
+    \$('oauth-consent-icon').textContent=j.logoEmoji||'🔌';
+    \$('oauth-consent-title').textContent=j.name+' veut se connecter';
+    \$('oauth-consent-sub').textContent='avec ton compte XULTRA';
+    \$('oauth-consent-scopes').innerHTML='<div class="oauth-scope-row">✅ Ton pseudo, ton tag et ton avatar</div><div class="oauth-scope-row">🚫 Jamais ton e-mail, ton mot de passe, ni tes messages</div>';
+    if(!j.redirectOk){\$('oauth-consent-warn').classList.remove('hidden');\$('oauth-consent-allow').disabled=true;}
+  }catch(e){
+    \$('oauth-consent-title').textContent='Erreur';
+    \$('oauth-consent-sub').textContent='Impossible de charger les informations de l\\'application.';
+  }
+}
+if(\$('oauth-consent-allow'))\$('oauth-consent-allow').addEventListener('click',async function(){
+  if(!oauthConsentCtx)return;
+  const btn=this;btn.disabled=true;btn.textContent='…';
+  try{
+    const r=await authPost('/api/oauth/consent',{clientId:oauthConsentCtx.clientId,redirectUri:oauthConsentCtx.redirectUri,state:oauthConsentCtx.state,scope:oauthConsentCtx.scope});
+    location.href=r.redirectUrl;
+  }catch(e){showToast((e&&e.message)||'Action impossible','error');btn.disabled=false;btn.textContent='Autoriser';}
+});
+if(\$('oauth-consent-deny'))\$('oauth-consent-deny').addEventListener('click',function(){
+  if(!oauthConsentCtx)return;
+  const sep=oauthConsentCtx.redirectUri.indexOf('?')>=0?'&':'?';
+  location.href=oauthConsentCtx.redirectUri+sep+'error=access_denied'+(oauthConsentCtx.state?'&state='+encodeURIComponent(oauthConsentCtx.state):'');
+});
 let e2eBannerMode='activate';
 function showE2EBanner(mode){
   e2eBannerMode=mode;
@@ -5015,6 +5103,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec XULTRA (ouvert à tout le monde)',
+    body:'N\\'importe qui peut désormais brancher "Se connecter avec XULTRA" sur son propre site : depuis Paramètres → Se connecter avec XULTRA, crée une application en quelques secondes pour obtenir un client_id/client_secret, avec un guide d\\'implémentation complet (URL d\\'autorisation, échange du code, récupération du profil) et des extraits de code prêts à copier. Tes visiteurs se connectent avec leur pseudo/avatar XULTRA sans créer un mot de passe de plus, après un écran de consentement clair. Et dans Paramètres → Applications autorisées, retrouve et révoque à tout moment les sites que tu as toi-même connectés à ton compte.'},
   {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'XULTRA+ devient X1+',
     body:'L\\'abonnement premium change de nom : XULTRA+ s\\'appelle désormais X1+, partout sur le site (profil, paramètres, boosts de serveur, badge Légende du Bug). Rien ne change dans ce que ça débloque.'},
   {version:'3.2.0',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
@@ -5747,6 +5837,9 @@ const SETTINGS_GROUPS=[
     {key:'advanced',icon:'🛠️',title:'Avancé'},
     {key:'activity',icon:'🎮',title:'Activité'}
   ]},
+  {label:'Développeurs',items:[
+    {key:'developers',icon:'👨‍💻',title:'Se connecter avec XULTRA'}
+  ]},
   {label:'',items:[
     {key:'changelog',icon:'📋',title:'Notes de version'},
     {key:'support',icon:'🐞',title:'Support'},
@@ -5796,7 +5889,7 @@ function renderSettingsSection(key){
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
-    myreports:renderSetMyReports
+    myreports:renderSetMyReports,developers:renderSetDevelopers
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -6314,8 +6407,134 @@ function renderSetConnections(box){
     +CONNECTION_SERVICES.map(function(s){return '<div class="conn-item"><span class="ci-ico">'+s.icon+'</span><span class="ci-name">'+esc(s.name)+'</span><span class="soon-badge">Bientôt</span></div>';}).join('')
     +'</div>';
 }
-function renderSetApps(box){
-  box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les applications tierces ayant accès à ton compte.</div><div class="set-card"><div class="scr-sub">Aucune application connectée pour le moment · Bientôt disponible.</div></div>';
+async function renderSetApps(box){
+  box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les sites tiers que tu as autorisés à se connecter avec ton compte XULTRA.</div><div class="set-card" id="oauth-authorized-list"><div class="scr-sub">Chargement…</div></div>';
+  const listBox=\$('oauth-authorized-list');
+  try{
+    const r=await authGet('/api/oauth/authorized');
+    const apps=r.apps||[];
+    if(!apps.length){listBox.innerHTML='<div class="scr-sub">Aucune application connectée pour le moment.</div>';return}
+    listBox.innerHTML=apps.map(function(a){
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(a.logoEmoji||'🔌')+' '+esc(a.name)+'</div><div class="scr-sub">Connecté avec XULTRA le '+esc(fmtClockTime(a.grantedAt))+' · portée : '+esc(a.scope||'identify')+'</div></div><button type="button" class="set-mini-btn danger" data-oauth-revoke="'+esc(a.clientId)+'">Révoquer</button></div>';
+    }).join('');
+    listBox.querySelectorAll('[data-oauth-revoke]').forEach(function(btn){
+      btn.addEventListener('click',async function(){
+        btn.disabled=true;btn.textContent='…';
+        try{await authPost('/api/oauth/revoke',{clientId:btn.getAttribute('data-oauth-revoke')});showToast('Accès révoqué.');renderSetApps(box);}
+        catch(e){showToast('Action impossible','error');btn.disabled=false;btn.textContent='Révoquer';}
+      });
+    });
+  }catch(e){listBox.innerHTML='<div class="scr-sub">Impossible de charger la liste.</div>';}
+}
+let oauthDevAppsCache=[];
+async function renderSetDevelopers(box){
+  box.innerHTML='<h2>👨‍💻 Se connecter avec XULTRA</h2>'
+    +'<div class="sc-desc">Ouvre une passerelle "Se connecter avec XULTRA" sur ton propre site : tes visiteurs se connectent avec leur compte XULTRA au lieu de créer un mot de passe de plus, et tu récupères leur identité de base (pseudo, avatar). Gratuit, ouvert à tout le monde, aucune approbation requise.</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes applications</div><div class="scr-sub">Chaque application a son propre client_id / client_secret.</div></div><button type="button" class="set-mini-btn" id="oauth-new-app-btn">+ Créer une application</button></div></div>'
+    +'<div class="set-card hidden" id="oauth-new-app-form">'
+      +'<div class="set-row"><label>Nom de l\\'application</label><input type="text" id="oauth-app-name" class="field-input" maxlength="100" placeholder="Mon super site"></div>'
+      +'<div class="set-row"><label>URL(s) de redirection <span class="scr-sub" style="display:block;font-weight:400">Une par ligne. HTTPS obligatoire (http://localhost autorisé pour tester).</span></label><textarea id="oauth-app-redirects" class="field-input" rows="3" placeholder="https://monsite.com/callback"></textarea></div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="oauth-app-create-save">Créer</button><button type="button" class="set-mini-btn" id="oauth-app-create-cancel">Annuler</button></div>'
+      +'<div class="err" id="oauth-app-create-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>'
+    +'<div id="oauth-apps-list"><div class="scr-sub">Chargement…</div></div>'
+    +'<div class="set-card" style="margin-top:18px">'
+      +'<div class="set-section-label">📘 Comment l\\'implémenter</div>'
+      +'<div class="oauth-doc-step"><b>1. Crée une application</b> ci-dessus pour obtenir un <code>client_id</code> et un <code>client_secret</code>. Le secret ne s\\'affiche qu\\'à toi — ne le mets jamais dans du code exécuté dans le navigateur d\\'un visiteur, seulement sur ton serveur.</div>'
+      +'<div class="oauth-doc-step"><b>2. Ajoute un bouton "Se connecter avec XULTRA"</b> qui pointe vers cette URL (remplace CLIENT_ID et l\\'URL de redirection, qui doit être identique à celle enregistrée à l\\'étape 1) :</div>'
+      +oauthCodeBlockHtml('oauth-doc-authurl','https://xultra.space/oauth/authorize?client_id=VOTRE_CLIENT_ID&redirect_uri=VOTRE_URL_ENCODEE&response_type=code&scope=identify&state=une_valeur_aleatoire')
+      +'<div class="oauth-doc-step">Ton visiteur est redirigé vers XULTRA, se connecte (ou l\\'est déjà), voit un écran "Cette application veut se connecter avec ton compte", et revient sur ton site à l\\'URL de redirection avec <code>?code=...&state=...</code> dans l\\'URL.</div>'
+      +'<div class="oauth-doc-step"><b>3. Sur TON serveur</b> (jamais le navigateur), échange ce code contre un jeton d\\'accès :</div>'
+      +oauthCodeBlockHtml('oauth-doc-token','// Sur votre serveur, à la route de callback (ex: /callback?code=...&state=...)\\nconst res = await fetch(\\'https://xultra.space/api/oauth/token\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\' },\\n  body: JSON.stringify({\\n    grant_type: \\'authorization_code\\',\\n    code: req.query.code,\\n    client_id: \\'VOTRE_CLIENT_ID\\',\\n    client_secret: \\'VOTRE_CLIENT_SECRET\\', // jamais côté navigateur !\\n    redirect_uri: \\'VOTRE_URL_DE_REDIRECTION\\'\\n  })\\n});\\nconst { access_token } = await res.json();')
+      +'<div class="oauth-doc-step"><b>4. Récupère l\\'identité</b> du visiteur avec ce jeton :</div>'
+      +oauthCodeBlockHtml('oauth-doc-userinfo','const userRes = await fetch(\\'https://xultra.space/api/oauth/userinfo\\', {\\n  headers: { Authorization: \\'Bearer \\' + access_token }\\n});\\nconst user = await userRes.json();\\n// { id, username, displayName, avatar, tag }\\n// -> connecte ce visiteur sur ton site (retrouve/crée son compte via user.id)')
+      +'<div class="oauth-doc-step">C\\'est tout — pas de SDK à installer, seulement deux appels HTTP. La portée <code>identify</code> est la seule disponible pour l\\'instant (pseudo, avatar, tag — jamais l\\'e-mail ni le mot de passe).</div>'
+    +'</div>';
+  \$('oauth-new-app-btn').addEventListener('click',function(){\$('oauth-new-app-form').classList.toggle('hidden');});
+  \$('oauth-app-create-cancel').addEventListener('click',function(){\$('oauth-new-app-form').classList.add('hidden');\$('oauth-app-create-err').textContent='';});
+  \$('oauth-app-create-save').addEventListener('click',async function(){
+    const btn=this;
+    const name=(\$('oauth-app-name').value||'').trim();
+    const redirects=(\$('oauth-app-redirects').value||'').split('\\n').map(function(s){return s.trim();}).filter(Boolean);
+    \$('oauth-app-create-err').textContent='';
+    btn.disabled=true;btn.textContent='Création…';
+    try{
+      await authPost('/api/oauth/apps/create',{name:name,redirectUris:redirects});
+      \$('oauth-app-name').value='';\$('oauth-app-redirects').value='';
+      \$('oauth-new-app-form').classList.add('hidden');
+      showToast('Application créée !');
+      loadOauthDevApps();
+    }catch(e){\$('oauth-app-create-err').textContent=(e&&e.message)||'Erreur';}
+    finally{btn.disabled=false;btn.textContent='Créer';}
+  });
+  wireOauthCodeBlocks(box);
+  loadOauthDevApps();
+}
+function oauthCodeBlockHtml(id,code){
+  return '<div class="oauth-code-block"><pre id="'+id+'">'+esc(code)+'</pre><button type="button" class="oauth-code-copy" data-copy-target="'+id+'">📋 Copier</button></div>';
+}
+function wireOauthCodeBlocks(container){
+  container.querySelectorAll('[data-copy-target]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const el=\$(btn.getAttribute('data-copy-target'));if(!el)return;
+      const text=el.textContent;
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text):Promise.reject())
+        .then(function(){const orig=btn.textContent;btn.textContent='✓ Copié';setTimeout(function(){btn.textContent=orig;},1500);})
+        .catch(function(){showToast('Copie impossible','error');});
+    });
+  });
+}
+async function loadOauthDevApps(){
+  const box=\$('oauth-apps-list');if(!box)return;
+  try{
+    const r=await authGet('/api/oauth/apps/list');
+    oauthDevAppsCache=r.apps||[];
+    renderOauthDevAppsList();
+  }catch(e){box.innerHTML='<div class="set-card"><div class="scr-sub">Impossible de charger tes applications.</div></div>';}
+}
+function renderOauthDevAppsList(){
+  const box=\$('oauth-apps-list');if(!box)return;
+  if(!oauthDevAppsCache.length){box.innerHTML='<div class="set-card"><div class="scr-sub">Aucune application créée pour l\\'instant.</div></div>';return}
+  box.innerHTML=oauthDevAppsCache.map(function(a){
+    let redirects=[];try{redirects=JSON.parse(a.redirectUrisJson||'[]');}catch(e){}
+    return '<div class="set-card oauth-app-card" data-oauth-app="'+esc(a.clientId)+'">'
+      +'<div class="set-section-label">'+esc(a.logoEmoji||'🔌')+' '+esc(a.name)+'</div>'
+      +'<div class="oauth-field-row"><label>client_id</label><code>'+esc(a.clientId)+'</code><button type="button" class="oauth-code-copy" data-copy-value="'+esc(a.clientId)+'">📋</button></div>'
+      +'<div class="oauth-field-row"><label>client_secret</label><code class="oauth-secret-masked" data-secret="'+esc(a.clientSecret)+'">••••••••••••••••••••••••••••••••</code><button type="button" class="oauth-code-copy" data-oauth-reveal>👁️</button><button type="button" class="oauth-code-copy" data-copy-value="'+esc(a.clientSecret)+'">📋</button></div>'
+      +'<div class="oauth-field-row"><label>Redirections</label><span class="scr-sub">'+redirects.map(esc).join('<br>')+'</span></div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="set-mini-btn" data-oauth-regen="'+esc(a.clientId)+'">🔄 Régénérer le secret</button><button type="button" class="set-mini-btn danger" data-oauth-del="'+esc(a.clientId)+'">Supprimer</button></div>'
+    +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-oauth-reveal]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const codeEl=btn.parentElement.querySelector('.oauth-secret-masked');
+      const revealed=codeEl.getAttribute('data-secret');
+      codeEl.textContent=codeEl.textContent===revealed?'••••••••••••••••••••••••••••••••':revealed;
+    });
+  });
+  box.querySelectorAll('[data-copy-value]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const text=btn.getAttribute('data-copy-value');
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text):Promise.reject())
+        .then(function(){showToast('Copié !');}).catch(function(){showToast('Copie impossible','error');});
+    });
+  });
+  box.querySelectorAll('[data-oauth-regen]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      showSlideConfirm('Régénérer le secret ? L\\'ancien cessera immédiatement de fonctionner — il faudra mettre à jour ton serveur.',async function(){
+        try{await authPost('/api/oauth/apps/regenerate-secret',{clientId:btn.getAttribute('data-oauth-regen')});showToast('Secret régénéré.');loadOauthDevApps();}
+        catch(e){showToast('Action impossible','error');}
+      });
+    });
+  });
+  box.querySelectorAll('[data-oauth-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      showSlideConfirm('Supprimer cette application ? Les visiteurs connectés via elle ne pourront plus l\\'utiliser.',async function(){
+        try{await authPost('/api/oauth/apps/delete',{clientId:btn.getAttribute('data-oauth-del')});showToast('Application supprimée.');loadOauthDevApps();}
+        catch(e){showToast('Action impossible','error');}
+      });
+    });
+  });
 }
 function renderSetFamily(box){
   box.innerHTML='<h2>Coffre-fort de contenu / Family Center</h2><div class="sc-desc">Des outils pour garder un œil sur ton activité ou celle d’un proche.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur XULTRA.</div></div>';
@@ -17410,6 +17629,289 @@ async function handle(request) {
     return new Response(JSON.stringify({ ok: true, maintenance: maintNow.enabled, services: services, version: "β2.8.10" }), {
       headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "no-store" }, cors)
     });
+  }
+
+  // ===== "Se connecter avec XULTRA" — SSO tierce partie (OAuth2 simplifié,
+  // façon "Sign in with GitHub/Google") =====
+  // Ouvert à tout le monde (idée demandée explicitement) : n'importe qui peut
+  // créer une application depuis Paramètres → Développeurs et obtenir un
+  // client_id/client_secret pour laisser les utilisateurs de SON site se
+  // connecter avec leur compte XULTRA. Flux à 3 pièces :
+  //  1. /api/oauth/apps/* : gestion des applications (authentifié, propriétaire
+  //     uniquement) — jamais appelé par le site tiers, seulement depuis XULTRA.
+  //  2. /oauth/authorize (page normale de l'appli, gérée côté client) + POST
+  //     /api/oauth/consent (authentifié) : l'utilisateur final approuve depuis
+  //     SON navigateur, jamais le secret ne transite ici.
+  //  3. POST /api/oauth/token + GET /api/oauth/userinfo : appelés uniquement
+  //     par le SERVEUR du site tiers (jamais le navigateur du visiteur), avec
+  //     le client_secret — c'est là et seulement là qu'il doit rester.
+  function randomOauthToken(len) {
+    const bytes = crypto.getRandomValues(new Uint8Array(len));
+    return Array.from(bytes).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("").slice(0, len);
+  }
+  function isAllowedRedirectUri(u) {
+    try {
+      const parsed = new URL(u);
+      if (parsed.protocol === "https:") return true;
+      if (parsed.protocol === "http:" && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")) return true;
+      return false;
+    } catch (e) { return false; }
+  }
+  if (path === "/api/oauth/apps/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const name = String((body && body.name) || "").trim().slice(0, 100);
+      const redirectUris = Array.isArray(body && body.redirectUris) ? Array.from(new Set(body.redirectUris.map(String).map(function (s) { return s.trim(); }).filter(Boolean))).slice(0, 10) : [];
+      if (!name) throw new Error("Nom d'application requis");
+      if (!redirectUris.length) throw new Error("Au moins une URL de redirection requise");
+      for (const u of redirectUris) { if (!isAllowedRedirectUri(u)) throw new Error("URL de redirection invalide (doit être en HTTPS, ou http://localhost pour les tests) : " + u); }
+      const ownedQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      if ((ownedQ.documents || []).length >= 20) throw new Error("Limite de 20 applications par compte atteinte");
+      const clientId = randomOauthToken(20);
+      const clientSecret = randomOauthToken(40);
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { ownerId: acc.$id, name: name, clientId: clientId, clientSecret: clientSecret, redirectUrisJson: JSON.stringify(redirectUris), logoEmoji: String((body && body.logoEmoji) || "🔌").slice(0, 8) },
+          permissions: ["read(\"user:" + acc.$id + "\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, app: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/oauth/apps/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, apps: q.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/oauth/apps/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const clientId = String((body && body.clientId) || "");
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app || String(app.ownerId) !== acc.$id) throw new Error("Application introuvable");
+      const data = {};
+      if (body.name !== undefined) { const n = String(body.name || "").trim().slice(0, 100); if (!n) throw new Error("Nom requis"); data.name = n; }
+      if (body.redirectUris !== undefined) {
+        const redirectUris = Array.isArray(body.redirectUris) ? Array.from(new Set(body.redirectUris.map(String).map(function (s) { return s.trim(); }).filter(Boolean))).slice(0, 10) : [];
+        if (!redirectUris.length) throw new Error("Au moins une URL de redirection requise");
+        for (const u of redirectUris) { if (!isAllowedRedirectUri(u)) throw new Error("URL de redirection invalide : " + u); }
+        data.redirectUrisJson = JSON.stringify(redirectUris);
+      }
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents/" + app.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, app: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/oauth/apps/regenerate-secret" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const clientId = String((body && body.clientId) || "");
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app || String(app.ownerId) !== acc.$id) throw new Error("Application introuvable");
+      const clientSecret = randomOauthToken(40);
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents/" + app.$id, { method: "PATCH", asAdmin: true, body: { data: { clientSecret: clientSecret } } });
+      return new Response(JSON.stringify({ ok: true, app: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/oauth/apps/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const clientId = String((body && body.clientId) || "");
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app || String(app.ownerId) !== acc.$id) throw new Error("Application introuvable");
+      await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents/" + app.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Info publique d'une application (nom, icône) : appelée par la page de
+  // consentement pour afficher "X veut se connecter avec ton compte XULTRA"
+  // avant que l'utilisateur ait besoin de faire confiance à quoi que ce soit
+  // — ne renvoie jamais le client_secret. Vérifie aussi que le redirect_uri
+  // fourni est bien enregistré pour cette application, pour repérer une
+  // tentative de détournement avant même l'écran d'approbation.
+  if (path === "/api/oauth/appinfo" && request.method === "GET") {
+    try {
+      const clientId = url.searchParams.get("client_id") || "";
+      const redirectUri = url.searchParams.get("redirect_uri") || "";
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app) throw new Error("Application inconnue");
+      const redirectUris = JSON.parse(app.redirectUrisJson || "[]");
+      const redirectOk = !redirectUri || redirectUris.indexOf(redirectUri) >= 0;
+      return new Response(JSON.stringify({ ok: true, name: app.name, logoEmoji: app.logoEmoji || "🔌", redirectOk: redirectOk }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 404, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // L'utilisateur final approuve depuis son propre navigateur, déjà connecté
+  // à XULTRA (JWT normal) — jamais de mot de passe ni de secret ici.
+  if (path === "/api/oauth/consent" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const clientId = String((body && body.clientId) || "");
+      const redirectUri = String((body && body.redirectUri) || "");
+      const state = String((body && body.state) || "");
+      const scope = String((body && body.scope) || "identify").slice(0, 100);
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app) throw new Error("Application inconnue");
+      const redirectUris = JSON.parse(app.redirectUrisJson || "[]");
+      if (redirectUris.indexOf(redirectUri) === -1) throw new Error("URL de redirection non autorisée pour cette application");
+      const code = randomOauthToken(32);
+      await awFetch("/databases/" + AW_DB + "/collections/oauth_codes/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { code: code, clientId: clientId, uid: acc.$id, redirectUri: redirectUri, scope: scope, expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(), used: false } }
+      });
+      const sep = redirectUri.indexOf("?") >= 0 ? "&" : "?";
+      const redirectUrl = redirectUri + sep + "code=" + encodeURIComponent(code) + (state ? "&state=" + encodeURIComponent(state) : "");
+      return new Response(JSON.stringify({ ok: true, redirectUrl: redirectUrl }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Appelé UNIQUEMENT par le serveur du site tiers (jamais le navigateur du
+  // visiteur) : échange le code contre un access_token, avec le
+  // client_secret comme preuve d'identité de l'application appelante.
+  if (path === "/api/oauth/token" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const grantType = String((body && body.grant_type) || "");
+      const code = String((body && body.code) || "");
+      const clientId = String((body && body.client_id) || "");
+      const clientSecret = String((body && body.client_secret) || "");
+      const redirectUri = String((body && body.redirect_uri) || "");
+      if (grantType !== "authorization_code") throw new Error("unsupported_grant_type");
+      const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const app = (appQ.documents || [])[0];
+      if (!app || app.clientSecret !== clientSecret) throw new Error("invalid_client");
+      const codeQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_codes/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "code", values: [code] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const codeDoc = (codeQ.documents || [])[0];
+      if (!codeDoc || codeDoc.used || codeDoc.clientId !== clientId || codeDoc.redirectUri !== redirectUri) throw new Error("invalid_grant");
+      if (new Date(codeDoc.expiresAt).getTime() < Date.now()) throw new Error("expired_code");
+      await awFetch("/databases/" + AW_DB + "/collections/oauth_codes/documents/" + codeDoc.$id, { method: "PATCH", asAdmin: true, body: { data: { used: true } } });
+      const accessToken = randomOauthToken(48);
+      const expiresIn = 60 * 60 * 24 * 30;
+      await awFetch("/databases/" + AW_DB + "/collections/oauth_tokens/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { token: accessToken, clientId: clientId, uid: codeDoc.uid, scope: codeDoc.scope, expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString() } }
+      });
+      return new Response(JSON.stringify({ access_token: accessToken, token_type: "Bearer", expires_in: expiresIn, scope: codeDoc.scope }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: (e && e.message) || "invalid_request" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Appelé par le serveur du site tiers avec l'access_token obtenu ci-dessus
+  // (jamais le JWT normal d'un compte XULTRA — un jeton OAuth séparé, portée
+  // volontairement restreinte à l'identité de base).
+  if (path === "/api/oauth/userinfo" && request.method === "GET") {
+    try {
+      const token = extractJwt(request);
+      if (!token) throw new Error("missing_token");
+      const tokQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_tokens/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "token", values: [token] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const tok = (tokQ.documents || [])[0];
+      if (!tok) throw new Error("invalid_token");
+      if (new Date(tok.expiresAt).getTime() < Date.now()) throw new Error("expired_token");
+      const profile = await resolveProfile(tok.uid);
+      if (!profile) throw new Error("user_not_found");
+      return new Response(JSON.stringify({ id: tok.uid, username: profile.username || "", displayName: profile.displayName || "", avatar: profile.avatar || "", tag: profile.tag || "" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ error: (e && e.message) || "invalid_token" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Paramètres → Applications autorisées : côté CONSOMMATEUR du SSO, la
+  // liste des sites tiers que l'utilisateur a lui-même approuvés (pas les
+  // applications qu'il a créées en tant que développeur, voir /apps/*).
+  if (path === "/api/oauth/authorized" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const tokQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_tokens/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const byClient = {};
+      (tokQ.documents || []).forEach(function (t) {
+        if (new Date(t.expiresAt).getTime() < Date.now()) return;
+        if (!byClient[t.clientId]) byClient[t.clientId] = { clientId: t.clientId, scope: t.scope, grantedAt: t.$createdAt };
+      });
+      const clientIds = Object.keys(byClient);
+      const apps = [];
+      for (const cid of clientIds) {
+        const appQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [cid] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        const app = (appQ.documents || [])[0];
+        if (app) apps.push({ clientId: cid, name: app.name, logoEmoji: app.logoEmoji || "🔌", scope: byClient[cid].scope, grantedAt: byClient[cid].grantedAt });
+      }
+      return new Response(JSON.stringify({ ok: true, apps: apps }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/oauth/revoke" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const clientId = String((body && body.clientId) || "");
+      const tokQ = await awFetch("/databases/" + AW_DB + "/collections/oauth_tokens/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "clientId", values: [clientId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      for (const t of tokQ.documents || []) {
+        await awFetch("/databases/" + AW_DB + "/collections/oauth_tokens/documents/" + t.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
 
   // Temporary client-side diagnostics: lets the browser report what's actually
