@@ -155,6 +155,26 @@ async function serverCheckPermission(serverId, uid, permissionOrList) {
   }
   return { ok: false, server: server, member: member, error: "Permission refusée" };
 }
+// Liste complète des permissions détenues par un membre (jamais juste un
+// booléen sur UNE permission comme serverCheckPermission) — sert à borner ce
+// qu'un installateur de bot peut lui accorder (§ modération par bot) : un bot
+// ne peut jamais recevoir plus que ce que la personne qui l'installe détient
+// elle-même, exactement comme une invitation OAuth2 de bot Discord ne peut
+// pas dépasser les permissions du serveur accordées par qui invite.
+async function serverGetHeldPermissions(serverId, uid) {
+  const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+  if (isServerOwnerOrShaman(server, uid)) return SERVER_PERMISSIONS.slice();
+  const member = await getServerMembership(serverId, uid);
+  if (!member || !(member.roleIds || []).length) return [];
+  const roles = await serverGetMemberRoles(serverId, member);
+  const held = new Set();
+  for (const role of roles) {
+    let perms = []; try { perms = JSON.parse(role.permissionsJson || "[]"); } catch (e) {}
+    if (perms.indexOf("administrator") >= 0) return SERVER_PERMISSIONS.slice();
+    perms.forEach(function (p) { held.add(p); });
+  }
+  return Array.from(held);
+}
 async function serverGetMemberRoles(serverId, member) {
   const roleIds = (member && member.roleIds) || [];
   if (!roleIds.length) return [];
@@ -2308,6 +2328,20 @@ a.bug-att-item{display:block}
 .msg-bot-btn-success{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff}
 .msg-bot-btn-danger{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff}
 .bot-ephemeral-tag{font-size:.66rem;font-weight:800;color:#7dd3fc;margin-bottom:4px;letter-spacing:.02em}
+.msg-embed{margin-top:8px;padding:10px 12px;border-left:3px solid #7c3aed;border-radius:6px;background:rgba(124,58,237,.08);max-width:420px}
+.msg-embed-title{font-weight:700;font-size:.92rem;margin-bottom:4px}
+.msg-embed-title a{color:inherit;text-decoration:underline}
+.msg-embed-desc{font-size:.85rem;color:var(--text);opacity:.9;white-space:pre-wrap}
+.msg-embed-fields{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.msg-embed-field{min-width:120px}
+.msg-embed-field.inline{flex:1 1 30%}
+.msg-embed-field-name{font-size:.72rem;font-weight:700;opacity:.85}
+.msg-embed-field-val{font-size:.8rem;opacity:.9}
+.msg-embed-image{max-width:100%;border-radius:6px;margin-top:8px;display:block}
+.msg-embed-thumb{max-width:64px;max-height:64px;border-radius:6px;float:right}
+.msg-embed-footer{font-size:.68rem;opacity:.6;margin-top:8px}
+.bot-perm-check{display:flex;align-items:center;gap:6px;font-size:.82rem;padding:5px 0;cursor:pointer}
+.bot-perm-check input{cursor:pointer}
 .srv-rules-card{max-width:460px;padding:18px}
 .srv-rules-welcome{background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-bottom:10px;white-space:pre-wrap}
 .srv-rules-text{max-height:38vh;overflow-y:auto;font-size:.85rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;padding-right:4px;margin-bottom:12px}
@@ -5464,6 +5498,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.20.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : modération, embeds, commandes riches et installation en DM',
+    body:'Le portail développeur de bots s\\'étend : une personne qui installe ton bot sur son serveur peut désormais lui accorder des permissions précises (expulsion, bannissement, timeout, gestion des rôles) — jamais plus que ce qu\\'elle détient elle-même, jamais "administrateur" — que ton bot exerce via une nouvelle API de modération dédiée. Tes commandes acceptent maintenant jusqu\\'à 5 options nommées avec choix suggérés en autocomplétion (ex : /avertir cible:Bob raison:spam), et tes réponses peuvent inclure un embed façon Discord (titre, description, couleur, champs, image). Et un bot peut désormais être ajouté directement en message privé par n\\'importe qui (Paramètres → 🤖 Bots → "Ajouter un bot en message privé"), pas seulement sur un serveur — mêmes commandes, boutons et embeds, en DM.'},
   {version:'4.19.0',category:'feature',date:'28 août 2026',time:'23:45',title:'🤖 Section développeur : crée tes propres bots + badge Développeur de Bot',
     body:'Nouvel onglet Paramètres → 🤖 Bots : crée une application de bot (nom, avatar, description), reçois un token secret, et branche-la à ta propre URL HTTPS (ton bot répond aux interactions comme sur Discord — commandes slash, boutons, réponses éphémères visibles seulement par toi). Un propriétaire de serveur peut installer un bot via 🤖 Bots dans les paramètres du serveur ; le bot apparaît alors dans la liste des membres et peut poster de vrais messages taggés 🤖 BOT avec jusqu\\'à des boutons interactifs. API REST dédiée pour que ton bot envoie aussi des messages de son propre chef (cron, webhook externe...). Dès que ton bot répond avec succès à sa toute première interaction en ligne, tu reçois automatiquement le badge 🤖 Développeur de Bot. Version actuelle volontairement scopée aux interactions HTTP (comme les bots "à la demande" de Discord) : pas encore de connexion permanente type gateway, pas d\\'actions de modération (kick/ban/rôles) via l\\'API bot, et une seule option texte libre par commande — tout est documenté directement dans l\\'onglet développeur, la suite arrive dans une prochaine version.'},
   {version:'4.18.0',category:'feature',date:'28 août 2026',time:'23:30',title:'🖼️ Fond d\\'écran personnalisé en DM + 💎 badge ÉLITE X1',
@@ -7109,7 +7145,7 @@ function renderOauthDevAppsList(){
 let botDevAppsCache=[];
 async function renderSetBots(box){
   box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
-    +'<div class="sc-desc">Crée un bot pour ton serveur : commandes /slash, boutons, réponses automatiques. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
+    +'<div class="sc-desc">Crée un bot pour un serveur ou pour les messages privés : commandes /slash (avec options et choix), boutons, embeds, réponses automatiques — et une API de modération (kick/ban/timeout/rôles) pour les serveurs qui t\\'en accordent la permission. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes bots</div><div class="scr-sub">10 bots maximum par compte.</div></div><button type="button" class="set-mini-btn" id="bot-new-btn">+ Créer un bot</button></div></div>'
     +'<div class="set-card hidden" id="bot-new-form">'
       +'<div class="set-row"><label>Nom du bot</label><input type="text" id="bot-new-name" class="field-input" maxlength="100" placeholder="Mon Bot"></div>'
@@ -7118,24 +7154,41 @@ async function renderSetBots(box){
       +'<div class="err" id="bot-new-err" style="min-height:1em;margin-top:6px"></div>'
     +'</div>'
     +'<div id="bot-list"><div class="scr-sub">Chargement…</div></div>'
+    +'<div class="set-card" style="margin-top:18px"><div class="set-section-label">💬 Ajouter un bot en message privé</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Comme une "app installée par l\\'utilisateur" sur Discord : ajoute n\\'importe quel bot public dans tes propres DM, sans passer par un serveur.</div>'
+      +'<div style="display:flex;gap:8px"><input type="text" id="bot-dm-add-id" class="field-input" placeholder="Identifiant public du bot"><button type="button" class="set-mini-btn" id="bot-dm-add-btn">+ Ajouter en DM</button></div>'
+      +'<div class="err" id="bot-dm-add-err"></div>'
+    +'</div>'
     +'<div class="set-card" style="margin-top:18px">'
       +'<div class="set-section-label">📘 Comment ça marche</div>'
-      +'<div class="oauth-doc-step"><b>1. Crée un bot</b> ci-dessus pour obtenir un identifiant public (pour l\\'installation sur un serveur) et un token secret (pour authentifier les appels — ne le partage jamais).</div>'
+      +'<div class="oauth-doc-step"><b>1. Crée un bot</b> ci-dessus pour obtenir un identifiant public (pour l\\'installation) et un token secret (pour authentifier les appels — ne le partage jamais).</div>'
       +'<div class="oauth-doc-step"><b>2. Renseigne ton URL d\\'interactions</b> (HTTPS obligatoire) : c\\'est l\\'endpoint de TON serveur que X1 appelle à chaque commande ou clic de bouton. Réponds en <b>3 secondes maximum</b> — un endpoint qui doit "démarrer" à froid (cold start) est risqué, garde-le chaud si possible.</div>'
-      +'<div class="oauth-doc-step"><b>3. Déclare tes commandes</b> (nom, description, un argument texte optionnel) — elles apparaissent en autocomplétion quand quelqu\\'un tape <code>/</code> dans un salon où ton bot est installé.</div>'
-      +'<div class="oauth-doc-step"><b>4. Une personne installe ton bot</b> sur son serveur (Paramètres du serveur → 🤖 Bots → coller ton identifiant public). Elle garde le contrôle : elle peut le retirer à tout moment.</div>'
+      +'<div class="oauth-doc-step"><b>3. Déclare tes commandes</b> (nom, description, jusqu\\'à 5 options nommées avec choix suggérés en autocomplétion) — elles apparaissent quand quelqu\\'un tape <code>/</code> dans un salon ou une DM où ton bot est présent. Une personne tape <code>/avertir cible:Bob raison:spam</code>, ton bot reçoit <code>{cible:"Bob",raison:"spam"}</code>.</div>'
+      +'<div class="oauth-doc-step"><b>4. Une personne installe ton bot</b> sur son serveur (Paramètres du serveur → 🤖 Bots → coller ton identifiant public — elle choisit alors quelles permissions de modération t\\'accorder, jamais plus que ce qu\\'elle détient elle-même) ou dans ses propres DM (ci-dessus). Elle garde le contrôle : elle peut le retirer à tout moment.</div>'
       +'<div class="oauth-doc-step"><b>Ce que X1 t\\'envoie</b> à chaque interaction (en-tête <code>X-X1-Signature</code> : HMAC-SHA256 du corps de la requête avec ton token secret comme clé — vérifie-la pour t\\'assurer que ça vient bien de X1) :</div>'
-      +oauthCodeBlockHtml('bot-doc-payload','{\\n  "type": "command",              // ou "component" pour un clic de bouton\\n  "server": { "id": "...", "name": "..." },\\n  "channel": { "id": "..." },\\n  "user": { "id": "...", "username": "..." },\\n  "command": { "name": "ping", "args": { "texte": "..." } },\\n  "component": { "customId": "...", "messageId": "..." }, // si type = component\\n  "ts": 1234567890\\n}')
-      +'<div class="oauth-doc-step"><b>Ce que ton bot doit répondre</b> (JSON, avant 3 secondes) :</div>'
-      +oauthCodeBlockHtml('bot-doc-response','{\\n  "content": "Pong ! 🏓",\\n  "ephemeral": false,        // true = visible seulement par qui a lancé la commande, jamais posté dans le salon\\n  "components": [             // optionnel, 5 boutons max\\n    { "label": "Encore", "style": "primary", "customId": "ping_again" }\\n  ]\\n}')
+      +oauthCodeBlockHtml('bot-doc-payload','{\\n  "type": "command",              // ou "component" pour un clic de bouton\\n  "server": { "id": "...", "name": "..." }, // absent si interaction en DM\\n  "channel": { "id": "...", "isDm": false },\\n  "user": { "id": "...", "username": "..." },\\n  "command": { "name": "avertir", "args": { "cible": "Bob", "raison": "spam" } },\\n  "component": { "customId": "...", "messageId": "..." }, // si type = component\\n  "ts": 1234567890\\n}')
+      +'<div class="oauth-doc-step"><b>Ce que ton bot doit répondre</b> (JSON, avant 3 secondes) — <code>embed</code> est optionnel, façon Discord :</div>'
+      +oauthCodeBlockHtml('bot-doc-response','{\\n  "content": "Pong ! 🏓",\\n  "ephemeral": false,        // true = visible seulement par qui a lancé la commande, jamais posté\\n  "components": [{ "label": "Encore", "style": "primary", "customId": "ping_again" }], // 5 max\\n  "embed": {\\n    "title": "Statut du serveur",\\n    "description": "Tout va bien.",\\n    "color": "22c55e",\\n    "fields": [{ "name": "Joueurs", "value": "12/32", "inline": true }],\\n    "image": "https://...", "footer": "Mis à jour à l\\'instant"\\n  }\\n}')
       +'<div class="oauth-doc-step"><b>Exemple minimal</b> (Node.js / Express) :</div>'
       +oauthCodeBlockHtml('bot-doc-example','import express from \\'express\\';\\nimport crypto from \\'crypto\\';\\nconst app = express();\\napp.use(express.json());\\nconst BOT_TOKEN = process.env.BOT_TOKEN;\\n\\napp.post(\\'/interactions\\', (req, res) => {\\n  const sig = req.headers[\\'x-x1-signature\\'];\\n  const expected = crypto.createHmac(\\'sha256\\', BOT_TOKEN).update(JSON.stringify(req.body)).digest(\\'hex\\');\\n  if (sig !== expected) return res.status(401).end();\\n\\n  const { command } = req.body;\\n  if (command && command.name === \\'ping\\') {\\n    return res.json({ content: \\'Pong ! 🏓\\' });\\n  }\\n  res.json({ content: \\'Commande inconnue.\\', ephemeral: true });\\n});\\napp.listen(3000);')
-      +'<div class="oauth-doc-step"><b>Ton bot peut aussi écrire de lui-même</b> (annonce programmée, relais externe, cron...), sans attendre une interaction :</div>'
-      +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: {\\n    \\'Content-Type\\': \\'application/json\\',\\n    Authorization: \\'Bot \\' + BOT_TOKEN\\n  },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
-      +'<div class="oauth-doc-step">🎙️ <b>Vocal</b> (rejoindre, jouer/recevoir de l\\'audio) et les <b>actions de modération</b> (kick/ban/rôles depuis un bot) ne sont pas encore couvertes par cette API — ça viendra dans une prochaine version.</div>'
+      +'<div class="oauth-doc-step"><b>Ton bot peut aussi écrire de lui-même</b> (annonce programmée, relais externe, cron...), sans attendre une interaction — vers un salon (<code>channelId</code>) ou une DM (<code>dmThreadId</code>) :</div>'
+      +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
+      +'<div class="oauth-doc-step"><b>API de modération</b> (nécessite que le serveur t\\'ait accordé la permission correspondante à l\\'installation) :</div>'
+      +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
+      +'<div class="oauth-doc-step">🎙️ Le <b>vocal</b> (rejoindre un salon, jouer/recevoir de l\\'audio) et une connexion permanente type <b>gateway/WebSocket</b> ne sont pas couverts par cette API — ça viendra peut-être dans une prochaine version, mais l\\'essentiel d\\'un bot Discord classique (commandes, boutons, embeds, modération, DM) fonctionne dès aujourd\\'hui.</div>'
     +'</div>';
   wireOauthCodeBlocks(box);
   \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
+  \$('bot-dm-add-btn').addEventListener('click',async function(){
+    const btn=this;
+    const publicId=(\$('bot-dm-add-id').value||'').trim();
+    \$('bot-dm-add-err').textContent='';
+    if(!publicId){\$('bot-dm-add-err').textContent='Identifiant requis';return}
+    btn.disabled=true;btn.textContent='Ajout…';
+    try{await addBotToDm(publicId);\$('bot-dm-add-id').value='';}
+    catch(e){\$('bot-dm-add-err').textContent=(e&&e.message)||'Bot introuvable';}
+    btn.disabled=false;btn.textContent='+ Ajouter en DM';
+  });
   \$('bot-new-cancel').addEventListener('click',function(){\$('bot-new-form').classList.add('hidden');\$('bot-new-err').textContent='';});
   \$('bot-new-save').addEventListener('click',async function(){
     const btn=this;
@@ -7240,12 +7293,25 @@ function renderBotDevAppsList(){
 function renderBotCommandsEditor(editor,publicId){
   const bot=botDevAppsCache.find(function(b){return b.publicId===publicId});
   let commands=[];try{commands=JSON.parse((bot&&bot.commandsJson)||'[]');}catch(e){}
+  // Migration douce : d'anciens bots stockés avant l'existence de "choices"
+  // n'ont que {name,description,required} par option — s'assurer que
+  // "choices" existe toujours pour ne pas planter le rendu ci-dessous.
+  commands.forEach(function(c){(c.options||[]).forEach(function(o){if(!Array.isArray(o.choices))o.choices=[];});});
   function draw(){
     editor.innerHTML=commands.map(function(c,i){
+      const opts=c.options||[];
+      const optsHtml=opts.map(function(o,j){
+        return '<div class="bot-cmd-opt-row" style="border-top:1px dashed rgba(167,139,250,.16);padding-top:8px;margin-top:8px">'
+          +'<div style="display:flex;gap:6px"><input type="text" class="field-input" style="margin-bottom:6px" data-cmd-opt-name="'+i+':'+j+'" value="'+esc(o.name||'')+'" placeholder="nom_option" maxlength="32"><label style="display:flex;align-items:center;gap:4px;font-size:.78rem;white-space:nowrap"><input type="checkbox" data-cmd-opt-req="'+i+':'+j+'"'+(o.required?' checked':'')+'>requis</label><button type="button" class="set-mini-btn danger" data-cmd-opt-remove="'+i+':'+j+'">✕</button></div>'
+          +'<input type="text" class="field-input" style="margin-bottom:6px" data-cmd-opt-desc="'+i+':'+j+'" value="'+esc(o.description||'')+'" placeholder="Description de l\\'option" maxlength="100">'
+          +'<input type="text" class="field-input" data-cmd-opt-choices="'+i+':'+j+'" value="'+esc((o.choices||[]).join(', '))+'" placeholder="Choix suggérés séparés par des virgules (optionnel)">'
+        +'</div>';
+      }).join('');
       return '<div class="bot-cmd-row" style="border:1px solid rgba(167,139,250,.16);border-radius:10px;padding:10px;margin-bottom:8px">'
         +'<div style="display:flex;gap:6px"><input type="text" class="field-input" style="margin-bottom:6px" data-cmd-name="'+i+'" value="'+esc(c.name||'')+'" placeholder="nom_commande" maxlength="32"><button type="button" class="set-mini-btn danger" data-cmd-remove="'+i+'">✕</button></div>'
-        +'<input type="text" class="field-input" style="margin-bottom:6px" data-cmd-desc="'+i+'" value="'+esc(c.description||'')+'" placeholder="Description" maxlength="100">'
-        +'<input type="text" class="field-input" data-cmd-opt-name="'+i+'" value="'+esc((c.options&&c.options[0]&&c.options[0].name)||'')+'" placeholder="Nom de l\\'argument texte (optionnel, ex: raison)" maxlength="32">'
+        +'<input type="text" class="field-input" data-cmd-desc="'+i+'" value="'+esc(c.description||'')+'" placeholder="Description" maxlength="100">'
+        +optsHtml
+        +(opts.length<5?'<button type="button" class="set-mini-btn" style="margin-top:8px" data-cmd-opt-add="'+i+'">+ Option ("nom:valeur" dans le message, ex: /avertir cible:Bob raison:spam)</button>':'')
       +'</div>';
     }).join('')
     +'<button type="button" class="set-mini-btn" id="bot-cmd-add-'+publicId+'">+ Ajouter une commande</button> '
@@ -7253,8 +7319,29 @@ function renderBotCommandsEditor(editor,publicId){
     editor.querySelectorAll('[data-cmd-name]').forEach(function(inp){inp.addEventListener('input',function(){commands[+inp.getAttribute('data-cmd-name')].name=inp.value;});});
     editor.querySelectorAll('[data-cmd-desc]').forEach(function(inp){inp.addEventListener('input',function(){commands[+inp.getAttribute('data-cmd-desc')].description=inp.value;});});
     editor.querySelectorAll('[data-cmd-opt-name]').forEach(function(inp){inp.addEventListener('input',function(){
-      const idx=+inp.getAttribute('data-cmd-opt-name');
-      commands[idx].options=inp.value.trim()?[{name:inp.value.trim(),description:inp.value.trim(),required:false}]:[];
+      const parts=inp.getAttribute('data-cmd-opt-name').split(':');
+      commands[+parts[0]].options[+parts[1]].name=inp.value;
+    });});
+    editor.querySelectorAll('[data-cmd-opt-desc]').forEach(function(inp){inp.addEventListener('input',function(){
+      const parts=inp.getAttribute('data-cmd-opt-desc').split(':');
+      commands[+parts[0]].options[+parts[1]].description=inp.value;
+    });});
+    editor.querySelectorAll('[data-cmd-opt-req]').forEach(function(inp){inp.addEventListener('change',function(){
+      const parts=inp.getAttribute('data-cmd-opt-req').split(':');
+      commands[+parts[0]].options[+parts[1]].required=inp.checked;
+    });});
+    editor.querySelectorAll('[data-cmd-opt-choices]').forEach(function(inp){inp.addEventListener('input',function(){
+      const parts=inp.getAttribute('data-cmd-opt-choices').split(':');
+      commands[+parts[0]].options[+parts[1]].choices=inp.value.split(',').map(function(s){return s.trim();}).filter(Boolean);
+    });});
+    editor.querySelectorAll('[data-cmd-opt-remove]').forEach(function(btn){btn.addEventListener('click',function(){
+      const parts=btn.getAttribute('data-cmd-opt-remove').split(':');
+      commands[+parts[0]].options.splice(+parts[1],1);draw();
+    });});
+    editor.querySelectorAll('[data-cmd-opt-add]').forEach(function(btn){btn.addEventListener('click',function(){
+      const idx=+btn.getAttribute('data-cmd-opt-add');
+      if(!commands[idx].options)commands[idx].options=[];
+      commands[idx].options.push({name:'',description:'',required:false,choices:[]});draw();
     });});
     editor.querySelectorAll('[data-cmd-remove]').forEach(function(btn){btn.addEventListener('click',function(){commands.splice(+btn.getAttribute('data-cmd-remove'),1);draw();});});
     const addBtn=\$('bot-cmd-add-'+publicId);
@@ -8692,6 +8779,19 @@ async function startDmWith(peerUid,peerName){
     await openDm(dm.\$id,dm.displayName||peerName||'Conversation',peerUid);
   }catch(e){xlog('start_dm_fail',{msg:(e&&e.message)||String(e)});}
 }
+// Ajoute un bot en message privé (§ bots installables en DM) — réutilise
+// startDmWith telle quelle : un bot est juste un "peerUid" synthétique
+// "bot_<publicId>", exactement comme dans un salon de serveur, donc toute la
+// mécanique DM existante (création, ouverture, permissions) marche sans
+// modification particulière pour lui.
+async function addBotToDm(publicId){
+  const r=await fetch('/api/bots/public?publicId='+encodeURIComponent(publicId));
+  const j=await r.json();
+  if(!j||!j.ok)throw new Error((j&&j.error)||'Bot introuvable');
+  closeSettingsPanel();
+  await startDmWith('bot_'+j.bot.publicId,j.bot.name);
+  showToast(j.bot.name+' ajouté à tes messages privés !');
+}
 async function deleteConversationConfirmed(dmId){
   try{
     await authPost('/api/dm/delete',{threadId:dmId});
@@ -9837,6 +9937,15 @@ if(\$('au-close'))\$('au-close').addEventListener('click',function(){\$('modal-a
 if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=false, msgsCache=[];
+// Bot ajouté en message privé (§ bots installables en DM, comme les "apps
+// installées par l'utilisateur" de Discord) : au plus un bot par
+// conversation 1:1 (jamais dans un groupe), chargé à l'ouverture de la
+// conversation dans openDm ci-dessous — voir /api/bots/public.
+let activeDmBotInfo=null;
+function activeDmBotCommands(){
+  if(!activeDmBotInfo)return [];
+  return (activeDmBotInfo.commands||[]).map(function(c){return {botAppId:activeDmBotInfo.botAppId,botName:activeDmBotInfo.name,name:c.name,description:c.description,options:c.options||[]};});
+}
 let msgsOldestId=null,msgsHasMoreOlder=true,msgsLoadingOlder=false;
 async function openDm(threadId,title,peerUid){
   clearReplyTarget('dm');
@@ -9847,6 +9956,13 @@ async function openDm(threadId,title,peerUid){
   activeDmMembers=members;
   activeDmIsGroup=members.length>2;
   activeDmPeerUid=activeDmIsGroup?null:(peerUid||members.find(function(m){return m!==(me&&me.\$id)})||null);
+  activeDmBotInfo=null;
+  if(activeDmPeerUid&&String(activeDmPeerUid).indexOf('bot_')===0){
+    const botPublicId=String(activeDmPeerUid).slice(4);
+    fetch('/api/bots/public?publicId='+encodeURIComponent(botPublicId)).then(function(r){return r.json();}).then(function(j){
+      if(j&&j.ok&&activeDmPeerUid===('bot_'+botPublicId))activeDmBotInfo=j.bot;
+    }).catch(function(){});
+  }
   // Ouvrir une conversation force une lecture fraîche de la clé publique de
   // l'interlocuteur plutôt que de faire confiance à un cache potentiellement
   // vieux de plusieurs heures — le cas concret évité : rouvrir une
@@ -10608,16 +10724,19 @@ function buildMsgsHtml(list,seenInfo){
     if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     if(m.type==='syscall')return callHistoryHtml(m);
     const mine=m.uid===(me&&me.\$id);
+    const isBot=!!m.isBot;
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
     const seenTag=(seenInfo&&mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
-    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
+    const avInner=isBot?'🤖':(authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name)));
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return msgsCache.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
+    const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
+    const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
+    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
 }
 // Idée reçue dans la Boîte à idées : ouvrir les images/gifs dans un widget
@@ -10684,8 +10803,25 @@ function wireMsgContainer(container){
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
     attachMsgSwipe(el,m);
   });
+  container.querySelectorAll('[data-bot-component]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      triggerDmBotComponent(btn.getAttribute('data-bot-mid'),btn.getAttribute('data-bot-component'),btn);
+    });
+  });
   mountLinkPreviews(container);
   mountGifFreeze(container);
+}
+async function triggerDmBotComponent(messageId,customId,btnEl){
+  if(!activeDm||!activeDmBotInfo)return;
+  if(btnEl)btnEl.disabled=true;
+  try{
+    const r=await authPost('/api/bots/interact',{dmThreadId:activeDm,botAppId:activeDmBotInfo.botAppId,kind:'component',customId:customId,messageId:messageId});
+    if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
+    if(r.ephemeral)showBotEphemeralReply(r.content,r.embed,'msgs');
+    else{await appendNewMessages();}
+  }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu','error');}
+  if(btnEl)btnEl.disabled=false;
 }
 // Bug remonté : après l'envoi d'un message sur mobile, il fallait scroller
 // manuellement pour le voir. Cause probable : l'animation du clavier virtuel
@@ -11034,6 +11170,29 @@ async function sendMessage(){
     return;
   }
   if(!text||!activeDm||!me)return;
+  // Commande /slash vers un bot ajouté en message privé (§ bots
+  // installables en DM) — même contrat que sur un salon de serveur (voir
+  // sendServerChannelMessage), juste posté dans dms_messages côté worker
+  // au lieu de server_channel_messages (voir /api/bots/interact,
+  // paramètre dmThreadId).
+  if(activeDmBotInfo){
+    const slashMatch=/^\\/([a-z0-9_-]{1,32})(?:\\s+([\\s\\S]*))?$/i.exec(text);
+    if(slashMatch){
+      const cmd=activeDmBotCommands().find(function(c){return c.name===slashMatch[1].toLowerCase();});
+      if(cmd){
+        input.value='';
+        \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
+        const args=parseSlashCommandArgs(cmd,(slashMatch[2]||'').trim());
+        try{
+          const r=await authPost('/api/bots/interact',{dmThreadId:activeDm,botAppId:cmd.botAppId,kind:'command',commandName:cmd.name,args:args});
+          if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
+          if(r.ephemeral)showBotEphemeralReply(r.content,r.embed,'msgs');
+          else{await appendNewMessages();await loadDms();if(view==='dms')renderDms();}
+        }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu à temps','error');input.value=text;}
+        return;
+      }
+    }
+  }
   input.value='';
   \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
   try{
@@ -11042,6 +11201,7 @@ async function sendMessage(){
     clearTypingState();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
 }
+if(\$('msg-input'))wireSlashCommandAutocomplete(\$('msg-input'),activeDmBotCommands);
 if(\$('btn-emoji'))\$('btn-emoji').addEventListener('click',function(e){
   e.stopPropagation();
   openEmojiPicker(\$('btn-emoji'),function(emo){
@@ -17213,6 +17373,11 @@ const SERVER_PERM_DEFS=[
   {key:'manage_expressions',icon:'😀',label:'Gérer les expressions',desc:'Ajouter et supprimer les emojis personnalisés du serveur.'},
   {key:'manage_nicknames',icon:'🏷️',label:'Gérer les pseudos',desc:'Modifier le pseudo affiché des autres membres sur ce serveur. Chaque membre peut toujours changer le sien.'}
 ];
+// Sous-ensemble de SERVER_PERM_DEFS réellement exploitable par l'API de
+// modération pour bots (/api/bot/v1/moderation/*, /api/bot/v1/roles/*) —
+// jamais "administrator" (voir /api/servers/bots/install côté worker,
+// toujours retiré même si l'installateur l'a lui-même).
+const BOT_GRANTABLE_PERM_KEYS=['kick_members','ban_members','moderate_members','manage_roles'];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
 let stageState=null,stageStateUnsub=null,stageViewChannelId=null;
@@ -18113,6 +18278,33 @@ function pollCardHtml(m){
     +'<div class="poll-meta">'+total+' vote'+(total!==1?'s':'')+' · '+(ended?'Terminé':('se termine '+fmtRelTime(poll.endsAt)))+(poll.multi?' · Choix multiple':'')+'</div>'
     +'</div>';
 }
+// Carte "embed" façon Discord — partagée entre les messages de salon serveur,
+// les messages de DM bot et les réponses éphémères, jamais dupliquée trois
+// fois. embedJson peut être vide ('') : aucune carte dans ce cas.
+function renderBotEmbedHtml(embedJson){
+  if(!embedJson)return'';
+  let e=null;try{e=JSON.parse(embedJson);}catch(err){}
+  if(!e)return'';
+  const color=e.color?('#'+e.color):'#7c3aed';
+  const fieldsHtml=(e.fields||[]).map(function(f){
+    return '<div class="msg-embed-field'+(f.inline?' inline':'')+'"><div class="msg-embed-field-name">'+esc(f.name||'')+'</div><div class="msg-embed-field-val">'+linkify(esc(f.value||''))+'</div></div>';
+  }).join('');
+  return '<div class="msg-embed" style="border-left-color:'+esc(color)+'">'
+    +(e.title?('<div class="msg-embed-title">'+(e.url?('<a href="'+esc(e.url)+'" target="_blank" rel="noopener">'+esc(e.title)+'</a>'):esc(e.title))+'</div>'):'')
+    +(e.description?('<div class="msg-embed-desc">'+linkify(esc(e.description))+'</div>'):'')
+    +(fieldsHtml?('<div class="msg-embed-fields">'+fieldsHtml+'</div>'):'')
+    +(e.image?('<img class="msg-embed-image" src="'+esc(e.image)+'" alt="">'):'')
+    +(e.thumbnail?('<img class="msg-embed-thumb" src="'+esc(e.thumbnail)+'" alt="">'):'')
+    +(e.footer?('<div class="msg-embed-footer">'+esc(e.footer)+'</div>'):'')
+    +'</div>';
+}
+function renderBotComponentsHtml(componentsJson,messageId){
+  let components=[];try{components=JSON.parse(componentsJson||'[]');}catch(e){}
+  if(!components.length)return'';
+  return '<div class="msg-bot-components">'+components.map(function(c){
+    return '<button type="button" class="msg-bot-btn msg-bot-btn-'+esc(c.s||'secondary')+'" data-bot-component="'+esc(c.id||'')+'" data-bot-mid="'+esc(messageId||'')+'">'+esc(c.l||'Bouton')+'</button>';
+  }).join('')+'</div>';
+}
 function renderChannelMessages(){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
@@ -18135,17 +18327,10 @@ function renderChannelMessages(){
     const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
-    let componentsHtml='';
-    if(isBot){
-      let components=[];try{components=JSON.parse(m.componentsJson||'[]');}catch(e){}
-      if(components.length){
-        componentsHtml='<div class="msg-bot-components">'+components.map(function(c){
-          return '<button type="button" class="msg-bot-btn msg-bot-btn-'+esc(c.s||'secondary')+'" data-bot-component="'+esc(c.id||'')+'" data-bot-mid="'+esc(m.\$id||'')+'">'+esc(c.l||'Bouton')+'</button>';
-        }).join('')+'</div>';
-      }
-    }
+    const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
+    const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
       +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
@@ -18210,7 +18395,7 @@ async function triggerBotComponent(messageId,customId,btnEl){
   try{
     const r=await authPost('/api/bots/interact',{serverId:activeServer.\$id,channelId:activeChannel.\$id,botAppId:botAppId,kind:'component',customId:customId,messageId:messageId});
     if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
-    if(r.ephemeral)showBotEphemeralReply(r.content);
+    if(r.ephemeral)showBotEphemeralReply(r.content,r.embed);
   }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu','error');}
   if(btnEl)btnEl.disabled=false;
 }
@@ -18220,11 +18405,42 @@ function botAppIdForMessage(m){
   const entry=activeServerBotsCache.find(function(b){return b.publicId===publicId});
   return entry?entry.botAppId:null;
 }
-function showBotEphemeralReply(content){
-  const list=\$('srv-chan-msgs');if(!list)return;
+// Découpe le texte après "/commande" en arguments nommés façon Discord
+// ("/avertir cible:Bob raison:spam") — délibérément sans regex construite
+// dynamiquement (source d'un bug d'échappement déjà rencontré deux fois
+// dans ce fichier) : juste indexOf/slice sur les noms d'options déclarés.
+// Repli : une seule option déclarée et aucun "nom:" détecté dans le texte →
+// tout le texte lui est assigné tel quel (compatible avec les bots déjà en
+// production, écrits avant l'existence de la syntaxe "nom:valeur").
+function parseSlashCommandArgs(cmd,argText){
+  const args={};
+  const opts=(cmd&&cmd.options)||[];
+  if(!opts.length||!argText)return args;
+  const markers=[];
+  opts.forEach(function(o){
+    const needle=o.name+':';
+    const idx=argText.indexOf(needle);
+    if(idx>=0)markers.push({name:o.name,idx:idx,len:needle.length});
+  });
+  if(!markers.length){
+    if(opts.length===1)args[opts[0].name]=argText.trim();
+    return args;
+  }
+  markers.sort(function(a,b){return a.idx-b.idx;});
+  for(let i=0;i<markers.length;i++){
+    const start=markers[i].idx+markers[i].len;
+    const end=i+1<markers.length?markers[i+1].idx:argText.length;
+    const val=argText.slice(start,end).trim();
+    if(val)args[markers[i].name]=val;
+  }
+  return args;
+}
+function showBotEphemeralReply(content,embed,listId){
+  const list=\$(listId||'srv-chan-msgs');if(!list)return;
   const el=document.createElement('div');
   el.className='msg';
-  el.innerHTML='<div class="av">🤖</div><div><div class="bub"><div class="bot-ephemeral-tag">🔒 Visible seulement par toi</div>'+linkify(esc(content||''))+'</div></div>';
+  const embedHtml=embed?renderBotEmbedHtml(JSON.stringify(embed)):'';
+  el.innerHTML='<div class="av">🤖</div><div><div class="bub"><div class="bot-ephemeral-tag">🔒 Visible seulement par toi</div>'+linkify(esc(content||''))+embedHtml+'</div></div>';
   list.appendChild(el);
   list.scrollTop=list.scrollHeight;
 }
@@ -18271,12 +18487,11 @@ async function sendServerChannelMessage(){
       if(\$('srv-chan-send'))\$('srv-chan-send').classList.add('hidden');
       if(\$('srv-chan-voice'))\$('srv-chan-voice').classList.remove('hidden');
       const argText=(slashMatch[2]||'').trim();
-      const args={};
-      if(cmd.options&&cmd.options[0]&&argText)args[cmd.options[0].name]=argText;
+      const args=parseSlashCommandArgs(cmd,argText);
       try{
         const r=await authPost('/api/bots/interact',{serverId:activeServer.\$id,channelId:activeChannel.\$id,botAppId:cmd.botAppId,kind:'command',commandName:cmd.name,args:args});
         if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
-        if(r.ephemeral)showBotEphemeralReply(r.content);
+        if(r.ephemeral)showBotEphemeralReply(r.content,r.embed);
       }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu à temps','error');input.value=text;}
       return;
     }
@@ -18568,34 +18783,81 @@ function allServerBotCommands(){
   });
   return out;
 }
-function wireSlashCommandAutocomplete(inputEl){
+function wireSlashCommandAutocomplete(inputEl,getCommands){
   if(!inputEl||inputEl.dataset.slashWired)return;
   inputEl.dataset.slashWired='1';
+  // getCommands est un getter (jamais un tableau figé) : appelé à chaque
+  // frappe, pour rester correct même si le contexte change après le câblage
+  // (ex : passer d'une conversation avec un bot A à un bot B en DM, le champ
+  // \$('msg-input') du DOM restant le même élément tout du long).
+  getCommands=getCommands||allServerBotCommands;
   let box=null;
   function closeBox(){if(box){box.remove();box=null;}}
-  inputEl.addEventListener('input',function(){
-    const v=inputEl.value;
-    const m=/^\\/([a-z0-9_-]{0,32})$/.exec(v);
-    if(!m){closeBox();return}
-    const prefix=m[1].toLowerCase();
-    const matches=allServerBotCommands().filter(function(c){return c.name.toLowerCase().indexOf(prefix)===0;}).slice(0,8);
-    if(!matches.length){closeBox();return}
+  function openBox(items){
     closeBox();
     box=document.createElement('div');
     box.className='mention-autocomplete';
-    box.innerHTML=matches.map(function(c,i){
-      return '<div class="mention-ac-item'+(i===0?' on':'')+'" data-cmdname="'+esc(c.name)+'">/'+esc(c.name)+' <span class="mention-ac-sub">'+esc(c.description)+' — '+esc(c.botName)+'</span></div>';
+    box.innerHTML=items.map(function(it,i){
+      return '<div class="mention-ac-item'+(i===0?' on':'')+'" data-ac-idx="'+i+'">'+it.html+'</div>';
     }).join('');
     inputEl.parentElement.appendChild(box);
-    box.querySelectorAll('.mention-ac-item').forEach(function(item){
+    box.querySelectorAll('.mention-ac-item').forEach(function(item,i){
       item.addEventListener('mousedown',function(e){
         e.preventDefault();
-        inputEl.value='/'+item.getAttribute('data-cmdname')+' ';
+        items[i].apply();
         inputEl.dispatchEvent(new Event('input'));
         inputEl.focus();
         closeBox();
       });
     });
+  }
+  inputEl.addEventListener('input',function(){
+    const v=inputEl.value;
+    const cmdNameOnly=/^\\/([a-z0-9_-]{0,32})$/.exec(v);
+    if(cmdNameOnly){
+      const prefix=cmdNameOnly[1].toLowerCase();
+      const matches=getCommands().filter(function(c){return c.name.toLowerCase().indexOf(prefix)===0;}).slice(0,8);
+      if(!matches.length){closeBox();return}
+      openBox(matches.map(function(c){
+        return {html:'/'+esc(c.name)+' <span class="mention-ac-sub">'+esc(c.description)+' — '+esc(c.botName)+'</span>',
+          apply:function(){inputEl.value='/'+c.name+' ';}};
+      }));
+      return;
+    }
+    // Une fois le nom de commande tapé (suivi d'un espace) : propose les
+    // options déclarées ("nom:") puis, une fois "nom:" tapé, ses choix
+    // suggérés — jamais de regex construite dynamiquement (voir
+    // parseSlashCommandArgs plus haut), juste indexOf/slice sur le "mot"
+    // en cours de saisie (après le dernier espace).
+    if(v.charAt(0)!=='/'){closeBox();return}
+    const firstSpace=v.indexOf(' ');
+    if(firstSpace<0){closeBox();return}
+    const cmdName=v.slice(1,firstSpace).toLowerCase();
+    const cmd=getCommands().find(function(c){return c.name===cmdName;});
+    if(!cmd||!(cmd.options&&cmd.options.length)){closeBox();return}
+    const lastSpace=v.lastIndexOf(' ');
+    const currentWord=v.slice(lastSpace+1);
+    const colonIdx=currentWord.indexOf(':');
+    if(colonIdx>=0){
+      const optName=currentWord.slice(0,colonIdx);
+      const partial=currentWord.slice(colonIdx+1).toLowerCase();
+      const opt=cmd.options.find(function(o){return o.name===optName;});
+      if(!opt||!(opt.choices&&opt.choices.length)){closeBox();return}
+      const matches=opt.choices.filter(function(ch){return ch.toLowerCase().indexOf(partial)===0;}).slice(0,8);
+      if(!matches.length){closeBox();return}
+      openBox(matches.map(function(ch){
+        return {html:esc(optName)+':<b>'+esc(ch)+'</b>',
+          apply:function(){inputEl.value=v.slice(0,lastSpace+1)+optName+':'+ch+' ';}};
+      }));
+      return;
+    }
+    const usedNames=v.slice(firstSpace+1,lastSpace+1).split(' ').map(function(tok){const i=tok.indexOf(':');return i>=0?tok.slice(0,i):'';});
+    const matches=cmd.options.filter(function(o){return o.name.indexOf(currentWord.toLowerCase())===0&&usedNames.indexOf(o.name)<0;}).slice(0,8);
+    if(!matches.length){closeBox();return}
+    openBox(matches.map(function(o){
+      return {html:esc(o.name)+':<span class="mention-ac-sub">'+esc(o.description||'')+(o.required?' (requis)':'')+'</span>',
+        apply:function(){inputEl.value=v.slice(0,lastSpace+1)+o.name+':';}};
+    }));
   });
   inputEl.addEventListener('keydown',function(e){
     if(!box)return;
@@ -19620,7 +19882,13 @@ async function renderServerSettingsTab(){
     +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🤖 Bots</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Ajoute un bot créé par toi ou quelqu\\'un d\\'autre via le Portail développeur de bots (Paramètres → Développeurs → Mes bots). Colle son identifiant public ci-dessous.</div>'
       +'<div id="srv-bots-list"><div class="scr-sub">Chargement…</div></div>'
-      +'<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="srv-bot-install-id" class="field-input" placeholder="Identifiant public du bot"><button type="button" class="set-mini-btn" id="srv-bot-install-btn">+ Installer</button></div>'
+      +'<div style="margin-top:10px"><input type="text" id="srv-bot-install-id" class="field-input" placeholder="Identifiant public du bot"></div>'
+      +'<div class="scr-sub" style="margin:8px 0 4px">Permissions de modération accordées au bot (jamais plus que ce que TU détiens toi-même) :</div>'
+      +'<div id="srv-bot-install-perms">'+BOT_GRANTABLE_PERM_KEYS.filter(function(k){return isOwner||serverHasPermission(k);}).map(function(k){
+        const def=SERVER_PERM_DEFS.find(function(d){return d.key===k;});
+        return '<label class="bot-perm-check"><input type="checkbox" data-srv-bot-install-perm value="'+k+'">'+def.icon+' '+esc(def.label)+'</label>';
+      }).join('')+'</div>'
+      +'<button type="button" class="set-mini-btn" id="srv-bot-install-btn" style="margin-top:10px">+ Installer</button>'
       +'<div class="err" id="srv-bot-install-err"></div>'
     +'</div>'):'')
     +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité X1+</div>'
@@ -19651,8 +19919,10 @@ async function renderServerSettingsTab(){
     \$('srv-bot-install-err').textContent='';
     if(!publicId){\$('srv-bot-install-err').textContent='Identifiant requis';return}
     btn.disabled=true;btn.textContent='Installation…';
+    const permsBox=\$('srv-bot-install-perms');
+    const permissions=permsBox?Array.from(permsBox.querySelectorAll('[data-srv-bot-install-perm]:checked')).map(function(c){return c.value;}):[];
     try{
-      const r=await authPost('/api/servers/bots/install',{serverId:activeServer.\$id,publicId:publicId});
+      const r=await authPost('/api/servers/bots/install',{serverId:activeServer.\$id,publicId:publicId,permissions:permissions});
       showToast((r.bot&&r.bot.name?r.bot.name:'Le bot')+' a été installé !');
       \$('srv-bot-install-id').value='';
       loadServerBotsTab();
@@ -20000,8 +20270,14 @@ async function loadServerBotsTab(){
     const bots=(j&&j.bots)||[];
     if(!bots.length){box.innerHTML='<div class="scr-sub">Aucun bot installé sur ce serveur.</div>';return}
     box.innerHTML=bots.map(function(b){
-      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+'</div></div>'
-        +'<button type="button" class="set-mini-btn danger" data-srv-bot-remove="'+esc(b.memberDocId)+'">Retirer</button></div>';
+      const permsLabel=(b.permissions&&b.permissions.length)?b.permissions.map(function(k){const d=SERVER_PERM_DEFS.find(function(x){return x.key===k;});return d?d.icon:k;}).join(' '):'aucune permission de modération';
+      return '<div class="set-card-row" style="flex-wrap:wrap"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+' · '+permsLabel+'</div></div>'
+        +'<div style="display:flex;gap:6px"><button type="button" class="set-mini-btn" data-srv-bot-perms="'+esc(b.memberDocId)+'">🔧 Permissions</button><button type="button" class="set-mini-btn danger" data-srv-bot-remove="'+esc(b.memberDocId)+'">Retirer</button></div>'
+        +'<div class="hidden" id="srv-bot-perms-editor-'+esc(b.memberDocId)+'" style="width:100%;margin-top:8px">'+BOT_GRANTABLE_PERM_KEYS.map(function(k){
+          const def=SERVER_PERM_DEFS.find(function(d){return d.key===k;});
+          const checked=(b.permissions||[]).indexOf(k)>=0;
+          return '<label class="bot-perm-check"><input type="checkbox" data-srv-bot-perm-edit="'+esc(b.memberDocId)+'" value="'+k+'"'+(checked?' checked':'')+'>'+def.icon+' '+esc(def.label)+'</label>';
+        }).join('')+'<button type="button" class="set-mini-btn" data-srv-bot-perms-save="'+esc(b.memberDocId)+'" style="margin-top:6px">Enregistrer</button></div></div>';
     }).join('');
     box.querySelectorAll('[data-srv-bot-remove]').forEach(function(btn){
       btn.addEventListener('click',function(){
@@ -20009,6 +20285,23 @@ async function loadServerBotsTab(){
           try{await authPost('/api/servers/bots/remove',{serverId:activeServer.\$id,memberDocId:btn.getAttribute('data-srv-bot-remove')});showToast('Bot retiré.');loadServerBotsTab();}
           catch(e){showToast((e&&e.message)||'Action impossible','error');}
         });
+      });
+    });
+    box.querySelectorAll('[data-srv-bot-perms]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        const ed=\$('srv-bot-perms-editor-'+btn.getAttribute('data-srv-bot-perms'));
+        if(ed)ed.classList.toggle('hidden');
+      });
+    });
+    box.querySelectorAll('[data-srv-bot-perms-save]').forEach(function(btn){
+      btn.addEventListener('click',async function(){
+        const memberDocId=btn.getAttribute('data-srv-bot-perms-save');
+        const checks=box.querySelectorAll('[data-srv-bot-perm-edit="'+memberDocId+'"]:checked');
+        const permissions=Array.from(checks).map(function(c){return c.value;});
+        btn.disabled=true;
+        try{await authPost('/api/servers/bots/permissions/update',{serverId:activeServer.\$id,memberDocId:memberDocId,permissions:permissions});showToast('Permissions mises à jour.');loadServerBotsTab();}
+        catch(e){showToast((e&&e.message)||'Action impossible','error');}
+        btn.disabled=false;
       });
     });
   }catch(e){box.innerHTML='<div class="scr-sub">Impossible de charger les bots.</div>';}
@@ -21062,11 +21355,23 @@ async function handle(request) {
           const cleanOpts = opts.map(function (o) {
             const on = String((o && o.name) || "").toLowerCase().trim();
             if (!nameRe.test(on)) throw new Error("Nom d'option invalide : \"" + on + "\" (pour /" + cn + ")");
-            return { name: on, description: String((o && o.description) || "").trim().slice(0, 100), required: !!(o && o.required) };
+            // "choices" (façon Discord) : si renseigné, l'option devient un choix
+            // fermé plutôt qu'un texte libre — proposé en autocomplétion, jamais
+            // validé côté serveur (le bot du développeur reste libre de refuser
+            // une valeur inattendue lui-même, X1 ne fait ici que suggérer).
+            const choices = (Array.isArray(o && o.choices) ? o.choices : []).slice(0, 8).map(function (ch) { return String(ch).trim().slice(0, 32); }).filter(Boolean);
+            return { name: on, description: String((o && o.description) || "").trim().slice(0, 100), required: !!(o && o.required), choices: choices };
           });
           cleaned.push({ name: cn, description: cd, options: cleanOpts });
         }
-        data.commandsJson = JSON.stringify(cleaned);
+        // bot_apps.commandsJson est plafonné à 8000 caractères côté Appwrite
+        // (contrainte de largeur de ligne MariaDB, déjà rencontrée sur
+        // server_channel_messages) — un bot avec 15 commandes à 5 options à 8
+        // choix chacune peut dépasser cette limite ; mieux vaut un message
+        // clair ici qu'une erreur Appwrite opaque au moment de l'enregistrement.
+        const commandsJson = JSON.stringify(cleaned);
+        if (commandsJson.length > 7900) throw new Error("Trop de commandes/options/choix au total (limite de stockage atteinte) — réduis le nombre de choix ou d'options.");
+        data.commandsJson = commandsJson;
       }
       const doc = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
       return new Response(JSON.stringify({ ok: true, bot: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21127,12 +21432,42 @@ async function handle(request) {
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
       if ((existingQ.documents || []).length) throw new Error("Ce bot est déjà sur ce serveur");
+      // Le bot ne reçoit jamais plus que ce que l'installateur détient
+      // lui-même, et jamais "administrator" (même si l'installateur l'a) —
+      // un bot compromis reste borné aux permissions de modération
+      // explicites, jamais un accès total au serveur.
+      const requestedPerms = Array.isArray(body.permissions) ? body.permissions.map(String) : [];
+      const heldPerms = await serverGetHeldPermissions(serverId, acc.$id);
+      const grantedPerms = requestedPerms.filter(function (p) { return p !== "administrator" && SERVER_PERMISSIONS.indexOf(p) >= 0 && heldPerms.indexOf(p) >= 0; });
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id }, permissions: ["read(\"any\")"] }
+        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id, botPermsJson: JSON.stringify(grantedPerms) }, permissions: ["read(\"any\")"] }
       });
       await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { installCount: (Number(bot.installCount) || 0) + 1 } } }).catch(function () {});
-      return new Response(JSON.stringify({ ok: true, bot: { name: bot.name, avatar: bot.avatar, publicId: bot.publicId } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, bot: { name: bot.name, avatar: bot.avatar, publicId: bot.publicId, permissions: grantedPerms } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Modifie les permissions accordées à un bot déjà installé (sans avoir à le
+  // retirer/réinstaller) — même filtrage que l'installation : jamais plus que
+  // ce que la personne qui modifie détient, jamais "administrator".
+  if (path === "/api/servers/bots/permissions/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const memberDocId = String((body && body.memberDocId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server"]);
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const member = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { asAdmin: true });
+      if (String(member.serverId) !== serverId || !member.isBot) throw new Error("Bot introuvable sur ce serveur");
+      const requestedPerms = Array.isArray(body.permissions) ? body.permissions.map(String) : [];
+      const heldPerms = await serverGetHeldPermissions(serverId, acc.$id);
+      const grantedPerms = requestedPerms.filter(function (p) { return p !== "administrator" && SERVER_PERMISSIONS.indexOf(p) >= 0 && heldPerms.indexOf(p) >= 0; });
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "PATCH", asAdmin: true, body: { data: { botPermsJson: JSON.stringify(grantedPerms) } } });
+      return new Response(JSON.stringify({ ok: true, permissions: grantedPerms }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -21167,7 +21502,8 @@ async function handle(request) {
         try {
           const b = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + m.botAppId, { asAdmin: true });
           let commands = []; try { commands = JSON.parse(b.commandsJson || "[]"); } catch (e2) {}
-          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online };
+          let permissions = []; try { permissions = JSON.parse(m.botPermsJson || "[]"); } catch (e3) {}
+          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online, permissions: permissions };
         } catch (e2) { return null; }
       }));
       return new Response(JSON.stringify({ ok: true, bots: bots.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21190,26 +21526,40 @@ async function handle(request) {
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
+      const dmThreadId = String((body && body.dmThreadId) || "");
       const serverId = String((body && body.serverId) || "");
       const channelId = String((body && body.channelId) || "");
       const botAppId = String((body && body.botAppId) || "");
       const kind = body && body.kind === "component" ? "component" : "command";
-      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
-      if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
+      // Deux contextes possibles : un salon de serveur (bot installé par le
+      // propriétaire, comme un bot Discord classique) ou une conversation
+      // privée 1:1 avec le bot (§ bots installables en DM, comme les "apps
+      // installées par l'utilisateur" de Discord) — jamais les deux à la fois.
+      let dm = null, access = null;
       const bot = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + botAppId, { asAdmin: true }).catch(function () { return null; });
       if (!bot) throw new Error("Bot introuvable");
-      const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [botAppId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
-      if (!(installQ.documents || []).length) throw new Error("Ce bot n'est pas installé sur ce serveur");
+      if (dmThreadId) {
+        dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { asAdmin: true }).catch(function () { return null; });
+        if (!dm) throw new Error("Conversation introuvable");
+        const members = (dm.members || []).map(String);
+        if (members.indexOf(acc.$id) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
+        if (members.indexOf("bot_" + bot.publicId) < 0) throw new Error("Ce bot n'est pas dans cette conversation privée");
+      } else {
+        access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+        if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
+        const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [botAppId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        if (!(installQ.documents || []).length) throw new Error("Ce bot n'est pas installé sur ce serveur");
+      }
       if (!bot.interactionsUrl) throw new Error("Ce bot n'a pas encore d'URL d'interactions configurée par son développeur");
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const interactionPayload = {
         type: kind,
-        server: { id: serverId, name: access.server.name },
-        channel: { id: channelId },
+        server: dm ? undefined : { id: serverId, name: access.server.name },
+        channel: { id: dm ? dmThreadId : channelId, isDm: !!dm },
         user: { id: acc.$id, username: uname },
         command: kind === "command" ? { name: String((body && body.commandName) || ""), args: (body && body.args && typeof body.args === "object") ? body.args : {} } : undefined,
         component: kind === "component" ? { customId: String((body && body.customId) || ""), messageId: String((body && body.messageId) || "") } : undefined,
@@ -21239,6 +21589,7 @@ async function handle(request) {
       const components = Array.isArray(botJson.components) ? botJson.components.slice(0, 5).map(function (c) {
         return { l: String((c && c.label) || "Bouton").slice(0, 32), s: ["primary", "secondary", "danger", "success"].indexOf(c && c.style) >= 0 ? c.style : "secondary", id: String((c && c.customId) || "").slice(0, 64) };
       }) : [];
+      const embed = sanitizeBotEmbed(botJson.embed);
       // Toujours mettre à jour "online" et, à la toute première réussite,
       // enregistrer l'horodatage ET accorder le badge Développeur de Bot au
       // propriétaire — jamais à la simple création du bot dans le portail.
@@ -21272,13 +21623,22 @@ async function handle(request) {
         } catch (eBadge) {}
       }
       if (ephemeral) {
-        return new Response(JSON.stringify({ ok: true, ephemeral: true, content: content, badgeJustGranted: badgeJustGranted }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+        return new Response(JSON.stringify({ ok: true, ephemeral: true, content: content, embed: embed, badgeJustGranted: badgeJustGranted }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
       }
-      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, undefined);
-      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
-        method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: JSON.stringify(components), type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
-      });
+      let msg;
+      if (dm) {
+        msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: JSON.stringify(components), embedJson: embed ? JSON.stringify(embed) : "" } }
+        });
+        await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { method: "PATCH", asAdmin: true, body: { data: { lastMessage: (content || "📎 Embed").slice(0, 100) } } }).catch(function () {});
+      } else {
+        const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, undefined);
+        msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: JSON.stringify(components), embedJson: embed ? JSON.stringify(embed) : "", type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
+        });
+      }
       return new Response(JSON.stringify({ ok: true, message: msg, badgeJustGranted: badgeJustGranted }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21288,21 +21648,64 @@ async function handle(request) {
   // relais depuis un jeu/site tiers...) — jamais l'inverse d'une
   // interaction. Authentification par en-tête "Authorization: Bot <token>",
   // jamais par cookie/session (un bot n'a pas de navigateur).
+  // Résout le bot appelant depuis l'en-tête "Authorization: Bot <token>" —
+  // partagé par toutes les routes /api/bot/v1/* (jamais de cookie/session, un
+  // bot n'a pas de navigateur). Lève une erreur si absent/invalide.
+  async function resolveBotByToken(request) {
+    const authHeader = request.headers.get("Authorization") || "";
+    const m = /^Bot\s+(.+)$/.exec(authHeader);
+    if (!m) throw new Error("En-tête Authorization: Bot <token> requis");
+    const botToken = m[1].trim();
+    const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botToken", values: [botToken] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+    const bot = (botQ.documents || [])[0];
+    if (!bot) throw new Error("Token invalide");
+    return bot;
+  }
+  // Valide + normalise un embed façon Discord envoyé par un bot (dans sa
+  // réponse d'interaction OU via l'API push) : jamais fait confiance
+  // tel quel, toujours retaillé aux mêmes limites que le reste de la
+  // plateforme accepte pour un message.
+  function sanitizeBotEmbed(embed) {
+    if (!embed || typeof embed !== "object") return null;
+    const out = {};
+    if (embed.title) out.title = String(embed.title).slice(0, 200);
+    if (embed.description) out.description = String(embed.description).slice(0, 2000);
+    if (embed.url && /^https?:\/\//i.test(String(embed.url))) out.url = String(embed.url).slice(0, 500);
+    if (embed.color !== undefined) { const c = String(embed.color).replace(/[^0-9a-fA-F]/g, "").slice(0, 6); if (c) out.color = c; }
+    if (embed.image && /^https?:\/\//i.test(String(embed.image))) out.image = String(embed.image).slice(0, 500);
+    if (embed.thumbnail && /^https?:\/\//i.test(String(embed.thumbnail))) out.thumbnail = String(embed.thumbnail).slice(0, 500);
+    if (embed.footer) out.footer = String(embed.footer).slice(0, 100);
+    if (Array.isArray(embed.fields) && embed.fields.length) {
+      out.fields = embed.fields.slice(0, 5).map(function (f) {
+        return { name: String((f && f.name) || "").slice(0, 100), value: String((f && f.value) || "").slice(0, 300), inline: !!(f && f.inline) };
+      }).filter(function (f) { return f.name || f.value; });
+    }
+    return Object.keys(out).length ? out : null;
+  }
   if (path === "/api/bot/v1/messages/send" && request.method === "POST") {
     try {
-      const authHeader = request.headers.get("Authorization") || "";
-      const m = /^Bot\s+(.+)$/.exec(authHeader);
-      if (!m) throw new Error("En-tête Authorization: Bot <token> requis");
-      const botToken = m[1].trim();
-      const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botToken", values: [botToken] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
-      const bot = (botQ.documents || [])[0];
-      if (!bot) return new Response(JSON.stringify({ ok: false, error: "Token invalide" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const bot = await resolveBotByToken(request);
       const body = await request.json();
       const channelId = String((body && body.channelId) || "");
+      const dmThreadId = String((body && body.dmThreadId) || "");
       const content = String((body && body.content) || "").trim().slice(0, 4000);
-      if (!channelId || !content) throw new Error("channelId et content requis");
+      const embed = sanitizeBotEmbed(body && body.embed);
+      if (!content && !embed) throw new Error("content ou embed requis");
+      if (!channelId && !dmThreadId) throw new Error("channelId ou dmThreadId requis");
+      if (dmThreadId) {
+        const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { asAdmin: true });
+        const members = (dm.members || []).map(String);
+        if (members.indexOf("bot_" + bot.publicId) < 0) throw new Error("Ce bot n'est pas dans cette conversation privée");
+        const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: "[]", embedJson: embed ? JSON.stringify(embed) : "" } }
+        });
+        await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { method: "PATCH", asAdmin: true, body: { data: { lastMessage: (content || "📎 Embed").slice(0, 100) } } }).catch(function () {});
+        await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { online: true } } }).catch(function () {});
+        return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
       const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true });
       const serverId = String(channel.serverId);
       const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
@@ -21313,10 +21716,142 @@ async function handle(request) {
       const msgPerms = await computeChannelMessagePermissions(serverId, channel, undefined);
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: "[]", type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: "[]", embedJson: embed ? JSON.stringify(embed) : "", type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
       });
       await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { online: true } } }).catch(function () {});
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== API de modération pour bots (§ demande "tout le système d'API") =====
+  // Chaque route vérifie que le bot est bien installé sur ce serveur ET que
+  // botPermsJson (accordé à l'installation, jamais au-delà de ce que
+  // l'installateur détenait lui-même — voir /api/servers/bots/install) inclut
+  // la permission nécessaire. Jamais d'action sur le propriétaire du serveur,
+  // exactement comme pour un modérateur humain.
+  async function resolveBotServerInstall(bot, serverId) {
+    const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [String(serverId)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+    const install = (installQ.documents || [])[0];
+    if (!install) throw new Error("Ce bot n'est pas installé sur ce serveur");
+    let perms = []; try { perms = JSON.parse(install.botPermsJson || "[]"); } catch (e) {}
+    return { install: install, perms: perms };
+  }
+  function assertBotHasPerm(perms, needed) {
+    if (perms.indexOf(needed) < 0) throw new Error("Ce bot n'a pas la permission \"" + needed + "\" sur ce serveur");
+  }
+  if (path === "/api/bot/v1/moderation/kick" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "kick_members");
+      if (String(server.ownerId) === targetUid) throw new Error("Impossible d'expulser le propriétaire");
+      const member = await getServerMembership(serverId, targetUid);
+      if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "kick", (member && (member.nickname || member.username)) || targetUid, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/moderation/ban" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const unban = !!body.unban;
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "ban_members");
+      if (String(server.ownerId) === targetUid) throw new Error("Impossible de bannir le propriétaire");
+      let banned = []; try { banned = JSON.parse(server.bannedUidsJson || "[]"); } catch (e) {}
+      let member = null;
+      if (unban) {
+        banned = banned.filter(function (u) { return u !== targetUid; });
+      } else {
+        if (banned.indexOf(targetUid) < 0) banned.push(targetUid);
+        member = await getServerMembership(serverId, targetUid);
+        if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, unban ? "unban" : "ban", (member && (member.nickname || member.username)) || targetUid, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/moderation/timeout" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const minutes = Math.max(0, Math.min(43200, Number(body.minutes) || 0));
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "moderate_members");
+      if (String(server.ownerId) === targetUid) throw new Error("Impossible de mettre en timeout le propriétaire");
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
+      const until = minutes ? new Date(Date.now() + minutes * 60000).toISOString() : "";
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: until } } });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, minutes ? "timeout" : "timeout_clear", member.nickname || member.username || targetUid, { minutes: minutes });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if ((path === "/api/bot/v1/roles/add" || path === "/api/bot/v1/roles/remove") && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const targetUid = String((body && body.uid) || "");
+      const roleId = String((body && body.roleId) || "");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "manage_roles");
+      if (String(server.ownerId) === targetUid) throw new Error("Impossible de modifier les rôles du propriétaire");
+      const role = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { asAdmin: true });
+      if (String(role.serverId) !== serverId) throw new Error("Rôle introuvable sur ce serveur");
+      let rolePerms = []; try { rolePerms = JSON.parse(role.permissionsJson || "[]"); } catch (e) {}
+      if (rolePerms.indexOf("administrator") >= 0) throw new Error("Un bot ne peut jamais attribuer un rôle administrateur");
+      const member = await getServerMembership(serverId, targetUid);
+      if (!member) throw new Error("Ce membre ne fait pas partie du serveur");
+      let roleIds = (member.roleIds || []).slice();
+      if (path === "/api/bot/v1/roles/add") {
+        if (roleIds.indexOf(roleId) < 0) roleIds.push(roleId);
+      } else {
+        roleIds = roleIds.filter(function (id) { return id !== roleId; });
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, path === "/api/bot/v1/roles/add" ? "role_assign" : "role_unassign", member.nickname || member.username || targetUid, { role: role.name });
+      return new Response(JSON.stringify({ ok: true, roleIds: roleIds }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Info publique d'un bot (nom, avatar, description, commandes) — utilisé
+  // pour l'aperçu avant installation sur un serveur ET pour l'ajouter en
+  // message privé (§ bots installables en DM), jamais le token secret.
+  if (path === "/api/bots/public" && request.method === "GET") {
+    try {
+      const publicId = String(url.searchParams.get("publicId") || "").trim();
+      const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "publicId", values: [publicId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const bot = (botQ.documents || [])[0];
+      if (!bot) throw new Error("Bot introuvable");
+      let commands = []; try { commands = JSON.parse(bot.commandsJson || "[]"); } catch (e) {}
+      return new Response(JSON.stringify({ ok: true, bot: { botAppId: bot.$id, publicId: bot.publicId, name: bot.name, avatar: bot.avatar, description: bot.description, commands: commands, online: bot.online } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
