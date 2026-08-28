@@ -5504,6 +5504,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.23.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🎙️ Bots : accès aux salons vocaux',
+    body:'Les salons vocaux de serveur tournent sur LiveKit (un vrai SFU) plutôt que du WebRTC fait main — ce qui permet à un bot de les rejoindre via le SDK serveur LiveKit (ex. @livekit/rtc-node en Node.js) dans son propre process, sans réimplémenter ICE/DTLS/SRTP. Un propriétaire de serveur accorde l\\'accès vocal à un bot installé (paramètres du serveur → 🤖 Bots — jamais plus que ce que l\\'installateur détient lui-même), le bot demande alors un jeton via une nouvelle route de l\\'API et rejoint le salon avec le même mécanisme que le client web, avec option d\\'apparaître dans la liste des participants comme un membre. X1 ne fait toujours aucun traitement audio à la place du bot (reconnaissance vocale, synthèse, mixage) — comme pour tout le reste de cette API, le bot héberge sa propre logique.'},
   {version:'4.22.0',category:'fix',date:'28 août 2026',time:'23:59',title:'🐛 6 correctifs remontés par la communauté Bug Hunter',
     body:'La musique des autres membres refusait de se lancer ("lecture impossible") pour certains formats (FLAC notamment) — Appwrite renvoyait le fichier avec un type MIME générique pour tout format hors d\\'une liste "sûre" interne, ce que le lecteur audio refusait de jouer ; le point de streaming des médias forçait aussi systématiquement le fichier entier au lieu d\\'un chargement par plage, cassant le chargement/l\\'avance rapide des gros fichiers — merci 100coeur, correctif qui bénéficie à toute la plateforme (images, vidéos, messages vocaux compris), pas qu\\'à la musique. Cliquer sur le repère d\\'un commentaire horodaté d\\'un titre relançait le morceau depuis le début au lieu de sauter au bon endroit quand ce titre n\\'était pas déjà en cours de lecture — merci Yani. Le cadre de la fenêtre de profil et son contenu tiltaient chacun de leur côté au survol (cumul de deux rotations sur des éléments imbriqués) au lieu de bouger ensemble, ce qui causait aussi un tremblement près des coins — merci Yani. Le badge de statut en ligne sur un avatar était partiellement coupé, et le contour décoratif de photo de profil (Feu, Givre, Or, Arc-en-ciel, Néon) était bien trop fin pour être visible — merci Yani. Et confirmation que les stories "amis uniquement" restent bien scopées aux amis acceptés au moment de la publication (ajouter quelqu\\'un en ami après coup ne lui donne pas accès à une story déjà publiée, comme sur les plateformes de référence) — merci Yani.'},
   {version:'4.21.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : "gateway" événementielle (message_create, member_join...)',
@@ -7195,7 +7197,13 @@ async function renderSetBots(box){
       +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
       +'<div class="oauth-doc-step"><b>"Gateway" événementielle</b> — X1 ne fonctionne pas sur un process persistant (Worker Cloudflare sans état entre deux requêtes), donc pas de vraie connexion permanente façon Discord. À la place : renseigne une <b>URL d\\'événements</b> ci-dessus et coche les types qui t\\'intéressent — X1 t\\'envoie alors un POST signé (même en-tête <code>X-X1-Signature</code>) à chaque événement, sans attendre de réponse (aucune garantie de livraison, comme un webhook classique — pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne) :</div>'
       +oauthCodeBlockHtml('bot-doc-event','{\\n  "type": "event",\\n  "event": "message_create",   // ou message_delete, member_join, member_leave\\n  "server": { "id": "...", "name": "..." },\\n  "data": { "channel": { "id": "..." }, "message": { "id": "...", "author": { "id": "...", "username": "..." }, "content": "..." } },\\n  "ts": 1234567890\\n}')
-      +'<div class="oauth-doc-step">🎙️ Seul le <b>vocal</b> (rejoindre un salon, jouer/recevoir de l\\'audio) reste hors de portée de cette API — le reste d\\'un bot Discord classique (commandes, boutons, embeds, modération, DM, événements) fonctionne dès aujourd\\'hui.</div>'
+      +'<div class="oauth-doc-step">🎙️ <b>Vocal</b> — les salons vocaux de serveur tournent sur <a href="https://livekit.io" target="_blank" rel="noopener">LiveKit</a> (un vrai SFU), jamais du WebRTC fait main : ton bot n\\'a donc pas besoin de réimplémenter ICE/DTLS/SRTP, juste d\\'utiliser le <b>SDK serveur LiveKit</b> dans ton propre process (<code>@livekit/rtc-node</code> en Node.js, ou l\\'équivalent Python/Go). Le propriétaire du serveur doit d\\'abord t\\'accorder l\\'accès vocal (paramètres du serveur → 🤖 Bots), puis tu demandes un jeton :</div>'
+      +oauthCodeBlockHtml('bot-doc-voice-token','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\nconst res = await fetch(\\'https://xultra.space/api/bot/v1/voice/token\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, channelId }) });\\nconst { token, wsUrl, room } = await res.json();\\n// Optionnel, juste pour l\\'affichage : fait apparaître le bot dans la liste des participants du salon.\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/presence/join\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, channelId }) });')
+      +'<div class="oauth-doc-step">Puis rejoins le salon avec le SDK serveur LiveKit (exemple Node.js — <code>npm i @livekit/rtc-node</code>) :</div>'
+      +oauthCodeBlockHtml('bot-doc-voice-connect','import { Room, AudioSource, LocalAudioTrack, TrackPublishOptions, TrackSource } from \\'@livekit/rtc-node\\';\\n\\nconst room = new Room();\\nawait room.connect(wsUrl, token, { autoSubscribe: true });\\n\\n// Recevoir l\\'audio des humains présents dans le salon :\\nroom.on(\\'trackSubscribed\\', (track, publication, participant) => {\\n  if (track.kind === \\'audio\\') {\\n    // track.on(\\'frameReceived\\', ...) — chaque frame audio brute (PCM),\\n    // à toi de faire STT/traitement/relais, X1 ne fournit aucun traitement audio.\\n  }\\n});\\n\\n// Envoyer de l\\'audio dans le salon (ex : une réponse TTS) :\\nconst source = new AudioSource(48000, 1);\\nconst track = LocalAudioTrack.createAudioTrack(\\'bot-voice\\', source);\\nawait room.localParticipant.publishTrack(track, new TrackPublishOptions({ source: TrackSource.SOURCE_MICROPHONE }));\\n// source.captureFrame(frame) pour pousser de l\\'audio PCM 48kHz mono.')
+      +'<div class="oauth-doc-step">En quittant, préviens la présence pour disparaître proprement de la liste des participants :</div>'
+      +oauthCodeBlockHtml('bot-doc-voice-leave','await room.disconnect();\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/presence/leave\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ channelId }) });')
+      +'<div class="oauth-doc-step">X1 ne fait jamais de traitement audio à ta place (reconnaissance vocale, synthèse, mixage) — comme pour tout le reste de cette API, ton bot héberge sa propre logique ; X1 fournit seulement l\\'accès au salon.</div>'
     +'</div>';
   wireOauthCodeBlocks(box);
   \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
@@ -19932,7 +19940,9 @@ async function renderServerSettingsTab(){
       +'<div id="srv-bot-install-perms">'+BOT_GRANTABLE_PERM_KEYS.filter(function(k){return isOwner||serverHasPermission(k);}).map(function(k){
         const def=SERVER_PERM_DEFS.find(function(d){return d.key===k;});
         return '<label class="bot-perm-check"><input type="checkbox" data-srv-bot-install-perm value="'+k+'">'+def.icon+' '+esc(def.label)+'</label>';
-      }).join('')+'</div>'
+      }).join('')
+      +((isOwner||serverHasPermission('manage_voice'))?'<label class="bot-perm-check"><input type="checkbox" id="srv-bot-install-voice">🎙️ Rejoindre les salons vocaux</label>':'')
+      +'</div>'
       +'<button type="button" class="set-mini-btn" id="srv-bot-install-btn" style="margin-top:10px">+ Installer</button>'
       +'<div class="err" id="srv-bot-install-err"></div>'
     +'</div>'):'')
@@ -19966,8 +19976,9 @@ async function renderServerSettingsTab(){
     btn.disabled=true;btn.textContent='Installation…';
     const permsBox=\$('srv-bot-install-perms');
     const permissions=permsBox?Array.from(permsBox.querySelectorAll('[data-srv-bot-install-perm]:checked')).map(function(c){return c.value;}):[];
+    const voiceEnabled=!!(\$('srv-bot-install-voice')&&\$('srv-bot-install-voice').checked);
     try{
-      const r=await authPost('/api/servers/bots/install',{serverId:activeServer.\$id,publicId:publicId,permissions:permissions});
+      const r=await authPost('/api/servers/bots/install',{serverId:activeServer.\$id,publicId:publicId,permissions:permissions,voiceEnabled:voiceEnabled});
       showToast((r.bot&&r.bot.name?r.bot.name:'Le bot')+' a été installé !');
       \$('srv-bot-install-id').value='';
       loadServerBotsTab();
@@ -20314,15 +20325,18 @@ async function loadServerBotsTab(){
     const j=await r.json();
     const bots=(j&&j.bots)||[];
     if(!bots.length){box.innerHTML='<div class="scr-sub">Aucun bot installé sur ce serveur.</div>';return}
+    const canVoice=serverHasPermission('manage_voice');
     box.innerHTML=bots.map(function(b){
       const permsLabel=(b.permissions&&b.permissions.length)?b.permissions.map(function(k){const d=SERVER_PERM_DEFS.find(function(x){return x.key===k;});return d?d.icon:k;}).join(' '):'aucune permission de modération';
-      return '<div class="set-card-row" style="flex-wrap:wrap"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+' · '+permsLabel+'</div></div>'
+      return '<div class="set-card-row" style="flex-wrap:wrap"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+(b.voiceEnabled?' 🎙️':'')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+' · '+permsLabel+'</div></div>'
         +'<div style="display:flex;gap:6px"><button type="button" class="set-mini-btn" data-srv-bot-perms="'+esc(b.memberDocId)+'">🔧 Permissions</button><button type="button" class="set-mini-btn danger" data-srv-bot-remove="'+esc(b.memberDocId)+'">Retirer</button></div>'
         +'<div class="hidden" id="srv-bot-perms-editor-'+esc(b.memberDocId)+'" style="width:100%;margin-top:8px">'+BOT_GRANTABLE_PERM_KEYS.map(function(k){
           const def=SERVER_PERM_DEFS.find(function(d){return d.key===k;});
           const checked=(b.permissions||[]).indexOf(k)>=0;
           return '<label class="bot-perm-check"><input type="checkbox" data-srv-bot-perm-edit="'+esc(b.memberDocId)+'" value="'+k+'"'+(checked?' checked':'')+'>'+def.icon+' '+esc(def.label)+'</label>';
-        }).join('')+'<button type="button" class="set-mini-btn" data-srv-bot-perms-save="'+esc(b.memberDocId)+'" style="margin-top:6px">Enregistrer</button></div></div>';
+        }).join('')
+        +(canVoice?('<label class="bot-perm-check"><input type="checkbox" data-srv-bot-voice-edit="'+esc(b.memberDocId)+'"'+(b.voiceEnabled?' checked':'')+'>🎙️ Rejoindre les salons vocaux</label>'):'')
+        +'<button type="button" class="set-mini-btn" data-srv-bot-perms-save="'+esc(b.memberDocId)+'" style="margin-top:6px">Enregistrer</button></div></div>';
     }).join('');
     box.querySelectorAll('[data-srv-bot-remove]').forEach(function(btn){
       btn.addEventListener('click',function(){
@@ -20343,8 +20357,10 @@ async function loadServerBotsTab(){
         const memberDocId=btn.getAttribute('data-srv-bot-perms-save');
         const checks=box.querySelectorAll('[data-srv-bot-perm-edit="'+memberDocId+'"]:checked');
         const permissions=Array.from(checks).map(function(c){return c.value;});
+        const voiceEl=box.querySelector('[data-srv-bot-voice-edit="'+memberDocId+'"]');
+        const voiceEnabled=!!(voiceEl&&voiceEl.checked);
         btn.disabled=true;
-        try{await authPost('/api/servers/bots/permissions/update',{serverId:activeServer.\$id,memberDocId:memberDocId,permissions:permissions});showToast('Permissions mises à jour.');loadServerBotsTab();}
+        try{await authPost('/api/servers/bots/permissions/update',{serverId:activeServer.\$id,memberDocId:memberDocId,permissions:permissions,voiceEnabled:voiceEnabled});showToast('Permissions mises à jour.');loadServerBotsTab();}
         catch(e){showToast((e&&e.message)||'Action impossible','error');}
         btn.disabled=false;
       });
@@ -21566,9 +21582,14 @@ async function handle(request, event) {
       const requestedPerms = Array.isArray(body.permissions) ? body.permissions.map(String) : [];
       const heldPerms = await serverGetHeldPermissions(serverId, acc.$id);
       const grantedPerms = requestedPerms.filter(function (p) { return p !== "administrator" && SERVER_PERMISSIONS.indexOf(p) >= 0 && heldPerms.indexOf(p) >= 0; });
+      // Même logique que les permissions de modération : le vocal n'est
+      // accordé à un bot que si l'installateur détient lui-même
+      // "manage_voice" — jamais un accès vocal qu'il ne pourrait pas
+      // lui-même donner à un humain.
+      const voiceEnabled = !!body.voiceEnabled && heldPerms.indexOf("manage_voice") >= 0;
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id, botPermsJson: JSON.stringify(grantedPerms) }, permissions: ["read(\"any\")"] }
+        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id, botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: voiceEnabled }, permissions: ["read(\"any\")"] }
       });
       await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { installCount: (Number(bot.installCount) || 0) + 1 } } }).catch(function () {});
       return new Response(JSON.stringify({ ok: true, bot: { name: bot.name, avatar: bot.avatar, publicId: bot.publicId, permissions: grantedPerms } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21593,8 +21614,9 @@ async function handle(request, event) {
       const requestedPerms = Array.isArray(body.permissions) ? body.permissions.map(String) : [];
       const heldPerms = await serverGetHeldPermissions(serverId, acc.$id);
       const grantedPerms = requestedPerms.filter(function (p) { return p !== "administrator" && SERVER_PERMISSIONS.indexOf(p) >= 0 && heldPerms.indexOf(p) >= 0; });
-      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "PATCH", asAdmin: true, body: { data: { botPermsJson: JSON.stringify(grantedPerms) } } });
-      return new Response(JSON.stringify({ ok: true, permissions: grantedPerms }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const voiceEnabled = !!body.voiceEnabled && heldPerms.indexOf("manage_voice") >= 0;
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "PATCH", asAdmin: true, body: { data: { botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: voiceEnabled } } });
+      return new Response(JSON.stringify({ ok: true, permissions: grantedPerms, voiceEnabled: voiceEnabled }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -21630,7 +21652,7 @@ async function handle(request, event) {
           const b = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + m.botAppId, { asAdmin: true });
           let commands = []; try { commands = JSON.parse(b.commandsJson || "[]"); } catch (e2) {}
           let permissions = []; try { permissions = JSON.parse(m.botPermsJson || "[]"); } catch (e3) {}
-          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online, permissions: permissions };
+          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online, permissions: permissions, voiceEnabled: !!m.botVoiceEnabled };
         } catch (e2) { return null; }
       }));
       return new Response(JSON.stringify({ ok: true, bots: bots.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21964,6 +21986,81 @@ async function handle(request, event) {
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, path === "/api/bot/v1/roles/add" ? "role_assign" : "role_unassign", member.nickname || member.username || targetUid, { role: role.name });
       return new Response(JSON.stringify({ ok: true, roleIds: roleIds }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== Vocal pour bots =====
+  // X1 tourne sur LiveKit (un vrai SFU) pour ses salons vocaux de serveur —
+  // jamais du WebRTC pair-à-pair fait main. Ça change tout pour un bot : pas
+  // besoin de réimplémenter ICE/DTLS/SRTP, juste utiliser le SDK serveur
+  // LiveKit (ex. @livekit/rtc-node en Node, ou l'équivalent Python/Go) dans
+  // le process du développeur, avec le jeton ci-dessous — exactement le même
+  // mécanisme que le client web (mintLiveKitParticipantToken, déjà utilisé
+  // par /api/servers/voice-token). X1 ne fournit jamais de traitement audio
+  // (STT/TTS/mixage) : seulement l'accès au salon, comme pour tout le reste
+  // de cette API — le bot héberge sa propre logique.
+  async function resolveBotVoiceChannel(bot, serverId, channelId) {
+    const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true });
+    if (String(channel.serverId) !== String(serverId)) throw new Error("Salon introuvable sur ce serveur");
+    if (channel.type !== "voice" && channel.type !== "stage") throw new Error("Ce salon n'est pas un salon vocal");
+    const { install } = await resolveBotServerInstall(bot, serverId);
+    if (!install.botVoiceEnabled) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
+    return channel;
+  }
+  if (path === "/api/bot/v1/voice/token" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      await resolveBotVoiceChannel(bot, serverId, channelId);
+      const room = "xu-channel-" + channelId;
+      const token = await mintLiveKitParticipantToken("bot_" + bot.publicId, bot.name, room, true);
+      return new Response(JSON.stringify({ ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Présence facultative : fait apparaître le bot dans la liste des
+  // participants du salon vocal, comme un membre humain (server_voice_presence
+  // est déjà utilisé par le client web pour ça). Jamais requis pour se
+  // connecter réellement via LiveKit — seulement pour l'affichage côté X1.
+  if (path === "/api/bot/v1/voice/presence/join" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const channel = await resolveBotVoiceChannel(bot, serverId, channelId);
+      const uid = "bot_" + bot.publicId;
+      // Même mécanique de présence que côté humain (docId déterministe +
+      // lecture bornée aux membres qui voient déjà ce salon, jamais
+      // read("any")) — voir /api/servers/channels/voice-presence/join.
+      const perms = await computeChannelViewerReadPermissions(serverId, channel);
+      const docId = "vp_" + (await sha256HexShort(channelId + ":" + uid, 32));
+      const data = { serverId: serverId, channelId: channelId, uid: uid, username: bot.name, cameraOn: false, speaking: false };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents", { method: "POST", asAdmin: true, body: { documentId: docId, data: data, permissions: perms } });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, docId: docId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/voice/presence/leave" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const channelId = String((body && body.channelId) || "");
+      const uid = "bot_" + bot.publicId;
+      const docId = "vp_" + (await sha256HexShort(channelId + ":" + uid, 32));
+      await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "DELETE", asAdmin: true }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
