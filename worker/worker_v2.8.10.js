@@ -1257,14 +1257,19 @@ html.xultra-restoring #stage{visibility:hidden}
 .discover-tabs button.on{background:#7c3aed;color:#fff}
 .discover-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 14px}
 .music-tabs{padding:0 14px 12px}
-.music-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding-bottom:100px}
-.music-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px;transition:border-color .15s ease}
-.music-card.on{border-color:rgba(167,139,250,.5)}
-.music-card-cover{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer;margin-bottom:8px}
+/* Streaming (grille, esprit Spotify) : pochettes carrées bien visibles,
+   carte plate qui ne se soulève qu'au survol, gros bouton de lecture
+   flottant en bas à droite de la pochette — mêmes gammes de gris/violet que
+   le reste de X1, jamais le vert d'origine. */
+.music-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:18px;padding-bottom:100px}
+.music-card{background:rgba(255,255,255,.025);border-radius:12px;padding:12px;transition:background .18s ease,transform .18s ease}
+.music-card:hover{background:rgba(255,255,255,.06);transform:translateY(-3px)}
+.music-card.on{background:rgba(124,58,237,.12)}
+.music-card-cover{position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer;margin-bottom:10px;box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .music-card-cover img{width:100%;height:100%;object-fit:cover}
 .music-card-nocov{font-size:2rem}
-.music-card-playbtn{position:absolute;inset:0;display:grid;place-items:center;font-size:1.6rem;color:#fff;background:rgba(0,0,0,0);opacity:0;transition:opacity .15s ease,background .15s ease}
-.music-card-cover:hover .music-card-playbtn{opacity:1;background:rgba(0,0,0,.35)}
+.music-card-playbtn{position:absolute;right:8px;bottom:8px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-size:1.1rem;color:#fff;background:linear-gradient(135deg,#7c3aed,#ec4899);opacity:0;transform:translateY(6px);transition:opacity .18s ease,transform .18s ease;box-shadow:0 6px 16px rgba(124,58,237,.5)}
+.music-card:hover .music-card-playbtn{opacity:1;transform:translateY(0)}
 .music-card-title{font-weight:800;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-card-artist{font-size:.74rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;margin-bottom:8px}
 .music-card-artist:hover{color:#c4b5fd;text-decoration:underline}
@@ -1272,7 +1277,33 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-mini-btn{padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.05);color:var(--muted);font-size:.7rem;font-weight:700}
 .music-mini-btn:hover{background:rgba(255,255,255,.1)}
 .music-mini-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
+/* Sons des membres (liste, esprit SoundCloud) : une rangée par titre avec
+   forme d'onde cliquable, dégradé violet/rose X1 pour la progression au
+   lieu de l'orange d'origine. */
+.music-row-list{display:flex;flex-direction:column;gap:4px;padding-bottom:100px}
+.music-member-row{display:flex;gap:12px;padding:12px 10px;border-radius:12px;transition:background .15s ease}
+.music-member-row:hover{background:rgba(255,255,255,.03)}
+.music-member-row.on{background:rgba(124,58,237,.1)}
+.music-row-cover{position:relative;width:72px;height:72px;flex-shrink:0;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer}
+.music-row-cover img{width:100%;height:100%;object-fit:cover}
+.music-row-playbtn{position:absolute;inset:0;display:grid;place-items:center;font-size:1.3rem;color:#fff;background:rgba(0,0,0,0);opacity:0;transition:opacity .15s ease,background .15s ease}
+.music-row-cover:hover .music-row-playbtn{opacity:1;background:rgba(0,0,0,.4)}
+.music-row-body{flex:1;min-width:0}
+.music-row-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.music-row-title{font-weight:800;font-size:.9rem}
+.music-row-artist{font-size:.76rem;color:var(--muted);cursor:pointer}
+.music-row-artist:hover{color:#c4b5fd;text-decoration:underline}
+.music-row-dur{margin-left:auto;font-size:.72rem;color:var(--muted);flex-shrink:0}
+.music-row-wave{position:relative;height:34px;cursor:pointer;margin:6px 0}
+.music-row-wave .music-wave-bars{display:flex;align-items:center;gap:2px;height:100%;width:100%}
+.music-row-wave .music-wave-bars span{flex:1;min-width:2px;background:rgba(255,255,255,.16);border-radius:2px}
+.music-wave-progress{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#e9d5ff,#a855f7)}
+.music-row-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
+.music-pl-cover-banner{width:100%;aspect-ratio:3/1;border-radius:14px;overflow:hidden;margin:4px 0 12px}
+.music-pl-cover-banner img{width:100%;height:100%;object-fit:cover}
+.music-pl-desc{margin:2px 0 6px;line-height:1.5;white-space:pre-wrap}
 .music-pl-detail-head{padding:4px 0 14px}
 .music-pl-detail-title{font-size:1.15rem;font-weight:800;margin:8px 0 2px}
 .music-pl-tracks{display:flex;flex-direction:column;gap:2px;padding-bottom:100px}
@@ -1326,7 +1357,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-tag-chip{font-size:.66rem;color:#c4b5fd;background:rgba(124,58,237,.14);padding:2px 7px;border-radius:999px}
 .mpb-btn.on{background:#7c3aed;color:#fff}
 /* Lecteur plein écran + paroles synchronisées */
-.music-fullplayer{position:fixed;inset:0;z-index:6000;background:linear-gradient(180deg,#1a0b2e 0%,#0a0614 45%,#07040f 100%);display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.music-fullplayer{position:fixed;inset:0;z-index:6000;background:radial-gradient(circle at 50% 0%,rgba(var(--mfp-glow-rgb,124,58,237),.4),transparent 60%),linear-gradient(180deg,#1a0b2e 0%,#0a0614 45%,#07040f 100%);transition:background 1.2s ease;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
 .music-fullplayer.hidden{display:none}
 .mfp-box{flex:1;display:flex;flex-direction:column;min-height:0}
 .mfp-head{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
@@ -5320,6 +5351,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.8.0',date:'28 août 2026',time:'16:00',title:'🎨 X1 Music : Streaming façon Spotify, Sons des membres façon SoundCloud',
+    body:'Nouvelle apparence, mêmes couleurs X1 (violet/rose, jamais le vert ou l\\'orange d\\'origine) : 🎧 Streaming passe en grandes pochettes façon Spotify, avec bouton de lecture flottant au survol. 🎤 Sons des membres passe en liste avec forme d\\'onde cliquable façon SoundCloud — calculée une fois à l\\'envoi du titre, jamais retéléchargée pour l\\'afficher. Le lecteur plein écran teinte maintenant son fond d\\'une lueur reprenant la couleur dominante de la pochette en cours. Playlists : pochette et description ajoutables (✏️ Modifier, propriétaire uniquement).'},
   {version:'4.7.0',date:'28 août 2026',time:'15:00',title:'🎶 X1 Music : playlists réordonnables et reprise d\\'écoute',
     body:'Corrigé : ouvrir une playlist ne montrait jusqu\\'ici jamais son contenu, seulement la liste des playlists. Maintenant, une playlist s\\'ouvre bien sur ses titres, avec bouton retour. Si tu en es propriétaire : glisse-dépose ⠿ pour réordonner les titres, ✕ pour en retirer un. Nouveau rail ▶ Reprendre l\\'écoute en haut de Streaming et Sons des membres, avec tes derniers titres écoutés sur cet appareil.'},
   {version:'4.6.0',date:'28 août 2026',time:'14:00',title:'📻 X1 Music : radio, répétition, vitesse, minuterie, file d\\'attente',
@@ -12758,6 +12791,41 @@ function musicTrackCardHtml(t){
       +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
     +'</div></div>';
 }
+// Rangée façon SoundCloud pour l'onglet Sons des membres : forme d'onde
+// cliquable (voir musicComputeWaveform/musicFallbackWaveform), calée sur les
+// couleurs X1 (violet/rose) plutôt que l'orange d'origine. La progression de
+// lecture est un calque coloré superposé dont la largeur suit
+// audio.currentTime (voir musicUpdateWaveProgress), jamais un recalcul des
+// 80 barres à chaque frame.
+function musicWaveBarsHtml(peaks){
+  return peaks.map(function(p){return '<span style="height:'+Math.round(p*100)+'%"></span>';}).join('');
+}
+function musicMemberRowHtml(t){
+  const cover=safeUrl(t.coverUrl);
+  const liked=musicMyLikedIds.has(t.\$id);
+  const isCurrent=musicCurrentTrack&&musicCurrentTrack.\$id===t.\$id;
+  const isPlaying=isCurrent&&musicAudioEl&&!musicAudioEl.paused;
+  let peaks=[];try{peaks=JSON.parse(t.waveformJson||'[]');}catch(e){}
+  if(!peaks.length)peaks=musicFallbackWaveform(t.\$id);
+  const barsHtml=musicWaveBarsHtml(peaks);
+  const progressPct=(isCurrent&&musicAudioEl&&musicAudioEl.duration)?((musicAudioEl.currentTime/musicAudioEl.duration)*100):0;
+  let tags=[];try{tags=JSON.parse(t.tagsJson||'[]');}catch(e){}
+  const tagsHtml=tags.length?'<div class="music-row-tags">'+tags.slice(0,3).map(function(tag){return '<span class="music-tag-chip">#'+esc(tag)+'</span>';}).join('')+'</div>':'';
+  return '<div class="music-member-row'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
+    +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
+    +'<div class="music-row-body">'
+      +'<div class="music-row-top"><span class="music-row-title">'+esc(t.title)+'</span><span class="music-row-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
+      +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div></div>'
+      +tagsHtml
+      +'<div class="music-card-actions">'
+        +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
+        +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
+        +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
+        +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
 function musicRecentRailHtml(){
   if(musicSearchQuery||musicGenreFilter||musicRadioQueue)return '';
   if(musicFilter!=='streaming'&&musicFilter!=='members')return '';
@@ -12790,7 +12858,12 @@ function renderMusicBody(){
     box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre pour l\\'instant'+hint+'</div>';
     return;
   }
-  box.innerHTML=musicRecentRailHtml()+'<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  // Sons des membres : liste façon SoundCloud (forme d'onde, une rangée par
+  // titre) — Streaming/Mes titres : grille façon Spotify (grandes pochettes).
+  const bodyHtml=musicFilter==='members'
+    ?'<div class="music-row-list">'+list.map(musicMemberRowHtml).join('')+'</div>'
+    :'<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  box.innerHTML=musicRecentRailHtml()+bodyHtml;
   wireMusicCardEvents(box);
 }
 function wireMusicCardEvents(box){
@@ -12815,6 +12888,19 @@ function wireMusicCardEvents(box){
   });
   box.querySelectorAll('[data-music-artist]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();closeMusic();openProfileModal(el.getAttribute('data-music-artist'));});
+  });
+  box.querySelectorAll('[data-music-wave]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const id=el.getAttribute('data-music-wave');
+      const rect=el.getBoundingClientRect();
+      const ratio=rect.width?Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)):0;
+      if(musicCurrentTrack&&musicCurrentTrack.\$id===id&&musicAudioEl&&musicAudioEl.duration){
+        musicAudioEl.currentTime=ratio*musicAudioEl.duration;
+      }else{
+        musicPlayTrack(id);
+      }
+    });
   });
 }
 async function musicPlayTrack(trackId,keepRadio){
@@ -12884,6 +12970,18 @@ function musicUpdatePlayerBar(){
   if(mdur)mdur.textContent=musicFmtTime(audio.duration);
   if(mseek&&audio.duration&&!musicSeekingByUser)mseek.value=String((audio.currentTime/audio.duration)*1000);
   musicSyncLyricsTime();
+  musicUpdateWaveProgress();
+}
+// Ne touche qu'au calque de progression coloré posé au-dessus des barres
+// (voir musicMemberRowHtml) — jamais un recalcul des 80 barres à chaque
+// frame, juste sa largeur.
+function musicUpdateWaveProgress(){
+  if(!musicCurrentTrack||!musicAudioEl)return;
+  let wave=null;
+  try{wave=document.querySelector('[data-music-wave="'+musicCurrentTrack.\$id+'"] .music-wave-progress');}catch(e){}
+  if(!wave)return;
+  const pct=musicAudioEl.duration?(musicAudioEl.currentTime/musicAudioEl.duration)*100:0;
+  wave.style.width=pct+'%';
 }
 async function musicToggleLike(trackId){
   if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
@@ -12937,6 +13035,33 @@ function musicSyncFullPlayerMeta(){
   musicSyncRepeatBtn();
   const speedBtn=\$('mfp-speed');if(speedBtn)speedBtn.textContent=musicPlaybackRate+'x';
   const volSlider=\$('mfp-volume');if(volSlider)volSlider.value=String(Math.round(musicVolume*100));
+  musicApplyFullPlayerGlow(cov);
+}
+// Fond du lecteur plein écran teinté d'après la couleur dominante de la
+// pochette, façon Spotify — mais toujours mélangé au dégradé violet/rose X1
+// (jamais une couleur brute quelconque qui jurerait avec le reste du site).
+// L'image vient du même domaine (proxy interne PROXY_EP), donc pas de canvas
+// "taché" par le CORS lors de la lecture des pixels.
+function musicApplyFullPlayerGlow(coverUrl){
+  const overlay=\$('music-fullplayer');if(!overlay)return;
+  if(!coverUrl){overlay.style.removeProperty('--mfp-glow-rgb');return}
+  const img=new Image();
+  img.onload=function(){
+    try{
+      const canvas=document.createElement('canvas');
+      canvas.width=16;canvas.height=16;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,16,16);
+      const data=ctx.getImageData(0,0,16,16).data;
+      let r=0,g=0,b=0,n=0;
+      for(let i=0;i<data.length;i+=4){r+=data[i];g+=data[i+1];b+=data[i+2];n++;}
+      if(!n)return;
+      r=Math.round(r/n);g=Math.round(g/n);b=Math.round(b/n);
+      overlay.style.setProperty('--mfp-glow-rgb',r+','+g+','+b);
+    }catch(e){}
+  };
+  img.onerror=function(){};
+  img.src=coverUrl;
 }
 function musicSyncRepeatBtn(){
   const btn=\$('mfp-repeat');if(!btn)return;
@@ -13317,15 +13442,55 @@ async function renderMusicPlaylistsTab(box){
   });
 }
 let musicDragTrackId=null;
+function openMusicPlaylistEditForm(p,onSaved){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">✏️ Modifier la playlist</div>'
+    +'<div class="set-row"><label>Nom</label><input type="text" id="music-pl-edit-name" class="field-input" maxlength="100" value="'+esc(p.name||'')+'"></div>'
+    +'<div class="set-row"><label>Description (optionnel)</label><textarea id="music-pl-edit-desc" class="field-input" style="height:70px;padding-top:9px;resize:vertical" maxlength="500">'+esc(p.description||'')+'</textarea></div>'
+    +'<div class="set-row"><label>Pochette (optionnel)</label><input type="file" id="music-pl-edit-cover" accept="image/*" class="field-input"></div>'
+    +'<div class="err" id="music-pl-edit-err" style="min-height:1em;margin-bottom:8px"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-pl-edit-save">Enregistrer</button><button type="button" class="set-mini-btn" id="music-pl-edit-cancel">Annuler</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-pl-edit-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('music-pl-edit-save').onclick=async function(){
+    const name=(\$('music-pl-edit-name').value||'').trim();
+    const description=(\$('music-pl-edit-desc').value||'').trim();
+    const coverFile=\$('music-pl-edit-cover').files[0];
+    const errEl=\$('music-pl-edit-err');errEl.textContent='';
+    if(!name){errEl.textContent='Le nom est requis.';return}
+    const btn=this;btn.disabled=true;btn.textContent='Envoi…';
+    try{
+      const data={name:name.slice(0,100),description:description.slice(0,500)};
+      if(coverFile){
+        const coverUp=await storage.createFile('xultra_music',Appwrite.ID.unique(),coverFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        data.coverUrl=PROXY_EP+'/storage/buckets/xultra_music/files/'+coverUp.\$id+'/view?project='+PID;
+      }
+      await db.updateDocument(DB,'xm_playlists',p.\$id,data);
+      Object.assign(p,data);
+      showToast('Playlist mise à jour.');
+      close();
+      if(onSaved)onSaved();
+    }catch(e){errEl.textContent=(e&&e.message)||'Modification impossible.';btn.disabled=false;btn.textContent='Enregistrer';}
+  };
+}
 function renderMusicPlaylistDetail(box){
   const p=musicActivePlaylist;
   if(!p){renderMusicPlaylistsTab(box);return}
   let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
   const tracks=ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
   const isOwner=!!(me&&String(p.uid)===String(me.\$id));
-  let html='<div class="music-pl-detail-head">'
-    +'<button type="button" class="set-mini-btn" id="music-pl-back">← Retour aux playlists</button>'
+  const plCover=safeUrl(p.coverUrl);
+  let html=(plCover?'<div class="music-pl-cover-banner"><img src="'+esc(plCover)+'" alt=""></div>':'')
+    +'<div class="music-pl-detail-head">'
+    +'<div style="display:flex;align-items:center;gap:8px"><button type="button" class="set-mini-btn" id="music-pl-back">← Retour aux playlists</button>'
+    +(isOwner?'<button type="button" class="set-mini-btn" id="music-pl-edit" style="margin-left:auto">✏️ Modifier</button>':'')+'</div>'
     +'<div class="music-pl-detail-title">🎶 '+esc(p.name)+'</div>'
+    +(p.description?'<div class="scr-sub music-pl-desc">'+esc(p.description)+'</div>':'')
     +'<div class="scr-sub">'+tracks.length+' titre'+(tracks.length!==1?'s':'')+(isOwner?' · glisse ⠿ pour réordonner':'')+'</div>'
     +'</div>';
   if(!tracks.length){
@@ -13344,6 +13509,7 @@ function renderMusicPlaylistDetail(box){
   }
   box.innerHTML=html;
   \$('music-pl-back').onclick=function(){musicActivePlaylist=null;renderMusicBody();};
+  if(\$('music-pl-edit'))\$('music-pl-edit').onclick=function(){openMusicPlaylistEditForm(p,function(){renderMusicPlaylistDetail(box);});};
   box.querySelectorAll('[data-pl-play]').forEach(function(el){
     el.addEventListener('click',function(){musicPlayTrack(el.getAttribute('data-pl-play'));});
   });
@@ -13430,6 +13596,9 @@ async function openMusicUploadForm(){
       }
       let durationSec=0;
       try{durationSec=await musicProbeDuration(audioFile);}catch(e){}
+      btn.textContent='Calcul de la forme d\\'onde…';
+      const waveform=await musicComputeWaveform(audioFile);
+      btn.textContent='Envoi en cours…';
       const genre=(\$('music-up-genre').value||'').trim();
       const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
       const lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
@@ -13440,7 +13609,7 @@ async function openMusicUploadForm(){
       // l'affichage de la case, jamais la décision finale (voir
       // /api/music/tracks/create côté worker).
       await authPost('/api/music/tracks/create',{
-        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming
+        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming,waveform:waveform
       });
       showToast('Titre publié !');
       close();
@@ -13465,6 +13634,45 @@ function musicProbeDuration(file){
     a.addEventListener('error',function(){URL.revokeObjectURL(url);reject(new Error('probe failed'));});
     a.src=url;
   });
+}
+// Forme d'onde façon SoundCloud : calculée UNE FOIS à l'envoi (le fichier
+// est déjà en mémoire à ce moment, pas de re-téléchargement) et stockée en
+// pics normalisés — jamais recalculée en parcourant le fil, ce qui aurait
+// forcé à télécharger l'intégralité de chaque piste juste pour dessiner un
+// aperçu dans une liste.
+const MUSIC_WAVEFORM_BARS=80;
+async function musicComputeWaveform(file){
+  try{
+    const buf=await file.arrayBuffer();
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    if(!Ctx)return [];
+    const ctx=new Ctx();
+    const audioBuf=await ctx.decodeAudioData(buf);
+    const data=audioBuf.getChannelData(0);
+    const blockSize=Math.max(1,Math.floor(data.length/MUSIC_WAVEFORM_BARS));
+    const peaks=[];
+    for(let i=0;i<MUSIC_WAVEFORM_BARS;i++){
+      const start=i*blockSize;
+      let sum=0;
+      for(let j=0;j<blockSize&&(start+j)<data.length;j++)sum+=Math.abs(data[start+j]);
+      peaks.push(sum/blockSize);
+    }
+    const max=Math.max.apply(null,peaks)||1;
+    try{ctx.close();}catch(e){}
+    return peaks.map(function(p){return Math.max(.06,Math.round((p/max)*100)/100);});
+  }catch(e){return [];}
+}
+// Repli pour les titres publiés avant l'ajout de cette fonctionnalité (pas
+// de waveformJson stocké) : forme déterministe (même titre = même dessin à
+// chaque affichage) purement décorative, jamais recalculée depuis l'audio.
+function musicFallbackWaveform(trackId){
+  let seed=0;for(let i=0;i<trackId.length;i++)seed=(seed*31+trackId.charCodeAt(i))>>>0;
+  const peaks=[];
+  for(let i=0;i<MUSIC_WAVEFORM_BARS;i++){
+    seed=(seed*1103515245+12345)>>>0;
+    peaks.push(.15+(seed%100)/100*.7);
+  }
+  return peaks;
 }
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
@@ -19468,6 +19676,8 @@ async function handle(request) {
       try { tags = (Array.isArray(body && body.tags) ? body.tags : []).map(function (t) { return String(t).slice(0, 40); }).slice(0, 15); } catch (e) {}
       const lyricsLrc = String((body && body.lyricsLrc) || "").slice(0, 20000);
       const wantStreaming = !!(body && body.wantStreaming);
+      let waveform = [];
+      try { waveform = (Array.isArray(body && body.waveform) ? body.waveform : []).map(function (p) { return Math.max(0, Math.min(1, Number(p) || 0)); }).slice(0, 80); } catch (e) {}
       const badges = await musicUserBadges(acc.$id);
       const eligible = MUSIC_STREAMING_BADGES.some(function (b) { return badges.indexOf(b) >= 0; });
       const channel = (wantStreaming && eligible) ? "streaming" : "member";
@@ -19475,7 +19685,7 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: {
           documentId: "unique()",
-          data: { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel },
+          data: { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform) },
           permissions: ["read(\"any\")"]
         }
       });
