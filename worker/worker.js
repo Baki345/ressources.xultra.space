@@ -876,11 +876,11 @@ function casinoResolveGame(gameType) {
 // un appel db.*() direct depuis la console du navigateur ne peut ni lire ni
 // modifier un solde, tout passe par les routes /api/wallet/* ci-dessous. =====
 const COIN_PACKS = {
-  small: { coins: 500, eurCents: 499, label: "500 X1 Coins" },
-  medium: { coins: 1200, eurCents: 999, label: "1 200 X1 Coins" },
-  large: { coins: 3000, eurCents: 1999, label: "3 000 X1 Coins" }
+  small: { coins: 500, cadCents: 699, label: "500 X1 Coins" },
+  medium: { coins: 1200, cadCents: 1399, label: "1 200 X1 Coins" },
+  large: { coins: 3000, cadCents: 2799, label: "3 000 X1 Coins" }
 };
-const XPLUS_PRICE_EUR_CENTS = 3999;
+const XPLUS_PRICE_CAD_CENTS = 5499;
 const XPLUS_PRICE_COINS = 4500;
 async function x1coinsGetOrCreateWallet(uid) {
   const q = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
@@ -5800,7 +5800,7 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
   {version:'4.26.0',category:'feature',date:'28 août 2026',time:'23:59',title:'⭐ X1+ enfin en vente + avantages',
-    body:'X1+ à vie devient achetable : par carte (39,99 €, paiement Stripe sécurisé — le numéro de carte ne transite jamais par X1) ou avec des X1 Coins, dans Paramètres → ⭐ Abonnement. Nouveaux avantages concrets : badge de présentation ⭐ X1+ visible sur ton profil et dans tous les serveurs, cadre de profil animé exclusif (or et violet) dans l\\'éditeur de profil, jusqu\\'à 25 bots développeur au lieu de 10, en plus de la qualité audio/vidéo HD déjà offerte sur tes serveurs. Toujours à vie, jamais de facturation récurrente.'},
+    body:'X1+ à vie devient achetable : par carte (54,99 $ CA, paiement Stripe sécurisé — le numéro de carte ne transite jamais par X1) ou avec des X1 Coins, dans Paramètres → ⭐ Abonnement. Nouveaux avantages concrets : badge de présentation ⭐ X1+ visible sur ton profil et dans tous les serveurs, cadre de profil animé exclusif (or et violet) dans l\\'éditeur de profil, jusqu\\'à 25 bots développeur au lieu de 10, en plus de la qualité audio/vidéo HD déjà offerte sur tes serveurs. Toujours à vie, jamais de facturation récurrente.'},
   {version:'4.25.0',category:'feature',date:'28 août 2026',time:'23:59',title:'💰 X1 Coins : monnaie interne, envoyable entre membres',
     body:'Nouvel onglet Paramètres → 💰 Portefeuille : une monnaie interne (X1 Coins) rechargeable par carte via Stripe, et envoyable librement à n\\'importe quel autre membre par pseudo#tag, avec un historique de tes transactions. Distincte des jetons du 🎰 Casino (toujours fictifs, sans valeur, par design) : les X1 Coins ont une vraie contrepartie et peuvent aussi servir à débloquer X1+.'},
   {version:'4.24.1',category:'feature',date:'28 août 2026',time:'23:59',title:'🔗 Vraie crypto entre membres — sans que X1 touche à tes fonds',
@@ -7091,9 +7091,9 @@ function showMfaRecoveryCodes(box,codes,justEnabled){
   \$('mfa-codes-done').onclick=function(){renderSetAccount(box);};
 }
 
-const XPLUS_PRICE_EUR=3999;
+const XPLUS_PRICE_CAD=5499;
 const XPLUS_PRICE_COINS_CLIENT=4500;
-const COIN_PACKS_CLIENT={small:{coins:500,eurCents:499,label:'500 X1 Coins'},medium:{coins:1200,eurCents:999,label:'1 200 X1 Coins'},large:{coins:3000,eurCents:1999,label:'3 000 X1 Coins'}};
+const COIN_PACKS_CLIENT={small:{coins:500,cadCents:699,label:'500 X1 Coins'},medium:{coins:1200,cadCents:1399,label:'1 200 X1 Coins'},large:{coins:3000,cadCents:2799,label:'3 000 X1 Coins'}};
 const XPLUS_PERKS_HTML='<div class="set-card"><div class="set-section-label">Avantages X1+</div>'
   +'<div class="scr-sub">⭐ Badge de présentation X1+, visible sur ton profil et à côté de ton pseudo dans tous les serveurs.</div>'
   +'<div class="scr-sub" style="margin-top:6px">🖼️ Cadre de profil animé exclusif (or et violet).</div>'
@@ -7116,7 +7116,7 @@ function renderSetSubscription(box){
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">Tu peux débloquer X1+ à vie en l\\'achetant ci-dessous, ou gratuitement en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div></div>'
         +XPLUS_PERKS_HTML
         +'<div class="set-card"><div class="set-section-label">Débloquer X1+</div>'
-          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 Payer par carte</div><div class="scr-sub">'+(XPLUS_PRICE_EUR/100).toFixed(2).replace('.',',')+' € · paiement unique, à vie</div></div><button type="button" class="btn-main" id="sub-buy-card-btn">Acheter</button></div>'
+          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 Payer par carte</div><div class="scr-sub">'+(XPLUS_PRICE_CAD/100).toFixed(2).replace('.',',')+' $ CA · paiement unique, à vie</div></div><button type="button" class="btn-main" id="sub-buy-card-btn">Acheter</button></div>'
           +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">🪙 Payer avec tes X1 Coins</div><div class="scr-sub" id="sub-coins-balance-hint">'+XPLUS_PRICE_COINS_CLIENT+' X1 Coins · solde…</div></div><button type="button" class="set-mini-btn" id="sub-buy-coins-btn" disabled>Payer</button></div>'
           +'<div class="err" id="sub-buy-err" style="min-height:1em;margin-top:6px"></div>'
         +'</div>'));
@@ -7169,7 +7169,7 @@ function renderSetWallet(box){
     +'<div class="set-card"><div class="set-section-label">🔋 Recharger</div><div class="scr-sub" style="margin-bottom:10px">Paiement par carte, sécurisé par Stripe — ton numéro de carte ne transite jamais par X1.</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+Object.keys(COIN_PACKS_CLIENT).map(function(k){
         const p=COIN_PACKS_CLIENT[k];
-        return '<button type="button" class="set-mini-btn" data-buy-pack="'+k+'">🪙 '+p.coins+' — '+(p.eurCents/100).toFixed(2).replace('.',',')+' €</button>';
+        return '<button type="button" class="set-mini-btn" data-buy-pack="'+k+'">🪙 '+p.coins+' — '+(p.cadCents/100).toFixed(2).replace('.',',')+' $ CA</button>';
       }).join('')+'</div>'
       +'<div class="err" id="wal-buy-err" style="min-height:1em;margin-top:6px"></div>'
     +'</div>'
@@ -24817,16 +24817,16 @@ async function handle(request, event) {
       if (typeof STRIPE_SECRET_KEY === "undefined" || !STRIPE_SECRET_KEY) throw new Error("Le paiement par carte n'est pas encore configuré, réessaie plus tard.");
       const body = await request.json();
       const kind = String((body && body.kind) || "");
-      let productName, eurCents, pack = "";
+      let productName, cadCents, pack = "";
       if (kind === "xplus") {
         const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
         if (meta && meta.plan === "plus") throw new Error("Tu as déjà X1+.");
-        productName = "X1+ à vie"; eurCents = XPLUS_PRICE_EUR_CENTS;
+        productName = "X1+ à vie"; cadCents = XPLUS_PRICE_CAD_CENTS;
       } else if (kind === "coins") {
         pack = String((body && body.pack) || "");
         const p = COIN_PACKS[pack];
         if (!p) throw new Error("Pack de X1 Coins invalide.");
-        productName = p.label; eurCents = p.eurCents;
+        productName = p.label; cadCents = p.cadCents;
       } else {
         throw new Error("Achat inconnu.");
       }
@@ -24836,8 +24836,8 @@ async function handle(request, event) {
       params.set("cancel_url", "https://xultra.space/?checkout=cancel");
       if (acc.email) params.set("customer_email", acc.email);
       params.set("line_items[0][quantity]", "1");
-      params.set("line_items[0][price_data][currency]", "eur");
-      params.set("line_items[0][price_data][unit_amount]", String(eurCents));
+      params.set("line_items[0][price_data][currency]", "cad");
+      params.set("line_items[0][price_data][unit_amount]", String(cadCents));
       params.set("line_items[0][price_data][product_data][name]", productName);
       params.set("metadata[uid]", acc.$id);
       params.set("metadata[kind]", kind);
