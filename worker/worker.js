@@ -1479,7 +1479,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
 .row:hover,.row.active{background:rgba(167,139,250,.1)}
 .row .av{width:36px;height:36px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.85rem;overflow:hidden;position:relative}
-.pr-dot{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;border:2.5px solid var(--bg,#0b0614);z-index:1}
+.pr-dot{position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;border:2.5px solid var(--bg,#0b0614);z-index:1}
 .pr-label{font-size:.68rem !important;opacity:.7}
 .row .av img{width:100%;height:100%;object-fit:cover}
 .row .info{flex:1;min-width:0}
@@ -2028,7 +2028,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-card.pc-centered .pc-banner{height:112px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
 .pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before{
-  content:'';position:absolute;inset:-5px;border-radius:50%;z-index:-1;
+  /* Bug remonté par Yani Neco ("cadres photo ne sont pas affichés") : cet
+     anneau est en z-index:-1 (derrière la photo, exprès — c'est un disque
+     plein, pas un anneau creux, donc le mettre devant masquerait toute la
+     photo) et ne dépassait que de 5px la bordure sombre de 4px déjà posée
+     sur .pc-av — un liseré de a peine 1px net, quasi invisible. Passé à
+     10px pour qu'un vrai anneau coloré reste visible autour de la photo. */
+  content:'';position:absolute;inset:-10px;border-radius:50%;z-index:-1;
 }
 .pc-av-frame.frame-fire::before{background:conic-gradient(from 0deg,#f59e0b,#ef4444,#f59e0b,#fbbf24,#f59e0b);animation:frameSpin 3s linear infinite;filter:blur(1px)}
 .pc-av-frame.frame-frost::before{background:conic-gradient(from 0deg,#38bdf8,#a5f3fc,#0ea5e9,#e0f2fe,#38bdf8);animation:frameSpin 4s linear infinite;filter:blur(1px)}
@@ -5498,6 +5504,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.22.0',category:'fix',date:'28 août 2026',time:'23:59',title:'🐛 6 correctifs remontés par la communauté Bug Hunter',
+    body:'La musique des autres membres refusait de se lancer ("lecture impossible") pour certains formats (FLAC notamment) — Appwrite renvoyait le fichier avec un type MIME générique pour tout format hors d\\'une liste "sûre" interne, ce que le lecteur audio refusait de jouer ; le point de streaming des médias forçait aussi systématiquement le fichier entier au lieu d\\'un chargement par plage, cassant le chargement/l\\'avance rapide des gros fichiers — merci 100coeur, correctif qui bénéficie à toute la plateforme (images, vidéos, messages vocaux compris), pas qu\\'à la musique. Cliquer sur le repère d\\'un commentaire horodaté d\\'un titre relançait le morceau depuis le début au lieu de sauter au bon endroit quand ce titre n\\'était pas déjà en cours de lecture — merci Yani. Le cadre de la fenêtre de profil et son contenu tiltaient chacun de leur côté au survol (cumul de deux rotations sur des éléments imbriqués) au lieu de bouger ensemble, ce qui causait aussi un tremblement près des coins — merci Yani. Le badge de statut en ligne sur un avatar était partiellement coupé, et le contour décoratif de photo de profil (Feu, Givre, Or, Arc-en-ciel, Néon) était bien trop fin pour être visible — merci Yani. Et confirmation que les stories "amis uniquement" restent bien scopées aux amis acceptés au moment de la publication (ajouter quelqu\\'un en ami après coup ne lui donne pas accès à une story déjà publiée, comme sur les plateformes de référence) — merci Yani.'},
   {version:'4.21.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : "gateway" événementielle (message_create, member_join...)',
     body:'Un vrai gateway façon Discord suppose une connexion permanente que le bot maintient ouverte vers X1 — impossible tant que ce Worker Cloudflare tourne sans process persistant. À la place : dans le portail développeur, renseigne une URL d\\'événements et coche les types qui t\\'intéressent (💬 nouveau message, 🗑️ message supprimé, ➕ membre arrivé, ➖ membre parti) — X1 t\\'envoie alors un POST signé dès que ça se produit sur un serveur où ton bot est installé, sans attendre de réponse et sans ralentir jamais l\\'action de la personne qui l\\'a déclenchée. Best-effort (comme un webhook classique) : pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne.'},
   {version:'4.20.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : modération, embeds, commandes riches et installation en DM',
@@ -9261,19 +9269,25 @@ function mountProfileCardExtras(container){
       },3000);
     }
     if(typeof IS_HOVER_DEVICE!=='undefined'&&IS_HOVER_DEVICE){
-      // Bug remonté par Yani Neco : le survol ne faisait bouger que le
-      // contenu (.pc-card) sans le cadre de la fenêtre (.profile-card) qui
-      // l'entoure, donnant l'impression que le premier plan "flotte" hors de
-      // son cadre. Les deux tiltent maintenant ensemble.
+      // Bug remonté par Yani Neco, en deux temps. D'abord : le survol ne
+      // faisait bouger que le contenu (.pc-card) sans le cadre de la fenêtre
+      // (.profile-card) qui l'entoure. Le premier correctif appliquait le
+      // MÊME transform aux deux — mais .pc-card est un DESCENDANT de
+      // .profile-card, donc les transforms CSS se cumulent sur les éléments
+      // imbriqués : le contenu tournait deux fois plus que le cadre au lieu
+      // de le suivre, et cette rotation démultipliée déplaçait suffisamment
+      // les bords de .pc-card (cible des écouteurs mousemove/mouseleave)
+      // pour que le curseur en sorte et rentre en boucle près des coins —
+      // le "stutter" signalé ensuite. Un seul transform, posé sur le cadre
+      // uniquement : le contenu (enfant) suit automatiquement, sans cumul.
       const frame=card.closest('.profile-card');
       card.addEventListener('mousemove',function(e){
         const r=card.getBoundingClientRect();
         const px=(e.clientX-r.left)/r.width-0.5,py=(e.clientY-r.top)/r.height-0.5;
         const t='perspective(700px) rotateY('+(px*6)+'deg) rotateX('+(py*-6)+'deg)';
-        card.style.transform=t;
-        if(frame)frame.style.transform=t;
+        (frame||card).style.transform=t;
       });
-      card.addEventListener('mouseleave',function(){card.style.transform='';if(frame)frame.style.transform='';});
+      card.addEventListener('mouseleave',function(){(frame||card).style.transform='';});
     }
   }
 }
@@ -11051,7 +11065,7 @@ function attachMsgSwipe(el,m,kind){
     // distingue le geste réel au moment où il a lieu, plus fiable qu'une
     // détection "cet appareil a-t-il un écran tactile" faite à l'avance.
     if(e.pointerType!=='touch')return;
-    if(e.target.closest('a,button,.voice-msg,.msg-media img'))return;
+    if(e.target.closest('a,button,.voice-msg,.msg-media img,.msg-snap-placeholder'))return;
     dragging=true;triggered=false;startX=e.clientX;
     bub.style.transition='none';
     try{el.setPointerCapture(e.pointerId);}catch(err){}
@@ -13770,7 +13784,7 @@ function wireMusicCardEvents(box){
     });
   });
 }
-async function musicPlayTrack(trackId,keepRadio){
+async function musicPlayTrack(trackId,keepRadio,startAtSec){
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});
   if(!t||!safeUrl(t.audioUrl)){showToast('Fichier audio indisponible.','error');return}
   const audio=musicEnsureAudio();
@@ -13782,6 +13796,15 @@ async function musicPlayTrack(trackId,keepRadio){
   musicCurrentTrack=t;
   musicPushRecent(trackId);
   audio.src=safeUrl(t.audioUrl);
+  // Bug remonté par Yani Neco ("Commentaire avec pin") : cliquer sur le repère
+  // d'un commentaire horodaté quand le titre n'était pas déjà celui en cours
+  // relançait toujours depuis le début — startAtSec était juste ignoré ici.
+  // currentTime ne peut pas être posé de façon fiable avant que le navigateur
+  // ait chargé les métadonnées (surtout Safari), d'où l'attente de
+  // loadedmetadata plutôt qu'une affectation immédiate après audio.src=.
+  if(typeof startAtSec==='number'&&startAtSec>=0){
+    audio.addEventListener('loadedmetadata',function once(){audio.removeEventListener('loadedmetadata',once);audio.currentTime=startAtSec;});
+  }
   audio.play().catch(function(){showToast('Lecture impossible.','error');});
   musicSyncMiniBar();
   renderMusicBody();
@@ -14230,7 +14253,7 @@ async function openMusicComments(trackId){
         el.addEventListener('click',function(){
           const sec=parseInt(el.getAttribute('data-comment-seek'),10)||0;
           if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl){musicAudioEl.currentTime=sec;}
-          else{musicPlayTrack(trackId);}
+          else{musicPlayTrack(trackId,false,sec);}
         });
       });
     }catch(e){box.innerHTML='Erreur de chargement.';}
@@ -20883,7 +20906,11 @@ async function handle(request, event) {
       return fetch(targetUrl, request);
     }
     const fwdHeaders = new Headers();
-    ["x-appwrite-project", "x-appwrite-session", "x-appwrite-jwt", "content-type", "x-sdk-version", "x-appwrite-response-format", "x-appwrite-id", "content-range"].forEach(function(h) {
+    // "range" ajouté : bug remonté par 100coeur ("musique : lecture
+    // impossible") — sans lui, <audio>/<video> ne pouvaient jamais faire de
+    // requête par plage (streaming/seek), Appwrite renvoyant systématiquement
+    // le fichier entier en 200 au lieu d'un 206 partiel.
+    ["x-appwrite-project", "x-appwrite-session", "x-appwrite-jwt", "content-type", "x-sdk-version", "x-appwrite-response-format", "x-appwrite-id", "content-range", "range"].forEach(function(h) {
       const v = request.headers.get(h);
       if (v) fwdHeaders.set(h, v);
     });
@@ -20900,8 +20927,23 @@ async function handle(request, event) {
         status: 502, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
+    // Repli /download : Appwrite force content-type: text/plain (+ nosniff)
+    // sur /view pour tout mimetype hors d'une liste "sûre" interne — un FLAC
+    // (mimeType réel bien "audio/flac" côté stockage) en fait partie, ce qui
+    // rendait injouable la musique de quiconque important un format moins
+    // courant que celui du signaleur (100coeur : "marche pas pour les autres
+    // membres"). /download renvoie toujours le vrai mimeType stocké. On ne
+    // le déclenche qu'en repli, jamais par défaut, pour ne changer ni le
+    // comportement ni la latence des fichiers déjà correctement servis.
+    if ((request.method === "GET" || request.method === "HEAD") && /\/storage\/buckets\/[^/]+\/files\/[^/]+\/view(\?|$)/.test(sub) && (awRes.headers.get("content-type") || "").indexOf("text/plain") === 0) {
+      const dlUrl = targetUrl.replace(/\/view(\?|$)/, "/download$1");
+      try {
+        const dlRes = await fetch(dlUrl, init);
+        if (dlRes.ok || dlRes.status === 206) awRes = dlRes;
+      } catch (e) {}
+    }
     const respHeaders = new Headers();
-    ["content-type", "content-length", "cache-control", "content-disposition"].forEach(function(h) {
+    ["content-type", "content-length", "cache-control", "content-disposition", "accept-ranges", "content-range"].forEach(function(h) {
       const v = awRes.headers.get(h);
       if (v) respHeaders.set(h, v);
     });
