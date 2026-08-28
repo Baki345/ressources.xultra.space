@@ -1966,6 +1966,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-elite::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(240,171,252,.75);animation:frameSpin 3s linear infinite;pointer-events:none}
 .badge-elite::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.85) 48%,rgba(255,255,255,.85) 52%,transparent 70%);background-size:280% 280%;animation:eliteShine 2.4s ease-in-out infinite;pointer-events:none;mix-blend-mode:overlay}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
+.badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
 .pm-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -2298,6 +2299,15 @@ a.bug-att-item{display:block}
 .srv-event-card{margin-bottom:10px}
 .srv-event-card.srv-event-past{opacity:.55}
 .srv-webhook-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,.25);color:#c4b5fd;font-size:.6rem;font-weight:800;letter-spacing:.02em;vertical-align:middle}
+.msg-bot-components{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.msg-bot-btn{font-size:.78rem;font-weight:700;padding:6px 14px;border-radius:8px;border:1px solid transparent;cursor:pointer;transition:filter .15s ease}
+.msg-bot-btn:hover{filter:brightness(1.15)}
+.msg-bot-btn:disabled{opacity:.6;cursor:default}
+.msg-bot-btn-primary{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff}
+.msg-bot-btn-secondary{background:rgba(255,255,255,.08);color:#e9d5ff;border-color:rgba(167,139,250,.25)}
+.msg-bot-btn-success{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff}
+.msg-bot-btn-danger{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff}
+.bot-ephemeral-tag{font-size:.66rem;font-weight:800;color:#7dd3fc;margin-bottom:4px;letter-spacing:.02em}
 .srv-rules-card{max-width:460px;padding:18px}
 .srv-rules-welcome{background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-bottom:10px;white-space:pre-wrap}
 .srv-rules-text{max-height:38vh;overflow-y:auto;font-size:.85rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;padding-right:4px;margin-bottom:12px}
@@ -5454,6 +5464,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.19.0',category:'feature',date:'28 août 2026',time:'23:45',title:'🤖 Section développeur : crée tes propres bots + badge Développeur de Bot',
+    body:'Nouvel onglet Paramètres → 🤖 Bots : crée une application de bot (nom, avatar, description), reçois un token secret, et branche-la à ta propre URL HTTPS (ton bot répond aux interactions comme sur Discord — commandes slash, boutons, réponses éphémères visibles seulement par toi). Un propriétaire de serveur peut installer un bot via 🤖 Bots dans les paramètres du serveur ; le bot apparaît alors dans la liste des membres et peut poster de vrais messages taggés 🤖 BOT avec jusqu\\'à des boutons interactifs. API REST dédiée pour que ton bot envoie aussi des messages de son propre chef (cron, webhook externe...). Dès que ton bot répond avec succès à sa toute première interaction en ligne, tu reçois automatiquement le badge 🤖 Développeur de Bot. Version actuelle volontairement scopée aux interactions HTTP (comme les bots "à la demande" de Discord) : pas encore de connexion permanente type gateway, pas d\\'actions de modération (kick/ban/rôles) via l\\'API bot, et une seule option texte libre par commande — tout est documenté directement dans l\\'onglet développeur, la suite arrive dans une prochaine version.'},
   {version:'4.18.0',category:'feature',date:'28 août 2026',time:'23:30',title:'🖼️ Fond d\\'écran personnalisé en DM + 💎 badge ÉLITE X1',
     body:'Dans 🎨 Personnaliser la conversation, tu peux maintenant importer directement ta propre image ou un GIF comme fond d\\'écran (en plus des styles proposés), toujours privé à toi seul. Et nouveau badge 💎 ÉLITE X1 — le plus scintillant de tous — accordé automatiquement avec X1+ à vie à l\\'équipe et aux membres porteurs d\\'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER).'},
   {version:'4.17.0',category:'design',date:'28 août 2026',time:'23:00',title:'🌈 Un vrai tableau de bord sur l\\'écran d\\'accueil',
@@ -6386,7 +6398,8 @@ const SETTINGS_GROUPS=[
     {key:'activity',icon:'🎮',title:'Activité'}
   ]},
   {label:'Développeurs',items:[
-    {key:'developers',icon:'👨‍💻',title:'Se connecter avec X1'}
+    {key:'developers',icon:'👨‍💻',title:'Se connecter avec X1'},
+    {key:'bots',icon:'🤖',title:'Mes bots'}
   ]},
   {label:'',items:[
     {key:'changelog',icon:'📋',title:'Notes de version'},
@@ -6438,7 +6451,7 @@ function renderSettingsSection(key){
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
-    myreports:renderSetMyReports,developers:renderSetDevelopers
+    myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -7087,6 +7100,177 @@ function renderOauthDevAppsList(){
     });
   });
 }
+/* ===== Portail développeur de bots — voir /api/bots/* et /api/bot/v1/*
+   côté worker pour le contrat complet. Choix d'architecture volontaire :
+   des bots "à la demande" (interactions HTTP, comme les slash commands de
+   Discord en mode serverless), jamais une passerelle WebSocket toujours
+   connectée — cohérent avec X1 elle-même, qui tourne en Worker Cloudflare
+   sans process persistant. ===== */
+let botDevAppsCache=[];
+async function renderSetBots(box){
+  box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
+    +'<div class="sc-desc">Crée un bot pour ton serveur : commandes /slash, boutons, réponses automatiques. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes bots</div><div class="scr-sub">10 bots maximum par compte.</div></div><button type="button" class="set-mini-btn" id="bot-new-btn">+ Créer un bot</button></div></div>'
+    +'<div class="set-card hidden" id="bot-new-form">'
+      +'<div class="set-row"><label>Nom du bot</label><input type="text" id="bot-new-name" class="field-input" maxlength="100" placeholder="Mon Bot"></div>'
+      +'<div class="set-row"><label>Description <span class="scr-sub" style="display:block;font-weight:400">Visible par les propriétaires de serveur avant l\\'installation.</span></label><textarea id="bot-new-desc" class="field-input" rows="2" maxlength="500" placeholder="Ce que fait ton bot en une phrase"></textarea></div>'
+      +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="bot-new-save">Créer</button><button type="button" class="set-mini-btn" id="bot-new-cancel">Annuler</button></div>'
+      +'<div class="err" id="bot-new-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>'
+    +'<div id="bot-list"><div class="scr-sub">Chargement…</div></div>'
+    +'<div class="set-card" style="margin-top:18px">'
+      +'<div class="set-section-label">📘 Comment ça marche</div>'
+      +'<div class="oauth-doc-step"><b>1. Crée un bot</b> ci-dessus pour obtenir un identifiant public (pour l\\'installation sur un serveur) et un token secret (pour authentifier les appels — ne le partage jamais).</div>'
+      +'<div class="oauth-doc-step"><b>2. Renseigne ton URL d\\'interactions</b> (HTTPS obligatoire) : c\\'est l\\'endpoint de TON serveur que X1 appelle à chaque commande ou clic de bouton. Réponds en <b>3 secondes maximum</b> — un endpoint qui doit "démarrer" à froid (cold start) est risqué, garde-le chaud si possible.</div>'
+      +'<div class="oauth-doc-step"><b>3. Déclare tes commandes</b> (nom, description, un argument texte optionnel) — elles apparaissent en autocomplétion quand quelqu\\'un tape <code>/</code> dans un salon où ton bot est installé.</div>'
+      +'<div class="oauth-doc-step"><b>4. Une personne installe ton bot</b> sur son serveur (Paramètres du serveur → 🤖 Bots → coller ton identifiant public). Elle garde le contrôle : elle peut le retirer à tout moment.</div>'
+      +'<div class="oauth-doc-step"><b>Ce que X1 t\\'envoie</b> à chaque interaction (en-tête <code>X-X1-Signature</code> : HMAC-SHA256 du corps de la requête avec ton token secret comme clé — vérifie-la pour t\\'assurer que ça vient bien de X1) :</div>'
+      +oauthCodeBlockHtml('bot-doc-payload','{\\n  "type": "command",              // ou "component" pour un clic de bouton\\n  "server": { "id": "...", "name": "..." },\\n  "channel": { "id": "..." },\\n  "user": { "id": "...", "username": "..." },\\n  "command": { "name": "ping", "args": { "texte": "..." } },\\n  "component": { "customId": "...", "messageId": "..." }, // si type = component\\n  "ts": 1234567890\\n}')
+      +'<div class="oauth-doc-step"><b>Ce que ton bot doit répondre</b> (JSON, avant 3 secondes) :</div>'
+      +oauthCodeBlockHtml('bot-doc-response','{\\n  "content": "Pong ! 🏓",\\n  "ephemeral": false,        // true = visible seulement par qui a lancé la commande, jamais posté dans le salon\\n  "components": [             // optionnel, 5 boutons max\\n    { "label": "Encore", "style": "primary", "customId": "ping_again" }\\n  ]\\n}')
+      +'<div class="oauth-doc-step"><b>Exemple minimal</b> (Node.js / Express) :</div>'
+      +oauthCodeBlockHtml('bot-doc-example','import express from \\'express\\';\\nimport crypto from \\'crypto\\';\\nconst app = express();\\napp.use(express.json());\\nconst BOT_TOKEN = process.env.BOT_TOKEN;\\n\\napp.post(\\'/interactions\\', (req, res) => {\\n  const sig = req.headers[\\'x-x1-signature\\'];\\n  const expected = crypto.createHmac(\\'sha256\\', BOT_TOKEN).update(JSON.stringify(req.body)).digest(\\'hex\\');\\n  if (sig !== expected) return res.status(401).end();\\n\\n  const { command } = req.body;\\n  if (command && command.name === \\'ping\\') {\\n    return res.json({ content: \\'Pong ! 🏓\\' });\\n  }\\n  res.json({ content: \\'Commande inconnue.\\', ephemeral: true });\\n});\\napp.listen(3000);')
+      +'<div class="oauth-doc-step"><b>Ton bot peut aussi écrire de lui-même</b> (annonce programmée, relais externe, cron...), sans attendre une interaction :</div>'
+      +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: {\\n    \\'Content-Type\\': \\'application/json\\',\\n    Authorization: \\'Bot \\' + BOT_TOKEN\\n  },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
+      +'<div class="oauth-doc-step">🎙️ <b>Vocal</b> (rejoindre, jouer/recevoir de l\\'audio) et les <b>actions de modération</b> (kick/ban/rôles depuis un bot) ne sont pas encore couvertes par cette API — ça viendra dans une prochaine version.</div>'
+    +'</div>';
+  wireOauthCodeBlocks(box);
+  \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
+  \$('bot-new-cancel').addEventListener('click',function(){\$('bot-new-form').classList.add('hidden');\$('bot-new-err').textContent='';});
+  \$('bot-new-save').addEventListener('click',async function(){
+    const btn=this;
+    const name=(\$('bot-new-name').value||'').trim();
+    const description=(\$('bot-new-desc').value||'').trim();
+    \$('bot-new-err').textContent='';
+    btn.disabled=true;btn.textContent='Création…';
+    try{
+      await authPost('/api/bots/create',{name:name,description:description});
+      \$('bot-new-name').value='';\$('bot-new-desc').value='';
+      \$('bot-new-form').classList.add('hidden');
+      showToast('Bot créé !');
+      loadBotDevApps();
+    }catch(e){\$('bot-new-err').textContent=(e&&e.message)||'Erreur';}
+    finally{btn.disabled=false;btn.textContent='Créer';}
+  });
+  loadBotDevApps();
+}
+async function loadBotDevApps(){
+  const box=\$('bot-list');if(!box)return;
+  try{
+    const r=await authGet('/api/bots/list');
+    botDevAppsCache=r.bots||[];
+    renderBotDevAppsList();
+  }catch(e){box.innerHTML='<div class="set-card"><div class="scr-sub">Impossible de charger tes bots.</div></div>';}
+}
+function renderBotDevAppsList(){
+  const box=\$('bot-list');if(!box)return;
+  if(!botDevAppsCache.length){box.innerHTML='<div class="set-card"><div class="scr-sub">Aucun bot créé pour l\\'instant.</div></div>';return}
+  box.innerHTML=botDevAppsCache.map(function(b){
+    let commands=[];try{commands=JSON.parse(b.commandsJson||'[]');}catch(e){}
+    const statusHtml=b.firstSuccessAt?'<span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">✅ Fonctionnel</span>':'<span class="soon-badge">⏳ Pas encore de première réponse réussie</span>';
+    return '<div class="set-card oauth-app-card" data-bot-app="'+esc(b.publicId)+'">'
+      +'<div class="set-section-label">🤖 '+esc(b.name)+' '+statusHtml+'</div>'
+      +(b.description?'<div class="scr-sub" style="margin-bottom:10px">'+esc(b.description)+'</div>':'')
+      +'<div class="oauth-field-row"><label>Identifiant public</label><code>'+esc(b.publicId)+'</code><button type="button" class="oauth-code-copy" data-copy-value="'+esc(b.publicId)+'">📋</button></div>'
+      +'<div class="oauth-field-row"><label>Token secret</label><code class="oauth-secret-masked" data-secret="'+esc(b.botToken)+'">••••••••••••••••••••••••••••••••</code><button type="button" class="oauth-code-copy" data-oauth-reveal>👁️</button><button type="button" class="oauth-code-copy" data-copy-value="'+esc(b.botToken)+'">📋</button></div>'
+      +'<div class="set-row"><label>URL d\\'interactions</label><input type="text" class="field-input" data-bot-interactions-url="'+esc(b.publicId)+'" value="'+esc(b.interactionsUrl||'')+'" placeholder="https://mon-serveur.exemple.com/interactions"></div>'
+      +'<div class="scr-sub" style="margin:4px 0 8px">Commandes déclarées : '+(commands.length?commands.map(function(c){return '<code>/'+esc(c.name)+'</code>';}).join(' '):'aucune')+'</div>'
+      +'<button type="button" class="set-mini-btn" data-bot-edit-cmds="'+esc(b.publicId)+'">✏️ Modifier les commandes</button>'
+      +'<div class="hidden" id="bot-cmds-editor-'+esc(b.publicId)+'" style="margin-top:10px"></div>'
+      +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
+        +'<button type="button" class="set-mini-btn" data-bot-save-url="'+esc(b.publicId)+'">💾 Enregistrer l\\'URL</button>'
+        +'<button type="button" class="set-mini-btn" data-bot-regen="'+esc(b.publicId)+'">🔄 Régénérer le token</button>'
+        +'<button type="button" class="set-mini-btn danger" data-bot-del="'+esc(b.publicId)+'">Supprimer</button>'
+      +'</div>'
+    +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-oauth-reveal]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const codeEl=btn.parentElement.querySelector('.oauth-secret-masked');
+      const revealed=codeEl.getAttribute('data-secret');
+      codeEl.textContent=codeEl.textContent===revealed?'••••••••••••••••••••••••••••••••':revealed;
+    });
+  });
+  box.querySelectorAll('[data-copy-value]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const text=btn.getAttribute('data-copy-value');
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text):Promise.reject())
+        .then(function(){showToast('Copié !');}).catch(function(){showToast('Copie impossible','error');});
+    });
+  });
+  box.querySelectorAll('[data-bot-save-url]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      const publicId=btn.getAttribute('data-bot-save-url');
+      const input=box.querySelector('[data-bot-interactions-url="'+publicId+'"]');
+      btn.disabled=true;
+      try{
+        await authPost('/api/bots/update',{publicId:publicId,interactionsUrl:input.value||''});
+        showToast('URL enregistrée.');
+        loadBotDevApps();
+      }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+      btn.disabled=false;
+    });
+  });
+  box.querySelectorAll('[data-bot-regen]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      showSlideConfirm('Régénérer le token ? L\\'ancien cessera immédiatement de fonctionner.',async function(){
+        try{await authPost('/api/bots/regenerate-token',{publicId:btn.getAttribute('data-bot-regen')});showToast('Token régénéré.');loadBotDevApps();}
+        catch(e){showToast('Action impossible','error');}
+      });
+    });
+  });
+  box.querySelectorAll('[data-bot-del]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      showSlideConfirm('Supprimer ce bot ? Il sera retiré de tous les serveurs où il est installé.',async function(){
+        try{await authPost('/api/bots/delete',{publicId:btn.getAttribute('data-bot-del')});showToast('Bot supprimé.');loadBotDevApps();}
+        catch(e){showToast('Action impossible','error');}
+      });
+    });
+  });
+  box.querySelectorAll('[data-bot-edit-cmds]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const publicId=btn.getAttribute('data-bot-edit-cmds');
+      const editor=\$('bot-cmds-editor-'+publicId);
+      if(!editor)return;
+      editor.classList.toggle('hidden');
+      if(!editor.classList.contains('hidden'))renderBotCommandsEditor(editor,publicId);
+    });
+  });
+}
+function renderBotCommandsEditor(editor,publicId){
+  const bot=botDevAppsCache.find(function(b){return b.publicId===publicId});
+  let commands=[];try{commands=JSON.parse((bot&&bot.commandsJson)||'[]');}catch(e){}
+  function draw(){
+    editor.innerHTML=commands.map(function(c,i){
+      return '<div class="bot-cmd-row" style="border:1px solid rgba(167,139,250,.16);border-radius:10px;padding:10px;margin-bottom:8px">'
+        +'<div style="display:flex;gap:6px"><input type="text" class="field-input" style="margin-bottom:6px" data-cmd-name="'+i+'" value="'+esc(c.name||'')+'" placeholder="nom_commande" maxlength="32"><button type="button" class="set-mini-btn danger" data-cmd-remove="'+i+'">✕</button></div>'
+        +'<input type="text" class="field-input" style="margin-bottom:6px" data-cmd-desc="'+i+'" value="'+esc(c.description||'')+'" placeholder="Description" maxlength="100">'
+        +'<input type="text" class="field-input" data-cmd-opt-name="'+i+'" value="'+esc((c.options&&c.options[0]&&c.options[0].name)||'')+'" placeholder="Nom de l\\'argument texte (optionnel, ex: raison)" maxlength="32">'
+      +'</div>';
+    }).join('')
+    +'<button type="button" class="set-mini-btn" id="bot-cmd-add-'+publicId+'">+ Ajouter une commande</button> '
+    +'<button type="button" class="btn-main" id="bot-cmd-save-'+publicId+'" style="margin-left:6px">Enregistrer les commandes</button>';
+    editor.querySelectorAll('[data-cmd-name]').forEach(function(inp){inp.addEventListener('input',function(){commands[+inp.getAttribute('data-cmd-name')].name=inp.value;});});
+    editor.querySelectorAll('[data-cmd-desc]').forEach(function(inp){inp.addEventListener('input',function(){commands[+inp.getAttribute('data-cmd-desc')].description=inp.value;});});
+    editor.querySelectorAll('[data-cmd-opt-name]').forEach(function(inp){inp.addEventListener('input',function(){
+      const idx=+inp.getAttribute('data-cmd-opt-name');
+      commands[idx].options=inp.value.trim()?[{name:inp.value.trim(),description:inp.value.trim(),required:false}]:[];
+    });});
+    editor.querySelectorAll('[data-cmd-remove]').forEach(function(btn){btn.addEventListener('click',function(){commands.splice(+btn.getAttribute('data-cmd-remove'),1);draw();});});
+    const addBtn=\$('bot-cmd-add-'+publicId);
+    if(addBtn)addBtn.onclick=function(){commands.push({name:'',description:'',options:[]});draw();};
+    const saveBtn=\$('bot-cmd-save-'+publicId);
+    if(saveBtn)saveBtn.onclick=async function(){
+      saveBtn.disabled=true;saveBtn.textContent='Enregistrement…';
+      try{
+        await authPost('/api/bots/update',{publicId:publicId,commands:commands});
+        showToast('Commandes enregistrées !');
+        loadBotDevApps();
+      }catch(e){showToast((e&&e.message)||'Erreur','error');saveBtn.disabled=false;saveBtn.textContent='Enregistrer les commandes';}
+    };
+  }
+  draw();
+}
 function renderSetFamily(box){
   box.innerHTML='<h2>Coffre-fort de contenu / Family Center</h2><div class="sc-desc">Des outils pour garder un œil sur ton activité ou celle d’un proche.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur X1.</div></div>';
 }
@@ -7562,7 +7746,8 @@ const BADGE_DEFS={
   early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur X1 avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
   creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe X1 aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
   chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."},
-  elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."}
+  elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."},
+  botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -7576,8 +7761,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
-const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
@@ -17713,6 +17898,8 @@ function renderServerChannelContent(){
   if(followBtn)followBtn.onclick=function(){openChannelFollowForm();};
   wireSrvChanComposerExtra(lockedForMe);
   wireQuickLock();
+  loadActiveServerBots();
+  if(input)wireSlashCommandAutocomplete(input);
 }
 // Salon de scène : la position "orateur" est décidée par server_stage_state
 // (côté Worker, jamais localement) — cet écran n'en est qu'un reflet en
@@ -17936,7 +18123,8 @@ function renderChannelMessages(){
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
     const isWebhook=typeof m.uid==='string'&&m.uid.indexOf('webhook:')===0;
     const isCrosspost=typeof m.uid==='string'&&m.uid.indexOf('crosspost:')===0;
-    const isSynthetic=isWebhook||isCrosspost;
+    const isBot=!!m.isBot;
+    const isSynthetic=isWebhook||isCrosspost||isBot;
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(m.avatarUrl)||safeUrl(authorProfile&&authorProfile.avatar);
     const name=m.username||'Membre';
@@ -17947,9 +18135,18 @@ function renderChannelMessages(){
     const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
+    let componentsHtml='';
+    if(isBot){
+      let components=[];try{components=JSON.parse(m.componentsJson||'[]');}catch(e){}
+      if(components.length){
+        componentsHtml='<div class="msg-bot-components">'+components.map(function(c){
+          return '<button type="button" class="msg-bot-btn msg-bot-btn-'+esc(c.s||'secondary')+'" data-bot-component="'+esc(c.id||'')+'" data-bot-mid="'+esc(m.\$id||'')+'">'+esc(c.l||'Bouton')+'</button>';
+        }).join('')+'</div>';
+      }
+    }
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+      +'<div>'+replyHtml+'<div class="bub">'+body+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('.msg-media img').forEach(function(el){
@@ -17996,7 +18193,40 @@ function renderChannelMessages(){
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
     attachMsgSwipe(el,m,'channel');
   });
+  box.querySelectorAll('[data-bot-component]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      triggerBotComponent(btn.getAttribute('data-bot-mid'),btn.getAttribute('data-bot-component'),btn);
+    });
+  });
   pinScrollBottomAfterImages(box);
+}
+async function triggerBotComponent(messageId,customId,btnEl){
+  const m=activeChannelMessages.find(function(x){return x.\$id===messageId});
+  if(!m||!activeChannel||!activeServer)return;
+  const botAppId=botAppIdForMessage(m);
+  if(!botAppId)return;
+  if(btnEl)btnEl.disabled=true;
+  try{
+    const r=await authPost('/api/bots/interact',{serverId:activeServer.\$id,channelId:activeChannel.\$id,botAppId:botAppId,kind:'component',customId:customId,messageId:messageId});
+    if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
+    if(r.ephemeral)showBotEphemeralReply(r.content);
+  }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu','error');}
+  if(btnEl)btnEl.disabled=false;
+}
+function botAppIdForMessage(m){
+  if(!m||!m.isBot)return null;
+  const publicId=String(m.uid||'').indexOf('bot_')===0?String(m.uid).slice(4):'';
+  const entry=activeServerBotsCache.find(function(b){return b.publicId===publicId});
+  return entry?entry.botAppId:null;
+}
+function showBotEphemeralReply(content){
+  const list=\$('srv-chan-msgs');if(!list)return;
+  const el=document.createElement('div');
+  el.className='msg';
+  el.innerHTML='<div class="av">🤖</div><div><div class="bub"><div class="bot-ephemeral-tag">🔒 Visible seulement par toi</div>'+linkify(esc(content||''))+'</div></div>';
+  list.appendChild(el);
+  list.scrollTop=list.scrollHeight;
 }
 async function toggleChannelReaction(m,emoji){
   try{
@@ -18029,6 +18259,28 @@ async function sendServerChannelMessage(){
   const input=\$('srv-chan-input');if(!input||!activeChannel)return;
   const text=(input.value||'').trim();
   if(!text)return;
+  // Commande /slash d'un bot installé sur ce serveur : détectée AVANT le
+  // chemin d'envoi normal, jamais postée comme un message texte classique —
+  // voir /api/bots/interact (payload envoyé au bot, réponse attendue).
+  const slashMatch=/^\\/([a-z0-9_-]{1,32})(?:\\s+([\\s\\S]*))?$/i.exec(text);
+  if(slashMatch){
+    const cmdName=slashMatch[1].toLowerCase();
+    const cmd=allServerBotCommands().find(function(c){return c.name===cmdName;});
+    if(cmd){
+      input.value='';
+      if(\$('srv-chan-send'))\$('srv-chan-send').classList.add('hidden');
+      if(\$('srv-chan-voice'))\$('srv-chan-voice').classList.remove('hidden');
+      const argText=(slashMatch[2]||'').trim();
+      const args={};
+      if(cmd.options&&cmd.options[0]&&argText)args[cmd.options[0].name]=argText;
+      try{
+        const r=await authPost('/api/bots/interact',{serverId:activeServer.\$id,channelId:activeChannel.\$id,botAppId:cmd.botAppId,kind:'command',commandName:cmd.name,args:args});
+        if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
+        if(r.ephemeral)showBotEphemeralReply(r.content);
+      }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu à temps','error');input.value=text;}
+      return;
+    }
+  }
   input.value='';
   if(\$('srv-chan-send'))\$('srv-chan-send').classList.add('hidden');
   if(\$('srv-chan-voice'))\$('srv-chan-voice').classList.remove('hidden');
@@ -18296,6 +18548,64 @@ function mentionCandidatesForChannel(){
   return (activeServerMembers||[]).map(function(m){
     return {uid:m.uid,username:m.username,displayName:m.nickname||m.username||''};
   }).filter(function(c){return c.username||c.displayName;});
+}
+/* ===== Commandes /slash des bots installés sur le serveur en cours — voir
+   le Portail développeur (Paramètres → Développeurs → Mes bots) et
+   /api/bots/interact côté worker pour le contrat complet. ===== */
+let activeServerBotsCache=[];
+async function loadActiveServerBots(){
+  if(!activeServer){activeServerBotsCache=[];return}
+  try{
+    const r=await fetch('/api/servers/bots/list?serverId='+encodeURIComponent(activeServer.\$id));
+    const j=await r.json();
+    activeServerBotsCache=(j&&j.bots)||[];
+  }catch(e){activeServerBotsCache=[];}
+}
+function allServerBotCommands(){
+  const out=[];
+  activeServerBotsCache.forEach(function(b){
+    (b.commands||[]).forEach(function(c){out.push({botAppId:b.botAppId,botName:b.name,name:c.name,description:c.description,options:c.options||[]});});
+  });
+  return out;
+}
+function wireSlashCommandAutocomplete(inputEl){
+  if(!inputEl||inputEl.dataset.slashWired)return;
+  inputEl.dataset.slashWired='1';
+  let box=null;
+  function closeBox(){if(box){box.remove();box=null;}}
+  inputEl.addEventListener('input',function(){
+    const v=inputEl.value;
+    const m=/^\\/([a-z0-9_-]{0,32})$/.exec(v);
+    if(!m){closeBox();return}
+    const prefix=m[1].toLowerCase();
+    const matches=allServerBotCommands().filter(function(c){return c.name.toLowerCase().indexOf(prefix)===0;}).slice(0,8);
+    if(!matches.length){closeBox();return}
+    closeBox();
+    box=document.createElement('div');
+    box.className='mention-autocomplete';
+    box.innerHTML=matches.map(function(c,i){
+      return '<div class="mention-ac-item'+(i===0?' on':'')+'" data-cmdname="'+esc(c.name)+'">/'+esc(c.name)+' <span class="mention-ac-sub">'+esc(c.description)+' — '+esc(c.botName)+'</span></div>';
+    }).join('');
+    inputEl.parentElement.appendChild(box);
+    box.querySelectorAll('.mention-ac-item').forEach(function(item){
+      item.addEventListener('mousedown',function(e){
+        e.preventDefault();
+        inputEl.value='/'+item.getAttribute('data-cmdname')+' ';
+        inputEl.dispatchEvent(new Event('input'));
+        inputEl.focus();
+        closeBox();
+      });
+    });
+  });
+  inputEl.addEventListener('keydown',function(e){
+    if(!box)return;
+    if(e.key==='Escape'){closeBox();return}
+    if(e.key==='Enter'||e.key==='Tab'){
+      const on=box.querySelector('.mention-ac-item.on');
+      if(on){e.preventDefault();e.stopPropagation();on.dispatchEvent(new Event('mousedown'));}
+    }
+  },true);
+  inputEl.addEventListener('blur',function(){setTimeout(closeBox,150);});
 }
 function extractMentionTokens(text){
   const re=/(^|[^\\w@])@([a-zA-Z0-9_.]{2,32})/g;
@@ -19307,6 +19617,12 @@ async function renderServerSettingsTab(){
       +(boostLevel>=3?('<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>')
         :'<div class="srv-upsell">🚀 Nécessite le palier de boost 3 pour ce serveur</div>')
       +'</div>'):'')
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🤖 Bots</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Ajoute un bot créé par toi ou quelqu\\'un d\\'autre via le Portail développeur de bots (Paramètres → Développeurs → Mes bots). Colle son identifiant public ci-dessous.</div>'
+      +'<div id="srv-bots-list"><div class="scr-sub">Chargement…</div></div>'
+      +'<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="srv-bot-install-id" class="field-input" placeholder="Identifiant public du bot"><button type="button" class="set-mini-btn" id="srv-bot-install-btn">+ Installer</button></div>'
+      +'<div class="err" id="srv-bot-install-err"></div>'
+    +'</div>'):'')
     +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité X1+</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité du partage d\\'écran</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.screenQualityKey||'720p60')==='720p60'?' on':'')+'" data-srv-quality-screen="720p60">720p60</button><button type="button" class="seg-btn'+(activeServer.screenQualityKey==='1080p60'?' on':'')+'" data-srv-quality-screen="1080p60"'+(isPlus?'':' disabled')+'>1080p60</button></div>'+(isPlus?'':upsell)+'</div>'
@@ -19328,6 +19644,21 @@ async function renderServerSettingsTab(){
     srvBannerFile=f;
     const r=new FileReader();r.onload=function(){bannerPrev.style.backgroundImage='url('+JSON.stringify(r.result)+')';};r.readAsDataURL(f);
   });
+  if(\$('srv-bots-list'))loadServerBotsTab();
+  if(\$('srv-bot-install-btn'))\$('srv-bot-install-btn').onclick=async function(){
+    const btn=this;
+    const publicId=(\$('srv-bot-install-id').value||'').trim();
+    \$('srv-bot-install-err').textContent='';
+    if(!publicId){\$('srv-bot-install-err').textContent='Identifiant requis';return}
+    btn.disabled=true;btn.textContent='Installation…';
+    try{
+      const r=await authPost('/api/servers/bots/install',{serverId:activeServer.\$id,publicId:publicId});
+      showToast((r.bot&&r.bot.name?r.bot.name:'Le bot')+' a été installé !');
+      \$('srv-bot-install-id').value='';
+      loadServerBotsTab();
+    }catch(e){\$('srv-bot-install-err').textContent=(e&&e.message)||'Bot introuvable';}
+    btn.disabled=false;btn.textContent='+ Installer';
+  };
   \$('srv-set-save').onclick=async function(){
     this.disabled=true;this.textContent='Enregistrement…';\$('srv-set-err').textContent='';
     try{
@@ -19660,6 +19991,27 @@ async function renderServerSettingsTab(){
     saveAutoModWords(words).catch(function(e){showToast((e&&e.message)||'Erreur','error');});
   };
   if(automodInput)automodInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();automodAdd.click();}});
+}
+async function loadServerBotsTab(){
+  const box=\$('srv-bots-list');if(!box||!activeServer)return;
+  try{
+    const r=await fetch('/api/servers/bots/list?serverId='+encodeURIComponent(activeServer.\$id));
+    const j=await r.json();
+    const bots=(j&&j.bots)||[];
+    if(!bots.length){box.innerHTML='<div class="scr-sub">Aucun bot installé sur ce serveur.</div>';return}
+    box.innerHTML=bots.map(function(b){
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+'</div></div>'
+        +'<button type="button" class="set-mini-btn danger" data-srv-bot-remove="'+esc(b.memberDocId)+'">Retirer</button></div>';
+    }).join('');
+    box.querySelectorAll('[data-srv-bot-remove]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        showSlideConfirm('Retirer ce bot du serveur ?',async function(){
+          try{await authPost('/api/servers/bots/remove',{serverId:activeServer.\$id,memberDocId:btn.getAttribute('data-srv-bot-remove')});showToast('Bot retiré.');loadServerBotsTab();}
+          catch(e){showToast((e&&e.message)||'Action impossible','error');}
+        });
+      });
+    });
+  }catch(e){box.innerHTML='<div class="scr-sub">Impossible de charger les bots.</div>';}
 }
 if(\$('btn-pinned'))\$('btn-pinned').addEventListener('click',function(){if(activeDm)openPinnedMessages('dm');});
 if(\$('btn-search'))\$('btn-search').addEventListener('click',function(){if(activeDm)openMessageSearch('dm');});
@@ -20613,6 +20965,358 @@ async function handle(request) {
       if (!app || String(app.ownerId) !== acc.$id) throw new Error("Application introuvable");
       await awFetch("/databases/" + AW_DB + "/collections/oauth_apps/documents/" + app.$id, { method: "DELETE", asAdmin: true });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== Portail développeur de bots =====
+  // Architecture volontairement calquée sur le modèle "interactions HTTP" de
+  // Discord plutôt que sur sa passerelle WebSocket "toujours connectée" :
+  // X1 tourne elle-même en Worker Cloudflare sans process persistant, donc
+  // demander aux bots de maintenir une connexion permanente vers X1 n'aurait
+  // aucun sens architectural. Un bot ici est un simple endpoint HTTPS que le
+  // développeur héberge de son côté (voir /api/bots/interact plus bas pour
+  // le contrat exact — c'est littéralement ce que la doc de référence du
+  // porteur de cette demande recommande : "/commandes seulement → endpoint
+  // HTTPS, pas de VPS"). Le badge Développeur de Bot n'est jamais accordé à
+  // la simple création d'un bot dans ce portail : seulement à la première
+  // interaction RÉUSSIE en direct sur un serveur (voir plus bas).
+  async function resolveOwnedBot(acc, publicId) {
+    const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "publicId", values: [String(publicId || "")] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+    const bot = (botQ.documents || [])[0];
+    if (!bot || String(bot.ownerId) !== String(acc.$id)) throw new Error("Bot introuvable");
+    return bot;
+  }
+  if (path === "/api/bots/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const name = String((body && body.name) || "").trim().slice(0, 100);
+      if (!name) throw new Error("Nom du bot requis");
+      const description = String((body && body.description) || "").trim().slice(0, 500);
+      const avatar = String((body && body.avatar) || "").slice(0, 500);
+      const ownedQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      if ((ownedQ.documents || []).length >= 10) throw new Error("Limite de 10 bots par compte atteinte");
+      const publicId = randomOauthToken(16);
+      const botToken = "x1bot_" + randomOauthToken(48);
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { ownerId: acc.$id, name: name, description: description, avatar: avatar, publicId: publicId, botToken: botToken, interactionsUrl: "", commandsJson: "[]", online: false, firstSuccessAt: "", installCount: 0 },
+          permissions: ["read(\"user:" + acc.$id + "\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, bot: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bots/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, bots: q.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bots/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const bot = await resolveOwnedBot(acc, body && body.publicId);
+      const data = {};
+      if (body.name !== undefined) { const n = String(body.name || "").trim().slice(0, 100); if (!n) throw new Error("Nom requis"); data.name = n; }
+      if (body.description !== undefined) data.description = String(body.description || "").trim().slice(0, 500);
+      if (body.avatar !== undefined) data.avatar = String(body.avatar || "").slice(0, 500);
+      if (body.interactionsUrl !== undefined) {
+        const u = String(body.interactionsUrl || "").trim();
+        if (u && !/^https:\/\//i.test(u)) throw new Error("L'URL des interactions doit être en HTTPS");
+        data.interactionsUrl = u.slice(0, 500);
+      }
+      if (body.commands !== undefined) {
+        const cmds = Array.isArray(body.commands) ? body.commands : [];
+        if (cmds.length > 15) throw new Error("15 commandes maximum par bot");
+        const nameRe = /^[a-z0-9_-]{1,32}$/;
+        const seen = {};
+        const cleaned = [];
+        for (const c of cmds) {
+          const cn = String((c && c.name) || "").toLowerCase().trim();
+          if (!nameRe.test(cn)) throw new Error("Nom de commande invalide : \"" + cn + "\" (minuscules, chiffres, - et _ uniquement, sans espace)");
+          if (seen[cn]) throw new Error("Commande en double : /" + cn);
+          seen[cn] = true;
+          const cd = String((c && c.description) || "").trim().slice(0, 100);
+          if (!cd) throw new Error("Description requise pour /" + cn);
+          const opts = (Array.isArray(c && c.options) ? c.options : []).slice(0, 5);
+          const cleanOpts = opts.map(function (o) {
+            const on = String((o && o.name) || "").toLowerCase().trim();
+            if (!nameRe.test(on)) throw new Error("Nom d'option invalide : \"" + on + "\" (pour /" + cn + ")");
+            return { name: on, description: String((o && o.description) || "").trim().slice(0, 100), required: !!(o && o.required) };
+          });
+          cleaned.push({ name: cn, description: cd, options: cleanOpts });
+        }
+        data.commandsJson = JSON.stringify(cleaned);
+      }
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, bot: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bots/regenerate-token" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const bot = await resolveOwnedBot(acc, body && body.publicId);
+      const botToken = "x1bot_" + randomOauthToken(48);
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { botToken: botToken } } });
+      return new Response(JSON.stringify({ ok: true, bot: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bots/delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const bot = await resolveOwnedBot(acc, body && body.publicId);
+      // Désinstalle le bot de tous les serveurs où il était ajouté, pas
+      // seulement son document — sinon un "membre bot" fantôme restait
+      // affiché indéfiniment dans les listes de membres des serveurs.
+      const installsQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const m of (installsQ.documents || [])) {
+        await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/servers/bots/install" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const publicId = String((body && body.publicId) || "").trim();
+      const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server"]);
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "publicId", values: [publicId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const bot = (botQ.documents || [])[0];
+      if (!bot) throw new Error("Identifiant de bot introuvable");
+      const existingQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      if ((existingQ.documents || []).length) throw new Error("Ce bot est déjà sur ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id }, permissions: ["read(\"any\")"] }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { installCount: (Number(bot.installCount) || 0) + 1 } } }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, bot: { name: bot.name, avatar: bot.avatar, publicId: bot.publicId } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/servers/bots/remove" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const memberDocId = String((body && body.memberDocId) || "");
+      const gate = await serverCheckPermission(serverId, acc.$id, ["manage_server"]);
+      if (!gate.ok) throw new Error(gate.error || "Permission refusée");
+      const member = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { asAdmin: true });
+      if (String(member.serverId) !== serverId || !member.isBot) throw new Error("Bot introuvable sur ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/servers/bots/list" && request.method === "GET") {
+    try {
+      const serverId = url.searchParams.get("serverId") || "";
+      if (!serverId) throw new Error("serverId requis");
+      const membersQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "isBot", values: [true] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const members = membersQ.documents || [];
+      const bots = await Promise.all(members.map(async function (m) {
+        try {
+          const b = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + m.botAppId, { asAdmin: true });
+          let commands = []; try { commands = JSON.parse(b.commandsJson || "[]"); } catch (e2) {}
+          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online };
+        } catch (e2) { return null; }
+      }));
+      return new Response(JSON.stringify({ ok: true, bots: bots.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Point d'entrée central des interactions (slash commands + boutons) : le
+  // client appelle cette route quand une personne lance une commande /ou
+  // clique un bouton posté par un bot. La route relaie l'événement en
+  // HTTPS vers le endpoint du développeur (payload signé HMAC-SHA256 avec
+  // le token du bot, comme la signature Ed25519 de Discord mais en plus
+  // simple à vérifier de son côté), attend sa réponse avec un délai de 3
+  // secondes maximum (même contrainte que Discord — un cold start la casse,
+  // d'où l'intérêt de garder son endpoint chaud), puis poste la réponse
+  // dans le salon comme un vrai message du bot (sauf réponse "éphémère",
+  // jamais persistée, renvoyée seulement à qui a lancé la commande).
+  if (path === "/api/bots/interact" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const botAppId = String((body && body.botAppId) || "");
+      const kind = body && body.kind === "component" ? "component" : "command";
+      const access = await serverResolveChannelAccess(serverId, acc.$id, channelId);
+      if (!access.access.send) throw new Error(access.timedOut ? "Tu es en timeout, tu ne peux pas écrire pour le moment" : "Tu ne peux pas écrire dans ce salon");
+      const bot = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + botAppId, { asAdmin: true }).catch(function () { return null; });
+      if (!bot) throw new Error("Bot introuvable");
+      const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [botAppId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      if (!(installQ.documents || []).length) throw new Error("Ce bot n'est pas installé sur ce serveur");
+      if (!bot.interactionsUrl) throw new Error("Ce bot n'a pas encore d'URL d'interactions configurée par son développeur");
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const interactionPayload = {
+        type: kind,
+        server: { id: serverId, name: access.server.name },
+        channel: { id: channelId },
+        user: { id: acc.$id, username: uname },
+        command: kind === "command" ? { name: String((body && body.commandName) || ""), args: (body && body.args && typeof body.args === "object") ? body.args : {} } : undefined,
+        component: kind === "component" ? { customId: String((body && body.customId) || ""), messageId: String((body && body.messageId) || "") } : undefined,
+        ts: Date.now()
+      };
+      const payloadStr = JSON.stringify(interactionPayload);
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey("raw", enc.encode(bot.botToken), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+      const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(payloadStr));
+      const signature = Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+      let botRes;
+      try {
+        botRes = await fetch(bot.interactionsUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-X1-Signature": signature, "X-X1-Bot-Id": bot.publicId },
+          body: payloadStr,
+          signal: AbortSignal.timeout(3000)
+        });
+      } catch (eFetch) {
+        throw new Error("Le bot n'a pas répondu à temps (3 secondes max) ou son URL est injoignable");
+      }
+      if (!botRes.ok) throw new Error("Le bot a répondu avec une erreur (" + botRes.status + ")");
+      const botJson = await botRes.json().catch(function () { return null; });
+      if (!botJson || typeof botJson.content !== "string") throw new Error("Réponse du bot invalide (attend un champ \"content\")");
+      const content = botJson.content.slice(0, 4000);
+      const ephemeral = !!botJson.ephemeral;
+      const components = Array.isArray(botJson.components) ? botJson.components.slice(0, 5).map(function (c) {
+        return { l: String((c && c.label) || "Bouton").slice(0, 32), s: ["primary", "secondary", "danger", "success"].indexOf(c && c.style) >= 0 ? c.style : "secondary", id: String((c && c.customId) || "").slice(0, 64) };
+      }) : [];
+      // Toujours mettre à jour "online" et, à la toute première réussite,
+      // enregistrer l'horodatage ET accorder le badge Développeur de Bot au
+      // propriétaire — jamais à la simple création du bot dans le portail.
+      const nowIso = new Date().toISOString();
+      const botPatch = { online: true };
+      let badgeJustGranted = false;
+      if (!bot.firstSuccessAt) {
+        botPatch.firstSuccessAt = nowIso;
+        badgeJustGranted = true;
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: botPatch } }).catch(function () {});
+      if (badgeJustGranted) {
+        try {
+          let existing = [];
+          let hadMeta = true;
+          try {
+            const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + bot.ownerId, { asAdmin: true });
+            existing = JSON.parse(meta.badgesJson || "[]");
+            if (!Array.isArray(existing)) existing = [];
+          } catch (eMeta) { existing = []; hadMeta = false; }
+          if (existing.indexOf("botdev") < 0) {
+            const next = existing.concat(["botdev"]);
+            const badgesJson = JSON.stringify(next);
+            const lockedPerms = ["read(\"any\")"];
+            if (hadMeta) {
+              await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + bot.ownerId, { method: "PATCH", asAdmin: true, body: { data: { badgesJson: badgesJson }, permissions: lockedPerms } });
+            } else {
+              await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", { method: "POST", asAdmin: true, body: { documentId: bot.ownerId, data: { badgesJson: badgesJson }, permissions: lockedPerms } });
+            }
+          }
+        } catch (eBadge) {}
+      }
+      if (ephemeral) {
+        return new Response(JSON.stringify({ ok: true, ephemeral: true, content: content, badgeJustGranted: badgeJustGranted }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, undefined);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: JSON.stringify(components), type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
+      });
+      return new Response(JSON.stringify({ ok: true, message: msg, badgeJustGranted: badgeJustGranted }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // API REST que le bot appelle lui-même (annonces programmées, cron,
+  // relais depuis un jeu/site tiers...) — jamais l'inverse d'une
+  // interaction. Authentification par en-tête "Authorization: Bot <token>",
+  // jamais par cookie/session (un bot n'a pas de navigateur).
+  if (path === "/api/bot/v1/messages/send" && request.method === "POST") {
+    try {
+      const authHeader = request.headers.get("Authorization") || "";
+      const m = /^Bot\s+(.+)$/.exec(authHeader);
+      if (!m) throw new Error("En-tête Authorization: Bot <token> requis");
+      const botToken = m[1].trim();
+      const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botToken", values: [botToken] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const bot = (botQ.documents || [])[0];
+      if (!bot) return new Response(JSON.stringify({ ok: false, error: "Token invalide" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const body = await request.json();
+      const channelId = String((body && body.channelId) || "");
+      const content = String((body && body.content) || "").trim().slice(0, 4000);
+      if (!channelId || !content) throw new Error("channelId et content requis");
+      const channel = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true });
+      const serverId = String(channel.serverId);
+      const installQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      if (!(installQ.documents || []).length) throw new Error("Ce bot n'est pas installé sur le serveur de ce salon");
+      const msgPerms = await computeChannelMessagePermissions(serverId, channel, undefined);
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, text: content, avatarUrl: bot.avatar || "", isBot: true, componentsJson: "[]", type: "", mediaUrl: "", replyToId: "" }, permissions: msgPerms }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { online: true } } }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
