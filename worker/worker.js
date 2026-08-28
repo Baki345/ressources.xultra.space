@@ -1513,7 +1513,25 @@ html.xultra-restoring #stage{visibility:hidden}
 .ub-btn:hover{background:var(--elev);color:#f2ebff}
 .ub-btn.on{color:#c4b5fd;background:rgba(124,58,237,.18)}
 .chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#110a1a}
-.empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--muted);padding:36px 20px;overflow-y:auto;background:linear-gradient(120deg,#150c26,#1b1030,#241338,#160d28);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
+@keyframes emptyGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.empty-head{flex-shrink:0}
+.empty-dash{width:100%;max-width:640px;display:flex;flex-direction:column;gap:14px;margin-top:26px;text-align:left}
+.empty-widget{background:rgba(255,255,255,.045);border:1px solid rgba(167,139,250,.16);border-radius:16px;padding:16px;backdrop-filter:blur(6px)}
+.empty-widget-title{font-size:.76rem;font-weight:800;color:#c4b5fd;margin-bottom:12px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
+.ew-weather{display:flex;align-items:center;gap:14px}
+.ew-weather-icon{font-size:2.4rem;line-height:1}
+.ew-weather-temp{font-size:1.6rem;font-weight:800;color:#f2ebff}
+.ew-weather-sub{font-size:.76rem;color:var(--muted);margin-top:2px}
+.ew-rail{display:flex;gap:12px;overflow-x:auto;padding-bottom:2px}
+.ew-empty-hint{font-size:.78rem;color:var(--muted)}
+.ew-members-row{display:flex;flex-direction:column;gap:10px}
+.ew-member-item{display:flex;align-items:center;gap:10px;cursor:pointer;padding:4px;border-radius:10px;transition:background .15s ease}
+.ew-member-item:hover{background:rgba(255,255,255,.05)}
+.ew-member-av{width:34px;height:34px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.78rem;overflow:hidden;flex-shrink:0}
+.ew-member-av img{width:100%;height:100%;object-fit:cover}
+.ew-member-name{font-size:.84rem;font-weight:700;color:#f2ebff}
+.ew-member-time{font-size:.68rem;color:var(--muted);margin-left:auto;flex-shrink:0}
 .empty h3{color:#f2ebff;margin:8px 0 4px;font-size:1rem}
 .empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
@@ -5358,7 +5376,7 @@ function showView(v){
     }else{
       \$('server-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      \$('chat-empty').innerHTML='<div style="font-size:2rem">🏘️</div><h3>Sélectionne un serveur</h3><p>Ou crée le tien avec le bouton 🏘️+ ci-dessus.</p>';
+      renderEmptyState('🏘️','Sélectionne un serveur','Ou crée le tien avec le bouton 🏘️+ ci-dessus.');
       app.classList.remove('chat-open');
     }
     loadMyServers().then(renderServersListView).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})});
@@ -5366,7 +5384,9 @@ function showView(v){
     return;
   }
   \$('server-active').classList.add('hidden');
-  \$('chat-empty').innerHTML='<div style="font-size:2rem">💬</div><h3>Sélectionne une conversation</h3><p>Ou ouvre l\\'onglet Amis pour en démarrer une.</p>';
+  if(v==='dms')renderEmptyState('💬','Sélectionne une conversation','Ou ouvre l\\'onglet Amis pour en démarrer une.');
+  else if(v==='friends')renderEmptyState('👥','Tes amis','Retrouve-les dans la liste à gauche, ou ajoutes-en de nouveaux.');
+  else renderEmptyState('👤','Tous les membres de X1','Clique sur un membre dans la liste pour voir son profil.');
   app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
@@ -5422,6 +5442,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.17.0',category:'design',date:'28 août 2026',time:'23:00',title:'🌈 Un vrai tableau de bord sur l\\'écran d\\'accueil',
+    body:'Fini l\\'écran vide : dégradé animé aux couleurs X1 en fond, et trois nouveaux widgets — 🌤️ météo locale (position déduite automatiquement, aucune permission navigateur demandée), ⭐ stories à la une de toute la plateforme, et 🆕 derniers membres inscrits. Visible dès qu\\'aucune conversation, ami ou serveur n\\'est sélectionné.'},
   {version:'4.16.0',category:'feature',date:'28 août 2026',time:'22:30',title:'⚫⚪ Thème Monochrome',
     body:'Idée proposée par "1e" (Boîte à idées) : nouveau thème Monochrome dans Paramètres → Apparence, qui passe toute l\\'interface en noir/blanc/gris.'},
   {version:'4.15.0',category:'feature',date:'28 août 2026',time:'22:15',title:'📣 Mentionne quelqu\\'un avec @pseudo',
@@ -11988,6 +12010,83 @@ function openHighlightsViewer(items,startIndex){
   overlay.classList.add('show');
   renderStoryViewerFrame();
 }
+/* ===== Tableau de bord de l'écran "vide" (aucune conversation/serveur
+   sélectionné) — auparavant juste un message centré sur fond uni. Remplace
+   le vide par un dégradé animé aux couleurs X1 et trois petits widgets :
+   météo locale (position déduite de l'IP par Cloudflare, aucune permission
+   navigateur nécessaire), stories à la une de toute la plateforme, et les
+   derniers membres inscrits. ===== */
+function renderEmptyState(icon,title,sub){
+  const el=\$('chat-empty');if(!el)return;
+  el.innerHTML='<div class="empty-head"><div style="font-size:2rem">'+icon+'</div><h3>'+esc(title)+'</h3><p>'+esc(sub)+'</p></div>'
+    +'<div class="empty-dash">'
+      +'<div class="empty-widget"><div class="empty-widget-title">🌤️ Météo locale</div><div id="ew-weather"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">⭐ Story à la une</div><div id="ew-stories"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">🆕 Derniers membres inscrits</div><div id="ew-members"><span class="ew-empty-hint">Chargement…</span></div></div>'
+    +'</div>';
+  loadWeatherWidget();
+  loadFeaturedStoriesWidget();
+  loadLatestMembersWidget();
+}
+function weatherCodeInfo(code){
+  const map={
+    0:{icon:'☀️',label:'Ciel dégagé'},1:{icon:'🌤️',label:'Plutôt dégagé'},2:{icon:'⛅',label:'Partiellement nuageux'},3:{icon:'☁️',label:'Couvert'},
+    45:{icon:'🌫️',label:'Brouillard'},48:{icon:'🌫️',label:'Brouillard givrant'},
+    51:{icon:'🌦️',label:'Bruine légère'},53:{icon:'🌦️',label:'Bruine'},55:{icon:'🌦️',label:'Bruine dense'},
+    61:{icon:'🌧️',label:'Pluie légère'},63:{icon:'🌧️',label:'Pluie'},65:{icon:'🌧️',label:'Forte pluie'},
+    71:{icon:'🌨️',label:'Neige légère'},73:{icon:'🌨️',label:'Neige'},75:{icon:'❄️',label:'Forte neige'},
+    80:{icon:'🌦️',label:'Averses'},81:{icon:'🌧️',label:'Fortes averses'},82:{icon:'⛈️',label:'Averses violentes'},
+    95:{icon:'⛈️',label:'Orage'},96:{icon:'⛈️',label:'Orage avec grêle'},99:{icon:'⛈️',label:'Orage violent'}
+  };
+  return map[code]||{icon:'🌡️',label:'Météo'};
+}
+async function loadWeatherWidget(){
+  if(!\$('ew-weather'))return;
+  try{
+    const r=await fetch('/api/weather');
+    const j=await r.json();
+    const el=\$('ew-weather');if(!el)return;
+    if(!j.ok||j.temp==null){el.innerHTML='<span class="ew-empty-hint">Météo indisponible pour le moment.</span>';return}
+    const w=weatherCodeInfo(j.code);
+    el.innerHTML='<div class="ew-weather-icon">'+w.icon+'</div><div><div class="ew-weather-temp">'+Math.round(j.temp)+'°C</div><div class="ew-weather-sub">'+esc(w.label)+(j.city?' · '+esc(j.city):'')+'</div></div>';
+  }catch(e){const el=\$('ew-weather');if(el)el.innerHTML='<span class="ew-empty-hint">Météo indisponible pour le moment.</span>';}
+}
+async function loadFeaturedStoriesWidget(){
+  if(!\$('ew-stories'))return;
+  try{
+    const r=await db.listDocuments(DB,'stories',[Appwrite.Query.equal('featured',true),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(12)]);
+    const items=r.documents||[];
+    const el=\$('ew-stories');if(!el)return;
+    if(!items.length){el.innerHTML='<span class="ew-empty-hint">Aucune story à la une pour l\\'instant.</span>';return}
+    el.innerHTML='<div class="ew-rail">'+items.map(function(s,i){
+      const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(s.uid);});
+      const name=(p&&(p.displayName||p.username))||s.username||'Membre';
+      const av=p&&safeUrl(p.avatar);
+      return '<button type="button" class="story-item" data-fs-idx="'+i+'"><div class="story-ring discover"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div></div><span style="font-size:.66rem;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(name)+'</span></button>';
+    }).join('')+'</div>';
+    el.querySelectorAll('[data-fs-idx]').forEach(function(btn){
+      btn.onclick=function(){openHighlightsViewer(items,parseInt(btn.getAttribute('data-fs-idx'),10));};
+    });
+  }catch(e){const el=\$('ew-stories');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
+async function loadLatestMembersWidget(){
+  if(!\$('ew-members'))return;
+  try{
+    const r=await db.listDocuments(DB,'users',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(6)]);
+    const items=r.documents||[];
+    const el=\$('ew-members');if(!el)return;
+    if(!items.length){el.innerHTML='<span class="ew-empty-hint">Aucun membre pour l\\'instant.</span>';return}
+    el.innerHTML='<div class="ew-members-row">'+items.map(function(p){
+      const name=(p.displayName||'').trim()||(p.username||'').trim()||'Membre';
+      const av=safeUrl(p.avatar);
+      const uid=p.authUserId||p.\$id;
+      return '<div class="ew-member-item" data-ewm-uid="'+esc(uid)+'"><div class="ew-member-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><span class="ew-member-name">'+esc(name)+'</span><span class="ew-member-time">'+esc(fmtRelTime(p.\$createdAt))+'</span></div>';
+    }).join('')+'</div>';
+    el.querySelectorAll('[data-ewm-uid]').forEach(function(item){
+      item.onclick=function(){openProfileModal(item.getAttribute('data-ewm-uid'));};
+    });
+  }catch(e){const el=\$('ew-members');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
 function closeStoryViewer(){
   if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
   storyViewerState=null;
@@ -16955,6 +17054,7 @@ function closeServerDetail(){
   document.getElementById('app').classList.remove('chat-open');
   \$('server-active').classList.add('hidden');
   \$('chat-empty').classList.remove('hidden');
+  renderEmptyState('🏘️','Sélectionne un serveur','Ou crée le tien avec le bouton 🏘️+ ci-dessus.');
   renderServersListView();
   repositionCallPanel();
 }
@@ -25816,6 +25916,30 @@ async function handle(request) {
     }), {
       headers: Object.assign({ "Content-Type": "application/json" }, cors)
     });
+  }
+  if (path === "/api/weather" && request.method === "GET") {
+    // Météo locale (widget tableau de bord) : position approximative déjà
+    // déduite par Cloudflare à partir de l'IP (request.cf), donc aucune
+    // permission de géolocalisation à demander au navigateur. Open-Meteo :
+    // gratuit, sans clé.
+    try {
+      const cf = request.cf || {};
+      const lat = cf.latitude, lon = cf.longitude;
+      const city = cf.city || "";
+      if (!lat || !lon) {
+        return new Response(JSON.stringify({ ok: false, error: "Position indisponible" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const wRes = await fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lon + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto");
+      if (!wRes.ok) throw new Error("Météo indisponible");
+      const wJson = await wRes.json();
+      const cur = wJson.current || {};
+      return new Response(JSON.stringify({
+        ok: true, city: city, country: cf.country || "",
+        temp: cur.temperature_2m, code: cur.weather_code, wind: cur.wind_speed_10m
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
   if (path === "/api/ip") {
     const ip = request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || "";
