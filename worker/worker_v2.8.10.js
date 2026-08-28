@@ -1219,7 +1219,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .story-name{font-size:.68rem;color:var(--muted);max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .story-viewer-overlay{position:fixed;inset:0;z-index:3000;background:#000;display:none;flex-direction:column}
 .story-viewer-overlay.show{display:flex}
-.story-viewer-bars{display:flex;gap:4px;padding:8px 8px 0}
+.story-viewer-bars{display:flex;gap:4px;padding:calc(8px + env(safe-area-inset-top)) 8px 0}
 .story-viewer-bar{flex:1;height:3px;border-radius:999px;background:rgba(255,255,255,.3);overflow:hidden}
 .story-viewer-bar-fill{height:100%;width:0%;background:#fff;transition:width .1s linear}
 .story-viewer-bar.done .story-viewer-bar-fill{width:100%;transition:none}
@@ -1534,7 +1534,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .msg{display:flex;gap:10px;max-width:80%}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
-.msg .bub{position:relative;background:var(--elev);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
+.msg .bub{position:relative;background:var(--dm-bubble-theirs,var(--elev));color:var(--dm-text-color,inherit);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
 body.compact-mode .msg .av{display:none}
 body.compact-mode .msg{gap:6px}
 body.compact-mode .msg .bub{padding:5px 10px}
@@ -1573,7 +1573,7 @@ body.theme-oled .pe-frame-inner{background:#050505}
 @media (hover:hover){.msg:hover .msg-menu-btn{opacity:1}}
 @media (hover:none){.msg-menu-btn{opacity:.6}}
 .msg-menu-btn:hover{background:#2a1a45}
-.msg.mine .bub{background:#7c3aed}
+.msg.mine .bub{background:var(--dm-bubble-mine,#7c3aed)}
 .msg .meta{font-size:.65rem;color:var(--muted);margin-top:3px}
 .msg-seen{font-size:.62rem;color:var(--muted);margin-top:2px;text-align:right}
 .msg-reply-quote{display:flex;flex-direction:column;gap:1px;padding:5px 10px;margin-bottom:3px;border-left:2px solid #8b5cf6;background:rgba(139,92,246,.1);border-radius:6px;font-size:.72rem;color:var(--muted);cursor:pointer;max-width:100%}
@@ -2169,7 +2169,7 @@ a.bug-att-item{display:block}
 .call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(124,58,237,.85),rgba(76,29,149,.95),rgba(15,9,25,.98));animation:moodShift 7s ease infinite;border-color:rgba(167,139,250,.4)}
 .call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(76,29,149,.9),rgba(15,9,25,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-.call-bar.embedded{position:static;max-width:none;margin:10px 14px 0;box-shadow:none}
+.call-bar.embedded{position:static;max-width:none;margin:20px 14px 8px;box-shadow:none}
 .cb-top{display:flex;align-items:center;gap:10px}
 .cb-av-wrap{position:relative;width:38px;height:38px;flex-shrink:0}
 .cb-av-wave{position:absolute;top:50%;left:50%;width:76px;height:76px;transform:translate(-50%,-50%);pointer-events:none}
@@ -2397,12 +2397,14 @@ a.bug-att-item{display:block}
 .cl-entry{position:relative;margin-bottom:20px;opacity:0;animation:clFadeIn .4s ease forwards}
 .cl-entry:last-child{margin-bottom:4px}
 @keyframes clFadeIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
-.cl-dot{position:absolute;left:-22px;top:4px;width:12px;height:12px;border-radius:50%;background:#4c1d95;border:2px solid #1a1030;z-index:1}
+.cl-dot{position:absolute;left:-22px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--cl-accent,#4c1d95);border:2px solid #1a1030;z-index:1}
 .cl-dot.cl-dot-new{background:#a78bfa;box-shadow:0 0 0 4px rgba(167,139,250,.25);animation:cbPulse 1.8s ease-in-out infinite}
-.cl-card{background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14);border-radius:14px;padding:13px 15px;transition:background .15s ease,border-color .15s ease}
+.cl-card{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14);border-radius:14px;padding:13px 15px;overflow:hidden;transition:background .15s ease,border-color .15s ease}
+.cl-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cl-accent,#7c3aed)}
 .cl-card:hover{background:rgba(255,255,255,.05);border-color:rgba(167,139,250,.3)}
 .cl-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .cl-version{font-size:.68rem;font-weight:800;color:#c4b5fd;background:rgba(124,58,237,.2);padding:2px 8px;border-radius:999px;font-family:monospace}
+.cl-cat-chip{font-size:.62rem;font-weight:800;padding:2px 9px;border-radius:999px;color:#fff;background:var(--cl-accent,#7c3aed);letter-spacing:.02em}
 .cl-new-badge{font-size:.62rem;font-weight:800;color:#4ade80;background:rgba(34,197,94,.14);padding:2px 8px;border-radius:999px}
 .cl-date{font-size:.66rem;color:var(--muted);margin-left:auto}
 .cl-title{font-size:.9rem;font-weight:800;margin-bottom:5px;color:#f2ebff}
@@ -2416,7 +2418,7 @@ a.bug-att-item{display:block}
 #sg-new-btn{flex-shrink:0;margin-bottom:10px}
 .sg-form{flex-shrink:0;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.16);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
 .sg-list{overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:4px;flex:1;min-height:0}
-.sg-card{position:relative;background:linear-gradient(165deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(167,139,250,.16);border-radius:16px;padding:14px 16px;overflow:hidden;opacity:0;transform:translateY(10px);animation:sgIn .35s ease forwards;transition:border-color .18s ease,transform .18s ease}
+.sg-card{position:relative;flex-shrink:0;background:linear-gradient(165deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(167,139,250,.16);border-radius:16px;padding:14px 16px;overflow:hidden;opacity:0;transform:translateY(10px);animation:sgIn .35s ease forwards;transition:border-color .18s ease,transform .18s ease}
 .sg-card:hover{border-color:rgba(167,139,250,.4);transform:translateY(-2px)}
 @keyframes sgIn{to{opacity:1;transform:translateY(0)}}
 .sg-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sg-accent,#7c3aed)}
@@ -2437,6 +2439,17 @@ a.bug-att-item{display:block}
 .sg-vote-btn.bump .n{animation:sgBump .3s ease}
 @keyframes sgBump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
 .sg-admin-acts{margin-left:auto;display:flex;gap:6px}
+.dmp-panel{width:min(460px,100%);max-height:88dvh;overflow-y:auto;display:flex;flex-direction:column;gap:4px}
+.dmp-field{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.dmp-field label{font-size:.76rem;font-weight:700;color:var(--muted)}
+.dmp-colors{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap}
+.dmp-color-field{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:.68rem;font-weight:700;color:var(--muted)}
+.dmp-color-field input[type=color]{width:44px;height:32px;padding:2px;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:none;cursor:pointer}
+.dmp-wallpapers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.dmp-wp-swatch{height:46px;border-radius:10px;border:2px solid rgba(167,139,250,.16);background-color:#1a1030;cursor:pointer;transition:transform .15s ease,border-color .15s ease}
+.dmp-wp-swatch:hover{transform:scale(1.05)}
+.dmp-wp-swatch.on{border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.35)}
+.msgs{background-repeat:no-repeat;background-position:center;background-attachment:local}
 .team-panel{width:min(680px,100%);max-height:88dvh;display:flex;flex-direction:column}
 .team-panel h3{margin-bottom:10px}
 .tm-tabs{display:flex;gap:6px;margin-bottom:14px;flex-shrink:0}
@@ -2816,6 +2829,7 @@ a.bug-att-item{display:block}
         <div class="av" id="ch-av">?</div>
         <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="dm-streak-badge hidden" id="ch-streak"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
+        <button type="button" class="ub-btn hidden" id="btn-dm-personalize" title="Personnaliser cette conversation">🎨</button>
         <button type="button" class="ub-btn" id="btn-search" title="Rechercher">🔍</button>
         <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés">📌</button>
         <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
@@ -3443,6 +3457,13 @@ a.bug-att-item{display:block}
     <button type="button" class="modal-close" id="cl-close">✕</button>
     <h3>📋 Nouveautés</h3>
     <div class="cl-sub">Tout ce qui a changé récemment sur X1</div>
+    <div class="sg-tabs" id="cl-tabs">
+      <button type="button" class="sg-tab on" data-cat="all">Général</button>
+      <button type="button" class="sg-tab" data-cat="feature">⚙️ Fonctionnalité</button>
+      <button type="button" class="sg-tab" data-cat="fix">🩹 Correctif</button>
+      <button type="button" class="sg-tab" data-cat="security">🔒 Sécurité</button>
+      <button type="button" class="sg-tab" data-cat="design">🎨 Design</button>
+    </div>
     <div class="cl-list" id="cl-list"></div>
   </div>
 </div>
@@ -3476,6 +3497,31 @@ a.bug-att-item{display:block}
       <div class="err" id="sg-err"></div>
     </div>
     <div class="sg-list" id="sg-list"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-dm-personalize">
+  <div class="modal-box dmp-panel">
+    <button type="button" class="modal-close" id="dmp-close">✕</button>
+    <h3>🎨 Personnaliser la conversation</h3>
+    <div class="cl-sub">Ces réglages ne sont visibles que par toi — la personne en face ne voit rien de tout ça.</div>
+    <div class="dmp-field">
+      <label>Surnom pour cette personne</label>
+      <input type="text" id="dmp-nickname" class="field-input" placeholder="Laisse vide pour garder son pseudo" maxlength="60">
+    </div>
+    <div class="dmp-colors">
+      <label class="dmp-color-field"><span>Mes bulles</span><input type="color" id="dmp-bubble-mine"></label>
+      <label class="dmp-color-field"><span>Ses bulles</span><input type="color" id="dmp-bubble-theirs"></label>
+      <label class="dmp-color-field"><span>Texte des bulles</span><input type="color" id="dmp-text-color"></label>
+    </div>
+    <div class="dmp-field">
+      <label>Fond d'écran</label>
+      <div class="dmp-wallpapers" id="dmp-wallpapers"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button type="button" class="btn-main" id="dmp-save">Enregistrer</button>
+      <button type="button" class="set-mini-btn" id="dmp-reset">Réinitialiser</button>
+    </div>
   </div>
 </div>
 
@@ -4711,6 +4757,7 @@ async function enterApp(e2ePassword){
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await loadDmPersonalization();}catch(e){xlog('dm_personalization_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
   try{
     const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId)).concat(acc?[acc.\$id]:[]);
@@ -5259,8 +5306,22 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
 let view='dms';
 function showView(v){
   view=v;
+  // Bug remonté ("configurer les paramètres du serveur puis aller en DM
+  // affichait la conversation sur la moitié inférieure de l'écran") : #app
+  // se dimensionne via 100dvh, et les nombreux champs texte des paramètres
+  // serveur laissent parfois le clavier virtuel du téléphone ouvert (ou son
+  // fantôme, sur certains Safari/Chrome mobiles qui ne recalculent pas
+  // 100dvh tout de suite après sa fermeture) au moment de changer de vue.
+  // On force la fermeture du clavier avant de changer de vue, et on
+  // provoque un recalcul de mise en page juste après au cas où le
+  // navigateur ne l'aurait pas fait tout seul.
+  try{
+    const ae=document.activeElement;
+    if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')&&ae.blur)ae.blur();
+  }catch(e){}
   document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v)});
   const app=document.getElementById('app');
+  requestAnimationFrame(function(){app.style.height='';void app.offsetHeight;});
   if(v==='admin'){
     \$('list-title').textContent='Admin';
     \$('list-sub-txt').textContent='Panneau shaman';
@@ -5354,328 +5415,349 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
-  {version:'4.9.0',date:'28 août 2026',time:'17:00',title:'🔎 X1 Music : pochette, genre et paroles trouvés automatiquement + commentaires positionnés sur la forme d\\'onde',
+  {version:'4.13.0',category:'fix',date:'28 août 2026',time:'21:00',title:'🐛 9 correctifs remontés par la communauté Bug Hunter',
+    body:'Musique : les métadonnées (titre, artiste, pochette) sont maintenant envoyées à l\\'appareil pour les contrôles de lecture sur écran verrouillé — merci Yani. Fermer une story vidéo avant la fin coupe maintenant bien son son au lieu de continuer à jouer en fond — merci Yani. Le badge affiché à côté d\\'un pseudo ne disparaît plus après un changement de pseudo ou une modification des paramètres du serveur. Sur iPhone à encoche/caméra, le bouton fermer et le profil ne sont plus masqués en haut du visionneur de story. Pendant un appel vocal, la barre d\\'appel est un peu plus espacée du bouton retour pour éviter de rouvrir l\\'appel par erreur en visant le retour. L\\'animation de survol de la fenêtre de profil fait maintenant bouger le cadre en plus du contenu — merci Yani. La vérification d\\'adresse e-mail par lien ne se validait plus toute seule sans clic explicite (certains scanners anti-hameçonnage des clients mail suivaient le lien automatiquement) — merci Yani. La Boîte à idées ne permettait pas de lire un long paragraphe jusqu\\'au bout dans l\\'onglet Design, ni de faire défiler pour le voir — merci 100coeur. Et un correctif défensif sur l\\'affichage qui pouvait rester bloqué sur la moitié inférieure de l\\'écran en ouvrant une conversation juste après avoir modifié les paramètres d\\'un serveur — merci Yani.'},
+  {version:'4.12.0',category:'feature',date:'28 août 2026',time:'20:00',title:'📋 Notes de version par catégorie',
+    body:'Le journal des nouveautés (📋 Nouveautés) se filtre maintenant par catégorie — ⚙️ Fonctionnalité, 🩹 Correctif, 🔒 Sécurité, 🎨 Design — en plus d\\'un onglet Général qui montre tout, comme dans la Boîte à idées.'},
+  {version:'4.11.0',category:'feature',date:'28 août 2026',time:'19:00',title:'📳 Sonnerie d\\'appel, son de notification signature et vibration',
+    body:'Un appel entrant a maintenant une vraie petite sonnerie qui se répète (pas juste un bip unique), pensée pour rester discrète plutôt que criarde. Nouveau son de notification signature pour message/mention. Et le téléphone vibre maintenant à la réception d\\'une notification ou d\\'un appel entrant (réglable dans Paramètres → Notifications → Vibration).'},
+  {version:'4.10.0',category:'feature',date:'28 août 2026',time:'18:00',title:'🎨 Personnalise chaque conversation privée',
+    body:'Comme sur Telegram/WhatsApp/Signal : ouvre 🎨 en haut d\\'une conversation privée pour lui donner un surnom (visible seulement par toi), choisir la couleur de tes bulles et de celles de la personne en face, la couleur du texte, et un fond d\\'écran parmi plusieurs styles X1. Strictement privé : la personne en face ne voit jamais tes réglages.'},
+  {version:'4.9.0',category:'feature',date:'28 août 2026',time:'17:00',title:'🔎 X1 Music : pochette, genre et paroles trouvés automatiquement + commentaires positionnés sur la forme d\\'onde',
     body:'À l\\'envoi d\\'un titre, si tu ne fournis pas toi-même la pochette, le genre ou les paroles, X1 les recherche automatiquement en ligne à partir du titre et de l\\'artiste (bases ouvertes et gratuites) — tu peux toujours tout donner toi-même à la place, rien n\\'est jamais écrasé. Nouveau aussi façon SoundCloud : en commentant un titre en cours d\\'écoute, coche 📍 pour positionner ton commentaire au moment exact de la piste — un repère apparaît alors directement sur la forme d\\'onde, cliquable par tout le monde pour sauter à ce passage.'},
-  {version:'4.8.0',date:'28 août 2026',time:'16:00',title:'🎨 X1 Music : Streaming façon Spotify, Sons des membres façon SoundCloud',
+  {version:'4.8.0',category:'design',date:'28 août 2026',time:'16:00',title:'🎨 X1 Music : Streaming façon Spotify, Sons des membres façon SoundCloud',
     body:'Nouvelle apparence, mêmes couleurs X1 (violet/rose, jamais le vert ou l\\'orange d\\'origine) : 🎧 Streaming passe en grandes pochettes façon Spotify, avec bouton de lecture flottant au survol. 🎤 Sons des membres passe en liste avec forme d\\'onde cliquable façon SoundCloud — calculée une fois à l\\'envoi du titre, jamais retéléchargée pour l\\'afficher. Le lecteur plein écran teinte maintenant son fond d\\'une lueur reprenant la couleur dominante de la pochette en cours. Playlists : pochette et description ajoutables (✏️ Modifier, propriétaire uniquement).'},
-  {version:'4.7.0',date:'28 août 2026',time:'15:00',title:'🎶 X1 Music : playlists réordonnables et reprise d\\'écoute',
+  {version:'4.7.0',category:'feature',date:'28 août 2026',time:'15:00',title:'🎶 X1 Music : playlists réordonnables et reprise d\\'écoute',
     body:'Corrigé : ouvrir une playlist ne montrait jusqu\\'ici jamais son contenu, seulement la liste des playlists. Maintenant, une playlist s\\'ouvre bien sur ses titres, avec bouton retour. Si tu en es propriétaire : glisse-dépose ⠿ pour réordonner les titres, ✕ pour en retirer un. Nouveau rail ▶ Reprendre l\\'écoute en haut de Streaming et Sons des membres, avec tes derniers titres écoutés sur cet appareil.'},
-  {version:'4.6.0',date:'28 août 2026',time:'14:00',title:'📻 X1 Music : radio, répétition, vitesse, minuterie, file d\\'attente',
+  {version:'4.6.0',category:'feature',date:'28 août 2026',time:'14:00',title:'📻 X1 Music : radio, répétition, vitesse, minuterie, file d\\'attente',
     body:'Le lecteur plein écran s\\'enrichit : 📻 Radio (lance une file mélangée à partir d\\'un titre — même genre, ou même artiste à défaut), 🔁/🔂 répétition (file entière ou titre seul), ▶️ vitesse de lecture (0,75x à 2x), 🔊 volume, ⏱️ minuterie de sommeil (15/30/45/60 min) et 📋 file d\\'attente consultable avec saut direct à un titre. Le bouton radio est aussi disponible directement sur chaque carte de titre.'},
-  {version:'4.5.1',date:'28 août 2026',time:'13:00',title:'🔒 X1 Music : sécurité et compteurs corrigés',
+  {version:'4.5.1',category:'security',date:'28 août 2026',time:'13:00',title:'🔒 X1 Music : sécurité et compteurs corrigés',
     body:'La distinction Streaming/Sons des membres est maintenant vérifiée côté serveur (impossible de se déclarer "Streaming" par un simple appel technique). Corrigé au passage un vrai bug découvert en creusant ce point : les compteurs de lectures, likes et commentaires ne se mettaient à jour que quand l\\'auteur du titre agissait sur son propre titre — donc quasiment jamais en usage normal. Ils comptent maintenant correctement, peu importe qui écoute, aime ou commente.'},
-  {version:'4.5.0',date:'28 août 2026',time:'12:00',title:'🎧 X1 Music : Streaming vs Sons des membres',
+  {version:'4.5.0',category:'feature',date:'28 août 2026',time:'12:00',title:'🎧 X1 Music : Streaming vs Sons des membres',
     body:'X1 Music se divise maintenant en deux sections claires : 🎧 Streaming (contenu officiel sélectionné par l\\'équipe X1) et 🎤 Sons des membres (tout ce que la communauté publie). Le staff et les créateurs peuvent choisir de publier un titre dans Streaming au moment de l\\'envoi ; tout le monde peut publier dans Sons des membres, comme avant.'},
-  {version:'4.4.0',date:'28 août 2026',time:'11:00',title:'🎤 X1 Music : genres, paroles synchronisées et lecteur plein écran',
+  {version:'4.4.0',category:'feature',date:'28 août 2026',time:'11:00',title:'🎤 X1 Music : genres, paroles synchronisées et lecteur plein écran',
     body:'Le lecteur bascule maintenant en plein écran (tape sur la barre de lecture) avec pochette agrandie et un onglet Paroles façon karaoké : ligne en cours mise en avant, défilement automatique, tape sur une ligne pour sauter à ce moment de la piste. Fonctionne avec les paroles collées à l\\'envoi (format LRC pour la synchronisation) ou, à défaut, une recherche automatique sur une base de paroles ouverte et gratuite. Nouveautés associées : genres musicaux avec filtre dédié, recherche, lecture aléatoire, tags et durée affichés sur chaque titre, et abonnement à un artiste (notifié à chaque nouvelle publication).'},
-  {version:'4.3.1',date:'28 août 2026',time:'10:00',title:'🩹 Correctif urgent : site inaccessible',
+  {version:'4.3.1',category:'fix',date:'28 août 2026',time:'10:00',title:'🩹 Correctif urgent : site inaccessible',
     body:'Le déploiement précédent (support multilingue) cassait le chargement du site pour tout le monde (erreur "SETTINGS_GROUPS" au démarrage). Corrigé et revérifié avant redéploiement.'},
-  {version:'4.3.0',date:'28 août 2026',time:'09:00',title:'📜 Conditions d\\'utilisation à l\\'inscription',
+  {version:'4.3.0',category:'feature',date:'28 août 2026',time:'09:00',title:'📜 Conditions d\\'utilisation à l\\'inscription',
     body:'L\\'inscription affiche désormais la charte X1 : neutralité du net, liberté d\\'expression et d\\'opinion, les quelques limites absolues à ne jamais franchir, et une explication claire du chiffrement de bout en bout de tes messages privés (même nous ne pouvons pas les lire). Il faut faire défiler tout le texte pour pouvoir l\\'accepter et poursuivre — pas de case cochée sans lecture.'},
-  {version:'4.2.0',date:'28 août 2026',time:'08:00',title:'🎛️ Réglages d\\'appel enregistrés pour de bon',
+  {version:'4.2.0',category:'feature',date:'28 août 2026',time:'08:00',title:'🎛️ Réglages d\\'appel enregistrés pour de bon',
     body:'Qualité caméra, qualité de partage d\\'écran, micro préféré, volumes, réduction de bruit, annulation d\\'écho, gain automatique et canal audio : tous ces réglages d\\'appel restent désormais mémorisés d\\'un appel à l\\'autre et d\\'une session à l\\'autre, au lieu de repartir à zéro à chaque rechargement de la page.'},
-  {version:'4.1.0',date:'28 août 2026',time:'07:00',title:'🌐 X1 devient multilingue (v1)',
+  {version:'4.1.0',category:'feature',date:'28 août 2026',time:'07:00',title:'🌐 X1 devient multilingue (v1)',
     body:'Nouveau sélecteur de langue dans Paramètres → Langue : Français, English, Español, Português, Deutsch, Italiano. La barre de navigation, l\\'écran de connexion et les titres des paramètres changent déjà de langue selon ton choix. Le reste du site (notes de version, descriptions détaillées…) suit progressivement — première étape d\\'une traduction complète.'},
-  {version:'4.0.0',date:'28 août 2026',time:'06:00',title:'✨ XULTRA devient X1',
+  {version:'4.0.0',category:'feature',date:'28 août 2026',time:'06:00',title:'✨ XULTRA devient X1',
     body:'La plateforme change de nom : XULTRA s\\'appelle désormais X1, partout où le nom apparaît sur le site (écran de connexion, notifications, paramètres…). Rien d\\'autre ne change — même adresse xultra.space, même équipe, mêmes fonctionnalités.'},
-  {version:'3.9.0',date:'28 août 2026',time:'05:00',title:'🖼️ Aperçu des images/gifs en fenêtre flottante',
+  {version:'3.9.0',category:'feature',date:'28 août 2026',time:'05:00',title:'🖼️ Aperçu des images/gifs en fenêtre flottante',
     body:'Idée reçue dans la Boîte à idées : cliquer sur une image ou un gif dans une conversation l\\'ouvre maintenant dans une fenêtre flottante sur X1, au lieu d\\'un nouvel onglet. Corrige au passage un bug remonté sur l\\'application de bureau où l\\'aperçu d\\'une image de message chiffré affichait une erreur "blob" et restait impossible à agrandir.'},
-  {version:'3.8.0',date:'28 août 2026',time:'04:00',title:'12 correctifs remontés par la communauté Bug Hunter',
+  {version:'3.8.0',category:'fix',date:'28 août 2026',time:'04:00',title:'12 correctifs remontés par la communauté Bug Hunter',
     body:'Barre de progression de X1 Music qui revenait au début d\\'un clic sur un autre point de la piste · réponse à un message chiffré qui affichait "Message chiffré" au lieu du vrai texte · écran de connexion qui clignotait à chaque rechargement même déjà connecté · apparence du site restant sur l\\'ancien choix après déconnexion · notifications de bureau sans contenu même l\\'option activée · glisser-déposer de fichier qui ne fonctionnait pas du tout · partage de position qui s\\'enregistrait sans jamais réellement s\\'envoyer · Boîte à idées qui se compressait au lieu de laisser défiler la liste · notifications indisponibles sur iPhone/iPad sans aucune explication, et quelques ajustements d\\'affichage sur mobile.'},
-  {version:'3.7.0',date:'28 août 2026',time:'03:00',title:'💬 Historique des messages privés illimité',
+  {version:'3.7.0',category:'feature',date:'28 août 2026',time:'03:00',title:'💬 Historique des messages privés illimité',
     body:'Remonter dans une conversation charge maintenant automatiquement les messages plus anciens au fur et à mesure, au lieu de s\\'arrêter aux 60 derniers. Corrigé aussi : sur mobile, ton propre message envoyé pouvait rester juste hors de vue, obligeant à scroller à la main pour le voir.'},
-  {version:'3.6.0',date:'28 août 2026',time:'02:00',title:'🎵 X1 Music',
+  {version:'3.6.0',category:'feature',date:'28 août 2026',time:'02:00',title:'🎵 X1 Music',
     body:'Une plateforme d\\'écoute et de partage, ouverte à tout le monde, fusionnée avec le profil existant : nouveau bouton 🎵 dans la barre latérale. Publie tes propres titres (fichier audio + pochette optionnelle), découvre ceux des autres, crée des playlists, aime et commente. Chaque profil affiche maintenant un bouton 🎵 Musique vers les titres publiés par cette personne. Première version volontairement centrée sur l\\'écoute et le partage — pas de redevances, de distribution vers d\\'autres plateformes ni de contenu payant pour l\\'instant.'},
-  {version:'3.5.0',date:'28 août 2026',time:'01:00',title:'📖 Un guide pour chaque section du site',
+  {version:'3.5.0',category:'feature',date:'28 août 2026',time:'01:00',title:'📖 Un guide pour chaque section du site',
     body:'En plus de la visite guidée des boutons principaux, chaque grande section a maintenant son propre petit guide écrit — Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, Profil, Bug Hunter, et Se connecter avec X1. Accessible depuis Paramètres → Avancé → Guides par section.'},
-  {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec X1 (ouvert à tout le monde)',
+  {version:'3.4.0',category:'feature',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec X1 (ouvert à tout le monde)',
     body:'N\\'importe qui peut désormais brancher "Se connecter avec X1" sur son propre site : depuis Paramètres → Se connecter avec X1, crée une application en quelques secondes pour obtenir un client_id/client_secret, avec un guide d\\'implémentation complet (URL d\\'autorisation, échange du code, récupération du profil) et des extraits de code prêts à copier. Tes visiteurs se connectent avec leur pseudo/avatar X1 sans créer un mot de passe de plus, après un écran de consentement clair. Et dans Paramètres → Applications autorisées, retrouve et révoque à tout moment les sites que tu as toi-même connectés à ton compte.'},
-  {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'L\\'abonnement premium devient X1+',
+  {version:'3.3.0',category:'feature',date:'27 août 2026',time:'23:00',title:'L\\'abonnement premium devient X1+',
     body:'L\\'abonnement premium change de nom et s\\'appelle désormais X1+, partout sur le site (profil, paramètres, boosts de serveur, badge Légende du Bug). Rien ne change dans ce que ça débloque.'},
-  {version:'3.2.0',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
+  {version:'3.2.0',category:'fix',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
     body:'Un très vieil appel jamais raccroché proprement (crash, fermeture du navigateur…) pouvait bloquer silencieusement tout nouvel appel pour toujours, expliquant "je ne reçois pas tes appels" — corrigé (la vérification anti-collision est maintenant limitée aux 2 dernières heures), avec un sondage de secours en plus de la connexion temps réel pour rattraper une notification d\\'appel manquée après une coupure réseau — merci "1e". Dans l\\'édition du profil, les pastilles de contour d\\'avatar remontaient par-dessus le titre de section au-dessus — merci Yani Neco. La recherche dans une conversation ne trouvait presque rien : les mots courts ("je", "tu"…) étaient silencieusement ignorés, et pour les conversations chiffrées de bout en bout, le texte cherché ne pouvait de toute façon jamais correspondre au texte chiffré stocké côté serveur — recherche déplacée côté client sur le texte déchiffré — merci "1e". Le bouton "Notifications activées" ne disait pas ce qui se passerait au clic — renommé en "Désactiver les notifications" — merci Yani Neco. Sur l\\'application de bureau, un échec d\\'activation des notifications ou de partage de position affiche maintenant un message clair expliquant la limitation de la plateforme, au lieu d\\'une erreur technique brute — merci "1e". Et l\\'anneau tournant du badge le plus prestigieux (LÉGENDE DU BUG) grandissait au lieu de rester un petit cercle bien ajusté à l\\'icône — merci Yani Neco.'},
-  {version:'3.1.0',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
+  {version:'3.1.0',category:'design',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
     body:'Icônes des boutons d\\'appel refaites en SVG (fini les emoji baveux). Les tuiles caméra ne sont plus écrasées dans une hauteur fixe : chaque flux garde un vrai format 16:9, quelle que soit sa source. Pendant l\\'établissement de la connexion, un état s\\'affiche en direct sous le minuteur ("Connexion RTC en cours…", "Reconnexion…"). Un message reste maintenant dans la conversation à la fin de chaque appel — heure, décroché ou non, durée. Et si deux personnes s\\'appellent au même moment, celle qui appelle en second voit directement "Cette personne vous appelle déjà" au lieu d\\'un appel fantôme.'},
-  {version:'3.0.0',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
+  {version:'3.0.0',category:'design',date:'27 août 2026',time:'20:00',title:'Aperçu avant envoi et thème OLED',
     body:'Deux idées de la Boîte à idées, proposées par Yani Neco : choisir une photo/vidéo affiche maintenant un aperçu juste au-dessus de la barre de message avant l\\'envoi (avec possibilité d\\'écrire une légende, ou d\\'annuler si ce n\\'était pas le bon fichier) au lieu de l\\'envoyer instantanément ; et un nouveau thème "⚫ OLED" (Paramètres → Apparence) passe les principales surfaces de l\\'appli en noir profond, pour ménager la batterie et les dalles OLED.'},
-  {version:'2.99.0',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
+  {version:'2.99.0',category:'fix',date:'27 août 2026',time:'19:00',title:'5 correctifs remontés par la communauté Bug Hunter',
     body:'La photo affichée en haut d\\'une conversation ouverte se met maintenant à jour en direct dès que l\\'interlocuteur change son avatar, sans recharger la page — merci Yani Neco. Une fine ligne blanche apparaissait parfois en bas des fiches de profil (un débordement horizontal invisible qui faisait apparaître la barre de défilement du navigateur) — merci "1e". Le panneau de notifications affichait encore une ancienne alerte "nouveaux messages" après avoir lu la conversation directement depuis la liste (sans cliquer la notification elle-même) — merci Yani Neco. La liste de messages remontait légèrement à chaque mise à jour (statut Vu, nouveau message) le temps que les avatars finissent de charger, au lieu de rester ancrée en bas. Et par sécurité, le nom de la conversation apparaît maintenant dans la confirmation de suppression, pour repérer tout de suite un clic parti sur la mauvaise ligne avant que ce soit irréversible — merci 100coeur.'},
-  {version:'2.98.0',date:'27 août 2026',time:'18:00',title:'Correctif : glisser-déposer souris qui bloquait le clic sur les listes',
+  {version:'2.98.0',category:'fix',date:'27 août 2026',time:'18:00',title:'Correctif : glisser-déposer souris qui bloquait le clic sur les listes',
     body:'Effet de bord du correctif précédent (menu d\\'actions des messages) : comme le geste "glisser pour révéler" était désormais toujours actif, un simple clic-glissé à la souris pour sélectionner du texte dans un message pouvait être pris à tort pour ce geste — merci Yani Neco. Même chose pour le bouton supprimer des conversations et de la liste d\\'amis, qui pouvait rester invisible en permanence sur certaines configurations d\\'ordinateur. Les deux ne s\\'engagent maintenant que pour un vrai doigt sur écran tactile ; sur ordinateur, un simple survol suffit à révéler les actions.'},
-  {version:'2.97.0',date:'27 août 2026',time:'17:00',title:'🚬 Nouveau badge exclusif : CHAINSMOKER',
+  {version:'2.97.0',category:'feature',date:'27 août 2026',time:'17:00',title:'🚬 Nouveau badge exclusif : CHAINSMOKER',
     body:'Un nouveau badge fait son entrée, remis à la main comme "dev" ou "créateur de contenu" — ce n\\'est pas un palier qu\\'on débloque, c\\'est une reconnaissance. Le tout premier revient à Yani Neco : un vétéran du cercle de Shaman, présent depuis plus de 10 ans sur le web, un vrai maillon de la communauté.'},
-  {version:'2.96.0',date:'27 août 2026',time:'16:00',title:'Correctif : menu d\\'actions des messages introuvable sur certains ordinateurs',
+  {version:'2.96.0',category:'fix',date:'27 août 2026',time:'16:00',title:'Correctif : menu d\\'actions des messages introuvable sur certains ordinateurs',
     body:'En DM comme dans les salons de serveur, le bouton ⋯ (répondre, épingler, supprimer, signaler…) ne s\\'affichait que via un survol précis de la bulle, lui-même conditionné à une détection "cet appareil a une souris" qui pouvait se tromper sur certaines configurations (écran tactile, certains pilotes de pavé tactile) — le bouton restait alors invisible en permanence, sans aucun moyen évident d\\'accéder aux actions du message. Le bouton fonctionne maintenant indépendamment de cette détection, et reste visible en permanence (à faible opacité) sur les écrans tactiles au lieu de dépendre d\\'un survol impossible.'},
-  {version:'2.95.0',date:'27 août 2026',time:'15:00',title:'Ephem : option "Empêcher les captures d\\'écran"',
+  {version:'2.95.0',category:'feature',date:'27 août 2026',time:'15:00',title:'Ephem : option "Empêcher les captures d\\'écran"',
     body:'En envoyant un Ephem, un nouvel interrupteur "🚫 Empêcher les captures d\\'écran" est disponible avant de choisir la durée. Activé : le destinataire est prévenu avant même d\\'ouvrir l\\'Ephem, le clic droit/glisser/appui long sont désactivés sur l\\'image ou la vidéo, et si une capture d\\'écran Windows est détectée pendant le visionnage, l\\'Ephem se ferme immédiatement en plus de t\\'avertir. Important à savoir : aucune app web ne peut réellement empêcher une capture d\\'écran (Mac, mobile et outils tiers restent hors de portée d\\'un navigateur) — c\\'est un frein sérieux, pas un verrou technique, exactement comme sur les autres plateformes du même genre.'},
-  {version:'2.94.0',date:'27 août 2026',time:'14:00',title:'Visite guidée pour les nouveaux comptes',
+  {version:'2.94.0',category:'feature',date:'27 août 2026',time:'14:00',title:'Visite guidée pour les nouveaux comptes',
     body:'Première connexion : une petite visite guidée met en lumière les boutons principaux (Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, profil, notifications…) un par un, avec une bulle d\\'explication et un bouton Suivant. Elle ne s\\'affiche qu\\'une seule fois — possible de passer à tout moment, et de la revoir plus tard depuis Paramètres → Avancé → Visite guidée.'},
-  {version:'2.93.0',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
+  {version:'2.93.0',category:'feature',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
     body:'La bannière affichée en haut d\\'un profil est maintenant nettement plus grande. Les boutons d\\'action (copier le lien, bloquer, signaler) avaient un style improvisé — tous en rouge alarmant, collés à la même hauteur que les vrais boutons d\\'action (Ami, Message) : ils passent sur leur propre rangée, plus petits, neutres par défaut, la teinte rouge n\\'apparaissant plus qu\\'au survol des actions qui le justifient vraiment (bloquer, signaler).'},
-  {version:'2.92.0',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
+  {version:'2.92.0',category:'fix',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
     body:'Une bonne chasse : le bouton "Activer les notifications" qui perdait son texte (ne gardait que l\\'icône) est corrigé — merci Yani Neco. L\\'édition de profil sur mobile ne pousse plus les options hors champ quand la bio est très longue — merci Yani Neco. Les demandes d\\'ami apparaissaient en double dans les notifications, l\\'une d\\'elles avec un bouton "Accepter" qui ne faisait jamais rien — merci NecoCrusader et 995mec, corrigé à la racine (et la notification d\\'une demande traitée disparaît enfin vraiment). Une photo de profil ajoutée uniquement via la galerie d\\'avatars n\\'apparaissait pas dans la barre utilisateur — merci hi. La bannière rouge "Script error." illisible en cas de bug est maintenant plus rarement déclenchée sans raison exploitable (les bibliothèques externes chargées par X1 remontent enfin leurs vraies erreurs) — merci ed_jo. Et un rebond de défilement qui pouvait faire "sortir du site" en mode d\\'affichage Compact est bloqué — merci warl0ck_l.'},
-  {version:'2.91.0',date:'27 août 2026',time:'11:00',title:'Recadrage de bannière, stories à la une, et scan antivirus des applications',
+  {version:'2.91.0',category:'design',date:'27 août 2026',time:'11:00',title:'Recadrage de bannière, stories à la une, et scan antivirus des applications',
     body:'Deux idées de la Boîte à idées prennent vie, toutes deux proposées par hi : un vrai outil de recadrage (glisser-déposer + zoom) s\\'ouvre maintenant en choisissant une bannière de profil, pour cadrer précisément l\\'image au lieu de subir un centrage automatique ; et un nouveau bloc « ✨ À la une » sur les profils permet d\\'épingler des stories au-delà de leur expiration habituelle (bouton ⭐ dans le visionnage d\\'une de tes stories). Par ailleurs, les 5 installeurs de bureau et l\\'application Android/Chromebook ont été scannés par VirusTotal (0 détection sur 75 antivirus) — le résultat est affiché directement sur le bouton de téléchargement, avec un lien vers le rapport public complet.'},
-  {version:'2.90.0',date:'27 août 2026',time:'10:30',title:'Bannière d\\'installation, version Chromebook, et empreintes de fichiers',
+  {version:'2.90.0',category:'feature',date:'27 août 2026',time:'10:30',title:'Bannière d\\'installation, version Chromebook, et empreintes de fichiers',
     body:'Une bannière discrète (fermable, en haut du site) propose maintenant d\\'installer l\\'appli native X1 quand tu utilises la version navigateur, avec ta plateforme détectée automatiquement. Nouvelle entrée « Chromebook » dans les téléchargements (réutilise l\\'appli Android via ARC++, avec ses propres instructions d\\'installation). Chaque fichier téléchargeable affiche maintenant son empreinte SHA-256 (bouton « Vérifier l\\'empreinte du fichier »), pour qui veut confirmer qu\\'il n\\'a pas été altéré. Côté application de bureau, les notifications et appels entrants sont plus fiables quand la fenêtre est réduite dans la zone de notification (plus de ralentissement des tâches de fond, réouverture de la fenêtre garantie au clic sur une notification).'},
-  {version:'2.89.0',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
+  {version:'2.89.0',category:'feature',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
     body:'Les paramètres liés à l\\'application de bureau X1 (§ Paramètres → Paramètres du système) sont maintenant réellement branchés : ouvrir X1 au démarrage de session, démarrer minimisé, et minimiser dans la barre des tâches à la fermeture sont désormais de vrais réglages (au lieu de "Bientôt disponible"). Le badge de messages non lus sur l\\'icône (§ Paramètres → Notifications) s\\'affiche maintenant aussi sur le dock/la barre des tâches de l\\'application de bureau, pas seulement dans l\\'onglet du navigateur. Au passage, l\\'icône de la zone de notification (system tray), absente par erreur des précédents installeurs, s\\'affiche enfin correctement.'},
-  {version:'2.88.0',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
+  {version:'2.88.0',category:'feature',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
     body:'X1 s\\'installe maintenant comme une vraie application sur mobile. Sur Android : un fichier .apk à télécharger depuis le bouton 💻 devenu 📲 (à installer manuellement, hors Play Store — aucun compte Google Play n\\'a été ouvert), qui s\\'ouvre en plein écran sans barre d\\'adresse. Sur iPhone/iPad : Apple n\\'autorisant pas d\\'installation hors App Store, le même bouton ouvre les 3 étapes pour l\\'ajouter à l\\'écran d\\'accueil depuis Safari — aucun compte développeur Apple n\\'a été ouvert non plus. Dans les deux cas, les notifications (déjà en place sur le site) et les appels vidéo fonctionnent normalement, sans système séparé à maintenir.'},
-  {version:'2.87.0',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
+  {version:'2.87.0',category:'feature',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
     body:'Un bouton 💻 sur l\\'écran de connexion propose désormais l\\'application de bureau X1 (Windows, Mac, Linux), avec ta plateforme détectée automatiquement et les autres versions juste en dessous.'},
-  {version:'2.86.0',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
+  {version:'2.86.0',category:'feature',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
     body:'Un salon vocal de serveur n\\'ouvre plus la petite barre d\\'appel flottante : à la place, la liste des salons affiche un anneau vert fluo animé autour de l\\'avatar de qui est en train de parler, en direct. Pour accéder aux boutons micro/caméra/quitter, il suffit d\\'ouvrir le salon (comme avant) — c\\'est désormais leur seul et unique emplacement.'},
-  {version:'2.85.2',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
+  {version:'2.85.2',category:'feature',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
     body:'Cliquer sur un salon vocal dans la liste le rejoint directement — plus besoin d\\'un second clic sur "Rejoindre". Et une petite icône 📹 apparaît maintenant à côté du pseudo de chaque membre connecté qui a sa caméra active, visible même sans être soi-même dans l\\'appel.'},
-  {version:'2.85.1',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
+  {version:'2.85.1',category:'feature',date:'27 août 2026',time:'04:30',title:'Salons vocaux : caméra plus fluide + accessible de partout',
     body:'Petites finitions du salon vocal de serveur : rejoindre/quitter d\\'un autre membre ne fait plus clignoter les caméras déjà affichées (la grille ne touche plus que les tuiles qui changent). Bouton 📹 caméra ajouté aussi sur la petite barre d\\'appel flottante, pour l\\'activer sans avoir à rouvrir le salon. Et les boutons micro/caméra s\\'affichent grisés pour un simple auditeur d\\'un salon de scène.'},
-  {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
+  {version:'2.85.0',category:'feature',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
     body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
-  {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
+  {version:'2.84.0',category:'feature',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
     body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que X1 est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
-  {version:'2.83.0',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
+  {version:'2.83.0',category:'feature',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
     body:'La fenêtre « Découvrir des serveurs » a un nouveau visage : un podium met en avant les 3 serveurs les plus actifs (le plus de membres, le moins de signalements), puis tous les autres serveurs apparaissent regroupés par catégorie, triés du plus petit au plus grand pour donner leur chance aux serveurs qui débutent. Cartes animées, effet de survol, et un aperçu qui s\\'ouvre au clic avant de rejoindre.'},
-  {version:'2.82.0',date:'27 août 2026',time:'01:15',title:'Serveurs : accès total pour Shaman + précision sur la suppression des messages',
+  {version:'2.82.0',category:'feature',date:'27 août 2026',time:'01:15',title:'Serveurs : accès total pour Shaman + précision sur la suppression des messages',
     body:'Shaman a maintenant accès aux paramètres de N\\'IMPORTE QUEL serveur de la plateforme (nouvel onglet 🛡️ Panneau admin → Serveurs), même sans en être membre — traité partout comme le propriétaire. Par ailleurs, les propriétaires de serveur pouvaient déjà supprimer n\\'importe quel message de n\\'importe quel membre sur leur propre serveur (vérifié, aucun changement nécessaire sur ce point).'},
-  {version:'2.81.0',date:'27 août 2026',time:'00:30',title:'Serveurs : nouveaux salons 🎤 Scène',
+  {version:'2.81.0',category:'feature',date:'27 août 2026',time:'00:30',title:'Serveurs : nouveaux salons 🎤 Scène',
     body:'Nouveau type de salon pour les serveurs : la Scène. Tout le monde peut rejoindre pour écouter, mais seuls les orateurs (invités par la modération, ou qui lèvent la main puis sont acceptés) peuvent parler au micro. Sujet de scène personnalisable par la modération, liste des orateurs et des demandes de parole en temps réel, et possibilité de descendre de scène ou de retirer un orateur à tout moment.'},
-  {version:'2.80.0',date:'26 août 2026',time:'23:00',title:'Studio Ephem : zoom, flash, mise au point, rotation, recadrage et sticker xMoji',
+  {version:'2.80.0',category:'design',date:'26 août 2026',time:'23:00',title:'Studio Ephem : zoom, flash, mise au point, rotation, recadrage et sticker xMoji',
     body:'Bloc 3 du studio Ephem : zoom et flash 🔦 pendant la prise de vue (affichés seulement si ton appareil les supporte), mise au point en tapant sur l\\'image, un bouton 🔄 pour faire pivoter la photo par quarts de tour, un bouton ✂️ pour la recadrer (originale, carrée, 4:5 ou 9:16), et un nouveau type de sticker : ton xMoji, ajoutable directement depuis l\\'éditeur si tu en as configuré un.'},
-  {version:'2.79.0',date:'26 août 2026',time:'22:00',title:'Studio Ephem : dessin libre et sauvegarde sur l\\'appareil',
+  {version:'2.79.0',category:'feature',date:'26 août 2026',time:'22:00',title:'Studio Ephem : dessin libre et sauvegarde sur l\\'appareil',
     body:'Bloc 2 du studio Ephem façon Snap : un nouveau bouton ✏️ ouvre un mode dessin libre — trace au doigt directement sur ta photo, choisis parmi 8 couleurs, annule le dernier trait d\\'un tap. Et un bouton 💾 permet d\\'enregistrer la photo (avec dessin, texte et stickers) directement sur l\\'appareil avant ou sans l\\'envoyer.'},
-  {version:'2.78.0',date:'26 août 2026',time:'21:00',title:'Studio Ephem : calques redimensionnables, stickers, retardateur et glisser pour changer de filtre',
+  {version:'2.78.0',category:'feature',date:'26 août 2026',time:'21:00',title:'Studio Ephem : calques redimensionnables, stickers, retardateur et glisser pour changer de filtre',
     body:'Les calques du studio Ephem (texte) se redimensionnent et pivotent maintenant d\\'un geste, comme sur Snap : une poignée en bas à droite du calque, à faire glisser pour l\\'agrandir/réduire et le tourner en même temps. Nouveau : ajoute des stickers emoji, déplaçables et redimensionnables exactement comme le texte. Et pour la prise de vue : un retardateur (3s/10s) avant la photo, et glisser à gauche/droite sur l\\'aperçu change de filtre sans passer par le bandeau de vignettes. D\\'autres blocs de fonctionnalités façon Snap arrivent (dessin libre, sauvegarde, etc.).'},
-  {version:'2.77.0',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
+  {version:'2.77.0',category:'feature',date:'26 août 2026',time:'20:00',title:'Serveurs : nouvel onglet 📊 Aperçu pour les propriétaires',
     body:'Nouvel onglet 📊 Aperçu dans les paramètres du serveur (visible à qui peut gérer le serveur) : nombre de membres, total de messages envoyés, un graphique des messages et des nouveaux membres sur les 7 derniers jours, et la liste des salons les plus actifs. De quoi voir d\\'un coup d\\'œil comment vit la communauté.'},
-  {version:'2.76.0',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
+  {version:'2.76.0',category:'feature',date:'26 août 2026',time:'19:00',title:'Pseudos propres à chaque serveur',
     body:'Chaque membre peut désormais se donner un pseudo qui ne s\\'affiche que sur un serveur donné (nom, messages, mentions, journal d\\'audit…) sans toucher au nom global du compte. Change le tien depuis l\\'onglet Membres du serveur (bouton 🏷️ Pseudo). Les propriétaires peuvent accorder une nouvelle permission "Gérer les pseudos" à un rôle pour laisser des modérateurs renommer les autres membres (jamais le propriétaire, jamais quelqu\\'un d\\'un rang égal ou supérieur).'},
-  {version:'2.75.0',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
+  {version:'2.75.0',category:'feature',date:'26 août 2026',time:'18:00',title:'Salons de serveur : photos, vidéos, fichiers, GIF, position et messages vocaux',
     body:'Les salons de serveur passent aux mêmes fonctionnalités que les messages privés (à l\\'exception des streaks 🔥 et des Ephem 👻, qui restent propres aux DM) : envoie des photos, vidéos et fichiers (avec barre de progression), colle une image directement dans la zone de texte, ajoute un GIF, partage ta position, ou maintiens le nouveau bouton micro pour un message vocal — exactement comme en DM. Et pendant qu\\'on y était : Bitmoji est renommé xMoji, et Snap devient Ephem, partout sur le site.'},
-  {version:'2.74.0',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
+  {version:'2.74.0',category:'feature',date:'26 août 2026',time:'17:00',title:'Coller une image envoie directement le fichier, et avis de capture d\\'écran',
     body:'Dans les messages privés, colle une image copiée (capture, image copiée d\\'un site…) directement dans la zone de texte : elle s\\'envoie automatiquement, avec une barre de progression qui affiche le poids envoyé sur le poids total. Et désormais, dans les DM comme dans les salons de serveur, si quelqu\\'un prend une capture d\\'écran (touche Impr écran sous Windows — malheureusement indétectable sur Mac et mobile, aucune app web n\\'a accès à cette information là-bas), un petit avis "a pris une capture d\\'écran" s\\'affiche dans la conversation, avec une limite d\\'un avis toutes les 20 secondes pour éviter le spam.'},
-  {version:'2.73.1',date:'26 août 2026',time:'16:20',title:'Correctif : plusieurs listes pouvaient sembler vides après une longue session',
+  {version:'2.73.1',category:'fix',date:'26 août 2026',time:'16:20',title:'Correctif : plusieurs listes pouvaient sembler vides après une longue session',
     body:'Comme pour le sélecteur de tag de serveur (correctif précédent), plusieurs autres écrans utilisaient un jeton de session parfois périmé au lieu d\\'en redemander un frais : la découverte de serveurs, les émojis/stickers d\\'un serveur, les événements, l\\'écran d\\'accueil, les webhooks, les salons suivis et le fil des créateurs. Dans de rares cas (session ouverte depuis un moment, onglet resté en arrière-plan…) ces listes pouvaient sembler vides sans message d\\'erreur. Tous ces écrans redemandent maintenant systématiquement un jeton frais, comme le reste du site.'},
-  {version:'2.73.0',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
+  {version:'2.73.0',category:'feature',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
     body:'👻 Snap éphémère ouvre maintenant un vrai studio de prise de vue en direct (comme sur Snap) : appuie pour une photo, maintiens pour filmer une vidéo, avec caméra avant/arrière, 8 filtres à appliquer en direct (Chaud, Froid, N&B, Éclatant, Vintage, Noir, Rêve…) et — pour les photos — des calques de texte à faire glisser où tu veux, en 8 couleurs. L\\'import depuis la galerie reste disponible d\\'un tap sur 🖼️. Une fois envoyé, le fichier suit exactement le même circuit que les autres snaps (chiffrement, minuteur de visionnage, streak).'},
-  {version:'2.72.0',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
+  {version:'2.72.0',category:'design',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
     body:'X1 a enfin un favicon (un "X" dégradé violet-rose, dessiné pour l\\'occasion) et le logo de connexion s\\'accompagne maintenant de ce même symbole. Les 12 boutons de la barre de navigation (Messages, Amis, Membres, Serveurs…) et les 5 boutons de la zone d\\'écriture des messages privés passent des emojis à de vraies icônes SVG dessinées sur-mesure, plus nettes et cohérentes. Première vague — d\\'autres coins du site (paramètres, salons de serveur…) suivront.'},
-  {version:'2.71.0',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
+  {version:'2.71.0',category:'feature',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
     body:'À l\\'envoi d\\'un snap éphémère, choisis maintenant combien de temps il reste visible pour le destinataire (3s, 5s, 10s, ou sans limite jusqu\\'à fermeture manuelle) — un petit compte à rebours s\\'affiche pendant le visionnage. Et surtout : quand quelqu\\'un ouvre ton snap, tu le vois marqué "vu" instantanément dans la conversation, sans avoir à recharger la page.'},
-  {version:'2.70.0',date:'26 août 2026',time:'14:00',title:'Bitmoji X1 — ton avatar 2D personnalisable',
+  {version:'2.70.0',category:'feature',date:'26 août 2026',time:'14:00',title:'Bitmoji X1 — ton avatar 2D personnalisable',
     body:'Nouvel onglet 🎭 Bitmoji dans l\\'éditeur de profil : compose un avatar 2D façon Bitmoji entièrement dessiné pour X1 (teint, forme du visage, coiffure et couleur, yeux, sourcils, bouche, tenue et couleur, accessoire, fond), avec aperçu en direct et un bouton 🎲 pour un tirage aléatoire. Active "Utiliser mon Bitmoji comme photo de profil" pour l\\'afficher à la place de ta photo sur ta fiche profil et dans la barre utilisateur.'},
-  {version:'2.69.0',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
+  {version:'2.69.0',category:'feature',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
     body:'Clique sur le tag d\\'un serveur (comme le badge Bug Hunter) : une petite page de présentation s\\'ouvre, avec l\\'icône, le nom et une description de la guilde. Le propriétaire peut la personnaliser depuis les paramètres du serveur — 7 thèmes animés au choix (Aurore, Feu, Océan, Vide stellaire, Coucher de soleil, Matrice…) avec dégradés qui bougent et effets de particules (étincelles, braises, étoiles, bulles, neige), couleurs du titre et du texte, ou carrément écrire son propre CSS pour un design 100% sur-mesure.'},
-  {version:'2.68.0',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
+  {version:'2.68.0',category:'feature',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
     body:'Nouvelle option 👻 Snap éphémère dans le trombone des messages privés : une photo ou vidéo qui se supprime réellement du serveur dès que le destinataire l\\'ouvre (vu une fois) — jamais possible en groupe, seulement en conversation 1:1. Envoie-en un chaque jour avec la même personne pour construire un streak 🔥, affiché en haut de la conversation et dans la liste des messages : il grandit tant que vous vous envoyez chacun au moins un snap le même jour, et repart de zéro si un jour est manqué.'},
-  {version:'2.67.1',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
+  {version:'2.67.1',category:'fix',date:'26 août 2026',time:'11:20',title:'Correctif : le tag de serveur pouvait sembler introuvable dans Paramètres → Profils',
     body:'Le sélecteur de tag de serveur récupérait la liste des serveurs avec un jeton de session parfois périmé (jusqu\\'à 15 minutes après la connexion), au lieu d\\'en redemander un frais comme le reste du site — dans ce cas la requête échouait silencieusement et le panneau affichait "Rejoins ou crée un serveur avec un tag configuré" même si un tag existait bel et bien. Corrigé.'},
-  {version:'2.67.0',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
+  {version:'2.67.0',category:'feature',date:'26 août 2026',time:'11:00',title:'Serveurs : salons d\\'annonces et abonnement croisé',
     body:'Nouveau type de salon 📢 Annonces (au choix à la création d\\'un salon). Depuis un salon d\\'annonces, le bouton 🔗 Suivre permet à n\\'importe quel membre de le relier à un salon texte d\\'un AUTRE serveur qu\\'il gère (il faut "Gérer les salons" côté cible) : chaque nouveau message publié directement dans le salon d\\'annonces (hors fils et sondages) y est alors automatiquement recopié, repéré "📢 SUIVI". Les salons suivis se gèrent et se désabonnent depuis les paramètres du serveur cible.'},
-  {version:'2.66.0',date:'26 août 2026',time:'10:15',title:'Statut personnalisé : emoji et disparition automatique',
+  {version:'2.66.0',category:'feature',date:'26 août 2026',time:'10:15',title:'Statut personnalisé : emoji et disparition automatique',
     body:'Dans l\\'éditeur de profil, le statut personnalisé a maintenant son propre bouton 😊 pour choisir un emoji sans avoir à le taper ou le copier, et un réglage « Le statut disparaît » (jamais, dans 30 min/1h/4h, aujourd\\'hui, cette semaine) — passé ce délai, il s\\'efface tout seul de ta fiche profil, pas besoin d\\'y repenser.'},
-  {version:'2.65.0',date:'26 août 2026',time:'09:30',title:'Serveurs : widget embarquable',
+  {version:'2.65.0',category:'feature',date:'26 août 2026',time:'09:30',title:'Serveurs : widget embarquable',
     body:'Nouvelle section 🧩 Widget dans les paramètres du serveur : une fois activé, une URL publique renvoie le nom, l\\'icône, le nombre de membres et un lien d\\'invitation du serveur — pratique pour l\\'afficher sur un site externe. Volontairement minimaliste : jamais la liste des membres en ligne, leur présence ne sera jamais diffusée publiquement sans leur consentement. Les liens d\\'invitation (ex. xultra.space/?invite=CODE) ouvrent maintenant directement la fenêtre pour rejoindre le serveur, code déjà rempli.'},
-  {version:'2.64.0',date:'26 août 2026',time:'08:45',title:'Serveurs : stickers',
+  {version:'2.64.0',category:'feature',date:'26 août 2026',time:'08:45',title:'Serveurs : stickers',
     body:'Nouvelle section 🖼️ Stickers dans les paramètres du serveur (jusqu\\'à 20 par serveur, même permission que les emojis) : des images plus grandes que les emojis, postées comme un message à part entière — parfait pour réagir sans un mot. Ils apparaissent en haut du sélecteur d\\'emoji habituel dans les salons, un clic suffit pour les envoyer.'},
-  {version:'2.63.0',date:'26 août 2026',time:'08:00',title:'Serveurs : écran d\\'accueil',
+  {version:'2.63.0',category:'feature',date:'26 août 2026',time:'08:00',title:'Serveurs : écran d\\'accueil',
     body:'Nouvelle section 👋 Écran d\\'accueil dans les paramètres du serveur : mets en avant jusqu\\'à 5 salons avec un emoji et une courte description. Les nouveaux membres (et ceux qui viennent d\\'accepter les règles du mode communauté) le voient automatiquement à leur arrivée, avec un clic direct vers chaque salon mis en avant — et un bouton 👋 permet de le revoir à tout moment depuis la liste des salons.'},
-  {version:'2.62.0',date:'26 août 2026',time:'07:15',title:'Tags de serveur',
+  {version:'2.62.0',category:'feature',date:'26 août 2026',time:'07:15',title:'Tags de serveur',
     body:'Le propriétaire d\\'un serveur peut désormais lui donner un tag 100% personnalisable (texte + couleur) depuis les paramètres du serveur. Chaque membre choisit ensuite, dans Paramètres → Profils, d\\'afficher le tag d\\'un des serveurs dont il est membre juste à côté de son pseudo — dans les messages, les listes d\\'amis et de conversations, la fiche profil, un peu partout sur X1.'},
-  {version:'2.61.0',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
+  {version:'2.61.0',category:'feature',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
     body:'Nouvelle section 😀 Emojis personnalisés dans les paramètres du serveur (jusqu\\'à 50 par serveur) : ajoute une image (PNG/GIF/WEBP, 512 Ko max) avec un nom, et tous les membres peuvent l\\'utiliser dans les salons en tapant <code>:nom:</code> — il s\\'affiche automatiquement comme une petite image dans les messages. Les emojis du serveur apparaissent aussi en haut du sélecteur d\\'emoji habituel pour un accès rapide en un clic.'},
-  {version:'2.60.0',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
+  {version:'2.60.0',category:'feature',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
     body:'Nouvelle section 🏛️ Mode Communauté dans les paramètres du serveur (réservée à qui gère le serveur) : une fois activé avec des règles écrites, tout nouveau membre doit les lire et cocher "J\\'accepte" avant de pouvoir écrire dans les salons, créer un fil ou publier dans un forum — il peut toujours tout lire normalement en attendant. Message de bienvenue optionnel affiché avec les règles. Le propriétaire et la modération avec un rôle de gestion ne sont jamais bloqués.'},
-  {version:'2.59.0',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
+  {version:'2.59.0',category:'feature',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
     body:'Nouvelle section 🔌 Webhooks dans les paramètres du serveur (réservée à qui gère les salons) : crée une URL unique par salon texte, à donner à un service externe (GitHub, un script, une app…) pour qu\\'il puisse poster des messages directement dans X1, sans compte. Les messages d\\'un webhook portent un petit repère "WEBHOOK" pour rester bien distincts des messages de membres.'},
-  {version:'2.58.0',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
+  {version:'2.58.0',category:'feature',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
     body:'Nouvel onglet 📅 Événements dans chaque serveur : les membres avec la permission "Gérer les événements" peuvent en créer (titre, description, date de début/fin, salon lié ou lieu externe) ; tout le monde peut voir la liste et cliquer "🙋 Je participe" pour s\\'inscrire. Compteur d\\'intéressés en direct, et annulation possible par le créateur ou la modération — tracée dans le journal d\\'audit.'},
-  {version:'2.57.2',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
+  {version:'2.57.2',category:'feature',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
     body:'Suite à une idée reçue dans la Boîte à idées ("juste des boutons avec des emojis, je ne sais pas ce que c\\'est") : les boutons icône-seule autour du profil (🔗 copier le lien, ⛔ bloquer, 🚩 signaler, 📷 changer photo/bannière, 🎲 randomiser le tag, ✕ retirer une photo, thèmes et contours d\\'avatar) affichent maintenant une info-bulle stylée aux couleurs X1 au survol, plus rapide et plus lisible que la bulle générique du navigateur.'},
-  {version:'2.57.1',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
+  {version:'2.57.1',category:'fix',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
     body:'Le nouveau bandeau d\\'en-tête dégradé du panneau de signalement passait par-dessus le bouton ✕, le rendant invisible et inutilisable — introduit par la refonte visuelle précédente. Corrigé.'},
-  {version:'2.57.0',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
+  {version:'2.57.0',category:'feature',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
     body:'Le panneau de signalement fait peau neuve, aux couleurs X1 (dégradé animé, mise en page plus claire). Tu peux maintenant joindre jusqu\\'à 5 fichiers par rapport — images ET vidéos mélangées — au lieu d\\'une seule capture d\\'écran. La taille max par fichier grandit avec ton palier Bug Hunter : 30 Mo de base, puis 50 / 75 / 100 / 150 / 200 Mo à mesure que tu montes les échelons. Une raison de plus de continuer à chasser les bugs !'},
-  {version:'2.56.2',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
+  {version:'2.56.2',category:'feature',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
     body:'Sur téléphone, la barre de navigation en bas de l\\'écran est remplacée par la même barre verticale à gauche que sur ordinateur — toutes les icônes (Messages, Amis, Membres, Chatroulette, Casino, Créateurs, Serveurs, État du système, Nouveautés, Boîte à idées, Équipe) directement accessibles au même endroit que sur la version navigateur, sans passer par un menu "⋯".'},
-  {version:'2.56.1',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
+  {version:'2.56.1',category:'fix',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
     body:'Deux bugs remontés corrigés : dans une conversation, le repère "Vu" disparaissait dès qu\\'un nouveau message était envoyé avant que le précédent ne soit lu, même si les messages précédents avaient bel et bien été vus — le repère s\\'affiche maintenant sur le dernier message effectivement lu, pas seulement sur le tout dernier envoyé. Et la vérification (invisible) des droits admin faite à chaque connexion affichait une fausse alerte rouge dans la console du navigateur pour tous les membres normaux — silencieuse désormais.'},
-  {version:'2.56.0',date:'26 août 2026',time:'00:20',title:'Mot de passe oublié',
+  {version:'2.56.0',category:'feature',date:'26 août 2026',time:'00:20',title:'Mot de passe oublié',
     body:'Nouveau lien "Mot de passe oublié ?" sur la page de connexion et dans Paramètres → Mon compte → Modifier le mot de passe : entre ton e-mail, tu reçois un lien pour en choisir un nouveau, sans avoir à connaître l\\'ancien. Pense à repasser ensuite par Paramètres → Confidentialité et sécurité → Messages chiffrés si tes anciennes conversations chiffrées deviennent illisibles sur un appareil après ce changement — c\\'est normal (l\\'ancienne clé de sauvegarde ne survit pas à un mot de passe oublié) et ce nouvel écran permet de resynchroniser.'},
-  {version:'2.55.0',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
+  {version:'2.55.0',category:'feature',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
     body:'Nouveau bouton 🎬 dans la navigation : les membres avec le badge Créateur de Contenu peuvent publier des vidéos ou images visibles par toute la plateforme, avec compteur de vues, likes, réactions rapides et commentaires. Chaque créateur a son propre fil accessible en cliquant sur son pseudo dans le hub, ou via "🎬 Voir la chaîne" sur son profil — sa page ne montre que ses publications, comme une chaîne.'},
-  {version:'2.54.1',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
+  {version:'2.54.1',category:'feature',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
     body:'Un nouveau badge holographique rejoint la collection — remis à la main par l\\'équipe aux créateurs qui font vivre X1 en dehors de la plateforme (vidéos, streams, tutos, communauté). Dégradé irisé qui tourne et scintille, anneau qui tourne autour comme les badges les plus rares. Un clic dessus, sur un profil ou dans le trombinoscope, ouvre une jolie carte de présentation avec sa description.'},
-  {version:'2.54.0',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
+  {version:'2.54.0',category:'feature',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
     body:'Nouveau bouton 🧭 à côté de Créer/Rejoindre un serveur : parcours les serveurs qu\\'un propriétaire a choisi de rendre publics, filtre par catégorie (Gaming, Musique, Art, Éducation, Technologie, Communauté…) ou recherche par nom, et rejoins en un clic — plus besoin de code d\\'invitation. Côté propriétaire (ou membre avec la permission "Gérer le serveur"), un nouveau réglage 🧭 Découverte permet d\\'activer la visibilité du serveur et de choisir sa catégorie.'},
-  {version:'2.53.3',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
+  {version:'2.53.3',category:'fix',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
     body:'Le vrai fond du problème signalé plusieurs fois : quand le mot de passe du compte a été changé APRÈS l\\'activation de la sauvegarde des messages, cette sauvegarde reste chiffrée avec l\\'ancien mot de passe pour toujours — aucun mot de passe actuel ne peut plus la déchiffrer. La restauration échouait donc en silence à chaque tentative tout en affichant "Messages restaurés" (elle confondait "une sauvegarde existe" et "cette tentative a réussi"). Corrigé : un message honnête s\\'affiche maintenant dans ce cas précis, avec un bouton pour réinitialiser la sauvegarde et resynchroniser tous tes appareils pour la suite (l\\'historique déjà chiffré avec l\\'ancienne clé, lui, ne peut malheureusement plus être récupéré — aucun logiciel ne peut déchiffrer sans la bonne clé). Et pour que ça ne se reproduise plus : changer son mot de passe re-chiffre maintenant automatiquement la sauvegarde avec le nouveau.'},
-  {version:'2.53.2',date:'25 août 2026',time:'00:15',title:'Correctif : « mot de passe incorrect » lors de la restauration des messages',
+  {version:'2.53.2',category:'fix',date:'25 août 2026',time:'00:15',title:'Correctif : « mot de passe incorrect » lors de la restauration des messages',
     body:'Le nouveau bouton de restauration des messages chiffrés (Paramètres → Confidentialité et sécurité) affichait à tort "Mot de passe incorrect" même en tapant le bon, sur un appareil déjà connecté : la vérification du mot de passe entrait en conflit avec la session déjà active de l\\'appli, une erreur qui n\\'avait rien à voir avec le mot de passe saisi mais s\\'affichait comme telle. Corrigé — la vérification passe maintenant par un chemin indépendant qui ne rentre plus en conflit.'},
-  {version:'2.53.1',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
+  {version:'2.53.1',category:'security',date:'25 août 2026',time:'23:45',title:'Restaurer ses messages chiffrés à tout moment, depuis les paramètres',
     body:'Jusqu\\'ici, un appareil qui ne pouvait pas encore lire tes messages chiffrés ne pouvait être réparé que via une petite bannière proposée automatiquement à la connexion, facile à manquer ou à fermer par erreur. Ajout dans Paramètres → Confidentialité et sécurité → Messages chiffrés : entre ton mot de passe à tout moment pour restaurer l\\'accès à tes messages sur l\\'appareil que tu utilises, sans attendre une bannière.'},
-  {version:'2.53.0',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
+  {version:'2.53.0',category:'feature',date:'25 août 2026',time:'23:00',title:'Serveurs : boosts et code d\\'invitation personnalisé',
     body:'Nouvelle section 🚀 Boosts dans les paramètres d\\'un serveur : n\\'importe quel membre peut le booster (geste gratuit et symbolique), et plus il y a de boosts actifs, plus le serveur débloque d\\'avantages pour TOUT le monde — palier 2 : qualité audio/vidéo X1+ pour tous les membres, sans dépendre de l\\'abonnement du propriétaire ; palier 3 : le code d\\'invitation devient personnalisable (ex. "MONSERVEUR" au lieu d\\'une suite de caractères aléatoires).'},
-  {version:'2.52.0',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
+  {version:'2.52.0',category:'feature',date:'25 août 2026',time:'22:00',title:'L\\'appel se lance tout seul en chatroulette, Casino virtuel, débloquer depuis les paramètres',
     body:'Chatroulette : l\\'appel vocal démarre maintenant automatiquement dès la mise en relation, plus besoin de le proposer manuellement (la caméra, elle, reste toujours ton propre choix). Nouveau 🎰 Casino (juste sous 🎲 Chatroulette) : jetons fictifs sans valeur réelle, pour défier d\\'autres membres en duel — pile ou face et dés pour commencer, d\\'autres jeux à venir. Et dans Paramètres → Confidentialité et sécurité → Utilisateurs bloqués, retrouve enfin la liste de qui tu as bloqué pour débloquer en un clic.'},
-  {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
+  {version:'2.51.1',category:'feature',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
     body:'Dans Chatroulette, un bouton 🎥 dédié apparaît maintenant dès qu\\'un appel est connecté, pour activer ta caméra sans avoir à chercher — chacun garde le contrôle de la sienne, rien ne s\\'active jamais chez l\\'autre automatiquement. Par ailleurs, État du système, Nouveautés, Boîte à idées et Équipe & Badges — jusqu\\'ici invisibles sur téléphone — sont maintenant accessibles depuis le menu ⋯ à côté de ton nom.'},
-  {version:'2.51.0',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
+  {version:'2.51.0',category:'feature',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
     body:'Nouveau bouton 🎲 dans la barre de navigation, sous Membres : mise en relation aléatoire avec un autre membre de X1 pour un chat texte. Passe au suivant quand tu veux, quitte à tout moment. L\\'appel vocal/vidéo reste entièrement facultatif : il ne démarre que si les DEUX personnes l\\'activent, jamais automatiquement. Le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation — les signalements arrivent dans le même circuit de modération que le reste du site, et les personnes que tu as bloquées ne te seront jamais proposées.'},
-  {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
+  {version:'2.50.0',category:'fix',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
     body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. X1 détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
-  {version:'2.49.3',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
+  {version:'2.49.3',category:'design',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
     body:'Tu peux maintenant sélectionner plusieurs photos/vidéos dans la galerie en une fois : elles se publient à la suite comme autant de stories séparées, avec les mêmes réglages (visibilité, durée, position). Le visionnage s\\'enrichit encore : appuie et maintiens pour mettre en pause, réagis avec une réaction rapide ou réponds directement en message privé à la story de quelqu\\'un, et ton propre rond de story a maintenant son "+" toujours accessible pour en ajouter une de plus.'},
-  {version:'2.49.2',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
+  {version:'2.49.2',category:'feature',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
     body:'À la publication d\\'une story publique, choisis maintenant comment elle apparaît sur la carte "Découvrir" : Précise (ta position réelle), Approximative (ta position réelle, floutée à l\\'échelle du quartier pour rester discret) ou Simulée (touche une petite carte pour placer ta story où tu veux, sans lien avec ta position réelle) — ou "Aucune" si tu ne veux pas apparaître dessus du tout.'},
-  {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs X1 + capture directe caméra',
+  {version:'2.49.1',category:'feature',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs X1 + capture directe caméra',
     body:'La carte "Découvrir" passe à un fond de carte sombre assorti au thème violet de X1 (au lieu des tuiles claires par défaut), avec des repères personnalisés et un vrai correctif d\\'affichage (la carte pouvait rester à moitié grise à l\\'ouverture). Et à la création d\\'une story, trois choix désormais : Galerie, Photo ou Vidéo — les deux derniers ouvrent directement l\\'appareil photo de ton téléphone, sans avoir à sortir d\\'un fichier existant (mais ça reste entièrement facultatif, la galerie marche toujours aussi bien).'},
-  {version:'2.49.0',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
+  {version:'2.49.0',category:'feature',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
     body:'Petit bouton ✨ dans la zone d\\'écriture des messages privés, des salons de serveur et des fils — comme sur Samsung ou Google Clavier : un clic corrige l\\'orthographe, la grammaire et la ponctuation de ce que tu as écrit, sans changer le sens ni le ton. Pratique pour un message envoyé vite fait avec les pouces.'},
-  {version:'2.48.0',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
+  {version:'2.48.0',category:'feature',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
     body:'Nouvelle barre "Stories" en haut de l\\'onglet Messages : publie une photo ou une vidéo qui disparaît après 1h, 6h, 24h ou 48h (à toi de choisir), visible soit uniquement par tes amis, soit publiquement. Appuie sur l\\'avatar de quelqu\\'un pour voir ses stories en plein écran (défilement automatique, comme sur les plateformes que tu connais déjà) ; sur les tiennes, tu vois qui les a vues. Les stories publiques se retrouvent aussi dans "Découvrir" (bouton 🌍 dans la barre), avec le choix entre un flux classique et une carte du monde façon Snap Map — active le partage de position au moment de publier si tu veux apparaître dessus.'},
-  {version:'2.47.1',date:'25 août 2026',time:'15:10',title:'Journal d\\'audit : filtres et actions manquantes',
+  {version:'2.47.1',category:'feature',date:'25 août 2026',time:'15:10',title:'Journal d\\'audit : filtres et actions manquantes',
     body:'Le journal d\\'audit d\\'un serveur (onglet dédié, réservé à la modération) affiche maintenant un filtre par type d\\'action et une recherche par nom, utile dès qu\\'un serveur a un peu d\\'historique. Quelques actions qui étaient déjà enregistrées mais restaient sans libellé lisible (verrouillage de salon, synchronisation de catégorie, épinglage de message) s\\'affichent maintenant correctement, et l\\'archivage/réouverture d\\'un fil par la modération y apparaît aussi désormais.'},
-  {version:'2.47.0',date:'25 août 2026',time:'14:30',title:'Salons forum',
+  {version:'2.47.0',category:'feature',date:'25 août 2026',time:'14:30',title:'Salons forum',
     body:'Nouveau type de salon "📋 Forum" (au choix à la création d\\'un salon) : au lieu d\\'un fil de discussion unique, chaque publication a son propre titre et devient une conversation à part entière — exactement comme un fil, avec réponses, réactions et emojis. Le bouton "+ Nouveau post" en haut du salon ouvre un petit formulaire (titre + contenu), et la liste des posts s\\'affiche triée du plus récent au plus ancien.'},
-  {version:'2.46.0',date:'25 août 2026',time:'12:00',title:'Fils de discussion dans les salons de serveur',
+  {version:'2.46.0',category:'feature',date:'25 août 2026',time:'12:00',title:'Fils de discussion dans les salons de serveur',
     body:'Tu peux maintenant démarrer un fil de discussion à partir de n\\'importe quel message d\\'un salon textuel (dans son menu d\\'actions ⋯), pour continuer une conversation secondaire sans polluer le salon principal. Un fil peut être public (visible et rejoignable par tout le monde ayant accès au salon) ou privé (uniquement les membres invités). Le nouveau bouton 🧵 Fils en haut d\\'un salon liste tous ses fils, ouverts ou archivés ; un message qui a un fil affiche un petit lien vers celui-ci. Un fil peut être archivé par son créateur ou par un modérateur, et rouvert par un modérateur.'},
-  {version:'2.45.2',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
+  {version:'2.45.2',category:'fix',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
     body:'Sur un écran court (clavier mobile ouvert, ou simplement un petit téléphone), la page de connexion/inscription et toutes les fenêtres (profil, paramètres, signalement, création de serveur…) pouvaient afficher un contenu coupé en haut et en bas dès qu\\'il dépassait la hauteur visible, sans aucun moyen de faire défiler pour voir le reste — un effet de bord du centrage automatique quand le contenu est plus grand que l\\'écran. Toutes ces fenêtres restent centrées quand tout tient, et défilent normalement sinon.'},
-  {version:'2.45.1',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
+  {version:'2.45.1',category:'fix',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
     body:'Un salon de serveur sans restriction de rôle accordait la lecture de ses messages à "n\\'importe quel compte connecté sur X1", pas seulement aux membres de ce serveur — un raccourci technique pour le temps réel qui supposait (à tort) que personne n\\'interrogerait la base directement. Découvert en développant la recherche de messages. Corrigé : seuls les membres réels du serveur reçoivent désormais l\\'accès en lecture, salon restreint ou non.'},
-  {version:'2.45.0',date:'24 août 2026',time:'19:15',title:'Recherche de messages (DM et salons de serveur)',
+  {version:'2.45.0',category:'feature',date:'24 août 2026',time:'19:15',title:'Recherche de messages (DM et salons de serveur)',
     body:'Nouveau bouton 🔍 en haut d\\'une conversation privée ou d\\'un salon textuel : recherche par mots-clés, période (aujourd\\'hui / cette semaine / ce mois / tout) et filtre "épinglés uniquement". Un clic sur un résultat retrouve directement le message dans la conversation.'},
-  {version:'2.44.0',date:'24 août 2026',time:'18:40',title:'Sondages intégrés dans les salons de serveur',
+  {version:'2.44.0',category:'feature',date:'24 août 2026',time:'18:40',title:'Sondages intégrés dans les salons de serveur',
     body:'Nouveau bouton 📊 dans la zone d\\'écriture d\\'un salon textuel pour créer un sondage : question, 2 à 10 options, choix unique ou multiple, durée de 1 heure à 7 jours. Les résultats s\\'affichent en direct sous forme de barres avec le pourcentage et le nombre de votes, ton propre vote est mis en évidence, et un sondage terminé passe automatiquement en lecture seule.'},
-  {version:'2.43.0',date:'24 août 2026',time:'18:00',title:'Épinglage de messages et synchronisation des permissions par catégorie',
+  {version:'2.43.0',category:'feature',date:'24 août 2026',time:'18:00',title:'Épinglage de messages et synchronisation des permissions par catégorie',
     body:'Tu peux maintenant épingler un message important (📌 dans le menu d\\'actions) en DM comme dans un salon de serveur, et consulter la liste des messages épinglés d\\'un coup d\\'œil (nouveau bouton 📌 en haut de la conversation), avec un clic pour retrouver le message d\\'origine — jusqu\\'à 50 par conversation/salon. Côté serveurs : les catégories ont maintenant leurs propres réglages de visibilité et de permissions par rôle, utilisables comme modèle — un bouton "Synchroniser" sur chaque salon lui applique ces réglages en un clic (une copie ponctuelle, pas un lien permanent).'},
-  {version:'2.42.0',date:'24 août 2026',time:'17:15',title:'Serveurs : outils de modération — mode lent, verrouillage, AutoMod, bannissement renforcé',
+  {version:'2.42.0',category:'feature',date:'24 août 2026',time:'17:15',title:'Serveurs : outils de modération — mode lent, verrouillage, AutoMod, bannissement renforcé',
     body:'Nouveaux outils pour la modération des salons textuels : mode lent (délai imposé entre deux messages d\\'un même membre, de 5s à 6h), verrouillage d\\'un salon en un clic (plus personne n\\'écrit sauf la modération, rien n\\'est supprimé), et une liste de mots interdits par serveur (AutoMod léger) qui bloque un message avant publication s\\'il en contient un. Le bannissement propose maintenant de supprimer aussi les messages récents du membre banni, sur une période au choix (1h à 7 jours).'},
-  {version:'2.41.0',date:'24 août 2026',time:'16:30',title:'Serveurs : hiérarchie des rôles renforcée et permission Administrateur',
+  {version:'2.41.0',category:'feature',date:'24 août 2026',time:'16:30',title:'Serveurs : hiérarchie des rôles renforcée et permission Administrateur',
     body:'Un modérateur pouvait jusqu\\'ici expulser, bannir ou mettre en timeout un autre membre portant un rôle égal ou supérieur au sien (y compris un autre modérateur), et retirer un rôle qu\\'il n\\'aurait pas eu le droit d\\'attribuer — la hiérarchie des rôles n\\'était vérifiée qu\\'à moitié. Elle s\\'applique maintenant partout : impossible d\\'agir sur, d\\'attribuer OU de retirer un rôle égal ou supérieur au sien, propriétaire excepté. Nouvelle permission "Administrateur" qui contourne toutes les autres permissions (mais jamais la hiérarchie des rôles ni le statut du propriétaire).'},
-  {version:'2.40.2',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
+  {version:'2.40.2',category:'fix',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
     body:'Un correctif précédent (le bouton supprimer qui se dévoilait au survol d\\'une conversation) avait par erreur rendu ce bouton cliquable sur TOUTE la ligne dès qu\\'on la survolait à la souris — donc à chaque clic pour ouvrir une conversation, c\\'était la confirmation de suppression qui s\\'affichait à la place. Corrigé : ouvrir une conversation en cliquant dessus fonctionne de nouveau normalement, à la souris comme au tactile.'},
-  {version:'2.40.1',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
+  {version:'2.40.1',category:'fix',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
     body:'Un appareil qui avait déjà sa propre clé de chiffrement locale (même générée par erreur, par exemple en visitant X1 une première fois avant d\\'avoir jamais restauré depuis un autre appareil) ne se voyait jamais proposer la restauration — pire, il pouvait silencieusement écraser la clé publique du compte, rendant les messages illisibles sur TOUS les appareils, pas seulement le nouveau. X1 détecte maintenant ce décalage et propose la restauration par mot de passe même sur un appareil déjà utilisé, sans jamais écraser la bonne clé.'},
-  {version:'2.40.0',date:'24 août 2026',time:'14:50',title:'Les salons de serveur passent au niveau des messages privés',
+  {version:'2.40.0',category:'feature',date:'24 août 2026',time:'14:50',title:'Les salons de serveur passent au niveau des messages privés',
     body:'Les salons textuels des serveurs ont maintenant le même habillage que tes conversations privées, avec plusieurs nouveautés partagées entre les deux : un bouton emoji dans la zone d\\'écriture, la possibilité de répondre à un message précis (aperçu de la citation, clic dessus pour retrouver le message d\\'origine), des réactions emoji sur n\\'importe quel message, et un vrai menu d\\'actions (répondre, réagir, signaler, supprimer pour tout le monde) au lieu des petits boutons du coin. Les messages de salon s\\'affichent aussi vraiment en direct désormais.'},
-  {version:'2.39.1',date:'24 août 2026',time:'12:05',title:'3 correctifs d\\'affichage : médailles, liste de messages, candidatures',
+  {version:'2.39.1',category:'fix',date:'24 août 2026',time:'12:05',title:'3 correctifs d\\'affichage : médailles, liste de messages, candidatures',
     body:'(1) La fenêtre de profil pouvait dépasser la hauteur de l\\'écran sans aucun moyen de faire défiler — sur un petit écran, tes médailles (juste sous ton pseudo) et les boutons du bas devenaient invisibles et inaccessibles. Elle défile maintenant proprement. (2) Dans la liste des messages privés, survoler une conversation avec la souris pour révéler le bouton supprimer poussait toute la ligne vers la gauche, faisant sortir la photo de profil de la zone cliquable — impossible de cliquer dessus pour voir le profil sans ouvrir la conversation. Le bouton supprimer apparaît maintenant par-dessus, sans rien déplacer. (3) La liste des candidatures d\\'équipe n\\'affichait aucun bouton pour qui n\\'est pas propriétaire du serveur (volontaire : seul le propriétaire décide) mais ne l\\'expliquait pas — un message le précise maintenant.'},
-  {version:'2.39.0',date:'24 août 2026',time:'11:35',title:'Signaler un message, suivre tes signalements, marquer un bug en doublon',
+  {version:'2.39.0',category:'feature',date:'24 août 2026',time:'11:35',title:'Signaler un message, suivre tes signalements, marquer un bug en doublon',
     body:'Tu peux maintenant signaler un message précis (pas seulement un profil), en DM comme dans un salon de serveur — le message cité arrive avec ton signalement. Nouvelle section "Mes signalements" dans les Paramètres → Compte : suis le statut de ce que tu as signalé, avec la note laissée par la modération si elle en a laissé une. Côté modération, un nouveau champ permet de laisser cette note en marquant un signalement traité ou rejeté. Enfin, un rapport de bug peut être marqué "Déjà signalé" — il ne compte plus dans les badges Chasseur de bugs, pour éviter qu\\'un même bug signalé par plusieurs personnes soit compté en double.'},
-  {version:'2.38.1',date:'24 août 2026',time:'11:10',title:'Correctif : le partage de position ne faisait rien',
+  {version:'2.38.1',category:'fix',date:'24 août 2026',time:'11:10',title:'Correctif : le partage de position ne faisait rien',
     body:'Contrairement à tous les autres types de message, le partage de position n\\'allait jamais chercher de clé de chiffrement E2E avant d\\'envoyer — la position partait donc en clair, et surtout, un échec d\\'envoi ne s\\'affichait nulle part (juste un journal technique invisible) : on cliquait, et rien ne semblait se passer. Corrigé sur les deux points.'},
-  {version:'2.38.0',date:'24 août 2026',time:'10:50',title:'Corrections suite à vos signalements : temps réel, présence, rôles',
+  {version:'2.38.0',category:'feature',date:'24 août 2026',time:'10:50',title:'Corrections suite à vos signalements : temps réel, présence, rôles',
     body:'Gros lot de correctifs : (1) les messages dans les salons de serveur n\\'arrivaient plus en direct — il fallait actualiser ou attendre — car ils n\\'avaient jamais la permission technique nécessaire pour le temps réel, corrigé sans rouvrir l\\'accès aux salons privés. (2) Les demandes d\\'ami n\\'apparaissaient plus dans la liste sans recharger la page — ajout d\\'une vraie mise à jour en direct. (3) Un ami déjà en ligne à ta connexion pouvait s\\'afficher "hors ligne" dans les listes alors que son profil montrait le bon statut — la liste des membres est plafonnée à 100 profils, tes amis et contacts DM au-delà de ce plafond ne recevaient jamais leur statut ; ils sont maintenant toujours récupérés. (4) L\\'heure des messages, disparue, est de retour (DM et salons de serveur). (5) Les photos de profil manquaient dans les salons texte de serveur — ajoutées, cliquables. (6) Nouveau bouton "Membres" sur chaque rôle pour voir et gérer qui l\\'a, sans passer membre par membre. (7) Le bandeau de restauration E2E affichait "mot de passe incorrect" même en cas de simple limite de débit ou de coupure réseau — message corrigé selon la vraie cause.'},
-  {version:'2.37.3',date:'24 août 2026',time:'00:05',title:'Correctif mobile : le clavier faisait zoomer l\\'écran en écrivant un message',
+  {version:'2.37.3',category:'fix',date:'24 août 2026',time:'00:05',title:'Correctif mobile : le clavier faisait zoomer l\\'écran en écrivant un message',
     body:'Sur iPhone, appuyer sur la zone d\\'écriture d\\'un message (ou le champ de mot de passe de restauration E2E) déclenchait un zoom automatique de la page — Safari zoome dès qu\\'un champ de texte a une police affichée sous 16px. Corrigé sur ces deux champs, sans rien changer à leur taille sur ordinateur.'},
-  {version:'2.37.2',date:'23 août 2026',time:'23:45',title:'Correctif mobile : bouton "Changer la photo" invisible sur les groupes',
+  {version:'2.37.2',category:'fix',date:'23 août 2026',time:'23:45',title:'Correctif mobile : bouton "Changer la photo" invisible sur les groupes',
     body:'En créant ou modifiant un groupe, le bouton "✏️ Changer la photo" sur l\\'avatar n\\'apparaissait qu\\'au survol de la souris — invisible et sans indice sur mobile (le cercle restait tapable, mais rien ne le montrait). Audit complet des autres interactions "au survol seulement" dans l\\'appli : les autres cas (bouton "⋯" sur les messages, glisser pour supprimer) ont déjà une vraie alternative tactile (glissement) et fonctionnent normalement.'},
-  {version:'2.37.1',date:'23 août 2026',time:'23:35',title:'Correctif d\\'affichage : zone encoche/barre du bas sur iPhone',
+  {version:'2.37.1',category:'fix',date:'23 août 2026',time:'23:35',title:'Correctif d\\'affichage : zone encoche/barre du bas sur iPhone',
     body:'La barre d\\'onglets du bas, la pastille d\\'appel flottante, les notifications toast, le bandeau de restauration E2E et les feuilles de confirmation glissantes pouvaient chevaucher l\\'encoche ou la barre de balayage en bas de l\\'écran sur iPhone (et appareils Android équivalents) — l\\'appli ne réservait jamais cet espace. Corrigé partout.'},
-  {version:'2.37.0',date:'23 août 2026',time:'23:20',title:'Modération et journal d\\'audit dans les Serveurs',
+  {version:'2.37.0',category:'feature',date:'23 août 2026',time:'23:20',title:'Modération et journal d\\'audit dans les Serveurs',
     body:'Les modérateurs (nouvelle permission "Modérer les membres") peuvent maintenant mettre un membre en timeout (silence temporaire, de 5 minutes à 1 semaine : il peut toujours lire mais plus écrire ni rejoindre le vocal) et supprimer les messages des autres, pas seulement les leurs. Un nouvel onglet "Journal" liste toutes les actions de modération et d\\'administration (expulsions, bannissements, timeouts, suppressions, changements de rôles et de salons…) avec qui a fait quoi et quand — visible par le propriétaire et les rôles avec la permission "Voir le journal d\\'audit". Au passage, la permission "Gérer les salons" — jamais assignable depuis l\\'éditeur de rôle depuis son ajout — est maintenant bien dans la liste.'},
-  {version:'2.36.2',date:'23 août 2026',time:'23:00',title:'Correctif : impossible de créer un salon vocal ou textuel',
+  {version:'2.36.2',category:'fix',date:'23 août 2026',time:'23:00',title:'Correctif : impossible de créer un salon vocal ou textuel',
     body:'Le bouton "+ Salon" appelait la fonction d\\'ouverture de l\\'éditeur directement comme gestionnaire de clic — le navigateur lui passait alors l\\'événement du clic à la place d\\'un salon, ce qui faisait croire à l\\'éditeur qu\\'il modifiait un salon existant au lieu d\\'en créer un nouveau. Résultat : la création échouait silencieusement et le salon n\\'apparaissait jamais dans la liste. Corrigé.'},
-  {version:'2.36.1',date:'23 août 2026',time:'22:45',title:'Corrections suite à vos signalements (encore !)',
+  {version:'2.36.1',category:'feature',date:'23 août 2026',time:'22:45',title:'Corrections suite à vos signalements (encore !)',
     body:'Plusieurs correctifs suite à des rapports de bugs : (1) sur un nouvel appareil connecté par clé d\\'accès (passkey), tes anciens messages chiffrés restaient "illisibles" même si une sauvegarde existait déjà — un nouveau bandeau te propose maintenant de saisir ton mot de passe pour les restaurer. (2) Dans l\\'éditeur de profil, si l\\'enregistrement des pronoms/statut/effets échouait (réseau), l\\'appli affichait quand même "Profil mis à jour" — l\\'erreur est maintenant visible et rien n\\'est perdu côté pseudo/bio/couleurs. (3) Quand deux personnes s\\'envoyaient une demande d\\'ami en même temps, elles devenaient amies en double (la même personne apparaissait deux fois) — les demandes croisées sont désormais fusionnées automatiquement, refuser une demande prévient aussi l\\'autre personne, et les doublons déjà présents en base ont été nettoyés.'},
-  {version:'2.36.0',date:'23 août 2026',time:'22:15',title:'Hiérarchie des rôles et permissions par salon dans les Serveurs',
+  {version:'2.36.0',category:'feature',date:'23 août 2026',time:'22:15',title:'Hiérarchie des rôles et permissions par salon dans les Serveurs',
     body:'Les rôles ont maintenant une position : ceux du haut de la liste sont plus puissants (leur couleur prime sur le pseudo, et un membre ne peut plus créer, modifier, supprimer ou attribuer un rôle égal ou supérieur au sien — seul le propriétaire y échappe). Boutons ▲▼ pour réorganiser. Chaque salon accepte désormais des permissions avancées par rôle (Voir / Écrire : autoriser ou refuser), en plus de la visibilité simple. Les rôles marqués "mentionnable" sont surlignés quand on écrit @NomDuRôle dans un salon texte.'},
-  {version:'2.35.0',date:'24 août 2026',time:'05:15',title:'Salons multiples et catégories dans les Serveurs',
+  {version:'2.35.0',category:'feature',date:'24 août 2026',time:'05:15',title:'Salons multiples et catégories dans les Serveurs',
     body:'Chaque serveur peut maintenant avoir plusieurs salons texte et vocaux, organisés en catégories. Les membres avec la permission "Gérer les salons" (ou "Gérer le serveur") peuvent créer des salons, les ranger en catégories, et restreindre certains salons à des rôles précis (les autres ne les voient même pas dans la liste). Les salons texte ont maintenant un vrai chat en temps réel, et chaque salon vocal a son propre salon LiveKit indépendant.'},
-  {version:'2.34.2',date:'24 août 2026',time:'04:20',title:'Correctif : les caméras envahissaient le chat pendant un appel privé',
+  {version:'2.34.2',category:'fix',date:'24 août 2026',time:'04:20',title:'Correctif : les caméras envahissaient le chat pendant un appel privé',
     body:'Quand un appel vidéo était actif dans la conversation que tu regardais, les caméras s\\'affichaient en grand directement au-dessus des messages, poussant toute la conversation hors de vue. Elles démarrent maintenant réduites en une petite pastille discrète ("Webcam active · toucher pour afficher") — un simple tap suffit pour les afficher en grand quand tu veux vraiment les voir.'},
-  {version:'2.34.1',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
+  {version:'2.34.1',category:'feature',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
     body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de X1.'},
-  {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
+  {version:'2.34.0',category:'feature',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
     body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…). Chaque serveur a son propre salon vocal persistant. Et si tu es X1+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
-  {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
+  {version:'2.33.0',category:'security',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
     body:'Corrigé : la photo de profil de l\\'interlocuteur n\\'apparaissait jamais dans l\\'en-tête d\\'une conversation privée (seulement ses initiales) — elle s\\'affiche maintenant correctement. Autre correctif plus important : la sauvegarde chiffrée qui permet de lire ses anciens messages en changeant d\\'appareil ne se déclenchait que lors d\\'une vraie reconnexion avec mot de passe — une session simplement restaurée à la réouverture de l\\'app (le cas le plus courant) ne l\\'activait jamais. Un petit bandeau propose maintenant de confirmer son mot de passe pour l\\'activer si ce n\\'est pas déjà fait, avec vérification du mot de passe avant de sauvegarder quoi que ce soit.'},
-  {version:'2.32.1',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
+  {version:'2.32.1',category:'fix',date:'24 août 2026',time:'01:35',title:'Correctif : le badge « salon vocal actif » pouvait rester affiché après un départ',
     body:'Un souci de permissions empêchait parfois la suppression propre de la présence en salon vocal en quittant un appel de groupe, ce qui pouvait laisser le badge « Salon vocal actif » affiché à tort. Corrigé, avec en plus un battement de coeur toutes les 60 secondes et un nettoyage automatique en cas de fermeture d\\'onglet — le badge se met désormais à jour de façon fiable, même en cas de coupure brutale (batterie, crash…).'},
-  {version:'2.32.0',date:'24 août 2026',time:'01:10',title:'Les appels de groupe sont de retour — salons vocaux',
+  {version:'2.32.0',category:'feature',date:'24 août 2026',time:'01:10',title:'Les appels de groupe sont de retour — salons vocaux',
     body:'Fini la maintenance : les conversations de groupe ont maintenant un vrai salon vocal, propulsé par un serveur dédié qui redistribue le son à tout le monde (au lieu de connecter chaque personne à chaque autre, plus lourd). Rejoins-le depuis le bouton 📞 d\\'une conversation de groupe — chaque participant apparaît avec sa photo, une onde qui réagit à sa voix, et un badge si son micro est coupé. Voix uniquement pour cette première version.'},
-  {version:'2.31.0',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
+  {version:'2.31.0',category:'feature',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
     body:'Pendant un appel privé, la photo de profil de l\\'interlocuteur affiche maintenant un léger halo animé qui réagit à sa voix en temps réel — épuré, discret, mais bien visible dès qu\\'il parle. Un petit badge 🔇 apparaît directement sur sa photo s\\'il coupe son micro, plus facile à repérer que l\\'ancien indicateur texte.'},
-  {version:'2.30.2',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
+  {version:'2.30.2',category:'fix',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
     body:'La vraie cause des appels sans son trouvée : les tout premiers "candidats" de connexion envoyés par la personne qui appelle (en quelques millisecondes) pouvaient arriver avant que la personne qui décroche ne soit prête à les recevoir (le temps d\\'accepter le micro) — et étaient alors perdus pour de bon, ce qui bloquait la connexion indéfiniment. X1 rattrape maintenant ces candidats manqués dès la connexion.'},
-  {version:'2.30.1',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
+  {version:'2.30.1',category:'fix',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
     body:'Dans un appel privé, il fallait parfois activer sa caméra pour que le son commence enfin à passer des deux côtés — le navigateur bloquait silencieusement la lecture audio si la négociation de connexion prenait quelques secondes de trop après le clic sur "Décrocher". Corrigé : le son démarre maintenant correctement dès la connexion, avec un rattrapage automatique dès la première interaction si jamais le navigateur bloque quand même.'},
-  {version:'2.30.0',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
+  {version:'2.30.0',category:'feature',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
     body:'Un bouton « Ajouter en ami » apparaît maintenant directement sur la fiche de profil de quelqu\\'un (il s\\'adapte automatiquement : demande déjà envoyée, demande reçue à accepter, ou déjà amis). Les appels de groupe, encore instables, sont mis en maintenance le temps d\\'être fiabilisés — le bouton d\\'appel apparaît grisé dans les conversations de groupe en attendant.'},
-  {version:'2.29.0',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
+  {version:'2.29.0',category:'feature',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
     body:'Les appels vocaux et vidéo (en privé comme en groupe) passaient jusqu\\'ici par un relai gratuit tiers, souvent saturé — d\\'où les cas où la caméra restait noire ou le son ne passait pas chez l\\'un des deux. X1 a maintenant son propre serveur dédié pour relayer les appels quand une connexion directe entre deux appareils n\\'est pas possible (réseaux mobiles, certains routeurs). Ça devrait nettement améliorer la fiabilité des appels pour tout le monde.'},
-  {version:'2.28.0',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
+  {version:'2.28.0',category:'feature',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
     body:'Un nouvel onglet ⭐ Abonnement apparaît dans Paramètres → Mon compte. Si tu as X1+ à vie (en devenant 👑 Légende du Bug, palier ultime du Bug Hunter), tu y retrouves ton statut et la date d\\'obtention. Sinon, un simple bouton « Je suis intéressé(e) » permet de nous faire savoir que X1+ t\\'intéresse — ça nous aide à savoir si ça vaut le coup de le développer davantage.'},
-  {version:'2.27.2',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
+  {version:'2.27.2',category:'fix',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
     body:'Cliquer sur la cloche 🔔 ouvrait bien le panneau de notifications, mais te renvoyait aussitôt sur la liste d\\'amis derrière, à cause d\\'un vieux bout de code en double resté par erreur. Corrigé : la cloche ouvre maintenant seulement tes notifications, sans changer d\\'onglet.'},
-  {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
+  {version:'2.27.1',category:'fix',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
     body:'Dans l\\'onglet Badges & paliers, un palier Bug Hunter déjà largement dépassé (par exemple Chasseur Novice pour quelqu\\'un qui a déjà 10 bugs résolus) pouvait s\\'afficher à tort comme "en cours" au lieu de "Débloqué". Corrigé.'},
-  {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe X1 et débloque tous les badges',
+  {version:'2.27.0',category:'feature',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe X1 et débloque tous les badges',
     body:'Nouveau bouton 🏅 dans la barre latérale, avec deux onglets. « L\\'équipe » présente qui fait tourner X1 par poste (Fondateur, Marketing, Modération, Gestion API & IA, Support) — un poste vacant ? Postule directement depuis l\\'app ! « Badges & paliers » est ta salle des trophées personnelle : tous les badges de la plateforme, leurs paliers, et exactement ce qu\\'il te reste à faire pour les débloquer, y compris ta progression en temps réel vers le prochain palier Bug Hunter.'},
-  {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
+  {version:'2.26.0',category:'feature',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
     body:'Cinq nouveaux bugs corrigés grâce à vos rapports. Les photos de profil manquaient aussi dans les messages privés (en plus de la liste d\\'amis) — corrigé. Les pronoms, le cadre de photo de profil et les préférences de confidentialité ne s\\'enregistraient plus depuis peu à cause d\\'un souci de permissions côté serveur — corrigé. Les clés d\\'accès ne se retrouvaient qu\\'avec l\\'e-mail exact et non le pseudo#tag, à cause d\\'un e-mail mal synchronisé après un changement d\\'adresse — corrigé. Et surtout : tes messages privés chiffrés ne sont plus perdus quand tu changes d\\'appareil ou de navigateur — ta clé de déchiffrement est maintenant sauvegardée (chiffrée avec ton mot de passe, jamais en clair) pour être restaurée automatiquement à ta prochaine connexion ailleurs.'},
-  {version:'2.25.0',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
+  {version:'2.25.0',category:'feature',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
     body:'Le badge 🐛 Bug Hunter a maintenant 5 paliers, du plus petit au plus grand : 🔍 Chasseur Novice (1 bug résolu), 🐛 Chasseur Confirmé (5), 🕷️ Chasseur Expert (10, débloque un accès en avant-première à certaines nouveautés), ⚔️ Exterminateur (25, accès en avant-première prioritaire), et 👑 Légende du Bug (50 — le sommet, avec X1+ offert à vie). Chaque palier est plus stylé que le précédent, calculé automatiquement selon tes rapports de bugs résolus. Suis ta progression dans le panneau Bug Hunter.'},
-  {version:'2.24.0',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
+  {version:'2.24.0',category:'feature',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
     body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour X1, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
-  {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
+  {version:'2.23.0',category:'feature',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
     body:'Merci pour vos rapports de bugs, très utiles ! Corrigés aujourd\\'hui : le titre d\\'une conversation privée pouvait afficher ton propre pseudo au lieu de celui de la personne en face ; le bouton « Accepter » d\\'une demande d\\'ami pouvait rester bloqué à cause du bouton supprimer juste à côté ; une barre noire apparaissait en bas de l\\'écran en dézoomant depuis les paramètres ; et cliquer sur son propre profil pouvait parfois afficher « Profil introuvable » par erreur. Les messages d\\'erreur d\\'inscription/connexion sont aussi plus clairs qu\\'avant.'},
-  {version:'2.22.0',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
+  {version:'2.22.0',category:'feature',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
     body:'Deux bugs corrigés aujourd\\'hui. D\\'abord, un souci de longue date empêchait parfois deux personnes différentes de choisir le même pseudo (même avec des tags différents), ce qui pouvait laisser des comptes à moitié créés — c\\'est réparé, et l\\'inscription nettoie maintenant automatiquement les tentatives ratées. Ensuite, les appels en messages privés : le son ne passait parfois ni d\\'un côté ni de l\\'autre, et la caméra pouvait afficher un écran noir chez la personne en face — corrigé en fiabilisant le démarrage audio et l\\'affichage vidéo.'},
-  {version:'2.21.0',date:'23 août 2026',time:'16:35',title:'Confirme ton adresse e-mail',
+  {version:'2.21.0',category:'feature',date:'23 août 2026',time:'16:35',title:'Confirme ton adresse e-mail',
     body:'Un e-mail de vérification t\\'est maintenant envoyé automatiquement à l\\'inscription : clique simplement sur le lien qu\\'il contient pour confirmer ton adresse. Tu peux voir le statut et renvoyer l\\'e-mail à tout moment depuis Paramètres → Mon compte.'},
-  {version:'2.20.0',date:'23 août 2026',time:'16:10',title:'Connecte-toi avec ton pseudo#tag, plus seulement ton e-mail',
+  {version:'2.20.0',category:'feature',date:'23 août 2026',time:'16:10',title:'Connecte-toi avec ton pseudo#tag, plus seulement ton e-mail',
     body:'Le champ de connexion accepte maintenant aussi bien ton e-mail que ton pseudo#tag (par exemple « shaman#7777 »), au choix — pratique si tu as oublié quel e-mail tu as utilisé pour t’inscrire. Ça marche aussi bien pour la connexion classique que pour les clés d’accès (Face ID, Windows Hello, empreinte…).'},
-  {version:'2.19.1',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
+  {version:'2.19.1',category:'feature',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
     body:'Dans le panneau de signalement de bug, tu peux maintenant joindre une image (par exemple une capture d’écran du problème) grâce au bouton « Joindre une capture d’écran ». Elle s’affiche ensuite dans tes rapports et dans le panneau de l’équipe, pour aider à comprendre le bug beaucoup plus vite.'},
-  {version:'2.19.0',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
+  {version:'2.19.0',category:'security',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
     body:'On a corrigé un bug qui permettait à deux personnes d’avoir exactement le même pseudo et le même tag à 4 chiffres, ce qui pouvait semer la confusion (par exemple pour ajouter le bon ami). Maintenant, X1 vérifie que ton pseudo#tag est unique à l’inscription et si tu changes ton tag depuis Paramètres → Mon compte, il te propose automatiquement un tag libre en cas de doublon. On en a profité pour afficher le tag dans les résultats de recherche d’amis, pour mieux distinguer les personnes qui portent le même pseudo.'},
-  {version:'2.18.1',date:'23 août 2026',time:'14:50',title:'Le site passe en HTTPS de force',
+  {version:'2.18.1',category:'security',date:'23 août 2026',time:'14:50',title:'Le site passe en HTTPS de force',
     body:'Si jamais tu arrives sur X1 en http:// (sans le petit cadenas), tu es maintenant redirigé automatiquement vers la version sécurisée https://, pour que ta connexion soit toujours chiffrée.'},
-  {version:'2.18.0',date:'23 août 2026',time:'14:10',title:'Connecte-toi avec Face ID, Windows Hello ou ton empreinte digitale',
+  {version:'2.18.0',category:'security',date:'23 août 2026',time:'14:10',title:'Connecte-toi avec Face ID, Windows Hello ou ton empreinte digitale',
     body:'Fini de taper ton mot de passe : dans Paramètres → Mon compte, ajoute une clé d’accès et connecte-toi ensuite avec ce que ton téléphone ou ton ordinateur propose déjà — reconnaissance faciale, empreinte digitale, code Windows Hello, ou une clé de sécurité physique. Tu peux en ajouter plusieurs (une par appareil) et les gérer à tout moment.'},
-  {version:'2.17.0',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
+  {version:'2.17.0',category:'security',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
     body:'Rends-toi dans Paramètres → Mon compte pour activer la vérification en deux étapes : associe une application comme Google Authenticator ou Authy, et X1 te demandera un code en plus de ton mot de passe à chaque connexion. Des codes de secours te sont donnés pour ne jamais rester bloqué dehors si tu perds ton téléphone.'},
-  {version:'2.16.1',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
+  {version:'2.16.1',category:'feature',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
     body:'Dans Paramètres → Raccourcis clavier, tu peux maintenant choisir toi-même les combinaisons de touches pour la recherche, les paramètres et l’ajout d’ami. Et le petit « Vu » sous tes messages fonctionne désormais aussi dans les conversations de groupe, avec le nom des personnes qui ont lu.'},
-  {version:'2.16.0',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
+  {version:'2.16.0',category:'design',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
     body:'X1 n’est plus obligé d’être tout sombre : rends-toi dans Paramètres → Apparence pour choisir « Clair » ou « Système » (l’app suit alors automatiquement le réglage de ton téléphone ou ordinateur). C’est une toute première version, encore un peu jeune — si une couleur ou un emoji te paraît bizarre en mode clair, dis-le-nous, on ajustera au fil des retours.'},
-  {version:'2.15.2',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
+  {version:'2.15.2',category:'feature',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
     body:'Un petit « Vu » apparaît maintenant sous ton dernier message envoyé dès que la personne a ouvert la conversation et l’a lu — en temps réel, sans avoir à rafraîchir quoi que ce soit. Pour l’instant disponible sur les conversations à deux ; les groupes arriveront ensuite.'},
-  {version:'2.15.1',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
+  {version:'2.15.1',category:'feature',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
     body:'Un petit indicateur « en train d’écrire… » apparaît maintenant en haut de la conversation dès que la personne en face tape un message — comme sur les grandes messageries. Il disparaît tout seul si elle s’arrête ou envoie son message.'},
-  {version:'2.15.0',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
+  {version:'2.15.0',category:'feature',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
     body:'Gros morceau technique aujourd’hui : jusqu’ici, tes messages ne se mettaient à jour que quand tu rouvrais une conversation. Ce n’est plus le cas ! Les nouveaux messages apparaissent maintenant instantanément dans la conversation ouverte, avec un petit son, et ta liste de conversations se réorganise et se met à jour toute seule dès que quelqu’un t’écrit. La synthèse vocale peut aussi lire à voix haute les nouveaux messages de la conversation que tu regardes.'},
-  {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'X1 peut maintenant te lire tes notifications à voix haute',
+  {version:'2.14.2',category:'feature',date:'23 août 2026',time:'12:20',title:'X1 peut maintenant te lire tes notifications à voix haute',
     body:'Dans Paramètres → Accessibilité, tu peux activer la synthèse vocale pour que tes notifications te soient lues à voix haute, avec un réglage de vitesse. On a aussi ajouté un vrai badge sur l’icône de l’app pour voir tes messages non lus d’un coup d’œil, et les GIF peuvent maintenant rester figés jusqu’à ce que tu passes ta souris dessus (pratique pour ne pas être distrait en pleine conversation).'},
-  {version:'2.14.1',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
+  {version:'2.14.1',category:'feature',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
     body:'Tape Ctrl (ou ⌘ sur Mac) + K pour sauter directement à la recherche, Ctrl/⌘ + virgule pour ouvrir les paramètres, et Échap pour fermer n’importe quelle fenêtre ouverte. Et quand quelqu’un partage un lien dans une conversation, une petite carte avec l’image et le titre du site s’affiche maintenant automatiquement (tu peux la désactiver dans Paramètres → Apparence).'},
-  {version:'2.14.0',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
+  {version:'2.14.0',category:'feature',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
     body:'Un nouveau ⚙️ « Paramètres » est apparu dans le menu ⋯ à côté de ton pseudo. Tu peux maintenant changer ton pseudo, ton e-mail et ton mot de passe, gérer qui peut t’ajouter en ami ou t’écrire, voir tes appareils connectés, régler tes sons de notification, activer des heures calmes automatiques, et bien plus encore. Certaines options marquées « Bientôt disponible » arriveront dans les prochaines mises à jour.'},
-  {version:'2.13.1',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
+  {version:'2.13.1',category:'feature',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
     body:'Tu es justement en train de le découvrir ! Il y a maintenant un endroit pour voir tout ce qui change sur X1. On a aussi rendu beaucoup plus visible la possibilité d\\'ajouter une photo de profil et une bannière dès l\\'inscription — toujours facultatif, bien sûr.'},
-  {version:'2.13.0',date:'22 août 2026',time:'23:46',title:'Un vrai centre de notifications',
+  {version:'2.13.0',category:'feature',date:'22 août 2026',time:'23:46',title:'Un vrai centre de notifications',
     body:'La cloche en bas à gauche ouvre maintenant un vrai panneau avec tes demandes d\\'ami, tes messages non lus et plus encore. Tu peux tout accepter ou refuser en un clic, et supprimer une notification d\\'un simple geste.'},
-  {version:'2.12.0',date:'22 août 2026',time:'23:22',title:'Ton statut est visible partout, en direct',
+  {version:'2.12.0',category:'feature',date:'22 août 2026',time:'23:22',title:'Ton statut est visible partout, en direct',
     body:'En ligne, absent, ne pas déranger ou invisible : choisis ton statut depuis ta barre de profil et il s\\'affiche maintenant en temps réel partout sur le site. La barre de profil a aussi été simplifiée pour prendre moins de place.'},
-  {version:'2.11.0',date:'22 août 2026',time:'23:08',title:'Personnalise complètement ton profil',
+  {version:'2.11.0',category:'feature',date:'22 août 2026',time:'23:08',title:'Personnalise complètement ton profil',
     body:'Nouveau panneau pour transformer ton profil de fond en comble : couleurs, dégradés, formes de boutons, effets de particules (étoiles, neige, confettis...), plusieurs photos qui défilent, réseaux sociaux et bien plus. Tu peux aussi changer ton tag à 4 chiffres ou le randomiser.'},
-  {version:'2.10.0',date:'22 août 2026',time:'22:44',title:'Trie tes discussions, supprime-les d\\'un geste, bloque qui tu veux',
+  {version:'2.10.0',category:'feature',date:'22 août 2026',time:'22:44',title:'Trie tes discussions, supprime-les d\\'un geste, bloque qui tu veux',
     body:'Tes conversations sont maintenant triées selon le dernier message reçu, avec l\\'heure affichée simplement. Tu peux supprimer une conversation ou un message d\\'un simple glissement, et bloquer quelqu\\'un directement depuis une discussion. Le partage de position fonctionne aussi de nouveau.'},
-  {version:'2.9.1',date:'22 août 2026',time:'22:35',title:'Le salon vocal reste ouvert, et la barre d\\'appel a un nouveau look',
+  {version:'2.9.1',category:'design',date:'22 août 2026',time:'22:35',title:'Le salon vocal reste ouvert, et la barre d\\'appel a un nouveau look',
     body:'Si la personne que tu appelles ne répond pas tout de suite, tu peux rester dans le salon — elle pourra te rejoindre plus tard. La barre d\\'appel change maintenant de couleur selon que ça sonne ou que vous êtes connectés.'},
-  {version:'2.9.0',date:'22 août 2026',time:'22:16',title:'Les appels vocaux et vidéo marchent enfin des deux côtés',
+  {version:'2.9.0',category:'feature',date:'22 août 2026',time:'22:16',title:'Les appels vocaux et vidéo marchent enfin des deux côtés',
     body:'On a corrigé plusieurs bugs qui empêchaient parfois de bien s\\'entendre ou de se voir en appel. Le son, la caméra et le partage d\\'écran sont maintenant bien plus fiables, même entre mobile et ordinateur.'}
 ];
+const CHANGELOG_CATEGORIES={
+  feature:{icon:'⚙️',label:'Fonctionnalité',color:'#7c3aed'},
+  fix:{icon:'🩹',label:'Correctif',color:'#22c55e'},
+  security:{icon:'🔒',label:'Sécurité',color:'#06b6d4'},
+  design:{icon:'🎨',label:'Design',color:'#ec4899'}
+};
+let changelogFilter='all';
 function renderChangelog(){
   const list=\$('cl-list');if(!list)return;
-  list.innerHTML=CHANGELOG.map(function(e,i){
+  const latestVersion=(CHANGELOG[0]&&CHANGELOG[0].version)||'';
+  let entries=CHANGELOG;
+  if(changelogFilter!=='all')entries=CHANGELOG.filter(function(e){return e.category===changelogFilter});
+  if(!entries.length){list.innerHTML='<div class="empty-hint">Aucune nouveauté dans cette catégorie.</div>';return}
+  list.innerHTML=entries.map(function(e,i){
+    const cat=CHANGELOG_CATEGORIES[e.category]||CHANGELOG_CATEGORIES.feature;
+    const isNew=e.version===latestVersion;
     return '<div class="cl-entry" style="animation-delay:'+(i*0.05)+'s">'
-      +'<div class="cl-dot'+(i===0?' cl-dot-new':'')+'"></div>'
-      +'<div class="cl-card">'
-        +'<div class="cl-head"><span class="cl-version">v'+esc(e.version)+'</span>'+(i===0?'<span class="cl-new-badge">🆕 Nouveau</span>':'')+'<span class="cl-date">'+esc(e.date)+' · '+esc(e.time)+'</span></div>'
+      +'<div class="cl-dot'+(isNew?' cl-dot-new':'')+'" style="--cl-accent:'+cat.color+'"></div>'
+      +'<div class="cl-card" style="--cl-accent:'+cat.color+'">'
+        +'<div class="cl-head"><span class="cl-version">v'+esc(e.version)+'</span><span class="cl-cat-chip">'+cat.icon+' '+esc(cat.label)+'</span>'+(isNew?'<span class="cl-new-badge">🆕 Nouveau</span>':'')+'<span class="cl-date">'+esc(e.date)+' · '+esc(e.time)+'</span></div>'
         +'<h4 class="cl-title">'+esc(e.title)+'</h4>'
         +'<p class="cl-body">'+esc(e.body)+'</p>'
       +'</div></div>';
@@ -5699,6 +5781,12 @@ function openChangelogPanel(){
   try{localStorage.setItem('xultra_last_seen_changelog',(CHANGELOG[0]&&CHANGELOG[0].version)||'');}catch(e){}
   updateChangelogBadge();
 }
+if(\$('cl-tabs'))\$('cl-tabs').addEventListener('click',function(e){
+  const btn=e.target.closest('.sg-tab');if(!btn)return;
+  \$('cl-tabs').querySelectorAll('.sg-tab').forEach(function(b){b.classList.toggle('on',b===btn)});
+  changelogFilter=btn.getAttribute('data-cat');
+  renderChangelog();
+});
 try{updateChangelogBadge();}catch(e){}
 if(\$('nav-changelog'))\$('nav-changelog').addEventListener('click',openChangelogPanel);
 if(\$('cl-close'))\$('cl-close').addEventListener('click',function(){\$('modal-changelog').classList.add('hidden')});
@@ -5985,7 +6073,7 @@ function loadAppPrefs(){
     displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
     animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
-    soundMessage:true,soundCall:true,soundMention:true,
+    soundMessage:true,soundCall:true,soundMention:true,vibrate:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
     analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null
   },p);
@@ -6101,6 +6189,17 @@ try{
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(appPrefs.theme==='system')applyThemeMode();});
 }catch(e){}
 applyAppPrefs();
+function vibrateFor(kind){
+  if(appPrefs.vibrate===false)return;
+  try{
+    if(!('vibrate' in navigator))return;
+    navigator.vibrate(kind==='call'?[200,90,200]:kind==='mention'?[45,35,45]:[30]);
+  }catch(e){}
+}
+// Petit carillon "signature" à deux notes (quinte do-sol) plutôt qu'un bip à
+// une seule fréquence — plus reconnaissable, toujours bref et discret (demandé
+// explicitement : "pas trop chiant"). Utilisé pour message/mention ; l'appel
+// entrant a en plus sa propre sonnerie qui boucle (voir startCallRingtone).
 function playNotifSound(kind){
   if(kind==='message'&&!appPrefs.soundMessage)return;
   if(kind==='call'&&!appPrefs.soundCall)return;
@@ -6108,17 +6207,51 @@ function playNotifSound(kind){
   try{
     const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
     const ctx=new Ctx();
-    const o=ctx.createOscillator(),g=ctx.createGain();
-    o.type='sine';
-    o.frequency.value=kind==='call'?660:(kind==='mention'?880:520);
-    g.gain.value=0.0001;
-    o.connect(g);g.connect(ctx.destination);
-    const now=ctx.currentTime;
-    g.gain.exponentialRampToValueAtTime(0.12,now+0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001,now+(kind==='call'?0.5:0.28));
-    o.start(now);o.stop(now+(kind==='call'?0.55:0.32));
-    o.onended=function(){try{ctx.close();}catch(e){}};
+    const notes=kind==='call'?[587]:(kind==='mention'?[659,880]:[523,784]);
+    notes.forEach(function(freq,i){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.value=0.0001;
+      o.connect(g);g.connect(ctx.destination);
+      const start=ctx.currentTime+i*0.1;
+      g.gain.exponentialRampToValueAtTime(0.13,start+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,start+0.34);
+      o.start(start);o.stop(start+0.38);
+    });
+    setTimeout(function(){try{ctx.close();}catch(e){}},700);
   }catch(e){}
+  vibrateFor(kind);
+}
+let callRingtoneTimer=null;
+function playCallRingtoneOnce(){
+  try{
+    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
+    const ctx=new Ctx();
+    // Deux notes courtes et rondes (mi-sol), volume modéré, avec un vrai
+    // silence entre chaque répétition — une vraie sonnerie de téléphone,
+    // pas une alarme stridente en boucle continue.
+    [659,784].forEach(function(freq,i){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.value=0.0001;
+      o.connect(g);g.connect(ctx.destination);
+      const start=ctx.currentTime+i*0.16;
+      g.gain.exponentialRampToValueAtTime(0.15,start+0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001,start+0.42);
+      o.start(start);o.stop(start+0.46);
+    });
+    setTimeout(function(){try{ctx.close();}catch(e){}},800);
+  }catch(e){}
+  vibrateFor('call');
+}
+function startCallRingtone(){
+  stopCallRingtone();
+  if(!appPrefs.soundCall)return;
+  playCallRingtoneOnce();
+  callRingtoneTimer=setInterval(playCallRingtoneOnce,2600);
+}
+function stopCallRingtone(){
+  if(callRingtoneTimer){clearInterval(callRingtoneTimer);callRingtoneTimer=null;}
 }
 function speakText(text){
   if(!appPrefs||!appPrefs.ttsEnabled||!text)return;
@@ -7006,6 +7139,7 @@ function renderSetNotifications(box){
       +toggleRow('Message','soundMessage',appPrefs.soundMessage)
       +toggleRow('Appel','soundCall',appPrefs.soundCall)
       +toggleRow('Mention','soundMention',appPrefs.soundMention)
+      +toggleRow('Vibration (notification et appel entrant)','vibrate',appPrefs.vibrate)
     +'</div>'
     +'<div class="set-card"><div class="set-section-label">Ne pas déranger</div>'
       +toggleRow('Heures calmes planifiées','dndScheduleEnabled',appPrefs.dndScheduleEnabled)
@@ -7432,10 +7566,16 @@ async function loadMembers(){
   const r=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]);
   membersCache=r.documents||[];
   try{
+    // Bug remonté par Yani (badge qui disparaît après un changement de
+    // pseudo ou une modification des paramètres du serveur) : ce cache est
+    // plafonné à 100 profils par appel, et un vidage complet ici effaçait à
+    // chaque rappel les entrées de tous les membres au-delà de ce plafond,
+    // backfillées ailleurs par ensureMembersCached() — d'où la disparition
+    // de leur badge dès que loadMembers() se relançait. On fusionne
+    // maintenant au lieu de vider, comme ensureMembersCached() le fait déjà.
     const m=await db.listDocuments(DB,'user_meta',[Appwrite.Query.limit(100)]);
-    memberMetaByUid={};
     (m.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d});
-  }catch(e){memberMetaByUid={}}
+  }catch(e){}
   refreshPresenceMap();
   return membersCache;
 }
@@ -8002,6 +8142,8 @@ function dmTitleFor(dm){
      Pour un 1:1, le titre doit toujours être recalculé par rapport à qui
      regarde ; displayName ne fait sens que pour un vrai nom de groupe. */
   if(dmIsGroup(dm))return dm.displayName||'Groupe';
+  const pers=dmPersonalizationCache[dm.\$id];
+  if(pers&&pers.nickname)return pers.nickname;
   const peerUid=dmPeerId(dm);
   const peer=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(peerUid)});
   if(peer)return peer.displayName||peer.username||'Conversation';
@@ -8013,6 +8155,123 @@ async function loadDms(){
   dmsCache=(r.documents||[]).filter(function(d){return (d.members||[]).map(String).indexOf(me.\$id)>=0});
   return dmsCache;
 }
+/* ===== Personnalisation des conversations privées (façon Telegram/WhatsApp/
+   Signal) — surnom, couleurs de bulles, fond d'écran. Strictement privé à
+   chaque personne : stocké dans une collection dédiée avec permissions par
+   document (documentSecurity), jamais dans le document "dms" partagé (lisible
+   par les deux membres) pour que personne ne puisse voir le surnom ou les
+   couleurs que TU as choisis pour ta propre vue de la conversation. ===== */
+let dmPersonalizationCache={};
+const DM_WALLPAPERS={
+  none:{label:'Aucun',css:''},
+  nebula:{label:'Nébuleuse',css:'radial-gradient(circle at 30% 20%,rgba(124,58,237,.35),transparent 55%),radial-gradient(circle at 80% 80%,rgba(236,72,153,.28),transparent 55%)'},
+  aurora:{label:'Aurore',css:'linear-gradient(160deg,rgba(6,182,212,.22),rgba(124,58,237,.22) 55%,rgba(236,72,153,.18))'},
+  sunset:{label:'Coucher de soleil',css:'linear-gradient(160deg,rgba(249,115,22,.22),rgba(236,72,153,.22) 60%,rgba(124,58,237,.2))'},
+  midnight:{label:'Minuit',css:'radial-gradient(circle at 50% 0%,rgba(76,29,149,.35),transparent 60%)'},
+  candy:{label:'Bonbon',css:'linear-gradient(135deg,rgba(236,72,153,.25) 0%,rgba(236,72,153,.25) 25%,rgba(124,58,237,.25) 25%,rgba(124,58,237,.25) 50%,rgba(236,72,153,.25) 50%,rgba(236,72,153,.25) 75%,rgba(124,58,237,.25) 75%),linear-gradient(135deg,rgba(236,72,153,.25) 0%,rgba(236,72,153,.25) 25%,rgba(124,58,237,.25) 25%,rgba(124,58,237,.25) 50%,rgba(236,72,153,.25) 50%,rgba(236,72,153,.25) 75%,rgba(124,58,237,.25) 75%)',size:'34px 34px'},
+  forest:{label:'Forêt de nuit',css:'linear-gradient(160deg,rgba(16,185,129,.18),rgba(30,58,138,.22))'},
+  mono:{label:'Sobre',css:'linear-gradient(rgba(255,255,255,.03),rgba(255,255,255,.03))'}
+};
+async function loadDmPersonalization(){
+  if(!me){dmPersonalizationCache={};return}
+  try{
+    const r=await db.listDocuments(DB,'dm_personalization',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(200)]);
+    dmPersonalizationCache={};
+    (r.documents||[]).forEach(function(d){dmPersonalizationCache[d.threadId]=d;});
+  }catch(e){dmPersonalizationCache={};xlog('dm_personalization_load_fail',{msg:(e&&e.message)||String(e)});}
+}
+async function saveDmPersonalization(threadId,patch){
+  if(!me||!threadId)return;
+  const existing=dmPersonalizationCache[threadId];
+  if(existing&&existing.\$id){
+    const updated=await db.updateDocument(DB,'dm_personalization',existing.\$id,patch);
+    dmPersonalizationCache[threadId]=Object.assign({},existing,updated);
+  }else{
+    const data=Object.assign({uid:me.\$id,threadId:threadId,nickname:'',bubbleMine:'',bubbleTheirs:'',textColor:'',wallpaper:''},patch);
+    const created=await db.createDocument(DB,'dm_personalization',Appwrite.ID.unique(),data,[
+      Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
+    ]);
+    dmPersonalizationCache[threadId]=created;
+  }
+}
+function dmpSetVar(el,name,val){if(val)el.style.setProperty(name,val);else el.style.removeProperty(name);}
+function applyDmPersonalizationStyle(threadId){
+  const msgsEl=\$('msgs');if(!msgsEl)return;
+  const pers=dmPersonalizationCache[threadId]||{};
+  dmpSetVar(msgsEl,'--dm-bubble-mine',pers.bubbleMine);
+  dmpSetVar(msgsEl,'--dm-bubble-theirs',pers.bubbleTheirs);
+  dmpSetVar(msgsEl,'--dm-text-color',pers.textColor);
+  const wp=DM_WALLPAPERS[pers.wallpaper];
+  msgsEl.style.backgroundImage=wp?wp.css:'';
+  msgsEl.style.backgroundSize=(wp&&wp.size)?wp.size:'';
+}
+let dmpSelectedWallpaper='none';
+function openDmPersonalizeModal(){
+  if(!activeDm||activeDmIsGroup)return;
+  const pers=dmPersonalizationCache[activeDm]||{};
+  \$('dmp-nickname').value=pers.nickname||'';
+  \$('dmp-bubble-mine').value=pers.bubbleMine||'#7c3aed';
+  \$('dmp-bubble-theirs').value=pers.bubbleTheirs||'#241a38';
+  \$('dmp-text-color').value=pers.textColor||'#f2ebff';
+  dmpSelectedWallpaper=pers.wallpaper||'none';
+  renderDmpWallpapers();
+  \$('modal-dm-personalize').classList.remove('hidden');
+}
+function renderDmpWallpapers(){
+  const box=\$('dmp-wallpapers');if(!box)return;
+  box.innerHTML=Object.keys(DM_WALLPAPERS).map(function(id){
+    const wp=DM_WALLPAPERS[id];
+    const bg=wp.css||'rgba(255,255,255,.05)';
+    return '<button type="button" class="dmp-wp-swatch'+(dmpSelectedWallpaper===id?' on':'')+'" data-wp="'+esc(id)+'" style="background-image:'+esc(bg)+(wp.size?';background-size:'+esc(wp.size):'')+'" title="'+esc(wp.label)+'"></button>';
+  }).join('');
+  box.querySelectorAll('[data-wp]').forEach(function(btn){
+    btn.onclick=function(){
+      dmpSelectedWallpaper=btn.getAttribute('data-wp');
+      box.querySelectorAll('.dmp-wp-swatch').forEach(function(b){b.classList.toggle('on',b===btn)});
+    };
+  });
+}
+if(\$('btn-dm-personalize'))\$('btn-dm-personalize').addEventListener('click',openDmPersonalizeModal);
+if(\$('dmp-close'))\$('dmp-close').addEventListener('click',function(){\$('modal-dm-personalize').classList.add('hidden')});
+if(\$('modal-dm-personalize'))\$('modal-dm-personalize').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('dmp-save'))\$('dmp-save').addEventListener('click',async function(){
+  if(!activeDm)return;
+  const btn=\$('dmp-save');btn.disabled=true;btn.textContent='Enregistrement…';
+  try{
+    await saveDmPersonalization(activeDm,{
+      nickname:(\$('dmp-nickname').value||'').trim().slice(0,60),
+      bubbleMine:\$('dmp-bubble-mine').value||'',
+      bubbleTheirs:\$('dmp-bubble-theirs').value||'',
+      textColor:\$('dmp-text-color').value||'',
+      wallpaper:dmpSelectedWallpaper==='none'?'':dmpSelectedWallpaper
+    });
+    applyDmPersonalizationStyle(activeDm);
+    const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+    if(dm)\$('ch-title').textContent=dmTitleFor(dm);
+    renderDms();
+    renderMessages(true);
+    showToast('Personnalisation enregistrée !');
+    \$('modal-dm-personalize').classList.add('hidden');
+  }catch(e){showToast((e&&e.message)||'Enregistrement impossible','error');}
+  btn.disabled=false;btn.textContent='Enregistrer';
+});
+if(\$('dmp-reset'))\$('dmp-reset').addEventListener('click',async function(){
+  if(!activeDm)return;
+  const btn=\$('dmp-reset');btn.disabled=true;
+  try{
+    await saveDmPersonalization(activeDm,{nickname:'',bubbleMine:'',bubbleTheirs:'',textColor:'',wallpaper:''});
+    applyDmPersonalizationStyle(activeDm);
+    const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+    if(dm)\$('ch-title').textContent=dmTitleFor(dm);
+    renderDms();
+    renderMessages(true);
+    showToast('Personnalisation réinitialisée.');
+    \$('modal-dm-personalize').classList.add('hidden');
+  }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+  btn.disabled=false;
+});
 function fmtClockTime(dateStr){
   if(!dateStr)return '';
   try{return new Date(dateStr).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
@@ -8608,12 +8867,19 @@ function mountProfileCardExtras(container){
       },3000);
     }
     if(typeof IS_HOVER_DEVICE!=='undefined'&&IS_HOVER_DEVICE){
+      // Bug remonté par Yani Neco : le survol ne faisait bouger que le
+      // contenu (.pc-card) sans le cadre de la fenêtre (.profile-card) qui
+      // l'entoure, donnant l'impression que le premier plan "flotte" hors de
+      // son cadre. Les deux tiltent maintenant ensemble.
+      const frame=card.closest('.profile-card');
       card.addEventListener('mousemove',function(e){
         const r=card.getBoundingClientRect();
         const px=(e.clientX-r.left)/r.width-0.5,py=(e.clientY-r.top)/r.height-0.5;
-        card.style.transform='perspective(700px) rotateY('+(px*6)+'deg) rotateX('+(py*-6)+'deg)';
+        const t='perspective(700px) rotateY('+(px*6)+'deg) rotateX('+(py*-6)+'deg)';
+        card.style.transform=t;
+        if(frame)frame.style.transform=t;
       });
-      card.addEventListener('mouseleave',function(){card.style.transform='';});
+      card.addEventListener('mouseleave',function(){card.style.transform='';if(frame)frame.style.transform='';});
     }
   }
 }
@@ -9333,6 +9599,9 @@ async function openDm(threadId,title,peerUid){
   \$('ch-title').style.cursor=openHeaderAction?'pointer':'';
   \$('ch-title').onclick=openHeaderAction;
   document.getElementById('app').classList.add('chat-open');
+  applyDmPersonalizationStyle(threadId);
+  const personalizeBtn=\$('btn-dm-personalize');
+  if(personalizeBtn)personalizeBtn.classList.toggle('hidden',activeDmIsGroup);
   repositionCallPanel();
   const callBtn=\$('btn-call-start');
   if(callBtn){
@@ -11689,7 +11958,13 @@ function closeStoryViewer(){
   if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
   storyViewerState=null;
   const overlay=\$('story-viewer-overlay');
-  if(overlay)overlay.classList.remove('show');
+  if(overlay){
+    // Fermer la fenêtre ne suffisait pas à arrêter une story vidéo : elle
+    // restait dans le DOM (masquée) et continuait à jouer son son jusqu'à la
+    // fin. On coupe explicitement toute vidéo avant de masquer.
+    overlay.querySelectorAll('video').forEach(function(v){try{v.pause();v.removeAttribute('src');v.load();}catch(e){}});
+    overlay.classList.remove('show');
+  }
   loadStories();
 }
 function storyViewerNext(){
@@ -12554,9 +12829,38 @@ function musicEnsureAudio(){
   musicAudioEl.addEventListener('timeupdate',musicUpdatePlayerBar);
   musicAudioEl.addEventListener('loadedmetadata',musicUpdatePlayerBar);
   musicAudioEl.addEventListener('seeked',function(){musicSeekingByUser=false;musicUpdatePlayerBar();});
-  musicAudioEl.addEventListener('play',function(){renderMusicPlayIcons();});
-  musicAudioEl.addEventListener('pause',function(){renderMusicPlayIcons();});
+  musicAudioEl.addEventListener('play',function(){renderMusicPlayIcons();musicSyncMediaSessionState();});
+  musicAudioEl.addEventListener('pause',function(){renderMusicPlayIcons();musicSyncMediaSessionState();});
+  // Métadonnées envoyées à l'appareil (écran verrouillé, contrôles casque
+  // Bluetooth, notification média Android/iOS...) — jusqu'ici totalement
+  // absentes (bug remonté par Yani : "aucune métadonnée n'est envoyée
+  // depuis l'application vers les appareils").
+  if('mediaSession' in navigator){
+    try{
+      navigator.mediaSession.setActionHandler('play',function(){musicAudioEl.play().catch(function(){});});
+      navigator.mediaSession.setActionHandler('pause',function(){musicAudioEl.pause();});
+      navigator.mediaSession.setActionHandler('previoustrack',musicPrev);
+      navigator.mediaSession.setActionHandler('nexttrack',musicNext);
+      navigator.mediaSession.setActionHandler('seekto',function(d){if(d&&typeof d.seekTime==='number')musicAudioEl.currentTime=d.seekTime;});
+    }catch(e){}
+  }
   return musicAudioEl;
+}
+function musicSyncMediaSessionState(){
+  if(!('mediaSession' in navigator)||!musicAudioEl)return;
+  try{navigator.mediaSession.playbackState=musicAudioEl.paused?'paused':'playing';}catch(e){}
+}
+function musicSyncMediaSessionMeta(t){
+  if(!('mediaSession' in navigator)||!t)return;
+  try{
+    const cover=safeUrl(t.coverUrl);
+    navigator.mediaSession.metadata=new MediaMetadata({
+      title:t.title||'Titre inconnu',
+      artist:t.artistName||'Artiste inconnu',
+      album:'X1 Music',
+      artwork:cover?[{src:cover,sizes:'512x512',type:'image/jpeg'}]:[]
+    });
+  }catch(e){}
 }
 function musicMatchesSearch(t,q){
   if(!q)return true;
@@ -12933,6 +13237,7 @@ async function musicPlayTrack(trackId,keepRadio){
   musicSyncMiniBar();
   renderMusicBody();
   musicSyncFullPlayerMeta();
+  musicSyncMediaSessionMeta(t);
   musicLoadLyricsFor(t);
   const newPlays=(t.playsCount||0)+1;
   t.playsCount=newPlays;
@@ -15741,7 +16046,7 @@ function startCallPolling(){
 let ringSubtitleTimeoutId=null;
 function showIncomingCall(doc){
   incomingCallDoc=doc;
-  playNotifSound('call');
+  startCallRingtone();
   \$('ic-name').textContent=doc.callerName||'Appel inconnu';
   const av=\$('ic-av');
   if(safeUrl(doc.callerAvatar))av.innerHTML='<img src="'+esc(safeUrl(doc.callerAvatar))+'" alt=""/>';
@@ -15769,6 +16074,7 @@ function showIncomingCall(doc){
 }
 function dismissIncomingCall(){
   incomingCallDoc=null;
+  stopCallRingtone();
   \$('modal-incoming-call').classList.add('hidden');
   \$('ic-sub').textContent='Appel vocal entrant…';
   if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
@@ -19235,6 +19541,14 @@ async function handleEmailVerificationLink(){
     vUserId=params.get('userId')||'';vSecret=params.get('secret')||'';
   }catch(e){}
   if(!vUserId||!vSecret)return;
+  try{history.replaceState(null,'',location.pathname);}catch(e){}
+  // Jamais de validation automatique au simple chargement de la page : les
+  // scanners de liens anti-hameçonnage de certains clients mail (Outlook
+  // Safe Links, Proofpoint...) suivent tout seuls les liens d'un e-mail
+  // avant même que la personne ne l'ouvre elle-même — ça validait
+  // l'adresse à sa place, sans aucun clic réel (bug remonté par Yani).
+  // Une confirmation explicite est maintenant requise.
+  if(!confirm('Confirmer la vérification de ton adresse e-mail ?'))return;
   try{
     await account.updateVerification(vUserId,vSecret);
     if(me&&me.\$id===vUserId)me.emailVerification=true;
@@ -19242,7 +19556,6 @@ async function handleEmailVerificationLink(){
   }catch(e){
     showToast('Lien de vérification invalide ou expiré.','error');
   }
-  try{history.replaceState(null,'',location.pathname);}catch(e){}
 }
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
