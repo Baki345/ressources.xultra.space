@@ -46,6 +46,178 @@ async function generateTurnCredential(secret, username) {
 const LIVEKIT_WS_URL = "wss://voice.xultra.space";
 const LIVEKIT_API_KEY = "API51792402caf597ed";
 const LIVEKIT_API_SECRET = "c42e2c1881c2db44aec27002acbc8d8a019cff224719368af7de17f3ee514aac";
+// Kit de démarrage téléchargeable (voir /api/bots/starter-kit) : un bot Node.js
+// complet, zéro dépendance (uniquement http + crypto, natifs), prêt à lancer
+// avec `node bot-x1.js` après avoir renseigné BOT_TOKEN dans un fichier .env.
+// Volontairement écrit sans backtick ni ${} : ce texte vit dans un template
+// literal côté serveur (hors du gros template APP du client), donc seuls les
+// backticks/${} de CE fichier compteraient comme des séquences actives — le
+// script lui-même s'en passe entièrement (guillemets simples + concaténation).
+const STARTER_BOT_JS = `#!/usr/bin/env node
+'use strict';
+// ===== Bot de démarrage X1 =====
+// Zéro dépendance : uniquement les modules natifs de Node.js (http, crypto, fs).
+// 1) Crée un bot dans Paramètres → 🤖 Bots sur https://xultra.space, copie son
+//    token secret.
+// 2) Crée un fichier .env à côté de ce script avec : BOT_TOKEN=x1bot_xxxxx
+// 3) Lance : node bot-x1.js
+// 4) Rends le endpoint joignable en HTTPS (voir le tuto dans le portail) puis
+//    colle son URL + /interactions dans le champ "URL d'interactions" du bot.
+const http = require('http');
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+
+// --- Mini chargeur de .env (pas besoin d'installer dotenv) ---
+function loadEnvFile(file) {
+  try {
+    const raw = fs.readFileSync(file, 'utf8');
+    raw.split('\\n').forEach(function (line) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed[0] === '#') return;
+      const eq = trimmed.indexOf('=');
+      if (eq === -1) return;
+      const key = trimmed.slice(0, eq).trim();
+      let val = trimmed.slice(eq + 1).trim();
+      if ((val[0] === '"' && val[val.length - 1] === '"') || (val[0] === "'" && val[val.length - 1] === "'")) {
+        val = val.slice(1, -1);
+      }
+      if (!(key in process.env)) process.env[key] = val;
+    });
+  } catch (e) { /* pas de .env, tant pis : on retombe sur l'environnement système */ }
+}
+loadEnvFile(path.join(__dirname, '.env'));
+
+const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const PORT = parseInt(process.env.PORT || '3000', 10);
+
+if (!BOT_TOKEN) {
+  console.error('[bot-x1] BOT_TOKEN manquant. Ajoute un fichier .env avec BOT_TOKEN=x1bot_xxxxx');
+  process.exit(1);
+}
+
+// --- Vérifie que la requête vient bien de X1 (HMAC-SHA256 du corps brut) ---
+function verifySignature(rawBody, signatureHeader) {
+  if (!signatureHeader) return false;
+  const expected = crypto.createHmac('sha256', BOT_TOKEN).update(rawBody).digest('hex');
+  const a = Buffer.from(expected, 'utf8');
+  const b = Buffer.from(String(signatureHeader), 'utf8');
+  if (a.length !== b.length) return false;
+  try { return crypto.timingSafeEqual(a, b); } catch (e) { return false; }
+}
+
+function sendJson(res, status, obj) {
+  const body = JSON.stringify(obj);
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(body);
+}
+
+function readBody(req) {
+  return new Promise(function (resolve, reject) {
+    const chunks = [];
+    req.on('data', function (c) { chunks.push(c); });
+    req.on('end', function () { resolve(Buffer.concat(chunks).toString('utf8')); });
+    req.on('error', reject);
+  });
+}
+
+// --- Logique du bot : à personnaliser librement à partir d'ici ---
+function handleCommand(payload) {
+  const name = payload.command && payload.command.name;
+  const args = (payload.command && payload.command.args) || {};
+  const user = payload.user || {};
+
+  if (name === 'ping') {
+    return {
+      content: 'Pong ! 🏓',
+      components: [{ label: 'Encore', style: 'primary', customId: 'ping_again' }]
+    };
+  }
+  if (name === 'say') {
+    const texte = args.texte || '(rien à dire)';
+    return { content: texte, ephemeral: true };
+  }
+  if (name === 'info') {
+    return {
+      content: '',
+      embed: {
+        title: 'Bot de démarrage X1',
+        description: 'Bonjour ' + (user.username || 'toi') + ' ! Ce bot tourne sur le kit de démarrage officiel.',
+        color: '7c3aed',
+        fields: [
+          { name: 'Commandes', value: '/ping, /say, /info', inline: true },
+          { name: 'Hébergement', value: 'Ton propre PC ou VPS', inline: true }
+        ],
+        footer: 'Modifie handleCommand() dans bot-x1.js pour personnaliser'
+      }
+    };
+  }
+  return { content: 'Commande inconnue : /' + (name || '?'), ephemeral: true };
+}
+
+function handleComponent(payload) {
+  const customId = payload.component && payload.component.customId;
+  if (customId === 'ping_again') {
+    return { content: 'Re-pong ! 🏓', components: [{ label: 'Encore', style: 'primary', customId: 'ping_again' }] };
+  }
+  return { content: 'Bouton inconnu.', ephemeral: true };
+}
+
+const server = http.createServer(function (req, res) {
+  if (req.method === 'GET' && req.url === '/') {
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Bot X1 en ligne. Endpoints : POST /interactions, POST /events');
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/interactions') {
+    readBody(req).then(function (raw) {
+      const signature = req.headers['x-x1-signature'];
+      if (!verifySignature(raw, signature)) {
+        sendJson(res, 401, { error: 'signature invalide' });
+        return;
+      }
+      let payload;
+      try { payload = JSON.parse(raw); } catch (e) { sendJson(res, 400, { error: 'JSON invalide' }); return; }
+
+      let reply;
+      try {
+        if (payload.type === 'command') reply = handleCommand(payload);
+        else if (payload.type === 'component') reply = handleComponent(payload);
+        else reply = { content: 'Type d\\'interaction non géré.', ephemeral: true };
+      } catch (e) {
+        console.error('[bot-x1] erreur handler:', e);
+        reply = { content: 'Erreur interne du bot.', ephemeral: true };
+      }
+      sendJson(res, 200, reply);
+    }).catch(function () { sendJson(res, 400, { error: 'lecture du corps échouée' }); });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/events') {
+    // Fire-and-forget : X1 n'attend aucune réponse ici, mais on vérifie quand
+    // même la signature pour ignorer tout appel qui ne viendrait pas de X1.
+    readBody(req).then(function (raw) {
+      const signature = req.headers['x-x1-signature'];
+      if (!verifySignature(raw, signature)) { res.writeHead(401); res.end(); return; }
+      try {
+        const payload = JSON.parse(raw);
+        console.log('[bot-x1] événement reçu :', payload.event, payload.data && payload.data.channel && payload.data.channel.id);
+        // Personnalise ici : relais, log, modération auto, etc.
+      } catch (e) { /* ignore */ }
+      res.writeHead(200); res.end();
+    }).catch(function () { res.writeHead(400); res.end(); });
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Not found');
+});
+
+server.listen(PORT, function () {
+  console.log('[bot-x1] en écoute sur le port ' + PORT + ' — configure ton URL d\\'interactions vers ' + '<ton-url-publique>/interactions');
+});
+`;
 // ID Appwrite déterministe court à partir d'une chaîne arbitraire (ex :
 // channelId+uid) — utile quand concaténer deux ID Appwrite bout à bout
 // dépasserait la limite de 36 caractères d'un documentId.
@@ -5504,6 +5676,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.24.0',category:'feature',date:'28 août 2026',time:'23:59',title:'📦 Bots : kit de démarrage téléchargeable',
+    body:'Nouveau bouton dans Paramètres → 🤖 Bots : télécharge un bot Node.js déjà fonctionnel (bot-x1.js) — zéro dépendance à installer, seulement les modules natifs de Node (http, crypto), avec les commandes /ping, /say et /info déjà câblées et la vérification de signature déjà en place. Un tuto complet accompagne le fichier, étape par étape : installer Node.js, renseigner le token dans un .env, lancer le script, puis le rendre joignable en HTTPS soit via un tunnel gratuit le temps d\\'un test sur son propre PC, soit sur un petit VPS pour du 24/7 avec pm2 et un reverse proxy. De quoi avoir un premier bot en ligne en quelques minutes, sans écrire une ligne de code, tout en gardant un point de départ librement modifiable plutôt qu\\'une boîte noire.'},
   {version:'4.23.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🎙️ Bots : accès aux salons vocaux',
     body:'Les salons vocaux de serveur tournent sur LiveKit (un vrai SFU) plutôt que du WebRTC fait main — ce qui permet à un bot de les rejoindre via le SDK serveur LiveKit (ex. @livekit/rtc-node en Node.js) dans son propre process, sans réimplémenter ICE/DTLS/SRTP. Un propriétaire de serveur accorde l\\'accès vocal à un bot installé (paramètres du serveur → 🤖 Bots — jamais plus que ce que l\\'installateur détient lui-même), le bot demande alors un jeton via une nouvelle route de l\\'API et rejoint le salon avec le même mécanisme que le client web, avec option d\\'apparaître dans la liste des participants comme un membre. X1 ne fait toujours aucun traitement audio à la place du bot (reconnaissance vocale, synthèse, mixage) — comme pour tout le reste de cette API, le bot héberge sa propre logique.'},
   {version:'4.22.0',category:'fix',date:'28 août 2026',time:'23:59',title:'🐛 6 correctifs remontés par la communauté Bug Hunter',
@@ -7166,6 +7340,7 @@ const BOT_EVENT_TYPES=[
 async function renderSetBots(box){
   box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
     +'<div class="sc-desc">Crée un bot pour un serveur ou pour les messages privés : commandes /slash (avec options et choix), boutons, embeds, réponses automatiques — et une API de modération (kick/ban/timeout/rôles) pour les serveurs qui t\\'en accordent la permission. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
+    +'<div class="set-card" id="bot-starter-kit-card"><div class="set-section-label">📦 Kit de démarrage prêt à l\\'emploi</div><div class="scr-sub" style="margin-bottom:10px">Pas envie de tout coder toi-même ? Télécharge un bot Node.js déjà fonctionnel (commandes <code>/ping</code>, <code>/say</code>, <code>/info</code>) — zéro dépendance à installer, il ne reste qu\\'à renseigner ton token et le lancer. Tuto complet plus bas (« 🚀 Héberger le kit de démarrage »).</div><a href="/api/bots/starter-kit" download="bot-x1.js" class="btn-main" style="display:inline-block;text-decoration:none;text-align:center">⬇️ Télécharger bot-x1.js</a></div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes bots</div><div class="scr-sub">10 bots maximum par compte.</div></div><button type="button" class="set-mini-btn" id="bot-new-btn">+ Créer un bot</button></div></div>'
     +'<div class="set-card hidden" id="bot-new-form">'
       +'<div class="set-row"><label>Nom du bot</label><input type="text" id="bot-new-name" class="field-input" maxlength="100" placeholder="Mon Bot"></div>'
@@ -7204,6 +7379,25 @@ async function renderSetBots(box){
       +'<div class="oauth-doc-step">En quittant, préviens la présence pour disparaître proprement de la liste des participants :</div>'
       +oauthCodeBlockHtml('bot-doc-voice-leave','await room.disconnect();\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/presence/leave\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ channelId }) });')
       +'<div class="oauth-doc-step">X1 ne fait jamais de traitement audio à ta place (reconnaissance vocale, synthèse, mixage) — comme pour tout le reste de cette API, ton bot héberge sa propre logique ; X1 fournit seulement l\\'accès au salon.</div>'
+    +'</div>'
+    +'<div class="set-card" style="margin-top:18px">'
+      +'<div class="set-section-label">🚀 Héberger le kit de démarrage (PC ou VPS)</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Le fichier <code>bot-x1.js</code> téléchargé plus haut est un serveur HTTP complet, sans dépendance à installer (juste Node.js). Voici comment le mettre en ligne, étape par étape.</div>'
+      +'<div class="oauth-doc-step"><b>1. Installe Node.js</b> si ce n\\'est pas déjà fait (<a href="https://nodejs.org" target="_blank" rel="noopener">nodejs.org</a>, version 18 ou plus récente) — vérifie avec <code>node -v</code> dans un terminal.</div>'
+      +'<div class="oauth-doc-step"><b>2. Télécharge <code>bot-x1.js</code></b> (bouton ⬇️ ci-dessus) dans un dossier dédié, puis <b>crée un bot</b> dans « Tes bots » pour obtenir son token secret.</div>'
+      +'<div class="oauth-doc-step"><b>3. Crée un fichier <code>.env</code></b> à côté de <code>bot-x1.js</code>, dans le même dossier :</div>'
+      +oauthCodeBlockHtml('bot-doc-starter-env','BOT_TOKEN=x1bot_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\\nPORT=3000')
+      +'<div class="oauth-doc-step"><b>4. Lance le bot</b> dans un terminal, depuis ce même dossier :</div>'
+      +oauthCodeBlockHtml('bot-doc-starter-run','node bot-x1.js\\n# → [bot-x1] en écoute sur le port 3000 — configure ton URL d\\'interactions...')
+      +'<div class="oauth-doc-step"><b>5. Rends-le joignable en HTTPS</b> — X1 doit pouvoir l\\'appeler depuis Internet, en HTTPS obligatoirement. Deux options :</div>'
+      +'<div class="oauth-doc-step">🖥️ <b>Sur ton PC, pour tester rapidement</b> — un tunnel gratuit expose ton port 3000 le temps qu\\'il tourne (l\\'URL change à chaque redémarrage, pratique pour essayer, pas pour du 24/7) :</div>'
+      +oauthCodeBlockHtml('bot-doc-starter-tunnel','npx ngrok http 3000\\n# → donne une URL du style https://xxxx.ngrok-free.app\\n# (alternative : cloudflared tunnel --url http://localhost:3000)')
+      +'<div class="oauth-doc-step">☁️ <b>Sur un petit VPS, pour du 24/7</b> — un VPS bas de gamme (quelques euros/mois) ou une offre gratuite/petit budget façon Render/Railway/Fly.io suffit largement, le bot ne consomme presque rien. Une fois connecté en SSH sur un VPS Linux classique (Debian/Ubuntu) :</div>'
+      +oauthCodeBlockHtml('bot-doc-starter-vps','# copie bot-x1.js et .env sur le VPS, puis :\\nnpm i -g pm2          # garde le process actif et le relance s\\'il plante\\npm2 start bot-x1.js --name bot-x1\\npm2 save && pm2 startup   # redémarre automatiquement avec le serveur\\n# ensuite : un reverse proxy (Caddy s\\'occupe seul du certificat HTTPS)\\n# Caddyfile : mon-bot.exemple.com { reverse_proxy localhost:3000 }')
+      +'<div class="oauth-doc-step"><b>6. Colle ton URL</b> (celle du tunnel ou de ton VPS) suivie de <code>/interactions</code> dans le champ « URL d\\'interactions » de ton bot ci-dessus, et <code>/events</code> dans « URL d\\'événements » si tu veux aussi recevoir les événements.</div>'
+      +'<div class="oauth-doc-step"><b>7. Déclare tes commandes</b> (« ✏️ Modifier les commandes ») : <code>ping</code> (aucune option), <code>say</code> (une option texte <code>texte</code>), <code>info</code> (aucune option) — le kit sait déjà y répondre.</div>'
+      +'<div class="oauth-doc-step"><b>8. Installe ton bot</b> sur un serveur (Paramètres du serveur → 🤖 Bots → colle son identifiant public) et tape <code>/ping</code> pour vérifier que tout fonctionne.</div>'
+      +'<div class="oauth-doc-step">La logique du bot tient dans les fonctions <code>handleCommand()</code> et <code>handleComponent()</code> au milieu de <code>bot-x1.js</code> — modifie-les librement, c\\'est un point de départ, pas une boîte noire.</div>'
     +'</div>';
   wireOauthCodeBlocks(box);
   \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
@@ -21414,6 +21608,14 @@ async function handle(request, event) {
     const bot = (botQ.documents || [])[0];
     if (!bot || String(bot.ownerId) !== String(acc.$id)) throw new Error("Bot introuvable");
     return bot;
+  }
+  if (path === "/api/bots/starter-kit" && request.method === "GET") {
+    return new Response(STARTER_BOT_JS, {
+      headers: Object.assign({
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Content-Disposition": "attachment; filename=\"bot-x1.js\""
+      }, cors)
+    });
   }
   if (path === "/api/bots/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
