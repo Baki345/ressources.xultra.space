@@ -1293,6 +1293,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-follow-btn.on{background:rgba(124,58,237,.25);border-color:rgba(167,139,250,.5);color:#e9d5ff}
 .music-search{margin:0 14px 10px;width:calc(100% - 28px)}
 .music-genre-row{display:flex;gap:8px;overflow-x:auto;padding:0 14px 12px;scrollbar-width:none}
+.music-streaming-note{padding:0 14px 10px}
 .music-genre-row::-webkit-scrollbar{display:none}
 .music-genre-chip{flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:.78rem;font-weight:700;color:#fff;opacity:.55;transition:opacity .15s ease,transform .15s ease;white-space:nowrap}
 .music-genre-chip.on{opacity:1;transform:scale(1.04);box-shadow:0 4px 14px rgba(124,58,237,.35)}
@@ -5289,6 +5290,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.5.0',date:'28 août 2026',time:'12:00',title:'🎧 X1 Music : Streaming vs Sons des membres',
+    body:'X1 Music se divise maintenant en deux sections claires : 🎧 Streaming (contenu officiel sélectionné par l\\'équipe X1) et 🎤 Sons des membres (tout ce que la communauté publie). Le staff et les créateurs peuvent choisir de publier un titre dans Streaming au moment de l\\'envoi ; tout le monde peut publier dans Sons des membres, comme avant.'},
   {version:'4.4.0',date:'28 août 2026',time:'11:00',title:'🎤 X1 Music : genres, paroles synchronisées et lecteur plein écran',
     body:'Le lecteur bascule maintenant en plein écran (tape sur la barre de lecture) avec pochette agrandie et un onglet Paroles façon karaoké : ligne en cours mise en avant, défilement automatique, tape sur une ligne pour sauter à ce moment de la piste. Fonctionne avec les paroles collées à l\\'envoi (format LRC pour la synchronisation) ou, à défaut, une recherche automatique sur une base de paroles ouverte et gratuite. Nouveautés associées : genres musicaux avec filtre dédié, recherche, lecture aléatoire, tags et durée affichés sur chaque titre, et abonnement à un artiste (notifié à chaque nouvelle publication).'},
   {version:'4.3.1',date:'28 août 2026',time:'10:00',title:'🩹 Correctif urgent : site inaccessible',
@@ -7073,9 +7076,10 @@ async function renderSetOs(box){
 // textuel reste toujours correct, quel que soit l'état de l'appli.
 const SECTION_GUIDES={
   music:{icon:'🎵',title:'Musique',tips:[
-    "+ Ajouter un titre publie un fichier audio (avec pochette optionnelle) directement depuis ton compte, ouvert à tout le monde.",
-    "Découvrir montre les derniers titres publiés ; Mes titres, uniquement les tiens ; Mes playlists, tes collections personnelles.",
-    "❤️ aime un titre, 💬 laisse un commentaire, ➕ Playlist l'ajoute à une playlist existante ou toute neuve.",
+    "+ Ajouter un titre publie un fichier audio (avec pochette, genre, tags et paroles optionnels) directement depuis ton compte, ouvert à tout le monde.",
+    "🎧 Streaming rassemble le contenu officiel sélectionné par l'équipe X1 ; 🎤 Sons des membres, tout ce que la communauté publie ; Mes titres, uniquement les tiens ; Mes playlists, tes collections.",
+    "Tape sur la barre de lecture pour passer en plein écran, avec un onglet Paroles synchronisées façon karaoké quand elles sont disponibles.",
+    "❤️ aime un titre, 💬 laisse un commentaire, ➕ Playlist l'ajoute à une playlist existante ou toute neuve, et tu peux suivre un artiste pour être notifié de ses prochaines publications.",
     "🎵 Musique apparaît aussi sur chaque profil — les titres publiés par cette personne, à un clic."
   ]},
   dms:{icon:'💬',title:'Messages',tips:[
@@ -12468,6 +12472,10 @@ function musicCurrentQueue(){
     list=ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
   }else if(musicFilter==='mine'&&me){
     list=musicTracksCache.filter(function(t){return String(t.uid)===String(me.\$id);});
+  }else if(musicFilter==='streaming'){
+    list=musicTracksCache.filter(function(t){return t.channel==='streaming';});
+  }else if(musicFilter==='members'){
+    list=musicTracksCache.filter(function(t){return t.channel!=='streaming';});
   }else{
     list=musicTracksCache;
   }
@@ -12487,7 +12495,7 @@ async function openMusic(uid,name){
   }
   overlay.classList.add('show');
   musicViewUid=uid||null;musicViewName=name||'';
-  musicFilter=uid?'user':'discover';
+  musicFilter=uid?'user':'streaming';
   musicActivePlaylist=null;
   renderMusicShell();
   await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows()]);
@@ -12536,8 +12544,14 @@ function renderMusicShell(){
   overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
       +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
       +(musicViewUid?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
-    +(musicViewUid?'':'<div class="seg-group music-tabs" id="music-tabs"><button type="button" class="seg-btn on" data-music-tab="discover">Découvrir</button><button type="button" class="seg-btn" data-music-tab="mine">Mes titres</button><button type="button" class="seg-btn" data-music-tab="playlists">Mes playlists</button></div>')
-    +(musicViewUid?'':'<input type="text" id="music-search" class="field-input music-search" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
+    +(musicViewUid?'':'<div class="seg-group music-tabs" id="music-tabs">'
+      +'<button type="button" class="seg-btn'+(musicFilter==='streaming'?' on':'')+'" data-music-tab="streaming">🎧 Streaming</button>'
+      +'<button type="button" class="seg-btn'+(musicFilter==='members'?' on':'')+'" data-music-tab="members">🎤 Sons des membres</button>'
+      +'<button type="button" class="seg-btn'+(musicFilter==='mine'?' on':'')+'" data-music-tab="mine">Mes titres</button>'
+      +'<button type="button" class="seg-btn'+(musicFilter==='playlists'?' on':'')+'" data-music-tab="playlists">Mes playlists</button>'
+    +'</div>')
+    +(musicViewUid||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
+    +(musicViewUid?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
     +(musicViewUid?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
     +'<div class="discover-body" id="music-body"></div>'
     +'<div class="music-player-bar hidden" id="music-player-bar">'
@@ -12571,7 +12585,11 @@ function renderMusicShell(){
     b.addEventListener('click',function(){
       musicFilter=b.getAttribute('data-music-tab');
       musicActivePlaylist=null;
-      \$('music-tabs').querySelectorAll('[data-music-tab]').forEach(function(x){x.classList.toggle('on',x===b);});
+      // Reconstruit tout le haut du panneau (pas juste la liste) : la note
+      // "contenu officiel" du Streaming et l'onglet actif en dépendent tous
+      // les deux, sans quoi ils restaient figés sur l'onglet ouvert au départ.
+      renderMusicShell();
+      musicSyncMiniBar();
       renderMusicBody();
     });
   });
@@ -12642,7 +12660,14 @@ function renderMusicBody(){
   const box=\$('music-body');if(!box)return;
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
   const list=musicCurrentQueue();
-  if(!list.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre pour l\\'instant'+(musicFilter==='mine'?' — ajoute le premier !':'.')+'</div>';return}
+  if(!list.length){
+    let hint='.';
+    if(musicFilter==='mine')hint=' — ajoute le premier !';
+    else if(musicFilter==='streaming')hint=' — rien de sélectionné pour l\\'instant, reviens bientôt.';
+    else if(musicFilter==='members')hint=' — sois le/la premier·ère à publier !';
+    box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre pour l\\'instant'+hint+'</div>';
+    return;
+  }
   box.innerHTML='<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
   wireMusicCardEvents(box);
 }
@@ -12674,11 +12699,7 @@ async function musicPlayTrack(trackId){
   musicCurrentTrack=t;
   audio.src=safeUrl(t.audioUrl);
   audio.play().catch(function(){showToast('Lecture impossible.','error');});
-  \$('music-player-bar').classList.remove('hidden');
-  \$('mpb-title').textContent=t.title;
-  \$('mpb-artist').textContent=t.artistName;
-  const cov=safeUrl(t.coverUrl);
-  \$('mpb-cover').innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
+  musicSyncMiniBar();
   renderMusicBody();
   musicSyncFullPlayerMeta();
   musicLoadLyricsFor(t);
@@ -12757,6 +12778,23 @@ async function musicToggleLike(trackId){
    sur lrclib.net (API publique gratuite, pas de clé, données communautaires
    sous licence ouverte) — jamais de paroles arrachées à un service sous
    droits. Sans résultat, on retombe sur "paroles introuvables". */
+// Extrait de musicPlayTrack() pour pouvoir aussi re-remplir la barre de
+// lecture après un renderMusicShell() (ex: changement d'onglet), qui
+// reconstruit tout son HTML — et donc la ferait paraître disparue/vide
+// jusqu'au prochain changement de titre sans ce rappel explicite.
+function musicSyncMiniBar(){
+  const t=musicCurrentTrack;if(!t)return;
+  const bar=\$('music-player-bar');if(!bar)return;
+  bar.classList.remove('hidden');
+  \$('mpb-title').textContent=t.title;
+  \$('mpb-artist').textContent=t.artistName;
+  const cov=safeUrl(t.coverUrl);
+  \$('mpb-cover').innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
+  const shuffleBtn=\$('mpb-shuffle');
+  if(shuffleBtn)shuffleBtn.classList.toggle('on',musicShuffleOn);
+  musicUpdatePlayerBar();
+  renderMusicPlayIcons();
+}
 function musicSyncFullPlayerMeta(){
   const t=musicCurrentTrack;if(!t)return;
   const title=\$('mfp-title'),artist=\$('mfp-artist'),art=\$('mfp-art'),like=\$('mfp-like');
@@ -13029,11 +13067,14 @@ async function renderMusicPlaylistsTab(box){
     });
   });
 }
-function openMusicUploadForm(){
+const MUSIC_STREAMING_BADGES=['dev','founder','creator'];
+async function openMusicUploadForm(){
   if(!me){showToast('Connecte-toi pour ajouter un titre.','error');return}
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
+  const myBadges=await getMyBadges();
+  const canStreaming=MUSIC_STREAMING_BADGES.some(function(b){return myBadges.indexOf(b)>=0;});
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:80vh;overflow-y:auto">'
     +'<div class="set-section-label">🎵 Ajouter un titre</div>'
     +'<div class="set-row"><label>Titre</label><input type="text" id="music-up-title" class="field-input" maxlength="150"></div>'
@@ -13043,6 +13084,7 @@ function openMusicUploadForm(){
     +'<div class="set-row"><label>Fichier audio (MP3, WAV…)</label><input type="file" id="music-up-audio" accept="audio/*" class="field-input"></div>'
     +'<div class="set-row"><label>Pochette (optionnel)</label><input type="file" id="music-up-cover" accept="image/*" class="field-input"></div>'
     +'<div class="set-row"><label>Paroles (optionnel)</label><textarea id="music-up-lyrics" class="field-input" style="height:90px;padding-top:9px;resize:vertical" placeholder="Colle le texte, ou un fichier .lrc horodaté pour un affichage synchronisé façon karaoké : [00:12.50]Premier vers…"></textarea></div>'
+    +(canStreaming?'<label class="srv-perm-check" style="margin-bottom:10px"><input type="checkbox" id="music-up-streaming"> Publier dans 🎧 Streaming (contenu officiel, réservé au staff/créateurs)</label>':'')
     +'<div class="err" id="music-up-err" style="min-height:1em;margin-bottom:8px"></div>'
     +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-up-submit">Publier</button><button type="button" class="set-mini-btn" id="music-up-cancel">Annuler</button></div>'
     +'</div>';
@@ -13073,8 +13115,10 @@ function openMusicUploadForm(){
       const genre=(\$('music-up-genre').value||'').trim();
       const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
       const lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
+      const streamingChecked=\$('music-up-streaming');
+      const channel=(canStreaming&&streamingChecked&&streamingChecked.checked)?'streaming':'member';
       await db.createDocument(DB,'xm_tracks',Appwrite.ID.unique(),{
-        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0,genre:genre,tagsJson:JSON.stringify(tags),lyricsLrc:lyricsLrc
+        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0,genre:genre,tagsJson:JSON.stringify(tags),lyricsLrc:lyricsLrc,channel:channel
       },[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
       showToast('Titre publié !');
       close();
