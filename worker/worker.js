@@ -1545,6 +1545,8 @@ body.theme-light{filter:invert(1) hue-rotate(180deg);background:#fff}
 body.theme-light img,body.theme-light video,body.theme-light canvas,body.theme-light [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
 body.theme-light.high-contrast{filter:invert(1) hue-rotate(180deg) contrast(1.18) saturate(1.12)}
 body.theme-light.high-contrast img,body.theme-light.high-contrast video,body.theme-light.high-contrast canvas,body.theme-light.high-contrast [style*="background-image"]{filter:invert(1) hue-rotate(180deg)}
+/* Idée proposée par "1e" (Boîte à idées) : interface en noir/blanc/gris. */
+body.theme-mono{filter:grayscale(1)}
 /* Idée proposée par Yani Neco (Boîte à idées, "Thème OLED") : un noir
    profond (#000 pur) plutôt que le violet très sombre habituel (#0d0814),
    pour économiser la batterie et ménager les dalles OLED. Recolore les
@@ -2288,6 +2290,11 @@ a.bug-att-item{display:block}
 .srv-member-row:last-child{border-bottom:none}
 .srv-role-pill{display:inline-block;font-size:.62rem;font-weight:800;padding:2px 8px;border-radius:999px;margin-right:4px;margin-top:2px}
 .srv-role-mention{font-weight:700;background:rgba(167,139,250,.16);border-radius:6px;padding:0 4px}
+.user-mention{font-weight:700;color:#fff;background:linear-gradient(135deg,#7c3aed,#ec4899);border-radius:6px;padding:0 5px}
+.mention-autocomplete{position:absolute;bottom:100%;left:0;right:0;margin-bottom:6px;max-height:220px;overflow-y:auto;background:#1a1030;border:1px solid rgba(167,139,250,.3);border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.5);z-index:20}
+.mention-ac-item{padding:8px 12px;font-size:.84rem;font-weight:700;color:#e9d5ff;cursor:pointer;display:flex;align-items:center;gap:6px}
+.mention-ac-item.on,.mention-ac-item:hover{background:rgba(124,58,237,.25)}
+.mention-ac-sub{font-weight:600;color:var(--muted);font-size:.74rem}
 .user-server-tag{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.03em;padding:1px 5px;border-radius:5px;border:1px solid;background:rgba(124,58,237,.12);vertical-align:middle;margin-left:4px;line-height:1.4}
 .msg-custom-emoji{width:22px;height:22px;object-fit:contain;vertical-align:middle;margin:-4px 1px}
 .emoji-picker-custom-grid{grid-column:1/-1;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;padding-bottom:6px;margin-bottom:6px;border-bottom:1px solid rgba(167,139,250,.2)}
@@ -5415,6 +5422,12 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.16.0',category:'feature',date:'28 août 2026',time:'22:30',title:'⚫⚪ Thème Monochrome',
+    body:'Idée proposée par "1e" (Boîte à idées) : nouveau thème Monochrome dans Paramètres → Apparence, qui passe toute l\\'interface en noir/blanc/gris.'},
+  {version:'4.15.0',category:'feature',date:'28 août 2026',time:'22:15',title:'📣 Mentionne quelqu\\'un avec @pseudo',
+    body:'Idée proposée par "1e" (Boîte à idées) : dans un groupe ou un salon de serveur, tape @ pour faire apparaître une liste de suggestions et citer quelqu\\'un précisément — mis en évidence dans le message, et la personne reçoit une vraie notification dédiée (🔔 tu as été mentionné) au lieu de la notification générique.'},
+  {version:'4.14.0',category:'feature',date:'28 août 2026',time:'22:00',title:'👁️ Accusés de lecture réglables',
+    body:'Idée proposée par Yani Neco (Boîte à idées) : nouveau réglage dans Paramètres → Confidentialité pour désactiver les accusés de lecture ("Vu"). Comme sur WhatsApp : si tu les désactives, personne ne voit quand tu lis ses messages — mais toi non plus, tu ne vois plus si les tiens ont été vus.'},
   {version:'4.13.0',category:'fix',date:'28 août 2026',time:'21:00',title:'🐛 9 correctifs remontés par la communauté Bug Hunter',
     body:'Musique : les métadonnées (titre, artiste, pochette) sont maintenant envoyées à l\\'appareil pour les contrôles de lecture sur écran verrouillé — merci Yani. Fermer une story vidéo avant la fin coupe maintenant bien son son au lieu de continuer à jouer en fond — merci Yani. Le badge affiché à côté d\\'un pseudo ne disparaît plus après un changement de pseudo ou une modification des paramètres du serveur. Sur iPhone à encoche/caméra, le bouton fermer et le profil ne sont plus masqués en haut du visionneur de story. Pendant un appel vocal, la barre d\\'appel est un peu plus espacée du bouton retour pour éviter de rouvrir l\\'appel par erreur en visant le retour. L\\'animation de survol de la fenêtre de profil fait maintenant bouger le cadre en plus du contenu — merci Yani. La vérification d\\'adresse e-mail par lien ne se validait plus toute seule sans clic explicite (certains scanners anti-hameçonnage des clients mail suivaient le lien automatiquement) — merci Yani. La Boîte à idées ne permettait pas de lire un long paragraphe jusqu\\'au bout dans l\\'onglet Design, ni de faire défiler pour le voir — merci 100coeur. Et un correctif défensif sur l\\'affichage qui pouvait rester bloqué sur la moitié inférieure de l\\'écran en ouvrant une conversation juste après avoir modifié les paramètres d\\'un serveur — merci Yani.'},
   {version:'4.12.0',category:'feature',date:'28 août 2026',time:'20:00',title:'📋 Notes de version par catégorie',
@@ -6073,7 +6086,7 @@ function loadAppPrefs(){
     displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
     animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
-    soundMessage:true,soundCall:true,soundMention:true,vibrate:true,
+    soundMessage:true,soundCall:true,soundMention:true,vibrate:true,readReceipts:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
     analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null
   },p);
@@ -6184,6 +6197,7 @@ function applyThemeMode(){
   }
   document.body.classList.toggle('theme-light',isLight);
   document.body.classList.toggle('theme-oled',mode==='oled');
+  document.body.classList.toggle('theme-mono',mode==='mono');
 }
 try{
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(appPrefs.theme==='system')applyThemeMode();});
@@ -6760,6 +6774,8 @@ function renderSetPrivacy(box){
       +'<div class="set-row"><label>Qui peut t’ajouter en ami</label><div class="seg-group"><button type="button" class="seg-btn'+(privacy.friendRequests==='everyone'?' on':'')+'" data-priv-fr="everyone">Tout le monde</button><button type="button" class="seg-btn'+(privacy.friendRequests==='none'?' on':'')+'" data-priv-fr="none">Personne</button></div></div>'
       +'<div class="set-row"><label>Qui peut t’envoyer des messages</label><div class="seg-group"><button type="button" class="seg-btn'+(privacy.dms==='everyone'?' on':'')+'" data-priv-dm="everyone">Tout le monde</button><button type="button" class="seg-btn'+(privacy.dms==='friends'?' on':'')+'" data-priv-dm="friends">Amis uniquement</button></div></div>'
       +'<div class="set-toggle-row"><span>Masquer mon statut en ligne</span><div class="set-switch'+(privacy.hideOnlineStatus?' on':'')+'" id="priv-hide-status" data-on="'+(privacy.hideOnlineStatus?'1':'0')+'"></div></div>'
+      +toggleRow('Accusés de lecture (« Vu »)','readReceipts',appPrefs.readReceipts)
+      +'<div class="scr-sub" style="padding:0 4px">Si tu désactives ça, personne ne voit quand tu as lu ses messages — mais en échange, tu ne vois plus non plus si les tiens ont été vus.</div>'
     +'</div>'
     +'<div class="set-card"><div class="set-section-label">Messages chiffrés</div>'
       +'<div class="scr-sub" style="padding:0 4px 10px">Si tu vois « 🔒 Message illisible sur cet appareil », c\\'est que cet appareil n\\'a pas encore la bonne clé de déchiffrement. Entre ton mot de passe ci-dessous pour la restaurer — ça marche sur n\\'importe quel appareil, à tout moment, pas besoin d\\'attendre une bannière.</div>'
@@ -7041,7 +7057,7 @@ function renderSetFamily(box){
 
 function renderSetAppearance(box){
   box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte X1 à ton goût.</div>'
-    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='oled'?' on':'')+'" data-theme-mode="oled">⚫ OLED</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
+    +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='oled'?' on':'')+'" data-theme-mode="oled">⚫ OLED</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='mono'?' on':'')+'" data-theme-mode="mono">⬜ Monochrome</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-row"><label>Mode d’affichage</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.displayMode==='modern'?' on':'')+'" data-app-val="displayMode:modern">Moderne</button><button type="button" class="seg-btn'+(appPrefs.displayMode==='compact'?' on':'')+'" data-app-val="displayMode:compact">Compact</button></div></div>'
       +'<div class="set-row"><label>Taille de police <span class="val" id="app-font-val">'+appPrefs.msgFontSize+'px</span></label><input type="range" id="app-font-range" min="12" max="20" value="'+appPrefs.msgFontSize+'"></div>'
@@ -9640,10 +9656,18 @@ async function markDmRead(threadId){
   const recentlyRead=lastRead[me.\$id]&&(Date.now()-new Date(lastRead[me.\$id]).getTime())<10000;
   if(!hadUnread&&recentlyRead)return;
   unread[me.\$id]=0;
-  lastRead[me.\$id]=new Date().toISOString();
   dm.unreadJson=JSON.stringify(unread);
-  dm.lastReadJson=JSON.stringify(lastRead);
-  try{await db.updateDocument(DB,'dms',threadId,{unreadJson:dm.unreadJson,lastReadJson:dm.lastReadJson});}catch(e){}
+  const patch={unreadJson:dm.unreadJson};
+  // Réglage "Accusés de lecture" (Paramètres → Confidentialité) : désactivé,
+  // on ne signale jamais à l'autre personne le moment où on a lu — le
+  // compteur de non-lus (ci-dessus) continue lui de fonctionner normalement,
+  // c'est un suivi purement local qui ne fuit rien vers l'autre personne.
+  if(appPrefs.readReceipts!==false){
+    lastRead[me.\$id]=new Date().toISOString();
+    dm.lastReadJson=JSON.stringify(lastRead);
+    patch.lastReadJson=dm.lastReadJson;
+  }
+  try{await db.updateDocument(DB,'dms',threadId,patch);}catch(e){}
   updateNotifBadge();
 }
 let lastTypingSentAt=0;
@@ -9928,7 +9952,7 @@ function renderMsgBody(m,text,mediaUrl){
       return '<a class="msg-location" href="'+esc(mapUrl)+'" target="_blank" rel="noopener">📍 Position partagée<span>Ouvrir dans Maps</span></a>';
     }
   }
-  const linkedText=linkify(esc(text||''));
+  const linkedText=linkify(highlightUserMentions(esc(text||''),mentionCandidatesForDm()));
   if(appPrefs&&appPrefs.linkPreview===false)return linkedText;
   const firstLink=firstUrl(text);
   if(!firstLink)return linkedText;
@@ -10150,6 +10174,10 @@ function computeSeenInfo(){
      message était marqué comme lu, mais quand j'en envoie un autre,
      impossible de voir si les anciens ont été lus"). */
   if(!activeDm||!me)return {lastMineId:null,seenLabel:''};
+  // Réciproque du réglage "Accusés de lecture" : si on a choisi de ne pas
+  // signaler nos propres lectures, on perd aussi la visibilité sur celles
+  // des autres (comme sur WhatsApp) — pas de fuite dans un sens seulement.
+  if(appPrefs.readReceipts===false)return {lastMineId:null,seenLabel:''};
   const dm=dmsCache.find(function(d){return d.\$id===activeDm});
   const lastRead=parseJsonSafe(dm&&dm.lastReadJson,{});
   if(activeDmIsGroup){
@@ -10723,8 +10751,13 @@ async function postMessage(data,lastMessagePreview,keyCtx){
     recipients.forEach(function(uid){unread[uid]=(unread[uid]||0)+1;});
     await db.updateDocument(DB,'dms',activeDm,{lastMessage:previewPub.slice(0,100),unreadJson:JSON.stringify(unread)});
   }catch(e){}
+  // Ping @pseudo (idée proposée par "1e") : dans un groupe, une personne
+  // explicitement mentionnée reçoit une notification push distincte plutôt
+  // que la notification générique "nouveau message".
+  const mentionedUids=activeDmIsGroup?matchMentionedUids(data.text||'',mentionCandidatesForDm()):[];
   recipients.forEach(function(uid){
-    authPost('/api/push/notify',{type:'message',toUid:uid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
+    const isMention=mentionedUids.indexOf(uid)>=0;
+    authPost('/api/push/notify',{type:isMention?'mention':'message',toUid:uid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
   });
   await appendNewMessages();
   await loadDms();if(view==='dms')renderDms();
@@ -10783,6 +10816,7 @@ if(\$('msgs'))\$('msgs').addEventListener('scroll',function(){
 if(\$('btn-ai-fix'))\$('btn-ai-fix').addEventListener('click',function(){aiFixText(\$('msg-input'),this);});
 if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',function(){clearReplyTarget('dm');});
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
+if(\$('msg-input'))wireMentionAutocomplete(\$('msg-input'),mentionCandidatesForDm);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
   const has=this.value.trim().length>0||!!pendingAttachFile;
@@ -17427,6 +17461,7 @@ function wireSrvChanComposerExtra(disabled){
     \$('srv-chan-send').classList.toggle('hidden',!has);
     \$('srv-chan-voice').classList.toggle('hidden',has);
   });
+  wireMentionAutocomplete(input,mentionCandidatesForChannel);
   wireVoiceButton('srv-chan-voice',function(){
     if(!activeChannel)return null;
     return {kind:'channel',ids:{composer:'srv-chan-composer',voiceRecord:'srv-voice-record',liveWave:'srv-vr-live-wave',timer:'srv-vr-timer'},
@@ -17760,7 +17795,7 @@ function renderChannelMessages(){
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
     const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
-    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightRoleMentions(esc(m.text||'')))));
+    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
@@ -18095,6 +18130,113 @@ function highlightRoleMentions(escapedText){
     out=out.replace(re,'<span class="srv-role-mention" style="color:'+esc(r.color||'#a78bfa')+'">@'+name+'</span>');
   });
   return out;
+}
+/* ===== Mentions "@pseudo" d'une personne précise (idée proposée par "1e") —
+   salons de serveur ET conversations de groupe. Contrairement aux mentions
+   de rôle ci-dessus (effet visuel seulement, pas de notification), celles-ci
+   déclenchent une vraie notification push ciblée à la personne mentionnée
+   (voir /api/push/notify et la mention côté salon dans handle()). ===== */
+function mentionCandidatesForDm(){
+  if(!activeDmIsGroup||!me)return [];
+  return activeDmMembers.filter(function(u){return u!==String(me.\$id);}).map(function(uid){
+    const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(uid);});
+    return {uid:uid,username:p&&p.username,displayName:(p&&(p.displayName||p.username))||''};
+  }).filter(function(c){return c.username||c.displayName;});
+}
+function mentionCandidatesForChannel(){
+  return (activeServerMembers||[]).map(function(m){
+    return {uid:m.uid,username:m.username,displayName:m.nickname||m.username||''};
+  }).filter(function(c){return c.username||c.displayName;});
+}
+function extractMentionTokens(text){
+  const re=/(^|[^\\w@])@([a-zA-Z0-9_.]{2,32})/g;
+  const out=[];
+  let m;
+  while((m=re.exec(text||'')))out.push(m[2].toLowerCase());
+  return out;
+}
+function matchMentionedUids(text,candidates){
+  const tokens=extractMentionTokens(text);
+  if(!tokens.length||!candidates||!candidates.length)return [];
+  const uids=new Set();
+  candidates.forEach(function(c){
+    const uname=(c.username||'').toLowerCase();
+    const dname=(c.displayName||'').replace(/\\s+/g,'').toLowerCase();
+    if((uname&&tokens.indexOf(uname)>=0)||(dname&&tokens.indexOf(dname)>=0))uids.add(c.uid);
+  });
+  return Array.from(uids);
+}
+function highlightUserMentions(escapedText,candidates){
+  if(!candidates||!candidates.length)return escapedText;
+  let out=escapedText;
+  const seen={};
+  candidates.forEach(function(c){
+    [c.username,(c.displayName||'').replace(/\\s+/g,'')].forEach(function(rawName){
+      const name=esc(rawName||'');
+      if(!name)return;
+      const key=name.toLowerCase();
+      if(seen[key])return;
+      seen[key]=true;
+      const re=new RegExp('(^|[^\\\\w@])@'+name.replace(/[.*+?^\${}()|[\\]\\\\]/g,'\\\\\$&')+'\\\\b','gi');
+      out=out.replace(re,function(full,pre){return pre+'<span class="user-mention">@'+name+'</span>';});
+    });
+  });
+  return out;
+}
+function wireMentionAutocomplete(inputEl,getCandidates){
+  if(!inputEl||inputEl.dataset.mentionWired)return;
+  inputEl.dataset.mentionWired='1';
+  let box=null;
+  function closeBox(){if(box){box.remove();box=null;}}
+  function openBox(matches,start,end){
+    closeBox();
+    box=document.createElement('div');
+    box.className='mention-autocomplete';
+    box.innerHTML=matches.map(function(c,i){
+      const label=esc(c.displayName||c.username||'');
+      return '<div class="mention-ac-item'+(i===0?' on':'')+'" data-uname="'+esc(c.username||c.displayName||'')+'">'+label+(c.username?' <span class="mention-ac-sub">@'+esc(c.username)+'</span>':'')+'</div>';
+    }).join('');
+    inputEl.parentElement.appendChild(box);
+    box.querySelectorAll('.mention-ac-item').forEach(function(item){
+      item.addEventListener('mousedown',function(e){
+        e.preventDefault();
+        applyMention(item.getAttribute('data-uname'),start,end);
+      });
+    });
+  }
+  function applyMention(uname,start,end){
+    const v=inputEl.value;
+    inputEl.value=v.slice(0,start)+'@'+uname+' '+v.slice(end);
+    const pos=start+uname.length+2;
+    inputEl.setSelectionRange(pos,pos);
+    inputEl.focus();
+    closeBox();
+  }
+  inputEl.addEventListener('input',function(){
+    const v=inputEl.value,pos=inputEl.selectionStart;
+    const upToCursor=v.slice(0,pos);
+    const m=/@([a-zA-Z0-9_.]{0,32})$/.exec(upToCursor);
+    if(!m){closeBox();return}
+    const prefix=m[1].toLowerCase();
+    const candidates=getCandidates();
+    const matches=candidates.filter(function(c){
+      return (c.username&&c.username.toLowerCase().indexOf(prefix)===0)||(c.displayName&&c.displayName.toLowerCase().indexOf(prefix)===0);
+    }).slice(0,6);
+    if(!matches.length){closeBox();return}
+    openBox(matches,pos-m[0].length,pos);
+  });
+  // Phase de capture (avant les autres écouteurs "keydown" déjà posés sur ce
+  // même champ, notamment celui qui envoie le message sur Entrée) : sinon,
+  // valider une suggestion à l'aide d'Entrée envoyait AUSSI le message.
+  inputEl.addEventListener('keydown',function(e){
+    if(!box)return;
+    if(e.key==='Escape'){closeBox();return}
+    if(e.key==='Enter'||e.key==='Tab'){
+      const on=box.querySelector('.mention-ac-item.on');
+      if(on){e.preventDefault();e.stopPropagation();on.dispatchEvent(new Event('mousedown'));}
+    }
+  },true);
+  inputEl.addEventListener('blur',function(){setTimeout(closeBox,150);});
 }
 function replaceCustomEmojis(escapedText){
   if(!activeServerEmojis.length)return escapedText;
@@ -24495,6 +24637,38 @@ async function handle(request) {
         // interrompue avant la fin du crosspost.
         await crosspostAnnouncementMessage(channelId, access.server.name, access.channel.name, access.server.icon, text, stickerUrl, mediaType, mediaUrl, mime).catch(function () {});
       }
+      // Ping @pseudo (idée proposée par "1e") : détecte les mentions d'un
+      // membre précis dans le texte et lui envoie une notification push
+      // ciblée, distincte du silence habituel des messages de salon (aucune
+      // notification générique n'existe pour "nouveau message de salon" —
+      // seule une mention explicite en déclenche une). Awaité pour la même
+      // raison que le crosspost ci-dessus (pas de event.waitUntil() ici).
+      if (text) {
+        try {
+          const mentionTokens = [];
+          const mentionRe = /(^|[^\w@])@([a-zA-Z0-9_.]{2,32})/g;
+          let mm;
+          while ((mm = mentionRe.exec(text))) mentionTokens.push(mm[2].toLowerCase());
+          if (mentionTokens.length) {
+            const membersQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+              "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+              "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1000] })), { asAdmin: true });
+            const mentionedMembers = (membersQ.documents || []).filter(function (mem) {
+              if (String(mem.uid) === String(acc.$id)) return false;
+              const uname2 = (mem.username || "").toLowerCase();
+              const dname2 = (mem.nickname || mem.username || "").replace(/\s+/g, "").toLowerCase();
+              return (uname2 && mentionTokens.indexOf(uname2) >= 0) || (dname2 && mentionTokens.indexOf(dname2) >= 0);
+            });
+            await Promise.all(mentionedMembers.map(function (mem) {
+              return pushToUid(mem.uid, {
+                type: "mention", title: "🔔 " + uname + " t'a mentionné",
+                body: (access.channel.name ? "#" + access.channel.name + " — " : "") + text.slice(0, 140),
+                tag: "channel-" + channelId, url: "/", serverId: serverId, channelId: channelId
+              }).catch(function () {});
+            }));
+          }
+        } catch (eMention) {}
+      }
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -25192,6 +25366,24 @@ async function handle(request) {
         const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
         if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
         await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, url: "/", threadId: threadId });
+      } else if (type === "mention") {
+        // Ping @pseudo dans un groupe : mêmes vérifications d'appartenance que
+        // "message" ci-dessus, juste un titre distinct pour que la personne
+        // comprenne tout de suite qu'elle a été citée nommément.
+        const threadId = String((body && body.threadId) || "");
+        if (!threadId) throw new Error("paramètres invalides");
+        let thread = null;
+        try { thread = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { asAdmin: true }); } catch (e3) {}
+        const members = ((thread && thread.members) || []).map(String);
+        if (members.indexOf(acc.$id) < 0 || members.indexOf(toUid) < 0) {
+          return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+            status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+          });
+        }
+        let preview = String((body && body.preview) || "").slice(0, 140);
+        const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
+        if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
+        await pushToUid(toUid, { type: "mention", title: "🔔 " + senderName + " t'a mentionné", body: preview || "Tu as été mentionné dans une conversation", tag: "dm-" + threadId, url: "/", threadId: threadId });
       } else if (type === "friend_request") {
         const fUrl = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
           "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [toUid] })) +
