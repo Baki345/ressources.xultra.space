@@ -1,4 +1,4 @@
-addEventListener("fetch", e => e.respondWith(handle(e.request)));
+addEventListener("fetch", e => e.respondWith(handle(e.request, e)));
 
 /* ===== Server brain (no VPS) — secrets stay on Worker only ===== */
 const AW_EP = "https://fra.cloud.appwrite.io/v1";
@@ -5498,6 +5498,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.21.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : "gateway" événementielle (message_create, member_join...)',
+    body:'Un vrai gateway façon Discord suppose une connexion permanente que le bot maintient ouverte vers X1 — impossible tant que ce Worker Cloudflare tourne sans process persistant. À la place : dans le portail développeur, renseigne une URL d\\'événements et coche les types qui t\\'intéressent (💬 nouveau message, 🗑️ message supprimé, ➕ membre arrivé, ➖ membre parti) — X1 t\\'envoie alors un POST signé dès que ça se produit sur un serveur où ton bot est installé, sans attendre de réponse et sans ralentir jamais l\\'action de la personne qui l\\'a déclenchée. Best-effort (comme un webhook classique) : pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne.'},
   {version:'4.20.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🤖 Bots : modération, embeds, commandes riches et installation en DM',
     body:'Le portail développeur de bots s\\'étend : une personne qui installe ton bot sur son serveur peut désormais lui accorder des permissions précises (expulsion, bannissement, timeout, gestion des rôles) — jamais plus que ce qu\\'elle détient elle-même, jamais "administrateur" — que ton bot exerce via une nouvelle API de modération dédiée. Tes commandes acceptent maintenant jusqu\\'à 5 options nommées avec choix suggérés en autocomplétion (ex : /avertir cible:Bob raison:spam), et tes réponses peuvent inclure un embed façon Discord (titre, description, couleur, champs, image). Et un bot peut désormais être ajouté directement en message privé par n\\'importe qui (Paramètres → 🤖 Bots → "Ajouter un bot en message privé"), pas seulement sur un serveur — mêmes commandes, boutons et embeds, en DM.'},
   {version:'4.19.0',category:'feature',date:'28 août 2026',time:'23:45',title:'🤖 Section développeur : crée tes propres bots + badge Développeur de Bot',
@@ -7143,6 +7145,14 @@ function renderOauthDevAppsList(){
    connectée — cohérent avec X1 elle-même, qui tourne en Worker Cloudflare
    sans process persistant. ===== */
 let botDevAppsCache=[];
+// Types d'événements auxquels un bot peut s'abonner (§ "gateway" événementielle
+// — voir dispatchBotEvents côté worker pour le contrat exact des payloads).
+const BOT_EVENT_TYPES=[
+  {key:'message_create',label:'💬 Nouveau message'},
+  {key:'message_delete',label:'🗑️ Message supprimé'},
+  {key:'member_join',label:'➕ Membre arrivé'},
+  {key:'member_leave',label:'➖ Membre parti'}
+];
 async function renderSetBots(box){
   box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
     +'<div class="sc-desc">Crée un bot pour un serveur ou pour les messages privés : commandes /slash (avec options et choix), boutons, embeds, réponses automatiques — et une API de modération (kick/ban/timeout/rôles) pour les serveurs qui t\\'en accordent la permission. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
@@ -7175,7 +7185,9 @@ async function renderSetBots(box){
       +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
       +'<div class="oauth-doc-step"><b>API de modération</b> (nécessite que le serveur t\\'ait accordé la permission correspondante à l\\'installation) :</div>'
       +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
-      +'<div class="oauth-doc-step">🎙️ Le <b>vocal</b> (rejoindre un salon, jouer/recevoir de l\\'audio) et une connexion permanente type <b>gateway/WebSocket</b> ne sont pas couverts par cette API — ça viendra peut-être dans une prochaine version, mais l\\'essentiel d\\'un bot Discord classique (commandes, boutons, embeds, modération, DM) fonctionne dès aujourd\\'hui.</div>'
+      +'<div class="oauth-doc-step"><b>"Gateway" événementielle</b> — X1 ne fonctionne pas sur un process persistant (Worker Cloudflare sans état entre deux requêtes), donc pas de vraie connexion permanente façon Discord. À la place : renseigne une <b>URL d\\'événements</b> ci-dessus et coche les types qui t\\'intéressent — X1 t\\'envoie alors un POST signé (même en-tête <code>X-X1-Signature</code>) à chaque événement, sans attendre de réponse (aucune garantie de livraison, comme un webhook classique — pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne) :</div>'
+      +oauthCodeBlockHtml('bot-doc-event','{\\n  "type": "event",\\n  "event": "message_create",   // ou message_delete, member_join, member_leave\\n  "server": { "id": "...", "name": "..." },\\n  "data": { "channel": { "id": "..." }, "message": { "id": "...", "author": { "id": "...", "username": "..." }, "content": "..." } },\\n  "ts": 1234567890\\n}')
+      +'<div class="oauth-doc-step">🎙️ Seul le <b>vocal</b> (rejoindre un salon, jouer/recevoir de l\\'audio) reste hors de portée de cette API — le reste d\\'un bot Discord classique (commandes, boutons, embeds, modération, DM, événements) fonctionne dès aujourd\\'hui.</div>'
     +'</div>';
   wireOauthCodeBlocks(box);
   \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
@@ -7230,8 +7242,16 @@ function renderBotDevAppsList(){
       +'<div class="scr-sub" style="margin:4px 0 8px">Commandes déclarées : '+(commands.length?commands.map(function(c){return '<code>/'+esc(c.name)+'</code>';}).join(' '):'aucune')+'</div>'
       +'<button type="button" class="set-mini-btn" data-bot-edit-cmds="'+esc(b.publicId)+'">✏️ Modifier les commandes</button>'
       +'<div class="hidden" id="bot-cmds-editor-'+esc(b.publicId)+'" style="margin-top:10px"></div>'
+      +'<div class="set-row" style="margin-top:10px"><label>URL d\\'événements <span class="scr-sub" style="display:block;font-weight:400">Optionnel : reçois un événement signé (jamais de réponse attendue) dès qu\\'une chose s\\'y produit, sans attendre une commande.</span></label><input type="text" class="field-input" data-bot-events-url="'+esc(b.publicId)+'" value="'+esc(b.eventsUrl||'')+'" placeholder="https://mon-serveur.exemple.com/events"></div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:4px 14px">'+(function(){
+        let subscribed=[];try{subscribed=JSON.parse(b.eventTypesJson||'[]');}catch(e){}
+        return BOT_EVENT_TYPES.map(function(t){
+          const checked=subscribed.indexOf(t.key)>=0;
+          return '<label class="bot-perm-check"><input type="checkbox" data-bot-event-type="'+esc(b.publicId)+'" value="'+t.key+'"'+(checked?' checked':'')+'>'+esc(t.label)+'</label>';
+        }).join('');
+      })()+'</div>'
       +'<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">'
-        +'<button type="button" class="set-mini-btn" data-bot-save-url="'+esc(b.publicId)+'">💾 Enregistrer l\\'URL</button>'
+        +'<button type="button" class="set-mini-btn" data-bot-save-url="'+esc(b.publicId)+'">💾 Enregistrer</button>'
         +'<button type="button" class="set-mini-btn" data-bot-regen="'+esc(b.publicId)+'">🔄 Régénérer le token</button>'
         +'<button type="button" class="set-mini-btn danger" data-bot-del="'+esc(b.publicId)+'">Supprimer</button>'
       +'</div>'
@@ -7254,11 +7274,13 @@ function renderBotDevAppsList(){
   box.querySelectorAll('[data-bot-save-url]').forEach(function(btn){
     btn.addEventListener('click',async function(){
       const publicId=btn.getAttribute('data-bot-save-url');
-      const input=box.querySelector('[data-bot-interactions-url="'+publicId+'"]');
+      const urlInput=box.querySelector('[data-bot-interactions-url="'+publicId+'"]');
+      const eventsInput=box.querySelector('[data-bot-events-url="'+publicId+'"]');
+      const eventTypes=Array.from(box.querySelectorAll('[data-bot-event-type="'+publicId+'"]:checked')).map(function(c){return c.value;});
       btn.disabled=true;
       try{
-        await authPost('/api/bots/update',{publicId:publicId,interactionsUrl:input.value||''});
-        showToast('URL enregistrée.');
+        await authPost('/api/bots/update',{publicId:publicId,interactionsUrl:urlInput.value||'',eventsUrl:eventsInput?eventsInput.value||'':'',eventTypes:eventTypes});
+        showToast('Enregistré.');
         loadBotDevApps();
       }catch(e){showToast((e&&e.message)||'Action impossible','error');}
       btn.disabled=false;
@@ -20792,7 +20814,7 @@ async function recomputeHunterBadge(uid) {
   }
 }
 
-async function handle(request) {
+async function handle(request, event) {
   const url = new URL(request.url);
   // Force HTTPS : le compte Cloudflare de ce projet n'a pas les droits d'édition
   // de zone nécessaires pour activer "Always Use HTTPS" au niveau du compte, donc
@@ -21266,14 +21288,67 @@ async function handle(request) {
   // Architecture volontairement calquée sur le modèle "interactions HTTP" de
   // Discord plutôt que sur sa passerelle WebSocket "toujours connectée" :
   // X1 tourne elle-même en Worker Cloudflare sans process persistant, donc
-  // demander aux bots de maintenir une connexion permanente vers X1 n'aurait
-  // aucun sens architectural. Un bot ici est un simple endpoint HTTPS que le
-  // développeur héberge de son côté (voir /api/bots/interact plus bas pour
+  // demander aux bots de maintenir une connexion permanente VERS X1 n'aurait
+  // aucun sens architectural (un Worker ne peut pas garder un socket ouvert
+  // entre deux requêtes sans Durable Objects — un composant d'infra à part
+  // entière, hors de ce fichier). Un bot ici est un simple endpoint HTTPS que
+  // le développeur héberge de son côté (voir /api/bots/interact plus bas pour
   // le contrat exact — c'est littéralement ce que la doc de référence du
   // porteur de cette demande recommande : "/commandes seulement → endpoint
   // HTTPS, pas de VPS"). Le badge Développeur de Bot n'est jamais accordé à
   // la simple création d'un bot dans ce portail : seulement à la première
   // interaction RÉUSSIE en direct sur un serveur (voir plus bas).
+  //
+  // ===== "Gateway" événementielle (§ suite de la demande) =====
+  // Un VRAI gateway façon Discord suppose une connexion PERSISTANTE que le
+  // bot maintient ouverte vers X1 — impossible ici sans migrer tout ce
+  // fichier vers le format ES module + Durable Objects (risque disproportionné
+  // sur un fichier de cette taille, déjà écarté une fois pour Workers AI, voir
+  // plus haut). À la place : X1 POSTE elle-même (sens inverse d'une
+  // interaction, jamais de réponse attendue) un événement signé vers
+  // bot.eventsUrl dès qu'une chose à laquelle le bot est abonné
+  // (eventTypesJson) se produit sur un serveur où il est installé —
+  // message_create, message_delete, member_join, member_leave. Toujours en
+  // arrière-plan via event.waitUntil (jamais sur le chemin critique d'une
+  // action utilisateur : poster un message ne doit jamais ralentir parce
+  // qu'un bot répond lentement à ses événements), et toujours best-effort —
+  // un bot hors-ligne ou lent ne reçoit simplement pas l'événement, sans
+  // file d'attente ni retry (aucune garantie de livraison, comme un simple
+  // webhook fire-and-forget).
+  async function dispatchBotEvents(serverId, eventType, data) {
+    try {
+      const installsQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "isBot", values: [true] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      const installs = installsQ.documents || [];
+      if (!installs.length) return;
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true }).catch(function () { return null; });
+      await Promise.all(installs.map(async function (inst) {
+        try {
+          const bot = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + inst.botAppId, { asAdmin: true });
+          if (!bot || !bot.eventsUrl) return;
+          let types = []; try { types = JSON.parse(bot.eventTypesJson || "[]"); } catch (e) {}
+          if (types.indexOf(eventType) < 0) return;
+          const payloadObj = { type: "event", event: eventType, server: { id: serverId, name: server && server.name }, data: data, ts: Date.now() };
+          const payloadStr = JSON.stringify(payloadObj);
+          const enc = new TextEncoder();
+          const key = await crypto.subtle.importKey("raw", enc.encode(bot.botToken), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+          const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(payloadStr));
+          const signature = Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+          await fetch(bot.eventsUrl, { method: "POST", headers: { "Content-Type": "application/json", "X-X1-Signature": signature, "X-X1-Bot-Id": bot.publicId }, body: payloadStr, signal: AbortSignal.timeout(8000) }).catch(function () {});
+        } catch (e) {}
+      }));
+    } catch (e) {}
+  }
+  // Point d'appel unique depuis les routes qui produisent un événement —
+  // jamais await côté appelant : part en arrière-plan (waitUntil quand
+  // disponible, sinon fire-and-forget best-effort) pour ne jamais ralentir
+  // la réponse à l'utilisateur qui a déclenché l'action.
+  function fireBotEvent(evt, serverId, eventType, data) {
+    const p = dispatchBotEvents(serverId, eventType, data).catch(function () {});
+    if (evt && evt.waitUntil) evt.waitUntil(p);
+  }
   async function resolveOwnedBot(acc, publicId) {
     const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
       "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "publicId", values: [String(publicId || "")] })) +
@@ -21337,6 +21412,16 @@ async function handle(request) {
         const u = String(body.interactionsUrl || "").trim();
         if (u && !/^https:\/\//i.test(u)) throw new Error("L'URL des interactions doit être en HTTPS");
         data.interactionsUrl = u.slice(0, 500);
+      }
+      if (body.eventsUrl !== undefined) {
+        const u = String(body.eventsUrl || "").trim();
+        if (u && !/^https:\/\//i.test(u)) throw new Error("L'URL des événements doit être en HTTPS");
+        data.eventsUrl = u.slice(0, 500);
+      }
+      if (body.eventTypes !== undefined) {
+        const allowed = ["message_create", "message_delete", "member_join", "member_leave"];
+        const types = (Array.isArray(body.eventTypes) ? body.eventTypes : []).filter(function (t) { return allowed.indexOf(t) >= 0; });
+        data.eventTypesJson = JSON.stringify(Array.from(new Set(types)));
       }
       if (body.commands !== undefined) {
         const cmds = Array.isArray(body.commands) ? body.commands : [];
@@ -21756,6 +21841,7 @@ async function handle(request) {
       const member = await getServerMembership(serverId, targetUid);
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "kick", (member && (member.nickname || member.username)) || targetUid, {});
+      fireBotEvent(event, serverId, "member_leave", { user: { id: targetUid, username: member && member.username } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -21783,6 +21869,7 @@ async function handle(request) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, unban ? "unban" : "ban", (member && (member.nickname || member.username)) || targetUid, {});
+      if (!unban) fireBotEvent(event, serverId, "member_leave", { user: { id: targetUid, username: member && member.username } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -24079,6 +24166,7 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
       });
+      fireBotEvent(event, server.$id, "member_join", { user: { id: acc.$id, username: uname } });
       return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -24095,6 +24183,7 @@ async function handle(request) {
       if (String(server.ownerId) === String(acc.$id)) throw new Error("Le propriétaire ne peut pas quitter son propre serveur — supprime-le plutôt.");
       const member = await getServerMembership(serverId, acc.$id);
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      fireBotEvent(event, serverId, "member_leave", { user: { id: acc.$id, username: member && member.username } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -25230,6 +25319,7 @@ async function handle(request) {
       if (member) await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
       const actorProfile = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "kick", (member && (member.nickname || member.username)) || targetUid, {});
+      fireBotEvent(event, serverId, "member_leave", { user: { id: targetUid, username: member && member.username } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -25279,6 +25369,7 @@ async function handle(request) {
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { bannedUidsJson: JSON.stringify(banned) } } });
       const actorProfile = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, unban ? "unban" : "ban", (member && (member.nickname || member.username)) || targetUid, deletedCount ? { deletedMessages: deletedCount } : {});
+      if (!unban) fireBotEvent(event, serverId, "member_leave", { user: { id: targetUid, username: member && member.username } });
       return new Response(JSON.stringify({ ok: true, deletedMessages: deletedCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -26034,6 +26125,11 @@ async function handle(request) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl, type: mediaType, mediaUrl: mediaUrl, mime: mime }, permissions: msgPerms }
       });
+      // Un message posté par un humain (jamais un écho des propres messages
+      // du bot, jamais bloquant — voir fireBotEvent) : seul événement assez
+      // fréquent pour justifier qu'on ne l'attende jamais sur le chemin
+      // critique de l'envoi.
+      fireBotEvent(event, serverId, "message_create", { channel: { id: channelId }, message: { id: msg.$id, author: { id: acc.$id, username: uname }, content: text } });
       // Publication auto : un message posté directement dans un salon 📢
       // Annonces (jamais une réponse dans un fil, jamais un sondage) part
       // vers tous les salons qui le suivent, sur n'importe quel serveur.
@@ -26373,6 +26469,7 @@ async function handle(request) {
         const actorProfile = await resolveProfile(acc.$id);
         await logServerAudit(serverId, acc.$id, (actorProfile && (actorProfile.displayName || actorProfile.username)) || acc.name, "message_delete", msg.username || msg.uid, { text: String(msg.text || "").slice(0, 200) });
       }
+      fireBotEvent(event, serverId, "message_delete", { channel: { id: msg.channelId }, message: { id: messageId, author: { id: msg.uid } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
