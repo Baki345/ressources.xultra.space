@@ -430,7 +430,7 @@ async function assertCanModerateTarget(serverId, actorUid, targetUid, server) {
   const targetAuthority = await getMemberAuthorityPosition(serverId, targetUid, server);
   if (targetAuthority >= actorAuthority) throw new Error("Tu ne peux pas agir sur un membre dont le rôle est égal ou supérieur au tien");
 }
-const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<meta name=\"robots\" content=\"noindex,nofollow\"/>\n<title>XULTRA \u2014 Maintenance</title>\n<style>\n:root{--bg:#0b0614;--accent:#a78bfa;--muted:#9ca3af;--line:#2a1f3d;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{min-height:100dvh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),var(--bg);color:#f3e8ff;padding:24px}\n.card{width:min(420px,100%);background:linear-gradient(180deg,rgba(30,16,50,.95),rgba(15,8,28,.98));border:1px solid var(--line);border-radius:20px;padding:32px 26px;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center;position:relative}\n.logo{font-size:2rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}\n.badge{display:inline-block;margin:12px 0 18px;padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28);color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}\nh1{font-size:1.2rem;margin-bottom:8px;font-weight:800}\np{color:var(--muted);font-size:.92rem;line-height:1.55;margin-bottom:8px}\n.pulse{width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;margin-right:8px;box-shadow:0 0 0 0 rgba(167,139,250,.6);animation:p 1.6s infinite}\n@keyframes p{0%{box-shadow:0 0 0 0 rgba(167,139,250,.55)}70%{box-shadow:0 0 0 12px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}\n.foot{margin-top:18px;font-size:.72rem;color:#6b7280}\n.dev-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:left}\n.dev-box h2{font-size:.78rem;color:#a78bfa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:700}\nlabel{display:block;font-size:.72rem;color:#9ca3af;margin:0 0 6px;font-weight:600}\ninput{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.95rem;margin-bottom:12px;outline:none}\ninput:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}\n.btn-main{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer}\n.btn-main:disabled{opacity:.6;cursor:wait}\n.btn-status{margin-top:14px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#e9d5ff;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}\n.btn-status:hover{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.55)}\n.err{color:#f87171;font-size:.82rem;min-height:1.2em;margin-top:8px;text-align:center}\n.ov{position:fixed;inset:0;background:rgba(5,2,12,.72);backdrop-filter:blur(10px);display:none;place-items:center;z-index:100;padding:20px}\n.ov.on{display:grid}\n.modal{width:min(440px,100%);background:linear-gradient(165deg,#1a1030 0%,#10081c 100%);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:0;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 0 1px rgba(124,58,237,.15),0 0 60px rgba(124,58,237,.12);animation:pop .28s ease}\n@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}\n.modal-head{padding:22px 22px 14px;border-bottom:1px solid rgba(42,31,61,.9);position:relative}\n.modal-head h3{font-size:1.05rem;font-weight:800;letter-spacing:.02em}\n.modal-head .sub{font-size:.78rem;color:var(--muted);margin-top:4px}\n.modal-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e9d5ff;font-size:1.1rem;cursor:pointer;display:grid;place-items:center}\n.modal-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}\n.modal-body{padding:12px 16px 20px;max-height:min(60vh,420px);overflow:auto}\n.svc{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8)}\n.svc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}\n.svc-dot.ok{background:var(--ok);color:rgba(34,197,94,.5)}\n.svc-dot.bad{background:var(--bad);color:rgba(239,68,68,.45)}\n.svc-dot.warn{background:var(--warn);color:rgba(245,158,11,.45)}\n.svc-dot.load{background:#a78bfa;animation:blink 1s infinite}\n@keyframes blink{50%{opacity:.35}}\n.svc-name{font-weight:700;font-size:.9rem}\n.svc-desc{font-size:.72rem;color:var(--muted);margin-top:2px}\n.svc-state{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}\n.svc-state.ok{color:var(--ok)}.svc-state.bad{color:var(--bad)}.svc-state.warn{color:var(--warn)}.svc-state.load{color:#a78bfa}\n.modal-foot{padding:0 16px 18px;font-size:.7rem;color:#6b7280;text-align:center}\n</style></head><body>\n<div class=\"card\">\n<div class=\"logo\">XULTRA</div>\n<div class=\"badge\"><span class=\"pulse\"></span>Maintenance</div>\n<h1>Nous revenons tr\u00e8s bient\u00f4t</h1>\n__MAINT_MESSAGE__\n<button type=\"button\" class=\"btn-status\" id=\"btn-status\">\ud83d\udce1 Statut des services</button>\n<div class=\"dev-box\">\n<h2>Acc\u00e8s d\u00e9veloppeur</h2>\n<label for=\"dev-email\">Email</label>\n<input id=\"dev-email\" type=\"email\" autocomplete=\"username\" placeholder=\"email@exemple.com\"/>\n<label for=\"dev-pass\">Mot de passe</label>\n<input id=\"dev-pass\" type=\"password\" autocomplete=\"current-password\" placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\"/>\n<button type=\"button\" class=\"btn-main\" id=\"dev-btn\">Entrer (dev)</button>\n<div class=\"err\" id=\"dev-err\"></div>\n</div>\n<div class=\"foot\">xultra.space</div>\n</div>\n<div class=\"ov\" id=\"status-ov\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal\">\n    <div class=\"modal-head\">\n      <h3>\ud83d\udce1 Statut des services</h3>\n      <div class=\"sub\">Infrastructure XULTRA en temps r\u00e9el</div>\n      <button type=\"button\" class=\"modal-x\" id=\"status-x\" aria-label=\"Fermer\">\u2715</button>\n    </div>\n    <div class=\"modal-body\" id=\"status-body\"></div>\n    <div class=\"modal-foot\">Mis \u00e0 jour \u00e0 l\u2019ouverture \u00b7 \u03b22.8.8</div>\n  </div>\n</div>\n<script>\n(function(){\n  var btn=document.getElementById('dev-btn');\n  var err=document.getElementById('dev-err');\n  function show(m){err.textContent=m||'';}\n  async function go(){\n    show('');\n    var email=(document.getElementById('dev-email').value||'').trim();\n    var pass=document.getElementById('dev-pass').value||'';\n    if(!email||!pass){show('Email et mot de passe requis');return;}\n    btn.disabled=true;btn.textContent='V\u00e9rification\u2026';\n    try{\n      var r=await fetch('/api/maint/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:email,password:pass})});\n      var j=await r.json().catch(function(){return {};});\n      if(!r.ok||!j.ok){show((j&&j.error)||('Acc\u00e8s refus\u00e9 ('+r.status+')'));btn.disabled=false;btn.textContent='Entrer (dev)';return;}\n      btn.textContent='OK \u2014 redirection\u2026';location.href='/?dev=1';\n    }catch(e){show('Erreur r\u00e9seau');btn.disabled=false;btn.textContent='Entrer (dev)';}\n  }\n  btn.onclick=go;\n  document.getElementById('dev-pass').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  document.getElementById('dev-email').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  var ov=document.getElementById('status-ov');\n  var body=document.getElementById('status-body');\n  document.getElementById('btn-status').onclick=function(){ov.classList.add('on');loadStatus();};\n  document.getElementById('status-x').onclick=function(){ov.classList.remove('on');};\n  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});\n  function row(name,desc,state,label){\n    return '<div class=\"svc\"><div class=\"svc-dot '+state+'\"></div><div><div class=\"svc-name\">'+name+'</div><div class=\"svc-desc\">'+desc+'</div></div><div class=\"svc-state '+state+'\">'+label+'</div></div>';\n  }\n  async function loadStatus(){\n    body.innerHTML=row('Chargement','V\u00e9rification des services','load','\u2026');\n    try{\n      var r=await fetch('/api/maint/status',{cache:'no-store'});\n      var j=await r.json();\n      if(j&&j.services&&j.services.length){\n        body.innerHTML=j.services.map(function(s){return row(s.name,s.desc||'',s.state||'warn',s.label||'?');}).join('');\n        return;\n      }\n    }catch(e){}\n    body.innerHTML=row('Cloudflare Worker','Edge xultra.space','ok','OK')+row('Mode maintenance','Acc\u00e8s public bloqu\u00e9','ok','ACTIF')+row('Appwrite API','Statut indisponible','warn','N/A');\n  }\n})();\n</script>\n</body></html>";;;
+const MAINT_HTML = "<!DOCTYPE html>\n<html lang=\"fr\"><head>\n<meta charset=\"utf-8\"/>\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>\n<meta name=\"robots\" content=\"noindex,nofollow\"/>\n<title>X1 \u2014 Maintenance</title>\n<style>\n:root{--bg:#0b0614;--accent:#a78bfa;--muted:#9ca3af;--line:#2a1f3d;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b}\n*{box-sizing:border-box;margin:0;padding:0}\nbody{min-height:100dvh;display:grid;place-items:center;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),var(--bg);color:#f3e8ff;padding:24px}\n.card{width:min(420px,100%);background:linear-gradient(180deg,rgba(30,16,50,.95),rgba(15,8,28,.98));border:1px solid var(--line);border-radius:20px;padding:32px 26px;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center;position:relative}\n.logo{font-size:2rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}\n.badge{display:inline-block;margin:12px 0 18px;padding:6px 12px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28);color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}\nh1{font-size:1.2rem;margin-bottom:8px;font-weight:800}\np{color:var(--muted);font-size:.92rem;line-height:1.55;margin-bottom:8px}\n.pulse{width:10px;height:10px;border-radius:50%;background:#a78bfa;display:inline-block;margin-right:8px;box-shadow:0 0 0 0 rgba(167,139,250,.6);animation:p 1.6s infinite}\n@keyframes p{0%{box-shadow:0 0 0 0 rgba(167,139,250,.55)}70%{box-shadow:0 0 0 12px rgba(167,139,250,0)}100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}}\n.foot{margin-top:18px;font-size:.72rem;color:#6b7280}\n.dev-box{margin-top:22px;padding-top:18px;border-top:1px solid var(--line);text-align:left}\n.dev-box h2{font-size:.78rem;color:#a78bfa;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;font-weight:700}\nlabel{display:block;font-size:.72rem;color:#9ca3af;margin:0 0 6px;font-weight:600}\ninput{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.95rem;margin-bottom:12px;outline:none}\ninput:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.2)}\n.btn-main{width:100%;padding:13px;border:0;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer}\n.btn-main:disabled{opacity:.6;cursor:wait}\n.btn-status{margin-top:14px;width:100%;padding:11px 14px;border-radius:12px;border:1px solid rgba(167,139,250,.35);background:rgba(124,58,237,.12);color:#e9d5ff;font-weight:700;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}\n.btn-status:hover{background:rgba(124,58,237,.22);border-color:rgba(167,139,250,.55)}\n.err{color:#f87171;font-size:.82rem;min-height:1.2em;margin-top:8px;text-align:center}\n.ov{position:fixed;inset:0;background:rgba(5,2,12,.72);backdrop-filter:blur(10px);display:none;place-items:center;z-index:100;padding:20px}\n.ov.on{display:grid}\n.modal{width:min(440px,100%);background:linear-gradient(165deg,#1a1030 0%,#10081c 100%);border:1px solid rgba(167,139,250,.35);border-radius:22px;padding:0;overflow:hidden;box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 0 1px rgba(124,58,237,.15),0 0 60px rgba(124,58,237,.12);animation:pop .28s ease}\n@keyframes pop{from{opacity:0;transform:translateY(12px) scale(.96)}to{opacity:1;transform:none}}\n.modal-head{padding:22px 22px 14px;border-bottom:1px solid rgba(42,31,61,.9);position:relative}\n.modal-head h3{font-size:1.05rem;font-weight:800;letter-spacing:.02em}\n.modal-head .sub{font-size:.78rem;color:var(--muted);margin-top:4px}\n.modal-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:#e9d5ff;font-size:1.1rem;cursor:pointer;display:grid;place-items:center}\n.modal-x:hover{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4)}\n.modal-body{padding:12px 16px 20px;max-height:min(60vh,420px);overflow:auto}\n.svc{display:flex;align-items:center;gap:12px;padding:12px 12px;border-radius:14px;margin-bottom:8px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8)}\n.svc-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor}\n.svc-dot.ok{background:var(--ok);color:rgba(34,197,94,.5)}\n.svc-dot.bad{background:var(--bad);color:rgba(239,68,68,.45)}\n.svc-dot.warn{background:var(--warn);color:rgba(245,158,11,.45)}\n.svc-dot.load{background:#a78bfa;animation:blink 1s infinite}\n@keyframes blink{50%{opacity:.35}}\n.svc-name{font-weight:700;font-size:.9rem}\n.svc-desc{font-size:.72rem;color:var(--muted);margin-top:2px}\n.svc-state{margin-left:auto;font-size:.72rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}\n.svc-state.ok{color:var(--ok)}.svc-state.bad{color:var(--bad)}.svc-state.warn{color:var(--warn)}.svc-state.load{color:#a78bfa}\n.modal-foot{padding:0 16px 18px;font-size:.7rem;color:#6b7280;text-align:center}\n</style></head><body>\n<div class=\"card\">\n<div class=\"logo\">X1</div>\n<div class=\"badge\"><span class=\"pulse\"></span>Maintenance</div>\n<h1>Nous revenons tr\u00e8s bient\u00f4t</h1>\n__MAINT_MESSAGE__\n<button type=\"button\" class=\"btn-status\" id=\"btn-status\">\ud83d\udce1 Statut des services</button>\n<div class=\"dev-box\">\n<h2>Acc\u00e8s d\u00e9veloppeur</h2>\n<label for=\"dev-email\">Email</label>\n<input id=\"dev-email\" type=\"email\" autocomplete=\"username\" placeholder=\"email@exemple.com\"/>\n<label for=\"dev-pass\">Mot de passe</label>\n<input id=\"dev-pass\" type=\"password\" autocomplete=\"current-password\" placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\"/>\n<button type=\"button\" class=\"btn-main\" id=\"dev-btn\">Entrer (dev)</button>\n<div class=\"err\" id=\"dev-err\"></div>\n</div>\n<div class=\"foot\">xultra.space</div>\n</div>\n<div class=\"ov\" id=\"status-ov\" role=\"dialog\" aria-modal=\"true\">\n  <div class=\"modal\">\n    <div class=\"modal-head\">\n      <h3>\ud83d\udce1 Statut des services</h3>\n      <div class=\"sub\">Infrastructure X1 en temps r\u00e9el</div>\n      <button type=\"button\" class=\"modal-x\" id=\"status-x\" aria-label=\"Fermer\">\u2715</button>\n    </div>\n    <div class=\"modal-body\" id=\"status-body\"></div>\n    <div class=\"modal-foot\">Mis \u00e0 jour \u00e0 l\u2019ouverture \u00b7 \u03b22.8.8</div>\n  </div>\n</div>\n<script>\n(function(){\n  var btn=document.getElementById('dev-btn');\n  var err=document.getElementById('dev-err');\n  function show(m){err.textContent=m||'';}\n  async function go(){\n    show('');\n    var email=(document.getElementById('dev-email').value||'').trim();\n    var pass=document.getElementById('dev-pass').value||'';\n    if(!email||!pass){show('Email et mot de passe requis');return;}\n    btn.disabled=true;btn.textContent='V\u00e9rification\u2026';\n    try{\n      var r=await fetch('/api/maint/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'include',body:JSON.stringify({email:email,password:pass})});\n      var j=await r.json().catch(function(){return {};});\n      if(!r.ok||!j.ok){show((j&&j.error)||('Acc\u00e8s refus\u00e9 ('+r.status+')'));btn.disabled=false;btn.textContent='Entrer (dev)';return;}\n      btn.textContent='OK \u2014 redirection\u2026';location.href='/?dev=1';\n    }catch(e){show('Erreur r\u00e9seau');btn.disabled=false;btn.textContent='Entrer (dev)';}\n  }\n  btn.onclick=go;\n  document.getElementById('dev-pass').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  document.getElementById('dev-email').addEventListener('keydown',function(e){if(e.key==='Enter')go();});\n  var ov=document.getElementById('status-ov');\n  var body=document.getElementById('status-body');\n  document.getElementById('btn-status').onclick=function(){ov.classList.add('on');loadStatus();};\n  document.getElementById('status-x').onclick=function(){ov.classList.remove('on');};\n  ov.addEventListener('click',function(e){if(e.target===ov)ov.classList.remove('on');});\n  function row(name,desc,state,label){\n    return '<div class=\"svc\"><div class=\"svc-dot '+state+'\"></div><div><div class=\"svc-name\">'+name+'</div><div class=\"svc-desc\">'+desc+'</div></div><div class=\"svc-state '+state+'\">'+label+'</div></div>';\n  }\n  async function loadStatus(){\n    body.innerHTML=row('Chargement','V\u00e9rification des services','load','\u2026');\n    try{\n      var r=await fetch('/api/maint/status',{cache:'no-store'});\n      var j=await r.json();\n      if(j&&j.services&&j.services.length){\n        body.innerHTML=j.services.map(function(s){return row(s.name,s.desc||'',s.state||'warn',s.label||'?');}).join('');\n        return;\n      }\n    }catch(e){}\n    body.innerHTML=row('Cloudflare Worker','Edge xultra.space','ok','OK')+row('Mode maintenance','Acc\u00e8s public bloqu\u00e9','ok','ACTIF')+row('Appwrite API','Statut indisponible','warn','N/A');\n  }\n})();\n</script>\n</body></html>";;;
 
 
 const DEFAULT_MAINT_MESSAGE = "Des améliorations de sécurité et de stabilité sont en cours.\nLe service est temporairement inaccessible pour tout le monde.";
@@ -445,7 +445,7 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   "self.addEventListener('push',function(event){\n" +
   "  var data={};\n" +
   "  try{data=event.data?event.data.json():{};}catch(e){}\n" +
-  "  var title=data.title||'XULTRA';\n" +
+  "  var title=data.title||'X1';\n" +
   "  var options={\n" +
   "    body:data.body||'',\n" +
   "    tag:data.tag||undefined,\n" +
@@ -896,14 +896,14 @@ const APP = `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1"/>
 <meta name="theme-color" content="#0d0814"/>
 <meta name="referrer" content="strict-origin-when-cross-origin"/>
-<title>XULTRA</title>
+<title>X1</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%237c3aed%22%2F%3E%3Cstop%20offset%3D%2250%25%22%20stop-color%3D%22%23a855f7%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ec4899%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2213%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M14%2014l20%2020M34%2014L14%2034%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2236%22%20cy%3D%2212%22%20r%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/>
 <link rel="manifest" href="/manifest.webmanifest"/>
 <link rel="apple-touch-icon" href="https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_apple_touch_icon/view?project=6a73b975002f14dc6b91"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="XULTRA"/>
+<meta name="apple-mobile-web-app-title" content="X1"/>
 <script>
 (function(){
   var shown=false;
@@ -913,7 +913,7 @@ const APP = `<!DOCTYPE html>
       var b=document.createElement('div');
       b.id='xultra-err-banner';
       b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#7f1d1d;color:#fff;font:12px/1.4 monospace;padding:10px 34px 10px 14px;white-space:pre-wrap;word-break:break-word;box-shadow:0 2px 10px rgba(0,0,0,.5)';
-      b.textContent='XULTRA a rencontré une erreur JS (copie ce texte pour le support) :\\n'+msg;
+      b.textContent='X1 a rencontré une erreur JS (copie ce texte pour le support) :\\n'+msg;
       var x=document.createElement('button');
       x.textContent='✕';
       x.style.cssText='position:absolute;top:6px;right:8px;background:0;border:0;color:#fff;font-size:16px;cursor:pointer;padding:4px 8px';
@@ -929,7 +929,7 @@ const APP = `<!DOCTYPE html>
     // bannière — c'est Chrome/Safari qui redige volontairement les détails
     // d'une erreur venant d'un fichier externe chargé en cross-origin sans
     // l'attribut crossorigin (mesure de sécurité standard, pas un bug
-    // XULTRA). Les balises de script externes (Appwrite, LiveKit, Turnstile,
+    // X1). Les balises de script externes (Appwrite, LiveKit, Turnstile,
     // Leaflet) portent maintenant toutes cet attribut : les prochaines
     // erreurs de ces bibliothèques afficheront enfin un vrai message exploitable.
     showErr((e&&e.message)+' @ '+(e&&e.filename)+':'+(e&&e.lineno)+':'+(e&&e.colno));
@@ -945,6 +945,16 @@ const APP = `<!DOCTYPE html>
       es.onload=function(){try{eruda.init();}catch(e){}};
       document.head.appendChild(es);
     }
+  }catch(e){}
+  // Bug remonté : l'écran de connexion s'affichait brièvement à chaque
+  // rechargement avant de laisser place à l'appli, même déjà connecté —
+  // le HTML de l'écran de connexion est visible par défaut, et seul
+  // enterApp() (à la fin d'une chaîne asynchrone : lecture de session,
+  // appel réseau Appwrite…) le masque. On le cache dès le tout début du
+  // parsing, avant la première peinture, s'il existe une session à
+  // restaurer ; boot() le révèle lui-même si la restauration échoue.
+  try{
+    if(localStorage.getItem('xultra_session'))document.documentElement.classList.add('xultra-restoring');
   }catch(e){}
 })();
 </script>
@@ -981,6 +991,7 @@ button{cursor:pointer;border:0;background:0}
 #install-banner-close:hover{opacity:1;background:rgba(255,255,255,.18)}
 @media (max-width:640px){#install-banner{font-size:.76rem;padding:8px 12px}}
 
+html.xultra-restoring #stage{visibility:hidden}
 #stage{
   /* display:flex + margin:auto sur .stage-inner (pas place-items:center) :
      un centrage grid/flex "unsafe" sur un contenu plus haut que l'écran
@@ -1172,7 +1183,7 @@ button{cursor:pointer;border:0;background:0}
 :root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px}
 #app{display:none;height:calc((100dvh - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
-.rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:8px;flex-shrink:0}
+.rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-shrink:0}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
 .rail-btn:hover,.rail-btn.on{border-radius:14px;background:#7c3aed}
 .rail-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;display:grid;place-items:center;border:2px solid #0a0610;line-height:1}
@@ -1400,8 +1411,9 @@ button{cursor:pointer;border:0;background:0}
 .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--muted);padding:30px}
 .empty h3{color:#f2ebff;margin:8px 0 4px;font-size:1rem}
 .empty p{font-size:.82rem}
-.chat-active{flex:1;display:flex;flex-direction:column;min-height:0}
-.chat-top{min-height:52px;padding:8px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
+.chat-active.chat-dragover:after{content:'📎 Dépose le fichier ici';position:absolute;inset:8px;border:2px dashed #7c3aed;border-radius:14px;background:rgba(124,58,237,.12);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#c4b5fd;pointer-events:none;z-index:50}
+.chat-top{min-height:52px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
 .chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
 .chat-top .t{font-weight:800;font-size:.9rem}
 .ch-e2e{font-size:.66rem;color:#4ade80;font-weight:700;margin-top:1px}
@@ -1530,6 +1542,27 @@ body.theme-oled .pe-frame-inner{background:#050505}
 .msg-snap-placeholder.tappable{cursor:pointer}
 .msg-snap-placeholder.tappable:active{transform:scale(.97)}
 .msg-snap-noshot{font-size:.85em;opacity:.9}
+.media-lightbox-overlay{position:fixed;inset:0;z-index:8900;background:rgba(4,2,10,.92);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.media-lightbox-overlay.show{display:flex}
+.media-lightbox-overlay img,.media-lightbox-overlay video{max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:default}
+.media-lightbox-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:2}
+.lang-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.lang-opt{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.16);color:#e9d5ff;font-size:.86rem;font-weight:700;cursor:pointer;transition:all .15s ease}
+.lang-opt:hover{background:rgba(255,255,255,.08)}
+.lang-opt.on{background:linear-gradient(135deg,rgba(124,58,237,.28),rgba(168,85,247,.18));border-color:rgba(167,139,250,.55)}
+.lang-flag{font-size:1.15rem}
+.tos-modal{width:min(600px,100%);max-height:88dvh;display:flex;flex-direction:column;text-align:left}
+.tos-modal h3{font-size:1.1rem;font-weight:800;margin-bottom:10px;flex-shrink:0}
+.tos-body{overflow-y:auto;flex:1;min-height:0;padding-right:6px;font-size:.85rem;line-height:1.62;color:rgba(242,235,255,.82)}
+.tos-body p{margin-bottom:12px}
+.tos-body b{color:#f2ebff}
+.tos-h{font-size:.82rem;font-weight:800;color:#c4b5fd;letter-spacing:.02em;margin:16px 0 8px}
+.tos-body .tos-final{font-weight:700;color:#f2ebff;margin-top:4px}
+.tos-foot{flex-shrink:0;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.tos-scroll-hint{font-size:.74rem;color:var(--muted);text-align:center;animation:tosBounce 1.4s ease infinite}
+.tos-scroll-hint.hidden{display:none}
+@keyframes tosBounce{0%,100%{opacity:.6}50%{opacity:1}}
+#tos-accept-btn:disabled{opacity:.4;cursor:not-allowed}
 .snap-viewer-overlay{position:fixed;inset:0;z-index:9000;background:#000;display:flex;align-items:center;justify-content:center}
 .snap-viewer-overlay img,.snap-viewer-overlay video{max-width:100%;max-height:100%;object-fit:contain}
 .snap-viewer-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;z-index:2}
@@ -1613,6 +1646,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .upload-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:4px;transition:width .15s ease}
 .upload-progress-size{margin-top:5px;font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .msg-system-notice{width:100%;text-align:center;font-size:.74rem;color:var(--muted);padding:4px 0;margin:2px 0}
+.msgs-load-more{width:100%;text-align:center;font-size:.74rem;color:var(--muted);padding:10px 0;opacity:.8}
 .msg-call-notice{align-self:center;width:auto;margin:6px 0;padding:6px 14px;border-radius:999px;background:rgba(124,58,237,.09);border:1px solid rgba(167,139,250,.18)}
 .msg.mine .msg-location{background:rgba(255,255,255,.16)}
 .msg-location span{font-size:.7rem;color:var(--muted);font-weight:600}
@@ -1894,7 +1928,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-pane.hidden{display:none}
 .pe-field{display:flex;flex-direction:column;gap:6px;font-size:.76rem;font-weight:700;color:var(--muted)}
 .pe-field .field-input{width:100%}
-/* Infobulle légère façon XULTRA pour les boutons icône-seule (juste un
+/* Infobulle légère façon X1 pour les boutons icône-seule (juste un
    emoji, sans texte visible) — le title= natif du navigateur reste en
    secours (accessibilité, et s'affiche quand même si le CSS échoue), mais
    il est lent à apparaître et visuellement générique. data-tip="" ajoute
@@ -2276,7 +2310,7 @@ a.bug-att-item{display:block}
 .sg-tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35)}
 #sg-new-btn{flex-shrink:0;margin-bottom:10px}
 .sg-form{flex-shrink:0;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.16);border-radius:14px;padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px}
-.sg-list{overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:4px}
+.sg-list{overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-bottom:4px;flex:1;min-height:0}
 .sg-card{position:relative;background:linear-gradient(165deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid rgba(167,139,250,.16);border-radius:16px;padding:14px 16px;overflow:hidden;opacity:0;transform:translateY(10px);animation:sgIn .35s ease forwards;transition:border-color .18s ease,transform .18s ease}
 .sg-card:hover{border-color:rgba(167,139,250,.4);transform:translateY(-2px)}
 @keyframes sgIn{to{opacity:1;transform:translateY(0)}}
@@ -2498,23 +2532,23 @@ a.bug-att-item{display:block}
     <div class="logo-wrap">
       <div class="logo-particles" id="logo-particles"></div>
       <div class="logo-mark"><svg viewBox="0 0 48 48" width="44" height="44"><defs><linearGradient id="logoMarkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#7c3aed"/><stop offset="50%" stop-color="#a855f7"/><stop offset="100%" stop-color="#ec4899"/></linearGradient></defs><rect x="2" y="2" width="44" height="44" rx="13" fill="url(#logoMarkGrad)"/><path d="M14 14l20 20M34 14L14 34" stroke="#fff" stroke-width="5" stroke-linecap="round"/><circle cx="36" cy="12" r="3" fill="#fff"/></svg></div>
-      <div class="logo">XULTRA</div>
+      <div class="logo">X1</div>
     </div>
-    <div class="logo-sub">Messages · Amis · Profils</div>
+    <div class="logo-sub" data-i18n="auth_tagline">Messages · Amis · Profils</div>
     <div class="tabs">
-      <button type="button" class="on" data-tab="login">Connexion</button>
-      <button type="button" data-tab="register">Inscription</button>
+      <button type="button" class="on" data-tab="login" data-i18n="auth_tab_login">Connexion</button>
+      <button type="button" data-tab="register" data-i18n="auth_tab_register">Inscription</button>
     </div>
     <form id="pane-login" autocomplete="on">
-      <div class="field"><label>Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" placeholder="toi@exemple.com ou pseudo#1234"/></div>
-      <div class="field"><label>Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
-      <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0">Mot de passe oublié ?</button>
+      <div class="field"><label data-i18n="auth_email_or_tag">Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" data-i18n-placeholder="auth_email_or_tag_ph" placeholder="toi@exemple.com ou pseudo#1234"/></div>
+      <div class="field"><label data-i18n="auth_password">Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
+      <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0" data-i18n="auth_forgot_password">Mot de passe oublié ?</button>
       <label class="remember-row" for="in-remember">
         <input type="checkbox" id="in-remember" checked/>
-        <span>Rester connecté</span>
+        <span data-i18n="auth_remember_me">Rester connecté</span>
       </label>
       <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
-      <button type="submit" class="btn-main" id="btn-login">Entrer</button>
+      <button type="submit" class="btn-main" id="btn-login" data-i18n="auth_enter">Entrer</button>
       <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔑 Se connecter avec une clé d’accès</button>
     </form>
     <form id="pane-register" class="hidden" autocomplete="on">
@@ -2548,7 +2582,7 @@ a.bug-att-item{display:block}
       </div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
       <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
-      <button type="submit" class="btn-main" id="btn-register">Créer mon compte</button>
+      <button type="submit" class="btn-main" id="btn-register" data-i18n="auth_create_account">Créer mon compte</button>
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
@@ -2600,19 +2634,19 @@ a.bug-att-item{display:block}
 
 <div id="app" class="hidden">
   <nav class="rail">
-    <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
-    <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
-    <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
-    <button type="button" class="rail-btn" id="nav-suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
+    <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
+    <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-chatroulette" data-i18n-title="nav_chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-casino" data-i18n-title="nav_casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
+    <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-status" data-i18n-title="nav_status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
+    <button type="button" class="rail-btn" id="nav-suggestions" data-i18n-title="nav_suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-team" data-i18n-title="nav_team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
   </nav>
   <nav class="tabbar">
     <button type="button" class="rail-btn on" data-view="dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
@@ -2628,7 +2662,7 @@ a.bug-att-item{display:block}
   <aside class="list-col">
     <div class="list-head">
       <h1 id="list-title">Messages</h1>
-      <div class="list-sub" id="list-sub"><span class="dot"></span><span id="list-sub-txt">XULTRA</span></div>
+      <div class="list-sub" id="list-sub"><span class="dot"></span><span id="list-sub-txt">X1</span></div>
       <div class="search-row">
         <div class="search-wrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2766,7 +2800,7 @@ a.bug-att-item{display:block}
   <div class="modal-box" style="width:min(360px,100%)">
     <button type="button" class="modal-close" id="fp-close">✕</button>
     <h3>🔑 Mot de passe oublié</h3>
-    <div class="sc-desc">Entre l'adresse e-mail de ton compte XULTRA : si elle correspond à un compte, on t'envoie un lien pour choisir un nouveau mot de passe.</div>
+    <div class="sc-desc">Entre l'adresse e-mail de ton compte X1 : si elle correspond à un compte, on t'envoie un lien pour choisir un nouveau mot de passe.</div>
     <div class="field"><label>Email</label><input id="fp-email" type="email" autocomplete="username" placeholder="toi@exemple.com"/></div>
     <div class="err" id="fp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
     <button type="button" class="btn-main" id="fp-send" style="width:100%">Envoyer le lien</button>
@@ -2777,7 +2811,7 @@ a.bug-att-item{display:block}
   <div class="modal-box" style="width:min(360px,100%)">
     <button type="button" class="modal-close" id="rp-close">✕</button>
     <h3>🔑 Nouveau mot de passe</h3>
-    <div class="sc-desc">Choisis un nouveau mot de passe pour ton compte XULTRA.</div>
+    <div class="sc-desc">Choisis un nouveau mot de passe pour ton compte X1.</div>
     <div class="field"><label>Nouveau mot de passe</label><input id="rp-new-pass" type="password" minlength="8" autocomplete="new-password"/></div>
     <div class="field"><label>Confirmer le mot de passe</label><input id="rp-new-pass2" type="password" minlength="8" autocomplete="new-password"/></div>
     <div class="err" id="rp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
@@ -2836,7 +2870,7 @@ a.bug-att-item{display:block}
     <div class="bug-modal-hero">
       <div class="bug-modal-hero-icon">🐞</div>
       <h3 id="bug-modal-title">Signaler un bug</h3>
-      <div class="bug-modal-hero-sub">Aide XULTRA à s'améliorer — chaque bug résolu te rapproche du palier suivant.</div>
+      <div class="bug-modal-hero-sub">Aide X1 à s'améliorer — chaque bug résolu te rapproche du palier suivant.</div>
     </div>
     <div class="bug-modal-body">
       <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
@@ -3273,11 +3307,37 @@ a.bug-att-item{display:block}
   </div>
 </div>
 
+<div class="overlay hidden" id="modal-tos">
+  <div class="modal-box tos-modal">
+    <h3>📜 Avant de nous rejoindre — la charte X1</h3>
+    <div class="tos-body" id="tos-body">
+      <p>X1 est né d'une conviction simple : internet appartient à ceux qui l'utilisent, pas à ceux qui le surveillent. Ce texte n'est pas un mur juridique que personne ne lit — c'est notre engagement envers toi, et ce qu'on attend de toi en retour. Deux minutes de lecture, promis.</p>
+      <div class="tos-h">🌐 Notre mission — neutralité du net &amp; liberté d'expression</div>
+      <p>X1 existe pour défendre deux principes qu'on juge non négociables : la <b>neutralité du net</b> et la <b>liberté d'expression et d'opinion</b>. Concrètement, ça veut dire qu'on ne trie pas tes idées, qu'on ne fait pas taire une opinion parce qu'elle dérange, et qu'on ne favorise aucun point de vue au détriment d'un autre. Tant que tu restes dans le cadre décrit ci-dessous, tu es libre de penser, dire, débattre, plaisanter, critiquer, créer — largement et ouvertement, sans qu'un algorithme ou une équipe éditoriale décide à ta place de ce qui mérite d'être entendu. On croit qu'un espace où les gens parlent vraiment vaut mieux qu'un espace aseptisé où tout le monde a peur de déraper.</p>
+      <div class="tos-h">🚫 La ligne rouge — ce qui n'a pas sa place ici</div>
+      <p>Liberté ne veut pas dire absence de limites. Il existe une frontière claire et non négociable, que rien ne justifie de franchir : tout contenu qui encourage, fait l'apologie ou organise des <b>meurtres ou violences graves</b> envers des personnes, tout contenu impliquant de quelque façon que ce soit l'<b>exploitation sexuelle de mineurs</b>, et tout ce qui relève du <b>trafic ou de la promotion de drogues dures</b>. Ces trois limites sont absolues : elles ne se discutent pas, ne se négocient pas, et leur violation entraîne une suppression immédiate du contenu et, selon la gravité, du compte — avec signalement aux autorités compétentes lorsque la loi l'exige.</p>
+      <p>En dehors de cette ligne rouge très clairement tracée, la marge de liberté est large : humour noir, opinions politiques tranchées, débats inconfortables, critiques acerbes — tout ça a sa place tant que ça ne franchit pas la limite ci-dessus.</p>
+      <div class="tos-h">🔒 Ta vie privée — même nous, on ne peut pas lire tes messages</div>
+      <p>Voici quelque chose que peu de plateformes peuvent honnêtement affirmer : tes conversations privées sur X1 sont <b>chiffrées de bout en bout</b>. Concrètement, le contenu de tes messages et de tes médias privés est chiffré sur ton appareil <b>avant même de le quitter</b>, et il ne se déchiffre que sur l'appareil de la personne à qui tu écris. Nos serveurs ne voient jamais que du texte chiffré, illisible — ni nous, ni un employé mal intentionné, ni quelqu'un qui parviendrait à pirater notre base de données ne peut lire le contenu de tes échanges privés. On ne le peut littéralement pas, même si on le voulait : la clé n'existe que chez toi et ton interlocuteur, jamais sur nos serveurs. C'est un choix d'architecture délibéré, pas une promesse marketing — la confidentialité n'est pas une fonctionnalité qu'on pourrait retirer plus tard, elle fait partie des fondations du produit.</p>
+      <div class="tos-h">🛡️ Comment on fait respecter tout ça</div>
+      <p>La modération sur X1 ne repose pas sur la lecture de tes messages privés — chiffrement de bout en bout oblige — mais sur un mélange de signalements communautaires, d'analyse du contenu public (profils, serveurs, salons publics) et d'une communauté de Bug Hunters qui nous aide à repérer failles et abus. Un contenu signalé est examiné par une vraie personne, pas juste un algorithme aveugle. Tu peux signaler n'importe quel contenu ou compte en un clic, à tout moment.</p>
+      <div class="tos-h">⚖️ Ta responsabilité</div>
+      <p>Tu restes seul responsable de ce que tu publies, partages et dis sur X1. La liberté qu'on te donne s'accompagne d'une responsabilité : ce que tu publies engage ta responsabilité légale et personnelle, comme partout ailleurs sur internet ou dans la vie réelle.</p>
+      <p class="tos-final">En créant un compte, tu confirmes avoir lu et accepté cette charte.</p>
+    </div>
+    <div class="tos-foot">
+      <div class="tos-scroll-hint" id="tos-scroll-hint">⬇ Fais défiler jusqu'en bas pour continuer</div>
+      <button type="button" class="btn-main" id="tos-accept-btn" disabled>J'ai lu et j'accepte</button>
+      <button type="button" class="set-mini-btn" id="tos-decline-btn">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-changelog">
   <div class="modal-box changelog-panel">
     <button type="button" class="modal-close" id="cl-close">✕</button>
     <h3>📋 Nouveautés</h3>
-    <div class="cl-sub">Tout ce qui a changé récemment sur XULTRA</div>
+    <div class="cl-sub">Tout ce qui a changé récemment sur X1</div>
     <div class="cl-list" id="cl-list"></div>
   </div>
 </div>
@@ -3286,7 +3346,7 @@ a.bug-att-item{display:block}
   <div class="modal-box suggestions-panel">
     <button type="button" class="modal-close" id="sg-close">✕</button>
     <h3>💡 Boîte à idées</h3>
-    <div class="cl-sub">Propose une idée pour XULTRA, vote pour tes préférées — les plus populaires ont plus de chances d'être développées !</div>
+    <div class="cl-sub">Propose une idée pour X1, vote pour tes préférées — les plus populaires ont plus de chances d'être développées !</div>
     <div class="sg-tabs" id="sg-tabs">
       <button type="button" class="sg-tab on" data-cat="all">Tout</button>
       <button type="button" class="sg-tab" data-cat="feature">⚙️ Fonctionnalité</button>
@@ -3622,12 +3682,12 @@ function openIosInstallSheet(){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
-    +'<div class="set-section-label">🍎 Installer XULTRA sur iPhone/iPad</div>'
+    +'<div class="set-section-label">🍎 Installer X1 sur iPhone/iPad</div>'
     +'<div class="scr-sub" style="margin-bottom:6px">Apple n\\'autorise pas les applications installées en dehors de l\\'App Store — voici l\\'équivalent qui fonctionne vraiment, notifications comprises :</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">1</span> Ouvre <b>xultra.space</b> dans Safari</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">2</span> Appuie sur l\\'icône de partage en bas de l\\'écran</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">3</span> Choisis « Sur l\\'écran d\\'accueil »</div>'
-    +'<div class="ios-install-step"><span class="ios-install-num">4</span> Ouvre XULTRA depuis son icône — notifications et appels fonctionnent comme une vraie application</div>'
+    +'<div class="ios-install-step"><span class="ios-install-num">4</span> Ouvre X1 depuis son icône — notifications et appels fonctionnent comme une vraie application</div>'
     +'<button type="button" class="btn-main" id="ios-install-close" style="width:100%;margin-top:12px">Compris</button>'
   +'</div>';
   document.body.appendChild(overlay);
@@ -3645,8 +3705,8 @@ function openChromeosInstallSheet(dlHref){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
-    +'<div class="set-section-label">💻 Installer XULTRA sur Chromebook</div>'
-    +'<div class="scr-sub" style="margin-bottom:6px">XULTRA utilise l\\'appli Android — même fichier que sur téléphone, ça fonctionne aussi bien sur Chromebook :</div>'
+    +'<div class="set-section-label">💻 Installer X1 sur Chromebook</div>'
+    +'<div class="scr-sub" style="margin-bottom:6px">X1 utilise l\\'appli Android — même fichier que sur téléphone, ça fonctionne aussi bien sur Chromebook :</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">1</span> Vérifie que le Play Store est activé (Paramètres → Applications → Applications Android intégrées)</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">2</span> Télécharge le fichier .apk ci-dessous</div>'
     +'<div class="ios-install-step"><span class="ios-install-num">3</span> Ouvre l\\'appli Fichiers, dossier Téléchargements, puis appuie sur le .apk pour l\\'installer</div>'
@@ -3792,7 +3852,7 @@ function detectAppPlatformKey(){
   if(isAlreadyInstalled())return;
   try{if(localStorage.getItem('xultra_install_banner_dismissed')==='1')return;}catch(e){}
   const p=APP_PLATFORMS.find(function(x){return x.key===detectAppPlatformKey();})||APP_PLATFORMS[0];
-  \$('install-banner-text').textContent='Tu es sur '+p.label+' — installe l\\'appli XULTRA pour de meilleures notifications et pour recevoir tes appels même en arrière-plan.';
+  \$('install-banner-text').textContent='Tu es sur '+p.label+' — installe l\\'appli X1 pour de meilleures notifications et pour recevoir tes appels même en arrière-plan.';
   const installBtn=\$('install-banner-btn');
   installBtn.textContent=p.icon+' Installer';
   installBtn.onclick=function(){triggerAppPlatform(p);};
@@ -4580,9 +4640,9 @@ async function enterApp(e2ePassword){
   }catch(e){}
   try{maybeShowOauthConsent();}catch(e){}
 }
-// ===== "Se connecter avec XULTRA" — écran de consentement côté visiteur =====
+// ===== "Se connecter avec X1" — écran de consentement côté visiteur =====
 // Redirigé ici depuis /oauth/authorize?client_id=...&redirect_uri=...&state=...
-// par le site tiers ; ne s'affiche qu'une fois connecté à XULTRA (si besoin,
+// par le site tiers ; ne s'affiche qu'une fois connecté à X1 (si besoin,
 // l'écran de connexion habituel s'affiche d'abord — cette vérification tourne
 // à nouveau juste après, une fois enterApp() terminé).
 let oauthConsentCtx=null;
@@ -4616,7 +4676,7 @@ async function openOauthConsent(clientId,redirectUri,state,scope){
     }
     \$('oauth-consent-icon').textContent=j.logoEmoji||'🔌';
     \$('oauth-consent-title').textContent=j.name+' veut se connecter';
-    \$('oauth-consent-sub').textContent='avec ton compte XULTRA';
+    \$('oauth-consent-sub').textContent='avec ton compte X1';
     \$('oauth-consent-scopes').innerHTML='<div class="oauth-scope-row">✅ Ton pseudo, ton tag et ton avatar</div><div class="oauth-scope-row">🚫 Jamais ton e-mail, ton mot de passe, ni tes messages</div>';
     if(!j.redirectOk){\$('oauth-consent-warn').classList.remove('hidden');\$('oauth-consent-allow').disabled=true;}
   }catch(e){
@@ -4818,7 +4878,7 @@ if(\$('fp-send'))\$('fp-send').addEventListener('click',async function(){
   }catch(e){
     /* Un email inconnu renvoie une vraie erreur Appwrite (404/400) — l'afficher
        distinctement du cas générique permettrait à quelqu'un de vérifier si un
-       email donné est inscrit sur XULTRA (énumération de comptes). On affiche
+       email donné est inscrit sur X1 (énumération de comptes). On affiche
        donc le même message de succès générique dans ce cas précis ; seules les
        vraies pannes (réseau, limite de débit) restent signalées normalement. */
     const code=e&&e.code;
@@ -5045,11 +5105,48 @@ async function doRegister(){
 }
 
 if(\$('pane-login'))\$('pane-login').addEventListener('submit',function(e){e.preventDefault();doLogin();});
-if(\$('pane-register'))\$('pane-register').addEventListener('submit',function(e){e.preventDefault();doRegister();});
+// Demandé : conditions d'utilisation à l'inscription, à faire défiler
+// jusqu'en bas pour pouvoir accepter et poursuivre — le bouton reste
+// désactivé tant que le bas du texte n'a pas été atteint.
+let tosAcceptedThisSession=false;
+function openTosGate(onAccept){
+  const modal=\$('modal-tos');if(!modal){onAccept();return}
+  modal.classList.remove('hidden');
+  const body=\$('tos-body'),btn=\$('tos-accept-btn'),hint=\$('tos-scroll-hint'),declineBtn=\$('tos-decline-btn');
+  btn.disabled=true;
+  if(hint)hint.classList.remove('hidden');
+  body.scrollTop=0;
+  function checkScroll(){
+    if(body.scrollHeight-body.scrollTop-body.clientHeight<24){
+      btn.disabled=false;
+      if(hint)hint.classList.add('hidden');
+    }
+  }
+  body.addEventListener('scroll',checkScroll);
+  checkScroll();
+  function cleanup(){body.removeEventListener('scroll',checkScroll);modal.classList.add('hidden');}
+  btn.onclick=function(){
+    if(btn.disabled)return;
+    cleanup();
+    tosAcceptedThisSession=true;
+    onAccept();
+  };
+  declineBtn.onclick=function(){cleanup();};
+}
+if(\$('pane-register'))\$('pane-register').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(tosAcceptedThisSession){doRegister();return}
+  openTosGate(function(){doRegister();});
+});
 if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
   xlog('logout_click',{});
   try{if(ensureSdk())await account.deleteSession('current');}catch(e){}
   try{localStorage.removeItem('xultra_session');}catch(e){}
+  // Bug remonté : l'apparence choisie (thème clair/OLED…) restait affichée
+  // après déconnexion, même après un rechargement — seule la suppression
+  // des cookies du site la remettait à zéro. xultra_app_prefs n'était en
+  // effet jamais nettoyé, uniquement la session elle-même.
+  try{localStorage.removeItem('xultra_app_prefs');}catch(e){}
   clearCookieFallback();
   location.reload();
 });
@@ -5152,14 +5249,28 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
-  {version:'3.6.0',date:'28 août 2026',time:'02:00',title:'🎵 XULTRA Music',
+  {version:'4.3.0',date:'28 août 2026',time:'09:00',title:'📜 Conditions d\\'utilisation à l\\'inscription',
+    body:'L\\'inscription affiche désormais la charte X1 : neutralité du net, liberté d\\'expression et d\\'opinion, les quelques limites absolues à ne jamais franchir, et une explication claire du chiffrement de bout en bout de tes messages privés (même nous ne pouvons pas les lire). Il faut faire défiler tout le texte pour pouvoir l\\'accepter et poursuivre — pas de case cochée sans lecture.'},
+  {version:'4.2.0',date:'28 août 2026',time:'08:00',title:'🎛️ Réglages d\\'appel enregistrés pour de bon',
+    body:'Qualité caméra, qualité de partage d\\'écran, micro préféré, volumes, réduction de bruit, annulation d\\'écho, gain automatique et canal audio : tous ces réglages d\\'appel restent désormais mémorisés d\\'un appel à l\\'autre et d\\'une session à l\\'autre, au lieu de repartir à zéro à chaque rechargement de la page.'},
+  {version:'4.1.0',date:'28 août 2026',time:'07:00',title:'🌐 X1 devient multilingue (v1)',
+    body:'Nouveau sélecteur de langue dans Paramètres → Langue : Français, English, Español, Português, Deutsch, Italiano. La barre de navigation, l\\'écran de connexion et les titres des paramètres changent déjà de langue selon ton choix. Le reste du site (notes de version, descriptions détaillées…) suit progressivement — première étape d\\'une traduction complète.'},
+  {version:'4.0.0',date:'28 août 2026',time:'06:00',title:'✨ XULTRA devient X1',
+    body:'La plateforme change de nom : XULTRA s\\'appelle désormais X1, partout où le nom apparaît sur le site (écran de connexion, notifications, paramètres…). Rien d\\'autre ne change — même adresse xultra.space, même équipe, mêmes fonctionnalités.'},
+  {version:'3.9.0',date:'28 août 2026',time:'05:00',title:'🖼️ Aperçu des images/gifs en fenêtre flottante',
+    body:'Idée reçue dans la Boîte à idées : cliquer sur une image ou un gif dans une conversation l\\'ouvre maintenant dans une fenêtre flottante sur X1, au lieu d\\'un nouvel onglet. Corrige au passage un bug remonté sur l\\'application de bureau où l\\'aperçu d\\'une image de message chiffré affichait une erreur "blob" et restait impossible à agrandir.'},
+  {version:'3.8.0',date:'28 août 2026',time:'04:00',title:'12 correctifs remontés par la communauté Bug Hunter',
+    body:'Barre de progression de X1 Music qui revenait au début d\\'un clic sur un autre point de la piste · réponse à un message chiffré qui affichait "Message chiffré" au lieu du vrai texte · écran de connexion qui clignotait à chaque rechargement même déjà connecté · apparence du site restant sur l\\'ancien choix après déconnexion · notifications de bureau sans contenu même l\\'option activée · glisser-déposer de fichier qui ne fonctionnait pas du tout · partage de position qui s\\'enregistrait sans jamais réellement s\\'envoyer · Boîte à idées qui se compressait au lieu de laisser défiler la liste · notifications indisponibles sur iPhone/iPad sans aucune explication, et quelques ajustements d\\'affichage sur mobile.'},
+  {version:'3.7.0',date:'28 août 2026',time:'03:00',title:'💬 Historique des messages privés illimité',
+    body:'Remonter dans une conversation charge maintenant automatiquement les messages plus anciens au fur et à mesure, au lieu de s\\'arrêter aux 60 derniers. Corrigé aussi : sur mobile, ton propre message envoyé pouvait rester juste hors de vue, obligeant à scroller à la main pour le voir.'},
+  {version:'3.6.0',date:'28 août 2026',time:'02:00',title:'🎵 X1 Music',
     body:'Une plateforme d\\'écoute et de partage, ouverte à tout le monde, fusionnée avec le profil existant : nouveau bouton 🎵 dans la barre latérale. Publie tes propres titres (fichier audio + pochette optionnelle), découvre ceux des autres, crée des playlists, aime et commente. Chaque profil affiche maintenant un bouton 🎵 Musique vers les titres publiés par cette personne. Première version volontairement centrée sur l\\'écoute et le partage — pas de redevances, de distribution vers d\\'autres plateformes ni de contenu payant pour l\\'instant.'},
   {version:'3.5.0',date:'28 août 2026',time:'01:00',title:'📖 Un guide pour chaque section du site',
-    body:'En plus de la visite guidée des boutons principaux, chaque grande section a maintenant son propre petit guide écrit — Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, Profil, Bug Hunter, et Se connecter avec XULTRA. Accessible depuis Paramètres → Avancé → Guides par section.'},
-  {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec XULTRA (ouvert à tout le monde)',
-    body:'N\\'importe qui peut désormais brancher "Se connecter avec XULTRA" sur son propre site : depuis Paramètres → Se connecter avec XULTRA, crée une application en quelques secondes pour obtenir un client_id/client_secret, avec un guide d\\'implémentation complet (URL d\\'autorisation, échange du code, récupération du profil) et des extraits de code prêts à copier. Tes visiteurs se connectent avec leur pseudo/avatar XULTRA sans créer un mot de passe de plus, après un écran de consentement clair. Et dans Paramètres → Applications autorisées, retrouve et révoque à tout moment les sites que tu as toi-même connectés à ton compte.'},
-  {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'XULTRA+ devient X1+',
-    body:'L\\'abonnement premium change de nom : XULTRA+ s\\'appelle désormais X1+, partout sur le site (profil, paramètres, boosts de serveur, badge Légende du Bug). Rien ne change dans ce que ça débloque.'},
+    body:'En plus de la visite guidée des boutons principaux, chaque grande section a maintenant son propre petit guide écrit — Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, Profil, Bug Hunter, et Se connecter avec X1. Accessible depuis Paramètres → Avancé → Guides par section.'},
+  {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec X1 (ouvert à tout le monde)',
+    body:'N\\'importe qui peut désormais brancher "Se connecter avec X1" sur son propre site : depuis Paramètres → Se connecter avec X1, crée une application en quelques secondes pour obtenir un client_id/client_secret, avec un guide d\\'implémentation complet (URL d\\'autorisation, échange du code, récupération du profil) et des extraits de code prêts à copier. Tes visiteurs se connectent avec leur pseudo/avatar X1 sans créer un mot de passe de plus, après un écran de consentement clair. Et dans Paramètres → Applications autorisées, retrouve et révoque à tout moment les sites que tu as toi-même connectés à ton compte.'},
+  {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'L\\'abonnement premium devient X1+',
+    body:'L\\'abonnement premium change de nom et s\\'appelle désormais X1+, partout sur le site (profil, paramètres, boosts de serveur, badge Légende du Bug). Rien ne change dans ce que ça débloque.'},
   {version:'3.2.0',date:'27 août 2026',time:'22:00',title:'7 correctifs remontés par la communauté Bug Hunter',
     body:'Un très vieil appel jamais raccroché proprement (crash, fermeture du navigateur…) pouvait bloquer silencieusement tout nouvel appel pour toujours, expliquant "je ne reçois pas tes appels" — corrigé (la vérification anti-collision est maintenant limitée aux 2 dernières heures), avec un sondage de secours en plus de la connexion temps réel pour rattraper une notification d\\'appel manquée après une coupure réseau — merci "1e". Dans l\\'édition du profil, les pastilles de contour d\\'avatar remontaient par-dessus le titre de section au-dessus — merci Yani Neco. La recherche dans une conversation ne trouvait presque rien : les mots courts ("je", "tu"…) étaient silencieusement ignorés, et pour les conversations chiffrées de bout en bout, le texte cherché ne pouvait de toute façon jamais correspondre au texte chiffré stocké côté serveur — recherche déplacée côté client sur le texte déchiffré — merci "1e". Le bouton "Notifications activées" ne disait pas ce qui se passerait au clic — renommé en "Désactiver les notifications" — merci Yani Neco. Sur l\\'application de bureau, un échec d\\'activation des notifications ou de partage de position affiche maintenant un message clair expliquant la limitation de la plateforme, au lieu d\\'une erreur technique brute — merci "1e". Et l\\'anneau tournant du badge le plus prestigieux (LÉGENDE DU BUG) grandissait au lieu de rester un petit cercle bien ajusté à l\\'icône — merci Yani Neco.'},
   {version:'3.1.0',date:'27 août 2026',time:'21:00',title:'Appels vocaux : interface repensée et historique dans le chat',
@@ -5181,17 +5292,17 @@ const CHANGELOG=[
   {version:'2.93.0',date:'27 août 2026',time:'13:00',title:'Profil : bannière plus grande, boutons d\\'action modernisés',
     body:'La bannière affichée en haut d\\'un profil est maintenant nettement plus grande. Les boutons d\\'action (copier le lien, bloquer, signaler) avaient un style improvisé — tous en rouge alarmant, collés à la même hauteur que les vrais boutons d\\'action (Ami, Message) : ils passent sur leur propre rangée, plus petits, neutres par défaut, la teinte rouge n\\'apparaissant plus qu\\'au survol des actions qui le justifient vraiment (bloquer, signaler).'},
   {version:'2.92.0',date:'27 août 2026',time:'12:00',title:'8 correctifs remontés par la communauté Bug Hunter',
-    body:'Une bonne chasse : le bouton "Activer les notifications" qui perdait son texte (ne gardait que l\\'icône) est corrigé — merci Yani Neco. L\\'édition de profil sur mobile ne pousse plus les options hors champ quand la bio est très longue — merci Yani Neco. Les demandes d\\'ami apparaissaient en double dans les notifications, l\\'une d\\'elles avec un bouton "Accepter" qui ne faisait jamais rien — merci NecoCrusader et 995mec, corrigé à la racine (et la notification d\\'une demande traitée disparaît enfin vraiment). Une photo de profil ajoutée uniquement via la galerie d\\'avatars n\\'apparaissait pas dans la barre utilisateur — merci hi. La bannière rouge "Script error." illisible en cas de bug est maintenant plus rarement déclenchée sans raison exploitable (les bibliothèques externes chargées par XULTRA remontent enfin leurs vraies erreurs) — merci ed_jo. Et un rebond de défilement qui pouvait faire "sortir du site" en mode d\\'affichage Compact est bloqué — merci warl0ck_l.'},
+    body:'Une bonne chasse : le bouton "Activer les notifications" qui perdait son texte (ne gardait que l\\'icône) est corrigé — merci Yani Neco. L\\'édition de profil sur mobile ne pousse plus les options hors champ quand la bio est très longue — merci Yani Neco. Les demandes d\\'ami apparaissaient en double dans les notifications, l\\'une d\\'elles avec un bouton "Accepter" qui ne faisait jamais rien — merci NecoCrusader et 995mec, corrigé à la racine (et la notification d\\'une demande traitée disparaît enfin vraiment). Une photo de profil ajoutée uniquement via la galerie d\\'avatars n\\'apparaissait pas dans la barre utilisateur — merci hi. La bannière rouge "Script error." illisible en cas de bug est maintenant plus rarement déclenchée sans raison exploitable (les bibliothèques externes chargées par X1 remontent enfin leurs vraies erreurs) — merci ed_jo. Et un rebond de défilement qui pouvait faire "sortir du site" en mode d\\'affichage Compact est bloqué — merci warl0ck_l.'},
   {version:'2.91.0',date:'27 août 2026',time:'11:00',title:'Recadrage de bannière, stories à la une, et scan antivirus des applications',
     body:'Deux idées de la Boîte à idées prennent vie, toutes deux proposées par hi : un vrai outil de recadrage (glisser-déposer + zoom) s\\'ouvre maintenant en choisissant une bannière de profil, pour cadrer précisément l\\'image au lieu de subir un centrage automatique ; et un nouveau bloc « ✨ À la une » sur les profils permet d\\'épingler des stories au-delà de leur expiration habituelle (bouton ⭐ dans le visionnage d\\'une de tes stories). Par ailleurs, les 5 installeurs de bureau et l\\'application Android/Chromebook ont été scannés par VirusTotal (0 détection sur 75 antivirus) — le résultat est affiché directement sur le bouton de téléchargement, avec un lien vers le rapport public complet.'},
   {version:'2.90.0',date:'27 août 2026',time:'10:30',title:'Bannière d\\'installation, version Chromebook, et empreintes de fichiers',
-    body:'Une bannière discrète (fermable, en haut du site) propose maintenant d\\'installer l\\'appli native XULTRA quand tu utilises la version navigateur, avec ta plateforme détectée automatiquement. Nouvelle entrée « Chromebook » dans les téléchargements (réutilise l\\'appli Android via ARC++, avec ses propres instructions d\\'installation). Chaque fichier téléchargeable affiche maintenant son empreinte SHA-256 (bouton « Vérifier l\\'empreinte du fichier »), pour qui veut confirmer qu\\'il n\\'a pas été altéré. Côté application de bureau, les notifications et appels entrants sont plus fiables quand la fenêtre est réduite dans la zone de notification (plus de ralentissement des tâches de fond, réouverture de la fenêtre garantie au clic sur une notification).'},
+    body:'Une bannière discrète (fermable, en haut du site) propose maintenant d\\'installer l\\'appli native X1 quand tu utilises la version navigateur, avec ta plateforme détectée automatiquement. Nouvelle entrée « Chromebook » dans les téléchargements (réutilise l\\'appli Android via ARC++, avec ses propres instructions d\\'installation). Chaque fichier téléchargeable affiche maintenant son empreinte SHA-256 (bouton « Vérifier l\\'empreinte du fichier »), pour qui veut confirmer qu\\'il n\\'a pas été altéré. Côté application de bureau, les notifications et appels entrants sont plus fiables quand la fenêtre est réduite dans la zone de notification (plus de ralentissement des tâches de fond, réouverture de la fenêtre garantie au clic sur une notification).'},
   {version:'2.89.0',date:'27 août 2026',time:'09:00',title:'Application de bureau : réglages système et badge de notifications',
-    body:'Les paramètres liés à l\\'application de bureau XULTRA (§ Paramètres → Paramètres du système) sont maintenant réellement branchés : ouvrir XULTRA au démarrage de session, démarrer minimisé, et minimiser dans la barre des tâches à la fermeture sont désormais de vrais réglages (au lieu de "Bientôt disponible"). Le badge de messages non lus sur l\\'icône (§ Paramètres → Notifications) s\\'affiche maintenant aussi sur le dock/la barre des tâches de l\\'application de bureau, pas seulement dans l\\'onglet du navigateur. Au passage, l\\'icône de la zone de notification (system tray), absente par erreur des précédents installeurs, s\\'affiche enfin correctement.'},
+    body:'Les paramètres liés à l\\'application de bureau X1 (§ Paramètres → Paramètres du système) sont maintenant réellement branchés : ouvrir X1 au démarrage de session, démarrer minimisé, et minimiser dans la barre des tâches à la fermeture sont désormais de vrais réglages (au lieu de "Bientôt disponible"). Le badge de messages non lus sur l\\'icône (§ Paramètres → Notifications) s\\'affiche maintenant aussi sur le dock/la barre des tâches de l\\'application de bureau, pas seulement dans l\\'onglet du navigateur. Au passage, l\\'icône de la zone de notification (system tray), absente par erreur des précédents installeurs, s\\'affiche enfin correctement.'},
   {version:'2.88.0',date:'27 août 2026',time:'07:30',title:'Applications Android et iPhone/iPad, notifications et appels compris',
-    body:'XULTRA s\\'installe maintenant comme une vraie application sur mobile. Sur Android : un fichier .apk à télécharger depuis le bouton 💻 devenu 📲 (à installer manuellement, hors Play Store — aucun compte Google Play n\\'a été ouvert), qui s\\'ouvre en plein écran sans barre d\\'adresse. Sur iPhone/iPad : Apple n\\'autorisant pas d\\'installation hors App Store, le même bouton ouvre les 3 étapes pour l\\'ajouter à l\\'écran d\\'accueil depuis Safari — aucun compte développeur Apple n\\'a été ouvert non plus. Dans les deux cas, les notifications (déjà en place sur le site) et les appels vidéo fonctionnent normalement, sans système séparé à maintenir.'},
+    body:'X1 s\\'installe maintenant comme une vraie application sur mobile. Sur Android : un fichier .apk à télécharger depuis le bouton 💻 devenu 📲 (à installer manuellement, hors Play Store — aucun compte Google Play n\\'a été ouvert), qui s\\'ouvre en plein écran sans barre d\\'adresse. Sur iPhone/iPad : Apple n\\'autorisant pas d\\'installation hors App Store, le même bouton ouvre les 3 étapes pour l\\'ajouter à l\\'écran d\\'accueil depuis Safari — aucun compte développeur Apple n\\'a été ouvert non plus. Dans les deux cas, les notifications (déjà en place sur le site) et les appels vidéo fonctionnent normalement, sans système séparé à maintenir.'},
   {version:'2.87.0',date:'27 août 2026',time:'06:30',title:'Application de bureau téléchargeable depuis la page de connexion',
-    body:'Un bouton 💻 sur l\\'écran de connexion propose désormais l\\'application de bureau XULTRA (Windows, Mac, Linux), avec ta plateforme détectée automatiquement et les autres versions juste en dessous.'},
+    body:'Un bouton 💻 sur l\\'écran de connexion propose désormais l\\'application de bureau X1 (Windows, Mac, Linux), avec ta plateforme détectée automatiquement et les autres versions juste en dessous.'},
   {version:'2.86.0',date:'27 août 2026',time:'05:30',title:'Salons vocaux : anneau vert fluo pour qui parle, plus de widget flottant',
     body:'Un salon vocal de serveur n\\'ouvre plus la petite barre d\\'appel flottante : à la place, la liste des salons affiche un anneau vert fluo animé autour de l\\'avatar de qui est en train de parler, en direct. Pour accéder aux boutons micro/caméra/quitter, il suffit d\\'ouvrir le salon (comme avant) — c\\'est désormais leur seul et unique emplacement.'},
   {version:'2.85.2',date:'27 août 2026',time:'05:00',title:'Salons vocaux : rejoindre en un clic + icône caméra dans la liste',
@@ -5201,7 +5312,7 @@ const CHANGELOG=[
   {version:'2.85.0',date:'27 août 2026',time:'04:00',title:'Salons vocaux de serveur : membres connectés visibles + caméra',
     body:'La liste des salons affiche maintenant qui est connecté à chaque salon vocal, avec avatar et nom (clic pour ouvrir le profil) — mis à jour en direct. Et en ouvrant le salon vocal auquel tu es déjà connecté, une vraie grille remplace la carte "Rejoindre" : une tuile par participant, caméra si activée sinon avatar, anneau vert pour qui parle. Nouveau bouton 📹 pour activer ta caméra directement dans le salon.'},
   {version:'2.84.0',date:'27 août 2026',time:'03:00',title:'Carte des amis : partage de position dans 🌍 Découvrir → 🗺️ Carte',
-    body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
+    body:'Nouveau bouton 📍 sur la carte (dans Découvrir) pour partager ta position avec les amis de ton choix — jamais tous par défaut, tu coches qui peut te voir. Ta position est un instantané qui se rafraîchit environ toutes les 5 minutes tant que X1 est ouvert (pas un suivi GPS permanent), et se périme après 2h d\\'inactivité. Les amis qui partagent avec toi apparaissent sur la carte avec leur avatar ou leur xMoji ; un clic dessus ouvre directement leur profil.'},
   {version:'2.83.0',date:'27 août 2026',time:'02:00',title:'Découverte de serveurs : podium 🥇🥈🥉 et navigation par catégorie',
     body:'La fenêtre « Découvrir des serveurs » a un nouveau visage : un podium met en avant les 3 serveurs les plus actifs (le plus de membres, le moins de signalements), puis tous les autres serveurs apparaissent regroupés par catégorie, triés du plus petit au plus grand pour donner leur chance aux serveurs qui débutent. Cartes animées, effet de survol, et un aperçu qui s\\'ouvre au clic avant de rejoindre.'},
   {version:'2.82.0',date:'27 août 2026',time:'01:15',title:'Serveurs : accès total pour Shaman + précision sur la suppression des messages',
@@ -5227,11 +5338,11 @@ const CHANGELOG=[
   {version:'2.73.0',date:'26 août 2026',time:'16:00',title:'Studio de snap : caméra en direct, filtres et texte',
     body:'👻 Snap éphémère ouvre maintenant un vrai studio de prise de vue en direct (comme sur Snap) : appuie pour une photo, maintiens pour filmer une vidéo, avec caméra avant/arrière, 8 filtres à appliquer en direct (Chaud, Froid, N&B, Éclatant, Vintage, Noir, Rêve…) et — pour les photos — des calques de texte à faire glisser où tu veux, en 8 couleurs. L\\'import depuis la galerie reste disponible d\\'un tap sur 🖼️. Une fois envoyé, le fichier suit exactement le même circuit que les autres snaps (chiffrement, minuteur de visionnage, streak).'},
   {version:'2.72.0',date:'26 août 2026',time:'15:15',title:'Nouveau favicon, logo et icônes de navigation',
-    body:'XULTRA a enfin un favicon (un "X" dégradé violet-rose, dessiné pour l\\'occasion) et le logo de connexion s\\'accompagne maintenant de ce même symbole. Les 12 boutons de la barre de navigation (Messages, Amis, Membres, Serveurs…) et les 5 boutons de la zone d\\'écriture des messages privés passent des emojis à de vraies icônes SVG dessinées sur-mesure, plus nettes et cohérentes. Première vague — d\\'autres coins du site (paramètres, salons de serveur…) suivront.'},
+    body:'X1 a enfin un favicon (un "X" dégradé violet-rose, dessiné pour l\\'occasion) et le logo de connexion s\\'accompagne maintenant de ce même symbole. Les 12 boutons de la barre de navigation (Messages, Amis, Membres, Serveurs…) et les 5 boutons de la zone d\\'écriture des messages privés passent des emojis à de vraies icônes SVG dessinées sur-mesure, plus nettes et cohérentes. Première vague — d\\'autres coins du site (paramètres, salons de serveur…) suivront.'},
   {version:'2.71.0',date:'26 août 2026',time:'14:45',title:'Snaps : minuteur au choix + statut « vu » en direct',
     body:'À l\\'envoi d\\'un snap éphémère, choisis maintenant combien de temps il reste visible pour le destinataire (3s, 5s, 10s, ou sans limite jusqu\\'à fermeture manuelle) — un petit compte à rebours s\\'affiche pendant le visionnage. Et surtout : quand quelqu\\'un ouvre ton snap, tu le vois marqué "vu" instantanément dans la conversation, sans avoir à recharger la page.'},
-  {version:'2.70.0',date:'26 août 2026',time:'14:00',title:'Bitmoji XULTRA — ton avatar 2D personnalisable',
-    body:'Nouvel onglet 🎭 Bitmoji dans l\\'éditeur de profil : compose un avatar 2D façon Bitmoji entièrement dessiné pour XULTRA (teint, forme du visage, coiffure et couleur, yeux, sourcils, bouche, tenue et couleur, accessoire, fond), avec aperçu en direct et un bouton 🎲 pour un tirage aléatoire. Active "Utiliser mon Bitmoji comme photo de profil" pour l\\'afficher à la place de ta photo sur ta fiche profil et dans la barre utilisateur.'},
+  {version:'2.70.0',date:'26 août 2026',time:'14:00',title:'Bitmoji X1 — ton avatar 2D personnalisable',
+    body:'Nouvel onglet 🎭 Bitmoji dans l\\'éditeur de profil : compose un avatar 2D façon Bitmoji entièrement dessiné pour X1 (teint, forme du visage, coiffure et couleur, yeux, sourcils, bouche, tenue et couleur, accessoire, fond), avec aperçu en direct et un bouton 🎲 pour un tirage aléatoire. Active "Utiliser mon Bitmoji comme photo de profil" pour l\\'afficher à la place de ta photo sur ta fiche profil et dans la barre utilisateur.'},
   {version:'2.69.0',date:'26 août 2026',time:'13:00',title:'Page de présentation du tag de serveur',
     body:'Clique sur le tag d\\'un serveur (comme le badge Bug Hunter) : une petite page de présentation s\\'ouvre, avec l\\'icône, le nom et une description de la guilde. Le propriétaire peut la personnaliser depuis les paramètres du serveur — 7 thèmes animés au choix (Aurore, Feu, Océan, Vide stellaire, Coucher de soleil, Matrice…) avec dégradés qui bougent et effets de particules (étincelles, braises, étoiles, bulles, neige), couleurs du titre et du texte, ou carrément écrire son propre CSS pour un design 100% sur-mesure.'},
   {version:'2.68.0',date:'26 août 2026',time:'12:00',title:'DM : snaps éphémères et streaks',
@@ -5249,21 +5360,21 @@ const CHANGELOG=[
   {version:'2.63.0',date:'26 août 2026',time:'08:00',title:'Serveurs : écran d\\'accueil',
     body:'Nouvelle section 👋 Écran d\\'accueil dans les paramètres du serveur : mets en avant jusqu\\'à 5 salons avec un emoji et une courte description. Les nouveaux membres (et ceux qui viennent d\\'accepter les règles du mode communauté) le voient automatiquement à leur arrivée, avec un clic direct vers chaque salon mis en avant — et un bouton 👋 permet de le revoir à tout moment depuis la liste des salons.'},
   {version:'2.62.0',date:'26 août 2026',time:'07:15',title:'Tags de serveur',
-    body:'Le propriétaire d\\'un serveur peut désormais lui donner un tag 100% personnalisable (texte + couleur) depuis les paramètres du serveur. Chaque membre choisit ensuite, dans Paramètres → Profils, d\\'afficher le tag d\\'un des serveurs dont il est membre juste à côté de son pseudo — dans les messages, les listes d\\'amis et de conversations, la fiche profil, un peu partout sur XULTRA.'},
+    body:'Le propriétaire d\\'un serveur peut désormais lui donner un tag 100% personnalisable (texte + couleur) depuis les paramètres du serveur. Chaque membre choisit ensuite, dans Paramètres → Profils, d\\'afficher le tag d\\'un des serveurs dont il est membre juste à côté de son pseudo — dans les messages, les listes d\\'amis et de conversations, la fiche profil, un peu partout sur X1.'},
   {version:'2.61.0',date:'26 août 2026',time:'06:30',title:'Serveurs : emojis personnalisés',
     body:'Nouvelle section 😀 Emojis personnalisés dans les paramètres du serveur (jusqu\\'à 50 par serveur) : ajoute une image (PNG/GIF/WEBP, 512 Ko max) avec un nom, et tous les membres peuvent l\\'utiliser dans les salons en tapant <code>:nom:</code> — il s\\'affiche automatiquement comme une petite image dans les messages. Les emojis du serveur apparaissent aussi en haut du sélecteur d\\'emoji habituel pour un accès rapide en un clic.'},
   {version:'2.60.0',date:'26 août 2026',time:'05:45',title:'Serveurs : mode communauté avec règles à accepter',
     body:'Nouvelle section 🏛️ Mode Communauté dans les paramètres du serveur (réservée à qui gère le serveur) : une fois activé avec des règles écrites, tout nouveau membre doit les lire et cocher "J\\'accepte" avant de pouvoir écrire dans les salons, créer un fil ou publier dans un forum — il peut toujours tout lire normalement en attendant. Message de bienvenue optionnel affiché avec les règles. Le propriétaire et la modération avec un rôle de gestion ne sont jamais bloqués.'},
   {version:'2.59.0',date:'26 août 2026',time:'05:00',title:'Serveurs : webhooks pour connecter des services externes',
-    body:'Nouvelle section 🔌 Webhooks dans les paramètres du serveur (réservée à qui gère les salons) : crée une URL unique par salon texte, à donner à un service externe (GitHub, un script, une app…) pour qu\\'il puisse poster des messages directement dans XULTRA, sans compte. Les messages d\\'un webhook portent un petit repère "WEBHOOK" pour rester bien distincts des messages de membres.'},
+    body:'Nouvelle section 🔌 Webhooks dans les paramètres du serveur (réservée à qui gère les salons) : crée une URL unique par salon texte, à donner à un service externe (GitHub, un script, une app…) pour qu\\'il puisse poster des messages directement dans X1, sans compte. Les messages d\\'un webhook portent un petit repère "WEBHOOK" pour rester bien distincts des messages de membres.'},
   {version:'2.58.0',date:'26 août 2026',time:'04:15',title:'Serveurs : événements planifiés',
     body:'Nouvel onglet 📅 Événements dans chaque serveur : les membres avec la permission "Gérer les événements" peuvent en créer (titre, description, date de début/fin, salon lié ou lieu externe) ; tout le monde peut voir la liste et cliquer "🙋 Je participe" pour s\\'inscrire. Compteur d\\'intéressés en direct, et annulation possible par le créateur ou la modération — tracée dans le journal d\\'audit.'},
   {version:'2.57.2',date:'26 août 2026',time:'03:30',title:'Des infobulles sur les boutons icône du profil (suite à la Boîte à idées)',
-    body:'Suite à une idée reçue dans la Boîte à idées ("juste des boutons avec des emojis, je ne sais pas ce que c\\'est") : les boutons icône-seule autour du profil (🔗 copier le lien, ⛔ bloquer, 🚩 signaler, 📷 changer photo/bannière, 🎲 randomiser le tag, ✕ retirer une photo, thèmes et contours d\\'avatar) affichent maintenant une info-bulle stylée aux couleurs XULTRA au survol, plus rapide et plus lisible que la bulle générique du navigateur.'},
+    body:'Suite à une idée reçue dans la Boîte à idées ("juste des boutons avec des emojis, je ne sais pas ce que c\\'est") : les boutons icône-seule autour du profil (🔗 copier le lien, ⛔ bloquer, 🚩 signaler, 📷 changer photo/bannière, 🎲 randomiser le tag, ✕ retirer une photo, thèmes et contours d\\'avatar) affichent maintenant une info-bulle stylée aux couleurs X1 au survol, plus rapide et plus lisible que la bulle générique du navigateur.'},
   {version:'2.57.1',date:'26 août 2026',time:'03:00',title:'Correctif : impossible de fermer le panneau de signalement de bug',
     body:'Le nouveau bandeau d\\'en-tête dégradé du panneau de signalement passait par-dessus le bouton ✕, le rendant invisible et inutilisable — introduit par la refonte visuelle précédente. Corrigé.'},
   {version:'2.57.0',date:'26 août 2026',time:'02:30',title:'Signalement de bug : pièces jointes multiples et limite qui grandit avec ton palier',
-    body:'Le panneau de signalement fait peau neuve, aux couleurs XULTRA (dégradé animé, mise en page plus claire). Tu peux maintenant joindre jusqu\\'à 5 fichiers par rapport — images ET vidéos mélangées — au lieu d\\'une seule capture d\\'écran. La taille max par fichier grandit avec ton palier Bug Hunter : 30 Mo de base, puis 50 / 75 / 100 / 150 / 200 Mo à mesure que tu montes les échelons. Une raison de plus de continuer à chasser les bugs !'},
+    body:'Le panneau de signalement fait peau neuve, aux couleurs X1 (dégradé animé, mise en page plus claire). Tu peux maintenant joindre jusqu\\'à 5 fichiers par rapport — images ET vidéos mélangées — au lieu d\\'une seule capture d\\'écran. La taille max par fichier grandit avec ton palier Bug Hunter : 30 Mo de base, puis 50 / 75 / 100 / 150 / 200 Mo à mesure que tu montes les échelons. Une raison de plus de continuer à chasser les bugs !'},
   {version:'2.56.2',date:'26 août 2026',time:'01:40',title:'Mobile : la navigation passe en barre verticale à gauche',
     body:'Sur téléphone, la barre de navigation en bas de l\\'écran est remplacée par la même barre verticale à gauche que sur ordinateur — toutes les icônes (Messages, Amis, Membres, Chatroulette, Casino, Créateurs, Serveurs, État du système, Nouveautés, Boîte à idées, Équipe) directement accessibles au même endroit que sur la version navigateur, sans passer par un menu "⋯".'},
   {version:'2.56.1',date:'26 août 2026',time:'01:10',title:'Correctifs suite aux signalements Bug Hunter',
@@ -5273,7 +5384,7 @@ const CHANGELOG=[
   {version:'2.55.0',date:'25 août 2026',time:'23:50',title:'🎬 Créateurs : un espace dédié aux vidéos et créations',
     body:'Nouveau bouton 🎬 dans la navigation : les membres avec le badge Créateur de Contenu peuvent publier des vidéos ou images visibles par toute la plateforme, avec compteur de vues, likes, réactions rapides et commentaires. Chaque créateur a son propre fil accessible en cliquant sur son pseudo dans le hub, ou via "🎬 Voir la chaîne" sur son profil — sa page ne montre que ses publications, comme une chaîne.'},
   {version:'2.54.1',date:'25 août 2026',time:'23:10',title:'Nouveau badge exclusif 🎬 Créateur de Contenu',
-    body:'Un nouveau badge holographique rejoint la collection — remis à la main par l\\'équipe aux créateurs qui font vivre XULTRA en dehors de la plateforme (vidéos, streams, tutos, communauté). Dégradé irisé qui tourne et scintille, anneau qui tourne autour comme les badges les plus rares. Un clic dessus, sur un profil ou dans le trombinoscope, ouvre une jolie carte de présentation avec sa description.'},
+    body:'Un nouveau badge holographique rejoint la collection — remis à la main par l\\'équipe aux créateurs qui font vivre X1 en dehors de la plateforme (vidéos, streams, tutos, communauté). Dégradé irisé qui tourne et scintille, anneau qui tourne autour comme les badges les plus rares. Un clic dessus, sur un profil ou dans le trombinoscope, ouvre une jolie carte de présentation avec sa description.'},
   {version:'2.54.0',date:'25 août 2026',time:'22:15',title:'Serveurs : découvrir et rejoindre sans code d\\'invitation',
     body:'Nouveau bouton 🧭 à côté de Créer/Rejoindre un serveur : parcours les serveurs qu\\'un propriétaire a choisi de rendre publics, filtre par catégorie (Gaming, Musique, Art, Éducation, Technologie, Communauté…) ou recherche par nom, et rejoins en un clic — plus besoin de code d\\'invitation. Côté propriétaire (ou membre avec la permission "Gérer le serveur"), un nouveau réglage 🧭 Découverte permet d\\'activer la visibilité du serveur et de choisir sa catégorie.'},
   {version:'2.53.3',date:'25 août 2026',time:'01:00',title:'Correctif : la restauration des messages chiffrés disait "réussi" sans rien restaurer',
@@ -5289,15 +5400,15 @@ const CHANGELOG=[
   {version:'2.51.1',date:'25 août 2026',time:'21:05',title:'Chatroulette : caméra visible, et boutons cachés sur mobile',
     body:'Dans Chatroulette, un bouton 🎥 dédié apparaît maintenant dès qu\\'un appel est connecté, pour activer ta caméra sans avoir à chercher — chacun garde le contrôle de la sienne, rien ne s\\'active jamais chez l\\'autre automatiquement. Par ailleurs, État du système, Nouveautés, Boîte à idées et Équipe & Badges — jusqu\\'ici invisibles sur téléphone — sont maintenant accessibles depuis le menu ⋯ à côté de ton nom.'},
   {version:'2.51.0',date:'25 août 2026',time:'20:30',title:'Chatroulette : discute avec un membre au hasard',
-    body:'Nouveau bouton 🎲 dans la barre de navigation, sous Membres : mise en relation aléatoire avec un autre membre de XULTRA pour un chat texte. Passe au suivant quand tu veux, quitte à tout moment. L\\'appel vocal/vidéo reste entièrement facultatif : il ne démarre que si les DEUX personnes l\\'activent, jamais automatiquement. Le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation — les signalements arrivent dans le même circuit de modération que le reste du site, et les personnes que tu as bloquées ne te seront jamais proposées.'},
+    body:'Nouveau bouton 🎲 dans la barre de navigation, sous Membres : mise en relation aléatoire avec un autre membre de X1 pour un chat texte. Passe au suivant quand tu veux, quitte à tout moment. L\\'appel vocal/vidéo reste entièrement facultatif : il ne démarre que si les DEUX personnes l\\'activent, jamais automatiquement. Le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation — les signalements arrivent dans le même circuit de modération que le reste du site, et les personnes que tu as bloquées ne te seront jamais proposées.'},
   {version:'2.50.0',date:'25 août 2026',time:'19:40',title:'Correctif important : messages privés illisibles sur un autre appareil',
-    body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. XULTRA détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
+    body:'Un vrai bug de chiffrement corrigé : si la clé de chiffrement d\\'un contact changeait (nouvel appareil, restauration) pendant qu\\'une conversation était restée ouverte ailleurs, ses messages pouvaient s\\'afficher "🔒 Message illisible sur cet appareil" indéfiniment, jusqu\\'à un rechargement complet de la page — rien ne forçait jamais une nouvelle lecture de sa clé entre-temps. X1 détecte maintenant automatiquement ce cas et réessaie avec la clé à jour, et ouvrir une conversation rafraîchit systématiquement la clé de l\\'interlocuteur.'},
   {version:'2.49.3',date:'25 août 2026',time:'19:10',title:'Stories : plusieurs d\\'un coup, et zone story repensée',
     body:'Tu peux maintenant sélectionner plusieurs photos/vidéos dans la galerie en une fois : elles se publient à la suite comme autant de stories séparées, avec les mêmes réglages (visibilité, durée, position). Le visionnage s\\'enrichit encore : appuie et maintiens pour mettre en pause, réagis avec une réaction rapide ou réponds directement en message privé à la story de quelqu\\'un, et ton propre rond de story a maintenant son "+" toujours accessible pour en ajouter une de plus.'},
   {version:'2.49.2',date:'25 août 2026',time:'18:50',title:'Stories : position précise, approximative ou simulée sur la carte',
     body:'À la publication d\\'une story publique, choisis maintenant comment elle apparaît sur la carte "Découvrir" : Précise (ta position réelle), Approximative (ta position réelle, floutée à l\\'échelle du quartier pour rester discret) ou Simulée (touche une petite carte pour placer ta story où tu veux, sans lien avec ta position réelle) — ou "Aucune" si tu ne veux pas apparaître dessus du tout.'},
-  {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs XULTRA + capture directe caméra',
-    body:'La carte "Découvrir" passe à un fond de carte sombre assorti au thème violet de XULTRA (au lieu des tuiles claires par défaut), avec des repères personnalisés et un vrai correctif d\\'affichage (la carte pouvait rester à moitié grise à l\\'ouverture). Et à la création d\\'une story, trois choix désormais : Galerie, Photo ou Vidéo — les deux derniers ouvrent directement l\\'appareil photo de ton téléphone, sans avoir à sortir d\\'un fichier existant (mais ça reste entièrement facultatif, la galerie marche toujours aussi bien).'},
+  {version:'2.49.1',date:'25 août 2026',time:'18:20',title:'Stories : carte aux couleurs X1 + capture directe caméra',
+    body:'La carte "Découvrir" passe à un fond de carte sombre assorti au thème violet de X1 (au lieu des tuiles claires par défaut), avec des repères personnalisés et un vrai correctif d\\'affichage (la carte pouvait rester à moitié grise à l\\'ouverture). Et à la création d\\'une story, trois choix désormais : Galerie, Photo ou Vidéo — les deux derniers ouvrent directement l\\'appareil photo de ton téléphone, sans avoir à sortir d\\'un fichier existant (mais ça reste entièrement facultatif, la galerie marche toujours aussi bien).'},
   {version:'2.49.0',date:'25 août 2026',time:'17:45',title:'Correction de texte par IA (✨) dans les conversations',
     body:'Petit bouton ✨ dans la zone d\\'écriture des messages privés, des salons de serveur et des fils — comme sur Samsung ou Google Clavier : un clic corrige l\\'orthographe, la grammaire et la ponctuation de ce que tu as écrit, sans changer le sens ni le ton. Pratique pour un message envoyé vite fait avec les pouces.'},
   {version:'2.48.0',date:'25 août 2026',time:'17:00',title:'Stories : photos et vidéos éphémères',
@@ -5311,7 +5422,7 @@ const CHANGELOG=[
   {version:'2.45.2',date:'24 août 2026',time:'20:05',title:'Correctif d\\'affichage : contenu coupé en haut/bas sur petit écran (connexion + toutes les fenêtres)',
     body:'Sur un écran court (clavier mobile ouvert, ou simplement un petit téléphone), la page de connexion/inscription et toutes les fenêtres (profil, paramètres, signalement, création de serveur…) pouvaient afficher un contenu coupé en haut et en bas dès qu\\'il dépassait la hauteur visible, sans aucun moyen de faire défiler pour voir le reste — un effet de bord du centrage automatique quand le contenu est plus grand que l\\'écran. Toutes ces fenêtres restent centrées quand tout tient, et défilent normalement sinon.'},
   {version:'2.45.1',date:'24 août 2026',time:'19:35',title:'Correctif de sécurité : messages de salon public lisibles hors du serveur',
-    body:'Un salon de serveur sans restriction de rôle accordait la lecture de ses messages à "n\\'importe quel compte connecté sur XULTRA", pas seulement aux membres de ce serveur — un raccourci technique pour le temps réel qui supposait (à tort) que personne n\\'interrogerait la base directement. Découvert en développant la recherche de messages. Corrigé : seuls les membres réels du serveur reçoivent désormais l\\'accès en lecture, salon restreint ou non.'},
+    body:'Un salon de serveur sans restriction de rôle accordait la lecture de ses messages à "n\\'importe quel compte connecté sur X1", pas seulement aux membres de ce serveur — un raccourci technique pour le temps réel qui supposait (à tort) que personne n\\'interrogerait la base directement. Découvert en développant la recherche de messages. Corrigé : seuls les membres réels du serveur reçoivent désormais l\\'accès en lecture, salon restreint ou non.'},
   {version:'2.45.0',date:'24 août 2026',time:'19:15',title:'Recherche de messages (DM et salons de serveur)',
     body:'Nouveau bouton 🔍 en haut d\\'une conversation privée ou d\\'un salon textuel : recherche par mots-clés, période (aujourd\\'hui / cette semaine / ce mois / tout) et filtre "épinglés uniquement". Un clic sur un résultat retrouve directement le message dans la conversation.'},
   {version:'2.44.0',date:'24 août 2026',time:'18:40',title:'Sondages intégrés dans les salons de serveur',
@@ -5325,7 +5436,7 @@ const CHANGELOG=[
   {version:'2.40.2',date:'24 août 2026',time:'15:45',title:'Correctif urgent : impossible d\\'ouvrir une conversation en cliquant dessus',
     body:'Un correctif précédent (le bouton supprimer qui se dévoilait au survol d\\'une conversation) avait par erreur rendu ce bouton cliquable sur TOUTE la ligne dès qu\\'on la survolait à la souris — donc à chaque clic pour ouvrir une conversation, c\\'était la confirmation de suppression qui s\\'affichait à la place. Corrigé : ouvrir une conversation en cliquant dessus fonctionne de nouveau normalement, à la souris comme au tactile.'},
   {version:'2.40.1',date:'24 août 2026',time:'15:20',title:'Correctif important : messages chiffrés illisibles en changeant d\\'appareil',
-    body:'Un appareil qui avait déjà sa propre clé de chiffrement locale (même générée par erreur, par exemple en visitant XULTRA une première fois avant d\\'avoir jamais restauré depuis un autre appareil) ne se voyait jamais proposer la restauration — pire, il pouvait silencieusement écraser la clé publique du compte, rendant les messages illisibles sur TOUS les appareils, pas seulement le nouveau. XULTRA détecte maintenant ce décalage et propose la restauration par mot de passe même sur un appareil déjà utilisé, sans jamais écraser la bonne clé.'},
+    body:'Un appareil qui avait déjà sa propre clé de chiffrement locale (même générée par erreur, par exemple en visitant X1 une première fois avant d\\'avoir jamais restauré depuis un autre appareil) ne se voyait jamais proposer la restauration — pire, il pouvait silencieusement écraser la clé publique du compte, rendant les messages illisibles sur TOUS les appareils, pas seulement le nouveau. X1 détecte maintenant ce décalage et propose la restauration par mot de passe même sur un appareil déjà utilisé, sans jamais écraser la bonne clé.'},
   {version:'2.40.0',date:'24 août 2026',time:'14:50',title:'Les salons de serveur passent au niveau des messages privés',
     body:'Les salons textuels des serveurs ont maintenant le même habillage que tes conversations privées, avec plusieurs nouveautés partagées entre les deux : un bouton emoji dans la zone d\\'écriture, la possibilité de répondre à un message précis (aperçu de la citation, clic dessus pour retrouver le message d\\'origine), des réactions emoji sur n\\'importe quel message, et un vrai menu d\\'actions (répondre, réagir, signaler, supprimer pour tout le monde) au lieu des petits boutons du coin. Les messages de salon s\\'affichent aussi vraiment en direct désormais.'},
   {version:'2.39.1',date:'24 août 2026',time:'12:05',title:'3 correctifs d\\'affichage : médailles, liste de messages, candidatures',
@@ -5355,7 +5466,7 @@ const CHANGELOG=[
   {version:'2.34.2',date:'24 août 2026',time:'04:20',title:'Correctif : les caméras envahissaient le chat pendant un appel privé',
     body:'Quand un appel vidéo était actif dans la conversation que tu regardais, les caméras s\\'affichaient en grand directement au-dessus des messages, poussant toute la conversation hors de vue. Elles démarrent maintenant réduites en une petite pastille discrète ("Webcam active · toucher pour afficher") — un simple tap suffit pour les afficher en grand quand tu veux vraiment les voir.'},
   {version:'2.34.1',date:'24 août 2026',time:'04:00',title:'Les Serveurs deviennent un vrai onglet',
-    body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de XULTRA.'},
+    body:'Les Serveurs ne s\\'ouvrent plus dans une fenêtre par-dessus l\\'appli : c\\'est maintenant un onglet à part entière, comme Messages ou Membres, avec ta liste de serveurs à gauche et le serveur ouvert à droite. Plus cohérent avec le reste de X1.'},
   {version:'2.34.0',date:'24 août 2026',time:'03:30',title:'🏘️ Les Serveurs arrivent — crée ta propre communauté',
     body:'Nouveau bouton 🏘️ dans la barre latérale : crée ton propre serveur (nom, description, icône, bannière), invite tes amis avec un code, et organise ta communauté avec des rôles personnalisés aux permissions précises (gérer le serveur, gérer les rôles, expulser, bannir, rendre muet…). Chaque serveur a son propre salon vocal persistant. Et si tu es X1+, tu peux débloquer une meilleure qualité audio (256 kbps) et un partage d\\'écran en 1080p60 pour ton serveur.'},
   {version:'2.33.0',date:'24 août 2026',time:'02:15',title:'Photo de profil dans l\\'en-tête des messages privés, et sécurisation des messages chiffrés entre appareils',
@@ -5367,27 +5478,27 @@ const CHANGELOG=[
   {version:'2.31.0',date:'24 août 2026',time:'00:20',title:'La pastille d\\'appel prend vie : indicateur muet et onde vocale en temps réel',
     body:'Pendant un appel privé, la photo de profil de l\\'interlocuteur affiche maintenant un léger halo animé qui réagit à sa voix en temps réel — épuré, discret, mais bien visible dès qu\\'il parle. Un petit badge 🔇 apparaît directement sur sa photo s\\'il coupe son micro, plus facile à repérer que l\\'ancien indicateur texte.'},
   {version:'2.30.2',date:'23 août 2026',time:'23:55',title:'Correctif réseau plus profond sur les appels privés',
-    body:'La vraie cause des appels sans son trouvée : les tout premiers "candidats" de connexion envoyés par la personne qui appelle (en quelques millisecondes) pouvaient arriver avant que la personne qui décroche ne soit prête à les recevoir (le temps d\\'accepter le micro) — et étaient alors perdus pour de bon, ce qui bloquait la connexion indéfiniment. XULTRA rattrape maintenant ces candidats manqués dès la connexion.'},
+    body:'La vraie cause des appels sans son trouvée : les tout premiers "candidats" de connexion envoyés par la personne qui appelle (en quelques millisecondes) pouvaient arriver avant que la personne qui décroche ne soit prête à les recevoir (le temps d\\'accepter le micro) — et étaient alors perdus pour de bon, ce qui bloquait la connexion indéfiniment. X1 rattrape maintenant ces candidats manqués dès la connexion.'},
   {version:'2.30.1',date:'23 août 2026',time:'23:35',title:'Correctif : le son d\\'un appel ne démarrait parfois qu\\'en activant la caméra',
     body:'Dans un appel privé, il fallait parfois activer sa caméra pour que le son commence enfin à passer des deux côtés — le navigateur bloquait silencieusement la lecture audio si la négociation de connexion prenait quelques secondes de trop après le clic sur "Décrocher". Corrigé : le son démarre maintenant correctement dès la connexion, avec un rattrapage automatique dès la première interaction si jamais le navigateur bloque quand même.'},
   {version:'2.30.0',date:'23 août 2026',time:'23:05',title:'Ajoute un ami directement depuis son profil, appels de groupe en maintenance',
     body:'Un bouton « Ajouter en ami » apparaît maintenant directement sur la fiche de profil de quelqu\\'un (il s\\'adapte automatiquement : demande déjà envoyée, demande reçue à accepter, ou déjà amis). Les appels de groupe, encore instables, sont mis en maintenance le temps d\\'être fiabilisés — le bouton d\\'appel apparaît grisé dans les conversations de groupe en attendant.'},
   {version:'2.29.0',date:'23 août 2026',time:'22:15',title:'Nouveau serveur d\\'appels dédié — fini les appels sans son ni image',
-    body:'Les appels vocaux et vidéo (en privé comme en groupe) passaient jusqu\\'ici par un relai gratuit tiers, souvent saturé — d\\'où les cas où la caméra restait noire ou le son ne passait pas chez l\\'un des deux. XULTRA a maintenant son propre serveur dédié pour relayer les appels quand une connexion directe entre deux appareils n\\'est pas possible (réseaux mobiles, certains routeurs). Ça devrait nettement améliorer la fiabilité des appels pour tout le monde.'},
+    body:'Les appels vocaux et vidéo (en privé comme en groupe) passaient jusqu\\'ici par un relai gratuit tiers, souvent saturé — d\\'où les cas où la caméra restait noire ou le son ne passait pas chez l\\'un des deux. X1 a maintenant son propre serveur dédié pour relayer les appels quand une connexion directe entre deux appareils n\\'est pas possible (réseaux mobiles, certains routeurs). Ça devrait nettement améliorer la fiabilité des appels pour tout le monde.'},
   {version:'2.28.0',date:'23 août 2026',time:'21:40',title:'Nouvelle section Abonnement dans les Paramètres',
     body:'Un nouvel onglet ⭐ Abonnement apparaît dans Paramètres → Mon compte. Si tu as X1+ à vie (en devenant 👑 Légende du Bug, palier ultime du Bug Hunter), tu y retrouves ton statut et la date d\\'obtention. Sinon, un simple bouton « Je suis intéressé(e) » permet de nous faire savoir que X1+ t\\'intéresse — ça nous aide à savoir si ça vaut le coup de le développer davantage.'},
   {version:'2.27.2',date:'23 août 2026',time:'21:05',title:'Correctif : la cloche de notifications te redirigeait vers Amis',
     body:'Cliquer sur la cloche 🔔 ouvrait bien le panneau de notifications, mais te renvoyait aussitôt sur la liste d\\'amis derrière, à cause d\\'un vieux bout de code en double resté par erreur. Corrigé : la cloche ouvre maintenant seulement tes notifications, sans changer d\\'onglet.'},
   {version:'2.27.1',date:'23 août 2026',time:'20:25',title:'Correctif : affichage des paliers Bug Hunter déjà dépassés',
     body:'Dans l\\'onglet Badges & paliers, un palier Bug Hunter déjà largement dépassé (par exemple Chasseur Novice pour quelqu\\'un qui a déjà 10 bugs résolus) pouvait s\\'afficher à tort comme "en cours" au lieu de "Débloqué". Corrigé.'},
-  {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe XULTRA et débloque tous les badges',
-    body:'Nouveau bouton 🏅 dans la barre latérale, avec deux onglets. « L\\'équipe » présente qui fait tourner XULTRA par poste (Fondateur, Marketing, Modération, Gestion API & IA, Support) — un poste vacant ? Postule directement depuis l\\'app ! « Badges & paliers » est ta salle des trophées personnelle : tous les badges de la plateforme, leurs paliers, et exactement ce qu\\'il te reste à faire pour les débloquer, y compris ta progression en temps réel vers le prochain palier Bug Hunter.'},
+  {version:'2.27.0',date:'23 août 2026',time:'20:10',title:'Découvre l\\'équipe X1 et débloque tous les badges',
+    body:'Nouveau bouton 🏅 dans la barre latérale, avec deux onglets. « L\\'équipe » présente qui fait tourner X1 par poste (Fondateur, Marketing, Modération, Gestion API & IA, Support) — un poste vacant ? Postule directement depuis l\\'app ! « Badges & paliers » est ta salle des trophées personnelle : tous les badges de la plateforme, leurs paliers, et exactement ce qu\\'il te reste à faire pour les débloquer, y compris ta progression en temps réel vers le prochain palier Bug Hunter.'},
   {version:'2.26.0',date:'23 août 2026',time:'19:35',title:'Corrections suite à vos signalements (encore !)',
     body:'Cinq nouveaux bugs corrigés grâce à vos rapports. Les photos de profil manquaient aussi dans les messages privés (en plus de la liste d\\'amis) — corrigé. Les pronoms, le cadre de photo de profil et les préférences de confidentialité ne s\\'enregistraient plus depuis peu à cause d\\'un souci de permissions côté serveur — corrigé. Les clés d\\'accès ne se retrouvaient qu\\'avec l\\'e-mail exact et non le pseudo#tag, à cause d\\'un e-mail mal synchronisé après un changement d\\'adresse — corrigé. Et surtout : tes messages privés chiffrés ne sont plus perdus quand tu changes d\\'appareil ou de navigateur — ta clé de déchiffrement est maintenant sauvegardée (chiffrée avec ton mot de passe, jamais en clair) pour être restaurée automatiquement à ta prochaine connexion ailleurs.'},
   {version:'2.25.0',date:'23 août 2026',time:'19:00',title:'5 paliers pour le badge Bug Hunter',
     body:'Le badge 🐛 Bug Hunter a maintenant 5 paliers, du plus petit au plus grand : 🔍 Chasseur Novice (1 bug résolu), 🐛 Chasseur Confirmé (5), 🕷️ Chasseur Expert (10, débloque un accès en avant-première à certaines nouveautés), ⚔️ Exterminateur (25, accès en avant-première prioritaire), et 👑 Légende du Bug (50 — le sommet, avec X1+ offert à vie). Chaque palier est plus stylé que le précédent, calculé automatiquement selon tes rapports de bugs résolus. Suis ta progression dans le panneau Bug Hunter.'},
   {version:'2.24.0',date:'23 août 2026',time:'18:20',title:'Boîte à idées, groupes personnalisables, badge Early User',
-    body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour XULTRA, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
+    body:'Nouveau bouton 💡 dans la barre latérale : la Boîte à idées ! Propose des idées de fonctionnalités, de design ou de marketing pour X1, vote pour tes préférées (👍/👎), et repère celles qui sont devenues réalité avec le badge « Implémentée ». On a aussi corrigé l\\'affichage des photos de profil dans la liste d\\'amis et dans les conversations (qui montraient juste une lettre avant), et ajouté la possibilité de renommer un groupe et de lui donner une photo (clique sur son nom ou son avatar en haut d\\'une conversation de groupe). Enfin, le badge ✨ Early User est maintenant donné automatiquement à toute personne inscrite avant le 30 août 2027.'},
   {version:'2.23.0',date:'23 août 2026',time:'17:45',title:'Corrections suite à vos signalements',
     body:'Merci pour vos rapports de bugs, très utiles ! Corrigés aujourd\\'hui : le titre d\\'une conversation privée pouvait afficher ton propre pseudo au lieu de celui de la personne en face ; le bouton « Accepter » d\\'une demande d\\'ami pouvait rester bloqué à cause du bouton supprimer juste à côté ; une barre noire apparaissait en bas de l\\'écran en dézoomant depuis les paramètres ; et cliquer sur son propre profil pouvait parfois afficher « Profil introuvable » par erreur. Les messages d\\'erreur d\\'inscription/connexion sont aussi plus clairs qu\\'avant.'},
   {version:'2.22.0',date:'23 août 2026',time:'17:10',title:'Corrections : comptes fantômes et son des appels',
@@ -5399,31 +5510,31 @@ const CHANGELOG=[
   {version:'2.19.1',date:'23 août 2026',time:'15:30',title:'Joins une capture d’écran à tes rapports de bug',
     body:'Dans le panneau de signalement de bug, tu peux maintenant joindre une image (par exemple une capture d’écran du problème) grâce au bouton « Joindre une capture d’écran ». Elle s’affiche ensuite dans tes rapports et dans le panneau de l’équipe, pour aider à comprendre le bug beaucoup plus vite.'},
   {version:'2.19.0',date:'23 août 2026',time:'15:05',title:'Impossible d’avoir deux fois le même pseudo#tag',
-    body:'On a corrigé un bug qui permettait à deux personnes d’avoir exactement le même pseudo et le même tag à 4 chiffres, ce qui pouvait semer la confusion (par exemple pour ajouter le bon ami). Maintenant, XULTRA vérifie que ton pseudo#tag est unique à l’inscription et si tu changes ton tag depuis Paramètres → Mon compte, il te propose automatiquement un tag libre en cas de doublon. On en a profité pour afficher le tag dans les résultats de recherche d’amis, pour mieux distinguer les personnes qui portent le même pseudo.'},
+    body:'On a corrigé un bug qui permettait à deux personnes d’avoir exactement le même pseudo et le même tag à 4 chiffres, ce qui pouvait semer la confusion (par exemple pour ajouter le bon ami). Maintenant, X1 vérifie que ton pseudo#tag est unique à l’inscription et si tu changes ton tag depuis Paramètres → Mon compte, il te propose automatiquement un tag libre en cas de doublon. On en a profité pour afficher le tag dans les résultats de recherche d’amis, pour mieux distinguer les personnes qui portent le même pseudo.'},
   {version:'2.18.1',date:'23 août 2026',time:'14:50',title:'Le site passe en HTTPS de force',
-    body:'Si jamais tu arrives sur XULTRA en http:// (sans le petit cadenas), tu es maintenant redirigé automatiquement vers la version sécurisée https://, pour que ta connexion soit toujours chiffrée.'},
+    body:'Si jamais tu arrives sur X1 en http:// (sans le petit cadenas), tu es maintenant redirigé automatiquement vers la version sécurisée https://, pour que ta connexion soit toujours chiffrée.'},
   {version:'2.18.0',date:'23 août 2026',time:'14:10',title:'Connecte-toi avec Face ID, Windows Hello ou ton empreinte digitale',
     body:'Fini de taper ton mot de passe : dans Paramètres → Mon compte, ajoute une clé d’accès et connecte-toi ensuite avec ce que ton téléphone ou ton ordinateur propose déjà — reconnaissance faciale, empreinte digitale, code Windows Hello, ou une clé de sécurité physique. Tu peux en ajouter plusieurs (une par appareil) et les gérer à tout moment.'},
   {version:'2.17.0',date:'23 août 2026',time:'13:45',title:'La double authentification est là — protège ton compte pour de vrai',
-    body:'Rends-toi dans Paramètres → Mon compte pour activer la vérification en deux étapes : associe une application comme Google Authenticator ou Authy, et XULTRA te demandera un code en plus de ton mot de passe à chaque connexion. Des codes de secours te sont donnés pour ne jamais rester bloqué dehors si tu perds ton téléphone.'},
+    body:'Rends-toi dans Paramètres → Mon compte pour activer la vérification en deux étapes : associe une application comme Google Authenticator ou Authy, et X1 te demandera un code en plus de ton mot de passe à chaque connexion. Des codes de secours te sont donnés pour ne jamais rester bloqué dehors si tu perds ton téléphone.'},
   {version:'2.16.1',date:'23 août 2026',time:'13:35',title:'Personnalise tes raccourcis, et sache qui a vu ton message dans un groupe',
     body:'Dans Paramètres → Raccourcis clavier, tu peux maintenant choisir toi-même les combinaisons de touches pour la recherche, les paramètres et l’ajout d’ami. Et le petit « Vu » sous tes messages fonctionne désormais aussi dans les conversations de groupe, avec le nom des personnes qui ont lu.'},
   {version:'2.16.0',date:'23 août 2026',time:'13:25',title:'Le thème clair est arrivé !',
-    body:'XULTRA n’est plus obligé d’être tout sombre : rends-toi dans Paramètres → Apparence pour choisir « Clair » ou « Système » (l’app suit alors automatiquement le réglage de ton téléphone ou ordinateur). C’est une toute première version, encore un peu jeune — si une couleur ou un emoji te paraît bizarre en mode clair, dis-le-nous, on ajustera au fil des retours.'},
+    body:'X1 n’est plus obligé d’être tout sombre : rends-toi dans Paramètres → Apparence pour choisir « Clair » ou « Système » (l’app suit alors automatiquement le réglage de ton téléphone ou ordinateur). C’est une toute première version, encore un peu jeune — si une couleur ou un emoji te paraît bizarre en mode clair, dis-le-nous, on ajustera au fil des retours.'},
   {version:'2.15.2',date:'23 août 2026',time:'13:20',title:'Sais enfin si ton message a été vu',
     body:'Un petit « Vu » apparaît maintenant sous ton dernier message envoyé dès que la personne a ouvert la conversation et l’a lu — en temps réel, sans avoir à rafraîchir quoi que ce soit. Pour l’instant disponible sur les conversations à deux ; les groupes arriveront ensuite.'},
   {version:'2.15.1',date:'23 août 2026',time:'13:15',title:'Vois quand quelqu’un est en train de t’écrire',
     body:'Un petit indicateur « en train d’écrire… » apparaît maintenant en haut de la conversation dès que la personne en face tape un message — comme sur les grandes messageries. Il disparaît tout seul si elle s’arrête ou envoie son message.'},
   {version:'2.15.0',date:'23 août 2026',time:'13:05',title:'Les messages arrivent maintenant en temps réel',
     body:'Gros morceau technique aujourd’hui : jusqu’ici, tes messages ne se mettaient à jour que quand tu rouvrais une conversation. Ce n’est plus le cas ! Les nouveaux messages apparaissent maintenant instantanément dans la conversation ouverte, avec un petit son, et ta liste de conversations se réorganise et se met à jour toute seule dès que quelqu’un t’écrit. La synthèse vocale peut aussi lire à voix haute les nouveaux messages de la conversation que tu regardes.'},
-  {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'XULTRA peut maintenant te lire tes notifications à voix haute',
+  {version:'2.14.2',date:'23 août 2026',time:'12:20',title:'X1 peut maintenant te lire tes notifications à voix haute',
     body:'Dans Paramètres → Accessibilité, tu peux activer la synthèse vocale pour que tes notifications te soient lues à voix haute, avec un réglage de vitesse. On a aussi ajouté un vrai badge sur l’icône de l’app pour voir tes messages non lus d’un coup d’œil, et les GIF peuvent maintenant rester figés jusqu’à ce que tu passes ta souris dessus (pratique pour ne pas être distrait en pleine conversation).'},
   {version:'2.14.1',date:'23 août 2026',time:'02:05',title:'Des raccourcis clavier et des aperçus de liens',
     body:'Tape Ctrl (ou ⌘ sur Mac) + K pour sauter directement à la recherche, Ctrl/⌘ + virgule pour ouvrir les paramètres, et Échap pour fermer n’importe quelle fenêtre ouverte. Et quand quelqu’un partage un lien dans une conversation, une petite carte avec l’image et le titre du site s’affiche maintenant automatiquement (tu peux la désactiver dans Paramètres → Apparence).'},
   {version:'2.14.0',date:'23 août 2026',time:'01:40',title:'Un vrai menu de paramètres, comme sur les grandes applications',
     body:'Un nouveau ⚙️ « Paramètres » est apparu dans le menu ⋯ à côté de ton pseudo. Tu peux maintenant changer ton pseudo, ton e-mail et ton mot de passe, gérer qui peut t’ajouter en ami ou t’écrire, voir tes appareils connectés, régler tes sons de notification, activer des heures calmes automatiques, et bien plus encore. Certaines options marquées « Bientôt disponible » arriveront dans les prochaines mises à jour.'},
   {version:'2.13.1',date:'22 août 2026',time:'23:55',title:'Un journal des nouveautés, et une inscription plus accueillante',
-    body:'Tu es justement en train de le découvrir ! Il y a maintenant un endroit pour voir tout ce qui change sur XULTRA. On a aussi rendu beaucoup plus visible la possibilité d\\'ajouter une photo de profil et une bannière dès l\\'inscription — toujours facultatif, bien sûr.'},
+    body:'Tu es justement en train de le découvrir ! Il y a maintenant un endroit pour voir tout ce qui change sur X1. On a aussi rendu beaucoup plus visible la possibilité d\\'ajouter une photo de profil et une bannière dès l\\'inscription — toujours facultatif, bien sûr.'},
   {version:'2.13.0',date:'22 août 2026',time:'23:46',title:'Un vrai centre de notifications',
     body:'La cloche en bas à gauche ouvre maintenant un vrai panneau avec tes demandes d\\'ami, tes messages non lus et plus encore. Tu peux tout accepter ou refuser en un clic, et supprimer une notification d\\'un simple geste.'},
   {version:'2.12.0',date:'22 août 2026',time:'23:22',title:'Ton statut est visible partout, en direct',
@@ -5600,8 +5711,8 @@ if(\$('sg-submit'))\$('sg-submit').addEventListener('click',async function(){
 
 /* ===== Équipe & Badges ===== */
 const TEAM_ROLES=[
-  {key:'founder',icon:'👑',label:'Fondateur / Dev',color:'#ef4444',desc:'Construit et pilote XULTRA au quotidien : vision, code, décisions techniques.'},
-  {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître XULTRA au monde entier : réseaux, contenus, communauté.'},
+  {key:'founder',icon:'👑',label:'Fondateur / Dev',color:'#ef4444',desc:'Construit et pilote X1 au quotidien : vision, code, décisions techniques.'},
+  {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître X1 au monde entier : réseaux, contenus, communauté.'},
   {key:'moderation',icon:'🛡️',label:'Modération',color:'#22c55e',desc:'Veille sur la communauté et fait respecter les règles avec justesse.'},
   {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
   {key:'support',icon:'💬',label:'Support',color:'#f59e0b',desc:'Aide les membres, répond à leurs questions, résout leurs soucis.'}
@@ -5621,7 +5732,7 @@ async function renderCrewTab(){
       myTeamApplications=r.documents||[];
     }catch(e){myTeamApplications=[];}
   }
-  box.innerHTML='<div class="tm-intro">Voici les personnes qui font tourner XULTRA. Un poste est vacant ? Tente ta chance !</div>'
+  box.innerHTML='<div class="tm-intro">Voici les personnes qui font tourner X1. Un poste est vacant ? Tente ta chance !</div>'
     +'<div class="tr-grid">'+TEAM_ROLES.map(function(role){
       const members=membersCache.filter(function(p){return teamRoleOf(p.authUserId||p.\$id)===role.key});
       const myPending=myTeamApplications.find(function(a){return a.role===role.key&&a.status==='pending'});
@@ -5690,7 +5801,7 @@ async function renderBadgesTab(){
     myBadges=parseBadges(meta);
     resolvedCount=await countResolvedBugs();
   }
-  box.innerHTML='<div class="tm-intro">Chaque badge raconte un morceau de ton histoire sur XULTRA. Certains s\\'obtiennent automatiquement, d\\'autres se méritent bug après bug — jusqu\\'au sommet.</div>'
+  box.innerHTML='<div class="tm-intro">Chaque badge raconte un morceau de ton histoire sur X1. Certains s\\'obtiennent automatiquement, d\\'autres se méritent bug après bug — jusqu\\'au sommet.</div>'
     +'<div class="tw-section-title">🎖️ Statut</div>'
     +'<div class="tw-grid">'+trophyCardHtml('base',myBadges,resolvedCount)+trophyCardHtml('dev',myBadges,resolvedCount)+trophyCardHtml('early',myBadges,resolvedCount)+'</div>'
     +'<div class="tw-section-title">🐛 Bug Hunter — la progression</div>'
@@ -5760,6 +5871,76 @@ function loadAppPrefs(){
 }
 let appPrefs=loadAppPrefs();
 function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
+const I18N={
+  fr:{
+    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'Serveurs',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
+    auth_tagline:'Messages · Amis · Profils',auth_tab_login:'Connexion',auth_tab_register:'Inscription',auth_email_or_tag:'Email ou pseudo#tag',auth_email_or_tag_ph:'toi@exemple.com ou pseudo#1234',auth_password:'Mot de passe',auth_forgot_password:'Mot de passe oublié ?',auth_remember_me:'Rester connecté',auth_enter:'Entrer',auth_create_account:'Créer mon compte',
+    set_account:'Mon compte',set_subscription:'Abonnement',set_profiles:'Profils',set_privacy:'Confidentialité et sécurité',set_blocked:'Utilisateurs bloqués',set_myreports:'Mes signalements',set_devices:'Appareils',set_connections:'Connexions',set_apps:'Applications autorisées',set_family:'Coffre-fort / Family Center',set_appearance:'Apparence',set_accessibility:'Accessibilité',set_voice:'Voix et vidéo',set_notifications:'Notifications',set_shortcuts:'Raccourcis clavier',set_language:'Langue',set_os:'Paramètres du système',set_advanced:'Avancé',set_activity:'Activité',set_developers:'Se connecter avec X1',set_changelog:'Notes de version',set_support:'Support',set_testers:'Rejoindre X1 Testers',set_logout:'Se déconnecter',
+    setgrp_account:'Compte',setgrp_application:'Application',setgrp_developers:'Développeurs',
+    common_send:'Envoyer',common_cancel:'Annuler',common_save:'Enregistrer',common_close:'Fermer',common_delete:'Supprimer'
+  },
+  en:{
+    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Music',nav_creators:'Creators',nav_servers:'Servers',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
+    auth_tagline:'Messages · Friends · Profiles',auth_tab_login:'Log In',auth_tab_register:'Sign Up',auth_email_or_tag:'Email or username#tag',auth_email_or_tag_ph:'you@example.com or username#1234',auth_password:'Password',auth_forgot_password:'Forgot password?',auth_remember_me:'Stay signed in',auth_enter:'Log In',auth_create_account:'Create my account',
+    set_account:'My account',set_subscription:'Subscription',set_profiles:'Profiles',set_privacy:'Privacy & security',set_blocked:'Blocked users',set_myreports:'My reports',set_devices:'Devices',set_connections:'Connections',set_apps:'Authorized apps',set_family:'Vault / Family Center',set_appearance:'Appearance',set_accessibility:'Accessibility',set_voice:'Voice & video',set_notifications:'Notifications',set_shortcuts:'Keyboard shortcuts',set_language:'Language',set_os:'System settings',set_advanced:'Advanced',set_activity:'Activity',set_developers:'Sign in with X1',set_changelog:'Release notes',set_support:'Support',set_testers:'Join X1 Testers',set_logout:'Log out',
+    setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Developers',
+    common_send:'Send',common_cancel:'Cancel',common_save:'Save',common_close:'Close',common_delete:'Delete'
+  },
+  es:{
+    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Música',nav_creators:'Creadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
+    auth_tagline:'Mensajes · Amigos · Perfiles',auth_tab_login:'Iniciar sesión',auth_tab_register:'Registrarse',auth_email_or_tag:'Correo o usuario#etiqueta',auth_email_or_tag_ph:'tu@ejemplo.com o usuario#1234',auth_password:'Contraseña',auth_forgot_password:'¿Olvidaste tu contraseña?',auth_remember_me:'Mantener sesión iniciada',auth_enter:'Entrar',auth_create_account:'Crear mi cuenta',
+    set_account:'Mi cuenta',set_subscription:'Suscripción',set_profiles:'Perfiles',set_privacy:'Privacidad y seguridad',set_blocked:'Usuarios bloqueados',set_myreports:'Mis reportes',set_devices:'Dispositivos',set_connections:'Conexiones',set_apps:'Aplicaciones autorizadas',set_family:'Bóveda / Centro familiar',set_appearance:'Apariencia',set_accessibility:'Accesibilidad',set_voice:'Voz y video',set_notifications:'Notificaciones',set_shortcuts:'Atajos de teclado',set_language:'Idioma',set_os:'Ajustes del sistema',set_advanced:'Avanzado',set_activity:'Actividad',set_developers:'Iniciar sesión con X1',set_changelog:'Notas de versión',set_support:'Soporte',set_testers:'Unirse a X1 Testers',set_logout:'Cerrar sesión',
+    setgrp_account:'Cuenta',setgrp_application:'Aplicación',setgrp_developers:'Desarrolladores',
+    common_send:'Enviar',common_cancel:'Cancelar',common_save:'Guardar',common_close:'Cerrar',common_delete:'Eliminar'
+  },
+  pt:{
+    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_casino:'Cassino',nav_music:'Música',nav_creators:'Criadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
+    auth_tagline:'Mensagens · Amigos · Perfis',auth_tab_login:'Entrar',auth_tab_register:'Cadastrar',auth_email_or_tag:'Email ou usuário#tag',auth_email_or_tag_ph:'voce@exemplo.com ou usuario#1234',auth_password:'Senha',auth_forgot_password:'Esqueceu a senha?',auth_remember_me:'Manter conectado',auth_enter:'Entrar',auth_create_account:'Criar minha conta',
+    set_account:'Minha conta',set_subscription:'Assinatura',set_profiles:'Perfis',set_privacy:'Privacidade e segurança',set_blocked:'Usuários bloqueados',set_myreports:'Minhas denúncias',set_devices:'Dispositivos',set_connections:'Conexões',set_apps:'Aplicativos autorizados',set_family:'Cofre / Central da família',set_appearance:'Aparência',set_accessibility:'Acessibilidade',set_voice:'Voz e vídeo',set_notifications:'Notificações',set_shortcuts:'Atalhos de teclado',set_language:'Idioma',set_os:'Configurações do sistema',set_advanced:'Avançado',set_activity:'Atividade',set_developers:'Entrar com X1',set_changelog:'Notas de versão',set_support:'Suporte',set_testers:'Entrar para X1 Testers',set_logout:'Sair',
+    setgrp_account:'Conta',setgrp_application:'Aplicativo',setgrp_developers:'Desenvolvedores',
+    common_send:'Enviar',common_cancel:'Cancelar',common_save:'Salvar',common_close:'Fechar',common_delete:'Excluir'
+  },
+  de:{
+    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Musik',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
+    auth_tagline:'Nachrichten · Freunde · Profile',auth_tab_login:'Anmelden',auth_tab_register:'Registrieren',auth_email_or_tag:'E-Mail oder Nutzername#Tag',auth_email_or_tag_ph:'du@beispiel.com oder nutzer#1234',auth_password:'Passwort',auth_forgot_password:'Passwort vergessen?',auth_remember_me:'Angemeldet bleiben',auth_enter:'Anmelden',auth_create_account:'Konto erstellen',
+    set_account:'Mein Konto',set_subscription:'Abonnement',set_profiles:'Profile',set_privacy:'Datenschutz & Sicherheit',set_blocked:'Blockierte Nutzer',set_myreports:'Meine Meldungen',set_devices:'Geräte',set_connections:'Verbindungen',set_apps:'Autorisierte Apps',set_family:'Tresor / Familiencenter',set_appearance:'Erscheinungsbild',set_accessibility:'Barrierefreiheit',set_voice:'Sprache & Video',set_notifications:'Benachrichtigungen',set_shortcuts:'Tastenkürzel',set_language:'Sprache',set_os:'Systemeinstellungen',set_advanced:'Erweitert',set_activity:'Aktivität',set_developers:'Mit X1 anmelden',set_changelog:'Versionshinweise',set_support:'Support',set_testers:'X1 Testers beitreten',set_logout:'Abmelden',
+    setgrp_account:'Konto',setgrp_application:'App',setgrp_developers:'Entwickler',
+    common_send:'Senden',common_cancel:'Abbrechen',common_save:'Speichern',common_close:'Schließen',common_delete:'Löschen'
+  },
+  it:{
+    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_casino:'Casinò',nav_music:'Musica',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
+    auth_tagline:'Messaggi · Amici · Profili',auth_tab_login:'Accedi',auth_tab_register:'Registrati',auth_email_or_tag:'Email o nome utente#tag',auth_email_or_tag_ph:'tu@esempio.com o utente#1234',auth_password:'Password',auth_forgot_password:'Password dimenticata?',auth_remember_me:'Resta connesso',auth_enter:'Accedi',auth_create_account:'Crea il mio account',
+    set_account:'Il mio account',set_subscription:'Abbonamento',set_profiles:'Profili',set_privacy:'Privacy e sicurezza',set_blocked:'Utenti bloccati',set_myreports:'Le mie segnalazioni',set_devices:'Dispositivi',set_connections:'Connessioni',set_apps:'App autorizzate',set_family:'Cassaforte / Family Center',set_appearance:'Aspetto',set_accessibility:'Accessibilità',set_voice:'Voce e video',set_notifications:'Notifiche',set_shortcuts:'Scorciatoie da tastiera',set_language:'Lingua',set_os:'Impostazioni di sistema',set_advanced:'Avanzate',set_activity:'Attività',set_developers:'Accedi con X1',set_changelog:'Note di rilascio',set_support:'Supporto',set_testers:'Unisciti a X1 Testers',set_logout:'Esci',
+    setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Sviluppatori',
+    common_send:'Invia',common_cancel:'Annulla',common_save:'Salva',common_close:'Chiudi',common_delete:'Elimina'
+  }
+};
+const I18N_LANGS=[
+  {code:'fr',label:'Français',flag:'🇫🇷'},
+  {code:'en',label:'English',flag:'🇬🇧'},
+  {code:'es',label:'Español',flag:'🇪🇸'},
+  {code:'pt',label:'Português',flag:'🇵🇹'},
+  {code:'de',label:'Deutsch',flag:'🇩🇪'},
+  {code:'it',label:'Italiano',flag:'🇮🇹'}
+];
+// Traduction v1 : couvre le socle le plus visible (barre de navigation, écran
+// de connexion, titres des paramètres) — pas encore l'intégralité des
+// milliers de chaînes du site (notes de version, descriptions de badges…),
+// qui restent en français quelle que soit la langue choisie pour l'instant.
+// Base extensible : ajouter une clé ici + data-i18n sur l'élément suffit.
+function t(key,fallback){
+  const lang=(appPrefs&&appPrefs.language)||'fr';
+  const dict=I18N[lang]||I18N.fr;
+  return dict[key]||I18N.fr[key]||fallback||key;
+}
+function applyI18n(){
+  try{document.documentElement.lang=(appPrefs&&appPrefs.language)||'fr';}catch(e){}
+  document.querySelectorAll('[data-i18n]').forEach(function(el){el.textContent=t(el.getAttribute('data-i18n'));});
+  document.querySelectorAll('[data-i18n-title]').forEach(function(el){el.title=t(el.getAttribute('data-i18n-title'));});
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){el.placeholder=t(el.getAttribute('data-i18n-placeholder'));});
+  if(typeof renderSettingsSidebar==='function'&&\$('settings-sidebar'))renderSettingsSidebar();
+}
+
 function applyAppPrefs(){
   try{document.documentElement.style.setProperty('--msg-font-size',appPrefs.msgFontSize+'px');}catch(e){}
   try{document.documentElement.style.setProperty('--msg-gap',appPrefs.msgSpacing==='compact'?'4px':'10px');}catch(e){}
@@ -5783,6 +5964,7 @@ function applyAppPrefs(){
     document.body.classList.toggle('gif-hover-mode',!!appPrefs.gifHoverPlay);
     applyThemeMode();
   }
+  applyI18n();
 }
 function applyThemeMode(){
   if(!document.body)return;
@@ -5862,6 +6044,16 @@ function wireGenericToggles(box){
       if(key==='linkPreview'&&typeof renderMessages==='function'&&typeof activeDm!=='undefined'&&activeDm)renderMessages();
       if(key==='notifBadge'&&typeof updateNotifBadge==='function')updateNotifBadge();
       if(key==='gifHoverPlay'&&typeof renderMessages==='function'&&typeof activeDm!=='undefined'&&activeDm)renderMessages();
+      // Bug remonté : "Aperçu du contenu dans la notification" restait sans
+      // effet — ce réglage vit côté client (localStorage) de la personne qui
+      // REÇOIT la notification, mais c'est le serveur, sur demande de
+      // l'expéditeur, qui construit le contenu envoyé au service de push. Il
+      // doit donc aussi être lu côté serveur, d'où cette synchronisation sur
+      // le profil (seul notifPreview en a besoin, les autres réglages ne
+      // servent qu'en local sur cet appareil).
+      if(key==='notifPreview'&&me&&meProfile){
+        db.updateDocument(DB,'users',meProfile.\$id,{notifPreview:on}).catch(function(){});
+      }
     };
   });
 }
@@ -5891,12 +6083,12 @@ const SETTINGS_GROUPS=[
     {key:'activity',icon:'🎮',title:'Activité'}
   ]},
   {label:'Développeurs',items:[
-    {key:'developers',icon:'👨‍💻',title:'Se connecter avec XULTRA'}
+    {key:'developers',icon:'👨‍💻',title:'Se connecter avec X1'}
   ]},
   {label:'',items:[
     {key:'changelog',icon:'📋',title:'Notes de version'},
     {key:'support',icon:'🐞',title:'Support'},
-    {key:'testers',icon:'🧪',title:'Rejoindre XULTRA Testers'},
+    {key:'testers',icon:'🧪',title:'Rejoindre X1 Testers'},
     {key:'logout',icon:'🚪',title:'Se déconnecter'}
   ]}
 ];
@@ -5912,11 +6104,12 @@ async function openSettingsPanel(){
 function closeSettingsPanel(){\$('modal-settings').classList.add('hidden');}
 function renderSettingsSidebar(){
   const nav=\$('settings-sidebar');if(!nav)return;
+  const SETTINGS_GROUP_LABEL_KEYS={'Compte':'setgrp_account','Application':'setgrp_application','Développeurs':'setgrp_developers'};
   nav.innerHTML=SETTINGS_GROUPS.map(function(g){
     return '<div class="settings-sidebar-group">'
-      +(g.label?'<div class="settings-sidebar-label">'+esc(g.label)+'</div>':'')
+      +(g.label?'<div class="settings-sidebar-label">'+esc(t(SETTINGS_GROUP_LABEL_KEYS[g.label]||'',g.label))+'</div>':'')
       +g.items.map(function(it){
-        return '<button type="button" class="settings-nav-btn'+(it.key===settingsActiveKey?' on':'')+'" data-set-key="'+it.key+'"><span class="snb-ico">'+it.icon+'</span>'+esc(it.title)+'</button>';
+        return '<button type="button" class="settings-nav-btn'+(it.key===settingsActiveKey?' on':'')+'" data-set-key="'+it.key+'"><span class="snb-ico">'+it.icon+'</span>'+esc(t('set_'+it.key,it.title))+'</button>';
       }).join('')
       +'</div>';
   }).join('');
@@ -6236,11 +6429,11 @@ function renderSetSubscription(box){
   const interested=!!meta.planInterest;
   const grantedDate=meta.planAssignedAt?new Date(meta.planAssignedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
   const grantedByLabel=meta.planAssignedBy==='hunter_tier5'?'👑 Palier Bug Hunter ultime — Légende du Bug (50 bugs résolus)':(meta.planAssignedBy||'');
-  box.innerHTML='<h2>Abonnement</h2><div class="sc-desc">Ton statut sur XULTRA.</div>'
+  box.innerHTML='<h2>Abonnement</h2><div class="sc-desc">Ton statut sur X1.</div>'
     +(isPlus?
       ('<div class="set-card"><div class="pc-xultraplus" style="font-size:.85rem;padding:8px 16px">⭐ X1+ À VIE</div>'
         +'<div class="scr-sub" style="margin-top:12px">Obtenu'+(grantedDate?(' le '+grantedDate):'')+' — '+esc(grantedByLabel)+'.</div>'
-        +'<div class="scr-sub" style="margin-top:8px">Merci infiniment pour ton aide à améliorer XULTRA. Ce statut est permanent et ne te sera jamais retiré.</div></div>')
+        +'<div class="scr-sub" style="margin-top:8px">Merci infiniment pour ton aide à améliorer X1. Ce statut est permanent et ne te sera jamais retiré.</div></div>')
       :
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">X1+ n\\'est pas encore en vente — mais tu peux l\\'obtenir gratuitement à vie en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div>'
         +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Envie de X1+ ?</div><div class="scr-sub">'+(interested?'Merci ! On te préviendra dès que ce sera disponible.':'Dis-le-nous : ça nous aide à savoir si ça vaut le coup.')+'</div></div><button type="button" class="set-mini-btn" id="sub-interest-btn"'+(interested?' disabled':'')+'>'+(interested?'✓ Merci !':'Je suis intéressé(e)')+'</button></div>'
@@ -6266,7 +6459,7 @@ function renderSetProfiles(box){
   box.innerHTML='<h2>Profils</h2><div class="sc-desc">Personnalise ton avatar, ta bannière, ta bio, tes couleurs et bien plus.</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Éditeur de profil</div><div class="scr-sub">Avatar, bannière, effets, couleurs, bio, pronoms…</div></div><button type="button" class="set-mini-btn" id="prof-open-editor">Ouvrir</button></div></div>'
     +'<div class="set-card"><div class="set-section-label">🏷️ Tag de serveur</div>'
-    +'<div class="scr-sub" style="margin-bottom:10px">Affiche le tag d\\'un serveur dont tu es membre à côté de ton pseudo partout sur XULTRA.</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Affiche le tag d\\'un serveur dont tu es membre à côté de ton pseudo partout sur X1.</div>'
     +'<div id="prof-tag-picker"><div class="scr-sub">Chargement…</div></div>'
     +'</div>';
   const btn=\$('prof-open-editor');
@@ -6461,14 +6654,14 @@ function renderSetConnections(box){
     +'</div>';
 }
 async function renderSetApps(box){
-  box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les sites tiers que tu as autorisés à se connecter avec ton compte XULTRA.</div><div class="set-card" id="oauth-authorized-list"><div class="scr-sub">Chargement…</div></div>';
+  box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les sites tiers que tu as autorisés à se connecter avec ton compte X1.</div><div class="set-card" id="oauth-authorized-list"><div class="scr-sub">Chargement…</div></div>';
   const listBox=\$('oauth-authorized-list');
   try{
     const r=await authGet('/api/oauth/authorized');
     const apps=r.apps||[];
     if(!apps.length){listBox.innerHTML='<div class="scr-sub">Aucune application connectée pour le moment.</div>';return}
     listBox.innerHTML=apps.map(function(a){
-      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(a.logoEmoji||'🔌')+' '+esc(a.name)+'</div><div class="scr-sub">Connecté avec XULTRA le '+esc(fmtClockTime(a.grantedAt))+' · portée : '+esc(a.scope||'identify')+'</div></div><button type="button" class="set-mini-btn danger" data-oauth-revoke="'+esc(a.clientId)+'">Révoquer</button></div>';
+      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(a.logoEmoji||'🔌')+' '+esc(a.name)+'</div><div class="scr-sub">Connecté avec X1 le '+esc(fmtClockTime(a.grantedAt))+' · portée : '+esc(a.scope||'identify')+'</div></div><button type="button" class="set-mini-btn danger" data-oauth-revoke="'+esc(a.clientId)+'">Révoquer</button></div>';
     }).join('');
     listBox.querySelectorAll('[data-oauth-revoke]').forEach(function(btn){
       btn.addEventListener('click',async function(){
@@ -6481,8 +6674,8 @@ async function renderSetApps(box){
 }
 let oauthDevAppsCache=[];
 async function renderSetDevelopers(box){
-  box.innerHTML='<h2>👨‍💻 Se connecter avec XULTRA</h2>'
-    +'<div class="sc-desc">Ouvre une passerelle "Se connecter avec XULTRA" sur ton propre site : tes visiteurs se connectent avec leur compte XULTRA au lieu de créer un mot de passe de plus, et tu récupères leur identité de base (pseudo, avatar). Gratuit, ouvert à tout le monde, aucune approbation requise.</div>'
+  box.innerHTML='<h2>👨‍💻 Se connecter avec X1</h2>'
+    +'<div class="sc-desc">Ouvre une passerelle "Se connecter avec X1" sur ton propre site : tes visiteurs se connectent avec leur compte X1 au lieu de créer un mot de passe de plus, et tu récupères leur identité de base (pseudo, avatar). Gratuit, ouvert à tout le monde, aucune approbation requise.</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes applications</div><div class="scr-sub">Chaque application a son propre client_id / client_secret.</div></div><button type="button" class="set-mini-btn" id="oauth-new-app-btn">+ Créer une application</button></div></div>'
     +'<div class="set-card hidden" id="oauth-new-app-form">'
       +'<div class="set-row"><label>Nom de l\\'application</label><input type="text" id="oauth-app-name" class="field-input" maxlength="100" placeholder="Mon super site"></div>'
@@ -6494,9 +6687,9 @@ async function renderSetDevelopers(box){
     +'<div class="set-card" style="margin-top:18px">'
       +'<div class="set-section-label">📘 Comment l\\'implémenter</div>'
       +'<div class="oauth-doc-step"><b>1. Crée une application</b> ci-dessus pour obtenir un <code>client_id</code> et un <code>client_secret</code>. Le secret ne s\\'affiche qu\\'à toi — ne le mets jamais dans du code exécuté dans le navigateur d\\'un visiteur, seulement sur ton serveur.</div>'
-      +'<div class="oauth-doc-step"><b>2. Ajoute un bouton "Se connecter avec XULTRA"</b> qui pointe vers cette URL (remplace CLIENT_ID et l\\'URL de redirection, qui doit être identique à celle enregistrée à l\\'étape 1) :</div>'
+      +'<div class="oauth-doc-step"><b>2. Ajoute un bouton "Se connecter avec X1"</b> qui pointe vers cette URL (remplace CLIENT_ID et l\\'URL de redirection, qui doit être identique à celle enregistrée à l\\'étape 1) :</div>'
       +oauthCodeBlockHtml('oauth-doc-authurl','https://xultra.space/oauth/authorize?client_id=VOTRE_CLIENT_ID&redirect_uri=VOTRE_URL_ENCODEE&response_type=code&scope=identify&state=une_valeur_aleatoire')
-      +'<div class="oauth-doc-step">Ton visiteur est redirigé vers XULTRA, se connecte (ou l\\'est déjà), voit un écran "Cette application veut se connecter avec ton compte", et revient sur ton site à l\\'URL de redirection avec <code>?code=...&state=...</code> dans l\\'URL.</div>'
+      +'<div class="oauth-doc-step">Ton visiteur est redirigé vers X1, se connecte (ou l\\'est déjà), voit un écran "Cette application veut se connecter avec ton compte", et revient sur ton site à l\\'URL de redirection avec <code>?code=...&state=...</code> dans l\\'URL.</div>'
       +'<div class="oauth-doc-step"><b>3. Sur TON serveur</b> (jamais le navigateur), échange ce code contre un jeton d\\'accès :</div>'
       +oauthCodeBlockHtml('oauth-doc-token','// Sur votre serveur, à la route de callback (ex: /callback?code=...&state=...)\\nconst res = await fetch(\\'https://xultra.space/api/oauth/token\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\' },\\n  body: JSON.stringify({\\n    grant_type: \\'authorization_code\\',\\n    code: req.query.code,\\n    client_id: \\'VOTRE_CLIENT_ID\\',\\n    client_secret: \\'VOTRE_CLIENT_SECRET\\', // jamais côté navigateur !\\n    redirect_uri: \\'VOTRE_URL_DE_REDIRECTION\\'\\n  })\\n});\\nconst { access_token } = await res.json();')
       +'<div class="oauth-doc-step"><b>4. Récupère l\\'identité</b> du visiteur avec ce jeton :</div>'
@@ -6590,11 +6783,11 @@ function renderOauthDevAppsList(){
   });
 }
 function renderSetFamily(box){
-  box.innerHTML='<h2>Coffre-fort de contenu / Family Center</h2><div class="sc-desc">Des outils pour garder un œil sur ton activité ou celle d’un proche.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur XULTRA.</div></div>';
+  box.innerHTML='<h2>Coffre-fort de contenu / Family Center</h2><div class="sc-desc">Des outils pour garder un œil sur ton activité ou celle d’un proche.</div><div class="set-card"><div class="scr-sub">Cette fonctionnalité arrive bientôt sur X1.</div></div>';
 }
 
 function renderSetAppearance(box){
-  box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte XULTRA à ton goût.</div>'
+  box.innerHTML='<h2>Apparence</h2><div class="sc-desc">Adapte X1 à ton goût.</div>'
     +'<div class="set-card"><div class="set-row"><label>Thème</label><div class="seg-group"><button type="button" class="seg-btn'+((appPrefs.theme||'dark')==='dark'?' on':'')+'" data-theme-mode="dark">🌙 Sombre</button><button type="button" class="seg-btn'+(appPrefs.theme==='oled'?' on':'')+'" data-theme-mode="oled">⚫ OLED</button><button type="button" class="seg-btn'+(appPrefs.theme==='light'?' on':'')+'" data-theme-mode="light">☀️ Clair</button><button type="button" class="seg-btn'+(appPrefs.theme==='system'?' on':'')+'" data-theme-mode="system">🖥️ Système</button></div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-row"><label>Mode d’affichage</label><div class="seg-group"><button type="button" class="seg-btn'+(appPrefs.displayMode==='modern'?' on':'')+'" data-app-val="displayMode:modern">Moderne</button><button type="button" class="seg-btn'+(appPrefs.displayMode==='compact'?' on':'')+'" data-app-val="displayMode:compact">Compact</button></div></div>'
@@ -6668,7 +6861,7 @@ function renderSetAccessibility(box){
   if(testBtn)testBtn.onclick=function(){
     const was=appPrefs.ttsEnabled;
     appPrefs.ttsEnabled=true;
-    speakText('Ceci est un test de la synthèse vocale XULTRA.');
+    speakText('Ceci est un test de la synthèse vocale X1.');
     appPrefs.ttsEnabled=was;
   };
 }
@@ -6683,7 +6876,7 @@ function renderSetVoice(box){
 
 function renderSetNotifications(box){
   const granted=(typeof Notification!=='undefined'&&Notification.permission==='granted');
-  box.innerHTML='<h2>Notifications</h2><div class="sc-desc">Choisis comment XULTRA t’avertit.</div>'
+  box.innerHTML='<h2>Notifications</h2><div class="sc-desc">Choisis comment X1 t’avertit.</div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Notifications bureau</div><div class="scr-sub">Reçois une alerte même quand l’onglet est fermé.</div></div><button type="button" class="set-mini-btn" id="notif-push-toggle">'+(granted?'Activées ✅':'Activer')+'</button></div>'
       +toggleRow('Aperçu du contenu dans la notification','notifPreview',appPrefs.notifPreview)
@@ -6780,26 +6973,38 @@ function wireSetShortcuts(box){
   });
 }
 function renderSetLanguage(box){
-  box.innerHTML='<h2>Langue</h2><div class="sc-desc">La langue de l’interface XULTRA.</div>'
-    +'<div class="set-card"><div class="set-row"><label>Langue de l’application</label><div class="seg-group"><button type="button" class="seg-btn on">🇫🇷 Français</button><button type="button" class="seg-btn" id="lang-en">🇬🇧 English</button></div></div></div>'
-    +'<div class="set-card"><div class="scr-sub">Envie d’aider à traduire XULTRA dans une nouvelle langue ? Écris-nous via le support !</div></div>';
-  const en=\$('lang-en');
-  if(en)en.onclick=function(){showToast('English support is coming soon!');};
+  const cur=(appPrefs&&appPrefs.language)||'fr';
+  box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">La langue de l\\'interface X1.</div>'
+    +'<div class="set-card"><div class="lang-grid" id="lang-grid">'
+    +I18N_LANGS.map(function(l){
+      return '<button type="button" class="lang-opt'+(l.code===cur?' on':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+esc(l.label)+'</button>';
+    }).join('')
+    +'</div></div>'
+    +'<div class="set-card"><div class="scr-sub">🚧 Traduction v1 : la navigation, l\\'écran de connexion et les titres des réglages changent déjà de langue. Le reste du site (notes de version, descriptions détaillées…) est encore en cours de traduction et reste en français pour l\\'instant. Envie d\\'aider à traduire X1 ? Écris-nous via le support !</div></div>';
+  box.querySelectorAll('[data-lang]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const code=btn.getAttribute('data-lang');
+      if(code===appPrefs.language)return;
+      appPrefs.language=code;saveAppPrefs();applyAppPrefs();
+      renderSetLanguage(box);
+      showToast(t('set_language')+' → '+I18N_LANGS.find(function(l){return l.code===code}).label);
+    });
+  });
 }
 async function renderSetOs(box){
   const desktop=(typeof window!=='undefined')&&window.xultraDesktop&&window.xultraDesktop.isDesktop;
   if(!desktop){
-    box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Ces options ne s\\'appliquent qu\\'à l\\'application de bureau XULTRA — tu es actuellement dans le navigateur.</div>'
+    box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Ces options ne s\\'appliquent qu\\'à l\\'application de bureau X1 — tu es actuellement dans le navigateur.</div>'
       +'<div class="set-card"><div class="scr-sub">Télécharge l\\'application de bureau (Windows, Mac, Linux) depuis la page de connexion pour débloquer le démarrage automatique et la gestion de la fenêtre.</div></div>';
     return;
   }
-  box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Comportement de l\\'application de bureau XULTRA sur cet ordinateur.</div><div class="set-card" id="os-set-card"><div class="scr-sub">Chargement…</div></div>';
+  box.innerHTML='<h2>Paramètres du système</h2><div class="sc-desc">Comportement de l\\'application de bureau X1 sur cet ordinateur.</div><div class="set-card" id="os-set-card"><div class="scr-sub">Chargement…</div></div>';
   let s;
   try{s=await window.xultraDesktop.getOsSettings();}catch(e){s=null;}
   const card=\$('os-set-card');if(!card)return;
   if(!s){card.innerHTML='<div class="scr-sub">Impossible de lire les paramètres système.</div>';return}
   card.innerHTML=
-    '<div class="set-card-row"><div class="scr-info"><div class="scr-label">Ouvrir XULTRA au démarrage</div><div class="scr-sub">Lance XULTRA automatiquement à l\\'ouverture de session.</div></div><div class="set-switch'+(s.openAtLogin?' on':'')+'" id="os-open-login" data-on="'+(s.openAtLogin?'1':'0')+'"></div></div>'
+    '<div class="set-card-row"><div class="scr-info"><div class="scr-label">Ouvrir X1 au démarrage</div><div class="scr-sub">Lance X1 automatiquement à l\\'ouverture de session.</div></div><div class="set-switch'+(s.openAtLogin?' on':'')+'" id="os-open-login" data-on="'+(s.openAtLogin?'1':'0')+'"></div></div>'
     +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Démarrer minimisé</div><div class="scr-sub">La fenêtre reste dans la zone de notification au lancement automatique.</div></div><div class="set-switch'+(s.startMinimized?' on':'')+'" id="os-start-min" data-on="'+(s.startMinimized?'1':'0')+'"></div></div>'
     +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Minimiser dans la barre des tâches</div><div class="scr-sub">Fermer la fenêtre la réduit dans la zone de notification au lieu de quitter l\\'application.</div></div><div class="set-switch'+(s.minimizeToTray?' on':'')+'" id="os-min-tray" data-on="'+(s.minimizeToTray?'1':'0')+'"></div></div>';
   function wire(id,setter){
@@ -6834,7 +7039,7 @@ const SECTION_GUIDES={
     "Le bouton ⋯ sur un message permet de répondre, réagir, épingler, copier ou supprimer.",
     "Le trombone 📎 permet d'envoyer une photo/vidéo (avec aperçu et légende avant envoi), un Ephem (vu une fois, avec option anti-capture), un fichier, un GIF ou ta position.",
     "📞 en haut lance un appel vocal ; 🔍 cherche dans la conversation ; 📌 retrouve les messages épinglés.",
-    "Les conversations privées sont chiffrées de bout en bout — même XULTRA ne peut pas lire le contenu."
+    "Les conversations privées sont chiffrées de bout en bout — même X1 ne peut pas lire le contenu."
   ]},
   friends:{icon:'👥',title:'Amis',tips:[
     "Recherche un pseudo pour lui envoyer une demande d'ami.",
@@ -6853,7 +7058,7 @@ const SECTION_GUIDES={
     "Aucune caméra ne s'active jamais automatiquement — c'est toujours un choix explicite."
   ]},
   casino:{icon:'🎰',title:'Casino',tips:[
-    "Mini-jeux et duels amicaux entre membres, avec un portefeuille virtuel propre à XULTRA.",
+    "Mini-jeux et duels amicaux entre membres, avec un portefeuille virtuel propre à X1.",
     "Aucun argent réel n'est jamais impliqué — c'est purement pour le fun."
   ]},
   suggestions:{icon:'💡',title:'Boîte à idées',tips:[
@@ -6872,9 +7077,9 @@ const SECTION_GUIDES={
     "Chaque bug corrigé compte pour ton palier (Novice → Confirmé → Expert → Exterminateur → Légende du Bug).",
     "Le palier ultime (50 bugs) offre X1+ à vie en reconnaissance."
   ]},
-  developers:{icon:'👨‍💻',title:'Se connecter avec XULTRA',tips:[
-    "Depuis Paramètres → Se connecter avec XULTRA, crée une application pour obtenir un client_id/client_secret.",
-    "Laisse les visiteurs de ton propre site se connecter avec leur compte XULTRA au lieu d'un mot de passe de plus.",
+  developers:{icon:'👨‍💻',title:'Se connecter avec X1',tips:[
+    "Depuis Paramètres → Se connecter avec X1, crée une application pour obtenir un client_id/client_secret.",
+    "Laisse les visiteurs de ton propre site se connecter avec leur compte X1 au lieu d'un mot de passe de plus.",
     "Un guide d'implémentation complet avec extraits de code est disponible directement dans ce panneau.",
     "Retrouve et révoque les sites que TOI tu as connectés à ton compte depuis Paramètres → Applications autorisées."
   ]}
@@ -6951,6 +7156,7 @@ if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e
 
 /* ===== Raccourcis clavier globaux ===== */
 function closeTopmostOverlay(){
+  if(\$('media-lightbox')&&\$('media-lightbox').classList.contains('show')){closeMediaLightbox();return true}
   if(\$('tut-overlay')){endTutorial();return true}
   if(\$('modal-status')&&!\$('modal-status').classList.contains('hidden')){closeStatusPanel();return true}
   if(\$('modal-bug')&&!\$('modal-bug').classList.contains('hidden')){closeBugModal();return true}
@@ -7033,16 +7239,16 @@ document.addEventListener('keyup',function(e){
 });
 
 const BADGE_DEFS={
-  base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté XULTRA — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
-  dev:{icon:'🛠️',label:'DEV',color:'#ef4444',desc:"Le grade le plus rare. Réservé aux créateurs qui bâtissent XULTRA. Accès total, outils internes, décision technique. Tu ne le demandes pas : tu le mérites en construisant le futur de la plateforme. Rouge, brûlant, impossible à ignorer."},
+  base:{icon:'💜',label:'MEMBRE',color:'#a78bfa',desc:"Le badge de base de la plateforme. Tu fais partie de la communauté X1 — messages, amis, profils custom. C'est le point de départ. Les vrais trophées sont juste à côté…"},
+  dev:{icon:'🛠️',label:'DEV',color:'#ef4444',desc:"Le grade le plus rare. Réservé aux créateurs qui bâtissent X1. Accès total, outils internes, décision technique. Tu ne le demandes pas : tu le mérites en construisant le futur de la plateforme. Rouge, brûlant, impossible à ignorer."},
   hunter1:{icon:'🔍',label:'CHASSEUR NOVICE',color:'#94a3b8',desc:"1 bug signalé et résolu, ton tout premier. Le début de la chasse — tout grand chasseur a commencé exactement ici."},
   hunter2:{icon:'🐛',label:'CHASSEUR CONFIRMÉ',color:'#22c55e',desc:"5 bugs traqués et corrigés grâce à toi. Tu commences vraiment à avoir l'œil pour repérer ce qui cloche."},
   hunter3:{icon:'🕷️',label:'CHASSEUR EXPERT',color:'#f59e0b',desc:"10 bugs validés et résolus — ce badge or qui brille pour de vrai. À partir de ce niveau, tu débloques un accès en avant-première à certaines nouvelles fonctionnalités avant tout le monde."},
-  hunter4:{icon:'⚔️',label:'EXTERMINATEUR',color:'#ef4444',desc:"25 bugs éliminés. Un vrai fléau pour les failles de XULTRA. Ton accès en avant-première devient prioritaire : tu testes les nouveautés parmi les tout premiers."},
+  hunter4:{icon:'⚔️',label:'EXTERMINATEUR',color:'#ef4444',desc:"25 bugs éliminés. Un vrai fléau pour les failles de X1. Ton accès en avant-première devient prioritaire : tu testes les nouveautés parmi les tout premiers."},
   hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et X1+ offert à vie en reconnaissance. Un immense merci."},
-  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur XULTRA avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
-  creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe XULTRA aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
-  chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que XULTRA n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."}
+  early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur X1 avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
+  creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe X1 aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
+  chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -7910,7 +8116,7 @@ function subscribeDmMessagesWatcher(){
           }
           if(text)speakText((p.displayName||'Message')+' : '+text);
         })();
-        loadMessages(activeDm);
+        appendNewMessages();
         markDmRead(activeDm);
         playNotifSound('message');
       }else{
@@ -7985,7 +8191,7 @@ const PRESENCE_DEFS={
   dnd:{dot:'#ef4444',label:'Ne pas déranger'},
   invisible:{dot:'#6b7280',label:'Invisible'}
 };
-/* ===== Bitmoji XULTRA — avatar 2D façon Bitmoji, entièrement dessiné en SVG,
+/* ===== Bitmoji X1 — avatar 2D façon Bitmoji, entièrement dessiné en SVG,
    sans aucun asset externe (inventé de zéro, pas une vraie 3D — les Bitmoji
    Snapchat eux-mêmes sont des illustrations plates, jamais du vrai 3D). ===== */
 const BITMOJI_SKIN_TONES=['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524','#5c3317'];
@@ -8966,6 +9172,7 @@ if(\$('au-close'))\$('au-close').addEventListener('click',function(){\$('modal-a
 if(\$('modal-admin-user'))\$('modal-admin-user').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=false, msgsCache=[];
+let msgsOldestId=null,msgsHasMoreOlder=true,msgsLoadingOlder=false;
 async function openDm(threadId,title,peerUid){
   clearReplyTarget('dm');
   if(typeof clearAttachPreview==='function')clearAttachPreview();
@@ -9183,15 +9390,91 @@ function repositionCallPanel(){
   }
 }
 async function loadMessages(threadId){
+  msgsOldestId=null;msgsHasMoreOlder=true;msgsLoadingOlder=false;
   try{
     const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',threadId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
-    msgsCache=(r.documents||[]).slice().reverse().filter(function(m){
+    const raw=r.documents||[];
+    msgsHasMoreOlder=raw.length>=60;
+    msgsOldestId=raw.length?raw[raw.length-1].\$id:null;
+    msgsCache=raw.slice().reverse().filter(function(m){
       const hidden=(m.hiddenFor||[]).map(String);
       if(hidden.indexOf(me.\$id)>=0)return false;
       if(blockedUids.indexOf(String(m.uid))>=0)return false;
       return true;
     });
-  }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];}
+  }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];msgsHasMoreOlder=false;}
+  renderMessages(true);
+}
+// Remonter tout en haut d'une conversation ne redemandait jamais l'historique
+// plus ancien — seuls les 60 derniers messages étaient chargés, point final.
+// Appelé quand la liste est scrollée près du haut : va chercher le lot de 60
+// messages juste avant le plus ancien actuellement affiché (curseur sur son
+// \$id) et l'insère en tête, en conservant la position de lecture actuelle.
+async function loadOlderMessages(){
+  if(!activeDm||!me||msgsLoadingOlder||!msgsHasMoreOlder||!msgsOldestId)return;
+  msgsLoadingOlder=true;
+  const box=\$('msgs');
+  let spinner=null;
+  if(box){spinner=document.createElement('div');spinner.className='msgs-load-more';spinner.textContent='Chargement des messages précédents…';box.insertBefore(spinner,box.firstChild);}
+  try{
+    const forDm=activeDm;
+    const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',forDm),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.cursorAfter(msgsOldestId),Appwrite.Query.limit(60)]);
+    if(activeDm!==forDm)return;
+    const raw=r.documents||[];
+    msgsHasMoreOlder=raw.length>=60;
+    if(spinner&&spinner.parentNode){spinner.parentNode.removeChild(spinner);}
+    spinner=null;
+    if(!raw.length||!box)return;
+    msgsOldestId=raw[raw.length-1].\$id;
+    const batch=raw.slice().reverse().filter(function(m){
+      const hidden=(m.hiddenFor||[]).map(String);
+      if(hidden.indexOf(me.\$id)>=0)return false;
+      if(blockedUids.indexOf(String(m.uid))>=0)return false;
+      return true;
+    });
+    if(!batch.length)return;
+    msgsCache=batch.concat(msgsCache);
+    const temp=document.createElement('div');
+    temp.innerHTML=buildMsgsHtml(batch,null);
+    const nodes=Array.prototype.slice.call(temp.children);
+    wireMsgContainer(temp);
+    const oldScrollHeight=box.scrollHeight,oldScrollTop=box.scrollTop;
+    const anchor=box.firstChild;
+    nodes.forEach(function(n){box.insertBefore(n,anchor);});
+    box.scrollTop=oldScrollTop+(box.scrollHeight-oldScrollHeight);
+    hydrateEncryptedMessages();
+  }catch(e){xlog('load_older_msgs_fail',{msg:(e&&e.message)||String(e)});}
+  finally{
+    if(spinner&&spinner.parentNode)spinner.parentNode.removeChild(spinner);
+    msgsLoadingOlder=false;
+  }
+}
+// Utilisé après l'envoi d'un message ou l'arrivée d'un message en temps réel
+// sur la conversation active — contrairement à loadMessages() (rechargement
+// complet), on fusionne juste les messages récents sans écraser tout
+// l'historique déjà remonté via loadOlderMessages() plus haut dans la liste.
+async function appendNewMessages(){
+  if(!activeDm||!me)return;
+  try{
+    const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',activeDm),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(20)]);
+    const raw=(r.documents||[]).slice().reverse();
+    const known={};msgsCache.forEach(function(m){known[m.\$id]=true;});
+    const fresh=raw.filter(function(m){
+      if(known[m.\$id])return false;
+      const hidden=(m.hiddenFor||[]).map(String);
+      if(hidden.indexOf(me.\$id)>=0)return false;
+      if(blockedUids.indexOf(String(m.uid))>=0)return false;
+      return true;
+    });
+    if(fresh.length){
+      msgsCache=msgsCache.concat(fresh);
+    }else{
+      raw.forEach(function(m){
+        const idx=msgsCache.findIndex(function(x){return x.\$id===m.\$id});
+        if(idx>=0)msgsCache[idx]=m;
+      });
+    }
+  }catch(e){xlog('append_msgs_fail',{msg:(e&&e.message)||String(e)});return;}
   renderMessages();
 }
 function safeUrl(u){
@@ -9414,7 +9697,7 @@ async function hydrateEncryptedMessages(){
     if(!wrap)continue;
     if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';continue}
     wrap.innerHTML=renderMsgBody(m,result.text,result.mediaUrl);
-    wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){window.open(el.src,'_blank')})});
+    wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     wireSnapPlaceholders(wrap);
     mountLinkPreviews(wrap);
@@ -9558,8 +9841,25 @@ function msgReplyQuoteHtml(replyToId,findFn){
   const orig=findFn(replyToId);
   if(!orig)return '<div class="msg-reply-quote">Message d\\'origine indisponible</div>';
   const label=orig.displayName||orig.username||'Quelqu\\'un';
-  const snippet=orig.enc?'🔒 Message chiffré':(orig.text||(orig.mediaUrl?'📎 Pièce jointe':''));
+  const snippet=orig.enc?'🔒 Déchiffrement…':(orig.text||(orig.mediaUrl?'📎 Pièce jointe':''));
   return '<div class="msg-reply-quote" data-scroll-reply="'+esc(replyToId)+'"><b>'+esc(label)+'</b><span class="rq-text">'+esc(snippet)+'</span></div>';
+}
+// Bug remonté : l'aperçu "en réponse à" affichait toujours "Message chiffré"
+// au lieu du vrai texte, même pour l'expéditeur ou le destinataire qui ont
+// tous deux la clé pour le lire. msgReplyQuoteHtml() reste synchrone (elle
+// pose juste un texte "Déchiffrement…" le temps d'un instant) ; ce
+// déchiffrement passe ensuite déchiffrer réellement le texte d'origine.
+function hydrateReplyQuotes(container){
+  container.querySelectorAll('.msg-reply-quote[data-scroll-reply]').forEach(function(el){
+    const origId=el.getAttribute('data-scroll-reply');
+    const orig=msgsCache.find(function(x){return x.\$id===origId});
+    if(!orig||!orig.enc)return;
+    const span=el.querySelector('.rq-text');if(!span)return;
+    attemptDecryptMessageText(orig).then(function(text){
+      if(!document.body.contains(el))return;
+      span.textContent=text||'🔒 Message chiffré';
+    }).catch(function(){});
+  });
 }
 let replyTarget=null,replyTargetKind='dm';
 function setReplyTarget(m,kind){
@@ -9567,11 +9867,17 @@ function setReplyTarget(m,kind){
   const bar=\$(kind==='dm'?'reply-preview':'srv-reply-preview');
   if(!bar)return;
   const name=m.displayName||m.username||'Quelqu\\'un';
-  const snippet=m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':''));
+  const snippet=m.enc?'🔒 Déchiffrement…':(m.text||(m.mediaUrl?'📎 Pièce jointe':''));
   bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((snippet||'').slice(0,60));
   bar.classList.add('show');
   const input=\$(kind==='dm'?'msg-input':'srv-chan-input');
   if(input)input.focus();
+  if(m.enc){
+    attemptDecryptMessageText(m).then(function(text){
+      if(replyTarget!==m||!bar.classList.contains('show'))return;
+      bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((text||'🔒 Message chiffré').slice(0,60));
+    }).catch(function(){});
+  }
 }
 function clearReplyTarget(kind){
   replyTarget=null;
@@ -9617,17 +9923,14 @@ function callHistoryHtml(m){
   const dir=mine?'Appel sortant':'Appel entrant';
   return '<div class="msg-system-notice msg-call-notice">'+icon+' '+esc(dir+' — '+label)+dur+time+'</div>';
 }
-function renderMessages(){
-  const box=\$('msgs');if(!box)return;
-  if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
-  const seenInfo=computeSeenInfo();
-  box.innerHTML=msgsCache.map(function(m){
+function buildMsgsHtml(list,seenInfo){
+  return list.map(function(m){
     if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     if(m.type==='syscall')return callHistoryHtml(m);
     const mine=m.uid===(me&&me.\$id);
     const name=m.displayName||'User';
     const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
-    const seenTag=(mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
+    const seenTag=(seenInfo&&mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
     const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
@@ -9636,18 +9939,51 @@ function renderMessages(){
     return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av" data-profile="'+esc(m.uid||'')+'">'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
-  box.querySelectorAll('[data-profile]').forEach(function(el){
+}
+// Idée reçue dans la Boîte à idées : ouvrir les images/gifs dans un widget
+// flottant sur le site plutôt qu'un nouvel onglet. Corrige au passage un bug
+// remonté sur l'application de bureau : les images de messages chiffrés sont
+// des URL blob: générées après déchiffrement, valables uniquement dans le
+// contexte de la page qui les a créées — window.open('_blank') ouvre une
+// toute nouvelle fenêtre Electron qui n'y a pas accès, d'où l'erreur "blob".
+// Un aperçu qui reste dans la même page n'a pas ce problème.
+function openMediaLightbox(url){
+  if(!url)return;
+  let overlay=document.getElementById('media-lightbox');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='media-lightbox';
+    overlay.className='media-lightbox-overlay';
+    overlay.innerHTML='<button type="button" class="media-lightbox-close" id="media-lightbox-close">✕</button><img id="media-lightbox-img" alt="">';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click',function(e){if(e.target===overlay)closeMediaLightbox();});
+    document.getElementById('media-lightbox-close').addEventListener('click',closeMediaLightbox);
+  }
+  const img=document.getElementById('media-lightbox-img');
+  img.src=url;
+  overlay.classList.add('show');
+}
+function closeMediaLightbox(){
+  const overlay=document.getElementById('media-lightbox');
+  if(!overlay)return;
+  overlay.classList.remove('show');
+  const img=document.getElementById('media-lightbox-img');
+  if(img)img.src='';
+}
+function wireMsgContainer(container){
+  container.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
     el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
   });
-  box.querySelectorAll('.msg-media img').forEach(function(el){
-    el.addEventListener('click',function(){window.open(el.src,'_blank')});
+  container.querySelectorAll('.msg-media img').forEach(function(el){
+    el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
-  wireSnapPlaceholders(box);
-  box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
+  wireSnapPlaceholders(container);
+  hydrateReplyQuotes(container);
+  container.querySelectorAll('[data-scroll-reply]').forEach(function(el){
     el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
   });
-  box.querySelectorAll('[data-react-toggle]').forEach(function(el){
+  container.querySelectorAll('[data-react-toggle]').forEach(function(el){
     el.addEventListener('click',function(e){
       e.stopPropagation();
       const mid=el.closest('.msg').getAttribute('data-mid');
@@ -9655,9 +9991,8 @@ function renderMessages(){
       if(m)toggleDmReaction(m,el.getAttribute('data-react-toggle'));
     });
   });
-  hydrateEncryptedMessages();
-  box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
-  box.querySelectorAll('.msg[data-mid]').forEach(function(el){
+  container.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  container.querySelectorAll('.msg[data-mid]').forEach(function(el){
     const m=msgsCache.find(function(x){return x.\$id===el.getAttribute('data-mid')});
     if(!m)return;
     // Le clic sur le bouton et le glisser tactile sont branchés dans tous
@@ -9669,10 +10004,39 @@ function renderMessages(){
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
     attachMsgSwipe(el,m);
   });
-  mountLinkPreviews(box);
-  mountGifFreeze(box);
-  box.scrollTop=box.scrollHeight;
-  pinScrollBottomAfterImages(box);
+  mountLinkPreviews(container);
+  mountGifFreeze(container);
+}
+// Bug remonté : après l'envoi d'un message sur mobile, il fallait scroller
+// manuellement pour le voir. Cause probable : l'animation du clavier virtuel
+// (fermeture/réouverture) redimensionne la zone visible sur plusieurs
+// centaines de ms après que box.scrollTop=box.scrollHeight a déjà été posé,
+// ce qui laisse le nouveau message juste sous le bord visible. On repose donc
+// la position en bas un peu plus tard, uniquement si l'utilisateur y était
+// encore au moment de l'envoi (sinon ça l'interromprait en train de lire).
+function pinScrollBottomDeferred(box){
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      if(box.scrollHeight-box.scrollTop-box.clientHeight<200)box.scrollTop=box.scrollHeight;
+    });
+  });
+  setTimeout(function(){
+    if(box.scrollHeight-box.scrollTop-box.clientHeight<200)box.scrollTop=box.scrollHeight;
+  },350);
+}
+function renderMessages(forceBottom){
+  const box=\$('msgs');if(!box)return;
+  if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
+  const wasNearBottom=forceBottom||(box.scrollHeight-box.scrollTop-box.clientHeight<80);
+  const seenInfo=computeSeenInfo();
+  box.innerHTML=buildMsgsHtml(msgsCache,seenInfo);
+  wireMsgContainer(box);
+  hydrateEncryptedMessages();
+  if(wasNearBottom){
+    box.scrollTop=box.scrollHeight;
+    pinScrollBottomAfterImages(box);
+    pinScrollBottomDeferred(box);
+  }
 }
 async function toggleDmReaction(m,emoji){
   try{
@@ -9966,7 +10330,7 @@ async function postMessage(data,lastMessagePreview,keyCtx){
   recipients.forEach(function(uid){
     authPost('/api/push/notify',{type:'message',toUid:uid,threadId:activeDm,preview:previewPub.slice(0,140)}).catch(function(){});
   });
-  await loadMessages(activeDm);
+  await appendNewMessages();
   await loadDms();if(view==='dms')renderDms();
 }
 async function sendMessage(){
@@ -10017,6 +10381,9 @@ async function aiFixText(inputEl,btnEl){
   }catch(e){showToast((e&&e.message)||'Correction IA indisponible.','error');}
   finally{btnEl.disabled=false;btnEl.textContent=original;}
 }
+if(\$('msgs'))\$('msgs').addEventListener('scroll',function(){
+  if(this.scrollTop<120)loadOlderMessages();
+});
 if(\$('btn-ai-fix'))\$('btn-ai-fix').addEventListener('click',function(){aiFixText(\$('msg-input'),this);});
 if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',function(){clearReplyTarget('dm');});
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
@@ -10038,6 +10405,37 @@ if(\$('msg-input'))\$('msg-input').addEventListener('paste',function(e){
   e.preventDefault();
   showAttachPreview(file);
 });
+// Bug remonté : glisser-déposer un fichier ne faisait rien (app, curseur
+// "interdit") ou faisait retélécharger le fichier par le navigateur (web) —
+// aucun listener drop n'existait, donc le comportement par défaut du
+// navigateur (ouvrir/télécharger le fichier) prenait toujours le dessus.
+if(\$('chat-active')){
+  const chatDrop=\$('chat-active');
+  let dragDepth=0;
+  chatDrop.addEventListener('dragenter',function(e){
+    if(!activeDm)return;
+    e.preventDefault();
+    dragDepth++;
+    chatDrop.classList.add('chat-dragover');
+  });
+  chatDrop.addEventListener('dragover',function(e){
+    if(!activeDm)return;
+    e.preventDefault();
+    if(e.dataTransfer)e.dataTransfer.dropEffect='copy';
+  });
+  chatDrop.addEventListener('dragleave',function(e){
+    dragDepth=Math.max(0,dragDepth-1);
+    if(dragDepth===0)chatDrop.classList.remove('chat-dragover');
+  });
+  chatDrop.addEventListener('drop',function(e){
+    e.preventDefault();
+    dragDepth=0;
+    chatDrop.classList.remove('chat-dragover');
+    if(!activeDm)return;
+    const files=(e.dataTransfer&&e.dataTransfer.files)||[];
+    if(files.length)showAttachPreview(files[0]);
+  });
+}
 if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
 
 /* ===== Pièces jointes ===== */
@@ -10912,8 +11310,8 @@ function shareLocation(){
     // Bug remonté par 1e : sur l'application de bureau, la géolocalisation
     // réseau de Chromium/Electron (sans GPS) échoue souvent faute de service
     // de localisation système disponible (POSITION_UNAVAILABLE) — limitation
-    // de la plateforme, pas un bug XULTRA. Message clair plutôt qu'un
-    // "impossible" générique qui laisse croire à un problème XULTRA.
+    // de la plateforme, pas un bug X1. Message clair plutôt qu'un
+    // "impossible" générique qui laisse croire à un problème X1.
     if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&err&&err.code===2){
       alert('La localisation n\\'est pas disponible sur cette installation de l\\'application de bureau (aucun service de localisation système détecté). Utilise la version web dans ton navigateur pour partager ta position.');
     }else if(err&&err.code===1){
@@ -11464,7 +11862,7 @@ async function renderDiscoverMap(){
   L.control.zoom({position:'bottomright'}).addTo(discoverMapInstance);
   // Fond de carte sombre (CARTO Dark Matter, pas de clé requise) plutôt que
   // les tuiles OSM classiques trop claires/colorées pour coller au thème
-  // violet sombre XULTRA.
+  // violet sombre X1.
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'© OpenStreetMap contributors © CARTO',
     subdomains:'abcd',
@@ -11513,8 +11911,8 @@ async function resumeMyLocationSharingIfEnabled(){
 }
 function startMyLocationRefreshLoop(){
   if(myLocationRefreshTimer)return;
-  sendMyLocationOnce();
-  myLocationRefreshTimer=setInterval(sendMyLocationOnce,5*60*1000);
+  sendMyLocationOnce().catch(function(){});
+  myLocationRefreshTimer=setInterval(function(){sendMyLocationOnce().catch(function(){});},5*60*1000);
 }
 function stopMyLocationRefreshLoop(){
   if(myLocationRefreshTimer){clearInterval(myLocationRefreshTimer);myLocationRefreshTimer=null;}
@@ -11524,11 +11922,20 @@ function stopMyLocationRefreshLoop(){
 // rafraîchissement toutes les ~5 minutes plutôt qu'un flux GPS permanent
 // (peu réaliste sur navigateur, gourmand en batterie, et plus intrusif que
 // nécessaire pour ce que la fonctionnalité doit offrir).
+// Bug remonté ("1e") : la case "Partager ma position" s'enregistrait très
+// bien, mais aucune position n'était jamais réellement envoyée — l'échec de
+// getCurrentPosition() ici (permission refusée, service indisponible…)
+// était totalement silencieux, sans aucun message ni retour visible.
 function sendMyLocationOnce(){
-  if(!myLocationSharingOn||!navigator.geolocation)return;
-  navigator.geolocation.getCurrentPosition(function(pos){
-    authPost('/api/location/update',{lat:pos.coords.latitude,lng:pos.coords.longitude}).catch(function(){});
-  },function(){},{enableHighAccuracy:false,timeout:8000,maximumAge:120000});
+  if(!myLocationSharingOn||!navigator.geolocation)return Promise.reject(new Error('Géolocalisation non supportée.'));
+  return new Promise(function(resolve,reject){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      authPost('/api/location/update',{lat:pos.coords.latitude,lng:pos.coords.longitude}).then(resolve).catch(reject);
+    },function(err){
+      xlog('my_location_send_fail',{code:err&&err.code,msg:(err&&err.message)||String(err)});
+      reject(new Error(err&&err.code===1?'Localisation refusée par le navigateur.':'Position indisponible.'));
+    },{enableHighAccuracy:false,timeout:8000,maximumAge:120000});
+  });
 }
 async function openLocationShareSheet(){
   let settings={sharing:false,visibleTo:[]};
@@ -11539,7 +11946,7 @@ async function openLocationShareSheet(){
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:70vh;overflow-y:auto">'
     +'<div class="set-section-label">📍 Partager ma position</div>'
-    +'<div class="scr-sub" style="margin-bottom:8px">Instantané, pas un suivi en direct : ta position se rafraîchit environ toutes les 5 minutes tant que XULTRA est ouvert et le partage actif.</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Instantané, pas un suivi en direct : ta position se rafraîchit environ toutes les 5 minutes tant que X1 est ouvert et le partage actif.</div>'
     +'<label class="srv-perm-check"><input type="checkbox" id="loc-share-toggle"'+(settings.sharing?' checked':'')+'> Partager ma position</label>'
     +(accepted.length
       ? ('<div class="scr-sub" style="margin:10px 0 4px">Visible par :</div>'
@@ -11559,7 +11966,15 @@ async function openLocationShareSheet(){
     try{
       await authPost('/api/location/share-settings',{sharing:sharing,visibleTo:visibleTo});
       myLocationSharingOn=sharing;
-      if(sharing)startMyLocationRefreshLoop();else stopMyLocationRefreshLoop();
+      if(sharing){
+        // On tente un vrai envoi de position tout de suite, avant de fermer
+        // et d'annoncer un succès — sinon un refus/échec de géolocalisation
+        // passait totalement inaperçu (voir sendMyLocationOnce plus haut).
+        await sendMyLocationOnce();
+        startMyLocationRefreshLoop();
+      }else{
+        stopMyLocationRefreshLoop();
+      }
       close();
       showToast(sharing?('Position partagée avec '+visibleTo.length+' ami(s).'):'Partage de position désactivé.');
       updateLocationShareBtnLabel();
@@ -11664,7 +12079,7 @@ async function crEnterChat(session){
   // étape manuelle supplémentaire — uid1 (déterministe : celui qui
   // attendait déjà) appelle systématiquement, l'autre reçoit l'écran
   // d'appel entrant standard du site (accepter/refuser), exactement comme
-  // n'importe quel autre appel XULTRA. La caméra reste elle TOUJOURS
+  // n'importe quel autre appel X1. La caméra reste elle TOUJOURS
   // manuelle et individuelle (bouton 🎥 une fois connecté, voir
   // crSyncCallUi) : seul le point le plus sensible d'Omegle (vidéo imposée
   // à un inconnu) reste protégé.
@@ -11715,7 +12130,7 @@ function renderChatroulette(){
       +'<div class="discover-body cr-center">'
       +'<div style="font-size:3rem">🎲</div>'
       +'<h3>Discute avec un membre au hasard</h3>'
-      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de XULTRA au hasard : chat texte ET appel vocal démarrent directement. Passe au suivant quand tu veux. La caméra reste elle toujours facultative : elle ne s\\'active jamais automatiquement, seulement si tu appuies toi-même sur 🎥.</p>'
+      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de X1 au hasard : chat texte ET appel vocal démarrent directement. Passe au suivant quand tu veux. La caméra reste elle toujours facultative : elle ne s\\'active jamais automatiquement, seulement si tu appuies toi-même sur 🎥.</p>'
       +'<p class="scr-sub" style="max-width:420px">Sois respectueux·se — le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation.</p>'
       +'<button type="button" class="btn-main" id="cr-start" style="width:auto;padding:14px 32px">Commencer</button>'
       +'</div>';
@@ -11932,7 +12347,7 @@ function openCasinoCreateForm(){
   };
 }
 
-/* ===== XULTRA Music (plateforme d'écoute/partage ouverte à tout le monde,
+/* ===== X1 Music (plateforme d'écoute/partage ouverte à tout le monde,
    fusionnée avec le profil existant) : upload de titres, lecture, playlists,
    likes, commentaires. Volontairement centré sur l'écoute/le partage pour
    cette première version — redevances, distribution vers d'autres
@@ -11940,26 +12355,70 @@ function openCasinoCreateForm(){
    l'infrastructure "label" restent hors de portée d'un simple code : ça
    suppose des contrats, des processeurs de paiement et des intégrations
    externes qu'aucune ligne de code ne peut faire apparaître toute seule. */
-let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set();
+let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMyFollowedIds=new Set();
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
+let musicSearchQuery='',musicShuffleOn=false;
+// Bug remonté : cliquer sur la barre de progression pour avancer la ramenait
+// systématiquement au début. Cause : après avoir posé audio.currentTime, le
+// vrai déplacement de lecture est asynchrone (surtout en streaming) — un
+// événement "timeupdate" arrivant juste avant que le nouveau positionnement
+// soit effectif rapportait encore l'ancienne position, et musicUpdatePlayerBar
+// écrasait alors la valeur du slider avec cette position périmée, donnant
+// l'impression que le clic n'avait servi à rien. On ignore donc les mises à
+// jour du slider tant que le seek manuel n'est pas confirmé par "seeked".
+let musicSeekingByUser=false,musicSeekingTimeout=null;
 function musicEnsureAudio(){
   if(musicAudioEl)return musicAudioEl;
   musicAudioEl=new Audio();
   musicAudioEl.addEventListener('ended',function(){musicNext();});
   musicAudioEl.addEventListener('timeupdate',musicUpdatePlayerBar);
   musicAudioEl.addEventListener('loadedmetadata',musicUpdatePlayerBar);
+  musicAudioEl.addEventListener('seeked',function(){musicSeekingByUser=false;musicUpdatePlayerBar();});
   musicAudioEl.addEventListener('play',function(){renderMusicPlayIcons();});
   musicAudioEl.addEventListener('pause',function(){renderMusicPlayIcons();});
   return musicAudioEl;
 }
+function musicMatchesSearch(t,q){
+  if(!q)return true;
+  q=q.toLowerCase();
+  let tags=[];try{tags=JSON.parse(t.tagsJson||'[]');}catch(e){}
+  return (t.title||'').toLowerCase().indexOf(q)>=0
+    ||(t.artistName||'').toLowerCase().indexOf(q)>=0
+    ||tags.some(function(tag){return tag.toLowerCase().indexOf(q)>=0;});
+}
+function musicShuffleArray(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const tmp=a[i];a[i]=a[j];a[j]=tmp;
+  }
+  return a;
+}
+let musicQueueCache=null,musicQueueCacheKey='';
+function musicQueueKey(){
+  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicShuffleOn?'shuffle':'order',musicTracksCache.length].join('|');
+}
+// Le tirage aléatoire est mis en cache tant que le contexte ne change pas —
+// sinon, appeler musicCurrentQueue() (utilisé aussi bien pour l'affichage que
+// pour "suivant/précédent") re-tirerait un ordre différent à chaque appel,
+// rendant la navigation dans la file incohérente au clic sur ⏭/⏮.
 function musicCurrentQueue(){
+  const key=musicQueueKey();
+  if(musicQueueCache&&musicQueueCacheKey===key)return musicQueueCache;
+  let list;
   if(musicActivePlaylist){
     let ids=[];try{ids=JSON.parse(musicActivePlaylist.trackIdsJson||'[]');}catch(e){}
-    return ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
+    list=ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
+  }else if(musicFilter==='mine'&&me){
+    list=musicTracksCache.filter(function(t){return String(t.uid)===String(me.\$id);});
+  }else{
+    list=musicTracksCache;
   }
-  if(musicFilter==='mine'&&me)return musicTracksCache.filter(function(t){return String(t.uid)===String(me.\$id);});
-  return musicTracksCache;
+  if(musicSearchQuery)list=list.filter(function(t){return musicMatchesSearch(t,musicSearchQuery);});
+  if(musicShuffleOn)list=musicShuffleArray(list);
+  musicQueueCache=list;musicQueueCacheKey=key;
+  return list;
 }
 async function openMusic(uid,name){
   let overlay=\$('music-overlay');
@@ -12012,7 +12471,11 @@ function renderMusicShell(){
   \$('mpb-next').onclick=musicNext;
   \$('mpb-seek').addEventListener('input',function(){
     const audio=musicEnsureAudio();
-    if(audio.duration)audio.currentTime=(this.value/100)*audio.duration;
+    if(!audio.duration)return;
+    musicSeekingByUser=true;
+    if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
+    musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
+    audio.currentTime=(this.value/100)*audio.duration;
   });
 }
 async function loadMusicTracks(){
@@ -12133,7 +12596,7 @@ function musicUpdatePlayerBar(){
   const cur=\$('mpb-time-cur'),dur=\$('mpb-time-dur'),seek=\$('mpb-seek');
   if(cur)cur.textContent=musicFmtTime(audio.currentTime);
   if(dur)dur.textContent=musicFmtTime(audio.duration);
-  if(seek&&audio.duration)seek.value=String((audio.currentTime/audio.duration)*100);
+  if(seek&&audio.duration&&!musicSeekingByUser)seek.value=String((audio.currentTime/audio.duration)*100);
 }
 async function musicToggleLike(trackId){
   if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
@@ -12909,9 +13372,27 @@ function urlBase64ToUint8Array(base64String){
 function pushSupported(){
   return ('Notification' in window)&&('serviceWorker' in navigator)&&('PushManager' in window);
 }
+// Bug remonté ("je peux pas activer les notif") : sur iPhone/iPad, Safari ne
+// définit PushManager que pour une app ajoutée à l'écran d'accueil (limitation
+// d'iOS, pas un bug X1) — pushSupported() renvoyait donc false et le
+// bouton disparaissait purement et simplement, sans aucune explication.
+function isIosNonStandalone(){
+  const isIos=/iP(hone|od|ad)/.test(navigator.userAgent||'');
+  const standalone=window.navigator.standalone||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+  return isIos&&!standalone;
+}
 async function refreshPushButtonState(){
   const btn=\$('ub-push');if(!btn)return;
-  if(!pushSupported()){btn.classList.add('hidden');return}
+  if(!pushSupported()){
+    if(isIosNonStandalone()){
+      btn.classList.remove('hidden');
+      btn.title='Ajoute X1 à l\\'écran d\\'accueil pour activer les notifications';
+      btn.textContent='🔕 '+btn.title;
+    }else{
+      btn.classList.add('hidden');
+    }
+    return;
+  }
   let subscribed=false;
   try{
     const reg=await navigator.serviceWorker.getRegistration('/sw.js');
@@ -12931,7 +13412,14 @@ async function refreshPushButtonState(){
   btn.textContent=(subscribed?'🔔':'🔕')+' '+btn.title;
 }
 async function enablePushNotifications(){
-  if(!pushSupported()){alert('Les notifications ne sont pas supportées sur ce navigateur.');return}
+  if(!pushSupported()){
+    if(isIosNonStandalone()){
+      alert('Sur iPhone/iPad, les notifications ne fonctionnent que pour X1 ajouté à l\\'écran d\\'accueil : appuie sur le bouton Partager de Safari, puis "Sur l\\'écran d\\'accueil", et réessaie depuis l\\'app installée.');
+    }else{
+      alert('Les notifications ne sont pas supportées sur ce navigateur.');
+    }
+    return;
+  }
   try{
     const perm=await Notification.requestPermission();
     if(perm!=='granted'){alert('Notifications refusées. Tu peux les réactiver dans les réglages du navigateur.');return}
@@ -12950,11 +13438,11 @@ async function enablePushNotifications(){
     const msg=(e&&e.message)||String(e);
     // Bug remonté par 1e : sur l'application de bureau, Chromium/Electron
     // n'a pas toujours de service de push système configuré (limitation de
-    // la plateforme, pas un bug XULTRA) — l'erreur brute "push service not
+    // la plateforme, pas un bug X1) — l'erreur brute "push service not
     // available" ne veut rien dire pour quelqu'un qui clique juste sur
     // Activer les notifications. Message clair plutôt qu'un jargon technique.
     if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&/push service/i.test(msg)){
-      alert('Les notifications push ne sont pas disponibles sur cette installation de l\\'application de bureau (limitation du système). Garde XULTRA ouvert en arrière-plan pour continuer à recevoir tes messages et appels — ou utilise la version web dans ton navigateur, où les notifications fonctionnent normalement.');
+      alert('Les notifications push ne sont pas disponibles sur cette installation de l\\'application de bureau (limitation du système). Garde X1 ouvert en arrière-plan pour continuer à recevoir tes messages et appels — ou utilise la version web dans ton navigateur, où les notifications fonctionnent normalement.');
     }else{
       alert('Impossible d\\'activer les notifications : '+msg);
     }
@@ -13756,6 +14244,55 @@ let videoMasked=true, cinemaMode=false, enlargedTileKey=null, videoEls={};
 let camQualityKey='720p30', screenQualityKey='1080p60';
 let micVolumePct=100, outVolumePct=100;
 let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='mono';
+let preferredMicDeviceId='';
+// Demandé : les réglages qualité audio/vidéo doivent rester valables pour
+// toujours, sur tous les appels — avant ça, camQualityKey/screenQualityKey
+// et le reste (volume micro/sortie, réduction de bruit, écho, gain
+// automatique, canal, micro préféré) repartaient de zéro à chaque
+// rechargement de page, aucune persistance nulle part.
+function loadCallPrefs(){
+  try{
+    const raw=localStorage.getItem('xultra_call_prefs');
+    if(!raw)return;
+    const p=JSON.parse(raw);
+    if(p.camQualityKey)camQualityKey=p.camQualityKey;
+    if(p.screenQualityKey)screenQualityKey=p.screenQualityKey;
+    if(typeof p.micVolumePct==='number')micVolumePct=p.micVolumePct;
+    if(typeof p.outVolumePct==='number')outVolumePct=p.outVolumePct;
+    if(typeof p.noiseSuppressionOn==='boolean')noiseSuppressionOn=p.noiseSuppressionOn;
+    if(typeof p.echoCancellationOn==='boolean')echoCancellationOn=p.echoCancellationOn;
+    if(typeof p.agcOn==='boolean')agcOn=p.agcOn;
+    if(p.channelMode)channelMode=p.channelMode;
+    if(p.preferredMicDeviceId)preferredMicDeviceId=p.preferredMicDeviceId;
+  }catch(e){}
+}
+function saveCallPrefs(){
+  try{
+    localStorage.setItem('xultra_call_prefs',JSON.stringify({
+      camQualityKey:camQualityKey,screenQualityKey:screenQualityKey,
+      micVolumePct:micVolumePct,outVolumePct:outVolumePct,
+      noiseSuppressionOn:noiseSuppressionOn,echoCancellationOn:echoCancellationOn,agcOn:agcOn,
+      channelMode:channelMode,preferredMicDeviceId:preferredMicDeviceId
+    }));
+  }catch(e){}
+}
+loadCallPrefs();
+// Reflète les valeurs restaurées dans le panneau de réglages dès qu'il
+// existe dans le DOM (il est présent dès le chargement, juste masqué), pour
+// qu'il n'affiche jamais les valeurs par défaut codées en dur du HTML au
+// lieu de ce que la personne avait réellement choisi la dernière fois.
+function syncCallSettingsUi(){
+  const micVol=\$('cs-mic-vol'),micVolVal=\$('cs-mic-vol-val');
+  if(micVol){micVol.value=String(micVolumePct);if(micVolVal)micVolVal.textContent=micVolumePct+'%';}
+  const outVol=\$('cs-out-vol'),outVolVal=\$('cs-out-vol-val');
+  if(outVol){outVol.value=String(outVolumePct);if(outVolVal)outVolVal.textContent=outVolumePct+'%';}
+  document.querySelectorAll('[data-chan]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-chan')===channelMode);});
+  const noise=\$('cs-noise');if(noise){noise.setAttribute('data-on',noiseSuppressionOn?'1':'0');noise.classList.toggle('on',noiseSuppressionOn);}
+  const echo=\$('cs-echo');if(echo){echo.setAttribute('data-on',echoCancellationOn?'1':'0');echo.classList.toggle('on',echoCancellationOn);}
+  const agc=\$('cs-agc');if(agc){agc.setAttribute('data-on',agcOn?'1':'0');agc.classList.toggle('on',agcOn);}
+  const camSel=\$('cs-cam-quality');if(camSel)camSel.value=camQualityKey;
+  const scrSel=\$('cs-screen-quality');if(scrSel)scrSel.value=screenQualityKey;
+}
 let audioCtx=null;
 let micSourceNode=null, micGainNode=null, micDestNode=null, micAnalyser=null, micMeterRaf=null;
 let outSourceNode=null, outGainNode=null, outPanner=null, outLfo=null, outLfoGain=null, outConnected=false;
@@ -14294,13 +14831,23 @@ function dismissIncomingCall(){
   if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
 }
 
+// "ideal" (pas "exact") pour deviceId : contrairement au changement de
+// micro en cours d'appel (choix explicite, doit échouer clairement si
+// l'appareil a disparu), un appareil préféré débranché depuis la dernière
+// fois ne doit jamais empêcher l'appel de démarrer — le navigateur retombe
+// alors simplement sur le micro par défaut.
+function micAudioConstraints(){
+  const c={echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2};
+  if(preferredMicDeviceId)c.deviceId={ideal:preferredMicDeviceId};
+  return c;
+}
 async function acceptIncomingCall(){
   const doc=incomingCallDoc;
   if(!doc)return;
   dismissIncomingCall();
   callPeerUid=doc.callerId;callPeerName=doc.callerName||'Appel';callIsCaller=false;
   try{
-    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
+    localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
   }catch(e){alert('Micro refusé ou indisponible');try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e2){}return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
@@ -14348,7 +14895,7 @@ async function startCall(peerUid,peerName){
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
   pendingLocalIce=[];
   try{
-    localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
+    localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
   }catch(e){alert('Micro refusé ou indisponible sur cet appareil');return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
@@ -15973,7 +16520,7 @@ function renderChannelMessages(){
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('.msg-media img').forEach(function(el){
-    el.addEventListener('click',function(){window.open(el.src,'_blank')});
+    el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
   mountLinkPreviews(box);
@@ -16470,7 +17017,7 @@ function openServerWebhookCreateForm(){
   const channelOptions=textChannels.map(function(c){return '<option value="'+esc(c.\$id)+'">#'+esc(c.name)+'</option>';}).join('');
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
     +'<div class="set-section-label">🔌 Nouveau webhook</div>'
-    +'<div class="scr-sub" style="margin-bottom:10px">L\\'URL générée permet à un service externe de poster des messages dans le salon choisi, sans compte XULTRA — garde-la secrète, comme un mot de passe.</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">L\\'URL générée permet à un service externe de poster des messages dans le salon choisi, sans compte X1 — garde-la secrète, comme un mot de passe.</div>'
     +'<div class="set-row"><label>Nom</label><input type="text" id="wh-name" class="field-input" maxlength="100" placeholder="GitHub, Alertes…"></div>'
     +'<div class="set-row"><label>Salon</label><select id="wh-channel" class="field-input">'+channelOptions+'</select></div>'
     +'<button type="button" class="btn-main" id="wh-create-go" style="width:100%;margin-top:6px">Créer</button>'
@@ -17124,7 +17671,7 @@ async function renderServerSettingsTab(){
     +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
     +(canWebhooks?('<div class="set-card"><div class="set-section-label">🔌 Webhooks</div>'
-      +'<div class="scr-sub" style="margin-bottom:10px">Un webhook laisse un service externe (GitHub, un script, une app…) poster des messages dans un salon texte via une simple requête, sans compte XULTRA.</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Un webhook laisse un service externe (GitHub, un script, une app…) poster des messages dans un salon texte via une simple requête, sans compte X1.</div>'
       +(srvWebhooksCache.length?srvWebhooksCache.map(function(w){
         const chan=activeServerChannels.find(function(c){return c.\$id===w.channelId;});
         return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(w.name)+'</div><div class="scr-sub">#'+esc(chan?chan.name:'salon supprimé')+'</div></div>'
@@ -17175,9 +17722,9 @@ async function renderServerSettingsTab(){
       +'<div class="err" id="srv-sticker-err"></div>'
     +'</div>'):'')
     +(isOwner?('<div class="set-card"><div class="set-section-label">🏷️ Tag du serveur</div>'
-      +'<div class="scr-sub" style="margin-bottom:10px">Un court label 100% personnalisable (2 à 10 caractères) que tes membres pourront choisir d\\'afficher à côté de leur pseudo, partout sur XULTRA.</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Un court label 100% personnalisable (2 à 10 caractères) que tes membres pourront choisir d\\'afficher à côté de leur pseudo, partout sur X1.</div>'
       +(activeServer.tagText?('<div style="margin-bottom:10px">Aperçu : '+serverTagBadgeHtml({displayedServerTag:{text:activeServer.tagText,color:activeServer.tagColor}})+'</div>'):'')
-      +'<div class="set-row"><label>Texte du tag</label><input type="text" id="srv-tag-text" class="field-input" maxlength="10" value="'+esc(activeServer.tagText||'')+'" placeholder="XULTRA"></div>'
+      +'<div class="set-row"><label>Texte du tag</label><input type="text" id="srv-tag-text" class="field-input" maxlength="10" value="'+esc(activeServer.tagText||'')+'" placeholder="X1"></div>'
       +'<div class="set-row"><label>Couleur</label><input type="color" id="srv-tag-color" value="'+esc(activeServer.tagColor||'#7c3aed')+'" style="width:60px;height:36px;padding:2px;background:none;border:1px solid rgba(167,139,250,.3);border-radius:8px"></div>'
       +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-tag-save" style="flex:1">Enregistrer</button>'+(activeServer.tagText?'<button type="button" class="set-mini-btn danger" id="srv-tag-remove">Retirer</button>':'')+'</div>'
       +'<div class="err" id="srv-tag-err"></div>'
@@ -17633,6 +18180,7 @@ if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMask
 
 if(\$('cb-settings'))\$('cb-settings').addEventListener('click',function(){
   \$('modal-call-settings').classList.remove('hidden');
+  syncCallSettingsUi();
   populateMicDevices();
   startMicMeter();
 });
@@ -17646,11 +18194,13 @@ async function populateMicDevices(){
     const devices=await navigator.mediaDevices.enumerateDevices();
     const mics=devices.filter(function(d){return d.kind==='audioinput'});
     sel.innerHTML=mics.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||('Micro '+(i+1)))+'</option>'}).join('');
+    if(preferredMicDeviceId&&mics.some(function(d){return d.deviceId===preferredMicDeviceId}))sel.value=preferredMicDeviceId;
   }catch(e){}
 }
 if(\$('cs-mic-device'))\$('cs-mic-device').addEventListener('change',async function(){
-  if(!callPc||!localStream)return;
   const deviceId=this.value;if(!deviceId)return;
+  preferredMicDeviceId=deviceId;saveCallPrefs();
+  if(!callPc||!localStream)return;
   try{
     const newStream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:deviceId},echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
     const newTrack=newStream.getAudioTracks()[0];
@@ -17664,17 +18214,20 @@ if(\$('cs-mic-vol'))\$('cs-mic-vol').addEventListener('input',function(){
   micVolumePct=parseInt(this.value,10)||0;
   \$('cs-mic-vol-val').textContent=micVolumePct+'%';
   if(micGainNode)micGainNode.gain.value=micVolumePct/100;
+  saveCallPrefs();
 });
 if(\$('cs-out-vol'))\$('cs-out-vol').addEventListener('input',function(){
   outVolumePct=parseInt(this.value,10)||0;
   \$('cs-out-vol-val').textContent=outVolumePct+'%';
   if(outGainNode&&!\$('cb-deafen').classList.contains('on'))outGainNode.gain.value=outVolumePct/100;
+  saveCallPrefs();
 });
 document.querySelectorAll('[data-chan]').forEach(function(btn){
   btn.addEventListener('click',function(){
     channelMode=btn.getAttribute('data-chan');
     document.querySelectorAll('[data-chan]').forEach(function(b){b.classList.toggle('on',b===btn)});
     applyChannelMode();
+    saveCallPrefs();
   });
 });
 function wireSetSwitch(id,setter){
@@ -17684,6 +18237,7 @@ function wireSetSwitch(id,setter){
     el.setAttribute('data-on',on?'1':'0');
     el.classList.toggle('on',on);
     setter(on);
+    saveCallPrefs();
   });
 }
 wireSetSwitch('cs-noise',function(on){
@@ -17722,10 +18276,12 @@ if(\$('cs-mic-record'))\$('cs-mic-record').addEventListener('click',function(){
 if(\$('cs-cam-quality'))\$('cs-cam-quality').addEventListener('change',function(){
   camQualityKey=this.value;
   applyCamQualityLive();
+  saveCallPrefs();
 });
 if(\$('cs-screen-quality'))\$('cs-screen-quality').addEventListener('change',function(){
   screenQualityKey=this.value;
   applyScreenQualityLive();
+  saveCallPrefs();
 });
 
 async function handleEmailVerificationLink(){
@@ -17747,12 +18303,16 @@ async function handleEmailVerificationLink(){
 }
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
+  // Filet de sécurité : si le SDK ne charge jamais (CDN bloqué…), la chaîne
+  // asynchrone ci-dessous ne se termine jamais et l'écran de connexion,
+  // masqué plus haut en attendant, resterait invisible pour toujours.
+  setTimeout(function(){document.documentElement.classList.remove('xultra-restoring');},12000);
   waitSdk(async function(){
     xlog('sdk_ready',{});
     await handleEmailVerificationLink();
     await handlePasswordRecoveryLink();
     const s=readSession();
-    if(!s){xlog('boot_no_session',{});return}
+    if(!s){document.documentElement.classList.remove('xultra-restoring');xlog('boot_no_session',{});return}
     try{
       applySession(s,readStoredJwt());
       await enterApp();
@@ -17761,6 +18321,8 @@ function boot(){
       xlog('boot_restore_fail',{msg:(e&&e.message)||String(e),authError:!!(e&&e.authError)});
       if(e&&e.authError){try{localStorage.removeItem('xultra_session');}catch(e2){}}
       else{try{\$('auth-err')&&(\$('auth-err').textContent='Connexion au serveur impossible, vérifie ta connexion et réessaie.');}catch(e3){}}
+    }finally{
+      document.documentElement.classList.remove('xultra-restoring');
     }
   });
 }
@@ -18167,14 +18729,14 @@ async function handle(request) {
     });
   }
 
-  // ===== "Se connecter avec XULTRA" — SSO tierce partie (OAuth2 simplifié,
+  // ===== "Se connecter avec X1" — SSO tierce partie (OAuth2 simplifié,
   // façon "Sign in with GitHub/Google") =====
   // Ouvert à tout le monde (idée demandée explicitement) : n'importe qui peut
   // créer une application depuis Paramètres → Développeurs et obtenir un
   // client_id/client_secret pour laisser les utilisateurs de SON site se
-  // connecter avec leur compte XULTRA. Flux à 3 pièces :
+  // connecter avec leur compte X1. Flux à 3 pièces :
   //  1. /api/oauth/apps/* : gestion des applications (authentifié, propriétaire
-  //     uniquement) — jamais appelé par le site tiers, seulement depuis XULTRA.
+  //     uniquement) — jamais appelé par le site tiers, seulement depuis X1.
   //  2. /oauth/authorize (page normale de l'appli, gérée côté client) + POST
   //     /api/oauth/consent (authentifié) : l'utilisateur final approuve depuis
   //     SON navigateur, jamais le secret ne transite ici.
@@ -18296,7 +18858,7 @@ async function handle(request) {
     }
   }
   // Info publique d'une application (nom, icône) : appelée par la page de
-  // consentement pour afficher "X veut se connecter avec ton compte XULTRA"
+  // consentement pour afficher "X veut se connecter avec ton compte X1"
   // avant que l'utilisateur ait besoin de faire confiance à quoi que ce soit
   // — ne renvoie jamais le client_secret. Vérifie aussi que le redirect_uri
   // fourni est bien enregistré pour cette application, pour repérer une
@@ -18318,7 +18880,7 @@ async function handle(request) {
     }
   }
   // L'utilisateur final approuve depuis son propre navigateur, déjà connecté
-  // à XULTRA (JWT normal) — jamais de mot de passe ni de secret ici.
+  // à X1 (JWT normal) — jamais de mot de passe ni de secret ici.
   if (path === "/api/oauth/consent" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -18383,7 +18945,7 @@ async function handle(request) {
     }
   }
   // Appelé par le serveur du site tiers avec l'access_token obtenu ci-dessus
-  // (jamais le JWT normal d'un compte XULTRA — un jeton OAuth séparé, portée
+  // (jamais le JWT normal d'un compte X1 — un jeton OAuth séparé, portée
   // volontairement restreinte à l'identité de base).
   if (path === "/api/oauth/userinfo" && request.method === "GET") {
     try {
@@ -20371,7 +20933,7 @@ async function handle(request) {
   if (path === "/api/call/turn-credentials" && request.method === "GET") {
     // Identifiants TURN temporaires (valables 6h) pour les appels vocaux/vidéo.
     // Nécessite une session valide pour éviter que n'importe qui pompe la bande
-    // passante du serveur TURN sans être un utilisateur de XULTRA.
+    // passante du serveur TURN sans être un utilisateur de X1.
     const acc = await resolveSessionUser(request);
     if (!acc) {
       return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
@@ -23153,7 +23715,13 @@ async function handle(request) {
             status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
           });
         }
-        const preview = String((body && body.preview) || "").slice(0, 140);
+        let preview = String((body && body.preview) || "").slice(0, 140);
+        // Le réglage "Aperçu du contenu dans la notification" appartient à la
+        // personne qui REÇOIT la notification, pas à qui l'envoie — on va
+        // donc chercher SON profil (pas celui de l'expéditeur) avant de
+        // décider quoi mettre dans le corps de la notification push.
+        const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
+        if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
         await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, url: "/", threadId: threadId });
       } else if (type === "friend_request") {
         const fUrl = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
@@ -23192,7 +23760,7 @@ async function handle(request) {
     const iconBase = "https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/";
     const iconProj = "?project=6a73b975002f14dc6b91";
     const manifest = {
-      name: "XULTRA", short_name: "XULTRA",
+      name: "X1", short_name: "X1",
       description: "Messages, amis, serveurs et appels — chiffrés de bout en bout.",
       start_url: "/", scope: "/", display: "standalone",
       background_color: "#0d0814", theme_color: "#0d0814",
@@ -23345,7 +23913,7 @@ async function handle(request) {
       const displayName = (profile && (profile.displayName || profile.username)) || acc.name || acc.email;
       return new Response(JSON.stringify({
         ok: true, registrationToken, challenge,
-        rpId: WEBAUTHN_RP_ID, rpName: "XULTRA",
+        rpId: WEBAUTHN_RP_ID, rpName: "X1",
         userId: acc.$id, userName: acc.email, userDisplayName: displayName
       }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
