@@ -1273,6 +1273,22 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-mini-btn:hover{background:rgba(255,255,255,.1)}
 .music-mini-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
 .music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
+.music-pl-detail-head{padding:4px 0 14px}
+.music-pl-detail-title{font-size:1.15rem;font-weight:800;margin:8px 0 2px}
+.music-pl-tracks{display:flex;flex-direction:column;gap:2px;padding-bottom:100px}
+.music-pl-track-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-radius:10px;transition:background .12s ease}
+.music-pl-track-row:hover{background:rgba(255,255,255,.04)}
+.music-pl-track-row.on{background:rgba(124,58,237,.12)}
+.music-pl-track-row.drag-over{background:rgba(168,85,247,.22);outline:1px dashed rgba(167,139,250,.5)}
+.music-pl-track-row.dragging{opacity:.4}
+.music-pl-drag-handle{cursor:grab;color:var(--muted);font-size:1rem;flex-shrink:0}
+.music-pl-track-play{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.06);display:grid;place-items:center;flex-shrink:0;cursor:pointer;font-size:.8rem}
+.music-pl-track-info{flex:1;min-width:0}
+.music-pl-track-title{font-weight:700;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-pl-track-artist{font-size:.74rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-pl-track-dur{font-size:.72rem;color:var(--muted);flex-shrink:0}
+.music-pl-track-remove{width:28px;height:28px;border-radius:50%;color:var(--muted);flex-shrink:0;font-size:.85rem}
+.music-pl-track-remove:hover{background:rgba(239,68,68,.16);color:#fca5a5}
 .music-player-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(180deg,rgba(21,16,31,.92),rgba(11,7,20,.98));backdrop-filter:blur(14px);border-top:1px solid rgba(167,139,250,.2)}
 .music-player-bar.hidden{display:none}
 .mpb-cover{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.1rem}
@@ -1294,6 +1310,14 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-search{margin:0 14px 10px;width:calc(100% - 28px)}
 .music-genre-row{display:flex;gap:8px;overflow-x:auto;padding:0 14px 12px;scrollbar-width:none}
 .music-streaming-note{padding:0 14px 10px}
+.music-recent-heading{padding:4px 14px 10px;font-size:.95rem;font-weight:800}
+.music-recent-rail{display:flex;gap:12px;overflow-x:auto;padding:0 14px 18px;scrollbar-width:none}
+.music-recent-rail::-webkit-scrollbar{display:none}
+.music-recent-card{flex:0 0 120px;cursor:pointer}
+.music-recent-cover{width:120px;height:120px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.8rem;margin-bottom:6px}
+.music-recent-cover img{width:100%;height:100%;object-fit:cover}
+.music-recent-title{font-weight:700;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-recent-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-genre-row::-webkit-scrollbar{display:none}
 .music-genre-chip{flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:.78rem;font-weight:700;color:#fff;opacity:.55;transition:opacity .15s ease,transform .15s ease;white-space:nowrap}
 .music-genre-chip.on{opacity:1;transform:scale(1.04);box-shadow:0 4px 14px rgba(124,58,237,.35)}
@@ -5296,6 +5320,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.7.0',date:'28 août 2026',time:'15:00',title:'🎶 X1 Music : playlists réordonnables et reprise d\\'écoute',
+    body:'Corrigé : ouvrir une playlist ne montrait jusqu\\'ici jamais son contenu, seulement la liste des playlists. Maintenant, une playlist s\\'ouvre bien sur ses titres, avec bouton retour. Si tu en es propriétaire : glisse-dépose ⠿ pour réordonner les titres, ✕ pour en retirer un. Nouveau rail ▶ Reprendre l\\'écoute en haut de Streaming et Sons des membres, avec tes derniers titres écoutés sur cet appareil.'},
   {version:'4.6.0',date:'28 août 2026',time:'14:00',title:'📻 X1 Music : radio, répétition, vitesse, minuterie, file d\\'attente',
     body:'Le lecteur plein écran s\\'enrichit : 📻 Radio (lance une file mélangée à partir d\\'un titre — même genre, ou même artiste à défaut), 🔁/🔂 répétition (file entière ou titre seul), ▶️ vitesse de lecture (0,75x à 2x), 🔊 volume, ⏱️ minuterie de sommeil (15/30/45/60 min) et 📋 file d\\'attente consultable avec saut direct à un titre. Le bouton radio est aussi disponible directement sur chaque carte de titre.'},
   {version:'4.5.1',date:'28 août 2026',time:'13:00',title:'🔒 X1 Music : sécurité et compteurs corrigés',
@@ -7091,6 +7117,8 @@ const SECTION_GUIDES={
     "Tape sur la barre de lecture pour passer en plein écran, avec un onglet Paroles synchronisées façon karaoké quand elles sont disponibles.",
     "Dans le lecteur plein écran : 📻 radio à partir du titre en cours, 🔁 répétition, ▶️ vitesse, 🔊 volume, ⏱️ minuterie de sommeil et 📋 file d'attente.",
     "❤️ aime un titre, 💬 laisse un commentaire, ➕ Playlist l'ajoute à une playlist existante ou toute neuve, et tu peux suivre un artiste pour être notifié de ses prochaines publications.",
+    "Dans une playlist dont tu es propriétaire : glisse ⠿ pour réordonner les titres, ✕ pour en retirer un.",
+    "Un rail ▶ Reprendre l'écoute apparaît en haut de Streaming et Sons des membres avec tes derniers titres écoutés sur cet appareil.",
     "🎵 Musique apparaît aussi sur chaque profil — les titres publiés par cette personne, à un clic."
   ]},
   dms:{icon:'💬',title:'Messages',tips:[
@@ -12435,6 +12463,18 @@ function saveMusicPlayerPrefs(){
   try{localStorage.setItem('xultra_music_player_prefs',JSON.stringify({repeatMode:musicRepeatMode,playbackRate:musicPlaybackRate,volume:musicVolume}));}catch(e){}
 }
 loadMusicPlayerPrefs();
+// "Reprendre l'écoute" : historique local à cet appareil, pas de collection
+// serveur dédiée — cohérent avec le fait que playsCount lui-même est déjà un
+// compteur global, pas un historique personnel par titre.
+function musicRecentIds(){
+  try{return JSON.parse(localStorage.getItem('xultra_music_recent')||'[]');}catch(e){return []}
+}
+function musicPushRecent(trackId){
+  let ids=musicRecentIds().filter(function(id){return id!==trackId;});
+  ids.unshift(trackId);
+  ids=ids.slice(0,20);
+  try{localStorage.setItem('xultra_music_recent',JSON.stringify(ids));}catch(e){}
+}
 const MUSIC_GENRES=[
   {id:'hiphop',name:'Hip-Hop',c:'linear-gradient(135deg,#7c3aed,#db2777)'},
   {id:'electro',name:'Électro',c:'linear-gradient(135deg,#4c1d95,#06b6d4)'},
@@ -12718,8 +12758,28 @@ function musicTrackCardHtml(t){
       +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
     +'</div></div>';
 }
+function musicRecentRailHtml(){
+  if(musicSearchQuery||musicGenreFilter||musicRadioQueue)return '';
+  if(musicFilter!=='streaming'&&musicFilter!=='members')return '';
+  const tracks=musicRecentIds().map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean).slice(0,10);
+  if(!tracks.length)return '';
+  return '<div class="music-recent-heading">▶ Reprendre l\\'écoute</div>'
+    +'<div class="music-recent-rail">'+tracks.map(function(t){
+      const cover=safeUrl(t.coverUrl);
+      return '<div class="music-recent-card" data-music-play="'+esc(t.\$id)+'">'
+        +'<div class="music-recent-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>🎵</span>')+'</div>'
+        +'<div class="music-recent-title">'+esc(t.title)+'</div>'
+        +'<div class="music-recent-artist">'+esc(t.artistName)+'</div>'
+      +'</div>';
+    }).join('')+'</div>';
+}
 function renderMusicBody(){
   const box=\$('music-body');if(!box)return;
+  // Bug corrigé : "musicFilter==='playlists'" restait vrai même après avoir
+  // cliqué sur une playlist précise (musicActivePlaylist posé mais jamais
+  // consulté ici) — impossible jusqu'ici de voir le contenu d'une playlist,
+  // le clic ramenait systématiquement à la liste des playlists.
+  if(musicFilter==='playlists'&&musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
   const list=musicCurrentQueue();
   if(!list.length){
@@ -12730,7 +12790,7 @@ function renderMusicBody(){
     box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre pour l\\'instant'+hint+'</div>';
     return;
   }
-  box.innerHTML='<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  box.innerHTML=musicRecentRailHtml()+'<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
   wireMusicCardEvents(box);
 }
 function wireMusicCardEvents(box){
@@ -12767,6 +12827,7 @@ async function musicPlayTrack(trackId,keepRadio){
   }
   if(!keepRadio)musicRadioQueue=null;
   musicCurrentTrack=t;
+  musicPushRecent(trackId);
   audio.src=safeUrl(t.audioUrl);
   audio.play().catch(function(){showToast('Lecture impossible.','error');});
   musicSyncMiniBar();
@@ -13252,6 +13313,75 @@ async function renderMusicPlaylistsTab(box){
         try{await db.deleteDocument(DB,'xm_playlists',el.getAttribute('data-music-pl-del'));renderMusicPlaylistsTab(box);}
         catch(err){showToast('Suppression impossible','error');}
       });
+    });
+  });
+}
+let musicDragTrackId=null;
+function renderMusicPlaylistDetail(box){
+  const p=musicActivePlaylist;
+  if(!p){renderMusicPlaylistsTab(box);return}
+  let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
+  const tracks=ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
+  const isOwner=!!(me&&String(p.uid)===String(me.\$id));
+  let html='<div class="music-pl-detail-head">'
+    +'<button type="button" class="set-mini-btn" id="music-pl-back">← Retour aux playlists</button>'
+    +'<div class="music-pl-detail-title">🎶 '+esc(p.name)+'</div>'
+    +'<div class="scr-sub">'+tracks.length+' titre'+(tracks.length!==1?'s':'')+(isOwner?' · glisse ⠿ pour réordonner':'')+'</div>'
+    +'</div>';
+  if(!tracks.length){
+    html+='<div class="scr-sub" style="padding:20px;text-align:center">Playlist vide — ajoute un titre depuis Streaming ou Sons des membres.</div>';
+  }else{
+    html+='<div class="music-pl-tracks" id="music-pl-tracks">'+tracks.map(function(t){
+      const isCurrent=musicCurrentTrack&&musicCurrentTrack.\$id===t.\$id;
+      return '<div class="music-pl-track-row'+(isCurrent?' on':'')+'" data-pl-track="'+esc(t.\$id)+'"'+(isOwner?' draggable="true"':'')+'>'
+        +(isOwner?'<span class="music-pl-drag-handle">⠿</span>':'')
+        +'<div class="music-pl-track-play" data-pl-play="'+esc(t.\$id)+'">'+(isCurrent&&musicAudioEl&&!musicAudioEl.paused?'⏸':'▶')+'</div>'
+        +'<div class="music-pl-track-info"><div class="music-pl-track-title">'+esc(t.title)+'</div><div class="music-pl-track-artist">'+esc(t.artistName)+'</div></div>'
+        +(t.durationSec?'<div class="music-pl-track-dur">'+esc(musicFmtTime(t.durationSec))+'</div>':'')
+        +(isOwner?'<button type="button" class="music-pl-track-remove" data-pl-remove="'+esc(t.\$id)+'" title="Retirer de la playlist">✕</button>':'')
+      +'</div>';
+    }).join('')+'</div>';
+  }
+  box.innerHTML=html;
+  \$('music-pl-back').onclick=function(){musicActivePlaylist=null;renderMusicBody();};
+  box.querySelectorAll('[data-pl-play]').forEach(function(el){
+    el.addEventListener('click',function(){musicPlayTrack(el.getAttribute('data-pl-play'));});
+  });
+  if(!isOwner)return;
+  box.querySelectorAll('[data-pl-remove]').forEach(function(el){
+    el.addEventListener('click',async function(e){
+      e.stopPropagation();
+      const rmId=el.getAttribute('data-pl-remove');
+      const newIds=ids.filter(function(id){return id!==rmId;});
+      try{
+        await db.updateDocument(DB,'xm_playlists',p.\$id,{trackIdsJson:JSON.stringify(newIds)});
+        p.trackIdsJson=JSON.stringify(newIds);
+        renderMusicPlaylistDetail(box);
+      }catch(err){showToast('Retrait impossible','error');}
+    });
+  });
+  box.querySelectorAll('[data-pl-track]').forEach(function(row){
+    row.addEventListener('dragstart',function(){
+      musicDragTrackId=row.getAttribute('data-pl-track');
+      row.classList.add('dragging');
+    });
+    row.addEventListener('dragend',function(){row.classList.remove('dragging');musicDragTrackId=null;});
+    row.addEventListener('dragover',function(e){e.preventDefault();row.classList.add('drag-over');});
+    row.addEventListener('dragleave',function(){row.classList.remove('drag-over');});
+    row.addEventListener('drop',async function(e){
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      const targetId=row.getAttribute('data-pl-track');
+      const draggedId=musicDragTrackId;
+      if(!draggedId||draggedId===targetId)return;
+      const newIds=ids.filter(function(id){return id!==draggedId;});
+      const targetIdx=newIds.indexOf(targetId);
+      newIds.splice(targetIdx,0,draggedId);
+      try{
+        await db.updateDocument(DB,'xm_playlists',p.\$id,{trackIdsJson:JSON.stringify(newIds)});
+        p.trackIdsJson=JSON.stringify(newIds);
+        renderMusicPlaylistDetail(box);
+      }catch(err){showToast('Réorganisation impossible','error');}
     });
   });
 }
