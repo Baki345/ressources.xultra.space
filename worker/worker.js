@@ -2828,6 +2828,9 @@ a.bug-att-item{display:block}
 .dmp-wp-custom{background-size:cover;background-position:center}
 .dmp-wp-swatch:hover{transform:scale(1.05)}
 .dmp-wp-swatch.on{border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.35)}
+.swp-preview{width:100%;height:190px;border-radius:12px;background-color:#1a1030;background-repeat:no-repeat;cursor:grab;touch-action:none;position:relative;border:1px solid rgba(167,139,250,.25);user-select:none}
+.swp-preview.dragging{cursor:grabbing}
+.swp-preview.empty::after{content:'Aucune image — importe-en une ci-dessous';position:absolute;inset:0;display:grid;place-items:center;font-size:.76rem;color:var(--muted);text-align:center;padding:0 20px}
 .msgs{background-repeat:no-repeat;background-position:center;background-attachment:local}
 .team-panel{width:min(680px,100%);max-height:88dvh;display:flex;flex-direction:column}
 .team-panel h3{margin-bottom:10px}
@@ -3350,6 +3353,32 @@ a.bug-att-item{display:block}
     <input id="ge-name" class="field-input" placeholder="Nom du groupe" autocomplete="off" maxlength="64" style="margin-top:14px"/>
     <div class="err" id="ge-err"></div>
     <button type="button" class="btn-main" id="ge-save" style="margin-top:12px">Enregistrer</button>
+    <button type="button" class="set-mini-btn" id="ge-open-shared-wallpaper" style="margin-top:10px">🌐 Fond d'écran partagé du groupe</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-shared-wallpaper">
+  <div class="modal-box dmp-panel">
+    <button type="button" class="modal-close" id="swp-close">✕</button>
+    <h3>🌐 Fond d'écran partagé</h3>
+    <div class="cl-sub">Visible par tout le monde dans cette conversation — n'importe qui ici peut le changer.</div>
+    <div class="dmp-field">
+      <div class="swp-preview empty" id="swp-preview"></div>
+      <div class="scr-sub">Fais glisser l'image pour la repositionner.</div>
+    </div>
+    <div class="dmp-field">
+      <label>Zoom</label>
+      <input type="range" id="swp-zoom" min="100" max="300" value="100">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button type="button" class="set-mini-btn" id="swp-upload-btn">🖼️ Importer une image ou un GIF</button>
+      <button type="button" class="set-mini-btn danger" id="swp-remove-btn">Retirer</button>
+    </div>
+    <input type="file" id="swp-file" class="hidden-input" accept="image/*">
+    <div class="err" id="swp-err"></div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button type="button" class="btn-main" id="swp-save">Enregistrer</button>
+    </div>
   </div>
 </div>
 
@@ -3899,6 +3928,10 @@ a.bug-att-item{display:block}
       <button type="button" class="set-mini-btn" id="dmp-wallpaper-upload-btn" style="margin-top:8px;align-self:flex-start">🖼️ Importer une image ou un GIF</button>
       <input type="file" id="dmp-wallpaper-file" class="hidden-input" accept="image/*">
       <div class="err" id="dmp-wallpaper-err"></div>
+    </div>
+    <div class="dmp-field">
+      <label>🌐 Fond d'écran partagé <span class="scr-sub" style="display:block;font-weight:400">Visible par tout le monde dans cette conversation — contrairement au fond ci-dessus, n'importe qui ici peut le changer.</span></label>
+      <button type="button" class="set-mini-btn" id="dmp-open-shared-wallpaper" style="align-self:flex-start">Gérer le fond partagé</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button type="button" class="btn-main" id="dmp-save">Enregistrer</button>
@@ -5799,6 +5832,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.27.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🌐 Fond d\\'écran partagé dans les DM (recadrable, zoomable)',
+    body:'Nouveau dans 🎨 Personnaliser la conversation (DM privées) et dans Modifier le groupe (DM de groupe) : un fond d\\'écran partagé, visible par tout le monde dans la conversation — contrairement au fond privé déjà existant, qui reste réservé à toi seul. N\\'importe quel participant peut l\\'importer, le repositionner en le faisant glisser et le zoomer avec un curseur ; les changements s\\'affichent en direct pour tout le monde. Le fond privé personnel garde toujours la priorité s\\'il est défini, pour ne rien casser des préférences déjà en place.'},
   {version:'4.26.0',category:'feature',date:'28 août 2026',time:'23:59',title:'⭐ X1+ enfin en vente + avantages',
     body:'X1+ à vie devient achetable : par carte (54,99 $ CA, paiement Stripe sécurisé — le numéro de carte ne transite jamais par X1) ou avec des X1 Coins, dans Paramètres → ⭐ Abonnement. Nouveaux avantages concrets : badge de présentation ⭐ X1+ visible sur ton profil et dans tous les serveurs, cadre de profil animé exclusif (or et violet) dans l\\'éditeur de profil, jusqu\\'à 25 bots développeur au lieu de 10, en plus de la qualité audio/vidéo HD déjà offerte sur tes serveurs. Toujours à vie, jamais de facturation récurrente.'},
   {version:'4.25.0',category:'feature',date:'28 août 2026',time:'23:59',title:'💰 X1 Coins : monnaie interne, envoyable entre membres',
@@ -9055,15 +9090,30 @@ function applyDmPersonalizationStyle(threadId){
   dmpSetVar(msgsEl,'--dm-bubble-mine',pers.bubbleMine);
   dmpSetVar(msgsEl,'--dm-bubble-theirs',pers.bubbleTheirs);
   dmpSetVar(msgsEl,'--dm-text-color',pers.textColor);
+  const dm=dmsCache.find(function(d){return d.\$id===threadId});
   if(pers.wallpaperUrl){
+    // Fond privé perso (custom) : prioritaire sur tout, y compris le fond
+    // partagé — un choix personnel écrase toujours l'affichage commun, mais
+    // uniquement pour la personne qui l'a défini.
     msgsEl.style.backgroundImage='url(\\''+pers.wallpaperUrl.replace(/'/g,'')+'\\')';
     msgsEl.style.backgroundSize='cover';
     msgsEl.style.backgroundPosition='center';
-  }else{
+  }else if(pers.wallpaper&&DM_WALLPAPERS[pers.wallpaper]){
     const wp=DM_WALLPAPERS[pers.wallpaper];
-    msgsEl.style.backgroundImage=wp?wp.css:'';
-    msgsEl.style.backgroundSize=(wp&&wp.size)?wp.size:'';
+    msgsEl.style.backgroundImage=wp.css||'';
+    msgsEl.style.backgroundSize=wp.size||'';
     msgsEl.style.backgroundPosition='center';
+  }else if(dm&&dm.sharedWallpaperUrl){
+    // Fond partagé (dms.sharedWallpaper*) : même image, même cadrage/zoom
+    // pour tout le monde dans la conversation — stocké sur le document du
+    // thread lui-même, donc naturellement synchronisé en temps réel.
+    msgsEl.style.backgroundImage='url(\\''+dm.sharedWallpaperUrl.replace(/'/g,'')+'\\')';
+    msgsEl.style.backgroundSize=(dm.sharedWallpaperScale||100)+'%';
+    msgsEl.style.backgroundPosition=(typeof dm.sharedWallpaperPosX==='number'?dm.sharedWallpaperPosX:50)+'% '+(typeof dm.sharedWallpaperPosY==='number'?dm.sharedWallpaperPosY:50)+'%';
+  }else{
+    msgsEl.style.backgroundImage='';
+    msgsEl.style.backgroundSize='';
+    msgsEl.style.backgroundPosition='';
   }
 }
 let dmpSelectedWallpaper='none',dmpCustomWallpaperUrl='';
@@ -9157,6 +9207,107 @@ if(\$('dmp-reset'))\$('dmp-reset').addEventListener('click',async function(){
     \$('modal-dm-personalize').classList.add('hidden');
   }catch(e){showToast((e&&e.message)||'Action impossible','error');}
   btn.disabled=false;
+});
+// ===== Fond d'écran partagé (dms.sharedWallpaper*) — contrairement au fond
+// privé ci-dessus, stocké directement sur le document du thread lui-même :
+// n'importe quel membre de la conversation (1:1 ou groupe) peut le changer,
+// et tout le monde le voit, synchronisé en temps réel via subscribeDmDeleteWatcher.
+let swpState={url:'',posX:50,posY:50,scale:100};
+function renderSwpPreview(){
+  const el=\$('swp-preview');if(!el)return;
+  if(swpState.url){
+    el.style.backgroundImage='url(\\''+swpState.url.replace(/'/g,'')+'\\')';
+    el.style.backgroundSize=swpState.scale+'%';
+    el.style.backgroundPosition=swpState.posX+'% '+swpState.posY+'%';
+    el.classList.remove('empty');
+  }else{
+    el.style.backgroundImage='';
+    el.classList.add('empty');
+  }
+}
+function openSharedWallpaperModal(){
+  if(!activeDm)return;
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  swpState={
+    url:(dm&&dm.sharedWallpaperUrl)||'',
+    posX:(dm&&typeof dm.sharedWallpaperPosX==='number')?dm.sharedWallpaperPosX:50,
+    posY:(dm&&typeof dm.sharedWallpaperPosY==='number')?dm.sharedWallpaperPosY:50,
+    scale:(dm&&dm.sharedWallpaperScale)?dm.sharedWallpaperScale:100
+  };
+  \$('swp-zoom').value=swpState.scale;
+  \$('swp-err').textContent='';
+  renderSwpPreview();
+  \$('modal-shared-wallpaper').classList.remove('hidden');
+}
+if(\$('dmp-open-shared-wallpaper'))\$('dmp-open-shared-wallpaper').addEventListener('click',openSharedWallpaperModal);
+if(\$('ge-open-shared-wallpaper'))\$('ge-open-shared-wallpaper').addEventListener('click',openSharedWallpaperModal);
+if(\$('swp-close'))\$('swp-close').addEventListener('click',function(){\$('modal-shared-wallpaper').classList.add('hidden')});
+if(\$('modal-shared-wallpaper'))\$('modal-shared-wallpaper').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('swp-zoom'))\$('swp-zoom').addEventListener('input',function(){swpState.scale=Number(this.value);renderSwpPreview();});
+if(\$('swp-upload-btn'))\$('swp-upload-btn').addEventListener('click',function(){\$('swp-file').click();});
+if(\$('swp-file'))\$('swp-file').addEventListener('change',async function(){
+  const file=this.files[0];this.value='';
+  if(!file)return;
+  \$('swp-err').textContent='';
+  if(!/^image\\//.test(file.type)){\$('swp-err').textContent='Image ou GIF uniquement.';return}
+  if(file.size>8*1024*1024){\$('swp-err').textContent='Image max 8 Mo.';return}
+  const btn=\$('swp-upload-btn');
+  btn.disabled=true;btn.textContent='Envoi…';
+  try{
+    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+    swpState.url=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    swpState.posX=50;swpState.posY=50;swpState.scale=100;
+    \$('swp-zoom').value=100;
+    renderSwpPreview();
+  }catch(e){\$('swp-err').textContent=(e&&e.message)||'Envoi impossible.';}
+  btn.disabled=false;btn.textContent='🖼️ Importer une image ou un GIF';
+});
+if(\$('swp-remove-btn'))\$('swp-remove-btn').addEventListener('click',function(){
+  swpState={url:'',posX:50,posY:50,scale:100};
+  \$('swp-zoom').value=100;
+  renderSwpPreview();
+});
+(function(){
+  const el=\$('swp-preview');if(!el)return;
+  let dragging=false,startX=0,startY=0,startPosX=50,startPosY=50;
+  el.addEventListener('pointerdown',function(e){
+    if(!swpState.url)return;
+    dragging=true;el.classList.add('dragging');
+    startX=e.clientX;startY=e.clientY;startPosX=swpState.posX;startPosY=swpState.posY;
+    try{el.setPointerCapture(e.pointerId);}catch(err){}
+  });
+  el.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    const dx=e.clientX-startX,dy=e.clientY-startY;
+    const rect=el.getBoundingClientRect();
+    swpState.posX=Math.max(0,Math.min(100,startPosX-(dx/rect.width)*100));
+    swpState.posY=Math.max(0,Math.min(100,startPosY-(dy/rect.height)*100));
+    renderSwpPreview();
+  });
+  function endDrag(){dragging=false;el.classList.remove('dragging');}
+  el.addEventListener('pointerup',endDrag);
+  el.addEventListener('pointercancel',endDrag);
+})();
+if(\$('swp-save'))\$('swp-save').addEventListener('click',async function(){
+  if(!activeDm)return;
+  const btn=\$('swp-save');btn.disabled=true;btn.textContent='Enregistrement…';
+  try{
+    await db.updateDocument(DB,'dms',activeDm,{
+      sharedWallpaperUrl:swpState.url,
+      sharedWallpaperPosX:swpState.posX,
+      sharedWallpaperPosY:swpState.posY,
+      sharedWallpaperScale:swpState.scale
+    });
+    const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+    if(dm){
+      dm.sharedWallpaperUrl=swpState.url;dm.sharedWallpaperPosX=swpState.posX;
+      dm.sharedWallpaperPosY=swpState.posY;dm.sharedWallpaperScale=swpState.scale;
+    }
+    applyDmPersonalizationStyle(activeDm);
+    showToast('Fond partagé mis à jour !');
+    \$('modal-shared-wallpaper').classList.add('hidden');
+  }catch(e){showToast((e&&e.message)||'Enregistrement impossible','error');}
+  btn.disabled=false;btn.textContent='Enregistrer';
 });
 function fmtClockTime(dateStr){
   if(!dateStr)return '';
@@ -9355,10 +9506,12 @@ function subscribeDmDeleteWatcher(){
         const prev=idx>=0?dmsCache[idx]:null;
         const contentChanged=!prev||prev.lastMessage!==p.lastMessage||prev.unreadJson!==p.unreadJson;
         const readChanged=prev&&prev.lastReadJson!==p.lastReadJson;
+        const wallpaperChanged=prev&&(prev.sharedWallpaperUrl!==p.sharedWallpaperUrl||prev.sharedWallpaperPosX!==p.sharedWallpaperPosX||prev.sharedWallpaperPosY!==p.sharedWallpaperPosY||prev.sharedWallpaperScale!==p.sharedWallpaperScale);
         if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
         if(p.\$id===activeDm){
           updateTypingIndicator();
           if(readChanged)renderMessages();
+          if(wallpaperChanged)applyDmPersonalizationStyle(p.\$id);
         }
         if(contentChanged){
           dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
