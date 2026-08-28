@@ -868,6 +868,122 @@ function casinoResolveGame(gameType) {
   return { game: "dice", creatorRoll: creatorRoll, joinerRoll: joinerRoll, winnerIndex: winnerIndex };
 }
 
+// ===== X1 Coins — monnaie interne à valeur réelle (contrairement aux jetons
+// de casino ci-dessus, explicitement fictifs) : achetée par carte via Stripe,
+// envoyable librement entre membres, utilisable pour acheter X1+. Portefeuille
+// et journal de transactions entièrement server-side, collections verrouillées
+// (permissions vides + documentSecurity désactivé, comme casino_wallets) —
+// un appel db.*() direct depuis la console du navigateur ne peut ni lire ni
+// modifier un solde, tout passe par les routes /api/wallet/* ci-dessous. =====
+const COIN_PACKS = {
+  small: { coins: 500, eurCents: 499, label: "500 X1 Coins" },
+  medium: { coins: 1200, eurCents: 999, label: "1 200 X1 Coins" },
+  large: { coins: 3000, eurCents: 1999, label: "3 000 X1 Coins" }
+};
+const XPLUS_PRICE_EUR_CENTS = 3999;
+const XPLUS_PRICE_COINS = 4500;
+async function x1coinsGetOrCreateWallet(uid) {
+  const q = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+  const existing = (q.documents || [])[0];
+  if (existing) return existing;
+  return awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents", {
+    method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: String(uid), balance: 0 } }
+  });
+}
+async function x1coinsLogTx(uid, otherUid, otherName, direction, amount, kind, note) {
+  return awFetch("/databases/" + AW_DB + "/collections/x1coins_tx/documents", {
+    method: "POST", asAdmin: true,
+    body: { documentId: "unique()", data: { uid: String(uid), otherUid: String(otherUid || ""), otherName: String(otherName || "").slice(0, 100), direction: direction, amount: amount, kind: kind, note: String(note || "").slice(0, 300) } }
+  });
+}
+// Résout un pseudo (avec ou sans #tag) ou un identifiant brut vers le compte
+// correspondant — même logique que resolveLoginEmail plus bas, mais retourne
+// le profil complet plutôt qu'un e-mail (utilisé pour l'envoi de X1 Coins et
+// la recherche d'adresse de portefeuille externe).
+async function resolveHandleToUser(handle) {
+  const raw = String(handle || "").trim();
+  if (!raw) throw new Error("Destinataire requis");
+  let s = raw.replace(/^@/, "");
+  let uname = s, tag = "";
+  const hashIdx = s.indexOf("#");
+  if (hashIdx !== -1) { uname = s.slice(0, hashIdx); tag = s.slice(hashIdx + 1); }
+  const queries = [JSON.stringify({ method: "equal", attribute: "username", values: [uname.toLowerCase()] })];
+  if (tag) queries.push(JSON.stringify({ method: "equal", attribute: "tag", values: [tag] }));
+  queries.push(JSON.stringify({ method: "limit", values: [5] }));
+  const qs = queries.map(function (q) { return "queries[]=" + encodeURIComponent(q); }).join("&");
+  const list = await awFetch("/databases/" + AW_DB + "/collections/users/documents?" + qs, { asAdmin: true });
+  const docs = list.documents || [];
+  if (!docs.length) {
+    // Peut aussi être un identifiant de compte brut (authUserId), collé
+    // directement plutôt que le pseudo.
+    try {
+      const byId = await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + raw, { asAdmin: true });
+      if (byId && byId.$id) return byId;
+    } catch (e) {}
+    throw new Error("Membre introuvable");
+  }
+  if (docs.length > 1) throw new Error("Plusieurs comptes ont ce pseudo, précise le tag complet (pseudo#1234)");
+  return docs[0];
+}
+// Ajoute/retire le badge ⭐ X1+ selon le statut réel de user_meta.plan — jamais
+// l'inverse (le badge ne débloque jamais le plan lui-même, il ne fait que le
+// refléter). Même verrouillage que recomputeHunterBadge (écriture admin-only).
+async function syncPlusBadge(uid) {
+  if (!uid) return;
+  let meta;
+  try { meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, { asAdmin: true }); }
+  catch (e) { return; }
+  let existing = [];
+  try { existing = JSON.parse(meta.badgesJson || "[]"); if (!Array.isArray(existing)) existing = []; } catch (e) { existing = []; }
+  const shouldHave = meta.plan === "plus";
+  const has = existing.indexOf("xplus") >= 0;
+  if (shouldHave === has) return;
+  const next = shouldHave ? existing.concat(["xplus"]) : existing.filter(function (b) { return b !== "xplus"; });
+  await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
+    method: "PATCH", asAdmin: true, body: { data: { badgesJson: JSON.stringify(next) }, permissions: ["read(\"any\")"] }
+  });
+}
+// Accorde X1+ à vie (carte ou X1 Coins) — factorisé pour rester cohérent avec
+// le chemin déjà existant (Bug Hunter palier 5, badge ÉLITE) : jamais de
+// billing récurrent dans cette appli, un seul champ plan="plus" permanent.
+async function grantPlus(uid, assignedBy) {
+  const data = { plan: "plus", planAssignedBy: assignedBy, planAssignedAt: new Date().toISOString() };
+  try {
+    await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
+      method: "PATCH", asAdmin: true, body: { data, permissions: ["read(\"any\")"] }
+    });
+  } catch (e) {
+    if (e && e.status === 404) {
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+        method: "POST", asAdmin: true, body: { documentId: uid, data, permissions: ["read(\"any\")"] }
+      });
+    } else throw e;
+  }
+  await syncPlusBadge(uid);
+}
+// Vérifie la signature d'un webhook Stripe (en-tête Stripe-Signature :
+// "t=<timestamp>,v1=<hmac-hex>") sur le corps BRUT de la requête — jamais le
+// JSON re-sérialisé, qui ne matcherait pas octet pour octet. Tolérance de
+// 5 minutes sur l'horodatage pour limiter le rejeu. STRIPE_WEBHOOK_SECRET est
+// un secret Cloudflare (jamais dans ce fichier ni dans git), même schéma que
+// CF_AI_TOKEN plus haut.
+async function verifyStripeSignature(rawBody, sigHeader, secret) {
+  if (!sigHeader || !secret) return false;
+  const parts = String(sigHeader).split(",").reduce(function (acc, kv) {
+    const i = kv.indexOf("="); if (i > 0) acc[kv.slice(0, i)] = kv.slice(i + 1); return acc;
+  }, {});
+  const t = parts.t, v1 = parts.v1;
+  if (!t || !v1) return false;
+  if (Math.abs(Date.now() / 1000 - Number(t)) > 300) return false;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(t + "." + rawBody));
+  const expected = Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+  return expected === v1;
+}
+
 function isShamanAccount(acc, profile) {
   if (!acc) return false;
   if (SHAMAN_UIDS.has(String(acc.$id))) return true;
@@ -2159,6 +2275,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-elite::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.85) 48%,rgba(255,255,255,.85) 52%,transparent 70%);background-size:280% 280%;animation:eliteShine 2.4s ease-in-out infinite;pointer-events:none;mix-blend-mode:overlay}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
+.badge-xplus{background-image:linear-gradient(125deg,#78350f,#fbbf24,#7c3aed,#f0abfc,#78350f);color:#1a1005;border-color:rgba(251,191,36,.75);box-shadow:0 0 12px rgba(251,191,36,.55),0 0 22px rgba(124,58,237,.35);animation:badgeShift 3.4s ease infinite,badgePulse 1.9s ease-in-out infinite}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
 .pm-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -2199,7 +2316,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
 .pc-card.pc-centered .pc-banner{height:112px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
-.pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before{
+.pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before,.pc-av-frame.frame-xplus::before{
   /* Bug remonté par Yani Neco ("cadres photo ne sont pas affichés") : cet
      anneau est en z-index:-1 (derrière la photo, exprès — c'est un disque
      plein, pas un anneau creux, donc le mettre devant masquerait toute la
@@ -2213,6 +2330,9 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-av-frame.frame-gold::before{background:conic-gradient(from 0deg,#fbbf24,#fde68a,#f59e0b,#fff7cc,#fbbf24);animation:frameSpin 3.5s linear infinite}
 .pc-av-frame.frame-rainbow::before{background:conic-gradient(from 0deg,#ef4444,#f59e0b,#eab308,#22c55e,#38bdf8,#7c3aed,#ec4899,#ef4444);animation:frameSpin 2.5s linear infinite}
 .pc-av-frame.frame-neon::before{background:radial-gradient(circle,transparent 60%,#a78bfa 90%);animation:framePulse 1.6s ease-in-out infinite}
+.pc-av-frame.frame-xplus::before{background:conic-gradient(from 0deg,#fbbf24,#7c3aed,#fbbf24,#f0abfc,#fbbf24);animation:frameSpin 3s linear infinite,framePulse 2.4s ease-in-out infinite}
+.pe-frame-swatch.frame-locked{opacity:.45;cursor:not-allowed;position:relative}
+.pe-frame-swatch.frame-locked::after{content:'⭐';position:absolute;bottom:-2px;right:-2px;font-size:.7rem}
 @keyframes frameSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes framePulse{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
 .pc-custom-status{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.08);font-size:.74rem;font-weight:700}
@@ -2327,6 +2447,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-creator::before{background:radial-gradient(circle at 30% 20%,#ec4899,transparent 40%,#8b5cf6 75%,transparent);opacity:.4}
 .badge-info-card.badge-chainsmoker{background:linear-gradient(160deg,#1c1917,#3f2d1a 40%,#1c1917);border-color:rgba(249,115,22,.5)}
 .badge-info-card.badge-chainsmoker::before{background:radial-gradient(circle at 30% 20%,#f97316,transparent 40%,#4ade80 85%,transparent);opacity:.32}
+.badge-info-card.badge-xplus{background:linear-gradient(160deg,#1a1205,#3d1a3d 40%,#1a1205);border-color:rgba(251,191,36,.5)}
+.badge-info-card.badge-xplus::before{background:radial-gradient(circle at 30% 20%,#fbbf24,transparent 40%,#7c3aed 85%,transparent);opacity:.35}
 .bi-head{font-size:1.15rem;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative}
 .badge-info-card.badge-base .bi-head{color:#e9d5ff}
 .badge-info-card.badge-dev .bi-head{color:#fca5a5}
@@ -2338,6 +2460,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-early .bi-head{color:#fff}
 .badge-info-card.badge-creator .bi-head{color:#f9a8d4}
 .badge-info-card.badge-chainsmoker .bi-head{color:#fdba74}
+.badge-info-card.badge-xplus .bi-head{color:#fde68a}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
 .bug-modal-box{padding:0;overflow:hidden;width:min(420px,100%);max-height:90dvh;display:flex;flex-direction:column}
@@ -5676,6 +5799,12 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.26.0',category:'feature',date:'28 août 2026',time:'23:59',title:'⭐ X1+ enfin en vente + avantages',
+    body:'X1+ à vie devient achetable : par carte (39,99 €, paiement Stripe sécurisé — le numéro de carte ne transite jamais par X1) ou avec des X1 Coins, dans Paramètres → ⭐ Abonnement. Nouveaux avantages concrets : badge de présentation ⭐ X1+ visible sur ton profil et dans tous les serveurs, cadre de profil animé exclusif (or et violet) dans l\\'éditeur de profil, jusqu\\'à 25 bots développeur au lieu de 10, en plus de la qualité audio/vidéo HD déjà offerte sur tes serveurs. Toujours à vie, jamais de facturation récurrente.'},
+  {version:'4.25.0',category:'feature',date:'28 août 2026',time:'23:59',title:'💰 X1 Coins : monnaie interne, envoyable entre membres',
+    body:'Nouvel onglet Paramètres → 💰 Portefeuille : une monnaie interne (X1 Coins) rechargeable par carte via Stripe, et envoyable librement à n\\'importe quel autre membre par pseudo#tag, avec un historique de tes transactions. Distincte des jetons du 🎰 Casino (toujours fictifs, sans valeur, par design) : les X1 Coins ont une vraie contrepartie et peuvent aussi servir à débloquer X1+.'},
+  {version:'4.24.1',category:'feature',date:'28 août 2026',time:'23:59',title:'🔗 Vraie crypto entre membres — sans que X1 touche à tes fonds',
+    body:'Dans le même onglet 💰 Portefeuille : relie l\\'adresse publique de ton propre portefeuille externe (MetaMask ou compatible) pour envoyer et recevoir de la vraie cryptomonnaie on-chain avec d\\'autres membres. Volontairement non-custodial : X1 ne détient jamais ta clé privée ni tes fonds, ne fait qu\\'office d\\'annuaire pseudo→adresse — chaque envoi est une vraie transaction sur la blockchain, signée directement par TON portefeuille, sur le réseau qu\\'il a actuellement sélectionné.'},
   {version:'4.24.0',category:'feature',date:'28 août 2026',time:'23:59',title:'📦 Bots : kit de démarrage téléchargeable',
     body:'Nouveau bouton dans Paramètres → 🤖 Bots : télécharge un bot Node.js déjà fonctionnel (bot-x1.js) — zéro dépendance à installer, seulement les modules natifs de Node (http, crypto), avec les commandes /ping, /say et /info déjà câblées et la vérification de signature déjà en place. Un tuto complet accompagne le fichier, étape par étape : installer Node.js, renseigner le token dans un .env, lancer le script, puis le rendre joignable en HTTPS soit via un tunnel gratuit le temps d\\'un test sur son propre PC, soit sur un petit VPS pour du 24/7 avec pm2 et un reverse proxy. De quoi avoir un premier bot en ligne en quelques minutes, sans écrire une ligne de code, tout en gardant un point de départ librement modifiable plutôt qu\\'une boîte noire.'},
   {version:'4.23.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🎙️ Bots : accès aux salons vocaux',
@@ -6599,6 +6728,7 @@ const SETTINGS_GROUPS=[
   {label:'Compte',items:[
     {key:'account',icon:'👤',title:'Mon compte'},
     {key:'subscription',icon:'⭐',title:'Abonnement'},
+    {key:'wallet',icon:'💰',title:'Portefeuille'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
     {key:'blocked',icon:'🚫',title:'Utilisateurs bloqués'},
@@ -6673,7 +6803,7 @@ function renderSettingsSection(key){
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
-    myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots
+    myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -6961,35 +7091,199 @@ function showMfaRecoveryCodes(box,codes,justEnabled){
   \$('mfa-codes-done').onclick=function(){renderSetAccount(box);};
 }
 
+const XPLUS_PRICE_EUR=3999;
+const XPLUS_PRICE_COINS_CLIENT=4500;
+const COIN_PACKS_CLIENT={small:{coins:500,eurCents:499,label:'500 X1 Coins'},medium:{coins:1200,eurCents:999,label:'1 200 X1 Coins'},large:{coins:3000,eurCents:1999,label:'3 000 X1 Coins'}};
+const XPLUS_PERKS_HTML='<div class="set-card"><div class="set-section-label">Avantages X1+</div>'
+  +'<div class="scr-sub">⭐ Badge de présentation X1+, visible sur ton profil et à côté de ton pseudo dans tous les serveurs.</div>'
+  +'<div class="scr-sub" style="margin-top:6px">🖼️ Cadre de profil animé exclusif (or et violet).</div>'
+  +'<div class="scr-sub" style="margin-top:6px">🎧 Qualité audio/vidéo HD sur tes serveurs (256 kbps · 1080p60).</div>'
+  +'<div class="scr-sub" style="margin-top:6px">🤖 25 bots développeur au lieu de 10.</div>'
+  +'<div class="scr-sub" style="margin-top:6px">💜 Un immense merci — ça finance directement le développement de X1.</div>'
+  +'</div>';
 function renderSetSubscription(box){
   const meta=settingsMeta||{};
   const isPlus=meta.plan==='plus';
-  const interested=!!meta.planInterest;
   const grantedDate=meta.planAssignedAt?new Date(meta.planAssignedAt).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'';
-  const grantedByLabel=meta.planAssignedBy==='hunter_tier5'?'👑 Palier Bug Hunter ultime — Légende du Bug (50 bugs résolus)':(meta.planAssignedBy||'');
+  const grantedByLabel=meta.planAssignedBy==='hunter_tier5'?'👑 Palier Bug Hunter ultime — Légende du Bug (50 bugs résolus)':meta.planAssignedBy==='stripe_purchase'?'💳 Achat par carte':meta.planAssignedBy==='coins_purchase'?'🪙 Achat avec des X1 Coins':meta.planAssignedBy==='elite_badge'?'💎 Badge ÉLITE X1':(meta.planAssignedBy||'');
   box.innerHTML='<h2>Abonnement</h2><div class="sc-desc">Ton statut sur X1.</div>'
     +(isPlus?
       ('<div class="set-card"><div class="pc-xultraplus" style="font-size:.85rem;padding:8px 16px">⭐ X1+ À VIE</div>'
-        +'<div class="scr-sub" style="margin-top:12px">Obtenu'+(grantedDate?(' le '+grantedDate):'')+' — '+esc(grantedByLabel)+'.</div>'
-        +'<div class="scr-sub" style="margin-top:8px">Merci infiniment pour ton aide à améliorer X1. Ce statut est permanent et ne te sera jamais retiré.</div></div>')
+        +'<div class="scr-sub" style="margin-top:12px">Obtenu'+(grantedDate?(' le '+grantedDate):'')+(grantedByLabel?(' — '+esc(grantedByLabel)):'')+'.</div>'
+        +'<div class="scr-sub" style="margin-top:8px">Ce statut est permanent et ne te sera jamais retiré.</div></div>'
+        +XPLUS_PERKS_HTML)
       :
-      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">X1+ n\\'est pas encore en vente — mais tu peux l\\'obtenir gratuitement à vie en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div>'
-        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Envie de X1+ ?</div><div class="scr-sub">'+(interested?'Merci ! On te préviendra dès que ce sera disponible.':'Dis-le-nous : ça nous aide à savoir si ça vaut le coup.')+'</div></div><button type="button" class="set-mini-btn" id="sub-interest-btn"'+(interested?' disabled':'')+'>'+(interested?'✓ Merci !':'Je suis intéressé(e)')+'</button></div>'
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Compte standard</div><div class="scr-sub">Tu peux débloquer X1+ à vie en l\\'achetant ci-dessous, ou gratuitement en devenant 👑 Légende du Bug (50 bugs signalés et résolus) dans le programme Bug Hunter.</div></div></div></div>'
+        +XPLUS_PERKS_HTML
+        +'<div class="set-card"><div class="set-section-label">Débloquer X1+</div>'
+          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 Payer par carte</div><div class="scr-sub">'+(XPLUS_PRICE_EUR/100).toFixed(2).replace('.',',')+' € · paiement unique, à vie</div></div><button type="button" class="btn-main" id="sub-buy-card-btn">Acheter</button></div>'
+          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">🪙 Payer avec tes X1 Coins</div><div class="scr-sub" id="sub-coins-balance-hint">'+XPLUS_PRICE_COINS_CLIENT+' X1 Coins · solde…</div></div><button type="button" class="set-mini-btn" id="sub-buy-coins-btn" disabled>Payer</button></div>'
+          +'<div class="err" id="sub-buy-err" style="min-height:1em;margin-top:6px"></div>'
         +'</div>'));
   wireSetSubscription(box);
 }
 function wireSetSubscription(box){
-  const btn=\$('sub-interest-btn');
-  if(btn)btn.onclick=async function(){
+  const cardBtn=\$('sub-buy-card-btn');
+  if(cardBtn)cardBtn.onclick=async function(){
+    cardBtn.disabled=true;cardBtn.textContent='...';
+    try{
+      const r=await authPost('/api/payments/checkout',{kind:'xplus'});
+      window.location.href=r.url;
+    }catch(e){\$('sub-buy-err').textContent=(e&&e.message)||'Erreur';cardBtn.disabled=false;cardBtn.textContent='Acheter';}
+  };
+  const coinsBtn=\$('sub-buy-coins-btn');
+  const hint=\$('sub-coins-balance-hint');
+  if(coinsBtn){
+    authGet('/api/wallet/me').then(function(r){
+      if(!hint)return;
+      const bal=r.balance||0;
+      hint.textContent=XPLUS_PRICE_COINS_CLIENT+' X1 Coins · ton solde : '+bal+(bal<XPLUS_PRICE_COINS_CLIENT?' (insuffisant)':'');
+      coinsBtn.disabled=bal<XPLUS_PRICE_COINS_CLIENT;
+    }).catch(function(){if(hint)hint.textContent=XPLUS_PRICE_COINS_CLIENT+' X1 Coins';});
+    coinsBtn.onclick=async function(){
+      coinsBtn.disabled=true;coinsBtn.textContent='...';
+      try{
+        await authPost('/api/wallet/spend/xplus',{});
+        settingsMeta=await db.getDocument(DB,'user_meta',me.\$id).catch(function(){return settingsMeta;});
+        showToast('X1+ débloqué !');
+        renderSetSubscription(box);
+      }catch(e){\$('sub-buy-err').textContent=(e&&e.message)||'Erreur';coinsBtn.disabled=false;coinsBtn.textContent='Payer';}
+    };
+  }
+}
+const CHAIN_EXPLORERS={'0x1':'https://etherscan.io/tx/','0x89':'https://polygonscan.com/tx/','0xa4b1':'https://arbiscan.io/tx/','0xa':'https://optimistic.etherscan.io/tx/','0x38':'https://bscscan.com/tx/'};
+function ethToWeiHex(amountStr){
+  const s=String(amountStr||'0').trim();
+  const parts=s.split('.');
+  const whole=parts[0]||'0';
+  let frac=(parts[1]||'').slice(0,18);
+  while(frac.length<18)frac+='0';
+  let wei;
+  try{wei=BigInt(whole||'0')*(10n**18n)+BigInt(frac||'0');}catch(e){return null}
+  if(wei<0n)return null;
+  return '0x'+wei.toString(16);
+}
+function renderSetWallet(box){
+  box.innerHTML='<h2>💰 Portefeuille</h2><div class="sc-desc">X1 Coins (monnaie interne, achetée par carte) et portefeuille externe relié (vraie crypto on-chain).</div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Solde X1 Coins</div><div class="scr-sub" id="wal-balance">Chargement…</div></div></div></div>'
+    +'<div class="set-card"><div class="set-section-label">🔋 Recharger</div><div class="scr-sub" style="margin-bottom:10px">Paiement par carte, sécurisé par Stripe — ton numéro de carte ne transite jamais par X1.</div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+Object.keys(COIN_PACKS_CLIENT).map(function(k){
+        const p=COIN_PACKS_CLIENT[k];
+        return '<button type="button" class="set-mini-btn" data-buy-pack="'+k+'">🪙 '+p.coins+' — '+(p.eurCents/100).toFixed(2).replace('.',',')+' €</button>';
+      }).join('')+'</div>'
+      +'<div class="err" id="wal-buy-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">📤 Envoyer des X1 Coins</div>'
+      +'<div class="set-row"><label>Destinataire (pseudo#tag)</label><input type="text" id="wal-send-handle" class="field-input" placeholder="pseudo#1234"></div>'
+      +'<div class="set-row"><label>Montant</label><input type="number" id="wal-send-amount" class="field-input" min="1" step="1" placeholder="100"></div>'
+      +'<div class="set-row"><label>Message (optionnel)</label><input type="text" id="wal-send-note" class="field-input" maxlength="300" placeholder="Pour la pizza 🍕"></div>'
+      +'<button type="button" class="btn-main" id="wal-send-btn">Envoyer</button>'
+      +'<div class="err" id="wal-send-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🧾 Activité récente</div><div id="wal-tx-list"><div class="scr-sub">Chargement…</div></div></div>'
+    +'<div class="set-card"><div class="set-section-label">🔗 Portefeuille externe (vraie crypto on-chain)</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Non-custodial : X1 ne stocke que ton adresse publique (un annuaire pseudo→adresse), jamais de clé privée ni de fonds. Envoyer de la crypto à un autre membre déclenche une vraie transaction sur la blockchain, signée par TON portefeuille (MetaMask ou compatible) — pas par X1.</div>'
+      +'<div class="set-row"><label>Ton adresse publique</label><input type="text" id="wal-crypto-addr" class="field-input" placeholder="0x..."></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="set-mini-btn" id="wal-crypto-connect-btn">🦊 Détecter depuis mon portefeuille</button><button type="button" class="btn-main" id="wal-crypto-save-btn">Enregistrer</button></div>'
+      +'<div class="err" id="wal-crypto-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">💸 Envoyer de la crypto à un membre</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Sur le réseau actuellement sélectionné dans ton portefeuille — X1 ne choisit rien à ta place, vérifie bien le réseau avant d\\'envoyer.</div>'
+      +'<div class="set-row"><label>Destinataire (pseudo#tag)</label><input type="text" id="wal-crypto-send-handle" class="field-input" placeholder="pseudo#1234"></div>'
+      +'<div class="set-row"><label>Montant (dans la devise native de ton réseau actuel)</label><input type="text" id="wal-crypto-send-amount" class="field-input" placeholder="0.01"></div>'
+      +'<button type="button" class="btn-main" id="wal-crypto-send-btn">🦊 Envoyer via mon portefeuille</button>'
+      +'<div class="err" id="wal-crypto-send-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>';
+  wireSetWallet(box);
+  loadWalletMe(box);
+}
+function loadWalletMe(box){
+  authGet('/api/wallet/me').then(function(r){
+    const balEl=\$('wal-balance');if(balEl)balEl.textContent=(r.balance||0)+' X1 Coins';
+    const addrEl=\$('wal-crypto-addr');if(addrEl&&r.walletAddress)addrEl.value=r.walletAddress;
+    const listEl=\$('wal-tx-list');
+    if(listEl){
+      const tx=r.tx||[];
+      listEl.innerHTML=tx.length?tx.map(function(t){
+        const sign=t.direction==='in'?'+':'−';
+        const cls=t.direction==='in'?'style="color:#86efac"':'style="color:#fca5a5"';
+        const kindLabel=t.kind==='purchase'?'Achat':t.kind==='spend_xplus'?'Achat X1+':t.kind==='transfer'?(t.direction==='in'?'Reçu de '+esc(t.otherName||'Membre'):'Envoyé à '+esc(t.otherName||'Membre')):esc(t.kind||'');
+        return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+kindLabel+'</div>'+(t.note?'<div class="scr-sub">'+esc(t.note)+'</div>':'')+'</div><div '+cls+' style="font-weight:800">'+sign+t.amount+'</div></div>';
+      }).join(''):'<div class="scr-sub">Aucune transaction pour l\\'instant.</div>';
+    }
+  }).catch(function(){
+    const balEl=\$('wal-balance');if(balEl)balEl.textContent='Erreur de chargement';
+  });
+}
+function wireSetWallet(box){
+  box.querySelectorAll('[data-buy-pack]').forEach(function(b){
+    b.addEventListener('click',async function(){
+      b.disabled=true;
+      try{
+        const r=await authPost('/api/payments/checkout',{kind:'coins',pack:b.getAttribute('data-buy-pack')});
+        window.location.href=r.url;
+      }catch(e){\$('wal-buy-err').textContent=(e&&e.message)||'Erreur';b.disabled=false;}
+    });
+  });
+  \$('wal-send-btn').addEventListener('click',async function(){
+    const btn=this;
+    const handle=(\$('wal-send-handle').value||'').trim();
+    const amount=parseInt(\$('wal-send-amount').value||'0',10);
+    const note=(\$('wal-send-note').value||'').trim();
+    \$('wal-send-err').textContent='';
+    if(!handle){\$('wal-send-err').textContent='Destinataire requis';return}
+    if(!amount||amount<=0){\$('wal-send-err').textContent='Montant invalide';return}
+    btn.disabled=true;btn.textContent='Envoi…';
+    try{
+      await authPost('/api/wallet/send',{handle:handle,amount:amount,note:note});
+      \$('wal-send-handle').value='';\$('wal-send-amount').value='';\$('wal-send-note').value='';
+      showToast('X1 Coins envoyés !');
+      loadWalletMe(box);
+    }catch(e){\$('wal-send-err').textContent=(e&&e.message)||'Erreur';}
+    finally{btn.disabled=false;btn.textContent='Envoyer';}
+  });
+  \$('wal-crypto-connect-btn').addEventListener('click',async function(){
+    \$('wal-crypto-err').textContent='';
+    if(!window.ethereum){\$('wal-crypto-err').textContent='Aucun portefeuille détecté (installe MetaMask ou équivalent).';return}
+    try{
+      const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+      if(accounts&&accounts[0])\$('wal-crypto-addr').value=accounts[0];
+    }catch(e){\$('wal-crypto-err').textContent='Connexion refusée.';}
+  });
+  \$('wal-crypto-save-btn').addEventListener('click',async function(){
+    const btn=this;
+    const address=(\$('wal-crypto-addr').value||'').trim();
+    \$('wal-crypto-err').textContent='';
     btn.disabled=true;btn.textContent='...';
     try{
-      await authPost('/api/account/plan-interest',{});
-      settingsMeta=settingsMeta||{};
-      settingsMeta.planInterest=true;
-      showToast('Merci, on te tient au courant !');
-      renderSetSubscription(box);
-    }catch(e){showToast('Action impossible','error');btn.disabled=false;btn.textContent='Je suis intéressé(e)';}
-  };
+      await authPost('/api/wallet/crypto/address',{address:address});
+      showToast('Adresse enregistrée.');
+    }catch(e){\$('wal-crypto-err').textContent=(e&&e.message)||'Erreur';}
+    finally{btn.disabled=false;btn.textContent='Enregistrer';}
+  });
+  \$('wal-crypto-send-btn').addEventListener('click',async function(){
+    const btn=this;
+    const handle=(\$('wal-crypto-send-handle').value||'').trim();
+    const amount=(\$('wal-crypto-send-amount').value||'').trim();
+    \$('wal-crypto-send-err').textContent='';
+    if(!handle){\$('wal-crypto-send-err').textContent='Destinataire requis';return}
+    if(!window.ethereum){\$('wal-crypto-send-err').textContent='Aucun portefeuille détecté (installe MetaMask ou équivalent).';return}
+    const weiHex=ethToWeiHex(amount);
+    if(!weiHex){\$('wal-crypto-send-err').textContent='Montant invalide';return}
+    btn.disabled=true;btn.textContent='...';
+    try{
+      const lookup=await authGet('/api/wallet/crypto/lookup?handle='+encodeURIComponent(handle));
+      const accounts=await window.ethereum.request({method:'eth_requestAccounts'});
+      const from=accounts&&accounts[0];
+      if(!from)throw new Error('Portefeuille non connecté');
+      const txHash=await window.ethereum.request({method:'eth_sendTransaction',params:[{from:from,to:lookup.walletAddress,value:weiHex}]});
+      const chainId=await window.ethereum.request({method:'eth_chainId'}).catch(function(){return ''});
+      const explorer=CHAIN_EXPLORERS[chainId];
+      showToast('Transaction envoyée à '+esc(lookup.name)+' !');
+      \$('wal-crypto-send-err').innerHTML=explorer?('<a href="'+explorer+esc(txHash)+'" target="_blank" rel="noopener" style="color:#a78bfa">Voir la transaction ↗</a>'):('Hash : '+esc(txHash));
+    }catch(e){\$('wal-crypto-send-err').textContent=(e&&e.message)||'Transaction annulée';}
+    finally{btn.disabled=false;btn.textContent='🦊 Envoyer via mon portefeuille';}
+  });
 }
 function renderSetProfiles(box){
   const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
@@ -7341,7 +7635,7 @@ async function renderSetBots(box){
   box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
     +'<div class="sc-desc">Crée un bot pour un serveur ou pour les messages privés : commandes /slash (avec options et choix), boutons, embeds, réponses automatiques — et une API de modération (kick/ban/timeout/rôles) pour les serveurs qui t\\'en accordent la permission. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes (voir la doc plus bas). Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
     +'<div class="set-card" id="bot-starter-kit-card"><div class="set-section-label">📦 Kit de démarrage prêt à l\\'emploi</div><div class="scr-sub" style="margin-bottom:10px">Pas envie de tout coder toi-même ? Télécharge un bot Node.js déjà fonctionnel (commandes <code>/ping</code>, <code>/say</code>, <code>/info</code>) — zéro dépendance à installer, il ne reste qu\\'à renseigner ton token et le lancer. Tuto complet plus bas (« 🚀 Héberger le kit de démarrage »).</div><a href="/api/bots/starter-kit" download="bot-x1.js" class="btn-main" style="display:inline-block;text-decoration:none;text-align:center">⬇️ Télécharger bot-x1.js</a></div>'
-    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes bots</div><div class="scr-sub">10 bots maximum par compte.</div></div><button type="button" class="set-mini-btn" id="bot-new-btn">+ Créer un bot</button></div></div>'
+    +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes bots</div><div class="scr-sub">'+((settingsMeta&&settingsMeta.plan==='plus')?'25 bots maximum par compte (⭐ X1+).':'10 bots maximum par compte (25 avec ⭐ X1+).')+'</div></div><button type="button" class="set-mini-btn" id="bot-new-btn">+ Créer un bot</button></div></div>'
     +'<div class="set-card hidden" id="bot-new-form">'
       +'<div class="set-row"><label>Nom du bot</label><input type="text" id="bot-new-name" class="field-input" maxlength="100" placeholder="Mon Bot"></div>'
       +'<div class="set-row"><label>Description <span class="scr-sub" style="display:block;font-weight:400">Visible par les propriétaires de serveur avant l\\'installation.</span></label><textarea id="bot-new-desc" class="field-input" rows="2" maxlength="500" placeholder="Ce que fait ton bot en une phrase"></textarea></div>'
@@ -8066,7 +8360,8 @@ const BADGE_DEFS={
   creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe X1 aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
   chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."},
   elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."},
-  botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."}
+  botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."},
+  xplus:{icon:'⭐',label:'X1+',color:'#fbbf24',desc:"Le badge de présentation de X1+ — visible partout où tu apparais (profil, liste des membres d'un serveur). Débloqué en achetant X1+ par carte ou en X1 Coins, ou en l'obtenant à vie (palier ultime du Bug Hunter, badge ÉLITE X1…). Avec X1+ : qualité audio/vidéo HD sur tes serveurs, jusqu'à 25 bots développeur au lieu de 10, et un cadre de profil animé exclusif."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -8080,8 +8375,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
-const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
@@ -9244,7 +9539,7 @@ function renderBitmojiSvg(cfgIn){
   svg+='</svg>';
   return svg;
 }
-const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon'];
+const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon','xplus'];
 function parseProfileExtra(json){
   try{const o=JSON.parse(json||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}
 }
@@ -9851,16 +10146,20 @@ function renderBitmojiBuilder(){
     renderBitmojiBuilder();updatePePreview();
   };
 }
-const FRAME_LABELS={none:'Aucun',fire:'🔥 Feu',frost:'❄️ Givre',gold:'✨ Or',rainbow:'🌈 Arc-en-ciel',neon:'💜 Néon'};
+const FRAME_LABELS={none:'Aucun',fire:'🔥 Feu',frost:'❄️ Givre',gold:'✨ Or',rainbow:'🌈 Arc-en-ciel',neon:'💜 Néon',xplus:'⭐ X1+ (exclusif)'};
 function renderFrameSwatches(){
   const wrap=\$('pe-frame-swatches');if(!wrap||!peDraft)return;
+  const isPlus=!!(peOriginalMeta&&peOriginalMeta.plan==='plus');
   wrap.innerHTML=AVATAR_FRAMES.map(function(k){
-    return '<button type="button" class="pe-frame-swatch pc-av-frame frame-'+k+'" data-frame="'+k+'" title="'+esc(FRAME_LABELS[k])+'" data-tip="'+esc(FRAME_LABELS[k])+'">'
+    const locked=k==='xplus'&&!isPlus;
+    return '<button type="button" class="pe-frame-swatch pc-av-frame frame-'+k+(locked?' frame-locked':'')+'" data-frame="'+k+'" title="'+esc(FRAME_LABELS[k])+(locked?' — nécessite X1+':'')+'" data-tip="'+esc(FRAME_LABELS[k])+'">'
       +'<span class="pe-frame-inner'+(peDraft.avatarFrame===k?' on':'')+'"></span></button>';
   }).join('');
   wrap.querySelectorAll('[data-frame]').forEach(function(b){
     b.addEventListener('click',function(){
-      peDraft.avatarFrame=b.getAttribute('data-frame');
+      const k=b.getAttribute('data-frame');
+      if(k==='xplus'&&!isPlus){showToast('Ce cadre est exclusif à X1+ — Paramètres → ⭐ Abonnement','error');return}
+      peDraft.avatarFrame=k;
       renderFrameSwatches();updatePePreview();
     });
   });
@@ -9977,7 +10276,8 @@ function wirePeInputs(){
     peDraft.btnShape=['rounded','pill','square'][Math.floor(Math.random()*3)];
     peDraft.headerLayout=['overlap','centered'][Math.floor(Math.random()*2)];
     peDraft.particles=['none','stars','snow','matrix','confetti'][Math.floor(Math.random()*5)];
-    peDraft.avatarFrame=AVATAR_FRAMES[Math.floor(Math.random()*AVATAR_FRAMES.length)];
+    const randomizableFrames=(peOriginalMeta&&peOriginalMeta.plan==='plus')?AVATAR_FRAMES:AVATAR_FRAMES.filter(function(k){return k!=='xplus'});
+    peDraft.avatarFrame=randomizableFrames[Math.floor(Math.random()*randomizableFrames.length)];
     peDraft.cardBorder=['none','glow','gradient'][Math.floor(Math.random()*3)];
     \$('pe-bgcolor').value=peDraft.bgColor;\$('pe-btncolor').value=peDraft.btnColor;
     \$('pe-bgtype').value=peDraft.bgType;\$('pe-btnstyle').value=peDraft.btnStyle;
@@ -21041,6 +21341,7 @@ async function recomputeHunterBadge(uid) {
         }
       } catch (e) {}
     }
+    await syncPlusBadge(uid).catch(function () {});
     return { resolvedCount: resolvedCount, tier: targetTier ? targetTier.tier : 0 };
   } catch (e) {
     return null;
@@ -21629,7 +21930,10 @@ async function handle(request, event) {
       const ownedQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ownerId", values: [acc.$id] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
-      if ((ownedQ.documents || []).length >= 10) throw new Error("Limite de 10 bots par compte atteinte");
+      // Avantage X1+ : 25 bots au lieu de 10.
+      const ownerMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      const botLimit = (ownerMeta && ownerMeta.plan === "plus") ? 25 : 10;
+      if ((ownedQ.documents || []).length >= botLimit) throw new Error("Limite de " + botLimit + " bots par compte atteinte");
       const publicId = randomOauthToken(16);
       const botToken = "x1bot_" + randomOauthToken(48);
       const doc = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents", {
@@ -23248,18 +23552,19 @@ async function handle(request, event) {
       const eliteEligible = SHAMAN_UIDS.has(authUserId) || requestedBadges.some(function (b) { return exclusiveBadges.indexOf(b) >= 0; });
       const badges = requestedBadges.slice();
       if (eliteEligible && badges.indexOf("elite") < 0) badges.push("elite");
-      const badgesJson = JSON.stringify(badges);
-      const data = { badgesJson: badgesJson };
-      if (eliteEligible) {
-        try {
-          const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, { asAdmin: true });
-          if (meta.plan !== "plus") {
-            data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
-          }
-        } catch (e) {
-          data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
-        }
+      const data = {};
+      let alreadyPlus = false;
+      try {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, { asAdmin: true });
+        alreadyPlus = meta.plan === "plus";
+      } catch (e) {}
+      if (eliteEligible && !alreadyPlus) {
+        data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
       }
+      // Reflète le badge ⭐ X1+ dès que ce compte a (ou obtient à l'instant) le
+      // plan "plus", quelle qu'en soit l'origine (achat, Bug Hunter, ÉLITE...).
+      if ((eliteEligible || alreadyPlus) && badges.indexOf("xplus") < 0) badges.push("xplus");
+      data.badgesJson = JSON.stringify(badges);
       // Locked to admin-key writes only: user_meta documents were created with a
       // self-update permission that would otherwise let anyone grant themselves
       // a badge directly via the client SDK. Every write through this route
@@ -23720,6 +24025,21 @@ async function handle(request, event) {
         if (body && typeof body[k] === "string") data[k] = body[k].slice(0, 5000);
       }
       if (!Object.keys(data).length) throw new Error("Aucune donnée à mettre à jour");
+      // Le cadre de profil "xplus" est exclusif aux membres X1+ — le client le
+      // grise déjà, mais rien n'empêche un appel direct à cette route avec un
+      // corps forgé, donc on revérifie ici aussi.
+      if (typeof data.profileExtraJson === "string") {
+        try {
+          const extraCheck = JSON.parse(data.profileExtraJson);
+          if (extraCheck && extraCheck.avatarFrame === "xplus") {
+            const ownMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+            if (!ownMeta || ownMeta.plan !== "plus") throw new Error("Le cadre de profil X1+ est réservé aux membres X1+.");
+          }
+        } catch (e) {
+          if (e instanceof SyntaxError) { /* JSON invalide : laissé tel quel, pas notre rôle de valider tout le schéma ici */ }
+          else throw e;
+        }
+      }
       const lockedPerms = ["read(\"any\")"];
       try {
         await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
@@ -24373,6 +24693,208 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+
+  // ===== X1 Coins (monnaie interne) + paiement carte (Stripe) + X1+ =====
+  if (path === "/api/wallet/me" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const wallet = await x1coinsGetOrCreateWallet(acc.$id);
+      const txQ = await awFetch("/databases/" + AW_DB + "/collections/x1coins_tx/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [30] })), { asAdmin: true });
+      let walletAddress = "";
+      try {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+        walletAddress = meta.walletAddress || "";
+      } catch (e) {}
+      return new Response(JSON.stringify({ ok: true, balance: wallet.balance || 0, walletAddress: walletAddress, tx: txQ.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/wallet/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const amount = Math.floor(Number(body && body.amount));
+      const note = String((body && body.note) || "").trim().slice(0, 300);
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error("Montant invalide");
+      const target = await resolveHandleToUser(String((body && body.handle) || ""));
+      if (String(target.$id) === String(acc.$id)) throw new Error("Impossible de s'envoyer des X1 Coins à toi-même");
+      const senderWallet = await x1coinsGetOrCreateWallet(acc.$id);
+      if ((senderWallet.balance || 0) < amount) throw new Error("Solde insuffisant");
+      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + senderWallet.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { balance: (senderWallet.balance || 0) - amount } }
+      });
+      const recipientWallet = await x1coinsGetOrCreateWallet(target.$id);
+      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + recipientWallet.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { balance: (recipientWallet.balance || 0) + amount } }
+      });
+      let senderProfile = null;
+      try { senderProfile = await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + acc.$id, { asAdmin: true }); } catch (e) {}
+      const senderName = (senderProfile && (senderProfile.displayName || senderProfile.username)) || acc.name || "Membre";
+      const recipientName = target.displayName || target.username || "Membre";
+      await x1coinsLogTx(acc.$id, target.$id, recipientName, "out", amount, "transfer", note);
+      await x1coinsLogTx(target.$id, acc.$id, senderName, "in", amount, "transfer", note);
+      return new Response(JSON.stringify({ ok: true, balance: (senderWallet.balance || 0) - amount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/wallet/spend/xplus" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (meta && meta.plan === "plus") throw new Error("Tu as déjà X1+.");
+      const wallet = await x1coinsGetOrCreateWallet(acc.$id);
+      if ((wallet.balance || 0) < XPLUS_PRICE_COINS) throw new Error("Solde insuffisant (" + XPLUS_PRICE_COINS + " X1 Coins requis)");
+      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) - XPLUS_PRICE_COINS } }
+      });
+      await x1coinsLogTx(acc.$id, "", "X1+", "out", XPLUS_PRICE_COINS, "spend_xplus", "Achat de X1+ à vie avec des X1 Coins");
+      await grantPlus(acc.$id, "coins_purchase");
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/wallet/crypto/address" && request.method === "POST") {
+    // Non-custodial : X1 ne stocke QUE l'adresse publique (annuaire pseudo→adresse),
+    // jamais de clé privée ni de fonds. Envoyer de la crypto à ce membre = une vraie
+    // transaction on-chain signée par l'expéditeur dans son propre portefeuille.
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const address = String((body && body.address) || "").trim();
+      if (address && !/^0x[a-fA-F0-9]{40}$/.test(address)) throw new Error("Adresse invalide (format 0x… attendu, portefeuille compatible EVM)");
+      const data = { walletAddress: address };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data, permissions: ["read(\"any\")"] }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: acc.$id, data, permissions: ["read(\"any\")"] }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, walletAddress: address }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/wallet/crypto/lookup" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const handle = url.searchParams.get("handle") || "";
+      const target = await resolveHandleToUser(handle);
+      let walletAddress = "";
+      try {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + target.$id, { asAdmin: true });
+        walletAddress = meta.walletAddress || "";
+      } catch (e) {}
+      if (!walletAddress) throw new Error("Ce membre n'a pas encore relié de portefeuille externe.");
+      return new Response(JSON.stringify({ ok: true, uid: target.$id, name: target.displayName || target.username || "Membre", walletAddress: walletAddress }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/payments/checkout" && request.method === "POST") {
+    // Stripe Checkout hébergé : le numéro de carte ne transite jamais par ce
+    // Worker, l'utilisateur est simplement redirigé vers une page Stripe.
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      if (typeof STRIPE_SECRET_KEY === "undefined" || !STRIPE_SECRET_KEY) throw new Error("Le paiement par carte n'est pas encore configuré, réessaie plus tard.");
+      const body = await request.json();
+      const kind = String((body && body.kind) || "");
+      let productName, eurCents, pack = "";
+      if (kind === "xplus") {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+        if (meta && meta.plan === "plus") throw new Error("Tu as déjà X1+.");
+        productName = "X1+ à vie"; eurCents = XPLUS_PRICE_EUR_CENTS;
+      } else if (kind === "coins") {
+        pack = String((body && body.pack) || "");
+        const p = COIN_PACKS[pack];
+        if (!p) throw new Error("Pack de X1 Coins invalide.");
+        productName = p.label; eurCents = p.eurCents;
+      } else {
+        throw new Error("Achat inconnu.");
+      }
+      const params = new URLSearchParams();
+      params.set("mode", "payment");
+      params.set("success_url", "https://xultra.space/?checkout=success");
+      params.set("cancel_url", "https://xultra.space/?checkout=cancel");
+      if (acc.email) params.set("customer_email", acc.email);
+      params.set("line_items[0][quantity]", "1");
+      params.set("line_items[0][price_data][currency]", "eur");
+      params.set("line_items[0][price_data][unit_amount]", String(eurCents));
+      params.set("line_items[0][price_data][product_data][name]", productName);
+      params.set("metadata[uid]", acc.$id);
+      params.set("metadata[kind]", kind);
+      if (pack) params.set("metadata[pack]", pack);
+      const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + STRIPE_SECRET_KEY, "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
+      });
+      const stripeJson = await stripeRes.json();
+      if (!stripeRes.ok) throw new Error((stripeJson.error && stripeJson.error.message) || "Erreur Stripe");
+      return new Response(JSON.stringify({ ok: true, url: stripeJson.url }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/payments/stripe/webhook" && request.method === "POST") {
+    try {
+      if (typeof STRIPE_WEBHOOK_SECRET === "undefined" || !STRIPE_WEBHOOK_SECRET) throw new Error("not_configured");
+      const rawBody = await request.text();
+      const sig = request.headers.get("stripe-signature");
+      const valid = await verifyStripeSignature(rawBody, sig, STRIPE_WEBHOOK_SECRET);
+      if (!valid) return new Response(JSON.stringify({ ok: false, error: "invalid_signature" }), { status: 400, headers: { "Content-Type": "application/json" } });
+      const event = JSON.parse(rawBody);
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object;
+        const eventDocId = "se_" + await sha256HexShort(String(session.id), 32);
+        try {
+          await awFetch("/databases/" + AW_DB + "/collections/stripe_events/documents", {
+            method: "POST", asAdmin: true,
+            body: { documentId: eventDocId, data: { uid: (session.metadata && session.metadata.uid) || "", kind: (session.metadata && session.metadata.kind) || "" } }
+          });
+        } catch (e) {
+          // Document déjà créé = webhook déjà traité une première fois (Stripe
+          // retente parfois le même événement) — on s'arrête là, sans re-créditer.
+          return new Response(JSON.stringify({ ok: true, alreadyProcessed: true }), { headers: { "Content-Type": "application/json" } });
+        }
+        const meta = session.metadata || {};
+        const uid = meta.uid;
+        if (uid) {
+          if (meta.kind === "xplus") {
+            await grantPlus(uid, "stripe_purchase");
+          } else if (meta.kind === "coins") {
+            const p = COIN_PACKS[meta.pack];
+            if (p) {
+              const wallet = await x1coinsGetOrCreateWallet(uid);
+              await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
+                method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+              });
+              await x1coinsLogTx(uid, "", "Achat par carte", "in", p.coins, "purchase", p.label);
+            }
+          }
+        }
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
   }
 
