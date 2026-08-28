@@ -5249,6 +5249,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.3.1',date:'28 août 2026',time:'10:00',title:'🩹 Correctif urgent : site inaccessible',
+    body:'Le déploiement précédent (support multilingue) cassait le chargement du site pour tout le monde (erreur "SETTINGS_GROUPS" au démarrage). Corrigé et revérifié avant redéploiement.'},
   {version:'4.3.0',date:'28 août 2026',time:'09:00',title:'📜 Conditions d\\'utilisation à l\\'inscription',
     body:'L\\'inscription affiche désormais la charte X1 : neutralité du net, liberté d\\'expression et d\\'opinion, les quelques limites absolues à ne jamais franchir, et une explication claire du chiffrement de bout en bout de tes messages privés (même nous ne pouvons pas les lire). Il faut faire défiler tout le texte pour pouvoir l\\'accepter et poursuivre — pas de case cochée sans lecture.'},
   {version:'4.2.0',date:'28 août 2026',time:'08:00',title:'🎛️ Réglages d\\'appel enregistrés pour de bon',
@@ -5938,7 +5940,6 @@ function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(function(el){el.textContent=t(el.getAttribute('data-i18n'));});
   document.querySelectorAll('[data-i18n-title]').forEach(function(el){el.title=t(el.getAttribute('data-i18n-title'));});
   document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){el.placeholder=t(el.getAttribute('data-i18n-placeholder'));});
-  if(typeof renderSettingsSidebar==='function'&&\$('settings-sidebar'))renderSettingsSidebar();
 }
 
 function applyAppPrefs(){
@@ -6987,6 +6988,7 @@ function renderSetLanguage(box){
       if(code===appPrefs.language)return;
       appPrefs.language=code;saveAppPrefs();applyAppPrefs();
       renderSetLanguage(box);
+      if(typeof renderSettingsSidebar==='function')renderSettingsSidebar();
       showToast(t('set_language')+' → '+I18N_LANGS.find(function(l){return l.code===code}).label);
     });
   });
