@@ -1299,6 +1299,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-row-wave .music-wave-bars span{flex:1;min-width:2px;background:rgba(255,255,255,.16);border-radius:2px}
 .music-wave-progress{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#e9d5ff,#a855f7)}
+.music-wave-marker{position:absolute;top:-2px;bottom:-2px;width:2px;background:#f472b6;border-radius:1px;pointer-events:none;box-shadow:0 0 4px rgba(244,114,182,.7)}
+.music-comment-ts{display:inline-block;margin:0 6px;padding:2px 8px;border-radius:999px;background:rgba(124,58,237,.18);color:#c4b5fd;font-size:.7rem;font-weight:700}
+.music-comment-ts:hover{background:rgba(124,58,237,.3)}
 .music-row-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
 .music-pl-cover-banner{width:100%;aspect-ratio:3/1;border-radius:14px;overflow:hidden;margin:4px 0 12px}
@@ -5351,6 +5354,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.9.0',date:'28 août 2026',time:'17:00',title:'🔎 X1 Music : pochette, genre et paroles trouvés automatiquement + commentaires positionnés sur la forme d\\'onde',
+    body:'À l\\'envoi d\\'un titre, si tu ne fournis pas toi-même la pochette, le genre ou les paroles, X1 les recherche automatiquement en ligne à partir du titre et de l\\'artiste (bases ouvertes et gratuites) — tu peux toujours tout donner toi-même à la place, rien n\\'est jamais écrasé. Nouveau aussi façon SoundCloud : en commentant un titre en cours d\\'écoute, coche 📍 pour positionner ton commentaire au moment exact de la piste — un repère apparaît alors directement sur la forme d\\'onde, cliquable par tout le monde pour sauter à ce passage.'},
   {version:'4.8.0',date:'28 août 2026',time:'16:00',title:'🎨 X1 Music : Streaming façon Spotify, Sons des membres façon SoundCloud',
     body:'Nouvelle apparence, mêmes couleurs X1 (violet/rose, jamais le vert ou l\\'orange d\\'origine) : 🎧 Streaming passe en grandes pochettes façon Spotify, avec bouton de lecture flottant au survol. 🎤 Sons des membres passe en liste avec forme d\\'onde cliquable façon SoundCloud — calculée une fois à l\\'envoi du titre, jamais retéléchargée pour l\\'afficher. Le lecteur plein écran teinte maintenant son fond d\\'une lueur reprenant la couleur dominante de la pochette en cours. Playlists : pochette et description ajoutables (✏️ Modifier, propriétaire uniquement).'},
   {version:'4.7.0',date:'28 août 2026',time:'15:00',title:'🎶 X1 Music : playlists réordonnables et reprise d\\'écoute',
@@ -7145,7 +7150,8 @@ async function renderSetOs(box){
 // textuel reste toujours correct, quel que soit l'état de l'appli.
 const SECTION_GUIDES={
   music:{icon:'🎵',title:'Musique',tips:[
-    "+ Ajouter un titre publie un fichier audio (avec pochette, genre, tags et paroles optionnels) directement depuis ton compte, ouvert à tout le monde.",
+    "+ Ajouter un titre publie un fichier audio directement depuis ton compte, ouvert à tout le monde. Pochette, genre et paroles manquants sont recherchés automatiquement en ligne à partir du titre et de l'artiste (tu peux toujours les fournir toi-même à la place).",
+    "💬 En commentant un titre que tu écoutes, coche 📍 pour positionner ton commentaire sur la forme d'onde, au moment exact de la piste — comme les repères que tu vois sur la forme d'onde des Sons des membres.",
     "🎧 Streaming rassemble le contenu officiel sélectionné par l'équipe X1 ; 🎤 Sons des membres, tout ce que la communauté publie ; Mes titres, uniquement les tiens ; Mes playlists, tes collections.",
     "Tape sur la barre de lecture pour passer en plein écran, avec un onglet Paroles synchronisées façon karaoké quand elles sont disponibles.",
     "Dans le lecteur plein écran : 📻 radio à partir du titre en cours, 🔁 répétition, ▶️ vitesse, 🔊 volume, ⏱️ minuterie de sommeil et 📋 file d'attente.",
@@ -12811,11 +12817,19 @@ function musicMemberRowHtml(t){
   const progressPct=(isCurrent&&musicAudioEl&&musicAudioEl.duration)?((musicAudioEl.currentTime/musicAudioEl.duration)*100):0;
   let tags=[];try{tags=JSON.parse(t.tagsJson||'[]');}catch(e){}
   const tagsHtml=tags.length?'<div class="music-row-tags">'+tags.slice(0,3).map(function(tag){return '<span class="music-tag-chip">#'+esc(tag)+'</span>';}).join('')+'</div>':'';
+  // Repères façon SoundCloud : un petit trait par commentaire horodaté,
+  // positionné en % de la durée totale — commentMarkersJson est une liste
+  // légère de secondes maintenue côté serveur (voir /api/music/comments/send),
+  // jamais une requête xm_comments par carte pour ne pas alourdir le fil.
+  let markers=[];try{markers=JSON.parse(t.commentMarkersJson||'[]');}catch(e){}
+  const markersHtml=(t.durationSec&&markers.length)?markers.map(function(sec){
+    return '<span class="music-wave-marker" style="left:'+Math.min(99,(sec/t.durationSec)*100)+'%" title="Commentaire à '+esc(musicFmtTime(sec))+'"></span>';
+  }).join(''):'';
   return '<div class="music-member-row'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
     +'<div class="music-row-body">'
       +'<div class="music-row-top"><span class="music-row-title">'+esc(t.title)+'</span><span class="music-row-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
-      +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div></div>'
+      +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'+markersHtml+'</div>'
       +tagsHtml
       +'<div class="music-card-actions">'
         +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
@@ -13283,6 +13297,23 @@ function musicSyncLyricsTime(){
   }
   if(musicLyricsState.activeIdx!==idx){musicLyricsState.activeIdx=idx;musicSetActiveLyricLine(idx);}
 }
+// Recherche brute sur lrclib.net (API publique, gratuite, données ouvertes)
+// — factorisée pour servir à la fois à l'affichage pendant la lecture
+// (musicLoadLyricsFor) et à la sauvegarde automatique à l'envoi d'un titre
+// (openMusicUploadForm), pour ne chercher qu'une seule fois par titre au
+// lieu de re-solliciter lrclib.net à chaque écoute.
+async function musicSearchLrclib(title,artistName){
+  try{
+    const q='https://lrclib.net/api/search?track_name='+encodeURIComponent(title||'')+'&artist_name='+encodeURIComponent(artistName||'');
+    const res=await fetch(q);
+    if(!res.ok)return '';
+    const arr=await res.json();
+    if(!arr||!arr.length)return '';
+    let best=arr[0];
+    for(let i=0;i<arr.length;i++){if(arr[i].syncedLyrics){best=arr[i];break}}
+    return best.syncedLyrics||best.plainLyrics||'';
+  }catch(e){return ''}
+}
 async function musicLoadLyricsFor(track){
   const token=++musicLyricsLoadToken;
   musicLyricsState={lines:[],timed:false,activeIdx:-1};
@@ -13301,37 +13332,31 @@ async function musicLoadLyricsFor(track){
     if(token===musicLyricsLoadToken)musicRenderLyricsLines();
     return;
   }
-  try{
-    const q='https://lrclib.net/api/search?track_name='+encodeURIComponent(track.title||'')+'&artist_name='+encodeURIComponent(track.artistName||'');
-    const res=await fetch(q);
-    if(token!==musicLyricsLoadToken)return;
-    if(res.ok){
-      const arr=await res.json();
-      if(arr&&arr.length){
-        let best=arr[0];
-        for(let i=0;i<arr.length;i++){if(arr[i].syncedLyrics){best=arr[i];break}}
-        if(best.syncedLyrics){
-          const tl=musicParseLRC(best.syncedLyrics);
-          if(tl.length){musicLyricsState={lines:tl,timed:true,activeIdx:-1};musicRenderLyricsLines();return}
-        }
-        if(best.plainLyrics){
-          const pl=String(best.plainLyrics).split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean);
-          musicLyricsState={lines:pl.map(function(x){return {t:0,text:x};}),timed:false,activeIdx:-1};
-          musicRenderLyricsLines();return;
-        }
-      }
-    }
-  }catch(e){}
+  const found=await musicSearchLrclib(track.title,track.artistName);
+  if(token!==musicLyricsLoadToken)return;
+  if(found){
+    const timed=musicParseLRC(found);
+    if(timed.length){musicLyricsState={lines:timed,timed:true,activeIdx:-1};musicRenderLyricsLines();return}
+    const plain=String(found).split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean);
+    musicLyricsState={lines:plain.map(function(x){return {t:0,text:x};}),timed:false,activeIdx:-1};
+    musicRenderLyricsLines();return;
+  }
   if(token===musicLyricsLoadToken)musicRenderLyricsLines();
+}
+function musicCommentTimestampBadge(c){
+  if(c.atSec==null||c.atSec<0)return '';
+  return '<button type="button" class="music-comment-ts" data-comment-seek="'+c.atSec+'">📍 '+esc(musicFmtTime(c.atSec))+'</button>';
 }
 async function openMusicComments(trackId){
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
+  const isPlayingHere=musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl&&isFinite(musicAudioEl.currentTime);
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="max-height:75vh;overflow-y:auto;text-align:left">'
     +'<div class="set-section-label">💬 Commentaires — '+esc(t.title)+'</div>'
     +'<div id="music-comments-list" class="scr-sub">Chargement…</div>'
     +'<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="music-comment-input" class="field-input" maxlength="500" placeholder="Ajouter un commentaire…"><button type="button" class="set-mini-btn" id="music-comment-send">Envoyer</button></div>'
+    +(isPlayingHere?'<label class="srv-perm-check" style="margin:4px 0 0"><input type="checkbox" id="music-comment-at-time" checked> 📍 Positionner sur la forme d\\'onde, à <span id="music-comment-at-time-label">'+esc(musicFmtTime(musicAudioEl.currentTime))+'</span></label>':'')
     +'<button type="button" class="as-cancel" id="music-comments-close">Fermer</button>'
     +'</div>';
   document.body.appendChild(overlay);
@@ -13345,8 +13370,15 @@ async function openMusicComments(trackId){
       const list=r.documents||[];
       if(!list.length){box.innerHTML='Aucun commentaire pour l\\'instant.';return}
       box.innerHTML=list.map(function(c){
-        return '<div class="msg-reply-quote" style="margin-bottom:8px"><b>'+esc(c.displayName||'Quelqu\\'un')+'</b><span class="rq-text" style="white-space:normal">'+esc(c.text)+'</span></div>';
+        return '<div class="msg-reply-quote" style="margin-bottom:8px"><b>'+esc(c.displayName||'Quelqu\\'un')+'</b>'+musicCommentTimestampBadge(c)+'<span class="rq-text" style="white-space:normal">'+esc(c.text)+'</span></div>';
       }).join('');
+      box.querySelectorAll('[data-comment-seek]').forEach(function(el){
+        el.addEventListener('click',function(){
+          const sec=parseInt(el.getAttribute('data-comment-seek'),10)||0;
+          if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl){musicAudioEl.currentTime=sec;}
+          else{musicPlayTrack(trackId);}
+        });
+      });
     }catch(e){box.innerHTML='Erreur de chargement.';}
   }
   \$('music-comment-send').onclick=async function(){
@@ -13354,13 +13386,20 @@ async function openMusicComments(trackId){
     const input=\$('music-comment-input');
     const text=(input.value||'').trim();if(!text)return;
     const btn=this;btn.disabled=true;
+    const atTimeChk=\$('music-comment-at-time');
+    const atSec=(atTimeChk&&atTimeChk.checked&&musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl)?Math.floor(musicAudioEl.currentTime):-1;
     try{
       // Passe par le serveur : xm_comments/xm_tracks n'accordent plus de
       // permission d'écriture directe au client (voir
       // /api/music/comments/send côté worker).
-      const r=await authPost('/api/music/comments/send',{trackId:trackId,text:text.slice(0,500)});
+      const r=await authPost('/api/music/comments/send',{trackId:trackId,text:text.slice(0,500),atSec:atSec});
       input.value='';
       t.commentsCount=r.commentsCount;
+      if(atSec>=0){
+        let markers=[];try{markers=JSON.parse(t.commentMarkersJson||'[]');}catch(e){}
+        markers.push(atSec);
+        t.commentMarkersJson=JSON.stringify(markers);
+      }
       renderMusicBody();
       await loadAndRender();
     }catch(e){showToast('Envoi impossible','error');}
@@ -13598,10 +13637,31 @@ async function openMusicUploadForm(){
       try{durationSec=await musicProbeDuration(audioFile);}catch(e){}
       btn.textContent='Calcul de la forme d\\'onde…';
       const waveform=await musicComputeWaveform(audioFile);
-      btn.textContent='Envoi en cours…';
-      const genre=(\$('music-up-genre').value||'').trim();
+      let genre=(\$('music-up-genre').value||'').trim();
       const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
-      const lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
+      let lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
+      // Enrichissement automatique par recherche en ligne (à partir du
+      // titre + artiste saisis), uniquement pour compléter ce que la
+      // personne n'a pas déjà fourni elle-même — jamais pour remplacer un
+      // choix qu'elle a fait. Paroles : lrclib.net (déjà utilisé pendant la
+      // lecture, sauvegardé ici pour ne plus jamais avoir à le rechercher).
+      // Pochette/genre : iTunes Search API, ré-hébergés sur le stockage X1
+      // (jamais un lien direct vers un service tiers).
+      if(!lyricsLrc){
+        btn.textContent='Recherche des paroles…';
+        lyricsLrc=(await musicSearchLrclib(title,artistName)).slice(0,20000);
+      }
+      if(!coverFile||!genre){
+        btn.textContent='Recherche de la pochette…';
+        try{
+          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName});
+          if(meta&&meta.found){
+            if(!coverFile&&meta.coverUrl)coverUrl=meta.coverUrl;
+            if(!genre&&meta.genre)genre=meta.genre;
+          }
+        }catch(e){}
+      }
+      btn.textContent='Envoi en cours…';
       const streamingChecked=\$('music-up-streaming');
       const wantStreaming=!!(streamingChecked&&streamingChecked.checked);
       // Passe par le serveur, qui revérifie lui-même l'éligibilité Streaming
@@ -19745,14 +19805,108 @@ async function handle(request) {
       const trackId = String((body && body.trackId) || "");
       const text = String((body && body.text) || "").trim().slice(0, 500);
       if (!trackId || !text) throw new Error("trackId et texte requis");
+      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      // Horodatage façon SoundCloud : borné à la durée réelle de la piste
+      // (jamais fait confiance à une valeur arbitraire envoyée par le
+      // client), -1 = pas de commentaire positionné sur la forme d'onde.
+      let atSec = Math.round(Number((body && body.atSec)));
+      if (!isFinite(atSec) || atSec < 0 || (track.durationSec && atSec > track.durationSec)) atSec = -1;
       const profile = await resolveProfile(acc.$id);
       const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const avatar = (profile && profile.avatar) || "";
-      const comment = await awFetch("/databases/" + AW_DB + "/collections/xm_comments/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, displayName: displayName, avatar: avatar, trackId: trackId, text: text }, permissions: ["read(\"any\")"] } });
-      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      const comment = await awFetch("/databases/" + AW_DB + "/collections/xm_comments/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, displayName: displayName, avatar: avatar, trackId: trackId, text: text, atSec: atSec }, permissions: ["read(\"any\")"] } });
       const commentsCount = (track.commentsCount || 0) + 1;
-      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { commentsCount: commentsCount } } });
+      const patchData = { commentsCount: commentsCount };
+      if (atSec >= 0) {
+        let markers = [];
+        try { markers = JSON.parse(track.commentMarkersJson || "[]"); } catch (e) {}
+        if (markers.length < 200) { markers.push(atSec); patchData.commentMarkersJson = JSON.stringify(markers); }
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: patchData } });
       return new Response(JSON.stringify({ ok: true, comment: comment, commentsCount: commentsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/tracks/auto-metadata" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const title = String((body && body.title) || "").trim().slice(0, 150);
+      const artistName = String((body && body.artistName) || "").trim().slice(0, 100);
+      if (!title) throw new Error("Titre requis");
+      // Recherche pochette/genre publics pour un titre déjà connu — jamais
+      // utilisée pour le fichier audio lui-même (uploadé par la personne,
+      // jamais remplacé). Deezer en priorité : gratuite, sans clé, et son
+      // API n'est (contrairement à l'API de recherche iTunes) pas déjà
+      // saturée par le volume mondial d'appels partant des IP partagées de
+      // Cloudflare Workers (constaté en test : iTunes renvoie 429 "Rate
+      // limit... itunes-apple-com" en continu depuis ces IP). iTunes garde
+      // en secours si Deezer ne trouve rien.
+      const q = encodeURIComponent((title + " " + artistName).trim());
+      let artworkSrc = "", genreRaw = "", album = "", year = "";
+      try {
+        const dzRes = await fetch("https://api.deezer.com/search?q=" + q + "&limit=1");
+        if (dzRes.ok) {
+          const dzJson = await dzRes.json();
+          const dzHit = (dzJson.data || [])[0];
+          if (dzHit && dzHit.album) {
+            artworkSrc = dzHit.album.cover_xl || dzHit.album.cover_big || dzHit.album.cover_medium || "";
+            album = dzHit.album.title || "";
+            try {
+              const albRes = await fetch("https://api.deezer.com/album/" + dzHit.album.id);
+              if (albRes.ok) {
+                const albJson = await albRes.json();
+                genreRaw = ((albJson.genres && albJson.genres.data && albJson.genres.data[0]) || {}).name || "";
+                year = albJson.release_date ? String(albJson.release_date).slice(0, 4) : "";
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+      if (!artworkSrc) {
+        try {
+          const searchRes = await fetch("https://itunes.apple.com/search?term=" + q + "&media=music&entity=song&limit=1");
+          if (searchRes.ok) {
+            const searchJson = await searchRes.json();
+            const hit = (searchJson.results || [])[0];
+            if (hit) {
+              if (hit.artworkUrl100) artworkSrc = hit.artworkUrl100.replace("100x100bb", "600x600bb");
+              genreRaw = genreRaw || hit.primaryGenreName || "";
+              album = album || hit.collectionName || "";
+              year = year || (hit.releaseDate ? String(hit.releaseDate).slice(0, 4) : "");
+            }
+          }
+        } catch (e) {}
+      }
+      if (!artworkSrc) return new Response(JSON.stringify({ ok: true, found: false }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      let coverUrl = "";
+      try {
+        const imgRes = await fetch(artworkSrc);
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          const form = new FormData();
+          form.append("fileId", "unique()");
+          form.append("file", blob, "cover.jpg");
+          const upRes = await fetch(AW_EP + "/storage/buckets/xultra_music/files", {
+            method: "POST",
+            headers: { "X-Appwrite-Project": AW_PID, "X-Appwrite-Key": AW_KEY },
+            body: form
+          });
+          if (upRes.ok) {
+            const upJson = await upRes.json();
+            coverUrl = WEBAUTHN_ORIGIN + "/api/aw/storage/buckets/xultra_music/files/" + upJson.$id + "/view?project=" + AW_PID;
+          }
+        }
+      } catch (e) {}
+      const MUSIC_GENRE_MAP = { "hip-hop": "hiphop", "rap": "hiphop", "electronic": "electro", "dance": "electro", "pop": "pop", "r&b": "rnb", "soul": "rnb", "jazz": "jazz", "rock": "rock", "ambient": "ambiance", "new age": "ambiance" };
+      let genre = "";
+      const gname = String(genreRaw || "").toLowerCase();
+      for (const k in MUSIC_GENRE_MAP) { if (gname.indexOf(k) >= 0) { genre = MUSIC_GENRE_MAP[k]; break; } }
+      return new Response(JSON.stringify({
+        ok: true, found: true, coverUrl: coverUrl, genre: genre, album: album, year: year
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
