@@ -5290,6 +5290,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.5.1',date:'28 août 2026',time:'13:00',title:'🔒 X1 Music : sécurité et compteurs corrigés',
+    body:'La distinction Streaming/Sons des membres est maintenant vérifiée côté serveur (impossible de se déclarer "Streaming" par un simple appel technique). Corrigé au passage un vrai bug découvert en creusant ce point : les compteurs de lectures, likes et commentaires ne se mettaient à jour que quand l\\'auteur du titre agissait sur son propre titre — donc quasiment jamais en usage normal. Ils comptent maintenant correctement, peu importe qui écoute, aime ou commente.'},
   {version:'4.5.0',date:'28 août 2026',time:'12:00',title:'🎧 X1 Music : Streaming vs Sons des membres',
     body:'X1 Music se divise maintenant en deux sections claires : 🎧 Streaming (contenu officiel sélectionné par l\\'équipe X1) et 🎤 Sons des membres (tout ce que la communauté publie). Le staff et les créateurs peuvent choisir de publier un titre dans Streaming au moment de l\\'envoi ; tout le monde peut publier dans Sons des membres, comme avant.'},
   {version:'4.4.0',date:'28 août 2026',time:'11:00',title:'🎤 X1 Music : genres, paroles synchronisées et lecteur plein écran',
@@ -12705,7 +12707,11 @@ async function musicPlayTrack(trackId){
   musicLoadLyricsFor(t);
   const newPlays=(t.playsCount||0)+1;
   t.playsCount=newPlays;
-  db.updateDocument(DB,'xm_tracks',trackId,{playsCount:newPlays}).catch(function(){});
+  // Passe par le serveur (clé admin) : le document xm_tracks n'accorde plus
+  // de permission update directe au client (voir la route /api/music/tracks
+  // côté worker) — c'est aussi ce qui corrige le compteur qui ne bougeait
+  // jamais réellement quand quelqu'un d'autre que l'auteur du titre écoutait.
+  if(me)authPost('/api/music/tracks/play',{trackId:trackId}).catch(function(){});
 }
 function musicTogglePlay(){
   const audio=musicEnsureAudio();
@@ -12753,20 +12759,14 @@ function musicUpdatePlayerBar(){
 async function musicToggleLike(trackId){
   if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
-  const liked=musicMyLikedIds.has(trackId);
   try{
-    if(liked){
-      const r=await db.listDocuments(DB,'xm_likes',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('trackId',trackId),Appwrite.Query.limit(1)]);
-      const doc=(r.documents||[])[0];
-      if(doc)await db.deleteDocument(DB,'xm_likes',doc.\$id);
-      musicMyLikedIds.delete(trackId);
-      t.likesCount=Math.max(0,(t.likesCount||0)-1);
-    }else{
-      await db.createDocument(DB,'xm_likes',Appwrite.ID.unique(),{uid:me.\$id,trackId:trackId},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
-      musicMyLikedIds.add(trackId);
-      t.likesCount=(t.likesCount||0)+1;
-    }
-    db.updateDocument(DB,'xm_tracks',trackId,{likesCount:t.likesCount}).catch(function(){});
+    // Passe par le serveur : xm_likes/xm_tracks n'accordent plus de
+    // permission d'écriture directe au client (voir /api/music/tracks/like
+    // côté worker) — évite aussi qu'aimer le titre de quelqu'un d'autre
+    // échoue silencieusement à mettre à jour son compteur.
+    const r=await authPost('/api/music/tracks/like',{trackId:trackId});
+    if(r.liked)musicMyLikedIds.add(trackId);else musicMyLikedIds.delete(trackId);
+    t.likesCount=r.likesCount;
     renderMusicBody();
     const mfpLike=\$('mfp-like');
     if(mfpLike&&musicCurrentTrack&&musicCurrentTrack.\$id===trackId)mfpLike.textContent=musicMyLikedIds.has(trackId)?'♥':'♡';
@@ -12983,11 +12983,12 @@ async function openMusicComments(trackId){
     const text=(input.value||'').trim();if(!text)return;
     const btn=this;btn.disabled=true;
     try{
-      const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre';
-      await db.createDocument(DB,'xm_comments',Appwrite.ID.unique(),{uid:me.\$id,displayName:name,avatar:(meProfile&&meProfile.avatar)||'',trackId:trackId,text:text.slice(0,500)},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      // Passe par le serveur : xm_comments/xm_tracks n'accordent plus de
+      // permission d'écriture directe au client (voir
+      // /api/music/comments/send côté worker).
+      const r=await authPost('/api/music/comments/send',{trackId:trackId,text:text.slice(0,500)});
       input.value='';
-      t.commentsCount=(t.commentsCount||0)+1;
-      db.updateDocument(DB,'xm_tracks',trackId,{commentsCount:t.commentsCount}).catch(function(){});
+      t.commentsCount=r.commentsCount;
       renderMusicBody();
       await loadAndRender();
     }catch(e){showToast('Envoi impossible','error');}
@@ -13116,10 +13117,14 @@ async function openMusicUploadForm(){
       const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
       const lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
       const streamingChecked=\$('music-up-streaming');
-      const channel=(canStreaming&&streamingChecked&&streamingChecked.checked)?'streaming':'member';
-      await db.createDocument(DB,'xm_tracks',Appwrite.ID.unique(),{
-        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0,genre:genre,tagsJson:JSON.stringify(tags),lyricsLrc:lyricsLrc,channel:channel
-      },[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      const wantStreaming=!!(streamingChecked&&streamingChecked.checked);
+      // Passe par le serveur, qui revérifie lui-même l'éligibilité Streaming
+      // à partir des badges réels du compte — canStreaming ici ne pilote que
+      // l'affichage de la case, jamais la décision finale (voir
+      // /api/music/tracks/create côté worker).
+      await authPost('/api/music/tracks/create',{
+        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming
+      });
       showToast('Titre publié !');
       close();
       await loadMusicTracks();
@@ -19107,6 +19112,123 @@ async function handle(request) {
       if (parsed.protocol === "http:" && (parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1")) return true;
       return false;
     } catch (e) { return false; }
+  }
+  // ===== X1 Music : mutations passant systématiquement par le serveur =====
+  // xm_tracks/xm_likes/xm_comments n'accordent plus AUCUNE permission
+  // d'écriture directe au client (juste read("any") au niveau collection).
+  // Deux raisons : 1) empêcher qu'un compte s'auto-déclare
+  // "channel":"streaming" (réservé au staff/créateurs) par un simple appel
+  // SDK direct — les permissions Appwrite auraient sinon dû être accordées
+  // au créateur du document lui-même, sans distinction de champ possible ;
+  // 2) un vrai bug découvert en creusant le premier problème — les
+  // compteurs likesCount/playsCount/commentsCount n'étaient mis à jour QUE
+  // quand l'auteur du titre agissait sur SON PROPRE titre (lui seul avait la
+  // permission update sur le document), donc quasiment jamais en usage réel
+  // (confirmé en reproduisant l'échec 401 avec un vrai compte tiers). La clé
+  // admin, utilisée ici après vérification des règles métier, règle les deux
+  // à la fois.
+  const MUSIC_STREAMING_BADGES = ["dev", "founder", "creator"];
+  async function musicUserBadges(uid) {
+    try {
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, { asAdmin: true });
+      return JSON.parse((meta && meta.badgesJson) || "[]");
+    } catch (e) { return []; }
+  }
+  if (path === "/api/music/tracks/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const title = String((body && body.title) || "").trim().slice(0, 150);
+      const artistName = String((body && body.artistName) || "").trim().slice(0, 100) || "Artiste inconnu";
+      const audioUrl = String((body && body.audioUrl) || "");
+      if (!title || !audioUrl) throw new Error("Titre et fichier audio requis");
+      const coverUrl = String((body && body.coverUrl) || "");
+      const mime = String((body && body.mime) || "");
+      const durationSec = Math.max(0, Math.round(Number((body && body.durationSec) || 0)));
+      const genre = String((body && body.genre) || "").slice(0, 30);
+      let tags = [];
+      try { tags = (Array.isArray(body && body.tags) ? body.tags : []).map(function (t) { return String(t).slice(0, 40); }).slice(0, 15); } catch (e) {}
+      const lyricsLrc = String((body && body.lyricsLrc) || "").slice(0, 20000);
+      const wantStreaming = !!(body && body.wantStreaming);
+      const badges = await musicUserBadges(acc.$id);
+      const eligible = MUSIC_STREAMING_BADGES.some(function (b) { return badges.indexOf(b) >= 0; });
+      const channel = (wantStreaming && eligible) ? "streaming" : "member";
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel },
+          permissions: ["read(\"any\")"]
+        }
+      });
+      return new Response(JSON.stringify({ ok: true, track: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/tracks/play" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const trackId = String((body && body.trackId) || "");
+      if (!trackId) throw new Error("trackId requis");
+      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      const playsCount = (track.playsCount || 0) + 1;
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { playsCount: playsCount } } });
+      return new Response(JSON.stringify({ ok: true, playsCount: playsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/tracks/like" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const trackId = String((body && body.trackId) || "");
+      if (!trackId) throw new Error("trackId requis");
+      const qs = "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "trackId", values: [trackId] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/xm_likes/documents?" + qs, { asAdmin: true });
+      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      let liked, likesCount;
+      if ((existing.documents || []).length) {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_likes/documents/" + existing.documents[0].$id, { method: "DELETE", asAdmin: true });
+        liked = false;
+        likesCount = Math.max(0, (track.likesCount || 0) - 1);
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_likes/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, trackId: trackId }, permissions: ["read(\"any\")"] } });
+        liked = true;
+        likesCount = (track.likesCount || 0) + 1;
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { likesCount: likesCount } } });
+      return new Response(JSON.stringify({ ok: true, liked: liked, likesCount: likesCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/comments/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const trackId = String((body && body.trackId) || "");
+      const text = String((body && body.text) || "").trim().slice(0, 500);
+      if (!trackId || !text) throw new Error("trackId et texte requis");
+      const profile = await resolveProfile(acc.$id);
+      const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const avatar = (profile && profile.avatar) || "";
+      const comment = await awFetch("/databases/" + AW_DB + "/collections/xm_comments/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, displayName: displayName, avatar: avatar, trackId: trackId, text: text }, permissions: ["read(\"any\")"] } });
+      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      const commentsCount = (track.commentsCount || 0) + 1;
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { commentsCount: commentsCount } } });
+      return new Response(JSON.stringify({ ok: true, comment: comment, commentsCount: commentsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
   if (path === "/api/oauth/apps/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
