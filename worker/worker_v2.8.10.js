@@ -1290,6 +1290,46 @@ html.xultra-restoring #stage{visibility:hidden}
 .mpb-time:last-child{text-align:right}
 .mpb-seek{flex:1;accent-color:#7c3aed}
 @media (max-width:640px){.mpb-info{width:auto;flex:1}.mpb-seek-wrap{display:none}}
+.music-follow-btn.on{background:rgba(124,58,237,.25);border-color:rgba(167,139,250,.5);color:#e9d5ff}
+.music-search{margin:0 14px 10px;width:calc(100% - 28px)}
+.music-genre-row{display:flex;gap:8px;overflow-x:auto;padding:0 14px 12px;scrollbar-width:none}
+.music-genre-row::-webkit-scrollbar{display:none}
+.music-genre-chip{flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:.78rem;font-weight:700;color:#fff;opacity:.55;transition:opacity .15s ease,transform .15s ease;white-space:nowrap}
+.music-genre-chip.on{opacity:1;transform:scale(1.04);box-shadow:0 4px 14px rgba(124,58,237,.35)}
+.music-card-dur{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:.64rem;font-weight:700;padding:2px 6px;border-radius:6px}
+.music-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.music-tag-chip{font-size:.66rem;color:#c4b5fd;background:rgba(124,58,237,.14);padding:2px 7px;border-radius:999px}
+.mpb-btn.on{background:#7c3aed;color:#fff}
+/* Lecteur plein écran + paroles synchronisées */
+.music-fullplayer{position:fixed;inset:0;z-index:6000;background:linear-gradient(180deg,#1a0b2e 0%,#0a0614 45%,#07040f 100%);display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.music-fullplayer.hidden{display:none}
+.mfp-box{flex:1;display:flex;flex-direction:column;min-height:0}
+.mfp-head{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.mfp-close{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;display:grid;place-items:center;font-size:1.1rem}
+.mfp-head-label{font-size:.75rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.mfp-art-wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:12px 0}
+.mfp-art{width:min(78vw,340px);aspect-ratio:1;border-radius:16px;background:linear-gradient(145deg,#2e1065,#7c3aed);box-shadow:0 24px 60px rgba(124,58,237,.4);display:grid;place-items:center;font-size:4rem;overflow:hidden}
+.mfp-art img{width:100%;height:100%;object-fit:cover}
+.mfp-lyrics{flex:1;overflow-y:auto;padding:24px 8px 12px;text-align:center;display:none;-webkit-overflow-scrolling:touch}
+.music-fullplayer.lyrics-mode .mfp-art-wrap{display:none}
+.music-fullplayer.lyrics-mode .mfp-lyrics{display:block}
+.mfp-ly-line{font-size:1.15rem;line-height:1.65;color:rgba(245,240,255,.38);margin:14px 0;transition:color .25s,transform .25s;font-weight:600;padding:0 8px;cursor:pointer}
+.mfp-ly-line.on{color:#fff;font-weight:800;transform:scale(1.04);text-shadow:0 0 24px rgba(192,132,252,.45)}
+.mfp-ly-line.near{color:rgba(245,240,255,.7)}
+.mfp-ly-empty{color:var(--muted);font-size:.88rem;padding:40px 12px;line-height:1.5}
+.mfp-tabs{display:flex;gap:8px;justify-content:center;margin:12px 0;flex-shrink:0}
+.mfp-tabs button{padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.08);font-size:.78rem;font-weight:700;color:var(--muted)}
+.mfp-tabs button.on{background:#fff;color:#1a0b2e}
+.mfp-meta{text-align:center;flex-shrink:0}
+.mfp-meta h1{font-size:1.3rem;font-weight:800}
+.mfp-artist{color:var(--muted);margin-top:4px;font-size:.86rem}
+.mfp-seek{margin:16px 0 4px;flex-shrink:0}
+.mfp-seek input[type=range]{width:100%;accent-color:#a855f7}
+.mfp-times{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
+.mfp-ctrls{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:6px;flex-shrink:0}
+.mfp-ctrls button{width:44px;height:44px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:1.2rem}
+.mfp-ctrls #mfp-shuffle.on{color:#a855f7}
+.mfp-main{width:66px;height:66px;background:#fff;color:#1a0b2e;font-size:1.5rem}
 .discover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
@@ -5249,6 +5289,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.4.0',date:'28 août 2026',time:'11:00',title:'🎤 X1 Music : genres, paroles synchronisées et lecteur plein écran',
+    body:'Le lecteur bascule maintenant en plein écran (tape sur la barre de lecture) avec pochette agrandie et un onglet Paroles façon karaoké : ligne en cours mise en avant, défilement automatique, tape sur une ligne pour sauter à ce moment de la piste. Fonctionne avec les paroles collées à l\\'envoi (format LRC pour la synchronisation) ou, à défaut, une recherche automatique sur une base de paroles ouverte et gratuite. Nouveautés associées : genres musicaux avec filtre dédié, recherche, lecture aléatoire, tags et durée affichés sur chaque titre, et abonnement à un artiste (notifié à chaque nouvelle publication).'},
   {version:'4.3.1',date:'28 août 2026',time:'10:00',title:'🩹 Correctif urgent : site inaccessible',
     body:'Le déploiement précédent (support multilingue) cassait le chargement du site pour tout le monde (erreur "SETTINGS_GROUPS" au démarrage). Corrigé et revérifié avant redéploiement.'},
   {version:'4.3.0',date:'28 août 2026',time:'09:00',title:'📜 Conditions d\\'utilisation à l\\'inscription',
@@ -7158,6 +7200,7 @@ if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e
 
 /* ===== Raccourcis clavier globaux ===== */
 function closeTopmostOverlay(){
+  if(\$('music-fullplayer')&&!\$('music-fullplayer').classList.contains('hidden')){closeMusicFullPlayer();return true}
   if(\$('media-lightbox')&&\$('media-lightbox').classList.contains('show')){closeMediaLightbox();return true}
   if(\$('tut-overlay')){endTutorial();return true}
   if(\$('modal-status')&&!\$('modal-status').classList.contains('hidden')){closeStatusPanel();return true}
@@ -7663,7 +7706,7 @@ async function sendFriendRequest(targetUid,targetName){
   }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
 }
 
-const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬'};
+const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵'};
 let notifCache=[];
 async function loadNotifications(){
   if(!me)return [];
@@ -12360,7 +12403,18 @@ function openCasinoCreateForm(){
 let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMyFollowedIds=new Set();
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
-let musicSearchQuery='',musicShuffleOn=false;
+let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
+const MUSIC_GENRES=[
+  {id:'hiphop',name:'Hip-Hop',c:'linear-gradient(135deg,#7c3aed,#db2777)'},
+  {id:'electro',name:'Électro',c:'linear-gradient(135deg,#4c1d95,#06b6d4)'},
+  {id:'pop',name:'Pop',c:'linear-gradient(135deg,#a855f7,#f472b6)'},
+  {id:'rnb',name:'R&B',c:'linear-gradient(135deg,#9f1239,#7c3aed)'},
+  {id:'lofi',name:'Lo-Fi',c:'linear-gradient(135deg,#1e3a5f,#7c3aed)'},
+  {id:'jazz',name:'Jazz',c:'linear-gradient(135deg,#1e3a8a,#6366f1)'},
+  {id:'rock',name:'Rock',c:'linear-gradient(135deg,#7f1d1d,#a855f7)'},
+  {id:'ambiance',name:'Ambiance',c:'linear-gradient(135deg,#0f766e,#7c3aed)'}
+];
+function musicGenreLabel(id){const g=MUSIC_GENRES.find(function(x){return x.id===id});return g?g.name:'';}
 // Bug remonté : cliquer sur la barre de progression pour avancer la ramenait
 // systématiquement au début. Cause : après avoir posé audio.currentTime, le
 // vrai déplacement de lecture est asynchrone (surtout en streaming) — un
@@ -12399,7 +12453,7 @@ function musicShuffleArray(arr){
 }
 let musicQueueCache=null,musicQueueCacheKey='';
 function musicQueueKey(){
-  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicShuffleOn?'shuffle':'order',musicTracksCache.length].join('|');
+  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',musicTracksCache.length].join('|');
 }
 // Le tirage aléatoire est mis en cache tant que le contexte ne change pas —
 // sinon, appeler musicCurrentQueue() (utilisé aussi bien pour l'affichage que
@@ -12418,6 +12472,7 @@ function musicCurrentQueue(){
     list=musicTracksCache;
   }
   if(musicSearchQuery)list=list.filter(function(t){return musicMatchesSearch(t,musicSearchQuery);});
+  if(musicGenreFilter)list=list.filter(function(t){return t.genre===musicGenreFilter;});
   if(musicShuffleOn)list=musicShuffleArray(list);
   musicQueueCache=list;musicQueueCacheKey=key;
   return list;
@@ -12435,23 +12490,61 @@ async function openMusic(uid,name){
   musicFilter=uid?'user':'discover';
   musicActivePlaylist=null;
   renderMusicShell();
-  await Promise.all([loadMusicTracks(),loadMyMusicLikes()]);
+  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows()]);
   renderMusicBody();
+  updateMusicFollowBtn();
+}
+async function loadMyMusicFollows(){
+  musicMyFollowedIds=new Set();
+  if(!me)return;
+  try{
+    const r=await db.listDocuments(DB,'xm_follows',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(500)]);
+    (r.documents||[]).forEach(function(d){musicMyFollowedIds.add(String(d.artistUid));});
+  }catch(e){}
+}
+async function musicToggleFollow(artistUid){
+  if(!me){showToast('Connecte-toi pour suivre un artiste.','error');return}
+  const following=musicMyFollowedIds.has(String(artistUid));
+  try{
+    if(following){
+      const r=await db.listDocuments(DB,'xm_follows',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('artistUid',artistUid),Appwrite.Query.limit(1)]);
+      const doc=(r.documents||[])[0];
+      if(doc)await db.deleteDocument(DB,'xm_follows',doc.\$id);
+      musicMyFollowedIds.delete(String(artistUid));
+    }else{
+      await db.createDocument(DB,'xm_follows',Appwrite.ID.unique(),{uid:me.\$id,artistUid:artistUid},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      musicMyFollowedIds.add(String(artistUid));
+    }
+    updateMusicFollowBtn();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+function updateMusicFollowBtn(){
+  const btn=\$('music-follow-btn');if(!btn)return;
+  const following=musicMyFollowedIds.has(String(musicViewUid));
+  btn.textContent=following?'✓ Suivi(e)':'+ Suivre';
+  btn.classList.toggle('on',following);
 }
 function closeMusic(){
   const overlay=\$('music-overlay');
   if(overlay)overlay.classList.remove('show');
   if(musicAudioEl)musicAudioEl.pause();
+  closeMusicFullPlayer();
 }
 function renderMusicShell(){
   const overlay=\$('music-overlay');if(!overlay)return;
-  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'+(musicViewUid?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
+  const isOtherProfile=!!(musicViewUid&&(!me||String(musicViewUid)!==String(me.\$id)));
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
+      +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
+      +(musicViewUid?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
     +(musicViewUid?'':'<div class="seg-group music-tabs" id="music-tabs"><button type="button" class="seg-btn on" data-music-tab="discover">Découvrir</button><button type="button" class="seg-btn" data-music-tab="mine">Mes titres</button><button type="button" class="seg-btn" data-music-tab="playlists">Mes playlists</button></div>')
+    +(musicViewUid?'':'<input type="text" id="music-search" class="field-input music-search" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
+    +(musicViewUid?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
     +'<div class="discover-body" id="music-body"></div>'
     +'<div class="music-player-bar hidden" id="music-player-bar">'
       +'<div class="mpb-cover" id="mpb-cover"></div>'
       +'<div class="mpb-info"><div class="mpb-title" id="mpb-title"></div><div class="mpb-artist" id="mpb-artist"></div></div>'
       +'<div class="mpb-controls">'
+        +'<button type="button" class="mpb-btn" id="mpb-shuffle" title="Aléatoire"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>'
         +'<button type="button" class="mpb-btn" id="mpb-prev" title="Précédent"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M6 5h2v14H6zM19 5v14l-10-7z"/></svg></button>'
         +'<button type="button" class="mpb-btn mpb-play" id="mpb-play" title="Lecture"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg></button>'
         +'<button type="button" class="mpb-btn" id="mpb-next" title="Suivant"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>'
@@ -12460,6 +12553,20 @@ function renderMusicShell(){
     +'</div>';
   \$('music-close').onclick=closeMusic;
   if(\$('music-upload-btn'))\$('music-upload-btn').onclick=openMusicUploadForm;
+  if(\$('music-follow-btn'))\$('music-follow-btn').onclick=function(){musicToggleFollow(musicViewUid);};
+  updateMusicFollowBtn();
+  if(\$('music-search'))\$('music-search').addEventListener('input',function(){
+    musicSearchQuery=this.value.trim();
+    renderMusicBody();
+  });
+  if(\$('music-genre-row'))\$('music-genre-row').querySelectorAll('[data-genre]').forEach(function(b){
+    b.addEventListener('click',function(){
+      const g=b.getAttribute('data-genre');
+      musicGenreFilter=(musicGenreFilter===g)?'':g;
+      \$('music-genre-row').querySelectorAll('[data-genre]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-genre')===musicGenreFilter);});
+      renderMusicBody();
+    });
+  });
   if(\$('music-tabs'))\$('music-tabs').querySelectorAll('[data-music-tab]').forEach(function(b){
     b.addEventListener('click',function(){
       musicFilter=b.getAttribute('data-music-tab');
@@ -12471,6 +12578,12 @@ function renderMusicShell(){
   \$('mpb-play').onclick=musicTogglePlay;
   \$('mpb-prev').onclick=musicPrev;
   \$('mpb-next').onclick=musicNext;
+  \$('mpb-shuffle').classList.toggle('on',musicShuffleOn);
+  \$('mpb-shuffle').onclick=function(){
+    musicShuffleOn=!musicShuffleOn;
+    this.classList.toggle('on',musicShuffleOn);
+    showToast(musicShuffleOn?'Lecture aléatoire activée.':'Lecture aléatoire désactivée.');
+  };
   \$('mpb-seek').addEventListener('input',function(){
     const audio=musicEnsureAudio();
     if(!audio.duration)return;
@@ -12478,6 +12591,10 @@ function renderMusicShell(){
     if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
     musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
     audio.currentTime=(this.value/100)*audio.duration;
+  });
+  \$('music-player-bar').addEventListener('click',function(e){
+    if(e.target.closest('.mpb-controls')||e.target.closest('.mpb-seek-wrap'))return;
+    if(musicCurrentTrack)openMusicFullPlayer();
   });
 }
 async function loadMusicTracks(){
@@ -12508,10 +12625,13 @@ function musicTrackCardHtml(t){
   const liked=musicMyLikedIds.has(t.\$id);
   const isCurrent=musicCurrentTrack&&musicCurrentTrack.\$id===t.\$id;
   const isPlaying=isCurrent&&musicAudioEl&&!musicAudioEl.paused;
+  let tags=[];try{tags=JSON.parse(t.tagsJson||'[]');}catch(e){}
+  const tagsHtml=tags.length?'<div class="music-card-tags">'+tags.slice(0,4).map(function(tag){return '<span class="music-tag-chip">#'+esc(tag)+'</span>';}).join('')+'</div>':'';
   return '<div class="music-card'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
-    +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
+    +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span>'+(t.durationSec?'<span class="music-card-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
     +'<div class="music-card-title">'+esc(t.title)+'</div>'
-    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</div>'
+    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
+    +tagsHtml
     +'<div class="music-card-actions">'
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
@@ -12560,6 +12680,8 @@ async function musicPlayTrack(trackId){
   const cov=safeUrl(t.coverUrl);
   \$('mpb-cover').innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
   renderMusicBody();
+  musicSyncFullPlayerMeta();
+  musicLoadLyricsFor(t);
   const newPlays=(t.playsCount||0)+1;
   t.playsCount=newPlays;
   db.updateDocument(DB,'xm_tracks',trackId,{playsCount:newPlays}).catch(function(){});
@@ -12588,6 +12710,8 @@ function renderMusicPlayIcons(){
   const playing=musicAudioEl&&!musicAudioEl.paused;
   btn.parentElement.innerHTML=playing?'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg>';
   renderMusicBody();
+  const mfpBtn=\$('mfp-play');
+  if(mfpBtn)mfpBtn.textContent=playing?'⏸':'▶';
 }
 function musicFmtTime(sec){
   sec=Math.max(0,Math.floor(sec||0));
@@ -12599,6 +12723,11 @@ function musicUpdatePlayerBar(){
   if(cur)cur.textContent=musicFmtTime(audio.currentTime);
   if(dur)dur.textContent=musicFmtTime(audio.duration);
   if(seek&&audio.duration&&!musicSeekingByUser)seek.value=String((audio.currentTime/audio.duration)*100);
+  const mcur=\$('mfp-t-cur'),mdur=\$('mfp-t-dur'),mseek=\$('mfp-seek');
+  if(mcur)mcur.textContent=musicFmtTime(audio.currentTime);
+  if(mdur)mdur.textContent=musicFmtTime(audio.duration);
+  if(mseek&&audio.duration&&!musicSeekingByUser)mseek.value=String((audio.currentTime/audio.duration)*1000);
+  musicSyncLyricsTime();
 }
 async function musicToggleLike(trackId){
   if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
@@ -12618,7 +12747,172 @@ async function musicToggleLike(trackId){
     }
     db.updateDocument(DB,'xm_tracks',trackId,{likesCount:t.likesCount}).catch(function(){});
     renderMusicBody();
+    const mfpLike=\$('mfp-like');
+    if(mfpLike&&musicCurrentTrack&&musicCurrentTrack.\$id===trackId)mfpLike.textContent=musicMyLikedIds.has(trackId)?'♥':'♡';
   }catch(e){showToast('Action impossible','error');}
+}
+/* ===== Lecteur plein écran + paroles synchronisées façon karaoké =====
+   Paroles au format LRC (lignes horodatées [mm:ss.cc]texte) : celles collées
+   par l'artiste à l'envoi du titre en priorité, sinon recherche automatique
+   sur lrclib.net (API publique gratuite, pas de clé, données communautaires
+   sous licence ouverte) — jamais de paroles arrachées à un service sous
+   droits. Sans résultat, on retombe sur "paroles introuvables". */
+function musicSyncFullPlayerMeta(){
+  const t=musicCurrentTrack;if(!t)return;
+  const title=\$('mfp-title'),artist=\$('mfp-artist'),art=\$('mfp-art'),like=\$('mfp-like');
+  if(title)title.textContent=t.title;
+  if(artist)artist.textContent=t.artistName+(t.genre?' · '+musicGenreLabel(t.genre):'');
+  const cov=safeUrl(t.coverUrl);
+  if(art)art.innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
+  if(like)like.textContent=musicMyLikedIds.has(t.\$id)?'♥':'♡';
+  const shuffleBtn=\$('mfp-shuffle');
+  if(shuffleBtn)shuffleBtn.classList.toggle('on',musicShuffleOn);
+}
+function openMusicFullPlayer(){
+  let overlay=\$('music-fullplayer');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='music-fullplayer';
+    overlay.className='overlay hidden music-fullplayer';
+    overlay.innerHTML='<div class="mfp-box">'
+      +'<div class="mfp-head"><button type="button" class="mfp-close" id="mfp-close">▼</button><div class="mfp-head-label">LECTURE EN COURS</div><div style="width:38px"></div></div>'
+      +'<div class="mfp-art-wrap" id="mfp-art-wrap"><div class="mfp-art" id="mfp-art">🎵</div></div>'
+      +'<div class="mfp-lyrics" id="mfp-lyrics"></div>'
+      +'<div class="mfp-tabs"><button type="button" class="on" data-mfp-tab="cover">Pochette</button><button type="button" data-mfp-tab="lyrics">Paroles</button></div>'
+      +'<div class="mfp-meta"><h1 id="mfp-title">—</h1><div class="mfp-artist" id="mfp-artist">—</div></div>'
+      +'<div class="mfp-seek"><input type="range" id="mfp-seek" min="0" max="1000" value="0"><div class="mfp-times"><span id="mfp-t-cur">0:00</span><span id="mfp-t-dur">0:00</span></div></div>'
+      +'<div class="mfp-ctrls">'
+        +'<button type="button" id="mfp-shuffle">⇄</button>'
+        +'<button type="button" id="mfp-prev">⏮</button>'
+        +'<button type="button" class="mfp-main" id="mfp-play">▶</button>'
+        +'<button type="button" id="mfp-next">⏭</button>'
+        +'<button type="button" id="mfp-like">♡</button>'
+      +'</div>'
+    +'</div>';
+    document.body.appendChild(overlay);
+    \$('mfp-close').onclick=closeMusicFullPlayer;
+    \$('mfp-play').onclick=musicTogglePlay;
+    \$('mfp-prev').onclick=musicPrev;
+    \$('mfp-next').onclick=musicNext;
+    \$('mfp-like').onclick=function(){if(musicCurrentTrack)musicToggleLike(musicCurrentTrack.\$id);};
+    \$('mfp-shuffle').onclick=function(){
+      musicShuffleOn=!musicShuffleOn;
+      this.classList.toggle('on',musicShuffleOn);
+      const barBtn=\$('mpb-shuffle');if(barBtn)barBtn.classList.toggle('on',musicShuffleOn);
+    };
+    \$('mfp-seek').addEventListener('input',function(){
+      const audio=musicEnsureAudio();
+      if(!audio.duration)return;
+      musicSeekingByUser=true;
+      if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
+      musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
+      audio.currentTime=(this.value/1000)*audio.duration;
+    });
+    overlay.querySelectorAll('[data-mfp-tab]').forEach(function(b){
+      b.addEventListener('click',function(){
+        overlay.querySelectorAll('[data-mfp-tab]').forEach(function(x){x.classList.toggle('on',x===b);});
+        const lyricsMode=b.getAttribute('data-mfp-tab')==='lyrics';
+        overlay.classList.toggle('lyrics-mode',lyricsMode);
+      });
+    });
+  }
+  overlay.classList.remove('hidden');
+  musicSyncFullPlayerMeta();
+  renderMusicPlayIcons();
+}
+function closeMusicFullPlayer(){
+  const overlay=\$('music-fullplayer');
+  if(overlay)overlay.classList.add('hidden');
+}
+let musicLyricsState={lines:[],timed:false,activeIdx:-1},musicLyricsLoadToken=0;
+function musicParseLRC(text){
+  const out=[];
+  if(!text)return out;
+  String(text).split(/\\r?\\n/).forEach(function(line){
+    const m=line.match(/^\\[(\\d{1,2}):(\\d{2})(?:\\.(\\d{1,3}))?\\](.*)\$/);
+    if(!m)return;
+    const min=+m[1],sec=+m[2];
+    let ms=m[3]?+m[3]:0;
+    if(String(m[3]||'').length===2)ms*=10;
+    if(String(m[3]||'').length===1)ms*=100;
+    const text2=(m[4]||'').trim();
+    if(text2)out.push({t:min*60+sec+ms/1000,text:text2});
+  });
+  return out;
+}
+function musicRenderLyricsLines(){
+  const box=\$('mfp-lyrics');if(!box)return;
+  const lines=musicLyricsState.lines;
+  if(!lines.length){box.innerHTML='<div class="mfp-ly-empty">Paroles introuvables pour ce titre.</div>';return}
+  box.innerHTML=lines.map(function(l,i){return '<div class="mfp-ly-line" data-ly-i="'+i+'" data-ly-t="'+(l.t||0)+'">'+esc(l.text)+'</div>';}).join('');
+  if(musicLyricsState.timed){
+    box.querySelectorAll('[data-ly-i]').forEach(function(el){
+      el.addEventListener('click',function(){
+        const audio=musicEnsureAudio();
+        if(audio.duration)audio.currentTime=Number(el.getAttribute('data-ly-t'))||0;
+      });
+    });
+  }
+}
+function musicSetActiveLyricLine(i){
+  const box=\$('mfp-lyrics');if(!box)return;
+  box.querySelectorAll('.mfp-ly-line').forEach(function(n,idx){
+    n.classList.remove('on','near');
+    if(idx===i)n.classList.add('on');
+    else if(idx===i-1||idx===i+1)n.classList.add('near');
+  });
+  const on=box.querySelector('.mfp-ly-line.on');
+  if(on)try{on.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
+}
+function musicSyncLyricsTime(){
+  if(!musicLyricsState.timed||!musicLyricsState.lines.length||!musicAudioEl)return;
+  const t=musicAudioEl.currentTime||0;
+  let idx=0;
+  for(let i=0;i<musicLyricsState.lines.length;i++){
+    if(musicLyricsState.lines[i].t<=t)idx=i;else break;
+  }
+  if(musicLyricsState.activeIdx!==idx){musicLyricsState.activeIdx=idx;musicSetActiveLyricLine(idx);}
+}
+async function musicLoadLyricsFor(track){
+  const token=++musicLyricsLoadToken;
+  musicLyricsState={lines:[],timed:false,activeIdx:-1};
+  const box=\$('mfp-lyrics');
+  if(box)box.innerHTML='<div class="mfp-ly-empty">Recherche des paroles…</div>';
+  if(track.lyricsLrc&&String(track.lyricsLrc).trim()){
+    const raw=String(track.lyricsLrc);
+    const timed=musicParseLRC(raw);
+    if(timed.length){
+      musicLyricsState={lines:timed,timed:true,activeIdx:-1};
+      if(token===musicLyricsLoadToken)musicRenderLyricsLines();
+      return;
+    }
+    const plain=raw.split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean);
+    musicLyricsState={lines:plain.map(function(x){return {t:0,text:x};}),timed:false,activeIdx:-1};
+    if(token===musicLyricsLoadToken)musicRenderLyricsLines();
+    return;
+  }
+  try{
+    const q='https://lrclib.net/api/search?track_name='+encodeURIComponent(track.title||'')+'&artist_name='+encodeURIComponent(track.artistName||'');
+    const res=await fetch(q);
+    if(token!==musicLyricsLoadToken)return;
+    if(res.ok){
+      const arr=await res.json();
+      if(arr&&arr.length){
+        let best=arr[0];
+        for(let i=0;i<arr.length;i++){if(arr[i].syncedLyrics){best=arr[i];break}}
+        if(best.syncedLyrics){
+          const tl=musicParseLRC(best.syncedLyrics);
+          if(tl.length){musicLyricsState={lines:tl,timed:true,activeIdx:-1};musicRenderLyricsLines();return}
+        }
+        if(best.plainLyrics){
+          const pl=String(best.plainLyrics).split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean);
+          musicLyricsState={lines:pl.map(function(x){return {t:0,text:x};}),timed:false,activeIdx:-1};
+          musicRenderLyricsLines();return;
+        }
+      }
+    }
+  }catch(e){}
+  if(token===musicLyricsLoadToken)musicRenderLyricsLines();
 }
 async function openMusicComments(trackId){
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
@@ -12740,12 +13034,15 @@ function openMusicUploadForm(){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:80vh;overflow-y:auto">'
     +'<div class="set-section-label">🎵 Ajouter un titre</div>'
     +'<div class="set-row"><label>Titre</label><input type="text" id="music-up-title" class="field-input" maxlength="150"></div>'
     +'<div class="set-row"><label>Artiste</label><input type="text" id="music-up-artist" class="field-input" maxlength="100" value="'+esc(defaultArtist)+'"></div>'
+    +'<div class="set-row"><label>Genre</label><select id="music-up-genre" class="field-input"><option value="">Aucun</option>'+MUSIC_GENRES.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('')+'</select></div>'
+    +'<div class="set-row"><label>Tags (séparés par des virgules)</label><input type="text" id="music-up-tags" class="field-input" placeholder="chill, nuit, guitare…"></div>'
     +'<div class="set-row"><label>Fichier audio (MP3, WAV…)</label><input type="file" id="music-up-audio" accept="audio/*" class="field-input"></div>'
     +'<div class="set-row"><label>Pochette (optionnel)</label><input type="file" id="music-up-cover" accept="image/*" class="field-input"></div>'
+    +'<div class="set-row"><label>Paroles (optionnel)</label><textarea id="music-up-lyrics" class="field-input" style="height:90px;padding-top:9px;resize:vertical" placeholder="Colle le texte, ou un fichier .lrc horodaté pour un affichage synchronisé façon karaoké : [00:12.50]Premier vers…"></textarea></div>'
     +'<div class="err" id="music-up-err" style="min-height:1em;margin-bottom:8px"></div>'
     +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-up-submit">Publier</button><button type="button" class="set-mini-btn" id="music-up-cancel">Annuler</button></div>'
     +'</div>';
@@ -12773,13 +13070,23 @@ function openMusicUploadForm(){
       }
       let durationSec=0;
       try{durationSec=await musicProbeDuration(audioFile);}catch(e){}
+      const genre=(\$('music-up-genre').value||'').trim();
+      const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
+      const lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
       await db.createDocument(DB,'xm_tracks',Appwrite.ID.unique(),{
-        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0
+        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0,genre:genre,tagsJson:JSON.stringify(tags),lyricsLrc:lyricsLrc
       },[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
       showToast('Titre publié !');
       close();
       await loadMusicTracks();
       renderMusicBody();
+      // Notifie les personnes qui suivent cet artiste — best-effort, ne bloque
+      // jamais la publication elle-même si ça échoue.
+      db.listDocuments(DB,'xm_follows',[Appwrite.Query.equal('artistUid',me.\$id),Appwrite.Query.limit(200)]).then(function(r){
+        (r.documents||[]).forEach(function(f){
+          sendNotification(f.uid,'music_new_track',me.\$id,artistName,artistName+' a publié un nouveau titre : '+title,'').catch(function(){});
+        });
+      }).catch(function(){});
     }catch(e){errEl.textContent=(e&&e.message)||'Envoi impossible.';btn.disabled=false;btn.textContent='Publier';}
   };
 }
