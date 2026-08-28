@@ -2378,6 +2378,9 @@ a.bug-att-item{display:block}
 .oauth-consent-scopes{margin-top:16px;text-align:left;background:rgba(255,255,255,.03);border-radius:12px;padding:12px 14px}
 .oauth-scope-row{font-size:.82rem;padding:4px 0;color:#e9d5ff}
 .oauth-consent-warn{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:.78rem;text-align:left}
+.secguide-tips{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:10px}
+.secguide-tips li{position:relative;padding-left:22px;font-size:.86rem;line-height:1.5;color:#e9d5ff}
+.secguide-tips li::before{content:'✦';position:absolute;left:0;top:0;color:#a78bfa}
 .srv-insights-stats{display:flex;gap:24px}
 .srv-insights-stat .n{font-size:1.6rem;font-weight:900;background:linear-gradient(135deg,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
 .srv-insights-stat .l{font-size:.72rem;color:var(--muted);margin-top:2px}
@@ -3010,6 +3013,13 @@ a.bug-att-item{display:block}
     <button type="button" class="modal-close" id="bi-close">✕</button>
     <div class="bi-head"><span id="bi-icon">💜</span> <span id="bi-label">MEMBRE</span></div>
     <div class="bi-desc" id="bi-desc"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-section-guide">
+  <div class="modal-box" style="text-align:left;max-height:80vh;overflow-y:auto">
+    <button type="button" class="modal-close" id="secguide-close">✕</button>
+    <div id="secguide-body"></div>
   </div>
 </div>
 
@@ -5103,6 +5113,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.5.0',date:'28 août 2026',time:'01:00',title:'📖 Un guide pour chaque section du site',
+    body:'En plus de la visite guidée des boutons principaux, chaque grande section a maintenant son propre petit guide écrit — Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, Profil, Bug Hunter, et Se connecter avec XULTRA. Accessible depuis Paramètres → Avancé → Guides par section.'},
   {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec XULTRA (ouvert à tout le monde)',
     body:'N\\'importe qui peut désormais brancher "Se connecter avec XULTRA" sur son propre site : depuis Paramètres → Se connecter avec XULTRA, crée une application en quelques secondes pour obtenir un client_id/client_secret, avec un guide d\\'implémentation complet (URL d\\'autorisation, échange du code, récupération du profil) et des extraits de code prêts à copier. Tes visiteurs se connectent avec leur pseudo/avatar XULTRA sans créer un mot de passe de plus, après un écran de consentement clair. Et dans Paramètres → Applications autorisées, retrouve et révoque à tout moment les sites que tu as toi-même connectés à ton compte.'},
   {version:'3.3.0',date:'27 août 2026',time:'23:00',title:'XULTRA+ devient X1+',
@@ -6762,10 +6774,82 @@ async function renderSetOs(box){
   wire('os-start-min',window.xultraDesktop.setStartMinimized);
   wire('os-min-tray',window.xultraDesktop.setMinimizeToTray);
 }
+// Un guide écrit par section (demandé explicitement : "chaque section du
+// site ait son propre didacticiel") plutôt qu'une visite interactive comme
+// pour la navigation principale — la plupart des sections n'ont d'éléments
+// à mettre en évidence que dans certains états (une conversation ouverte,
+// un serveur sélectionné...), ce qui rendrait une visite "pointe l'élément"
+// vide ou cassée tant qu'on n'est pas déjà dans le bon contexte. Un guide
+// textuel reste toujours correct, quel que soit l'état de l'appli.
+const SECTION_GUIDES={
+  dms:{icon:'💬',title:'Messages',tips:[
+    "Clique une conversation pour l'ouvrir, ou l'onglet Amis pour en démarrer une nouvelle.",
+    "Le bouton ⋯ sur un message permet de répondre, réagir, épingler, copier ou supprimer.",
+    "Le trombone 📎 permet d'envoyer une photo/vidéo (avec aperçu et légende avant envoi), un Ephem (vu une fois, avec option anti-capture), un fichier, un GIF ou ta position.",
+    "📞 en haut lance un appel vocal ; 🔍 cherche dans la conversation ; 📌 retrouve les messages épinglés.",
+    "Les conversations privées sont chiffrées de bout en bout — même XULTRA ne peut pas lire le contenu."
+  ]},
+  friends:{icon:'👥',title:'Amis',tips:[
+    "Recherche un pseudo pour lui envoyer une demande d'ami.",
+    "Les demandes reçues apparaissent avec Accepter/Refuser directement dans la liste et dans 🔔 Notifications.",
+    "Bloquer quelqu'un coupe messages et appels dans les deux sens, discrètement."
+  ]},
+  servers:{icon:'🖥️',title:'Serveurs',tips:[
+    "🏘️ crée ton propre serveur (nom, icône, bannière) ; un code d'invitation permet à d'autres de le rejoindre.",
+    "Organise des salons texte et vocaux en catégories, avec des rôles aux permissions précises (gérer, expulser, bannir…).",
+    "N'importe quel membre peut booster un serveur gratuitement — plus il y a de boosts actifs, plus tout le monde débloque d'avantages (qualité audio/vidéo, code d'invitation personnalisable).",
+    "Chaque salon vocal a sa propre grille de participants façon visioconférence, avec caméra et partage d'écran."
+  ]},
+  chatroulette:{icon:'🎲',title:'Chatroulette',tips:[
+    "Mise en relation aléatoire avec un autre membre, en texte ou en vidéo.",
+    "Passe au suivant à tout moment ; signale un comportement gênant en un clic.",
+    "Aucune caméra ne s'active jamais automatiquement — c'est toujours un choix explicite."
+  ]},
+  casino:{icon:'🎰',title:'Casino',tips:[
+    "Mini-jeux et duels amicaux entre membres, avec un portefeuille virtuel propre à XULTRA.",
+    "Aucun argent réel n'est jamais impliqué — c'est purement pour le fun."
+  ]},
+  suggestions:{icon:'💡',title:'Boîte à idées',tips:[
+    "Propose une fonctionnalité, un correctif de design ou une idée de marketing, avec une catégorie.",
+    "Vote pour les idées des autres (👍/👎) — les plus populaires remontent en premier.",
+    "Une idée mise en œuvre change de statut et apparaît dans les Notes de version."
+  ]},
+  profile:{icon:'👤',title:'Profil',tips:[
+    "Personnalise avatar, bannière, bio, thème de couleur, police et alignement du texte depuis l'édition du profil.",
+    "Ajoute des liens vers tes comptes externes (Instagram, Discord, TikTok…) affichés sur ta fiche.",
+    "Les cadres d'avatar animés (feu, givre, or, arc-en-ciel…) et les effets de particules se choisissent dans l'édition du profil.",
+    "Un badge = une reconnaissance méritée (Bug Hunter, créateur de contenu, développeur…) — jamais achetable."
+  ]},
+  bughunter:{icon:'🐞',title:'Bug Hunter',tips:[
+    "Signale un bug depuis Paramètres → Support, avec capture d'écran si possible.",
+    "Chaque bug corrigé compte pour ton palier (Novice → Confirmé → Expert → Exterminateur → Légende du Bug).",
+    "Le palier ultime (50 bugs) offre X1+ à vie en reconnaissance."
+  ]},
+  developers:{icon:'👨‍💻',title:'Se connecter avec XULTRA',tips:[
+    "Depuis Paramètres → Se connecter avec XULTRA, crée une application pour obtenir un client_id/client_secret.",
+    "Laisse les visiteurs de ton propre site se connecter avec leur compte XULTRA au lieu d'un mot de passe de plus.",
+    "Un guide d'implémentation complet avec extraits de code est disponible directement dans ce panneau.",
+    "Retrouve et révoque les sites que TOI tu as connectés à ton compte depuis Paramètres → Applications autorisées."
+  ]}
+};
+function openSectionGuide(key){
+  const g=SECTION_GUIDES[key];if(!g)return;
+  \$('secguide-body').innerHTML='<h2>'+g.icon+' '+esc(g.title)+'</h2><ul class="secguide-tips">'+g.tips.map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul>';
+  \$('modal-section-guide').classList.remove('hidden');
+}
+if(\$('secguide-close'))\$('secguide-close').addEventListener('click',function(){\$('modal-section-guide').classList.add('hidden');});
+if(\$('modal-section-guide'))\$('modal-section-guide').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
 function renderSetAdvanced(box){
   box.innerHTML='<h2>Avancé</h2><div class="sc-desc">Options pour les curieux et les développeurs.</div>'
     +'<div class="set-card">'+toggleRow('Mode développeur (copier les IDs)','devMode',appPrefs.devMode)+'</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Visite guidée</div><div class="scr-sub">Revoir la présentation des boutons principaux.</div></div><button type="button" class="set-mini-btn" id="adv-replay-tutorial">🎓 Revoir</button></div></div>'
+    +'<div class="set-card">'
+      +'<div class="set-section-label">📖 Guides par section</div>'
+      +Object.keys(SECTION_GUIDES).map(function(k){
+        const g=SECTION_GUIDES[k];
+        return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+g.icon+' '+esc(g.title)+'</div></div><button type="button" class="set-mini-btn" data-section-guide="'+k+'">Voir</button></div>';
+      }).join('')
+    +'</div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Accélération matérielle</div><div class="scr-sub">Utilise ta carte graphique pour fluidifier l’affichage.</div></div>'+soonBadge()+'</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Canal de mise à jour</div></div><span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">Stable</span></div>'
@@ -6773,6 +6857,9 @@ function renderSetAdvanced(box){
   wireGenericToggles(box);
   const replayBtn=\$('adv-replay-tutorial');
   if(replayBtn)replayBtn.onclick=function(){closeSettingsPanel();setTimeout(startTutorial,250);};
+  box.querySelectorAll('[data-section-guide]').forEach(function(btn){
+    btn.addEventListener('click',function(){openSectionGuide(btn.getAttribute('data-section-guide'));});
+  });
 }
 function renderSetActivity(box){
   const myStatus=(meProfile&&meProfile.statusManual)||'online';
