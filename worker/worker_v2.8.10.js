@@ -1958,6 +1958,14 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    même traitement "légendaire" (anneau tournant) que dev/hunter5/creator. */
 .badge-chainsmoker{background-image:linear-gradient(125deg,#292524,#78716c,#44403c,#a8a29e,#292524);color:#fff;border-color:rgba(249,115,22,.75);box-shadow:0 0 14px rgba(249,115,22,.6),0 0 26px rgba(74,222,128,.25);animation:badgeShift 4s ease infinite,badgePulse 2.2s ease-in-out infinite}
 .badge-chainsmoker::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(74,222,128,.55);animation:frameSpin 5s linear infinite;pointer-events:none}
+/* Badge ÉLITE X1 : équipe + porteurs d'un badge exclusif — délibérément le
+   plus voyant de tous (dégradé holographique + anneau tournant + reflet qui
+   balaie l'icône), pour qu'il se distingue immédiatement des autres même
+   dans une liste dense de badges. */
+.badge-elite{background-image:linear-gradient(125deg,#7c3aed,#ec4899,#f59e0b,#22d3ee,#7c3aed);color:#fff;border-color:rgba(240,171,252,.8);box-shadow:0 0 14px rgba(236,72,153,.6),0 0 30px rgba(124,58,237,.45);animation:badgeShift 3s ease infinite,badgePulse 1.8s ease-in-out infinite}
+.badge-elite::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(240,171,252,.75);animation:frameSpin 3s linear infinite;pointer-events:none}
+.badge-elite::before{content:'';position:absolute;inset:0;border-radius:50%;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.85) 48%,rgba(255,255,255,.85) 52%,transparent 70%);background-size:280% 280%;animation:eliteShine 2.4s ease-in-out infinite;pointer-events:none;mix-blend-mode:overlay}
+@keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
 .pm-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -2472,6 +2480,7 @@ a.bug-att-item{display:block}
 .dmp-color-field input[type=color]{width:44px;height:32px;padding:2px;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:none;cursor:pointer}
 .dmp-wallpapers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .dmp-wp-swatch{height:46px;border-radius:10px;border:2px solid rgba(167,139,250,.16);background-color:#1a1030;cursor:pointer;transition:transform .15s ease,border-color .15s ease}
+.dmp-wp-custom{background-size:cover;background-position:center}
 .dmp-wp-swatch:hover{transform:scale(1.05)}
 .dmp-wp-swatch.on{border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.35)}
 .msgs{background-repeat:no-repeat;background-position:center;background-attachment:local}
@@ -3542,6 +3551,9 @@ a.bug-att-item{display:block}
     <div class="dmp-field">
       <label>Fond d'écran</label>
       <div class="dmp-wallpapers" id="dmp-wallpapers"></div>
+      <button type="button" class="set-mini-btn" id="dmp-wallpaper-upload-btn" style="margin-top:8px;align-self:flex-start">🖼️ Importer une image ou un GIF</button>
+      <input type="file" id="dmp-wallpaper-file" class="hidden-input" accept="image/*">
+      <div class="err" id="dmp-wallpaper-err"></div>
     </div>
     <div style="display:flex;gap:8px;margin-top:6px">
       <button type="button" class="btn-main" id="dmp-save">Enregistrer</button>
@@ -5442,6 +5454,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.18.0',category:'feature',date:'28 août 2026',time:'23:30',title:'🖼️ Fond d\\'écran personnalisé en DM + 💎 badge ÉLITE X1',
+    body:'Dans 🎨 Personnaliser la conversation, tu peux maintenant importer directement ta propre image ou un GIF comme fond d\\'écran (en plus des styles proposés), toujours privé à toi seul. Et nouveau badge 💎 ÉLITE X1 — le plus scintillant de tous — accordé automatiquement avec X1+ à vie à l\\'équipe et aux membres porteurs d\\'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER).'},
   {version:'4.17.0',category:'design',date:'28 août 2026',time:'23:00',title:'🌈 Un vrai tableau de bord sur l\\'écran d\\'accueil',
     body:'Fini l\\'écran vide : dégradé animé aux couleurs X1 en fond, et trois nouveaux widgets — 🌤️ météo locale (position déduite automatiquement, aucune permission navigateur demandée), ⭐ stories à la une de toute la plateforme, et 🆕 derniers membres inscrits. Visible dès qu\\'aucune conversation, ami ou serveur n\\'est sélectionné.'},
   {version:'4.16.0',category:'feature',date:'28 août 2026',time:'22:30',title:'⚫⚪ Thème Monochrome',
@@ -7547,7 +7561,8 @@ const BADGE_DEFS={
   hunter5:{icon:'👑',label:'LÉGENDE DU BUG',color:'#facc15',desc:"50 bugs résolus : le sommet, presque personne n'y arrive. Accès en avant-première total et permanent à toutes les nouveautés, et X1+ offert à vie en reconnaissance. Un immense merci."},
   early:{icon:'✨',label:'EARLY USER',color:'#facc15',desc:"Tu étais là avant tout le monde. Accordé automatiquement à toute personne inscrite sur X1 avant le 30 août 2027, quand la plateforme n'était encore qu'une idée. Après cette date, ce badge ne se débloque plus — il ne se transmet qu'à ceux qui ont cru au projet dès le départ."},
   creator:{icon:'🎬',label:'CRÉATEUR DE CONTENU',color:'#ec4899',desc:"Badge exclusif, remis à la main par l'équipe X1 aux créateurs qui font vivre la plateforme à travers leur contenu — vidéos, streams, tutos, communauté. On ne le demande pas, on le reçoit. Rare, brillant, mérité."},
-  chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."}
+  chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."},
+  elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -7561,8 +7576,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['dev','chainsmoker','creator','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
-const BADGE_GROUP_LABEL={dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','hunter5','hunter4','hunter3','hunter2','hunter1','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',early:'EARLY USERS',base:'MEMBRES'};
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
@@ -8241,11 +8256,18 @@ function applyDmPersonalizationStyle(threadId){
   dmpSetVar(msgsEl,'--dm-bubble-mine',pers.bubbleMine);
   dmpSetVar(msgsEl,'--dm-bubble-theirs',pers.bubbleTheirs);
   dmpSetVar(msgsEl,'--dm-text-color',pers.textColor);
-  const wp=DM_WALLPAPERS[pers.wallpaper];
-  msgsEl.style.backgroundImage=wp?wp.css:'';
-  msgsEl.style.backgroundSize=(wp&&wp.size)?wp.size:'';
+  if(pers.wallpaperUrl){
+    msgsEl.style.backgroundImage='url(\\''+pers.wallpaperUrl.replace(/'/g,'')+'\\')';
+    msgsEl.style.backgroundSize='cover';
+    msgsEl.style.backgroundPosition='center';
+  }else{
+    const wp=DM_WALLPAPERS[pers.wallpaper];
+    msgsEl.style.backgroundImage=wp?wp.css:'';
+    msgsEl.style.backgroundSize=(wp&&wp.size)?wp.size:'';
+    msgsEl.style.backgroundPosition='center';
+  }
 }
-let dmpSelectedWallpaper='none';
+let dmpSelectedWallpaper='none',dmpCustomWallpaperUrl='';
 function openDmPersonalizeModal(){
   if(!activeDm||activeDmIsGroup)return;
   const pers=dmPersonalizationCache[activeDm]||{};
@@ -8253,17 +8275,24 @@ function openDmPersonalizeModal(){
   \$('dmp-bubble-mine').value=pers.bubbleMine||'#7c3aed';
   \$('dmp-bubble-theirs').value=pers.bubbleTheirs||'#241a38';
   \$('dmp-text-color').value=pers.textColor||'#f2ebff';
-  dmpSelectedWallpaper=pers.wallpaper||'none';
+  dmpCustomWallpaperUrl=pers.wallpaperUrl||'';
+  dmpSelectedWallpaper=dmpCustomWallpaperUrl?'custom':(pers.wallpaper||'none');
+  \$('dmp-wallpaper-err').textContent='';
   renderDmpWallpapers();
   \$('modal-dm-personalize').classList.remove('hidden');
 }
 function renderDmpWallpapers(){
   const box=\$('dmp-wallpapers');if(!box)return;
-  box.innerHTML=Object.keys(DM_WALLPAPERS).map(function(id){
+  let html='';
+  if(dmpCustomWallpaperUrl){
+    html+='<button type="button" class="dmp-wp-swatch dmp-wp-custom'+(dmpSelectedWallpaper==='custom'?' on':'')+'" data-wp="custom" style="background-image:url(\\''+esc(dmpCustomWallpaperUrl)+'\\')" title="Ton image"></button>';
+  }
+  html+=Object.keys(DM_WALLPAPERS).map(function(id){
     const wp=DM_WALLPAPERS[id];
     const bg=wp.css||'rgba(255,255,255,.05)';
     return '<button type="button" class="dmp-wp-swatch'+(dmpSelectedWallpaper===id?' on':'')+'" data-wp="'+esc(id)+'" style="background-image:'+esc(bg)+(wp.size?';background-size:'+esc(wp.size):'')+'" title="'+esc(wp.label)+'"></button>';
   }).join('');
+  box.innerHTML=html;
   box.querySelectorAll('[data-wp]').forEach(function(btn){
     btn.onclick=function(){
       dmpSelectedWallpaper=btn.getAttribute('data-wp');
@@ -8274,16 +8303,35 @@ function renderDmpWallpapers(){
 if(\$('btn-dm-personalize'))\$('btn-dm-personalize').addEventListener('click',openDmPersonalizeModal);
 if(\$('dmp-close'))\$('dmp-close').addEventListener('click',function(){\$('modal-dm-personalize').classList.add('hidden')});
 if(\$('modal-dm-personalize'))\$('modal-dm-personalize').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('dmp-wallpaper-upload-btn'))\$('dmp-wallpaper-upload-btn').addEventListener('click',function(){\$('dmp-wallpaper-file').click();});
+if(\$('dmp-wallpaper-file'))\$('dmp-wallpaper-file').addEventListener('change',async function(){
+  const file=this.files[0];this.value='';
+  if(!file)return;
+  \$('dmp-wallpaper-err').textContent='';
+  if(!/^image\\//.test(file.type)){\$('dmp-wallpaper-err').textContent='Image ou GIF uniquement.';return}
+  if(file.size>8*1024*1024){\$('dmp-wallpaper-err').textContent='Image max 8 Mo.';return}
+  const btn=\$('dmp-wallpaper-upload-btn');
+  btn.disabled=true;btn.textContent='Envoi…';
+  try{
+    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
+    dmpCustomWallpaperUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    dmpSelectedWallpaper='custom';
+    renderDmpWallpapers();
+  }catch(e){\$('dmp-wallpaper-err').textContent=(e&&e.message)||'Envoi impossible.';}
+  btn.disabled=false;btn.textContent='🖼️ Importer une image ou un GIF';
+});
 if(\$('dmp-save'))\$('dmp-save').addEventListener('click',async function(){
   if(!activeDm)return;
   const btn=\$('dmp-save');btn.disabled=true;btn.textContent='Enregistrement…';
   try{
+    const usingCustom=dmpSelectedWallpaper==='custom'&&dmpCustomWallpaperUrl;
     await saveDmPersonalization(activeDm,{
       nickname:(\$('dmp-nickname').value||'').trim().slice(0,60),
       bubbleMine:\$('dmp-bubble-mine').value||'',
       bubbleTheirs:\$('dmp-bubble-theirs').value||'',
       textColor:\$('dmp-text-color').value||'',
-      wallpaper:dmpSelectedWallpaper==='none'?'':dmpSelectedWallpaper
+      wallpaper:(usingCustom||dmpSelectedWallpaper==='none')?'':dmpSelectedWallpaper,
+      wallpaperUrl:usingCustom?dmpCustomWallpaperUrl:''
     });
     applyDmPersonalizationStyle(activeDm);
     const dm=dmsCache.find(function(d){return d.\$id===activeDm});
@@ -8299,7 +8347,8 @@ if(\$('dmp-reset'))\$('dmp-reset').addEventListener('click',async function(){
   if(!activeDm)return;
   const btn=\$('dmp-reset');btn.disabled=true;
   try{
-    await saveDmPersonalization(activeDm,{nickname:'',bubbleMine:'',bubbleTheirs:'',textColor:'',wallpaper:''});
+    await saveDmPersonalization(activeDm,{nickname:'',bubbleMine:'',bubbleTheirs:'',textColor:'',wallpaper:'',wallpaperUrl:''});
+    dmpCustomWallpaperUrl='';
     applyDmPersonalizationStyle(activeDm);
     const dm=dmsCache.find(function(d){return d.\$id===activeDm});
     if(dm)\$('ch-title').textContent=dmTitleFor(dm);
@@ -21521,10 +21570,29 @@ async function handle(request) {
     try {
       const body = await request.json();
       const authUserId = String((body && body.authUserId) || "");
-      const badges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator"].indexOf(b) >= 0; }) : [];
+      const requestedBadges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "elite"].indexOf(b) >= 0; }) : [];
       const targetName = String((body && body.targetName) || "");
       if (!authUserId) throw new Error("authUserId requis");
+      // Badge ÉLITE X1 + X1+ à vie, accordés automatiquement (jamais retirés
+      // ici) à l'équipe (SHAMAN_UIDS) et aux porteurs d'un badge exclusif
+      // (DEV, CRÉATEUR DE CONTENU — CHAINSMOKER est déjà couvert via
+      // SHAMAN_UIDS, seule Yani le détient).
+      const exclusiveBadges = ["dev", "creator", "chainsmoker"];
+      const eliteEligible = SHAMAN_UIDS.has(authUserId) || requestedBadges.some(function (b) { return exclusiveBadges.indexOf(b) >= 0; });
+      const badges = requestedBadges.slice();
+      if (eliteEligible && badges.indexOf("elite") < 0) badges.push("elite");
       const badgesJson = JSON.stringify(badges);
+      const data = { badgesJson: badgesJson };
+      if (eliteEligible) {
+        try {
+          const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, { asAdmin: true });
+          if (meta.plan !== "plus") {
+            data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
+          }
+        } catch (e) {
+          data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
+        }
+      }
       // Locked to admin-key writes only: user_meta documents were created with a
       // self-update permission that would otherwise let anyone grant themselves
       // a badge directly via the client SDK. Every write through this route
@@ -21532,13 +21600,13 @@ async function handle(request) {
       const lockedPerms = ["read(\"any\")"];
       try {
         await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, {
-          method: "PATCH", asAdmin: true, body: { data: { badgesJson }, permissions: lockedPerms }
+          method: "PATCH", asAdmin: true, body: { data: data, permissions: lockedPerms }
         });
       } catch (e) {
         if (e && e.status === 404) {
           await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
             method: "POST", asAdmin: true,
-            body: { documentId: authUserId, data: { badgesJson }, permissions: lockedPerms }
+            body: { documentId: authUserId, data: data, permissions: lockedPerms }
           });
         } else throw e;
       }
