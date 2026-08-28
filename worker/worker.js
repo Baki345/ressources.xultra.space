@@ -1329,8 +1329,14 @@ html.xultra-restoring #stage{visibility:hidden}
 .mfp-times{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
 .mfp-ctrls{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:6px;flex-shrink:0}
 .mfp-ctrls button{width:44px;height:44px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:1.2rem}
-.mfp-ctrls #mfp-shuffle.on{color:#a855f7}
+.mfp-ctrls #mfp-shuffle.on,.mfp-ctrls #mfp-repeat.on{color:#a855f7}
 .mfp-main{width:66px;height:66px;background:#fff;color:#1a0b2e;font-size:1.5rem}
+.mfp-vol-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-shrink:0;font-size:.9rem}
+.mfp-vol-row input[type=range]{flex:1;accent-color:#a855f7}
+.mfp-ctrls2{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-shrink:0;flex-wrap:wrap}
+.mfp-ctrls2 button{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px}
+.mfp-ctrls2 #mfp-like{font-size:1rem;padding:6px 14px}
+.music-queue-row.on{background:rgba(124,58,237,.14)}
 .discover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
@@ -5290,6 +5296,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.6.0',date:'28 août 2026',time:'14:00',title:'📻 X1 Music : radio, répétition, vitesse, minuterie, file d\\'attente',
+    body:'Le lecteur plein écran s\\'enrichit : 📻 Radio (lance une file mélangée à partir d\\'un titre — même genre, ou même artiste à défaut), 🔁/🔂 répétition (file entière ou titre seul), ▶️ vitesse de lecture (0,75x à 2x), 🔊 volume, ⏱️ minuterie de sommeil (15/30/45/60 min) et 📋 file d\\'attente consultable avec saut direct à un titre. Le bouton radio est aussi disponible directement sur chaque carte de titre.'},
   {version:'4.5.1',date:'28 août 2026',time:'13:00',title:'🔒 X1 Music : sécurité et compteurs corrigés',
     body:'La distinction Streaming/Sons des membres est maintenant vérifiée côté serveur (impossible de se déclarer "Streaming" par un simple appel technique). Corrigé au passage un vrai bug découvert en creusant ce point : les compteurs de lectures, likes et commentaires ne se mettaient à jour que quand l\\'auteur du titre agissait sur son propre titre — donc quasiment jamais en usage normal. Ils comptent maintenant correctement, peu importe qui écoute, aime ou commente.'},
   {version:'4.5.0',date:'28 août 2026',time:'12:00',title:'🎧 X1 Music : Streaming vs Sons des membres',
@@ -7081,6 +7089,7 @@ const SECTION_GUIDES={
     "+ Ajouter un titre publie un fichier audio (avec pochette, genre, tags et paroles optionnels) directement depuis ton compte, ouvert à tout le monde.",
     "🎧 Streaming rassemble le contenu officiel sélectionné par l'équipe X1 ; 🎤 Sons des membres, tout ce que la communauté publie ; Mes titres, uniquement les tiens ; Mes playlists, tes collections.",
     "Tape sur la barre de lecture pour passer en plein écran, avec un onglet Paroles synchronisées façon karaoké quand elles sont disponibles.",
+    "Dans le lecteur plein écran : 📻 radio à partir du titre en cours, 🔁 répétition, ▶️ vitesse, 🔊 volume, ⏱️ minuterie de sommeil et 📋 file d'attente.",
     "❤️ aime un titre, 💬 laisse un commentaire, ➕ Playlist l'ajoute à une playlist existante ou toute neuve, et tu peux suivre un artiste pour être notifié de ses prochaines publications.",
     "🎵 Musique apparaît aussi sur chaque profil — les titres publiés par cette personne, à un clic."
   ]},
@@ -12410,6 +12419,22 @@ let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMy
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
 let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
+let musicRepeatMode='off'; // 'off' | 'all' | 'one'
+let musicPlaybackRate=1,musicVolume=1;
+let musicSleepTimerId=null,musicSleepTimerEndsAt=0;
+let musicRadioQueue=null; // file éphémère prioritaire, posée par musicStartRadio()
+function loadMusicPlayerPrefs(){
+  try{
+    const p=JSON.parse(localStorage.getItem('xultra_music_player_prefs')||'{}');
+    if(p.repeatMode)musicRepeatMode=p.repeatMode;
+    if(typeof p.playbackRate==='number')musicPlaybackRate=p.playbackRate;
+    if(typeof p.volume==='number')musicVolume=p.volume;
+  }catch(e){}
+}
+function saveMusicPlayerPrefs(){
+  try{localStorage.setItem('xultra_music_player_prefs',JSON.stringify({repeatMode:musicRepeatMode,playbackRate:musicPlaybackRate,volume:musicVolume}));}catch(e){}
+}
+loadMusicPlayerPrefs();
 const MUSIC_GENRES=[
   {id:'hiphop',name:'Hip-Hop',c:'linear-gradient(135deg,#7c3aed,#db2777)'},
   {id:'electro',name:'Électro',c:'linear-gradient(135deg,#4c1d95,#06b6d4)'},
@@ -12433,7 +12458,20 @@ let musicSeekingByUser=false,musicSeekingTimeout=null;
 function musicEnsureAudio(){
   if(musicAudioEl)return musicAudioEl;
   musicAudioEl=new Audio();
-  musicAudioEl.addEventListener('ended',function(){musicNext();});
+  musicAudioEl.volume=musicVolume;
+  musicAudioEl.playbackRate=musicPlaybackRate;
+  musicAudioEl.addEventListener('ended',function(){
+    if(musicRepeatMode==='one'){musicAudioEl.currentTime=0;musicAudioEl.play().catch(function(){});return}
+    // Répétition "off" : pas de bouclage automatique une fois la fin de la
+    // file atteinte (musicStepTrack boucle toujours via modulo, comportement
+    // volontairement réservé au mode "Tout").
+    if(musicRepeatMode==='off'){
+      const list=musicCurrentQueue();
+      const idx=list.findIndex(function(t){return musicCurrentTrack&&t.\$id===musicCurrentTrack.\$id;});
+      if(idx===list.length-1){musicAudioEl.pause();return}
+    }
+    musicNext();
+  });
   musicAudioEl.addEventListener('timeupdate',musicUpdatePlayerBar);
   musicAudioEl.addEventListener('loadedmetadata',musicUpdatePlayerBar);
   musicAudioEl.addEventListener('seeked',function(){musicSeekingByUser=false;musicUpdatePlayerBar();});
@@ -12457,6 +12495,23 @@ function musicShuffleArray(arr){
   }
   return a;
 }
+// Radio à partir d'un titre : file éphémère (même genre, ou même artiste à
+// défaut de genre), mélangée, avec le titre de départ en tête — prioritaire
+// sur les onglets/recherche/genre tant qu'elle est active (voir
+// musicCurrentQueue). Se referme dès qu'on relance une lecture "normale"
+// (changement d'onglet, recherche, clic sur un autre titre depuis une liste).
+function musicStartRadio(track){
+  const pool=musicTracksCache.filter(function(t){
+    if(t.\$id===track.\$id)return false;
+    return track.genre?t.genre===track.genre:t.artistName===track.artistName;
+  });
+  if(!pool.length){showToast('Pas assez de titres similaires pour une radio.','error');return}
+  const queue=musicShuffleArray(pool);
+  queue.unshift(track);
+  musicRadioQueue=queue;
+  musicPlayTrack(track.\$id,true);
+  showToast('📻 Radio démarrée'+(track.genre?' · '+musicGenreLabel(track.genre):' · '+track.artistName));
+}
 let musicQueueCache=null,musicQueueCacheKey='';
 function musicQueueKey(){
   return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',musicTracksCache.length].join('|');
@@ -12466,6 +12521,7 @@ function musicQueueKey(){
 // pour "suivant/précédent") re-tirerait un ordre différent à chaque appel,
 // rendant la navigation dans la file incohérente au clic sur ⏭/⏮.
 function musicCurrentQueue(){
+  if(musicRadioQueue)return musicRadioQueue;
   const key=musicQueueKey();
   if(musicQueueCache&&musicQueueCacheKey===key)return musicQueueCache;
   let list;
@@ -12573,12 +12629,14 @@ function renderMusicShell(){
   updateMusicFollowBtn();
   if(\$('music-search'))\$('music-search').addEventListener('input',function(){
     musicSearchQuery=this.value.trim();
+    musicRadioQueue=null;
     renderMusicBody();
   });
   if(\$('music-genre-row'))\$('music-genre-row').querySelectorAll('[data-genre]').forEach(function(b){
     b.addEventListener('click',function(){
       const g=b.getAttribute('data-genre');
       musicGenreFilter=(musicGenreFilter===g)?'':g;
+      musicRadioQueue=null;
       \$('music-genre-row').querySelectorAll('[data-genre]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-genre')===musicGenreFilter);});
       renderMusicBody();
     });
@@ -12587,6 +12645,7 @@ function renderMusicShell(){
     b.addEventListener('click',function(){
       musicFilter=b.getAttribute('data-music-tab');
       musicActivePlaylist=null;
+      musicRadioQueue=null;
       // Reconstruit tout le haut du panneau (pas juste la liste) : la note
       // "contenu officiel" du Streaming et l'onglet actif en dépendent tous
       // les deux, sans quoi ils restaient figés sur l'onglet ouvert au départ.
@@ -12656,6 +12715,7 @@ function musicTrackCardHtml(t){
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
+      +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
     +'</div></div>';
 }
 function renderMusicBody(){
@@ -12686,11 +12746,18 @@ function wireMusicCardEvents(box){
   box.querySelectorAll('[data-music-addlist]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();openMusicAddToPlaylist(el.getAttribute('data-music-addlist'));});
   });
+  box.querySelectorAll('[data-music-radio]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const t=musicTracksCache.find(function(x){return x.\$id===el.getAttribute('data-music-radio')});
+      if(t)musicStartRadio(t);
+    });
+  });
   box.querySelectorAll('[data-music-artist]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();closeMusic();openProfileModal(el.getAttribute('data-music-artist'));});
   });
 }
-async function musicPlayTrack(trackId){
+async function musicPlayTrack(trackId,keepRadio){
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});
   if(!t||!safeUrl(t.audioUrl)){showToast('Fichier audio indisponible.','error');return}
   const audio=musicEnsureAudio();
@@ -12698,6 +12765,7 @@ async function musicPlayTrack(trackId){
     musicTogglePlay();
     return;
   }
+  if(!keepRadio)musicRadioQueue=null;
   musicCurrentTrack=t;
   audio.src=safeUrl(t.audioUrl);
   audio.play().catch(function(){showToast('Lecture impossible.','error');});
@@ -12805,6 +12873,103 @@ function musicSyncFullPlayerMeta(){
   if(like)like.textContent=musicMyLikedIds.has(t.\$id)?'♥':'♡';
   const shuffleBtn=\$('mfp-shuffle');
   if(shuffleBtn)shuffleBtn.classList.toggle('on',musicShuffleOn);
+  musicSyncRepeatBtn();
+  const speedBtn=\$('mfp-speed');if(speedBtn)speedBtn.textContent=musicPlaybackRate+'x';
+  const volSlider=\$('mfp-volume');if(volSlider)volSlider.value=String(Math.round(musicVolume*100));
+}
+function musicSyncRepeatBtn(){
+  const btn=\$('mfp-repeat');if(!btn)return;
+  btn.classList.toggle('on',musicRepeatMode!=='off');
+  btn.textContent=musicRepeatMode==='one'?'🔂':'🔁';
+}
+function musicCycleRepeatMode(){
+  musicRepeatMode=musicRepeatMode==='off'?'all':(musicRepeatMode==='all'?'one':'off');
+  saveMusicPlayerPrefs();
+  musicSyncRepeatBtn();
+  showToast(musicRepeatMode==='off'?'Répétition désactivée':(musicRepeatMode==='all'?'🔁 Répète la file':'🔂 Répète le titre'));
+}
+const MUSIC_PLAYBACK_RATES=[0.75,1,1.25,1.5,2];
+function musicCyclePlaybackRate(){
+  const idx=MUSIC_PLAYBACK_RATES.indexOf(musicPlaybackRate);
+  musicPlaybackRate=MUSIC_PLAYBACK_RATES[(idx+1)%MUSIC_PLAYBACK_RATES.length];
+  if(musicAudioEl)musicAudioEl.playbackRate=musicPlaybackRate;
+  saveMusicPlayerPrefs();
+  const btn=\$('mfp-speed');if(btn)btn.textContent=musicPlaybackRate+'x';
+  showToast('Vitesse de lecture : '+musicPlaybackRate+'x');
+}
+function musicClearSleepTimer(){
+  if(musicSleepTimerId){clearTimeout(musicSleepTimerId);musicSleepTimerId=null;}
+  musicSleepTimerEndsAt=0;
+}
+function musicSetSleepTimer(minutes){
+  musicClearSleepTimer();
+  if(!minutes){showToast('Minuterie de sommeil désactivée.');return}
+  musicSleepTimerEndsAt=Date.now()+minutes*60000;
+  musicSleepTimerId=setTimeout(function(){
+    if(musicAudioEl)musicAudioEl.pause();
+    musicSleepTimerId=null;musicSleepTimerEndsAt=0;
+    showToast('⏱️ Minuterie de sommeil : lecture mise en pause.');
+  },minutes*60000);
+  showToast('⏱️ Lecture en pause dans '+minutes+' min.');
+}
+function openMusicSleepTimerMenu(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const options=[0,15,30,45,60];
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">⏱️ Minuterie de sommeil</div>'
+    +options.map(function(m){
+      return '<button type="button" class="set-card-row" data-sleep="'+m+'" style="width:100%;text-align:left;cursor:pointer"><div class="scr-info"><div class="scr-label">'+(m===0?'Désactivée':m+' min')+'</div></div></button>';
+    }).join('')
+    +'<button type="button" class="as-cancel" id="sleep-cancel">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('sleep-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelectorAll('[data-sleep]').forEach(function(b){
+    b.addEventListener('click',function(){musicSetSleepTimer(parseInt(b.getAttribute('data-sleep'),10)||0);close();});
+  });
+}
+function openMusicQueueView(){
+  const list=musicCurrentQueue();
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:75vh;overflow-y:auto;text-align:left">'
+    +'<div class="set-section-label">📋 File d\\'attente'+(musicRadioQueue?' · Radio':'')+'</div>'
+    +(list.length?list.map(function(t){
+      const isCurrent=musicCurrentTrack&&t.\$id===musicCurrentTrack.\$id;
+      return '<div class="set-card-row music-queue-row'+(isCurrent?' on':'')+'" data-queue-play="'+esc(t.\$id)+'" style="cursor:pointer"><div class="scr-info"><div class="scr-label">'+(isCurrent?'▶ ':'')+esc(t.title)+'</div><div class="scr-sub">'+esc(t.artistName)+'</div></div></div>';
+    }).join(''):'<div class="scr-sub">File vide.</div>')
+    +'<button type="button" class="as-cancel" id="queue-close">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('queue-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelectorAll('[data-queue-play]').forEach(function(el){
+    el.addEventListener('click',function(){musicPlayTrack(el.getAttribute('data-queue-play'),!!musicRadioQueue);close();});
+  });
+}
+function openMusicMoreMenu(){
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">⋯ Plus d\\'options</div>'
+    +'<button type="button" class="set-card-row" id="more-radio" style="width:100%;text-align:left;cursor:pointer"><div class="scr-info"><div class="scr-label">📻 Lancer une radio à partir de ce titre</div></div></button>'
+    +'<button type="button" class="set-card-row" id="more-queue" style="width:100%;text-align:left;cursor:pointer"><div class="scr-info"><div class="scr-label">📋 Voir la file d\\'attente</div></div></button>'
+    +'<button type="button" class="set-card-row" id="more-speed" style="width:100%;text-align:left;cursor:pointer"><div class="scr-info"><div class="scr-label">▶️ Vitesse de lecture — '+musicPlaybackRate+'x</div></div></button>'
+    +'<button type="button" class="set-card-row" id="more-sleep" style="width:100%;text-align:left;cursor:pointer"><div class="scr-info"><div class="scr-label">⏱️ Minuterie de sommeil</div></div></button>'
+    +'<button type="button" class="as-cancel" id="more-close">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('more-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('more-radio').onclick=function(){close();if(musicCurrentTrack)musicStartRadio(musicCurrentTrack);};
+  \$('more-queue').onclick=function(){close();openMusicQueueView();};
+  \$('more-speed').onclick=function(){musicCyclePlaybackRate();close();};
+  \$('more-sleep').onclick=function(){close();openMusicSleepTimerMenu();};
 }
 function openMusicFullPlayer(){
   let overlay=\$('music-fullplayer');
@@ -12813,18 +12978,26 @@ function openMusicFullPlayer(){
     overlay.id='music-fullplayer';
     overlay.className='overlay hidden music-fullplayer';
     overlay.innerHTML='<div class="mfp-box">'
-      +'<div class="mfp-head"><button type="button" class="mfp-close" id="mfp-close">▼</button><div class="mfp-head-label">LECTURE EN COURS</div><div style="width:38px"></div></div>'
+      +'<div class="mfp-head"><button type="button" class="mfp-close" id="mfp-close">▼</button><div class="mfp-head-label">LECTURE EN COURS</div><button type="button" class="mfp-close" id="mfp-more">⋯</button></div>'
       +'<div class="mfp-art-wrap" id="mfp-art-wrap"><div class="mfp-art" id="mfp-art">🎵</div></div>'
       +'<div class="mfp-lyrics" id="mfp-lyrics"></div>'
       +'<div class="mfp-tabs"><button type="button" class="on" data-mfp-tab="cover">Pochette</button><button type="button" data-mfp-tab="lyrics">Paroles</button></div>'
       +'<div class="mfp-meta"><h1 id="mfp-title">—</h1><div class="mfp-artist" id="mfp-artist">—</div></div>'
       +'<div class="mfp-seek"><input type="range" id="mfp-seek" min="0" max="1000" value="0"><div class="mfp-times"><span id="mfp-t-cur">0:00</span><span id="mfp-t-dur">0:00</span></div></div>'
+      +'<div class="mfp-vol-row"><span>🔉</span><input type="range" id="mfp-volume" min="0" max="100" value="'+Math.round(musicVolume*100)+'"><span>🔊</span></div>'
       +'<div class="mfp-ctrls">'
-        +'<button type="button" id="mfp-shuffle">⇄</button>'
-        +'<button type="button" id="mfp-prev">⏮</button>'
-        +'<button type="button" class="mfp-main" id="mfp-play">▶</button>'
-        +'<button type="button" id="mfp-next">⏭</button>'
-        +'<button type="button" id="mfp-like">♡</button>'
+        +'<button type="button" id="mfp-shuffle" title="Aléatoire">⇄</button>'
+        +'<button type="button" id="mfp-prev" title="Précédent">⏮</button>'
+        +'<button type="button" class="mfp-main" id="mfp-play" title="Lecture">▶</button>'
+        +'<button type="button" id="mfp-next" title="Suivant">⏭</button>'
+        +'<button type="button" id="mfp-repeat" title="Répétition">🔁</button>'
+      +'</div>'
+      +'<div class="mfp-ctrls2">'
+        +'<button type="button" id="mfp-like" title="Aimer">♡</button>'
+        +'<button type="button" id="mfp-radio" title="Radio à partir de ce titre">📻</button>'
+        +'<button type="button" id="mfp-speed" title="Vitesse">'+musicPlaybackRate+'x</button>'
+        +'<button type="button" id="mfp-sleep" title="Minuterie de sommeil">⏱️</button>'
+        +'<button type="button" id="mfp-queue" title="File d\\'attente">📋</button>'
       +'</div>'
     +'</div>';
     document.body.appendChild(overlay);
@@ -12833,11 +13006,23 @@ function openMusicFullPlayer(){
     \$('mfp-prev').onclick=musicPrev;
     \$('mfp-next').onclick=musicNext;
     \$('mfp-like').onclick=function(){if(musicCurrentTrack)musicToggleLike(musicCurrentTrack.\$id);};
+    \$('mfp-radio').onclick=function(){if(musicCurrentTrack)musicStartRadio(musicCurrentTrack);};
+    \$('mfp-queue').onclick=openMusicQueueView;
+    \$('mfp-more').onclick=openMusicMoreMenu;
     \$('mfp-shuffle').onclick=function(){
       musicShuffleOn=!musicShuffleOn;
       this.classList.toggle('on',musicShuffleOn);
       const barBtn=\$('mpb-shuffle');if(barBtn)barBtn.classList.toggle('on',musicShuffleOn);
     };
+    \$('mfp-repeat').onclick=function(){musicCycleRepeatMode();};
+    \$('mfp-speed').onclick=function(){musicCyclePlaybackRate();};
+    \$('mfp-sleep').onclick=openMusicSleepTimerMenu;
+    \$('mfp-volume').addEventListener('input',function(){
+      musicVolume=(parseInt(this.value,10)||0)/100;
+      const audio=musicEnsureAudio();
+      audio.volume=musicVolume;
+      saveMusicPlayerPrefs();
+    });
     \$('mfp-seek').addEventListener('input',function(){
       const audio=musicEnsureAudio();
       if(!audio.duration)return;
@@ -12854,6 +13039,7 @@ function openMusicFullPlayer(){
       });
     });
   }
+  musicSyncRepeatBtn();
   overlay.classList.remove('hidden');
   musicSyncFullPlayerMeta();
   renderMusicPlayIcons();
@@ -13055,6 +13241,7 @@ async function renderMusicPlaylistsTab(box){
       const p=musicPlaylistsCache.find(function(x){return x.\$id===el.getAttribute('data-music-pl-open')});
       if(!p)return;
       musicActivePlaylist=p;
+      musicRadioQueue=null;
       renderMusicBody();
     });
   });
