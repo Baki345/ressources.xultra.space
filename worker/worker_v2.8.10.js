@@ -1245,6 +1245,40 @@ button{cursor:pointer;border:0;background:0}
 .discover-tabs button{flex:1;padding:8px;border-radius:10px;background:var(--elev);font-size:.82rem;font-weight:700}
 .discover-tabs button.on{background:#7c3aed;color:#fff}
 .discover-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 14px}
+.music-tabs{padding:0 14px 12px}
+.music-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;padding-bottom:100px}
+.music-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px;transition:border-color .15s ease}
+.music-card.on{border-color:rgba(167,139,250,.5)}
+.music-card-cover{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer;margin-bottom:8px}
+.music-card-cover img{width:100%;height:100%;object-fit:cover}
+.music-card-nocov{font-size:2rem}
+.music-card-playbtn{position:absolute;inset:0;display:grid;place-items:center;font-size:1.6rem;color:#fff;background:rgba(0,0,0,0);opacity:0;transition:opacity .15s ease,background .15s ease}
+.music-card-cover:hover .music-card-playbtn{opacity:1;background:rgba(0,0,0,.35)}
+.music-card-title{font-weight:800;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-card-artist{font-size:.74rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;margin-bottom:8px}
+.music-card-artist:hover{color:#c4b5fd;text-decoration:underline}
+.music-card-actions{display:flex;gap:6px;flex-wrap:wrap}
+.music-mini-btn{padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.05);color:var(--muted);font-size:.7rem;font-weight:700}
+.music-mini-btn:hover{background:rgba(255,255,255,.1)}
+.music-mini-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
+.music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
+.music-player-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(180deg,rgba(21,16,31,.92),rgba(11,7,20,.98));backdrop-filter:blur(14px);border-top:1px solid rgba(167,139,250,.2)}
+.music-player-bar.hidden{display:none}
+.mpb-cover{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.1rem}
+.mpb-cover img{width:100%;height:100%;object-fit:cover}
+.mpb-info{min-width:0;width:140px;flex-shrink:0}
+.mpb-title{font-weight:800;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpb-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpb-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.mpb-btn{width:32px;height:32px;border-radius:50%;background:var(--elev);color:#f2ebff;display:grid;place-items:center}
+.mpb-btn:hover{background:var(--hover)}
+.mpb-play{width:38px;height:38px;background:#7c3aed}
+.mpb-play:hover{background:#8b5cf6}
+.mpb-seek-wrap{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.mpb-time{font-size:.66rem;color:var(--muted);flex-shrink:0;width:32px}
+.mpb-time:last-child{text-align:right}
+.mpb-seek{flex:1;accent-color:#7c3aed}
+@media (max-width:640px){.mpb-info{width:auto;flex:1}.mpb-seek-wrap{display:none}}
 .discover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
@@ -1827,6 +1861,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-social-btn{width:38px;height:38px;display:grid;place-items:center;font-size:1rem;text-decoration:none;transition:transform .12s ease}
 .pc-social-btn:hover{transform:translateY(-2px) scale(1.06)}
 .pc-spotify{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:999px;background:rgba(30,215,96,.16);border:1px solid rgba(30,215,96,.4);color:#6ee7a0;font-size:.76rem;font-weight:800;text-decoration:none}
+.pc-music-btn{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:7px 14px;border-radius:999px;background:rgba(124,58,237,.16);border:1px solid rgba(167,139,250,.4);color:#c4b5fd;font-size:.76rem;font-weight:800}
+.pc-music-btn:hover{background:rgba(124,58,237,.28)}
 .pc-since{margin-top:16px;font-size:.68rem;opacity:.55}
 .pc-mutual{margin-top:10px;font-size:.72rem;opacity:.75;font-weight:700}
 .pc-highlights{margin-top:14px}
@@ -2569,6 +2605,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-members" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" class="rail-btn" id="nav-casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
@@ -2583,6 +2620,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-music-mobile" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
@@ -4348,6 +4386,7 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'Serveurs',text:'Rejoins ou crée des communautés avec salons textuels et vocaux.'},
   {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
   {desktopSel:'#nav-casino',mobileSel:'#nav-casino-mobile',placement:'right',icon:'🎰',title:'Casino',text:'Des mini-jeux et des duels amicaux avec tes amis.'},
+  {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -5113,6 +5152,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'3.6.0',date:'28 août 2026',time:'02:00',title:'🎵 XULTRA Music',
+    body:'Une plateforme d\\'écoute et de partage, ouverte à tout le monde, fusionnée avec le profil existant : nouveau bouton 🎵 dans la barre latérale. Publie tes propres titres (fichier audio + pochette optionnelle), découvre ceux des autres, crée des playlists, aime et commente. Chaque profil affiche maintenant un bouton 🎵 Musique vers les titres publiés par cette personne. Première version volontairement centrée sur l\\'écoute et le partage — pas de redevances, de distribution vers d\\'autres plateformes ni de contenu payant pour l\\'instant.'},
   {version:'3.5.0',date:'28 août 2026',time:'01:00',title:'📖 Un guide pour chaque section du site',
     body:'En plus de la visite guidée des boutons principaux, chaque grande section a maintenant son propre petit guide écrit — Messages, Amis, Serveurs, Chatroulette, Casino, Boîte à idées, Profil, Bug Hunter, et Se connecter avec XULTRA. Accessible depuis Paramètres → Avancé → Guides par section.'},
   {version:'3.4.0',date:'28 août 2026',time:'00:00',title:'👨‍💻 Se connecter avec XULTRA (ouvert à tout le monde)',
@@ -6782,6 +6823,12 @@ async function renderSetOs(box){
 // vide ou cassée tant qu'on n'est pas déjà dans le bon contexte. Un guide
 // textuel reste toujours correct, quel que soit l'état de l'appli.
 const SECTION_GUIDES={
+  music:{icon:'🎵',title:'Musique',tips:[
+    "+ Ajouter un titre publie un fichier audio (avec pochette optionnelle) directement depuis ton compte, ouvert à tout le monde.",
+    "Découvrir montre les derniers titres publiés ; Mes titres, uniquement les tiens ; Mes playlists, tes collections personnelles.",
+    "❤️ aime un titre, 💬 laisse un commentaire, ➕ Playlist l'ajoute à une playlist existante ou toute neuve.",
+    "🎵 Musique apparaît aussi sur chaque profil — les titres publiés par cette personne, à un clic."
+  ]},
   dms:{icon:'💬',title:'Messages',tips:[
     "Clique une conversation pour l'ouvrir, ou l'onglet Amis pour en démarrer une nouvelle.",
     "Le bouton ⋯ sur un message permet de répondre, réagir, épingler, copier ou supprimer.",
@@ -8200,6 +8247,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ X1+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
+      +'<button type="button" class="pc-music-btn" data-music-open="'+esc(p.authUserId||p.\$id||'')+'" data-music-name="'+esc(name)+'">🎵 Musique</button>'
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
       +(opts.mutualCount!=null&&opts.mutualCount>0?'<div class="pc-mutual">👥 '+opts.mutualCount+' ami'+(opts.mutualCount>1?'s':'')+' en commun</div>':'')
       +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+(opts.showLastSeen&&lastSeenTxt?' · '+esc(lastSeenTxt):'')+'</div>')
@@ -8211,6 +8259,8 @@ function mountProfileCardExtras(container){
   if(!container)return;
   const pel=container.querySelector('.pc-particles');
   if(pel)mountParticles(pel,pel.getAttribute('data-particles'));
+  const musicBtn=container.querySelector('[data-music-open]');
+  if(musicBtn)musicBtn.addEventListener('click',function(){openMusic(musicBtn.getAttribute('data-music-open'),musicBtn.getAttribute('data-music-name'));});
   const card=container.querySelector('.pc-card');
   if(card){
     const n=parseInt(card.getAttribute('data-avatar-count')||'0',10);
@@ -11881,6 +11931,405 @@ function openCasinoCreateForm(){
     }catch(e){\$('casino-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
   };
 }
+
+/* ===== XULTRA Music (plateforme d'écoute/partage ouverte à tout le monde,
+   fusionnée avec le profil existant) : upload de titres, lecture, playlists,
+   likes, commentaires. Volontairement centré sur l'écoute/le partage pour
+   cette première version — redevances, distribution vers d'autres
+   plateformes, empreinte anti-fraude, mastering par IA et le reste de
+   l'infrastructure "label" restent hors de portée d'un simple code : ça
+   suppose des contrats, des processeurs de paiement et des intégrations
+   externes qu'aucune ligne de code ne peut faire apparaître toute seule. */
+let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set();
+let musicFilter='discover',musicViewUid=null,musicViewName='';
+let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
+function musicEnsureAudio(){
+  if(musicAudioEl)return musicAudioEl;
+  musicAudioEl=new Audio();
+  musicAudioEl.addEventListener('ended',function(){musicNext();});
+  musicAudioEl.addEventListener('timeupdate',musicUpdatePlayerBar);
+  musicAudioEl.addEventListener('loadedmetadata',musicUpdatePlayerBar);
+  musicAudioEl.addEventListener('play',function(){renderMusicPlayIcons();});
+  musicAudioEl.addEventListener('pause',function(){renderMusicPlayIcons();});
+  return musicAudioEl;
+}
+function musicCurrentQueue(){
+  if(musicActivePlaylist){
+    let ids=[];try{ids=JSON.parse(musicActivePlaylist.trackIdsJson||'[]');}catch(e){}
+    return ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
+  }
+  if(musicFilter==='mine'&&me)return musicTracksCache.filter(function(t){return String(t.uid)===String(me.\$id);});
+  return musicTracksCache;
+}
+async function openMusic(uid,name){
+  let overlay=\$('music-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='music-overlay';
+    overlay.className='discover-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  musicViewUid=uid||null;musicViewName=name||'';
+  musicFilter=uid?'user':'discover';
+  musicActivePlaylist=null;
+  renderMusicShell();
+  await Promise.all([loadMusicTracks(),loadMyMusicLikes()]);
+  renderMusicBody();
+}
+function closeMusic(){
+  const overlay=\$('music-overlay');
+  if(overlay)overlay.classList.remove('show');
+  if(musicAudioEl)musicAudioEl.pause();
+}
+function renderMusicShell(){
+  const overlay=\$('music-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'+(musicViewUid?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
+    +(musicViewUid?'':'<div class="seg-group music-tabs" id="music-tabs"><button type="button" class="seg-btn on" data-music-tab="discover">Découvrir</button><button type="button" class="seg-btn" data-music-tab="mine">Mes titres</button><button type="button" class="seg-btn" data-music-tab="playlists">Mes playlists</button></div>')
+    +'<div class="discover-body" id="music-body"></div>'
+    +'<div class="music-player-bar hidden" id="music-player-bar">'
+      +'<div class="mpb-cover" id="mpb-cover"></div>'
+      +'<div class="mpb-info"><div class="mpb-title" id="mpb-title"></div><div class="mpb-artist" id="mpb-artist"></div></div>'
+      +'<div class="mpb-controls">'
+        +'<button type="button" class="mpb-btn" id="mpb-prev" title="Précédent"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M6 5h2v14H6zM19 5v14l-10-7z"/></svg></button>'
+        +'<button type="button" class="mpb-btn mpb-play" id="mpb-play" title="Lecture"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg></button>'
+        +'<button type="button" class="mpb-btn" id="mpb-next" title="Suivant"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>'
+      +'</div>'
+      +'<div class="mpb-seek-wrap"><span class="mpb-time" id="mpb-time-cur">0:00</span><input type="range" id="mpb-seek" min="0" max="100" value="0" class="mpb-seek"><span class="mpb-time" id="mpb-time-dur">0:00</span></div>'
+    +'</div>';
+  \$('music-close').onclick=closeMusic;
+  if(\$('music-upload-btn'))\$('music-upload-btn').onclick=openMusicUploadForm;
+  if(\$('music-tabs'))\$('music-tabs').querySelectorAll('[data-music-tab]').forEach(function(b){
+    b.addEventListener('click',function(){
+      musicFilter=b.getAttribute('data-music-tab');
+      musicActivePlaylist=null;
+      \$('music-tabs').querySelectorAll('[data-music-tab]').forEach(function(x){x.classList.toggle('on',x===b);});
+      renderMusicBody();
+    });
+  });
+  \$('mpb-play').onclick=musicTogglePlay;
+  \$('mpb-prev').onclick=musicPrev;
+  \$('mpb-next').onclick=musicNext;
+  \$('mpb-seek').addEventListener('input',function(){
+    const audio=musicEnsureAudio();
+    if(audio.duration)audio.currentTime=(this.value/100)*audio.duration;
+  });
+}
+async function loadMusicTracks(){
+  try{
+    const queries=[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)];
+    if(musicViewUid)queries.unshift(Appwrite.Query.equal('uid',musicViewUid));
+    const r=await db.listDocuments(DB,'xm_tracks',queries);
+    musicTracksCache=r.documents||[];
+  }catch(e){musicTracksCache=[];}
+}
+async function loadMyMusicLikes(){
+  musicMyLikedIds=new Set();
+  if(!me)return;
+  try{
+    const r=await db.listDocuments(DB,'xm_likes',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(200)]);
+    (r.documents||[]).forEach(function(d){musicMyLikedIds.add(d.trackId);});
+  }catch(e){}
+}
+async function loadMusicPlaylists(){
+  if(!me){musicPlaylistsCache=[];return}
+  try{
+    const r=await db.listDocuments(DB,'xm_playlists',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
+    musicPlaylistsCache=r.documents||[];
+  }catch(e){musicPlaylistsCache=[];}
+}
+function musicTrackCardHtml(t){
+  const cover=safeUrl(t.coverUrl);
+  const liked=musicMyLikedIds.has(t.\$id);
+  const isCurrent=musicCurrentTrack&&musicCurrentTrack.\$id===t.\$id;
+  const isPlaying=isCurrent&&musicAudioEl&&!musicAudioEl.paused;
+  return '<div class="music-card'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
+    +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
+    +'<div class="music-card-title">'+esc(t.title)+'</div>'
+    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</div>'
+    +'<div class="music-card-actions">'
+      +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
+      +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
+      +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
+    +'</div></div>';
+}
+function renderMusicBody(){
+  const box=\$('music-body');if(!box)return;
+  if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
+  const list=musicCurrentQueue();
+  if(!list.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre pour l\\'instant'+(musicFilter==='mine'?' — ajoute le premier !':'.')+'</div>';return}
+  box.innerHTML='<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  wireMusicCardEvents(box);
+}
+function wireMusicCardEvents(box){
+  box.querySelectorAll('[data-music-play]').forEach(function(el){
+    el.addEventListener('click',function(){musicPlayTrack(el.getAttribute('data-music-play'));});
+  });
+  box.querySelectorAll('[data-music-like]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();musicToggleLike(el.getAttribute('data-music-like'));});
+  });
+  box.querySelectorAll('[data-music-comments]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();openMusicComments(el.getAttribute('data-music-comments'));});
+  });
+  box.querySelectorAll('[data-music-addlist]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();openMusicAddToPlaylist(el.getAttribute('data-music-addlist'));});
+  });
+  box.querySelectorAll('[data-music-artist]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();closeMusic();openProfileModal(el.getAttribute('data-music-artist'));});
+  });
+}
+async function musicPlayTrack(trackId){
+  const t=musicTracksCache.find(function(x){return x.\$id===trackId});
+  if(!t||!safeUrl(t.audioUrl)){showToast('Fichier audio indisponible.','error');return}
+  const audio=musicEnsureAudio();
+  if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId){
+    musicTogglePlay();
+    return;
+  }
+  musicCurrentTrack=t;
+  audio.src=safeUrl(t.audioUrl);
+  audio.play().catch(function(){showToast('Lecture impossible.','error');});
+  \$('music-player-bar').classList.remove('hidden');
+  \$('mpb-title').textContent=t.title;
+  \$('mpb-artist').textContent=t.artistName;
+  const cov=safeUrl(t.coverUrl);
+  \$('mpb-cover').innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
+  renderMusicBody();
+  const newPlays=(t.playsCount||0)+1;
+  t.playsCount=newPlays;
+  db.updateDocument(DB,'xm_tracks',trackId,{playsCount:newPlays}).catch(function(){});
+}
+function musicTogglePlay(){
+  const audio=musicEnsureAudio();
+  if(!musicCurrentTrack){
+    const list=musicCurrentQueue();
+    if(list.length)musicPlayTrack(list[0].\$id);
+    return;
+  }
+  if(audio.paused)audio.play().catch(function(){});else audio.pause();
+}
+function musicStepTrack(delta){
+  const list=musicCurrentQueue();
+  if(!list.length||!musicCurrentTrack)return;
+  const idx=list.findIndex(function(t){return t.\$id===musicCurrentTrack.\$id});
+  if(idx===-1)return;
+  const next=list[(idx+delta+list.length)%list.length];
+  if(next)musicPlayTrack(next.\$id);
+}
+function musicNext(){musicStepTrack(1);}
+function musicPrev(){musicStepTrack(-1);}
+function renderMusicPlayIcons(){
+  const btn=\$('mpb-play-icon');if(!btn)return;
+  const playing=musicAudioEl&&!musicAudioEl.paused;
+  btn.parentElement.innerHTML=playing?'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg>';
+  renderMusicBody();
+}
+function musicFmtTime(sec){
+  sec=Math.max(0,Math.floor(sec||0));
+  return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+}
+function musicUpdatePlayerBar(){
+  const audio=musicAudioEl;if(!audio)return;
+  const cur=\$('mpb-time-cur'),dur=\$('mpb-time-dur'),seek=\$('mpb-seek');
+  if(cur)cur.textContent=musicFmtTime(audio.currentTime);
+  if(dur)dur.textContent=musicFmtTime(audio.duration);
+  if(seek&&audio.duration)seek.value=String((audio.currentTime/audio.duration)*100);
+}
+async function musicToggleLike(trackId){
+  if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
+  const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
+  const liked=musicMyLikedIds.has(trackId);
+  try{
+    if(liked){
+      const r=await db.listDocuments(DB,'xm_likes',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('trackId',trackId),Appwrite.Query.limit(1)]);
+      const doc=(r.documents||[])[0];
+      if(doc)await db.deleteDocument(DB,'xm_likes',doc.\$id);
+      musicMyLikedIds.delete(trackId);
+      t.likesCount=Math.max(0,(t.likesCount||0)-1);
+    }else{
+      await db.createDocument(DB,'xm_likes',Appwrite.ID.unique(),{uid:me.\$id,trackId:trackId},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      musicMyLikedIds.add(trackId);
+      t.likesCount=(t.likesCount||0)+1;
+    }
+    db.updateDocument(DB,'xm_tracks',trackId,{likesCount:t.likesCount}).catch(function(){});
+    renderMusicBody();
+  }catch(e){showToast('Action impossible','error');}
+}
+async function openMusicComments(trackId){
+  const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="max-height:75vh;overflow-y:auto;text-align:left">'
+    +'<div class="set-section-label">💬 Commentaires — '+esc(t.title)+'</div>'
+    +'<div id="music-comments-list" class="scr-sub">Chargement…</div>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="music-comment-input" class="field-input" maxlength="500" placeholder="Ajouter un commentaire…"><button type="button" class="set-mini-btn" id="music-comment-send">Envoyer</button></div>'
+    +'<button type="button" class="as-cancel" id="music-comments-close">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-comments-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  async function loadAndRender(){
+    const box=\$('music-comments-list');if(!box)return;
+    try{
+      const r=await db.listDocuments(DB,'xm_comments',[Appwrite.Query.equal('trackId',trackId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+      const list=r.documents||[];
+      if(!list.length){box.innerHTML='Aucun commentaire pour l\\'instant.';return}
+      box.innerHTML=list.map(function(c){
+        return '<div class="msg-reply-quote" style="margin-bottom:8px"><b>'+esc(c.displayName||'Quelqu\\'un')+'</b><span class="rq-text" style="white-space:normal">'+esc(c.text)+'</span></div>';
+      }).join('');
+    }catch(e){box.innerHTML='Erreur de chargement.';}
+  }
+  \$('music-comment-send').onclick=async function(){
+    if(!me){showToast('Connecte-toi pour commenter.','error');return}
+    const input=\$('music-comment-input');
+    const text=(input.value||'').trim();if(!text)return;
+    const btn=this;btn.disabled=true;
+    try{
+      const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre';
+      await db.createDocument(DB,'xm_comments',Appwrite.ID.unique(),{uid:me.\$id,displayName:name,avatar:(meProfile&&meProfile.avatar)||'',trackId:trackId,text:text.slice(0,500)},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      input.value='';
+      t.commentsCount=(t.commentsCount||0)+1;
+      db.updateDocument(DB,'xm_tracks',trackId,{commentsCount:t.commentsCount}).catch(function(){});
+      renderMusicBody();
+      await loadAndRender();
+    }catch(e){showToast('Envoi impossible','error');}
+    finally{btn.disabled=false;}
+  };
+  \$('music-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();\$('music-comment-send').click();}});
+  await loadAndRender();
+}
+async function openMusicAddToPlaylist(trackId){
+  if(!me){showToast('Connecte-toi pour créer une playlist.','error');return}
+  await loadMusicPlaylists();
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">➕ Ajouter à une playlist</div>'
+    +(musicPlaylistsCache.length?musicPlaylistsCache.map(function(p){
+      let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
+      const has=ids.indexOf(trackId)>=0;
+      return '<button type="button" class="set-mini-btn" style="width:100%;margin-bottom:6px;text-align:left" data-music-pl-toggle="'+esc(p.\$id)+'">'+(has?'✅ ':'')+esc(p.name)+' ('+ids.length+')</button>';
+    }).join(''):'<div class="scr-sub" style="margin-bottom:10px">Aucune playlist pour l\\'instant.</div>')
+    +'<div style="display:flex;gap:8px;margin-top:6px"><input type="text" id="music-new-pl-name" class="field-input" maxlength="100" placeholder="Nouvelle playlist…"><button type="button" class="set-mini-btn" id="music-new-pl-create">Créer</button></div>'
+    +'<button type="button" class="as-cancel" id="music-pl-close">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-pl-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelectorAll('[data-music-pl-toggle]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      const plId=btn.getAttribute('data-music-pl-toggle');
+      const p=musicPlaylistsCache.find(function(x){return x.\$id===plId});if(!p)return;
+      let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
+      const has=ids.indexOf(trackId)>=0;
+      if(has)ids=ids.filter(function(id){return id!==trackId});else ids.push(trackId);
+      try{
+        await db.updateDocument(DB,'xm_playlists',plId,{trackIdsJson:JSON.stringify(ids)});
+        showToast(has?'Retiré de la playlist.':'Ajouté à la playlist !');
+        close();
+      }catch(e){showToast('Action impossible','error');}
+    });
+  });
+  \$('music-new-pl-create').onclick=async function(){
+    const input=\$('music-new-pl-name');
+    const name=(input.value||'').trim();if(!name)return;
+    const btn=this;btn.disabled=true;
+    try{
+      const p=await db.createDocument(DB,'xm_playlists',Appwrite.ID.unique(),{uid:me.\$id,name:name.slice(0,100),trackIdsJson:JSON.stringify([trackId])},[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      showToast('Playlist créée !');
+      close();
+    }catch(e){showToast('Création impossible','error');btn.disabled=false;}
+  };
+}
+async function renderMusicPlaylistsTab(box){
+  box.innerHTML='<div class="scr-sub">Chargement…</div>';
+  await loadMusicPlaylists();
+  if(!musicPlaylistsCache.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucune playlist pour l\\'instant — ajoute un titre à une playlist depuis Découvrir ou Mes titres.</div>';return}
+  box.innerHTML='<div class="music-pl-list">'+musicPlaylistsCache.map(function(p){
+    let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
+    return '<div class="set-card-row" data-music-pl-open="'+esc(p.\$id)+'" style="cursor:pointer"><div class="scr-info"><div class="scr-label">🎶 '+esc(p.name)+'</div><div class="scr-sub">'+ids.length+' titre'+(ids.length!==1?'s':'')+'</div></div><button type="button" class="set-mini-btn danger" data-music-pl-del="'+esc(p.\$id)+'">Supprimer</button></div>';
+  }).join('')+'</div>';
+  box.querySelectorAll('[data-music-pl-open]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      if(e.target.closest('[data-music-pl-del]'))return;
+      const p=musicPlaylistsCache.find(function(x){return x.\$id===el.getAttribute('data-music-pl-open')});
+      if(!p)return;
+      musicActivePlaylist=p;
+      renderMusicBody();
+    });
+  });
+  box.querySelectorAll('[data-music-pl-del]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      showSlideConfirm('Supprimer cette playlist ?',async function(){
+        try{await db.deleteDocument(DB,'xm_playlists',el.getAttribute('data-music-pl-del'));renderMusicPlaylistsTab(box);}
+        catch(err){showToast('Suppression impossible','error');}
+      });
+    });
+  });
+}
+function openMusicUploadForm(){
+  if(!me){showToast('Connecte-toi pour ajouter un titre.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">🎵 Ajouter un titre</div>'
+    +'<div class="set-row"><label>Titre</label><input type="text" id="music-up-title" class="field-input" maxlength="150"></div>'
+    +'<div class="set-row"><label>Artiste</label><input type="text" id="music-up-artist" class="field-input" maxlength="100" value="'+esc(defaultArtist)+'"></div>'
+    +'<div class="set-row"><label>Fichier audio (MP3, WAV…)</label><input type="file" id="music-up-audio" accept="audio/*" class="field-input"></div>'
+    +'<div class="set-row"><label>Pochette (optionnel)</label><input type="file" id="music-up-cover" accept="image/*" class="field-input"></div>'
+    +'<div class="err" id="music-up-err" style="min-height:1em;margin-bottom:8px"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-up-submit">Publier</button><button type="button" class="set-mini-btn" id="music-up-cancel">Annuler</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-up-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('music-up-submit').onclick=async function(){
+    const title=(\$('music-up-title').value||'').trim();
+    const artistName=(\$('music-up-artist').value||'').trim()||defaultArtist||'Artiste inconnu';
+    const audioFile=\$('music-up-audio').files[0];
+    const coverFile=\$('music-up-cover').files[0];
+    const errEl=\$('music-up-err');errEl.textContent='';
+    if(!title){errEl.textContent='Un titre est requis.';return}
+    if(!audioFile){errEl.textContent='Un fichier audio est requis.';return}
+    if(audioFile.size>MUSIC_MAX_AUDIO_BYTES){errEl.textContent='Fichier audio trop volumineux (100 Mo max).';return}
+    const btn=this;btn.disabled=true;btn.textContent='Envoi en cours…';
+    try{
+      const audioUp=await storage.createFile('xultra_music',Appwrite.ID.unique(),audioFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      const audioUrl=PROXY_EP+'/storage/buckets/xultra_music/files/'+audioUp.\$id+'/view?project='+PID;
+      let coverUrl='';
+      if(coverFile){
+        const coverUp=await storage.createFile('xultra_music',Appwrite.ID.unique(),coverFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        coverUrl=PROXY_EP+'/storage/buckets/xultra_music/files/'+coverUp.\$id+'/view?project='+PID;
+      }
+      let durationSec=0;
+      try{durationSec=await musicProbeDuration(audioFile);}catch(e){}
+      await db.createDocument(DB,'xm_tracks',Appwrite.ID.unique(),{
+        uid:me.\$id,title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,playsCount:0,likesCount:0,commentsCount:0
+      },[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+      showToast('Titre publié !');
+      close();
+      await loadMusicTracks();
+      renderMusicBody();
+    }catch(e){errEl.textContent=(e&&e.message)||'Envoi impossible.';btn.disabled=false;btn.textContent='Publier';}
+  };
+}
+const MUSIC_MAX_AUDIO_BYTES=100*1024*1024;
+function musicProbeDuration(file){
+  return new Promise(function(resolve,reject){
+    const url=URL.createObjectURL(file);
+    const a=new Audio();
+    a.addEventListener('loadedmetadata',function(){URL.revokeObjectURL(url);resolve(Math.round(a.duration||0));});
+    a.addEventListener('error',function(){URL.revokeObjectURL(url);reject(new Error('probe failed'));});
+    a.src=url;
+  });
+}
+if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
+if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
 
 /* ===== Créateurs de contenu (fil public, vues/likes/commentaires/réactions) ===== */
 const CREATOR_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
