@@ -6999,13 +6999,17 @@ if(\$('sg-submit'))\$('sg-submit').addEventListener('click',async function(){
 });
 
 /* ===== Équipe & Badges ===== */
+// Ordre pensé comme une vraie hiérarchie (autorité décroissante) plutôt
+// qu'une liste arbitraire : direction, puis confiance & sécurité (les 3
+// rôles qui touchent à la modération/aux signalements/au support des
+// membres, groupés ensemble), puis les rôles opérationnels.
 const TEAM_ROLES=[
   {key:'founder',icon:'👑',label:'Fondateur / Dev',color:'#ef4444',desc:'Construit et pilote X1 au quotidien : vision, code, décisions techniques.'},
-  {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître X1 au monde entier : réseaux, contenus, communauté.'},
   {key:'moderation',icon:'🛡️',label:'Modération',color:'#22c55e',desc:'Veille sur la communauté et fait respecter les règles avec justesse.'},
-  {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
+  {key:'bap',icon:'🛡️',label:'Brigade Anti-Prédateurs (BAP)',color:'#1d4ed8',desc:'Traite les signalements de toute la plateforme et peut mettre un compte en pause le temps d\\'une vérification. Rôle de confiance — voir « Comment ça marche » avant de postuler.'},
   {key:'support',icon:'🎧',label:'Support',color:'#f59e0b',desc:'Répond aux tickets et discute en direct avec les membres qui ont besoin d\\'aide, et escalade à l\\'équipe fondatrice quand une demande le dépasse.'},
-  {key:'bap',icon:'🛡️',label:'Brigade Anti-Prédateurs (BAP)',color:'#1d4ed8',desc:'Traite les signalements de toute la plateforme et peut mettre un compte en pause le temps d\\'une vérification. Rôle de confiance — voir « Comment ça marche » avant de postuler.'}
+  {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
+  {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître X1 au monde entier : réseaux, contenus, communauté.'}
 ];
 let teamTab='crew',myTeamApplications=[];
 function teamRoleOf(uid){
