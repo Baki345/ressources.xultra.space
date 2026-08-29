@@ -638,8 +638,14 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   "  var data={};\n" +
   "  try{data=event.data?event.data.json():{};}catch(e){}\n" +
   "  var title=data.title||'X1';\n" +
+  // icon = photo/avatar de l'expéditeur (fournie par le serveur quand elle
+  // existe) ; badge = petit monochrome de la barre de notif système, toujours
+  // le logo X1 puisqu'il n'y a qu'une icône d'appli, contrairement à icon qui
+  // change à chaque notification selon qui l'a déclenchée.
   "  var options={\n" +
   "    body:data.body||'',\n" +
+  "    icon:data.icon||'https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6a73b975002f14dc6b91',\n" +
+  "    badge:'https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6a73b975002f14dc6b91',\n" +
   "    tag:data.tag||undefined,\n" +
   "    renotify:!!data.tag,\n" +
   "    requireInteraction:data.type==='call',\n" +
@@ -650,10 +656,17 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   "self.addEventListener('notificationclick',function(event){\n" +
   "  event.notification.close();\n" +
   "  var url=(event.notification.data&&event.notification.data.url)||'/';\n" +
+  // Un onglet X1 déjà ouvert reçoit l'URL cible par postMessage et route
+  // lui-même vers la conversation/le ticket/l'onglet admin concerné SANS
+  // recharger la page (state de l'app préservé) — un navigate() ici forcerait
+  // un rechargement complet à chaque clic sur une notification, y compris
+  // pour rouvrir une conversation déjà affichée à l'écran. Seul le cas "aucun
+  // onglet ouvert" (self.clients.openWindow) charge réellement cette URL,
+  // et là un chargement à froid de enterApp() lit ces mêmes paramètres.
   "  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){\n" +
   "    for(var i=0;i<list.length;i++){\n" +
   "      var c=list[i];\n" +
-  "      if('focus' in c){try{c.navigate(url);}catch(e){} try{c.postMessage({type:'xultra-focus'});}catch(e){} return c.focus();}\n" +
+  "      if('focus' in c){try{c.postMessage({type:'xultra-notif-open',url:url});}catch(e){} return c.focus();}\n" +
   "    }\n" +
   "    if(self.clients.openWindow)return self.clients.openWindow(url);\n" +
   "  }));\n" +
@@ -1225,7 +1238,7 @@ async function reportAccessHolderUids() {
 async function notifyReportAccessHolders(reportId) {
   const uids = await reportAccessHolderUids();
   await Promise.all(uids.map(function (uid) {
-    return pushToUid(uid, { type: "new_report", title: "🚩 Nouveau signalement", body: "Un signalement attend d'être traité dans la file BAP.", tag: "report-" + reportId, url: "/" }).catch(function () {});
+    return pushToUid(uid, { type: "new_report", title: "🚩 Nouveau signalement", body: "Un signalement attend d'être traité dans la file BAP.", tag: "report-" + reportId, url: "/?admintab=reports" }).catch(function () {});
   }));
 }
 // Même principe que reportAccessHolderUids(), pour la permission
@@ -1253,7 +1266,7 @@ async function supportAccessHolderUids() {
 async function notifySupportAccessHolders(ticketId, subject) {
   const uids = await supportAccessHolderUids();
   await Promise.all(uids.map(function (uid) {
-    return pushToUid(uid, { type: "new_ticket", title: "🎧 Nouveau ticket support", body: subject || "Un membre a besoin d'aide.", tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+    return pushToUid(uid, { type: "new_ticket", title: "🎧 Nouveau ticket support", body: subject || "Un membre a besoin d'aide.", tag: "ticket-" + ticketId, url: "/?ticket=" + ticketId }).catch(function () {});
   }));
 }
 // Un ticket escaladé n'est jamais caché au support comme le sont les
@@ -1261,7 +1274,7 @@ async function notifySupportAccessHolders(ticketId, subject) {
 // d'un dev") — seule Shaman reçoit en plus une notification push dédiée.
 async function notifyTicketEscalated(ticketId, subject) {
   await Promise.all(Array.from(SHAMAN_UIDS).map(function (uid) {
-    return pushToUid(uid, { type: "ticket_escalated", title: "🚨 Ticket support escaladé", body: subject || "Un ticket support a été escaladé.", tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+    return pushToUid(uid, { type: "ticket_escalated", title: "🚨 Ticket support escaladé", body: subject || "Un ticket support a été escaladé.", tag: "ticket-" + ticketId, url: "/?ticket=" + ticketId }).catch(function () {});
   }));
 }
 async function pushToUid(uid, payloadObj) {
@@ -5517,12 +5530,7 @@ async function enterApp(e2ePassword){
   (async function(){try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}})();
   (async function(){try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}})();
   try{
-    const sharedUid=new URLSearchParams(location.search).get('profile');
-    if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
-  }catch(e){}
-  try{
-    const inviteCode=new URLSearchParams(location.search).get('invite');
-    if(inviteCode){openServerJoinModal(inviteCode.toUpperCase());history.replaceState(null,'',location.pathname);}
+    if(routeToDeepLink(location.href))history.replaceState(null,'',location.pathname);
   }catch(e){}
   try{maybeShowOauthConsent();}catch(e){}
 }
@@ -6152,6 +6160,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.39.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔔 Notifications de bureau avec photo, et clic direct vers la conversation',
+    body:'Les notifications de bureau (message, mention, appel, demande d\\'ami, ticket support…) affichent maintenant la photo de profil de la personne concernée, en plus de son pseudo et d\\'un extrait du message — comme une vraie notification d\\'appli de bureau. Cliquer dessus, sur n\\'importe quel appareil, ouvre directement l\\'endroit concerné : la conversation pour un message, le ticket pour le support, l\\'onglet signalements pour un nouveau signalement, etc. — plus besoin de rouvrir l\\'app puis de rechercher la bonne conversation à la main.'},
   {version:'4.38.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎧 Équipe Support : tickets + chat en direct',
     body:'Nouveau badge 🎧 SUPPORT X1 (postule dans Équipe → candidatures, ou assignable directement depuis le panel admin → Membres/Badges). Les membres de l\\'équipe support ont accès à un panel dédié (nouvel onglet admin 🎧 Support) qui liste tous les tickets, avec chat en direct avec la personne qui a ouvert le ticket. Chaque membre peut ouvrir un ticket depuis Paramètres → 🎧 Aide & Support, choisir une catégorie (compte, paiement, bug, autre) et discuter jusqu\\'à résolution. Quand une demande dépasse ce que le support peut résoudre, il l\\'escalade en un clic à l\\'équipe fondatrice — Shaman reçoit alors une notification dédiée et peut seul reprendre la main sur ce ticket.'},
   {version:'4.37.0',category:'fix',date:'29 août 2026',time:'23:59',title:'⚡ App plus rapide et plus réactive à l\\'ouverture',
@@ -16479,7 +16489,36 @@ if('serviceWorker' in navigator){
     if(e&&e.data&&e.data.type==='xultra-focus'){
       try{if(window.xultraDesktop&&window.xultraDesktop.isDesktop&&window.xultraDesktop.showWindow)window.xultraDesktop.showWindow();}catch(err){}
     }
+    // Clic sur une notification alors qu'un onglet X1 est déjà ouvert : le
+    // Service Worker envoie l'URL cible ici plutôt que de recharger la page
+    // (voir SW_JS côté serveur) — on route nous-mêmes vers l'endroit exact
+    // (conversation, ticket, onglet admin…) avec l'app déjà chargée.
+    if(e&&e.data&&e.data.type==='xultra-notif-open'&&e.data.url){
+      routeToDeepLink(e.data.url);
+    }
   });
+}
+// Partagée entre le clic sur une notification (onglet déjà ouvert, ci-dessus)
+// et le chargement à froid de l'app (enterApp(), pour un lien ouvert dans un
+// nouvel onglet/une PWA fermée) — un seul endroit qui sait interpréter
+// ?dm=/?call=/?ticket=/?admintab=/?server=&channel=/?profile=/?invite=.
+function routeToDeepLink(urlStr){
+  if(!me)return false;
+  let p;
+  try{p=new URL(urlStr,location.origin).searchParams;}catch(e){return false}
+  const dm=p.get('dm'),ticket=p.get('ticket'),admintab=p.get('admintab'),
+    serverId=p.get('server'),channelId=p.get('channel'),profile=p.get('profile'),invite=p.get('invite');
+  if(dm){closeSettingsPanel();showView('dms');openDm(dm);return true}
+  if(ticket){openTicketChatModal(ticket);return true}
+  if(admintab){closeSettingsPanel();showView('admin');showAdminTab(admintab);return true}
+  if(serverId){
+    closeSettingsPanel();showView('servers');
+    openServerDetail(serverId).then(function(){if(channelId)openServerChannel(channelId);});
+    return true;
+  }
+  if(profile){openProfileModal(profile);return true}
+  if(invite){openServerJoinModal(invite.toUpperCase());return true}
+  return false;
 }
 function urlBase64ToUint8Array(base64String){
   const padding='='.repeat((4-base64String.length%4)%4);
@@ -24455,7 +24494,7 @@ async function handle(request, event) {
           });
         } catch (e) {}
         SHAMAN_UIDS.forEach(function (uid) {
-          pushToUid(uid, { type: "urgent_report", title: "🚨 Signalement urgent — contenu impliquant un mineur", body: "Un signalement prioritaire nécessite ton attention immédiate.", tag: "urgent-report-" + reportDoc.$id, url: "/" }).catch(function () {});
+          pushToUid(uid, { type: "urgent_report", title: "🚨 Signalement urgent — contenu impliquant un mineur", body: "Un signalement prioritaire nécessite ton attention immédiate.", tag: "urgent-report-" + reportDoc.$id, url: "/?admintab=urgent" }).catch(function () {});
         });
       } else {
         notifyReportAccessHolders(reportDoc.$id).catch(function () {});
@@ -24728,9 +24767,9 @@ async function handle(request, event) {
       });
       await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: patch } });
       if (isOpener && ticket.assignedTo) {
-        pushToUid(ticket.assignedTo, { type: "ticket_reply", title: "🎧 " + senderName, body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+        pushToUid(ticket.assignedTo, { type: "ticket_reply", title: "🎧 " + senderName, body: message.slice(0, 120), tag: "ticket-" + ticketId, icon: (profile && profile.avatar) || "", url: "/?ticket=" + ticketId }).catch(function () {});
       } else if (!isOpener) {
-        pushToUid(ticket.uid, { type: "ticket_reply", title: "🎧 Support X1", body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+        pushToUid(ticket.uid, { type: "ticket_reply", title: "🎧 Support X1", body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/?ticket=" + ticketId }).catch(function () {});
       }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
@@ -25202,7 +25241,7 @@ async function handle(request, event) {
       try {
         await pushToUid(calleeId, {
           type: "call", title: callerName, body: "Appel vocal entrant…",
-          tag: "call-" + doc.$id, url: "/", callId: doc.$id
+          tag: "call-" + doc.$id, icon: callerAvatar || "", url: "/?dm=" + dmId, callId: doc.$id
         });
       } catch (e2) {}
       return new Response(JSON.stringify({ ok: true, doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -28474,7 +28513,8 @@ async function handle(request, event) {
               return pushToUid(mem.uid, {
                 type: "mention", title: "🔔 " + uname + " t'a mentionné",
                 body: (access.channel.name ? "#" + access.channel.name + " — " : "") + text.slice(0, 140),
-                tag: "channel-" + channelId, url: "/", serverId: serverId, channelId: channelId
+                tag: "channel-" + channelId, icon: (profile && profile.avatar) || "",
+                url: "/?server=" + serverId + "&channel=" + channelId, serverId: serverId, channelId: channelId
               }).catch(function () {});
             }));
           }
@@ -29158,7 +29198,9 @@ async function handle(request, event) {
       const type = String((body && body.type) || "");
       const toUid = String((body && body.toUid) || "");
       if (!toUid || toUid === acc.$id) throw new Error("paramètres invalides");
-      const senderName = (await resolveProfile(acc.$id) || {}).displayName || acc.name || "Quelqu'un";
+      const senderProfile = await resolveProfile(acc.$id) || {};
+      const senderName = senderProfile.displayName || acc.name || "Quelqu'un";
+      const senderIcon = senderProfile.avatar || "";
       if (type === "message") {
         const threadId = String((body && body.threadId) || "");
         if (!threadId) throw new Error("paramètres invalides");
@@ -29177,7 +29219,7 @@ async function handle(request, event) {
         // décider quoi mettre dans le corps de la notification push.
         const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
         if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
-        await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, url: "/", threadId: threadId });
+        await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, icon: senderIcon, url: "/?dm=" + threadId, threadId: threadId });
       } else if (type === "mention") {
         // Ping @pseudo dans un groupe : mêmes vérifications d'appartenance que
         // "message" ci-dessus, juste un titre distinct pour que la personne
@@ -29195,7 +29237,7 @@ async function handle(request, event) {
         let preview = String((body && body.preview) || "").slice(0, 140);
         const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
         if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
-        await pushToUid(toUid, { type: "mention", title: "🔔 " + senderName + " t'a mentionné", body: preview || "Tu as été mentionné dans une conversation", tag: "dm-" + threadId, url: "/", threadId: threadId });
+        await pushToUid(toUid, { type: "mention", title: "🔔 " + senderName + " t'a mentionné", body: preview || "Tu as été mentionné dans une conversation", tag: "dm-" + threadId, icon: senderIcon, url: "/?dm=" + threadId, threadId: threadId });
       } else if (type === "friend_request") {
         const fUrl = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
           "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "userId", values: [toUid] })) +
@@ -29208,7 +29250,7 @@ async function handle(request, event) {
             status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
           });
         }
-        await pushToUid(toUid, { type: "friend_request", title: senderName, body: "T'a envoyé une demande d'ami", tag: "friend-" + acc.$id, url: "/" });
+        await pushToUid(toUid, { type: "friend_request", title: senderName, body: "T'a envoyé une demande d'ami", tag: "friend-" + acc.$id, icon: senderIcon, url: "/?profile=" + acc.$id });
       } else {
         throw new Error("type inconnu");
       }
