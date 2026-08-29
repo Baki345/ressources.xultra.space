@@ -6160,6 +6160,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.40.0',category:'fix',date:'29 août 2026',time:'23:59',title:'♿ Grossissement du chat au clavier, et ménage dans les réglages "bientôt disponible"',
+    body:'Le réglage Accessibilité → « Grossissement du chat au clavier » fonctionne enfin : le texte des messages grossit temporairement pendant que tu écris, pour le relire sans dézoomer tout l\\'écran. Le réglage « Accélération matérielle » (Avancé) n\\'affiche plus un « Bientôt disponible » indéfiniment : cette option dépend de ton navigateur ou de ton système, pas de X1 — on te le dit clairement plutôt que de laisser un bouton qui n\\'arrivera jamais.'},
   {version:'4.39.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔔 Notifications de bureau avec photo, et clic direct vers la conversation',
     body:'Les notifications de bureau (message, mention, appel, demande d\\'ami, ticket support…) affichent maintenant la photo de profil de la personne concernée, en plus de son pseudo et d\\'un extrait du message — comme une vraie notification d\\'appli de bureau. Cliquer dessus, sur n\\'importe quel appareil, ouvre directement l\\'endroit concerné : la conversation pour un message, le ticket pour le support, l\\'onglet signalements pour un nouveau signalement, etc. — plus besoin de rouvrir l\\'app puis de rechercher la bonne conversation à la main.'},
   {version:'4.38.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎧 Équipe Support : tickets + chat en direct',
@@ -7054,7 +7056,7 @@ function loadAppPrefs(){
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,vibrate:true,readReceipts:true,
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
-    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null
+    analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null,chatKbdZoom:false
   },p);
 }
 let appPrefs=loadAppPrefs();
@@ -7290,6 +7292,24 @@ function wireGenericToggles(box){
     };
   });
 }
+// Grossissement du chat au clavier (Paramètres → Accessibilité) : le texte
+// des messages grossit temporairement pendant que le composeur a le focus
+// (donc pendant qu'on tape), et revient à la taille normale dès qu'on quitte
+// le champ — pratique pour relire ce qu'on vient d'écrire sans dézoomer tout
+// l'écran. Délégué sur document (plutôt que sur chaque textarea de composeur
+// individuellement) pour couvrir DM, chatroulette et salons de serveur sans
+// dupliquer la même paire de listeners trois fois.
+document.addEventListener('focusin',function(e){
+  if(!appPrefs.chatKbdZoom)return;
+  if(e.target&&e.target.closest&&e.target.closest('.composer')){
+    document.documentElement.style.setProperty('--msg-font-size',(Math.round((appPrefs.msgFontSize||15)*1.3))+'px');
+  }
+});
+document.addEventListener('focusout',function(e){
+  if(e.target&&e.target.closest&&e.target.closest('.composer')){
+    document.documentElement.style.setProperty('--msg-font-size',(appPrefs.msgFontSize||15)+'px');
+  }
+});
 
 const SETTINGS_GROUPS=[
   {label:'Compte',items:[
@@ -8519,7 +8539,8 @@ function renderSetAccessibility(box){
     +'</div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Sous-titres pour les appels</div><div class="scr-sub">Transcription en direct pendant les appels.</div></div>'+soonBadge()+'</div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Grossissement du chat au clavier</div></div>'+soonBadge()+'</div>'
+      +toggleRow('Grossissement du chat au clavier','chatKbdZoom',appPrefs.chatKbdZoom)
+      +'<div class="scr-sub" style="margin-top:2px">Agrandit temporairement le texte des messages pendant que tu écris, pour mieux le relire sans avoir à dézoomer.</div>'
     +'</div>';
   wireGenericToggles(box);
   const rateRange=\$('tts-rate-range');
@@ -8781,7 +8802,7 @@ function renderSetAdvanced(box){
       }).join('')
     +'</div>'
     +'<div class="set-card">'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Accélération matérielle</div><div class="scr-sub">Utilise ta carte graphique pour fluidifier l’affichage.</div></div>'+soonBadge()+'</div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Accélération matérielle</div><div class="scr-sub">Gérée automatiquement par ton navigateur ou ton système d\\'exploitation — X1 ne peut pas la forcer depuis l\\'application elle-même.</div></div></div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Canal de mise à jour</div></div><span class="soon-badge" style="color:#86efac;background:rgba(34,197,94,.14);border-color:rgba(34,197,94,.3)">Stable</span></div>'
     +'</div>';
   wireGenericToggles(box);
