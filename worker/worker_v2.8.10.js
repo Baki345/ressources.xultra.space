@@ -2140,6 +2140,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .tut-next:hover{box-shadow:0 6px 18px rgba(124,58,237,.4)}
 .action-sheet-card button[data-act="delall"]{color:#fca5a5}
 .action-sheet-card button.as-cancel{margin-top:4px;text-align:center;color:var(--muted);border-top:1px solid rgba(255,255,255,.08);padding-top:12px;border-radius:0}
+.msg-action-dropdown{position:fixed;z-index:5401;background:#1a1030;border:1px solid rgba(167,139,250,.28);border-radius:12px;padding:6px;min-width:220px;box-shadow:0 16px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:1px;opacity:0;transform:translateY(-4px);transition:opacity .12s ease,transform .12s ease;pointer-events:none}
+.msg-action-dropdown.show{opacity:1;transform:translateY(0);pointer-events:auto}
+.msg-action-dropdown button{text-align:left;padding:9px 12px;border-radius:8px;font-size:.82rem;font-weight:700;color:#f2ebff;background:transparent;white-space:nowrap}
+.msg-action-dropdown button:hover{background:rgba(255,255,255,.08)}
+.msg-action-dropdown button[data-act="delall"]{color:#fca5a5}
 .vm-play{width:30px;height:30px;border-radius:50%;background:rgba(167,139,250,.25);color:#c4b5fd;font-size:.75rem;flex-shrink:0;display:grid;place-items:center}
 .msg.mine .vm-play{background:rgba(255,255,255,.18);color:#fff}
 .vm-wave{flex:1;display:flex;align-items:center;gap:2px;height:24px}
@@ -2828,7 +2833,10 @@ a.bug-att-item{display:block}
 .dmp-wp-custom{background-size:cover;background-position:center}
 .dmp-wp-swatch:hover{transform:scale(1.05)}
 .dmp-wp-swatch.on{border-color:#a855f7;box-shadow:0 0 0 2px rgba(168,85,247,.35)}
-.swp-preview{width:100%;height:190px;border-radius:12px;background-color:#1a1030;background-repeat:no-repeat;cursor:grab;touch-action:none;position:relative;border:1px solid rgba(167,139,250,.25);user-select:none}
+.swp-preview-wrap{display:flex;justify-content:center}
+.swp-preview{width:100%;border-radius:12px;background-color:#1a1030;background-repeat:no-repeat;cursor:grab;touch-action:none;position:relative;border:1px solid rgba(167,139,250,.25);user-select:none}
+.swp-preview.ratio-16-9{aspect-ratio:16/9}
+.swp-preview.ratio-9-16{width:auto;height:min(320px,60vh);aspect-ratio:9/16}
 .swp-preview.dragging{cursor:grabbing}
 .swp-preview.empty::after{content:'Aucune image — importe-en une ci-dessous';position:absolute;inset:0;display:grid;place-items:center;font-size:.76rem;color:var(--muted);text-align:center;padding:0 20px}
 .msgs{background-repeat:no-repeat;background-position:center;background-attachment:scroll}
@@ -3363,7 +3371,12 @@ a.bug-att-item{display:block}
     <h3>🌐 Fond d'écran partagé</h3>
     <div class="cl-sub">Visible par tout le monde dans cette conversation — n'importe qui ici peut le changer.</div>
     <div class="dmp-field">
-      <div class="swp-preview empty" id="swp-preview"></div>
+      <label>Aperçu <span class="scr-sub" style="display:block;font-weight:400">Le cadrage/zoom s'adapte automatiquement à la vraie forme de l'écran de chacun — vérifie juste que ça rend bien dans les deux cas.</span></label>
+      <div class="seg-group">
+        <button type="button" class="seg-btn on" data-swp-ratio="16:9">🖥️ Bureau (16:9)</button>
+        <button type="button" class="seg-btn" data-swp-ratio="9:16">📱 Téléphone (9:16)</button>
+      </div>
+      <div class="swp-preview-wrap"><div class="swp-preview ratio-16-9 empty" id="swp-preview"></div></div>
       <div class="scr-sub">Fais glisser l'image pour la repositionner.</div>
     </div>
     <div class="dmp-field">
@@ -5832,6 +5845,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.29.0',category:'design',date:'28 août 2026',time:'23:59',title:'🖱️ Menu d\\'actions message repensé sur ordinateur',
+    body:'Sur ordinateur, cliquer sur le ⋯ d\\'un message ouvre maintenant un petit menu ancré juste à côté (répondre, réagir, épingler, supprimer, signaler…), comme n\\'importe quelle appli de bureau — fini le grand tiroir plein écran pensé pour mobile. Sur téléphone, rien ne change : le glisser latéral (swipe) sur un message et le tiroir d\\'actions restent identiques.'},
+  {version:'4.28.0',category:'design',date:'28 août 2026',time:'23:59',title:'📱🖥️ Aperçu bureau/téléphone pour le fond partagé des DM',
+    body:'Dans l\\'éditeur de fond d\\'écran partagé (DM), un nouveau bouton bascule l\\'aperçu entre le format téléphone (9:16) et le format bureau (16:9) — pratique pour vérifier que le cadrage et le zoom choisis rendent bien dans les deux cas, puisque la forme de la fenêtre de conversation change énormément entre les deux.'},
   {version:'4.27.0',category:'feature',date:'28 août 2026',time:'23:59',title:'🌐 Fond d\\'écran partagé dans les DM (recadrable, zoomable)',
     body:'Nouveau dans 🎨 Personnaliser la conversation (DM privées) et dans Modifier le groupe (DM de groupe) : un fond d\\'écran partagé, visible par tout le monde dans la conversation — contrairement au fond privé déjà existant, qui reste réservé à toi seul. N\\'importe quel participant peut l\\'importer, le repositionner en le faisant glisser et le zoomer avec un curseur ; les changements s\\'affichent en direct pour tout le monde. Le fond privé personnel garde toujours la priorité s\\'il est défini, pour ne rien casser des préférences déjà en place.'},
   {version:'4.26.0',category:'feature',date:'28 août 2026',time:'23:59',title:'⭐ X1+ enfin en vente + avantages',
@@ -9225,6 +9242,17 @@ function renderSwpPreview(){
     el.classList.add('empty');
   }
 }
+function setSwpPreviewRatio(ratio){
+  const el=\$('swp-preview');if(!el)return;
+  el.classList.toggle('ratio-16-9',ratio==='16:9');
+  el.classList.toggle('ratio-9-16',ratio==='9:16');
+  document.querySelectorAll('[data-swp-ratio]').forEach(function(b){
+    b.classList.toggle('on',b.getAttribute('data-swp-ratio')===ratio);
+  });
+}
+document.querySelectorAll('[data-swp-ratio]').forEach(function(b){
+  b.addEventListener('click',function(){setSwpPreviewRatio(b.getAttribute('data-swp-ratio'));});
+});
 function openSharedWallpaperModal(){
   if(!activeDm)return;
   const dm=dmsCache.find(function(d){return d.\$id===activeDm});
@@ -9236,6 +9264,9 @@ function openSharedWallpaperModal(){
   };
   \$('swp-zoom').value=swpState.scale;
   \$('swp-err').textContent='';
+  // Ouvre sur l'aperçu correspondant à l'appareil actuel — l'autre reste à
+  // un clic, le cadrage/zoom enregistré est le même dans les deux cas.
+  setSwpPreviewRatio(window.innerWidth<700?'9:16':'16:9');
   renderSwpPreview();
   \$('modal-shared-wallpaper').classList.remove('hidden');
 }
@@ -11491,7 +11522,7 @@ function wireMsgContainer(container){
     // cliquable : une détection erronée n'a alors plus aucune chance de
     // rendre les actions du message totalement hors d'atteinte.
     const btn=el.querySelector('.msg-menu-btn');
-    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm');});
+    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm',e.currentTarget);});
     attachMsgSwipe(el,m);
   });
   container.querySelectorAll('[data-bot-component]').forEach(function(btn){
@@ -11744,13 +11775,12 @@ function attachMsgSwipe(el,m,kind){
   el.addEventListener('pointerup',reset);
   el.addEventListener('pointercancel',reset);
 }
-function openMessageActionSheet(m,kind){
-  kind=kind||'dm';
+// Construit la liste d'options communes aux deux présentations (sheet mobile
+// et menu desktop ci-dessous), pour ne jamais les faire diverger.
+function buildMessageActionItemsHtml(m,kind){
   const mine=String(m.uid)===(me&&String(me.\$id));
   const canModerate=kind==='channel'&&(serverHasPermission('moderate_members')||serverHasPermission('manage_channels')||serverHasPermission('manage_server'));
   const name=esc(m.displayName||m.username||'cet utilisateur');
-  const sheet=document.createElement('div');
-  sheet.className='action-sheet-overlay';
   let items='<button type="button" data-act="react">😊 Réagir</button>';
   items+='<button type="button" data-act="reply">↩️ Répondre</button>';
   if(kind==='dm'||canModerate)items+='<button type="button" data-act="pin">'+(m.pinned?'📌 Désépingler':'📌 Épingler')+'</button>';
@@ -11761,7 +11791,47 @@ function openMessageActionSheet(m,kind){
     items+='<button type="button" data-act="report">🚩 Signaler '+name+'</button>';
     if(kind==='dm')items+='<button type="button" data-act="block">⛔ Bloquer '+name+'</button>';
   }
-  items+='<button type="button" data-act="cancel" class="as-cancel">Annuler</button>';
+  return items;
+}
+function runMessageAction(a,m,kind){
+  if(a==='react'){
+    setTimeout(function(){
+      openEmojiPicker(document.body,function(emo){
+        if(kind==='dm')toggleDmReaction(m,emo);else toggleChannelReaction(m,emo);
+      });
+    },180);
+  }
+  else if(a==='reply')setReplyTarget(m,kind);
+  else if(a==='pin'){
+    if(kind==='dm')toggleDmPin(m);else toggleChannelPin(m);
+  }
+  else if(a==='mkthread')openThreadCreateForm(m);
+  else if(a==='delme')deleteMessageForMe(m);
+  else if(a==='delall'){
+    if(kind==='dm')confirmDeleteMessageForAll(m);
+    else confirmDeleteChannelMessage(m);
+  }
+  else if(a==='report'){
+    if(kind==='dm')openReportModal(m.uid,m.displayName||'User',{source:'dm_message',messageId:m.\$id,messageText:(m.enc?'':(m.text||'')).slice(0,200),contextId:activeDm});
+    else openReportModal(m.uid,m.username||'User',{source:'server_message',messageId:m.\$id,messageText:(m.text||'').slice(0,200),contextId:activeChannel&&activeChannel.\$id});
+  }
+  else if(a==='block')confirmBlockUser(m.uid,m.displayName||'User');
+}
+// Sur mobile (ou tout appareil sans souris/hover réel), le geste natif reste
+// le tiroir d'actions plein écran ancré en bas (comme avant). Sur desktop, un
+// clic sur ⋯ ouvre à la place un petit menu ancré près du bouton, comme
+// n'importe quelle appli de bureau — jamais les deux en même temps : le choix
+// se fait au moment du clic via anchorEl (fourni uniquement par un vrai clic
+// bouton, jamais par le glisser tactile).
+function openMessageActionSheet(m,kind,anchorEl){
+  kind=kind||'dm';
+  if(anchorEl&&window.matchMedia('(hover:hover) and (pointer:fine)').matches){
+    openMessageActionDropdown(m,kind,anchorEl);
+    return;
+  }
+  const sheet=document.createElement('div');
+  sheet.className='action-sheet-overlay';
+  const items=buildMessageActionItemsHtml(m,kind)+'<button type="button" data-act="cancel" class="as-cancel">Annuler</button>';
   sheet.innerHTML='<div class="action-sheet-card">'+items+'</div>';
   document.body.appendChild(sheet);
   requestAnimationFrame(function(){sheet.classList.add('show')});
@@ -11771,29 +11841,47 @@ function openMessageActionSheet(m,kind){
     const act=e.target.closest('[data-act]');if(!act)return;
     const a=act.getAttribute('data-act');
     close();
-    if(a==='react'){
-      setTimeout(function(){
-        openEmojiPicker(document.body,function(emo){
-          if(kind==='dm')toggleDmReaction(m,emo);else toggleChannelReaction(m,emo);
-        });
-      },180);
-    }
-    else if(a==='reply')setReplyTarget(m,kind);
-    else if(a==='pin'){
-      if(kind==='dm')toggleDmPin(m);else toggleChannelPin(m);
-    }
-    else if(a==='mkthread')openThreadCreateForm(m);
-    else if(a==='delme')deleteMessageForMe(m);
-    else if(a==='delall'){
-      if(kind==='dm')confirmDeleteMessageForAll(m);
-      else confirmDeleteChannelMessage(m);
-    }
-    else if(a==='report'){
-      if(kind==='dm')openReportModal(m.uid,m.displayName||'User',{source:'dm_message',messageId:m.\$id,messageText:(m.enc?'':(m.text||'')).slice(0,200),contextId:activeDm});
-      else openReportModal(m.uid,m.username||'User',{source:'server_message',messageId:m.\$id,messageText:(m.text||'').slice(0,200),contextId:activeChannel&&activeChannel.\$id});
-    }
-    else if(a==='block')confirmBlockUser(m.uid,m.displayName||'User');
+    if(a!=='cancel')runMessageAction(a,m,kind);
   });
+}
+let activeMsgActionDropdown=null;
+function closeMessageActionDropdown(){
+  if(!activeMsgActionDropdown)return;
+  activeMsgActionDropdown.cleanup();
+  activeMsgActionDropdown.el.remove();
+  activeMsgActionDropdown=null;
+}
+function openMessageActionDropdown(m,kind,anchorEl){
+  closeMessageActionDropdown();
+  const menu=document.createElement('div');
+  menu.className='msg-action-dropdown';
+  menu.innerHTML=buildMessageActionItemsHtml(m,kind);
+  document.body.appendChild(menu);
+  const rect=anchorEl.getBoundingClientRect();
+  const menuRect=menu.getBoundingClientRect();
+  let top=rect.bottom+6;
+  if(top+menuRect.height>window.innerHeight-8)top=Math.max(8,rect.top-menuRect.height-6);
+  let left=rect.right-menuRect.width;
+  left=Math.max(8,Math.min(left,window.innerWidth-menuRect.width-8));
+  menu.style.top=top+'px';
+  menu.style.left=left+'px';
+  requestAnimationFrame(function(){menu.classList.add('show')});
+  function onMenuClick(e){
+    const act=e.target.closest('[data-act]');
+    closeMessageActionDropdown();
+    if(act)runMessageAction(act.getAttribute('data-act'),m,kind);
+  }
+  function onOutside(e){if(!menu.contains(e.target))closeMessageActionDropdown();}
+  function onKey(e){if(e.key==='Escape')closeMessageActionDropdown();}
+  menu.addEventListener('click',onMenuClick);
+  document.addEventListener('pointerdown',onOutside,true);
+  document.addEventListener('keydown',onKey);
+  window.addEventListener('scroll',closeMessageActionDropdown,true);
+  activeMsgActionDropdown={el:menu,cleanup:function(){
+    document.removeEventListener('pointerdown',onOutside,true);
+    document.removeEventListener('keydown',onKey);
+    window.removeEventListener('scroll',closeMessageActionDropdown,true);
+  }};
 }
 async function deleteMessageForMe(m){
   try{
@@ -19075,7 +19163,7 @@ function renderChannelMessages(){
     const m=activeChannelMessages.find(function(x){return x.\$id===el.getAttribute('data-mid')});
     if(!m)return;
     const btn=el.querySelector('[data-chan-menu]');
-    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel');});
+    if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel',e.currentTarget);});
     attachMsgSwipe(el,m,'channel');
   });
   box.querySelectorAll('[data-bot-component]').forEach(function(btn){
