@@ -1035,6 +1035,52 @@ async function requireStaff(request, capability) {
   }
   return { ok: true, acc, profile, role };
 }
+// Permissions globales délégables via un badge (studio de badges, §
+// /api/admin/badges/custom/*) — volontairement une liste courte et
+// explicite, jamais tout ce que Shaman peut faire (création/suppression de
+// badges, plans, maintenance restent Shaman-only quel que soit le badge).
+const GLOBAL_BADGE_PERMISSIONS = [
+  { key: "reports", label: "Accès à la file de signalements (hors signalements urgents, réservés à Shaman)" },
+  { key: "tempban", label: "Peut mettre un membre en pause temporaire (24h)" }
+];
+// true si ce compte a la permission globale demandée, via Shaman, le badge
+// BAP (toujours "reports"), ou un badge custom qui la déclare explicitement.
+async function hasGlobalBadgePermission(acc, profile, permKey) {
+  if (isShamanAccount(acc, profile)) return true;
+  let badges = [];
+  try {
+    const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+    badges = JSON.parse(meta.badgesJson || "[]");
+    if (!Array.isArray(badges)) badges = [];
+  } catch (e) { return false; }
+  if (permKey === "reports" && badges.indexOf("bap") >= 0) return true;
+  if (!badges.length) return false;
+  try {
+    const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+    const held = new Set(badges);
+    return (cb.documents || []).some(function (d) {
+      if (!held.has(d.key)) return false;
+      let perms = [];
+      try { perms = JSON.parse(d.permissionsJson || "[]"); } catch (e) {}
+      return perms.indexOf(permKey) >= 0;
+    });
+  } catch (e) { return false; }
+}
+// Comme requireStaff, mais si le compte n'est ni owner ni mod, retombe sur un
+// badge accordant la permission globale correspondante (ex: BAP + "reports").
+// Ne s'applique qu'aux capacités explicitement passées ici, jamais à
+// tempban/notes/bug_status au sens large — un badge ne doit jamais ouvrir
+// plus que ce pour quoi il a été explicitement configuré.
+async function requireStaffOrBadgePermission(request, capability, permKey) {
+  const gate = await requireStaff(request, capability);
+  if (gate.ok || gate.error !== "forbidden") return gate;
+  const acc = await resolveSessionUser(request);
+  if (!acc) return gate;
+  const profile = await resolveProfile(acc.$id);
+  const has = await hasGlobalBadgePermission(acc, profile, permKey);
+  if (!has) return gate;
+  return { ok: true, acc, profile, role: "bap" };
+}
 
 // Validates the xultra_gate cookie value against MAINT_GATE (not just its presence).
 function hasValidGate(request) {
@@ -1147,6 +1193,35 @@ async function sendWebPush(sub, payloadObj) {
     },
     body: body
   });
+}
+// Tous les uid détenant un accès "reports" (badge BAP ou badge custom
+// accordant explicitement la permission "reports") — utilisé uniquement pour
+// notifier la file NORMALE de signalements, jamais les urgents (Shaman seul).
+async function reportAccessHolderUids() {
+  const uids = new Set();
+  try {
+    const metaQ = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+    let customPermKeys = [];
+    try {
+      const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      customPermKeys = (cb.documents || []).filter(function (d) {
+        let p = []; try { p = JSON.parse(d.permissionsJson || "[]"); } catch (e) {}
+        return p.indexOf("reports") >= 0;
+      }).map(function (d) { return d.key; });
+    } catch (e) {}
+    (metaQ.documents || []).forEach(function (m) {
+      let badges = [];
+      try { badges = JSON.parse(m.badgesJson || "[]"); if (!Array.isArray(badges)) badges = []; } catch (e) {}
+      if (badges.indexOf("bap") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
+    });
+  } catch (e) {}
+  return Array.from(uids);
+}
+async function notifyReportAccessHolders(reportId) {
+  const uids = await reportAccessHolderUids();
+  await Promise.all(uids.map(function (uid) {
+    return pushToUid(uid, { type: "new_report", title: "🚩 Nouveau signalement", body: "Un signalement attend d'être traité dans la file BAP.", tag: "report-" + reportId, url: "/" }).catch(function () {});
+  }));
 }
 async function pushToUid(uid, payloadObj) {
   try {
@@ -2281,6 +2356,14 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
 .badge-xplus{background-image:linear-gradient(125deg,#78350f,#fbbf24,#7c3aed,#f0abfc,#78350f);color:#1a1005;border-color:rgba(251,191,36,.75);box-shadow:0 0 12px rgba(251,191,36,.55),0 0 22px rgba(124,58,237,.35);animation:badgeShift 3.4s ease infinite,badgePulse 1.9s ease-in-out infinite}
+/* Badge BAP (Brigade Anti-Prédateurs) : esthétique "plaque de police" — bleu
+   nuit/marine, liseré or façon insigne officiel, anneau tournant discret
+   plutôt que scintillant (sobre et sérieux, pas festif comme les autres). */
+.badge-bap{background-image:linear-gradient(125deg,#050b1f,#0f2560,#1d4ed8,#0f2560,#050b1f);color:#fde68a;border-color:rgba(253,224,71,.8);box-shadow:0 0 10px rgba(29,78,216,.7),0 0 20px rgba(253,224,71,.28);animation:badgeShift 4.2s ease infinite}
+.badge-bap::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(253,224,71,.65);animation:frameSpin 6s linear infinite;pointer-events:none}
+.badge-info-card.badge-bap{background:linear-gradient(160deg,#03060f,#0a1740 45%,#03060f);border-color:rgba(253,224,71,.55)}
+.badge-info-card.badge-bap::before{background:radial-gradient(circle at 30% 20%,#1d4ed8,transparent 55%)}
+.badge-info-card.badge-bap .bi-head{color:#fde68a}
 .badge-custom{color:#fff;border-color:rgba(255,255,255,.4);box-shadow:0 0 10px rgba(0,0,0,.35)}
 .badge-info-card.badge-custom{background:linear-gradient(160deg,#160f24,#160f24 55%,var(--custom-badge-color,#7c3aed));border-color:rgba(255,255,255,.2)}
 .badge-info-card.badge-custom::before{background:radial-gradient(circle at 30% 20%,var(--custom-badge-color,#a78bfa),transparent 55%)}
@@ -2481,6 +2564,23 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes bugHeroShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 @keyframes bugHeroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 .bug-modal-body{padding:18px 20px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;min-height:0}
+.bap-info-box{padding:0;overflow:hidden;width:min(480px,100%);max-height:90dvh;display:flex;flex-direction:column}
+.bap-hero{position:relative;padding:30px 22px 22px;text-align:center;overflow:hidden;background:linear-gradient(120deg,#020617,#0a1740,#1d4ed8,#0a1740,#020617);background-size:280% 280%;animation:bugHeroShift 9s ease infinite;flex-shrink:0}
+.bap-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 25% 15%,rgba(253,224,71,.22),transparent 55%);pointer-events:none}
+.bap-hero-icon{font-size:2.4rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,.5));animation:bugHeroFloat 3s ease-in-out infinite;position:relative}
+.bap-hero h3{margin-top:8px;font-size:1.2rem;font-weight:900;color:#fde68a;position:relative;letter-spacing:.02em}
+.bap-hero-sub{margin-top:4px;font-size:.8rem;color:rgba(255,255,255,.85);line-height:1.4;position:relative}
+.bap-body{padding:20px 22px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;min-height:0}
+.bap-section-title{font-size:.85rem;font-weight:800;color:#fde68a;margin-bottom:6px}
+.bap-section-text{font-size:.82rem;line-height:1.55;color:rgba(255,255,255,.82)}
+.bap-capability-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.bap-cap-card{background:rgba(29,78,216,.12);border:1px solid rgba(29,78,216,.35);border-radius:12px;padding:12px;text-align:center}
+.bap-cap-icon{font-size:1.3rem;margin-bottom:4px}
+.bap-cap-label{font-size:.76rem;font-weight:800;color:#e0e7ff}
+.bap-cap-desc{font-size:.68rem;color:var(--muted);margin-top:3px;line-height:1.4}
+.bap-warning-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:12px;padding:14px}
+.bap-warning-title{font-size:.82rem;font-weight:800;color:#fca5a5;margin-bottom:6px}
+.bap-warning-text{font-size:.78rem;line-height:1.55;color:rgba(255,255,255,.82)}
 .bug-att-wrap{margin-top:2px}
 .bug-att-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px}
 .bug-att-limit{padding:2px 9px;border-radius:999px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;font-size:.68rem;font-weight:800;white-space:nowrap}
@@ -3267,6 +3367,7 @@ a.bug-att-item{display:block}
         <button type="button" class="admin-subtab" data-atab="members">Membres</button>
         <button type="button" class="admin-subtab owner-only hidden" data-atab="badges">Badges</button>
         <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent">🚨 Urgents</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
         <button type="button" class="admin-subtab" data-atab="team">Candidatures</button>
@@ -3587,9 +3688,11 @@ a.bug-att-item{display:block}
         <option value="contenu_inapproprie">Contenu inapproprié</option>
         <option value="spam">Spam</option>
         <option value="usurpation">Usurpation d'identité</option>
+        <option value="contenu_sexuel_mineur">⚠️ Contenu à caractère sexuel impliquant un mineur</option>
         <option value="autre">Autre</option>
       </select>
     </div>
+    <p id="rp-urgent-warning" class="hidden" style="font-size:.76rem;line-height:1.5;color:#fca5a5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:8px 10px;margin:8px 0 0">Ce signalement est traité en priorité absolue : le message est masqué immédiatement pour tout le monde et transmis directement à l'équipe fondatrice, jamais à un modérateur BAP.</p>
     <div class="field">
       <label>Détails (optionnel)</label>
       <textarea id="rp-details" rows="4" placeholder="Explique ce qui s'est passé…"></textarea>
@@ -3979,6 +4082,38 @@ a.bug-att-item{display:block}
     <textarea id="ta-message" class="field-input" placeholder="Pourquoi toi ? Qu'est-ce que tu apportes à l'équipe ?" maxlength="1000" style="height:110px;padding-top:9px;resize:vertical"></textarea>
     <div class="err" id="ta-err"></div>
     <button type="button" class="btn-main" id="ta-submit" style="margin-top:10px">Envoyer ma candidature</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-bap-info">
+  <div class="modal-box bap-info-box">
+    <button type="button" class="modal-close" id="bapi-close">✕</button>
+    <div class="bap-hero">
+      <div class="bap-hero-icon">🛡️</div>
+      <h3>Brigade Anti-Prédateurs</h3>
+      <div class="bap-hero-sub">Des membres de confiance qui gardent X1 sûre pour tout le monde.</div>
+    </div>
+    <div class="bap-body">
+      <div class="bap-section">
+        <div class="bap-section-title">🎯 Ta mission</div>
+        <div class="bap-section-text">Examiner les signalements envoyés par la communauté — harcèlement, contenu inapproprié, spam, usurpation d'identité — et décider d'une suite : classer sans suite, ou mettre le compte visé en pause 24h le temps qu'un vrai examen soit fait.</div>
+      </div>
+      <div class="bap-capability-grid">
+        <div class="bap-cap-card"><div class="bap-cap-icon">🚩</div><div class="bap-cap-label">File de signalements</div><div class="bap-cap-desc">Tous les signalements de la plateforme, en un seul endroit.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon">⏸️</div><div class="bap-cap-label">Pause 24h</div><div class="bap-cap-desc">Neutralise un compte le temps de vérifier, sans attendre.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon">🔔</div><div class="bap-cap-label">Alertes en direct</div><div class="bap-cap-desc">Une notification sur tous tes appareils à chaque nouveau signalement.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon">🛡️</div><div class="bap-cap-label">Badge officiel</div><div class="bap-cap-desc">Visible sur ton profil et partout où tu apparais.</div></div>
+      </div>
+      <div class="bap-warning-box">
+        <div class="bap-warning-title">⛔ Ce que tu ne verras JAMAIS</div>
+        <div class="bap-warning-text">Un signalement pour contenu à caractère sexuel impliquant un mineur n'apparaît pas dans ta file, et son média n'est montré à personne sauf l'équipe fondatrice — le message concerné est masqué automatiquement et instantanément, avant même que tu aies pu l'ouvrir. Ce n'est pas une option qu'on peut désactiver : c'est structurel, pour ta propre protection légale autant que par principe.</div>
+      </div>
+      <div class="bap-section">
+        <div class="bap-section-title">📨 Comment postuler</div>
+        <div class="bap-section-text">Un simple message expliquant pourquoi tu veux ce rôle et ce qui fait de toi quelqu'un de fiable pour ça. L'équipe fondatrice valide chaque candidature à la main — ce n'est jamais automatique.</div>
+      </div>
+      <button type="button" class="btn-main" id="bapi-apply-btn" style="width:100%;margin-top:4px">🚀 Postuler pour la BAP</button>
+    </div>
   </div>
 </div>
 
@@ -5852,6 +5987,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.35.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🛡️ Brigade Anti-Prédateurs (BAP) : signalements pris au sérieux',
+    body:'Nouveau badge et rôle 🛡️ BAP (postule dans Équipe → candidatures, avec un guide complet « Comment ça marche »). Les membres BAP traitent la file de signalements de toute la plateforme et peuvent mettre un compte en pause 24h le temps d\\'une vérification, avec une notification sur tous leurs appareils à chaque nouveau signalement. Une nouvelle catégorie de signalement — contenu à caractère sexuel impliquant un mineur — déclenche un traitement radicalement différent : le message est masqué instantanément pour tout le monde, jamais montré à un BAP ni à un modérateur, et remonte directement et exclusivement à l\\'équipe fondatrice avec les adresses IP des deux comptes pour transmission aux forces de l\\'ordre si nécessaire.'},
+  {version:'4.34.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎨 Studio de badges : permissions, emoji, bannière personnalisée',
+    body:'Le studio de création de badges (panel admin) s\\'enrichit : choisis l\\'icône d\\'un badge directement dans le sélecteur d\\'emoji, ajoute une bannière personnalisée (image) affichée quand quelqu\\'un clique sur ce badge, et accorde des permissions globales précises (accès aux signalements, mise en pause temporaire d\\'un compte) — basées sur ce que Shaman peut faire, jamais l\\'intégralité de ses pouvoirs.'},
   {version:'4.32.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎨 Studio de badges + attribution complète (panel admin)',
     body:'Nouvel onglet 🏅 Badges dans le panel admin : crée tes propres badges personnalisés (icône, libellé, couleur, description, avec option d\\'accorder X1+ à vie automatiquement) et assigne N\\'IMPORTE QUEL badge — en dur ou personnalisé — à n\\'importe quel membre, plus seulement les 4 badges de l\\'ancien raccourci rapide. Les badges personnalisés s\\'affichent partout (profil, serveurs, popup d\\'info) exactement comme un badge existant.'},
   {version:'4.31.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔗 Lien d\\'invitation personnalisé pour tous les serveurs',
@@ -6399,7 +6538,8 @@ const TEAM_ROLES=[
   {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître X1 au monde entier : réseaux, contenus, communauté.'},
   {key:'moderation',icon:'🛡️',label:'Modération',color:'#22c55e',desc:'Veille sur la communauté et fait respecter les règles avec justesse.'},
   {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
-  {key:'support',icon:'💬',label:'Support',color:'#f59e0b',desc:'Aide les membres, répond à leurs questions, résout leurs soucis.'}
+  {key:'support',icon:'💬',label:'Support',color:'#f59e0b',desc:'Aide les membres, répond à leurs questions, résout leurs soucis.'},
+  {key:'bap',icon:'🛡️',label:'Brigade Anti-Prédateurs (BAP)',color:'#1d4ed8',desc:'Traite les signalements de toute la plateforme et peut mettre un compte en pause le temps d\\'une vérification. Rôle de confiance — voir « Comment ça marche » avant de postuler.'}
 ];
 let teamTab='crew',myTeamApplications=[];
 function teamRoleOf(uid){
@@ -6420,9 +6560,16 @@ async function renderCrewTab(){
     +'<div class="tr-grid">'+TEAM_ROLES.map(function(role){
       const members=membersCache.filter(function(p){return teamRoleOf(p.authUserId||p.\$id)===role.key});
       const myPending=myTeamApplications.find(function(a){return a.role===role.key&&a.status==='pending'});
+      // BAP est volontairement un rôle à plusieurs personnes (toute la
+      // communauté ne peut pas être surveillée par une seule personne) —
+      // contrairement aux autres postes ci-dessus, "Postuler" reste
+      // accessible même une fois des membres déjà en place.
+      const isMultiRole=role.key==='bap';
+      const iAlreadyHaveIt=me&&members.some(function(p){return (p.authUserId||p.\$id)===me.\$id});
       let inner='<div class="tr-icon" style="background:'+role.color+'">'+role.icon+'</div>'
         +'<div class="tr-role-label">'+esc(role.label)+'</div>'
-        +'<div class="tr-role-desc">'+esc(role.desc)+'</div>';
+        +'<div class="tr-role-desc">'+esc(role.desc)+'</div>'
+        +(role.key==='bap'?'<button type="button" class="tr-apply-btn" data-bap-info style="--tr-accent:'+role.color+';margin-bottom:8px">ℹ️ Comment ça marche</button>':'');
       if(members.length){
         inner+=members.map(function(p){
           const uid=p.authUserId||p.\$id;
@@ -6430,11 +6577,13 @@ async function renderCrewTab(){
           const av=safeUrl(p.avatar);
           return '<div class="tr-member" data-profile="'+esc(uid)+'"><div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div><div class="tr-member-name">'+esc(name)+'</div></div>';
         }).join('');
-      }else if(myPending){
-        inner+='<div class="tr-vacant">📨 Ta candidature est en attente de réponse.</div>';
-      }else{
-        inner+='<div class="tr-vacant">Poste vacant</div>'
-          +(me?'<button type="button" class="tr-apply-btn" data-apply="'+esc(role.key)+'" style="--tr-accent:'+role.color+'">🚀 Postuler</button>':'');
+      }
+      if(!members.length&&!isMultiRole){
+        if(myPending)inner+='<div class="tr-vacant">📨 Ta candidature est en attente de réponse.</div>';
+        else inner+='<div class="tr-vacant">Poste vacant</div>'+(me?'<button type="button" class="tr-apply-btn" data-apply="'+esc(role.key)+'" style="--tr-accent:'+role.color+'">🚀 Postuler</button>':'');
+      }else if(isMultiRole&&me&&!iAlreadyHaveIt){
+        if(myPending)inner+='<div class="tr-vacant">📨 Ta candidature est en attente de réponse.</div>';
+        else inner+='<button type="button" class="tr-apply-btn" data-apply="'+esc(role.key)+'" style="--tr-accent:'+role.color+'">🚀 Postuler</button>';
       }
       return '<div class="tr-card" style="--tr-accent:'+role.color+'">'+inner+'</div>';
     }).join('')+'</div>';
@@ -6443,6 +6592,9 @@ async function renderCrewTab(){
   });
   box.querySelectorAll('[data-apply]').forEach(function(el){
     el.onclick=function(){openTeamApplyModal(el.getAttribute('data-apply'))};
+  });
+  box.querySelectorAll('[data-bap-info]').forEach(function(el){
+    el.onclick=function(e){e.stopPropagation();openBapInfoModal();};
   });
 }
 function badgeUnlockStatus(key,myBadges,resolvedCount){
@@ -6539,6 +6691,10 @@ if(\$('ta-submit'))\$('ta-submit').addEventListener('click',async function(){
   }catch(e){\$('ta-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Envoyer ma candidature';
 });
+function openBapInfoModal(){\$('modal-bap-info').classList.remove('hidden');}
+if(\$('bapi-close'))\$('bapi-close').addEventListener('click',function(){\$('modal-bap-info').classList.add('hidden')});
+if(\$('modal-bap-info'))\$('modal-bap-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('bapi-apply-btn'))\$('bapi-apply-btn').addEventListener('click',function(){\$('modal-bap-info').classList.add('hidden');openTeamApplyModal('bap');});
 
 /* ===== Paramètres de l’application ===== */
 function loadAppPrefs(){
@@ -8424,7 +8580,8 @@ const BADGE_DEFS={
   chainsmoker:{icon:'🚬',label:'CHAINSMOKER',color:'#f97316',desc:"Un vétéran du cercle de Shaman : à ses côtés depuis plus de 10 ans sur le web, bien avant que X1 n'existe. Un vrai maillon de la communauté — plein de connaissances, d'une grande perspicacité, et d'une créativité qui ne s'essouffle jamais. Ce grade n'appartient qu'à lui."},
   elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."},
   botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."},
-  xplus:{icon:'⭐',label:'X1+',color:'#fbbf24',desc:"Le badge de présentation de X1+ — visible partout où tu apparais (profil, liste des membres d'un serveur). Débloqué en achetant X1+ par carte ou en X1 Coins, ou en l'obtenant à vie (palier ultime du Bug Hunter, badge ÉLITE X1…). Avec X1+ : qualité audio/vidéo HD sur tes serveurs, jusqu'à 25 bots développeur au lieu de 10, et un cadre de profil animé exclusif."}
+  xplus:{icon:'⭐',label:'X1+',color:'#fbbf24',desc:"Le badge de présentation de X1+ — visible partout où tu apparais (profil, liste des membres d'un serveur). Débloqué en achetant X1+ par carte ou en X1 Coins, ou en l'obtenant à vie (palier ultime du Bug Hunter, badge ÉLITE X1…). Avec X1+ : qualité audio/vidéo HD sur tes serveurs, jusqu'à 25 bots développeur au lieu de 10, et un cadre de profil animé exclusif."},
+  bap:{icon:'🛡️',label:'BRIGADE ANTI-PRÉDATEURS',color:'#1d4ed8',desc:"Le badge de la Brigade Anti-Prédateurs (BAP) : des membres de confiance, validés par candidature, qui traitent les signalements de toute la plateforme (harcèlement, contenu inapproprié, spam, usurpation…) et peuvent mettre un compte en pause le temps d'une vérification. Les signalements les plus graves (contenu à caractère sexuel impliquant un mineur) ne leur sont jamais montrés : ils remontent directement et exclusivement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -8438,8 +8595,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
-const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','bap','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',bap:'🛡️ BRIGADE ANTI-PRÉDATEURS',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
 // Badges créés depuis le studio de badges (§ panel admin), en plus des
 // BADGE_DEFS "en dur" ci-dessus — chargés une fois à la connexion
 // (loadCustomBadges), fusionnés partout où un badge doit être affiché/résolu
@@ -8449,7 +8606,7 @@ async function loadCustomBadges(){
   try{
     const r=await authGet('/api/badges/custom');
     const next={};
-    (r.badges||[]).forEach(function(b){next[b.key]={icon:b.icon,label:b.label,color:b.color,desc:b.description,custom:true,docId:b.\$id,grantsPlus:!!b.grantsPlus};});
+    (r.badges||[]).forEach(function(b){next[b.key]={icon:b.icon,label:b.label,color:b.color,desc:b.description,custom:true,docId:b.\$id,grantsPlus:!!b.grantsPlus,bannerImageUrl:b.bannerImageUrl||''};});
     CUSTOM_BADGES=next;
   }catch(e){CUSTOM_BADGES={};}
 }
@@ -8493,6 +8650,14 @@ function showBadgeInfo(key){
   const isCustom=!BADGE_DEFS[key];
   card.className='modal-box badge-info-card'+(isCustom?' badge-custom':' badge-'+key);
   if(isCustom)card.style.setProperty('--custom-badge-color',d.color);else card.style.removeProperty('--custom-badge-color');
+  // Bannière personnalisée (studio de badges) : remplace le dégradé généré
+  // par une vraie image en fond, si le créateur du badge en a fourni une.
+  if(isCustom&&d.bannerImageUrl){
+    card.style.backgroundImage='linear-gradient(160deg,rgba(3,6,15,.55),rgba(3,6,15,.85)),url(\\''+d.bannerImageUrl.replace(/'/g,'')+'\\')';
+    card.style.backgroundSize='cover';card.style.backgroundPosition='center';
+  }else{
+    card.style.backgroundImage='';card.style.backgroundSize='';card.style.backgroundPosition='';
+  }
   \$('modal-badge-info').classList.remove('hidden');
 }
 if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-badge-info').classList.add('hidden')});
@@ -10623,8 +10788,12 @@ function openReportModal(uid,name,msgCtx){
   \$('rp-reason').value='harcelement';
   \$('rp-details').value='';
   \$('rp-err').textContent='';
+  \$('rp-urgent-warning').classList.add('hidden');
   \$('modal-report').classList.remove('hidden');
 }
+if(\$('rp-reason'))\$('rp-reason').addEventListener('change',function(){
+  \$('rp-urgent-warning').classList.toggle('hidden',this.value!=='contenu_sexuel_mineur');
+});
 if(\$('rp-close'))\$('rp-close').addEventListener('click',function(){\$('modal-report').classList.add('hidden')});
 if(\$('modal-report'))\$('modal-report').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 if(\$('rp-submit'))\$('rp-submit').addEventListener('click',async function(){
@@ -16071,6 +16240,14 @@ async function checkAdmin(){
   }catch(e){isAdmin=false;staffRole='member'}
   document.querySelectorAll('.admin-nav-btn').forEach(function(b){b.classList.toggle('hidden',!isAdmin)});
   document.querySelectorAll('.owner-only').forEach(function(b){b.classList.toggle('hidden',staffRole!=='owner')});
+  // BAP (accès via badge, pas mod/owner classique) ne voit QUE Signalements —
+  // toutes les autres sections (dashboard, membres, bannis...) lui restent
+  // fermées, y compris celles qui ne sont pas owner-only.
+  document.querySelectorAll('.admin-subtab:not(.owner-only)').forEach(function(b){
+    if(b.getAttribute('data-atab')==='reports')return;
+    b.classList.toggle('hidden',staffRole==='bap');
+  });
+  if(staffRole==='bap'){adminTab='reports';}
   xlog('admin_check',{isAdmin:isAdmin,role:staffRole});
 }
 if(\$('btn-admin-back'))\$('btn-admin-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
@@ -16086,6 +16263,7 @@ function showAdminTab(tab){
   else if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
   else if(tab==='badges')loadAdminBadges().then(renderAdminBadges).catch(adminErr);
   else if(tab==='reports')loadAdminReports().then(renderAdminReports).catch(adminErr);
+  else if(tab==='urgent')loadAdminUrgentReports().then(renderAdminUrgentReports).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
   else if(tab==='team')loadAdminTeamApplications().then(renderAdminTeamApplications).catch(adminErr);
@@ -16316,20 +16494,34 @@ function renderAdminBadges(){
 function renderCustomBadgeListHtml(){
   if(!customBadgesListCache.length)return '<div class="scr-sub">Aucun badge personnalisé pour l\\'instant.</div>';
   return customBadgesListCache.map(function(b){
+    let perms=[];try{perms=JSON.parse(b.permissionsJson||'[]');}catch(e){}
+    const permsHtml=perms.length?perms.map(function(p){return '<span class="tag-mod">'+esc(p)+'</span>';}).join(' '):'';
     return '<div class="admin-row"><span class="badge-chip" style="background-image:linear-gradient(125deg,'+esc(b.color)+',rgba(255,255,255,.3),'+esc(b.color)+')">'+esc(b.icon)+'</span>'
-      +'<div class="info"><div class="n">'+esc(b.label)+(b.grantsPlus?' <span class="tag-mod">X1+</span>':'')+'</div><div class="p">'+esc(b.description||'Pas de description')+'</div></div>'
+      +'<div class="info"><div class="n">'+esc(b.label)+(b.grantsPlus?' <span class="tag-mod">X1+</span>':'')+' '+permsHtml+'</div><div class="p">'+esc(b.description||'Pas de description')+'</div></div>'
       +'<div class="acts"><button type="button" data-badge-edit="'+esc(b.\$id)+'">✏️</button><button type="button" data-badge-del="'+esc(b.\$id)+'" class="danger">🗑</button></div>'
       +'</div>';
   }).join('');
 }
+// Miroir client de GLOBAL_BADGE_PERMISSIONS (worker.js, § requireStaffOrBadgePermission)
+// — la vraie liste blanche est vérifiée côté serveur de toute façon.
+const GLOBAL_BADGE_PERMISSIONS_CLIENT=[
+  {key:'reports',label:'Accès à la file de signalements (hors urgents, réservés à Shaman)'},
+  {key:'tempban',label:'Peut mettre un membre en pause temporaire (24h)'}
+];
 function renderCustomBadgeFormHtml(existing){
   const b=existing||{};
+  let perms=[];try{perms=JSON.parse(b.permissionsJson||'[]');}catch(e){}
   return '<div class="set-row"><label>Clé technique (fixe une fois créé)</label><input type="text" id="adm-badge-key" class="field-input" placeholder="vip_supporter" maxlength="32"'+(existing?' value="'+esc(b.key)+'" disabled':'')+'></div>'
-    +'<div class="set-row"><label>Icône (emoji)</label><input type="text" id="adm-badge-icon" class="field-input" maxlength="8" value="'+esc(b.icon||'🏅')+'"></div>'
+    +'<div class="set-row"><label>Icône</label><div style="display:flex;gap:8px;align-items:center"><input type="text" id="adm-badge-icon" class="field-input" maxlength="8" value="'+esc(b.icon||'🏅')+'" style="width:80px;text-align:center;font-size:1.2rem"><button type="button" class="set-mini-btn" id="adm-badge-icon-pick">😊 Choisir un emoji</button></div></div>'
     +'<div class="set-row"><label>Libellé</label><input type="text" id="adm-badge-label" class="field-input" maxlength="60" value="'+esc(b.label||'')+'"></div>'
     +'<div class="set-row"><label>Couleur</label><input type="color" id="adm-badge-color" value="'+esc(b.color||'#a78bfa')+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="adm-badge-desc" class="field-input" rows="2" maxlength="500">'+esc(b.description||'')+'</textarea></div>'
+    +'<div class="set-row"><label>Bannière personnalisée (URL image, optionnel) <span class="scr-sub" style="display:block;font-weight:400">Affichée en fond de la fenêtre qui s\\'ouvre quand on clique sur ce badge — sinon un dégradé généré à partir de la couleur ci-dessus est utilisé.</span></label><input type="text" id="adm-badge-banner" class="field-input" placeholder="https://…" value="'+esc(b.bannerImageUrl||'')+'"></div>'
     +'<label class="bot-perm-check"><input type="checkbox" id="adm-badge-grantsplus"'+(b.grantsPlus?' checked':'')+'>Accorde X1+ à vie automatiquement dès que ce badge est attribué</label>'
+    +'<div class="set-row"><label>Permissions accordées <span class="scr-sub" style="display:block;font-weight:400">Basé sur les permissions globales dont dispose Shaman — jamais tout ce que Shaman peut faire, seulement ce qui est coché ici.</span></label>'
+    +GLOBAL_BADGE_PERMISSIONS_CLIENT.map(function(p){
+      return '<label class="bot-perm-check"><input type="checkbox" data-adm-badge-perm value="'+p.key+'"'+(perms.indexOf(p.key)>=0?' checked':'')+'>'+esc(p.label)+'</label>';
+    }).join('')+'</div>'
     +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-main" id="adm-badge-save">'+(existing?'Enregistrer':'Créer')+'</button><button type="button" class="set-mini-btn" id="adm-badge-cancel">Annuler</button></div>'
     +'<div class="err" id="adm-badge-form-err"></div>';
 }
@@ -16338,6 +16530,9 @@ function openCustomBadgeForm(existing){
   form.classList.remove('hidden');
   form.innerHTML=renderCustomBadgeFormHtml(existing);
   \$('adm-badge-cancel').onclick=function(){form.classList.add('hidden');form.innerHTML='';};
+  \$('adm-badge-icon-pick').onclick=function(){
+    openEmojiPicker(this,function(emo){\$('adm-badge-icon').value=emo;});
+  };
   \$('adm-badge-save').onclick=async function(){
     const btn=this;btn.disabled=true;
     \$('adm-badge-form-err').textContent='';
@@ -16347,7 +16542,9 @@ function openCustomBadgeForm(existing){
         label:\$('adm-badge-label').value,
         color:\$('adm-badge-color').value,
         description:\$('adm-badge-desc').value,
-        grantsPlus:\$('adm-badge-grantsplus').checked
+        bannerImageUrl:\$('adm-badge-banner').value.trim(),
+        grantsPlus:\$('adm-badge-grantsplus').checked,
+        permissions:Array.from(form.querySelectorAll('[data-adm-badge-perm]')).filter(function(c){return c.checked}).map(function(c){return c.value})
       };
       if(existing){
         payload.docId=existing.\$id;
@@ -16505,7 +16702,7 @@ function renderAdminServers(list){
   \$('admin-srv-openid-btn').addEventListener('click',function(){openServerFromAdmin((\$('admin-srv-openid').value||'').trim());});
   renderList();
 }
-const REPORT_REASON_LABELS={harcelement:'Harcèlement',contenu_inapproprie:'Contenu inapproprié',spam:'Spam',usurpation:'Usurpation d\\'identité',autre:'Autre'};
+const REPORT_REASON_LABELS={harcelement:'Harcèlement',contenu_inapproprie:'Contenu inapproprié',spam:'Spam',usurpation:'Usurpation d\\'identité',contenu_sexuel_mineur:'⚠️ Contenu sexuel impliquant un mineur',autre:'Autre'};
 const REPORT_STATUS_LABELS={pending:'En attente',reviewed:'Traité',dismissed:'Rejeté'};
 async function loadAdminReports(){
   const r=await authGet('/api/admin/reports');
@@ -16551,6 +16748,54 @@ function renderAdminReports(list){
       try{
         await authPost('/api/admin/reports/status',{reportId:reportId,status:el.getAttribute('data-status'),resolutionNote:noteInput?noteInput.value.trim().slice(0,500):''});
         await loadAdminReports().then(renderAdminReports);
+      }catch(e){adminErr(e)}
+    };
+  });
+}
+// ===== 🚨 Signalements urgents (contenu sexuel impliquant un mineur) —
+// strictement réservé à Shaman. Jamais accessible à BAP ni aux mods, jamais
+// listé dans loadAdminReports() ci-dessus (filtré côté serveur). Le média
+// original (moderation_evidence) n'est renvoyé que par cette route précise. =====
+async function loadAdminUrgentReports(){
+  const r=await authGet('/api/reports/urgent');
+  return r;
+}
+function renderAdminUrgentReports(data){
+  const box=\$('admin-body');if(!box)return;
+  const list=(data&&data.reports)||[];
+  const evidenceByReport=(data&&data.evidenceByReport)||{};
+  box.innerHTML='<div class="bap-warning-box" style="margin-bottom:14px"><div class="bap-warning-title">🚨 File exclusive — toi seul(e)</div><div class="bap-warning-text">Ces signalements ne sont jamais montrés à BAP ni à aucun modérateur. Le message d\\'origine a déjà été retiré de la plateforme pour tout le monde dès le signalement — ce que tu vois ici est la seule copie restante.</div></div>'
+    +(!list.length?'<div class="empty-hint">Aucun signalement urgent en attente.</div>':list.map(function(r){
+      const ev=evidenceByReport[r.\$id];
+      const when=r.at?new Date(r.at).toLocaleString('fr-FR'):(r.\$createdAt?new Date(r.\$createdAt).toLocaleString('fr-FR'):'');
+      const mediaHtml=ev&&ev.originalMediaUrl?('<div style="margin-top:8px"><img src="'+esc(ev.originalMediaUrl)+'" style="max-width:260px;max-height:260px;border-radius:8px;display:block" alt="Media du signalement"></div>'):'';
+      return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap;border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-bottom:10px;padding:12px">'
+        +'<div class="av">🚨</div>'
+        +'<div class="info">'
+          +'<div class="n">'+esc(r.targetName||r.targetUid)+' <span class="tag-mod" style="background:rgba(239,68,68,.25);color:#fca5a5">'+esc((r.status||'pending')==='pending'?'EN ATTENTE':(r.status==='reviewed'?'BANNI':'REJETÉ'))+'</span></div>'
+          +'<div class="p">Signalé par '+esc(r.reporterName||r.reporterUid)+' · '+esc(when)+'</div>'
+          +'<div class="p">IP signaleur : <code>'+esc(r.reporterIp||'inconnue')+'</code> · IP signalé (dernier snapshot) : <code>'+esc(r.targetIp||'inconnue')+'</code></div>'
+          +(r.details?'<div class="p" style="margin-top:4px">Détails du signaleur : '+esc(r.details)+'</div>':'')
+          +(ev?('<div class="p" style="margin-top:6px;font-style:italic">« '+esc(ev.originalText||'(pas de texte)')+' »</div>'+mediaHtml):'<div class="p" style="margin-top:6px;opacity:.7">Aucune preuve associée retrouvée.</div>')
+          +(r.status==='pending'?('<label class="bot-perm-check" style="margin-top:8px"><input type="checkbox" data-urgent-lawenforcement="'+esc(r.\$id)+'">A été transmis aux forces de l\\'ordre</label>'
+            +'<input type="text" class="field-input" data-urgentnote="'+esc(r.\$id)+'" placeholder="Note interne (optionnel)" style="margin-top:6px;height:32px;font-size:.78rem">'):(r.resolutionNote?'<div class="p" style="margin-top:4px;opacity:.75">Note : '+esc(r.resolutionNote)+'</div>':''))
+        +'</div>'
+        +(r.status==='pending'?('<div class="acts"><button type="button" data-urgent-resolve="'+esc(r.\$id)+'" data-action="ban" class="danger">🔨 Bannir définitivement</button><button type="button" data-urgent-resolve="'+esc(r.\$id)+'" data-action="dismiss">Rejeter</button></div>'):'')
+      +'</div>';
+    }).join(''));
+  box.querySelectorAll('[data-urgent-resolve]').forEach(function(el){
+    el.onclick=async function(){
+      const reportId=el.getAttribute('data-urgent-resolve');
+      const action=el.getAttribute('data-action');
+      if(action==='ban'&&!confirm('Bannir définitivement ce compte ? Action irréversible.'))return;
+      this.disabled=true;
+      try{
+        await authPost('/api/reports/resolve-urgent',{
+          reportId:reportId,action:action,
+          note:(box.querySelector('[data-urgentnote="'+reportId+'"]')||{}).value||'',
+          lawEnforcementNotified:!!(box.querySelector('[data-urgent-lawenforcement="'+reportId+'"]')||{}).checked
+        });
+        await loadAdminUrgentReports().then(renderAdminUrgentReports);
       }catch(e){adminErr(e)}
     };
   });
@@ -23375,7 +23620,11 @@ async function handle(request, event) {
 
   // --- Secure admin API (Worker-side, no VPS) ---
   if (path === "/api/admin/access") {
-    const gate = await requireStaff(request, "view");
+    // "reports" plutôt que "view_admin_dashboard" ici : c'est l'accès qui
+    // ouvre concrètement quelque chose côté client (l'onglet Signalements) —
+    // un badge qui n'accorderait QUE view_admin_dashboard sans "reports"
+    // ouvrirait sinon un panel admin vide et confus pour son détenteur.
+    const gate = await requireStaffOrBadgePermission(request, "view", "reports");
     if (!gate.ok) {
       /* checkAdmin() appelle cette route SANS EXCEPTION à chaque connexion,
          pour absolument tout le monde — "forbidden" (membre normal, pas
@@ -23421,7 +23670,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/ban" && request.method === "POST") {
-    const gate = await requireStaff(request, "tempban");
+    const gate = await requireStaffOrBadgePermission(request, "tempban", "tempban");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -23653,14 +23902,28 @@ async function handle(request, event) {
       });
       if (status === "accepted" && appDoc.uid && appDoc.role) {
         const lockedPerms = ["read(\"any\")"];
+        const data = { teamRole: appDoc.role };
+        // Le rôle BAP accorde aussi le badge correspondant (affichage, et
+        // c'est ce badge — pas teamRole — que hasGlobalBadgePermission()
+        // vérifie pour l'accès à la file de signalements).
+        if (appDoc.role === "bap") {
+          let existingBadges = [];
+          try {
+            const existingMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + appDoc.uid, { asAdmin: true });
+            existingBadges = JSON.parse(existingMeta.badgesJson || "[]");
+            if (!Array.isArray(existingBadges)) existingBadges = [];
+          } catch (e) {}
+          if (existingBadges.indexOf("bap") < 0) existingBadges.push("bap");
+          data.badgesJson = JSON.stringify(existingBadges);
+        }
         try {
           await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + appDoc.uid, {
-            method: "PATCH", asAdmin: true, body: { data: { teamRole: appDoc.role }, permissions: lockedPerms }
+            method: "PATCH", asAdmin: true, body: { data: data, permissions: lockedPerms }
           });
         } catch (e) {
           if (e && e.status === 404) {
             await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
-              method: "POST", asAdmin: true, body: { documentId: appDoc.uid, data: { teamRole: appDoc.role }, permissions: lockedPerms }
+              method: "POST", asAdmin: true, body: { documentId: appDoc.uid, data: data, permissions: lockedPerms }
             });
           } else throw e;
         }
@@ -23755,7 +24018,10 @@ async function handle(request, event) {
       const targetName = String((body && body.targetName) || "").slice(0, 64);
       const reason = String((body && body.reason) || "").slice(0, 32);
       const details = String((body && body.details) || "").slice(0, 1000);
-      const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "autre"];
+      // "contenu_sexuel_mineur" déclenche un traitement radicalement différent
+      // des autres raisons — voir plus bas : jamais visible par BAP, jamais
+      // laissé en ligne, escalade directe et exclusive à Shaman avec IP.
+      const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "contenu_sexuel_mineur", "autre"];
       const validSources = ["user", "dm_message", "server_message", "chatroulette"];
       const source = validSources.indexOf(body && body.source) >= 0 ? body.source : "user";
       const messageId = String((body && body.messageId) || "").slice(0, 64);
@@ -23766,13 +24032,58 @@ async function handle(request, event) {
       if (targetUid === acc.$id) throw new Error("Impossible de se signaler soi-même");
       const profile = await resolveProfile(acc.$id);
       const reporterName = (profile && (profile.displayName || profile.username)) || acc.name || "Anonyme";
-      await awFetch("/databases/" + AW_DB + "/collections/reports/documents", {
+      const isUrgent = reason === "contenu_sexuel_mineur";
+      const severity = isUrgent ? "urgent_minor" : "normal";
+      // IP du signaleur : posée par Cloudflare lui-même à chaque requête,
+      // impossible à falsifier depuis le client. IP du signalé : dernier
+      // snapshot connu (user_meta.lastIp), capturé au moment T du signalement
+      // pour qu'un changement d'IP ultérieur ne fasse pas perdre la trace.
+      const reporterIp = request.headers.get("CF-Connecting-IP") || "";
+      let targetIp = "";
+      try {
+        const targetMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + targetUid, { asAdmin: true });
+        targetIp = targetMeta.lastIp || "";
+      } catch (e) {}
+      const reportDoc = await awFetch("/databases/" + AW_DB + "/collections/reports/documents", {
         method: "POST", asAdmin: true,
         body: {
           documentId: "unique()",
-          data: { reporterUid: acc.$id, reporterName, targetUid, targetName, reason, details, status: "pending", at: new Date().toISOString(), source: source, messageId: messageId, messageText: messageText, contextId: contextId }
+          data: { reporterUid: acc.$id, reporterName, targetUid, targetName, reason, details, status: "pending", at: new Date().toISOString(), source: source, messageId: messageId, messageText: messageText, contextId: contextId, severity: severity, reporterIp: reporterIp, targetIp: targetIp }
         }
       });
+      if (isUrgent && messageId && (source === "dm_message" || source === "server_message")) {
+        // Scelle IMMÉDIATEMENT le contenu original avant que qui que ce soit
+        // (BAP inclus) n'ait la moindre chance de le voir : le vrai contenu
+        // part dans moderation_evidence (permissions vides, jamais lisible
+        // via le SDK client, seul le Worker avec la clé admin y accède), le
+        // message public devient un simple avertissement.
+        try {
+          const coll = source === "dm_message" ? "dms_messages" : "server_channel_messages";
+          const original = await awFetch("/databases/" + AW_DB + "/collections/" + coll + "/documents/" + messageId, { asAdmin: true });
+          await awFetch("/databases/" + AW_DB + "/collections/moderation_evidence/documents", {
+            method: "POST", asAdmin: true,
+            body: {
+              documentId: "unique()",
+              data: {
+                reportId: reportDoc.$id, source: source, messageId: messageId, contextId: contextId,
+                originalText: String(original.text || "").slice(0, 2000),
+                originalMediaUrl: String(original.mediaUrl || "").slice(0, 500),
+                originalMime: String(original.mime || "").slice(0, 64),
+                authorUid: String(original.uid || targetUid), authorName: targetName, recipientUid: acc.$id
+              }
+            }
+          });
+          await awFetch("/databases/" + AW_DB + "/collections/" + coll + "/documents/" + messageId, {
+            method: "PATCH", asAdmin: true,
+            body: { data: { text: "⚠️ Message masqué suite à un signalement", mediaUrl: "", moderationHidden: true } }
+          });
+        } catch (e) {}
+        SHAMAN_UIDS.forEach(function (uid) {
+          pushToUid(uid, { type: "urgent_report", title: "🚨 Signalement urgent — contenu impliquant un mineur", body: "Un signalement prioritaire nécessite ton attention immédiate.", tag: "urgent-report-" + reportDoc.$id, url: "/" }).catch(function () {});
+        });
+      } else {
+        notifyReportAccessHolders(reportDoc.$id).catch(function () {});
+      }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
@@ -23873,15 +24184,19 @@ async function handle(request, event) {
   }
 
   if (path === "/api/admin/reports" && request.method === "GET") {
-    const gate = await requireStaff(request, "view");
+    const gate = await requireStaffOrBadgePermission(request, "view", "reports");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
     try {
+      // severity "urgent_minor" (contenu sexuel impliquant un mineur) n'apparaît
+      // JAMAIS ici, quel que soit le rôle de l'appelant (owner/mod/BAP) — cette
+      // catégorie est exclusivement traitée par /api/reports/urgent (Shaman).
       const q = "/databases/" + AW_DB + "/collections/reports/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "notEqual", attribute: "severity", values: ["urgent_minor"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] }));
       const data = await awFetch(q, { asAdmin: true });
       return new Response(JSON.stringify({ ok: true, reports: data.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -23892,7 +24207,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/reports/status" && request.method === "POST") {
-    const gate = await requireStaff(request, "report_status");
+    const gate = await requireStaffOrBadgePermission(request, "report_status", "reports");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -23904,6 +24219,13 @@ async function handle(request, event) {
       const status = String((body && body.status) || "");
       const resolutionNote = String((body && body.resolutionNote) || "").slice(0, 500);
       if (!reportId || ["pending", "reviewed", "dismissed"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      // Défense en profondeur : même avec un reportId d'un signalement urgent
+      // deviné/forgé, cette route générale (mod/BAP) ne doit jamais pouvoir le
+      // toucher — seul /api/reports/resolve-urgent (Shaman) le peut.
+      if (gate.role !== "owner") {
+        const existing = await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, { asAdmin: true }).catch(function () { return null; });
+        if (existing && existing.severity === "urgent_minor") throw new Error("Ce signalement est réservé au propriétaire de la plateforme");
+      }
       const data = { status: status };
       if (resolutionNote) data.resolutionNote = resolutionNote;
       await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
@@ -23919,6 +24241,62 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+  // ===== Signalements URGENTS (contenu sexuel impliquant un mineur) — accès
+  // strictement réservé à Shaman, jamais BAP ni aucun autre rôle. Le média
+  // original n'est renvoyé qu'ici, jamais via /api/admin/reports. =====
+  if (path === "/api/reports/urgent" && request.method === "GET") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/reports/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "severity", values: ["urgent_minor"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const reports = q.documents || [];
+      const evidenceByReport = {};
+      await Promise.all(reports.map(async function (r) {
+        try {
+          const ev = await awFetch("/databases/" + AW_DB + "/collections/moderation_evidence/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "reportId", values: [r.$id] })), { asAdmin: true });
+          evidenceByReport[r.$id] = (ev.documents || [])[0] || null;
+        } catch (e) { evidenceByReport[r.$id] = null; }
+      }));
+      return new Response(JSON.stringify({ ok: true, reports: reports, evidenceByReport: evidenceByReport }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/reports/resolve-urgent" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const reportId = String((body && body.reportId) || "");
+      const action = String((body && body.action) || "");
+      const note = String((body && body.note) || "").slice(0, 1000);
+      const lawEnforcementNotified = !!(body && body.lawEnforcementNotified);
+      if (!reportId || ["ban", "dismiss"].indexOf(action) === -1) throw new Error("paramètres invalides");
+      const report = await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, { asAdmin: true });
+      if (report.severity !== "urgent_minor") throw new Error("Ce signalement n'est pas dans la file urgente");
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "Shaman";
+      if (action === "ban" && report.targetUid) {
+        await awFetch("/databases/" + AW_DB + "/collections/bans/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { uid: report.targetUid, username: report.targetName || report.targetUid, reason: "Signalement urgent — contenu impliquant un mineur", type: "ban", by: by, until: "permanent" } }
+        });
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { status: action === "ban" ? "reviewed" : "dismissed", resolutionNote: note, lawEnforcementNotified: lawEnforcementNotified } }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "resolve_urgent_report", detail: reportId + " -> " + action + (lawEnforcementNotified ? " (forces de l'ordre notifiées)" : ""), by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
   if (path === "/api/my-reports" && request.method === "POST") {
@@ -23976,7 +24354,7 @@ async function handle(request, event) {
       // botdev et xplus sont normalement calculés automatiquement (premier
       // bot fonctionnel / statut plan) mais restent assignables ici à la main
       // comme demandé — cf. commentaire plus bas pour la synchro avec "plan".
-      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus"];
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap"];
       let customBadgeDefs = [];
       try {
         const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -24060,7 +24438,7 @@ async function handle(request, event) {
       const body = await request.json();
       const key = String((body && body.key) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
       if (!key || key.length < 2 || key.length > 32) throw new Error("Clé invalide (2-32 caractères, lettres/chiffres/underscore)");
-      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus"];
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap"];
       if (STANDARD_BADGE_KEYS.indexOf(key) >= 0) throw new Error("Cette clé est déjà utilisée par un badge existant");
       const existing = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "key", values: [key] })), { asAdmin: true });
       if ((existing.documents || []).length) throw new Error("Un badge custom avec cette clé existe déjà");
@@ -24070,9 +24448,12 @@ async function handle(request, event) {
       const color = /^#[0-9a-fA-F]{6}$/.test(String((body && body.color) || "")) ? body.color : "#a78bfa";
       const description = String((body && body.description) || "").trim().slice(0, 500);
       const grantsPlus = !!(body && body.grantsPlus);
+      const allowedPermKeys = GLOBAL_BADGE_PERMISSIONS.map(function (p) { return p.key; });
+      const permissions = Array.isArray(body && body.permissions) ? body.permissions.filter(function (p) { return allowedPermKeys.indexOf(p) >= 0; }) : [];
+      const bannerImageUrl = /^https:\/\//.test(String((body && body.bannerImageUrl) || "")) ? body.bannerImageUrl.slice(0, 500) : "";
       const doc = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { key, icon, label, color, description, grantsPlus, createdBy: gate.acc.$id } }
+        body: { documentId: "unique()", data: { key, icon, label, color, description, grantsPlus, createdBy: gate.acc.$id, permissionsJson: JSON.stringify(permissions), bannerImageUrl } }
       });
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
@@ -24101,6 +24482,11 @@ async function handle(request, event) {
       if (typeof body.color === "string" && /^#[0-9a-fA-F]{6}$/.test(body.color)) data.color = body.color;
       if (typeof body.description === "string") data.description = body.description.trim().slice(0, 500);
       if (typeof body.grantsPlus === "boolean") data.grantsPlus = body.grantsPlus;
+      if (Array.isArray(body.permissions)) {
+        const allowedPermKeys = GLOBAL_BADGE_PERMISSIONS.map(function (p) { return p.key; });
+        data.permissionsJson = JSON.stringify(body.permissions.filter(function (p) { return allowedPermKeys.indexOf(p) >= 0; }));
+      }
+      if (typeof body.bannerImageUrl === "string") data.bannerImageUrl = /^https:\/\//.test(body.bannerImageUrl) ? body.bannerImageUrl.slice(0, 500) : "";
       const doc = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data } });
       return new Response(JSON.stringify({ ok: true, badge: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
