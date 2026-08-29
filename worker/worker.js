@@ -1048,18 +1048,44 @@ async function requireStaff(request, capability) {
   }
   return { ok: true, acc, profile, role };
 }
-// Permissions globales délégables via un badge (studio de badges, §
-// /api/admin/badges/custom/*) — volontairement une liste courte et
-// explicite, jamais tout ce que Shaman peut faire (création/suppression de
-// badges, plans, maintenance restent Shaman-only quel que soit le badge).
+// Permissions globales délégables — via un badge (studio de badges, §
+// /api/admin/badges/custom/*) ou directement à un membre (panel admin →
+// Membres → 🔑 Permissions, owner-only : voir /api/admin/member-permissions).
+// Volontairement PAS tout ce que Shaman peut faire : rien de ce qui pourrait
+// s'auto-accorder plus de pouvoir en cascade ne figure ici (attribuer un
+// badge, créer/éditer un badge custom avec ses propres permissionsJson,
+// accorder ces permissions elles-mêmes, traiter une candidature d'équipe qui
+// octroie un rôle, les signalements urgents, la maintenance) — ça reste
+// strictement Shaman (+ Yani, dans SHAMAN_UIDS) quel que soit le badge ou la
+// permission directe détenue.
 const GLOBAL_BADGE_PERMISSIONS = [
-  { key: "reports", label: "Accès à la file de signalements (hors signalements urgents, réservés à Shaman)" },
-  { key: "tempban", label: "Peut mettre un membre en pause temporaire (24h)" },
-  { key: "support_tickets", label: "Accès au panel support (tickets, chat avec les membres)" }
+  { key: "reports_view", label: "Voir la file de signalements (hors urgents, réservés à Shaman)" },
+  { key: "reports_resolve", label: "Marquer un signalement traité ou classé sans suite" },
+  { key: "support_view", label: "Voir la file de tickets support" },
+  { key: "support_reply", label: "Répondre à un ticket support (chat)" },
+  { key: "support_resolve", label: "Marquer un ticket support résolu" },
+  { key: "support_escalate", label: "Escalader un ticket support à l'équipe fondatrice" },
+  { key: "support_close", label: "Fermer un ticket support" },
+  { key: "tempban", label: "Mettre un membre en pause temporaire (24h)" },
+  { key: "ban_permanent", label: "Bannir un membre définitivement" },
+  { key: "unban", label: "Lever une sanction (ban ou pause)" },
+  { key: "bans_view", label: "Voir la liste des sanctions actives" },
+  { key: "mod_manage", label: "Nommer ou retirer un modérateur" },
+  { key: "logs_view", label: "Voir le journal d'audit admin" },
+  { key: "calls_view", label: "Voir les appels vocaux actifs" },
+  { key: "member_notes_view", label: "Voir les notes internes sur un membre" },
+  { key: "member_notes_write", label: "Ajouter une note interne sur un membre" },
+  { key: "bug_status_manage", label: "Changer le statut d'un bug signalé" },
+  { key: "suggestions_manage", label: "Changer le statut d'une suggestion (boîte à idées)" },
+  { key: "team_applications_view", label: "Voir les candidatures d'équipe (décision réservée à Shaman)" },
+  { key: "maintenance_view", label: "Voir l'état de maintenance (activer/désactiver réservé à Shaman)" }
 ];
 // true si ce compte a la permission globale demandée, via Shaman, un badge
-// dédié (BAP → "reports", SUPPORT → "support_tickets"), ou un badge custom
-// qui la déclare explicitement.
+// dédié (BAP → tout le pack signalements, SUPPORT → tout le pack support),
+// une permission accordée directement (globalPermissionsJson), ou un badge
+// custom qui la déclare explicitement.
+const BAP_BADGE_PERMS = ["reports_view", "reports_resolve"];
+const SUPPORT_BADGE_PERMS = ["support_view", "support_reply", "support_resolve", "support_escalate", "support_close"];
 async function hasGlobalBadgePermission(acc, profile, permKey) {
   if (isShamanAccount(acc, profile)) return true;
   let badges = [], meta = null;
@@ -1075,8 +1101,8 @@ async function hasGlobalBadgePermission(acc, profile, permKey) {
     const direct = JSON.parse((meta && meta.globalPermissionsJson) || "[]");
     if (Array.isArray(direct) && direct.indexOf(permKey) >= 0) return true;
   } catch (e) {}
-  if (permKey === "reports" && badges.indexOf("bap") >= 0) return true;
-  if (permKey === "support_tickets" && badges.indexOf("support") >= 0) return true;
+  if (badges.indexOf("bap") >= 0 && BAP_BADGE_PERMS.indexOf(permKey) >= 0) return true;
+  if (badges.indexOf("support") >= 0 && SUPPORT_BADGE_PERMS.indexOf(permKey) >= 0) return true;
   if (!badges.length) return false;
   try {
     const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -1219,9 +1245,10 @@ async function sendWebPush(sub, payloadObj) {
     body: body
   });
 }
-// Tous les uid détenant un accès "reports" (badge BAP ou badge custom
-// accordant explicitement la permission "reports") — utilisé uniquement pour
-// notifier la file NORMALE de signalements, jamais les urgents (Shaman seul).
+// Tous les uid détenant un accès "reports_view" (badge BAP, badge custom
+// qui la déclare, ou octroi direct via globalPermissionsJson) — utilisé
+// uniquement pour notifier la file NORMALE de signalements, jamais les
+// urgents (Shaman seul).
 async function reportAccessHolderUids() {
   const uids = new Set();
   try {
@@ -1231,13 +1258,14 @@ async function reportAccessHolderUids() {
       const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       customPermKeys = (cb.documents || []).filter(function (d) {
         let p = []; try { p = JSON.parse(d.permissionsJson || "[]"); } catch (e) {}
-        return p.indexOf("reports") >= 0;
+        return p.indexOf("reports_view") >= 0;
       }).map(function (d) { return d.key; });
     } catch (e) {}
     (metaQ.documents || []).forEach(function (m) {
-      let badges = [];
+      let badges = [], direct = [];
       try { badges = JSON.parse(m.badgesJson || "[]"); if (!Array.isArray(badges)) badges = []; } catch (e) {}
-      if (badges.indexOf("bap") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
+      try { direct = JSON.parse(m.globalPermissionsJson || "[]"); if (!Array.isArray(direct)) direct = []; } catch (e) {}
+      if (badges.indexOf("bap") >= 0 || direct.indexOf("reports_view") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
     });
   } catch (e) {}
   return Array.from(uids);
@@ -1249,7 +1277,8 @@ async function notifyReportAccessHolders(reportId) {
   }));
 }
 // Même principe que reportAccessHolderUids(), pour la permission
-// "support_tickets" (badge SUPPORT ou badge custom qui la déclare).
+// "support_view" (badge SUPPORT, badge custom qui la déclare, ou octroi
+// direct via globalPermissionsJson).
 async function supportAccessHolderUids() {
   const uids = new Set();
   try {
@@ -1259,13 +1288,14 @@ async function supportAccessHolderUids() {
       const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       customPermKeys = (cb.documents || []).filter(function (d) {
         let p = []; try { p = JSON.parse(d.permissionsJson || "[]"); } catch (e) {}
-        return p.indexOf("support_tickets") >= 0;
+        return p.indexOf("support_view") >= 0;
       }).map(function (d) { return d.key; });
     } catch (e) {}
     (metaQ.documents || []).forEach(function (m) {
-      let badges = [];
+      let badges = [], direct = [];
       try { badges = JSON.parse(m.badgesJson || "[]"); if (!Array.isArray(badges)) badges = []; } catch (e) {}
-      if (badges.indexOf("support") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
+      try { direct = JSON.parse(m.globalPermissionsJson || "[]"); if (!Array.isArray(direct)) direct = []; } catch (e) {}
+      if (badges.indexOf("support") >= 0 || direct.indexOf("support_view") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
     });
   } catch (e) {}
   return Array.from(uids);
@@ -6407,6 +6437,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.43.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔑 20 permissions X1 indépendantes, et fond d\\'écran d\\'admin réparé sur les DM',
+    body:'Le système de permissions passe de 3 à 20 capacités indépendantes, chacune reliée à une vraie action existante du site (signalements, support, sanctions temporaires/définitives, levée de sanction, gestion des modérateurs, notes internes, statut des bugs et suggestions, candidatures, journal d\\'audit, appels actifs, état de maintenance…) — accordables une par une à n\\'importe quel membre, sans lui donner plus que ce qui est coché. Comme avant, seules Shaman et Yani peuvent les distribuer, badge ou octroi direct confondus. Corrigé aussi : ouvrir une conversation depuis la liste de gauche pendant qu\\'on est dans le panneau Admin ou Serveurs laissait les deux affichés en même temps au lieu de basculer proprement sur la conversation.'},
   {version:'4.42.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🏷️ Membres : tous les badges assignables directement, et permissions au cas par cas',
     body:'Panel admin → Membres : le bouton « 🏷️ Gérer les badges » ouvre maintenant la liste COMPLÈTE de tous les badges existants (en dur et personnalisés) directement sur la ligne du membre, fini la limite aux 5 badges de l\\'ancien raccourci rapide. Nouveau bouton « 🔑 Permissions » à côté : accorde à un membre précis, indépendamment de tout badge, l\\'une des permissions globales de X1 (accès aux signalements, mise en pause temporaire, accès au panel support) — pratique pour une confiance ponctuelle sans lui donner un badge visible sur son profil.'},
   {version:'4.41.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔗 Connexions de comptes tiers — 12 services',
@@ -11569,6 +11601,22 @@ let msgsOldestId=null,msgsHasMoreOlder=true,msgsLoadingOlder=false;
 async function openDm(threadId,title,peerUid){
   clearReplyTarget('dm');
   if(typeof clearAttachPreview==='function')clearAttachPreview();
+  // Bug remonté (capture d'écran) : la liste des conversations reste
+  // affichée à gauche même en vue Admin ou Serveurs (pratique pour pouvoir
+  // y sauter directement), mais cliquer dessus laissait le panneau Admin/
+  // Serveurs affiché EN PLUS de la conversation qui s'ouvrait — les deux
+  // superposés — parce que openDm() ne remettait jamais "view" sur 'dms'
+  // ni ne masquait #admin-active/#server-active, seul showView('dms') le
+  // faisait normalement. On aligne l'état ici, une fois, avant d'afficher
+  // la conversation elle-même.
+  if(view!=='dms'){
+    view='dms';
+    document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')==='dms')});
+    \$('admin-active').classList.add('hidden');
+    \$('server-active').classList.add('hidden');
+    \$('list-title').textContent='Messages';
+    \$('list-sub-txt').textContent='Conversations';
+  }
   activeDm=threadId;
   const dm=dmsCache.find(function(d){return d.\$id===threadId});
   const members=(dm&&dm.members)?dm.members.map(String):(peerUid?[String(me.\$id),String(peerUid)]:[]);
@@ -17291,10 +17339,30 @@ function renderCustomBadgeListHtml(){
 }
 // Miroir client de GLOBAL_BADGE_PERMISSIONS (worker.js, § requireStaffOrBadgePermission)
 // — la vraie liste blanche est vérifiée côté serveur de toute façon.
+// Miroir client de GLOBAL_BADGE_PERMISSIONS (worker.js, § hasGlobalBadgePermission)
+// — la vraie liste blanche est vérifiée côté serveur de toute façon. Groupé
+// par thème pour rester lisible avec autant d'entrées.
 const GLOBAL_BADGE_PERMISSIONS_CLIENT=[
-  {key:'reports',label:'Accès à la file de signalements (hors urgents, réservés à Shaman)'},
-  {key:'tempban',label:'Peut mettre un membre en pause temporaire (24h)'},
-  {key:'support_tickets',label:'Accès au panel support (tickets, chat avec les membres)'}
+  {key:'reports_view',label:'Voir la file de signalements (hors urgents, réservés à Shaman)'},
+  {key:'reports_resolve',label:'Marquer un signalement traité ou classé sans suite'},
+  {key:'support_view',label:'Voir la file de tickets support'},
+  {key:'support_reply',label:'Répondre à un ticket support (chat)'},
+  {key:'support_resolve',label:'Marquer un ticket support résolu'},
+  {key:'support_escalate',label:'Escalader un ticket support à l\\'équipe fondatrice'},
+  {key:'support_close',label:'Fermer un ticket support'},
+  {key:'tempban',label:'Mettre un membre en pause temporaire (24h)'},
+  {key:'ban_permanent',label:'Bannir un membre définitivement'},
+  {key:'unban',label:'Lever une sanction (ban ou pause)'},
+  {key:'bans_view',label:'Voir la liste des sanctions actives'},
+  {key:'mod_manage',label:'Nommer ou retirer un modérateur'},
+  {key:'logs_view',label:'Voir le journal d\\'audit admin'},
+  {key:'calls_view',label:'Voir les appels vocaux actifs'},
+  {key:'member_notes_view',label:'Voir les notes internes sur un membre'},
+  {key:'member_notes_write',label:'Ajouter une note interne sur un membre'},
+  {key:'bug_status_manage',label:'Changer le statut d\\'un bug signalé'},
+  {key:'suggestions_manage',label:'Changer le statut d\\'une suggestion (boîte à idées)'},
+  {key:'team_applications_view',label:'Voir les candidatures d\\'équipe (décision réservée à Shaman)'},
+  {key:'maintenance_view',label:'Voir l\\'état de maintenance (activer/désactiver réservé à Shaman)'}
 ];
 function renderCustomBadgeFormHtml(existing){
   const b=existing||{};
@@ -24602,8 +24670,8 @@ async function handle(request, event) {
     }
     const profile = await resolveProfile(acc.$id);
     let badgeRole = null;
-    if (await hasGlobalBadgePermission(acc, profile, "reports")) badgeRole = "bap";
-    else if (await hasGlobalBadgePermission(acc, profile, "support_tickets")) badgeRole = "support";
+    if (await hasGlobalBadgePermission(acc, profile, "reports_view")) badgeRole = "bap";
+    else if (await hasGlobalBadgePermission(acc, profile, "support_view")) badgeRole = "support";
     if (!badgeRole) {
       /* checkAdmin() appelle cette route SANS EXCEPTION à chaque connexion,
          pour absolument tout le monde — "forbidden" (membre normal, pas
@@ -24627,7 +24695,7 @@ async function handle(request, event) {
     }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
   }
   if (path === "/api/admin/calls") {
-    const gate = await requireStaff(request, "view");
+    const gate = await requireStaffOrBadgePermission(request, "view", "calls_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status,
@@ -24659,8 +24727,8 @@ async function handle(request, event) {
       const username = String((body && body.username) || "");
       const reason = String((body && body.reason) || "Ban staff").slice(0, 300);
       const type = (body && body.type) === "tempban" ? "tempban" : "ban";
-      if (type === "ban" && gate.role !== "owner") {
-        return new Response(JSON.stringify({ ok: false, error: "Seul le propriétaire peut bannir définitivement" }), {
+      if (type === "ban" && gate.role !== "owner" && !(await hasGlobalBadgePermission(gate.acc, gate.profile, "ban_permanent"))) {
+        return new Response(JSON.stringify({ ok: false, error: "Ban définitif réservé au propriétaire ou à une permission dédiée (ban_permanent)" }), {
           status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors)
         });
       }
@@ -24683,7 +24751,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/bans" && request.method === "GET") {
-    const gate = await requireStaff(request, "view");
+    const gate = await requireStaffOrBadgePermission(request, "view", "bans_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24701,7 +24769,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/logs" && request.method === "GET") {
-    const gate = await requireStaff(request, "view");
+    const gate = await requireStaffOrBadgePermission(request, "view", "logs_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24720,7 +24788,10 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/unban" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    // capability "unban" (jamais dans MOD_CAPABILITIES) : owner passe toujours,
+    // mais un mod "ordinaire" ne gagne pas cette capacité en plus par effet de
+    // bord — elle ne devient possible que via un badge ou un octroi direct.
+    const gate = await requireStaffOrBadgePermission(request, "unban", "unban");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24744,7 +24815,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/mod" && request.method === "POST") {
-    const gate = await requireShaman(request);
+    const gate = await requireStaffOrBadgePermission(request, "mod_manage", "mod_manage");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24809,7 +24880,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/suggestion-status" && request.method === "POST") {
-    const gate = await requireStaff(request, "suggestion_status");
+    const gate = await requireStaffOrBadgePermission(request, "suggestion_status", "suggestions_manage");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24836,7 +24907,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/team-applications" && request.method === "POST") {
-    const gate = await requireStaff(request, "view");
+    const gate = await requireStaffOrBadgePermission(request, "view", "team_applications_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -24954,7 +25025,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/bugstatus" && request.method === "POST") {
-    const gate = await requireStaff(request, "bug_status");
+    const gate = await requireStaffOrBadgePermission(request, "bug_status", "bug_status_manage");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -25162,7 +25233,7 @@ async function handle(request, event) {
   }
 
   if (path === "/api/admin/reports" && request.method === "GET") {
-    const gate = await requireStaffOrBadgePermission(request, "view", "reports");
+    const gate = await requireStaffOrBadgePermission(request, "view", "reports_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -25185,7 +25256,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/reports/status" && request.method === "POST") {
-    const gate = await requireStaffOrBadgePermission(request, "report_status", "reports");
+    const gate = await requireStaffOrBadgePermission(request, "report_status", "reports_resolve");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -25266,7 +25337,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/support/tickets/all" && request.method === "GET") {
-    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_tickets", "support");
+    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_view", "support");
     if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const q = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents?" +
@@ -25288,7 +25359,7 @@ async function handle(request, event) {
         const profile = await resolveProfile(acc.$id);
         const role = resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
-        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_view"))) throw new Error("forbidden");
       }
       const msgs = await awFetch("/databases/" + AW_DB + "/collections/support_messages/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ticketId", values: [ticketId] })) +
@@ -25316,7 +25387,7 @@ async function handle(request, event) {
       if (!isOpener) {
         const role = resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
-        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_reply"))) throw new Error("forbidden");
         if (ticket.status === "escalated" && role !== "owner") throw new Error("Ce ticket est escaladé — seule l'équipe fondatrice peut encore y répondre");
         senderRole = role === "owner" ? "shaman" : "support";
         if (!ticket.assignedTo) { patch.assignedTo = acc.$id; patch.assignedToName = senderName; patch.status = "assigned"; }
@@ -25355,7 +25426,8 @@ async function handle(request, event) {
       } else {
         const role = resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
-        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+        const neededPerm = status === "resolved" ? "support_resolve" : "support_close";
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, neededPerm))) throw new Error("forbidden");
         if (ticket.status === "escalated" && role !== "owner") throw new Error("Ce ticket est escaladé — seule l'équipe fondatrice peut le refermer");
       }
       await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: { status: status } } });
@@ -25365,7 +25437,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/support/tickets/escalate" && request.method === "POST") {
-    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_tickets", "support");
+    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_escalate", "support");
     if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
@@ -25685,7 +25757,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/notes" && request.method === "GET") {
-    const gate = await requireStaff(request, "notes");
+    const gate = await requireStaffOrBadgePermission(request, "notes", "member_notes_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -25707,7 +25779,7 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/notes" && request.method === "POST") {
-    const gate = await requireStaff(request, "notes");
+    const gate = await requireStaffOrBadgePermission(request, "notes", "member_notes_write");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -25748,7 +25820,9 @@ async function handle(request, event) {
     }
   }
   if (path === "/api/admin/maintenance" && request.method === "GET") {
-    const gate = await requireShaman(request);
+    // Lecture seule déléguable (maintenance_view) — activer/désactiver la
+    // maintenance reste strictement Shaman, voir la route POST juste après.
+    const gate = await requireStaffOrBadgePermission(request, "maintenance_view", "maintenance_view");
     if (!gate.ok) {
       return new Response(JSON.stringify({ ok: false, error: gate.error }), {
         status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
