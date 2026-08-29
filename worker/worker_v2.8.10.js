@@ -2356,14 +2356,36 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
 .badge-xplus{background-image:linear-gradient(125deg,#78350f,#fbbf24,#7c3aed,#f0abfc,#78350f);color:#1a1005;border-color:rgba(251,191,36,.75);box-shadow:0 0 12px rgba(251,191,36,.55),0 0 22px rgba(124,58,237,.35);animation:badgeShift 3.4s ease infinite,badgePulse 1.9s ease-in-out infinite}
-/* Badge BAP (Brigade Anti-Prédateurs) : esthétique "plaque de police" — bleu
-   nuit/marine, liseré or façon insigne officiel, anneau tournant discret
-   plutôt que scintillant (sobre et sérieux, pas festif comme les autres). */
-.badge-bap{background-image:linear-gradient(125deg,#050b1f,#0f2560,#1d4ed8,#0f2560,#050b1f);color:#fde68a;border-color:rgba(253,224,71,.8);box-shadow:0 0 10px rgba(29,78,216,.7),0 0 20px rgba(253,224,71,.28);animation:badgeShift 4.2s ease infinite}
-.badge-bap::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1.5px solid rgba(253,224,71,.65);animation:frameSpin 6s linear infinite;pointer-events:none}
-.badge-info-card.badge-bap{background:linear-gradient(160deg,#03060f,#0a1740 45%,#03060f);border-color:rgba(253,224,71,.55)}
+/* Badge BAP (Brigade Anti-Prédateurs) : une vraie plaque/écusson, pas un
+   rond scintillant comme les autres — silhouette d'écusson (clip-path), fond
+   doré "métal" porté par l'élément lui-même (donc visible comme un liseré
+   autour de la face), face bleu nuit posée par-dessus en ::before (voir son
+   propre commentaire pour le z-index négatif, contre-intuitif mais
+   nécessaire), reflet métallique en ::after qui balaie lentement au-dessus
+   de l'emoji sans le masquer (mix-blend-mode). Scopé à .badge-chip.badge-bap :
+   la fenêtre d'info du badge porte aussi la classe "badge-bap" mais jamais
+   "badge-chip", donc jamais cette silhouette d'écusson taillée dans son
+   propre cadre rectangulaire. */
+.badge-chip.badge-bap{position:relative;isolation:isolate;border-radius:0;border:none;color:#fde68a;
+  clip-path:polygon(50% 0%,93% 18%,93% 60%,50% 100%,7% 60%,7% 18%);
+  background-image:linear-gradient(165deg,#fff7d6,#d4af37 45%,#8a6a1a 75%,#d4af37);
+  box-shadow:0 2px 5px rgba(0,0,0,.55);animation:none}
+/* z-index:-1 est indispensable ici : un pseudo-élément position:absolute
+   sans z-index explicite peint AU-DESSUS du texte en flux normal (l'emoji),
+   quel que soit l'ordre before/after dans le DOM — seul un z-index négatif
+   le repasse sous ce texte tout en restant au-dessus du fond doré de
+   l'élément lui-même (peint en tout premier). */
+.badge-chip.badge-bap::before{content:'';position:absolute;inset:12%;z-index:-1;
+  clip-path:polygon(50% 0%,93% 18%,93% 60%,50% 100%,7% 60%,7% 18%);
+  background-image:linear-gradient(165deg,#0a1330 0%,#152a63 45%,#060b1c 100%)}
+.badge-chip.badge-bap::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;mix-blend-mode:overlay;
+  clip-path:polygon(50% 0%,93% 18%,93% 60%,50% 100%,7% 60%,7% 18%);
+  background:linear-gradient(115deg,transparent 34%,rgba(255,241,181,.8) 49%,rgba(255,241,181,.8) 53%,transparent 68%);
+  background-size:320% 320%;animation:eliteShine 4.5s ease-in-out infinite}
+.badge-info-card.badge-bap{background:linear-gradient(160deg,#03060f,#0a1740 45%,#03060f);border-color:#8a6a1a;border-width:1.5px;position:relative;overflow:hidden}
 .badge-info-card.badge-bap::before{background:radial-gradient(circle at 30% 20%,#1d4ed8,transparent 55%)}
-.badge-info-card.badge-bap .bi-head{color:#fde68a}
+.badge-info-card.badge-bap::after{content:'';position:absolute;top:0;left:0;right:0;height:7px;background:repeating-linear-gradient(135deg,#d4af37 0 12px,#060b1c 12px 24px);box-shadow:0 1px 6px rgba(0,0,0,.5)}
+.badge-info-card.badge-bap .bi-head{color:#fde68a;text-transform:uppercase;letter-spacing:.07em;font-weight:900}
 .badge-custom{color:#fff;border-color:rgba(255,255,255,.4);box-shadow:0 0 10px rgba(0,0,0,.35)}
 .badge-info-card.badge-custom{background:linear-gradient(160deg,#160f24,#160f24 55%,var(--custom-badge-color,#7c3aed));border-color:rgba(255,255,255,.2)}
 .badge-info-card.badge-custom::before{background:radial-gradient(circle at 30% 20%,var(--custom-badge-color,#a78bfa),transparent 55%)}
@@ -5987,6 +6009,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.36.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Badge BAP restylisé en véritable écusson',
+    body:'Le badge 🛡️ BAP abandonne le rond scintillant générique pour une vraie silhouette d\\'écusson (liseré doré, face bleu nuit, reflet métallique qui balaie lentement) — sur le badge lui-même comme sur sa fenêtre d\\'info (bandeau diagonal doré/marine façon ruban de signalisation, titre en majuscules). L\\'objectif : que ce badge se distingue immédiatement des autres et soit perçu comme sérieux au premier coup d\\'œil.'},
   {version:'4.35.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🛡️ Brigade Anti-Prédateurs (BAP) : signalements pris au sérieux',
     body:'Nouveau badge et rôle 🛡️ BAP (postule dans Équipe → candidatures, avec un guide complet « Comment ça marche »). Les membres BAP traitent la file de signalements de toute la plateforme et peuvent mettre un compte en pause 24h le temps d\\'une vérification, avec une notification sur tous leurs appareils à chaque nouveau signalement. Une nouvelle catégorie de signalement — contenu à caractère sexuel impliquant un mineur — déclenche un traitement radicalement différent : le message est masqué instantanément pour tout le monde, jamais montré à un BAP ni à un modérateur, et remonte directement et exclusivement à l\\'équipe fondatrice avec les adresses IP des deux comptes pour transmission aux forces de l\\'ordre si nécessaire.'},
   {version:'4.34.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎨 Studio de badges : permissions, emoji, bannière personnalisée',
