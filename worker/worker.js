@@ -5346,34 +5346,49 @@ async function enterApp(e2ePassword){
   \$('stage').classList.add('hidden');
   \$('app').classList.remove('hidden');
   xlog('show_dash_ok',{uid:acc.\$id,hasProfile:!!profile});
-  try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
-  try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
-  try{await loadDmPersonalization();}catch(e){xlog('dm_personalization_init_fail',{msg:(e&&e.message)||String(e)});}
-  try{await loadCustomBadges();}catch(e){xlog('custom_badges_init_fail',{msg:(e&&e.message)||String(e)});}
-  try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
+  // Ces 5 chargements ne dépendent jamais l'un du résultat de l'autre — les
+  // attendre en chaîne (comme avant) coûtait la somme des 5 allers-retours
+  // réseau avant même de pouvoir afficher quoi que ce soit ; en parallèle,
+  // ça ne coûte plus que le temps du plus lent des 5. C'est le principal
+  // gain de rapidité perçu à l'ouverture de l'app.
+  await Promise.all([
+    loadFriends().catch(function(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}),
+    loadDms().catch(function(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}),
+    loadDmPersonalization().catch(function(e){xlog('dm_personalization_init_fail',{msg:(e&&e.message)||String(e)});}),
+    loadCustomBadges().catch(function(e){xlog('custom_badges_init_fail',{msg:(e&&e.message)||String(e)});}),
+    loadMembers().catch(function(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});})
+  ]);
   try{
     const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId)).concat(acc?[acc.\$id]:[]);
     await ensureMembersCached(relevantUids);
     if(profile)refreshSelfBar();
   }catch(e){}
   try{maybeStartTutorial();}catch(e){}
-  try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}
-  try{await resumeMyLocationSharingIfEnabled();}catch(e){}
+  // À partir d'ici, tout ce dont l'écran DM/Membres a besoin est prêt : on
+  // câble les écoutes temps réel (elles ne bloquent jamais, aucun await) et
+  // on affiche l'app tout de suite, plutôt que d'attendre encore stories,
+  // partage de position, statut admin, palier chasseur de bugs,
+  // notifications, appel en attente et notifications push — rien de tout ça
+  // n'est nécessaire pour ce premier écran, et ça continuera de charger et
+  // de s'afficher tout seul en tâche de fond une fois prêt.
   try{subscribePresenceWatcher();}catch(e){}
-  try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}
-  try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeIncomingCalls();}catch(e){xlog('call_listen_fail',{msg:(e&&e.message)||String(e)});}
   try{subscribeCallBadgeWatcher();}catch(e){}
   try{subscribeDmDeleteWatcher();}catch(e){}
   try{subscribeDmMessagesWatcher();}catch(e){}
   try{subscribeFriendsWatcher();}catch(e){}
-  try{subscribeNotifWatcher();await loadNotifications();updateNotifBadge();}catch(e){}
-  try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+  try{subscribeNotifWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
-  try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
+  (async function(){try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}})();
+  (async function(){try{await resumeMyLocationSharingIfEnabled();}catch(e){}})();
+  (async function(){try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}})();
+  (async function(){try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}})();
+  (async function(){try{await loadNotifications();updateNotifBadge();}catch(e){}})();
+  (async function(){try{await checkPendingIncomingCall();}catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}})();
+  (async function(){try{await registerServiceWorker();await refreshPushButtonState();}catch(e){xlog('push_init_fail',{msg:(e&&e.message)||String(e)});}})();
   try{
     const sharedUid=new URLSearchParams(location.search).get('profile');
     if(sharedUid){openProfileModal(sharedUid);history.replaceState(null,'',location.pathname);}
@@ -5575,6 +5590,7 @@ function startJwtRefreshLoop(){
     try{
       const j=await account.createJWT();
       if(j&&j.jwt){
+        _cachedJwt=j.jwt;_cachedJwtAt=Date.now();
         try{localStorage.setItem('xultra_jwt',j.jwt);}catch(e){}
       }
     }catch(e){}
@@ -6009,6 +6025,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.37.0',category:'fix',date:'29 août 2026',time:'23:59',title:'⚡ App plus rapide et plus réactive à l\\'ouverture',
+    body:'Au premier chargement, l\\'app attendait en chaîne — l\\'un après l\\'autre — les amis, les conversations, les membres, les badges, puis en plus stories, statut admin, notifications et compagnie AVANT même d\\'afficher l\\'écran des DM. Tout ce qui peut se charger en parallèle se charge maintenant en parallèle, et l\\'écran s\\'affiche dès que l\\'essentiel (amis, DM, membres) est prêt — le reste continue de charger discrètement derrière. Chaque appel à l\\'API interne évitait aussi un aller-retour réseau inutile en re-générant un jeton d\\'authentification à chaque fois alors qu\\'il reste valide plusieurs minutes ; il est maintenant réutilisé le temps de sa validité. Résultat : nettement moins de latence ressentie partout, pas seulement à l\\'ouverture.'},
   {version:'4.36.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Badge BAP restylisé en véritable écusson',
     body:'Le badge 🛡️ BAP abandonne le rond scintillant générique pour une vraie silhouette d\\'écusson (liseré doré, face bleu nuit, reflet métallique qui balaie lentement) — sur le badge lui-même comme sur sa fenêtre d\\'info (bandeau diagonal doré/marine façon ruban de signalisation, titre en majuscules). L\\'objectif : que ce badge se distingue immédiatement des autres et soit perçu comme sérieux au premier coup d\\'œil.'},
   {version:'4.35.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🛡️ Brigade Anti-Prédateurs (BAP) : signalements pris au sérieux',
@@ -8689,19 +8707,22 @@ if(\$('modal-badge-info'))\$('modal-badge-info').addEventListener('click',functi
 
 let membersCache=[], memberMetaByUid={}, presenceByUid={};
 async function loadMembers(){
-  const r=await db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]);
+  // users et user_meta sont deux collections indépendantes (aucune ne dépend
+  // du résultat de l'autre) : les lancer en parallèle plutôt que l'une après
+  // l'autre évite un aller-retour réseau complet pour rien à chaque appel.
+  const [r,m]=await Promise.all([
+    db.listDocuments(DB,'users',[Appwrite.Query.limit(100)]),
+    db.listDocuments(DB,'user_meta',[Appwrite.Query.limit(100)]).catch(function(){return {documents:[]}})
+  ]);
   membersCache=r.documents||[];
-  try{
-    // Bug remonté par Yani (badge qui disparaît après un changement de
-    // pseudo ou une modification des paramètres du serveur) : ce cache est
-    // plafonné à 100 profils par appel, et un vidage complet ici effaçait à
-    // chaque rappel les entrées de tous les membres au-delà de ce plafond,
-    // backfillées ailleurs par ensureMembersCached() — d'où la disparition
-    // de leur badge dès que loadMembers() se relançait. On fusionne
-    // maintenant au lieu de vider, comme ensureMembersCached() le fait déjà.
-    const m=await db.listDocuments(DB,'user_meta',[Appwrite.Query.limit(100)]);
-    (m.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d});
-  }catch(e){}
+  // Bug remonté par Yani (badge qui disparaît après un changement de
+  // pseudo ou une modification des paramètres du serveur) : ce cache est
+  // plafonné à 100 profils par appel, et un vidage complet ici effaçait à
+  // chaque rappel les entrées de tous les membres au-delà de ce plafond,
+  // backfillées ailleurs par ensureMembersCached() — d'où la disparition
+  // de leur badge dès que loadMembers() se relançait. On fusionne
+  // maintenant au lieu de vider, comme ensureMembersCached() le fait déjà.
+  (m.documents||[]).forEach(function(d){memberMetaByUid[d.\$id]=d});
   refreshPresenceMap();
   return membersCache;
 }
@@ -16108,9 +16129,20 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
 });
 
 let isAdmin=false, staffRole='member', adminTab='dashboard';
+// Un JWT Appwrite est valide ~15min, mais authJwt() était appelé sans cache à
+// CHAQUE authGet/authPost : chaque appel à /api/... coûtait donc 2 aller-retours
+// réseau (création du JWT auprès d'Appwrite, PUIS la requête elle-même) au lieu
+// d'un seul. Mémorisé ici avec une marge de 10min (< durée de vie réelle) pour
+// ne jamais présenter un JWT expiré ; location.reload() à la déconnexion vide
+// naturellement ce cache mémoire, donc pas de risque de fuite entre comptes.
+let _cachedJwt=null,_cachedJwtAt=0;
+const JWT_CACHE_MS=10*60*1000;
 async function authJwt(){
+  const now=Date.now();
+  if(_cachedJwt&&(now-_cachedJwtAt)<JWT_CACHE_MS)return _cachedJwt;
   const j=await account.createJWT();
-  return j&&j.jwt;
+  _cachedJwt=j&&j.jwt;_cachedJwtAt=now;
+  return _cachedJwt;
 }
 async function authPost(path,body){
   const jwt=await authJwt();
