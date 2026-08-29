@@ -2623,9 +2623,15 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .mg-friend-row input{width:18px;height:18px;accent-color:#7c3aed;cursor:pointer;flex-shrink:0}
 .mg-friend-row .av{width:32px;height:32px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.75rem;flex-shrink:0}
 .mg-friend-row .n{font-size:.85rem;font-weight:700}
-.admin-subtabs{display:flex;gap:4px;padding:10px 14px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
-.admin-subtab{flex-shrink:0;padding:7px 12px;border-radius:8px;font-size:.78rem;font-weight:700;color:var(--muted);background:var(--elev)}
-.admin-subtab.on{background:#7c3aed;color:#fff}
+.admin-subtabs{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
+.admin-subtab-group{display:flex;gap:4px;flex-shrink:0;padding-right:10px;border-right:1px solid var(--line)}
+.admin-subtab-group:last-child{border-right:none;padding-right:0}
+.admin-subtab{flex-shrink:0;display:inline-flex;align-items:center;padding:7px 12px;border-radius:8px;font-size:.78rem;font-weight:700;color:var(--muted);background:var(--elev);transition:background .15s ease,color .15s ease}
+.admin-subtab:hover{color:#e9e4fb}
+.admin-subtab.on{background:#7c3aed;color:#fff;box-shadow:0 2px 10px rgba(124,58,237,.4)}
+.admin-subtab-ic{margin-right:5px;font-size:.85rem;line-height:1}
+.admin-subtab-count{margin-left:6px;display:inline-flex;align-items:center;justify-content:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800}
+.admin-subtab.on .admin-subtab-count{background:rgba(255,255,255,.3)}
 .admin-body{flex:1;overflow-y:auto;padding:10px 14px}
 .admin-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .admin-row{display:flex;align-items:center;gap:10px;padding:10px 8px;border-radius:8px;border-bottom:1px solid var(--line)}
@@ -2643,10 +2649,23 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .log-line b{color:#c4b5fd}
 .log-line .when{color:var(--muted);font-size:.68rem;margin-top:2px}
 .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:20px}
-.dash-card{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:14px}
+.dash-card{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:14px;transition:transform .12s ease,border-color .12s ease}
+.dash-card.clickable{cursor:pointer}
+.dash-card.clickable:hover{transform:translateY(-2px);border-color:rgba(124,58,237,.5)}
 .dash-card-icon{font-size:1.1rem;margin-bottom:6px}
 .dash-card-value{font-size:1.5rem;font-weight:900;color:#f2ebff;line-height:1.1}
 .dash-card-label{font-size:.7rem;color:var(--muted);font-weight:700;margin-top:4px}
+.dash-card-trend{font-size:.64rem;font-weight:800;margin-top:5px;display:inline-flex;align-items:center;gap:2px}
+.dash-card-trend.up{color:#86efac}
+.dash-card-trend.down{color:#fca5a5}
+.dash-card-trend.flat{color:var(--muted)}
+.dash-chart-wrap{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:14px}
+.dash-chart-legend{display:flex;gap:16px;margin-bottom:8px;font-size:.68rem;font-weight:700;color:var(--muted)}
+.dash-chart-legend span{display:inline-flex;align-items:center;gap:5px}
+.dash-chart-legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.dash-chart-svg{width:100%;height:120px;display:block}
+.dash-chart-labels{display:flex;margin-top:4px}
+.dash-chart-labels span{flex:1;text-align:center;font-size:.62rem;color:var(--muted);font-weight:700}
 .dash-section{margin-bottom:22px}
 .dash-section-title{font-size:.72rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .dash-chart{display:flex;align-items:flex-end;gap:8px;height:120px;background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:12px}
@@ -3771,19 +3790,29 @@ a.bug-att-item{display:block}
         <div class="titles"><div class="t">🛡️ Panneau admin</div></div>
       </div>
       <div class="admin-subtabs">
-        <button type="button" class="admin-subtab on" data-atab="dashboard">Dashboard</button>
-        <button type="button" class="admin-subtab" data-atab="members">Membres</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="badges">Badges</button>
-        <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent">🚨 Urgents</button>
-        <button type="button" class="admin-subtab" data-atab="support">🎧 Support</button>
-        <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
-        <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
-        <button type="button" class="admin-subtab" data-atab="team">Candidatures</button>
-        <button type="button" class="admin-subtab" data-atab="calls">Appels</button>
-        <button type="button" class="admin-subtab" data-atab="logs">Logs</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="servers">Serveurs</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance">Maintenance</button>
+        <div class="admin-subtab-group">
+        <button type="button" class="admin-subtab on" data-atab="dashboard"><span class="admin-subtab-ic">📊</span>Dashboard</button>
+        </div>
+        <div class="admin-subtab-group">
+        <button type="button" class="admin-subtab" data-atab="members"><span class="admin-subtab-ic">👥</span>Membres</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="badges"><span class="admin-subtab-ic">🎖️</span>Badges</button>
+        </div>
+        <div class="admin-subtab-group">
+        <button type="button" class="admin-subtab" data-atab="reports"><span class="admin-subtab-ic">🚩</span>Signalements<span class="admin-subtab-count hidden" data-count-for="reports"></span></button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent"><span class="admin-subtab-ic">🚨</span>Urgents<span class="admin-subtab-count hidden" data-count-for="urgent"></span></button>
+        <button type="button" class="admin-subtab" data-atab="support"><span class="admin-subtab-ic">🎧</span>Support<span class="admin-subtab-count hidden" data-count-for="support"></span></button>
+        <button type="button" class="admin-subtab" data-atab="bans"><span class="admin-subtab-ic">🔨</span>Bannis</button>
+        <button type="button" class="admin-subtab" data-atab="bugs"><span class="admin-subtab-ic">🐞</span>Bugs<span class="admin-subtab-count hidden" data-count-for="bugs"></span></button>
+        </div>
+        <div class="admin-subtab-group">
+        <button type="button" class="admin-subtab" data-atab="team"><span class="admin-subtab-ic">📝</span>Candidatures<span class="admin-subtab-count hidden" data-count-for="team"></span></button>
+        <button type="button" class="admin-subtab" data-atab="calls"><span class="admin-subtab-ic">📞</span>Appels</button>
+        <button type="button" class="admin-subtab" data-atab="logs"><span class="admin-subtab-ic">🧾</span>Logs</button>
+        </div>
+        <div class="admin-subtab-group">
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="servers"><span class="admin-subtab-ic">🖥️</span>Serveurs</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance"><span class="admin-subtab-ic">🛠️</span>Maintenance</button>
+        </div>
       </div>
       <div class="admin-body" id="admin-body"></div>
     </div>
@@ -6465,6 +6494,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.46.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Panneau admin repensé : navigation groupée, pastilles de comptage, dashboard enrichi',
+    body:'La barre d\\'onglets du panel admin gagne une icône par onglet, des groupes visuels (aperçu / communauté / modération / organisation / système) et une pastille rouge de comptage sur Signalements, Urgents, Support, Bugs et Candidatures — le nombre de choses en attente se voit d\\'un coup d\\'œil sans cliquer partout. Le Dashboard affiche maintenant une tendance (▲/▼ vs période précédente) sur les nouveaux comptes et les messages, un vrai graphique (messages + nouveaux comptes sur 7 jours) à la place des barres, et ses cartes cliquent directement vers l\\'onglet concerné. Signalements, Bannis, Bugs et Candidatures affichent leur statut avec le même code couleur que les tickets support, et Bannis, Bugs, Candidatures et Logs ont chacun leur barre de recherche.'},
   {version:'4.45.0',category:'fix',date:'29 août 2026',time:'23:59',title:'🔔 Notifications : ton propre pseudo affiché par erreur, corrigé + notifications bien plus riches',
     body:'Corrigé : le panneau de notifications pouvait afficher "X nouveaux messages de <ton propre pseudo>" au lieu du vrai nom de l\\'expéditeur — le titre d\\'une conversation privée est fixé une seule fois par la personne qui l\\'a démarrée, au nom de l\\'autre, donc le lire tel quel montrait à chacun son propre nom au lieu de celui d\\'en face. Corrigé aussi, plus en profondeur : plusieurs notifications (signalement urgent, réponse à un ticket support, nouveau signalement, nouveau ticket) pouvaient tout simplement ne jamais arriver, un bug de fond où certaines tâches du serveur pouvaient être interrompues juste après avoir répondu à la demande, avant d\\'avoir fini d\\'envoyer la notification. Le panneau 🔔 s\\'enrichit aussi de 6 nouveaux types reliés à de vraies fonctionnalités du site : réponse à un ticket support (clic → ouvre le ticket), ticket escaladé, signalement traité ou classé sans suite, décision sur une candidature d\\'équipe, nouveau badge reçu (clic → affiche le badge), et changement de statut d\\'un bug signalé.'},
   {version:'4.44.0',category:'design',date:'29 août 2026',time:'23:59',title:'🟣 Barres de défilement aux couleurs de X1',
@@ -17099,6 +17130,7 @@ document.querySelectorAll('.admin-subtab').forEach(function(b){
 function showAdminTab(tab){
   adminTab=tab;
   document.querySelectorAll('.admin-subtab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-atab')===tab)});
+  refreshAdminNavCounts();
   const box=\$('admin-body');if(!box)return;
   box.innerHTML='<div class="empty-hint">Chargement…</div>';
   if(tab==='dashboard')loadAdminDashboard().then(renderAdminDashboard).catch(adminErr);
@@ -17119,6 +17151,33 @@ function adminErr(e){
   const box=\$('admin-body');if(box)box.innerHTML='<div class="empty-hint">Erreur : '+esc((e&&e.message)||String(e))+'</div>';
   xlog('admin_tab_error',{tab:adminTab,msg:(e&&e.message)||String(e)});
 }
+// Petites pastilles de comptage sur les onglets (reports/urgent/support/bugs/
+// team) pour voir d'un coup d'œil ce qui a besoin d'attention sans cliquer
+// dans chaque onglet — rafraîchi à chaque changement d'onglet, en tâche de
+// fond (jamais bloquant, jamais d'erreur visible si une route échoue).
+let _adminNavCountsBusy=false;
+function setAdminNavCount(key,n){
+  const el=document.querySelector('.admin-subtab-count[data-count-for="'+key+'"]');
+  if(!el)return;
+  if(n>0){el.textContent=n>99?'99+':String(n);el.classList.remove('hidden');}
+  else{el.classList.add('hidden');}
+}
+async function refreshAdminNavCounts(){
+  if(_adminNavCountsBusy)return;
+  _adminNavCountsBusy=true;
+  try{
+    const jobs=[
+      loadAdminReports().then(function(list){setAdminNavCount('reports',list.filter(function(r){return r.status==='pending'}).length)}).catch(function(){}),
+      loadAdminSupportTickets().then(function(list){setAdminNavCount('support',list.filter(function(t){return t.status!=='resolved'&&t.status!=='closed'}).length)}).catch(function(){}),
+      loadAdminBugs().then(function(list){setAdminNavCount('bugs',list.filter(function(b){return (b.status==='open'?'pending':b.status)==='pending'}).length)}).catch(function(){}),
+      loadAdminTeamApplications().then(function(list){setAdminNavCount('team',list.filter(function(a){return (a.status||'pending')==='pending'}).length)}).catch(function(){})
+    ];
+    if(staffRole==='owner'){
+      jobs.push(loadAdminUrgentReports().then(function(d){setAdminNavCount('urgent',((d&&d.reports)||[]).filter(function(r){return (r.status||'pending')==='pending'}).length)}).catch(function(){}));
+    }
+    await Promise.all(jobs);
+  }finally{_adminNavCountsBusy=false;}
+}
 
 async function loadAdminDashboard(){
   const now=Date.now();
@@ -17138,6 +17197,9 @@ async function loadAdminDashboard(){
   }catch(e){}
   const msgs24h=msgs.filter(function(m){return now-new Date(m.\$createdAt).getTime()<dayMs}).length;
   const msgs7d=msgs.filter(function(m){return now-new Date(m.\$createdAt).getTime()<7*dayMs}).length;
+  const msgsPrev7d=msgs.filter(function(m){const age=now-new Date(m.\$createdAt).getTime();return age>=7*dayMs&&age<14*dayMs}).length;
+  const yestStart=new Date(todayStart);yestStart.setDate(yestStart.getDate()-1);
+  const newYesterday=allUsers.filter(function(u){const t=new Date(u.\$createdAt);return t>=yestStart&&t<todayStart}).length;
 
   const days=[];
   for(let i=6;i>=0;i--){
@@ -17167,35 +17229,72 @@ async function loadAdminDashboard(){
   let recentLogs=[];
   try{recentLogs=(await loadAdminLogs()).slice(0,6);}catch(e){}
 
-  return {totalUsers,newToday,onlineNow,msgs24h,msgs7d,days,activeCalls,pendingBugs,pendingReports,recentLogs};
+  return {totalUsers,newToday,newYesterday,onlineNow,msgs24h,msgs7d,msgsPrev7d,days,activeCalls,pendingBugs,pendingReports,recentLogs};
+}
+function dashTrendPct(current,previous){
+  if(!previous)return current>0?{dir:'up',txt:'nouveau'}:{dir:'flat',txt:'stable'};
+  const pct=Math.round(((current-previous)/previous)*100);
+  if(pct===0)return {dir:'flat',txt:'stable'};
+  return {dir:pct>0?'up':'down',txt:(pct>0?'+':'')+pct+'% vs période précédente'};
+}
+function dashSvgChart(days){
+  const w=560,h=120,pad=6;
+  const maxMsg=Math.max(1,Math.max.apply(null,days.map(function(x){return x.msgCount})));
+  const maxUser=Math.max(1,Math.max.apply(null,days.map(function(x){return x.userCount})));
+  const n=days.length;
+  const stepX=n>1?(w-pad*2)/(n-1):0;
+  function pt(vals,max){
+    return vals.map(function(v,i){
+      const x=pad+i*stepX;
+      const y=pad+(h-pad*2)*(1-(v/max));
+      return x.toFixed(1)+','+y.toFixed(1);
+    }).join(' ');
+  }
+  const msgPts=pt(days.map(function(x){return x.msgCount}),maxMsg);
+  const userPts=pt(days.map(function(x){return x.userCount}),maxUser);
+  const circles=days.map(function(x,i){
+    const cx=pad+i*stepX;
+    const cy=pad+(h-pad*2)*(1-(x.msgCount/maxMsg));
+    return '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="2.6" fill="#a78bfa"><title>'+esc(x.label)+' — '+x.msgCount+' message(s), '+x.userCount+' nouveau(x) compte(s)</title></circle>';
+  }).join('');
+  return '<svg class="dash-chart-svg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none">'
+    +'<polyline points="'+msgPts+'" fill="none" stroke="#8b5cf6" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'
+    +'<polyline points="'+userPts+'" fill="none" stroke="#38bdf8" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4,3"/>'
+    +circles
+    +'</svg>';
 }
 function renderAdminDashboard(d){
   const box=\$('admin-body');if(!box)return;
-  const maxMsg=Math.max(1,Math.max.apply(null,d.days.map(function(x){return x.msgCount})));
-  const chartBars=d.days.map(function(x){
-    const h=Math.round((x.msgCount/maxMsg)*100);
-    return '<div class="dash-bar-col"><div class="dash-bar" style="height:'+Math.max(3,h)+'%" title="'+x.msgCount+' message(s)"></div><div class="dash-bar-label">'+esc(x.label)+'</div></div>';
-  }).join('');
+  const trend7d=dashTrendPct(d.msgs7d,d.msgsPrev7d);
+  const trendNew=dashTrendPct(d.newToday,d.newYesterday);
+  const chartLabels=d.days.map(function(x){return '<span>'+esc(x.label)+'</span>'}).join('');
   const logsHtml=d.recentLogs.length?d.recentLogs.map(function(l){
     const when=l.at?new Date(l.at).toLocaleString('fr-FR'):'';
     return '<div class="log-line"><b>'+esc(l.by||'?')+'</b> — '+esc(l.action||'')+' — '+esc(l.detail||'')+'<div class="when">'+esc(when)+'</div></div>';
   }).join(''):'<div class="empty-hint">Aucune activité récente.</div>';
   box.innerHTML=
     '<div class="dash-grid">'
-    +dashCard('🟢','En ligne',d.onlineNow)
-    +dashCard('👥','Utilisateurs',d.totalUsers)
-    +dashCard('✨','Nouveaux aujourd\\'hui',d.newToday)
+    +dashCard('🟢','En ligne',d.onlineNow,'members')
+    +dashCard('👥','Utilisateurs',d.totalUsers,'members')
+    +dashCard('✨','Nouveaux aujourd\\'hui',d.newToday,'members',trendNew)
     +dashCard('💬','Messages 24h',d.msgs24h)
-    +dashCard('📈','Messages 7j',d.msgs7d)
-    +dashCard('📞','Appels actifs',d.activeCalls)
-    +dashCard('🐞','Bugs en attente',d.pendingBugs)
-    +dashCard('🚩','Signalements en attente',d.pendingReports)
+    +dashCard('📈','Messages 7j',d.msgs7d,null,trend7d)
+    +dashCard('📞','Appels actifs',d.activeCalls,'calls')
+    +dashCard('🐞','Bugs en attente',d.pendingBugs,'bugs')
+    +dashCard('🚩','Signalements en attente',d.pendingReports,'reports')
     +'</div>'
-    +'<div class="dash-section"><div class="dash-section-title">Messages — 7 derniers jours</div><div class="dash-chart">'+chartBars+'</div></div>'
+    +'<div class="dash-section"><div class="dash-section-title">Activité — 7 derniers jours</div>'
+      +'<div class="dash-chart-wrap"><div class="dash-chart-legend"><span><i style="background:#8b5cf6"></i>Messages</span><span><i style="background:#38bdf8"></i>Nouveaux comptes</span></div>'
+      +dashSvgChart(d.days)
+      +'<div class="dash-chart-labels">'+chartLabels+'</div></div></div>'
     +'<div class="dash-section"><div class="dash-section-title">Activité récente</div>'+logsHtml+'</div>';
+  box.querySelectorAll('[data-dash-jump]').forEach(function(el){
+    el.onclick=function(){showAdminTab(el.getAttribute('data-dash-jump'))};
+  });
 }
-function dashCard(icon,label,value){
-  return '<div class="dash-card"><div class="dash-card-icon">'+icon+'</div><div class="dash-card-value">'+esc(String(value))+'</div><div class="dash-card-label">'+esc(label)+'</div></div>';
+function dashCard(icon,label,value,jumpTab,trend){
+  const trendHtml=trend?'<div class="dash-card-trend '+trend.dir+'">'+(trend.dir==='up'?'▲':trend.dir==='down'?'▼':'—')+' '+esc(trend.txt)+'</div>':'';
+  return '<div class="dash-card'+(jumpTab?' clickable':'')+'"'+(jumpTab?' data-dash-jump="'+esc(jumpTab)+'"':'')+'><div class="dash-card-icon">'+icon+'</div><div class="dash-card-value">'+esc(String(value))+'</div><div class="dash-card-label">'+esc(label)+'</div>'+trendHtml+'</div>';
 }
 
 async function loadAdminMembers(){
@@ -17551,26 +17650,35 @@ async function loadAdminBans(){
   const r=await authGet('/api/admin/bans');
   return r.bans||[];
 }
+let adminBansQuery='';
 function renderAdminBans(list){
   const box=\$('admin-body');if(!box)return;
-  if(!list.length){box.innerHTML='<div class="empty-hint">Aucune sanction active.</div>';return}
-  box.innerHTML=list.map(function(b){
-    const untilTxt=b.until==='permanent'?'Permanent':('Jusqu\\'au '+new Date(Number(b.until)).toLocaleString('fr-FR'));
-    return '<div class="admin-row">'
-      +'<div class="av">'+esc(ini(b.username||b.uid))+'</div>'
-      +'<div class="info"><div class="n">'+esc(b.username||b.uid)+' · '+esc(b.type||'ban')+'</div><div class="p">'+esc(b.reason||'')+' — '+esc(untilTxt)+' — par '+esc(b.by||'?')+'</div></div>'
-      +'<div class="acts"><button type="button" data-unban="'+esc(b.\$id)+'" class="ok">Lever</button></div>'
-      +'</div>';
-  }).join('');
-  box.querySelectorAll('[data-unban]').forEach(function(el){
-    el.onclick=async function(){
-      this.disabled=true;
-      try{
-        await authPost('/api/admin/unban',{banId:el.getAttribute('data-unban')});
-        await loadAdminBans().then(renderAdminBans);
-      }catch(e){adminErr(e)}
-    };
-  });
+  box.innerHTML='<div class="admin-search-row"><input type="text" id="admin-bans-search" class="field-input" placeholder="Rechercher un pseudo, une raison…" value="'+esc(adminBansQuery)+'"></div><div id="admin-bans-list"></div>';
+  function renderList(){
+    const q=adminBansQuery.trim().toLowerCase();
+    const filtered=q?list.filter(function(b){return (b.username||b.uid||'').toLowerCase().indexOf(q)>=0||(b.reason||'').toLowerCase().indexOf(q)>=0;}):list;
+    const listBox=\$('admin-bans-list');
+    if(!filtered.length){listBox.innerHTML='<div class="empty-hint">'+(list.length?'Aucun résultat.':'Aucune sanction active.')+'</div>';return}
+    listBox.innerHTML=filtered.map(function(b){
+      const untilTxt=b.until==='permanent'?'Permanent':('Jusqu\\'au '+new Date(Number(b.until)).toLocaleString('fr-FR'));
+      return '<div class="admin-row">'
+        +'<div class="av">'+esc(ini(b.username||b.uid))+'</div>'
+        +'<div class="info"><div class="n">'+esc(b.username||b.uid)+' · '+esc(b.type||'ban')+' '+adminPill(untilTxt,b.until==='permanent'?'escalated':'assigned')+'</div><div class="p">'+esc(b.reason||'')+' — par '+esc(b.by||'?')+'</div></div>'
+        +'<div class="acts"><button type="button" data-unban="'+esc(b.\$id)+'" class="ok">Lever</button></div>'
+        +'</div>';
+    }).join('');
+    listBox.querySelectorAll('[data-unban]').forEach(function(el){
+      el.onclick=async function(){
+        this.disabled=true;
+        try{
+          await authPost('/api/admin/unban',{banId:el.getAttribute('data-unban')});
+          await loadAdminBans().then(renderAdminBans);
+        }catch(e){adminErr(e)}
+      };
+    });
+  }
+  \$('admin-bans-search').addEventListener('input',function(){adminBansQuery=this.value;renderList();});
+  renderList();
 }
 
 // Shaman peut ouvrir les paramètres de N'IMPORTE QUEL serveur de la
@@ -17616,6 +17724,11 @@ function renderAdminServers(list){
   \$('admin-srv-openid-btn').addEventListener('click',function(){openServerFromAdmin((\$('admin-srv-openid').value||'').trim());});
   renderList();
 }
+// Langage visuel de statut unifié (repris de tk-status-pill, déjà utilisé
+// pour les tickets support) — appliqué aussi aux signalements/bans/bugs/
+// candidatures pour que "en attente / en cours / résolu / rejeté" se
+// reconnaisse d'un coup d'œil, peu importe l'onglet.
+function adminPill(label,cls){return '<span class="tk-status-pill '+esc(cls)+'">'+esc(label)+'</span>';}
 const REPORT_REASON_LABELS={harcelement:'Harcèlement',contenu_inapproprie:'Contenu inapproprié',spam:'Spam',usurpation:'Usurpation d\\'identité',contenu_sexuel_mineur:'⚠️ Contenu sexuel impliquant un mineur',autre:'Autre'};
 const REPORT_STATUS_LABELS={pending:'En attente',reviewed:'Traité',dismissed:'Rejeté'};
 async function loadAdminReports(){
@@ -17636,7 +17749,7 @@ function renderAdminReports(list){
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +'<div class="av">🚩</div>'
       +'<div class="info">'
-        +'<div class="n">'+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+' — <span class="'+(r.status==='pending'?'tag-mod':'')+'">'+esc(REPORT_STATUS_LABELS[r.status]||r.status)+'</span></div>'
+        +'<div class="n">'+esc(REPORT_REASON_LABELS[r.reason]||r.reason)+' — '+adminPill(REPORT_STATUS_LABELS[r.status]||r.status,{pending:'assigned',reviewed:'resolved',dismissed:'closed'}[r.status]||'closed')+'</div>'
         +'<div class="p">Visé : '+esc(r.targetName||r.targetUid)+' · Par : '+esc(r.reporterName||r.reporterUid)+' · '+esc(when)+'</div>'
         +(SRC_LABELS[r.source]?'<div class="p">'+SRC_LABELS[r.source]+'</div>':'')
         +(r.messageText?'<div class="p" style="font-style:italic;margin-top:4px">« '+esc(r.messageText)+' »</div>':'')
@@ -17719,33 +17832,43 @@ async function loadAdminBugs(){
   const r=await db.listDocuments(DB,'bug_reports',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
   return r.documents||[];
 }
+let adminBugsQuery='';
+const BUG_STATUS_PILL_CLASS={pending:'assigned',approved:'open',resolved:'resolved',duplicate:'closed'};
 function renderAdminBugs(list){
   const box=\$('admin-body');if(!box)return;
-  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun rapport de bug.</div>';return}
-  box.innerHTML=list.map(function(b){
-    const st=(b.status==='open'?'pending':b.status)||'pending';
-    return '<div class="admin-row" style="align-items:flex-start">'
-      +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
-      +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+'</div>'
-      +'<div class="p">'+esc(b.description||'')+'</div>'
-      +bugAttachmentsHtml(b)
-      +'<div class="p">par '+esc(b.username||'?')+' — '+esc(BUG_STATUS_LABEL[st]||st)+' · 👍 '+(b.upvotes||0)+'</div></div>'
-      +'<div class="acts">'
-      +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
-      +(st!=='resolved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="resolved" class="ok">Résolu</button>':'')
-      +(st!=='duplicate'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="duplicate" title="Déjà signalé par quelqu\\'un d\\'autre — ne compte pas double pour les badges Chasseur">Doublon</button>':'')
-      +(st!=='pending'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="pending">Attente</button>':'')
-      +'</div></div>';
-  }).join('');
-  box.querySelectorAll('[data-bugstatus]').forEach(function(el){
-    el.onclick=async function(){
-      this.disabled=true;
-      try{
-        await authPost('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
-        await loadAdminBugs().then(renderAdminBugs);
-      }catch(e){adminErr(e)}
-    };
-  });
+  box.innerHTML='<div class="admin-search-row"><input type="text" id="admin-bugs-search" class="field-input" placeholder="Rechercher un titre, une description, un pseudo…" value="'+esc(adminBugsQuery)+'"></div><div id="admin-bugs-list"></div>';
+  function renderList(){
+    const q=adminBugsQuery.trim().toLowerCase();
+    const filtered=q?list.filter(function(b){return (b.title||'').toLowerCase().indexOf(q)>=0||(b.description||'').toLowerCase().indexOf(q)>=0||(b.username||'').toLowerCase().indexOf(q)>=0;}):list;
+    const listBox=\$('admin-bugs-list');
+    if(!filtered.length){listBox.innerHTML='<div class="empty-hint">'+(list.length?'Aucun résultat.':'Aucun rapport de bug.')+'</div>';return}
+    listBox.innerHTML=filtered.map(function(b){
+      const st=(b.status==='open'?'pending':b.status)||'pending';
+      return '<div class="admin-row" style="align-items:flex-start">'
+        +'<div class="av">'+esc(ini(b.username||'?'))+'</div>'
+        +'<div class="info"><div class="n">'+esc(b.title||'Sans titre')+' '+adminPill(BUG_STATUS_LABEL[st]||st,BUG_STATUS_PILL_CLASS[st]||'closed')+'</div>'
+        +'<div class="p">'+esc(b.description||'')+'</div>'
+        +bugAttachmentsHtml(b)
+        +'<div class="p">par '+esc(b.username||'?')+' · 👍 '+(b.upvotes||0)+'</div></div>'
+        +'<div class="acts">'
+        +(st!=='approved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="approved" class="ok">En cours</button>':'')
+        +(st!=='resolved'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="resolved" class="ok">Résolu</button>':'')
+        +(st!=='duplicate'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="duplicate" title="Déjà signalé par quelqu\\'un d\\'autre — ne compte pas double pour les badges Chasseur">Doublon</button>':'')
+        +(st!=='pending'?'<button type="button" data-bugstatus="'+esc(b.\$id)+'" data-status="pending">Attente</button>':'')
+        +'</div></div>';
+    }).join('');
+    listBox.querySelectorAll('[data-bugstatus]').forEach(function(el){
+      el.onclick=async function(){
+        this.disabled=true;
+        try{
+          await authPost('/api/admin/bugstatus',{reportId:el.getAttribute('data-bugstatus'),status:el.getAttribute('data-status')});
+          await loadAdminBugs().then(renderAdminBugs);
+        }catch(e){adminErr(e)}
+      };
+    });
+  }
+  \$('admin-bugs-search').addEventListener('input',function(){adminBugsQuery=this.value;renderList();});
+  renderList();
 }
 
 async function loadAdminTeamApplications(){
@@ -17756,34 +17879,44 @@ async function loadAdminTeamApplications(){
   return j.applications||[];
 }
 const TEAM_APP_STATUS_LABEL={pending:'En attente',accepted:'Acceptée',rejected:'Refusée'};
+const TEAM_APP_STATUS_PILL_CLASS={pending:'assigned',accepted:'resolved',rejected:'closed'};
+let adminTeamQuery='';
 function renderAdminTeamApplications(list){
   const box=\$('admin-body');if(!box)return;
-  if(!list.length){box.innerHTML='<div class="empty-hint">Aucune candidature.</div>';return}
   const canDecide=staffRole==='owner';
-  box.innerHTML=list.map(function(a){
-    const role=TEAM_ROLES.find(function(r){return r.key===a.role});
-    const roleLabel=role?(role.icon+' '+role.label):(a.role||'?');
-    const st=a.status||'pending';
-    return '<div class="admin-row" style="align-items:flex-start">'
-      +'<div class="av">'+esc(ini(a.username||'?'))+'</div>'
-      +'<div class="info"><div class="n">'+esc(a.username||'?')+' — '+esc(roleLabel)+'</div>'
-      +'<div class="p">'+esc(a.message||'')+'</div>'
-      +'<div class="p">'+esc(TEAM_APP_STATUS_LABEL[st]||st)+' · '+esc((a.\$createdAt||'').toString().slice(0,10))+'</div></div>'
-      +(canDecide?('<div class="acts">'
-      +(st!=='accepted'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="accepted" class="ok">Accepter</button>':'')
-      +(st!=='rejected'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="rejected">Refuser</button>':'')
-      +'</div>'):'<div class="p" style="opacity:.7;font-style:italic">Seul le propriétaire peut valider les candidatures.</div>')
-      +'</div>';
-  }).join('');
-  box.querySelectorAll('[data-teamapp]').forEach(function(el){
-    el.onclick=async function(){
-      this.disabled=true;
-      try{
-        await authPost('/api/admin/team-application-status',{applicationId:el.getAttribute('data-teamapp'),status:el.getAttribute('data-status')});
-        await loadAdminTeamApplications().then(renderAdminTeamApplications);
-      }catch(e){adminErr(e)}
-    };
-  });
+  box.innerHTML='<div class="admin-search-row"><input type="text" id="admin-team-search" class="field-input" placeholder="Rechercher un pseudo, un rôle…" value="'+esc(adminTeamQuery)+'"></div><div id="admin-team-list"></div>';
+  function renderList(){
+    const q=adminTeamQuery.trim().toLowerCase();
+    const filtered=q?list.filter(function(a){return (a.username||'').toLowerCase().indexOf(q)>=0||(a.role||'').toLowerCase().indexOf(q)>=0;}):list;
+    const listBox=\$('admin-team-list');
+    if(!filtered.length){listBox.innerHTML='<div class="empty-hint">'+(list.length?'Aucun résultat.':'Aucune candidature.')+'</div>';return}
+    listBox.innerHTML=filtered.map(function(a){
+      const role=TEAM_ROLES.find(function(r){return r.key===a.role});
+      const roleLabel=role?(role.icon+' '+role.label):(a.role||'?');
+      const st=a.status||'pending';
+      return '<div class="admin-row" style="align-items:flex-start">'
+        +'<div class="av">'+esc(ini(a.username||'?'))+'</div>'
+        +'<div class="info"><div class="n">'+esc(a.username||'?')+' — '+esc(roleLabel)+' '+adminPill(TEAM_APP_STATUS_LABEL[st]||st,TEAM_APP_STATUS_PILL_CLASS[st]||'closed')+'</div>'
+        +'<div class="p">'+esc(a.message||'')+'</div>'
+        +'<div class="p">'+esc((a.\$createdAt||'').toString().slice(0,10))+'</div></div>'
+        +(canDecide?('<div class="acts">'
+        +(st!=='accepted'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="accepted" class="ok">Accepter</button>':'')
+        +(st!=='rejected'?'<button type="button" data-teamapp="'+esc(a.\$id)+'" data-status="rejected">Refuser</button>':'')
+        +'</div>'):'<div class="p" style="opacity:.7;font-style:italic">Seul le propriétaire peut valider les candidatures.</div>')
+        +'</div>';
+    }).join('');
+    listBox.querySelectorAll('[data-teamapp]').forEach(function(el){
+      el.onclick=async function(){
+        this.disabled=true;
+        try{
+          await authPost('/api/admin/team-application-status',{applicationId:el.getAttribute('data-teamapp'),status:el.getAttribute('data-status')});
+          await loadAdminTeamApplications().then(renderAdminTeamApplications);
+        }catch(e){adminErr(e)}
+      };
+    });
+  }
+  \$('admin-team-search').addEventListener('input',function(){adminTeamQuery=this.value;renderList();});
+  renderList();
 }
 
 async function loadAdminCalls(){
@@ -17808,13 +17941,22 @@ async function loadAdminLogs(){
   const r=await authGet('/api/admin/logs');
   return r.logs||[];
 }
+let adminLogsQuery='';
 function renderAdminLogs(list){
   const box=\$('admin-body');if(!box)return;
-  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun log. Les actions admin (ban, grades…) apparaîtront ici.</div>';return}
-  box.innerHTML=list.map(function(l){
-    const when=l.at?new Date(l.at).toLocaleString('fr-FR'):'';
-    return '<div class="log-line"><b>'+esc(l.by||'?')+'</b> — '+esc(l.action||'')+' — '+esc(l.detail||'')+'<div class="when">'+esc(when)+'</div></div>';
-  }).join('');
+  box.innerHTML='<div class="admin-search-row"><input type="text" id="admin-logs-search" class="field-input" placeholder="Rechercher un auteur, une action…" value="'+esc(adminLogsQuery)+'"></div><div id="admin-logs-list"></div>';
+  function renderList(){
+    const q=adminLogsQuery.trim().toLowerCase();
+    const filtered=q?list.filter(function(l){return (l.by||'').toLowerCase().indexOf(q)>=0||(l.action||'').toLowerCase().indexOf(q)>=0||(l.detail||'').toLowerCase().indexOf(q)>=0;}):list;
+    const listBox=\$('admin-logs-list');
+    if(!filtered.length){listBox.innerHTML='<div class="empty-hint">'+(list.length?'Aucun résultat.':'Aucun log. Les actions admin (ban, grades…) apparaîtront ici.')+'</div>';return}
+    listBox.innerHTML=filtered.map(function(l){
+      const when=l.at?new Date(l.at).toLocaleString('fr-FR'):'';
+      return '<div class="log-line"><b>'+esc(l.by||'?')+'</b> — '+esc(l.action||'')+' — '+esc(l.detail||'')+'<div class="when">'+esc(when)+'</div></div>';
+    }).join('');
+  }
+  \$('admin-logs-search').addEventListener('input',function(){adminLogsQuery=this.value;renderList();});
+  renderList();
 }
 
 async function loadAdminMaintenance(){
