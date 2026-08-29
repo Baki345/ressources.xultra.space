@@ -1062,12 +1062,19 @@ const GLOBAL_BADGE_PERMISSIONS = [
 // qui la déclare explicitement.
 async function hasGlobalBadgePermission(acc, profile, permKey) {
   if (isShamanAccount(acc, profile)) return true;
-  let badges = [];
+  let badges = [], meta = null;
   try {
-    const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+    meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
     badges = JSON.parse(meta.badgesJson || "[]");
     if (!Array.isArray(badges)) badges = [];
   } catch (e) { return false; }
+  // Permission accordée directement au membre, indépendamment de tout badge
+  // (panel admin → Membres → 🔑 Permissions) — utile pour une confiance
+  // ponctuelle sans passer par la vitrine publique qu'est un badge.
+  try {
+    const direct = JSON.parse((meta && meta.globalPermissionsJson) || "[]");
+    if (Array.isArray(direct) && direct.indexOf(permKey) >= 0) return true;
+  } catch (e) {}
   if (permKey === "reports" && badges.indexOf("bap") >= 0) return true;
   if (permKey === "support_tickets" && badges.indexOf("support") >= 0) return true;
   if (!badges.length) return false;
@@ -6400,6 +6407,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.42.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🏷️ Membres : tous les badges assignables directement, et permissions au cas par cas',
+    body:'Panel admin → Membres : le bouton « 🏷️ Gérer les badges » ouvre maintenant la liste COMPLÈTE de tous les badges existants (en dur et personnalisés) directement sur la ligne du membre, fini la limite aux 5 badges de l\\'ancien raccourci rapide. Nouveau bouton « 🔑 Permissions » à côté : accorde à un membre précis, indépendamment de tout badge, l\\'une des permissions globales de X1 (accès aux signalements, mise en pause temporaire, accès au panel support) — pratique pour une confiance ponctuelle sans lui donner un badge visible sur son profil.'},
   {version:'4.41.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔗 Connexions de comptes tiers — 12 services',
     body:'Paramètres → Connexions relie maintenant vraiment Spotify, Steam, Twitch, YouTube, GitHub, Reddit, TikTok, Instagram, Facebook, Battle.net, Epic Games et Bluesky à ton compte X1 — pseudo et photo du service affichés une fois connecté, déconnexion en un clic. Bluesky se connecte via un mot de passe d\\'application (jamais ton vrai mot de passe). Xbox, PlayStation et Riot Games restent marqués « Indisponible » : ces plateformes n\\'offrent aucun accès développeur en libre-service, impossible à contourner par du code. Chaque service affiche « pas encore configuré » tant qu\\'il n\\'a pas sa propre clé côté serveur — comme pour Stripe, la mise en ligne réelle de chacun se fait service par service.'},
   {version:'4.40.0',category:'fix',date:'29 août 2026',time:'23:59',title:'♿ Grossissement du chat au clavier, et ménage dans les réglages "bientôt disponible"',
@@ -17096,8 +17105,25 @@ async function loadAdminMembers(){
   if(!membersCache.length)await loadMembers();
   return membersCache;
 }
-const TOGGLEABLE_BADGES=['dev','early','creator','chainsmoker','support'];
 let adminMembersQuery='';
+// uid en cours d'édition inline dans l'onglet Membres, et quel panneau
+// ("badges" ou "perms") — un seul ouvert à la fois, comme dans l'onglet
+// Badges (adminBadgeEditingUid) pour rester cohérent.
+let adminMembersEditingUid=null,adminMembersEditingMode=null;
+function parseMemberPermissions(meta){
+  try{
+    const arr=JSON.parse((meta&&meta.globalPermissionsJson)||'[]');
+    return Array.isArray(arr)?arr:[];
+  }catch(e){return []}
+}
+function renderMemberPermsChecklistHtml(uid){
+  const current=parseMemberPermissions(memberMetaByUid[uid]);
+  return '<div class="scr-sub" style="margin-bottom:6px">Accordées directement à cette personne, indépendamment de tout badge — jamais plus que ce que Shaman peut déjà faire.</div>'
+    +'<div class="adm-badge-checklist">'+GLOBAL_BADGE_PERMISSIONS_CLIENT.map(function(p){
+      return '<label class="bot-perm-check"><input type="checkbox" data-perm-check="'+p.key+'"'+(current.indexOf(p.key)>=0?' checked':'')+'>'+esc(p.label)+'</label>';
+    }).join('')
+    +'</div><button type="button" class="btn-main" data-perm-save-uid="'+esc(uid)+'" style="margin-top:8px">Enregistrer</button><div class="err" data-perm-save-err="'+esc(uid)+'"></div>';
+}
 function renderAdminMembers(list,focusSearch){
   const box=\$('admin-body');if(!box)return;
   const q=adminMembersQuery.trim().toLowerCase();
@@ -17116,16 +17142,20 @@ function renderAdminMembers(list,focusSearch){
     const uid=p.authUserId||p.\$id;
     const self=uid===(me&&me.\$id);
     const modTag=p.isMod?'<span class="tag-mod">MOD</span>':'';
-    const badges=parseBadges(memberMetaByUid[uid]);
     const isOwner=staffRole==='owner';
-    const badgeBtns=isOwner?TOGGLEABLE_BADGES.map(function(b){
-      const on=badges.indexOf(b)>=0;
-      return '<button type="button" data-badgetoggle="'+b+'" data-uid="'+esc(uid)+'" data-name="'+esc(name)+'" class="'+(on?'ok':'')+'" title="'+esc(BADGE_DEFS[b].label)+'">'+BADGE_DEFS[b].icon+(on?' ✓':'')+'</button>';
-    }).join(''):'';
+    const badgesOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='badges';
+    const permsOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='perms';
+    const manageBtns=isOwner?(
+      '<button type="button" data-member-manage-badges="'+esc(uid)+'">'+(badgesOpen?'Fermer':'🏷️ Gérer les badges')+'</button>'
+      +'<button type="button" data-member-manage-perms="'+esc(uid)+'">'+(permsOpen?'Fermer':'🔑 Permissions')+'</button>'
+    ):'';
     return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
       +'<span data-profile="'+esc(uid)+'" style="display:contents;cursor:pointer">'+rowAvatar(p,name,uid)+'</span>'
       +'<div class="info"><div class="n" data-profile="'+esc(uid)+'" style="cursor:pointer">'+esc(name)+modTag+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div>'
-      +'<div class="acts" style="margin-top:6px">'+badgeBtns+'<button type="button" data-adminfiche="'+esc(uid)+'">📋 Fiche</button></div></div>'
+      +'<div class="acts" style="margin-top:6px">'+manageBtns+'<button type="button" data-adminfiche="'+esc(uid)+'">📋 Fiche</button></div>'
+      +(badgesOpen?'<div style="width:100%;margin-top:8px">'+renderBadgeChecklistHtml(uid)+'</div>':'')
+      +(permsOpen?'<div style="width:100%;margin-top:8px">'+renderMemberPermsChecklistHtml(uid)+'</div>':'')
+      +'</div>'
       +(self?'':'<div class="acts">'
         +(isOwner?'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>':'')
         +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
@@ -17140,18 +17170,36 @@ function renderAdminMembers(list,focusSearch){
   box.querySelectorAll('[data-adminfiche]').forEach(function(el){
     el.onclick=function(e){e.stopPropagation();openAdminUserModal(el.getAttribute('data-adminfiche'))};
   });
-  box.querySelectorAll('[data-badgetoggle]').forEach(function(el){
+  box.querySelectorAll('[data-member-manage-badges]').forEach(function(el){
+    el.onclick=function(){
+      const uid=el.getAttribute('data-member-manage-badges');
+      const wasOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='badges';
+      adminMembersEditingUid=wasOpen?null:uid;adminMembersEditingMode=wasOpen?null:'badges';
+      renderAdminMembers(list);
+    };
+  });
+  box.querySelectorAll('[data-member-manage-perms]').forEach(function(el){
+    el.onclick=function(){
+      const uid=el.getAttribute('data-member-manage-perms');
+      const wasOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='perms';
+      adminMembersEditingUid=wasOpen?null:uid;adminMembersEditingMode=wasOpen?null:'perms';
+      renderAdminMembers(list);
+    };
+  });
+  wireBadgeSaveButtons(box,function(){renderAdminMembers(list);});
+  box.querySelectorAll('[data-perm-save-uid]').forEach(function(el){
     el.onclick=async function(){
-      this.disabled=true;
+      const uid=el.getAttribute('data-perm-save-uid');
+      const row=el.closest('.admin-row');
+      const checked=Array.from(row.querySelectorAll('[data-perm-check]')).filter(function(c){return c.checked}).map(function(c){return c.getAttribute('data-perm-check')});
+      const errEl=row.querySelector('[data-perm-save-err="'+uid+'"]');
+      el.disabled=true;if(errEl)errEl.textContent='';
       try{
-        const uid=el.getAttribute('data-uid'),badge=el.getAttribute('data-badgetoggle');
-        const current=parseBadges(memberMetaByUid[uid]);
-        const has=current.indexOf(badge)>=0;
-        const next=has?current.filter(function(b){return b!==badge}):current.concat([badge]);
-        await authPost('/api/admin/badges',{authUserId:uid,badges:next,targetName:el.getAttribute('data-name')});
-        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{badgesJson:JSON.stringify(next)});
+        await authPost('/api/admin/member-permissions',{authUserId:uid,permissions:checked});
+        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{globalPermissionsJson:JSON.stringify(checked)});
+        showToast('Permissions mises à jour !');
         renderAdminMembers(list);
-      }catch(e){adminErr(e)}
+      }catch(e){if(errEl)errEl.textContent=(e&&e.message)||'Erreur';el.disabled=false;}
     };
   });
   box.querySelectorAll('[data-modtoggle]').forEach(function(el){
@@ -17196,9 +17244,11 @@ function wireAdminMembersSearch(list,focusSearch){
 }
 
 // ===== 🏅 Studio de badges (panel admin) — création/édition/suppression de
-// badges personnalisés, et attribution de N'IMPORTE QUEL badge existant
-// (en dur ou custom) à n'importe quel membre, sans se limiter aux 4 icônes
-// rapides déjà présentes dans l'onglet Membres (TOGGLEABLE_BADGES). =====
+// badges personnalisés, et recherche dédiée pour attribuer N'IMPORTE QUEL
+// badge existant (en dur ou custom) à n'importe quel membre. La même
+// checklist complète (renderBadgeChecklistHtml) s'ouvre aussi directement
+// depuis l'onglet Membres → 🏷️ Gérer les badges, sans avoir à changer
+// d'onglet ni chercher deux fois le même membre. =====
 let adminBadgeQuery='';
 let adminBadgeEditingUid=null;
 let customBadgesListCache=[];
@@ -17243,7 +17293,8 @@ function renderCustomBadgeListHtml(){
 // — la vraie liste blanche est vérifiée côté serveur de toute façon.
 const GLOBAL_BADGE_PERMISSIONS_CLIENT=[
   {key:'reports',label:'Accès à la file de signalements (hors urgents, réservés à Shaman)'},
-  {key:'tempban',label:'Peut mettre un membre en pause temporaire (24h)'}
+  {key:'tempban',label:'Peut mettre un membre en pause temporaire (24h)'},
+  {key:'support_tickets',label:'Accès au panel support (tickets, chat avec les membres)'}
 ];
 function renderCustomBadgeFormHtml(existing){
   const b=existing||{};
@@ -17325,6 +17376,30 @@ function renderBadgeChecklistHtml(uid){
   }).join('')
   +'</div><button type="button" class="btn-main" data-badge-save-uid="'+esc(uid)+'" style="margin-top:8px">Enregistrer</button><div class="err" data-badge-save-err="'+esc(uid)+'"></div>';
 }
+// Partagé entre l'onglet Badges (renderAdminBadgeMembers) et l'onglet
+// Membres (renderAdminMembers) — les deux affichent la même checklist
+// complète (renderBadgeChecklistHtml) et doivent l'enregistrer exactement
+// pareil ; scopé au conteneur passé (jamais document entier) pour ne pas
+// re-wirer les boutons de l'autre onglet si jamais les deux étaient dans
+// le DOM en même temps.
+function wireBadgeSaveButtons(container,onSaved){
+  container.querySelectorAll('[data-badge-save-uid]').forEach(function(b){
+    b.onclick=async function(){
+      const uid=b.getAttribute('data-badge-save-uid');
+      const row=b.closest('.admin-row');
+      const checked=Array.from(row.querySelectorAll('[data-badge-check]')).filter(function(c){return c.checked}).map(function(c){return c.getAttribute('data-badge-check')});
+      const errEl=row.querySelector('[data-badge-save-err="'+uid+'"]');
+      b.disabled=true;if(errEl)errEl.textContent='';
+      try{
+        const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+        const r=await authPost('/api/admin/badges',{authUserId:uid,badges:checked,targetName:(p&&(p.displayName||p.username))||uid});
+        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{badgesJson:JSON.stringify(r.badges||checked)});
+        showToast('Badges mis à jour !');
+        if(onSaved)onSaved();
+      }catch(e){if(errEl)errEl.textContent=(e&&e.message)||'Erreur';b.disabled=false;}
+    };
+  });
+}
 function renderAdminBadgeMembers(){
   const box=\$('adm-badge-members');if(!box)return;
   const q=adminBadgeQuery.trim().toLowerCase();
@@ -17345,29 +17420,14 @@ function renderAdminBadgeMembers(){
       +(open?'<div style="width:100%;margin-top:8px">'+renderBadgeChecklistHtml(uid)+'</div>':'')
       +'</div>';
   }).join('');
-  document.querySelectorAll('[data-badge-manage]').forEach(function(b){
+  box.querySelectorAll('[data-badge-manage]').forEach(function(b){
     b.onclick=function(){
       const uid=b.getAttribute('data-badge-manage');
       adminBadgeEditingUid=adminBadgeEditingUid===uid?null:uid;
       renderAdminBadgeMembers();
     };
   });
-  document.querySelectorAll('[data-badge-save-uid]').forEach(function(b){
-    b.onclick=async function(){
-      const uid=b.getAttribute('data-badge-save-uid');
-      const row=b.closest('.admin-row');
-      const checked=Array.from(row.querySelectorAll('[data-badge-check]')).filter(function(c){return c.checked}).map(function(c){return c.getAttribute('data-badge-check')});
-      const errEl=row.querySelector('[data-badge-save-err="'+uid+'"]');
-      b.disabled=true;if(errEl)errEl.textContent='';
-      try{
-        const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
-        const r=await authPost('/api/admin/badges',{authUserId:uid,badges:checked,targetName:(p&&(p.displayName||p.username))||uid});
-        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{badgesJson:JSON.stringify(r.badges||checked)});
-        showToast('Badges mis à jour !');
-        renderAdminBadgeMembers();
-      }catch(e){if(errEl)errEl.textContent=(e&&e.message)||'Erreur';b.disabled=false;}
-    };
-  });
+  wireBadgeSaveButtons(box,renderAdminBadgeMembers);
 }
 
 async function loadAdminBans(){
@@ -25494,6 +25554,47 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+  // Permissions globales accordées directement à un membre (panel admin →
+  // Membres → 🔑 Permissions), indépendamment de tout badge — même liste
+  // blanche que celle qu'un badge custom peut déclarer (GLOBAL_BADGE_PERMISSIONS),
+  // jamais plus large. Owner-only : ce n'est pas quelque chose qu'un badge
+  // peut déléguer à son tour (pas de "permission d'accorder des permissions").
+  if (path === "/api/admin/member-permissions" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
+        status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const authUserId = String((body && body.authUserId) || "");
+      if (!authUserId) throw new Error("authUserId requis");
+      const allowedKeys = GLOBAL_BADGE_PERMISSIONS.map(function (p) { return p.key; });
+      const permissions = Array.isArray(body && body.permissions) ? body.permissions.filter(function (p) { return allowedKeys.indexOf(p) >= 0; }) : [];
+      const lockedPerms = ["read(\"any\")"];
+      const data = { globalPermissionsJson: JSON.stringify(permissions) };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, {
+          method: "PATCH", asAdmin: true, body: { data: data, permissions: lockedPerms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: authUserId, data: data, permissions: lockedPerms }
+          });
+        } else throw e;
+      }
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "set_member_permissions", detail: authUserId + " -> " + permissions.join(","), by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, permissions }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
   // ===== Studio de badges custom — lecture publique (nécessaire pour afficher
