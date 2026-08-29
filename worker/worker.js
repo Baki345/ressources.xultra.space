@@ -1023,7 +1023,7 @@ function resolveStaffRole(acc, profile) {
   if (profile && profile.isMod) return "mod";
   return "member";
 }
-const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status"];
+const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets"];
 async function requireStaff(request, capability) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
@@ -1041,10 +1041,12 @@ async function requireStaff(request, capability) {
 // badges, plans, maintenance restent Shaman-only quel que soit le badge).
 const GLOBAL_BADGE_PERMISSIONS = [
   { key: "reports", label: "Accès à la file de signalements (hors signalements urgents, réservés à Shaman)" },
-  { key: "tempban", label: "Peut mettre un membre en pause temporaire (24h)" }
+  { key: "tempban", label: "Peut mettre un membre en pause temporaire (24h)" },
+  { key: "support_tickets", label: "Accès au panel support (tickets, chat avec les membres)" }
 ];
-// true si ce compte a la permission globale demandée, via Shaman, le badge
-// BAP (toujours "reports"), ou un badge custom qui la déclare explicitement.
+// true si ce compte a la permission globale demandée, via Shaman, un badge
+// dédié (BAP → "reports", SUPPORT → "support_tickets"), ou un badge custom
+// qui la déclare explicitement.
 async function hasGlobalBadgePermission(acc, profile, permKey) {
   if (isShamanAccount(acc, profile)) return true;
   let badges = [];
@@ -1054,6 +1056,7 @@ async function hasGlobalBadgePermission(acc, profile, permKey) {
     if (!Array.isArray(badges)) badges = [];
   } catch (e) { return false; }
   if (permKey === "reports" && badges.indexOf("bap") >= 0) return true;
+  if (permKey === "support_tickets" && badges.indexOf("support") >= 0) return true;
   if (!badges.length) return false;
   try {
     const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -1067,11 +1070,13 @@ async function hasGlobalBadgePermission(acc, profile, permKey) {
   } catch (e) { return false; }
 }
 // Comme requireStaff, mais si le compte n'est ni owner ni mod, retombe sur un
-// badge accordant la permission globale correspondante (ex: BAP + "reports").
-// Ne s'applique qu'aux capacités explicitement passées ici, jamais à
-// tempban/notes/bug_status au sens large — un badge ne doit jamais ouvrir
-// plus que ce pour quoi il a été explicitement configuré.
-async function requireStaffOrBadgePermission(request, capability, permKey) {
+// badge accordant la permission globale correspondante (ex: BAP + "reports",
+// SUPPORT + "support_tickets"). Ne s'applique qu'aux capacités explicitement
+// passées ici, jamais à tempban/notes/bug_status au sens large — un badge ne
+// doit jamais ouvrir plus que ce pour quoi il a été explicitement configuré.
+// roleName (optionnel, "bap" par défaut pour ne rien changer aux appels
+// existants) identifie le pseudo-rôle renvoyé côté client dans staffRole.
+async function requireStaffOrBadgePermission(request, capability, permKey, roleName) {
   const gate = await requireStaff(request, capability);
   if (gate.ok || gate.error !== "forbidden") return gate;
   const acc = await resolveSessionUser(request);
@@ -1079,7 +1084,7 @@ async function requireStaffOrBadgePermission(request, capability, permKey) {
   const profile = await resolveProfile(acc.$id);
   const has = await hasGlobalBadgePermission(acc, profile, permKey);
   if (!has) return gate;
-  return { ok: true, acc, profile, role: "bap" };
+  return { ok: true, acc, profile, role: roleName || "bap" };
 }
 
 // Validates the xultra_gate cookie value against MAINT_GATE (not just its presence).
@@ -1221,6 +1226,42 @@ async function notifyReportAccessHolders(reportId) {
   const uids = await reportAccessHolderUids();
   await Promise.all(uids.map(function (uid) {
     return pushToUid(uid, { type: "new_report", title: "🚩 Nouveau signalement", body: "Un signalement attend d'être traité dans la file BAP.", tag: "report-" + reportId, url: "/" }).catch(function () {});
+  }));
+}
+// Même principe que reportAccessHolderUids(), pour la permission
+// "support_tickets" (badge SUPPORT ou badge custom qui la déclare).
+async function supportAccessHolderUids() {
+  const uids = new Set();
+  try {
+    const metaQ = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+    let customPermKeys = [];
+    try {
+      const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      customPermKeys = (cb.documents || []).filter(function (d) {
+        let p = []; try { p = JSON.parse(d.permissionsJson || "[]"); } catch (e) {}
+        return p.indexOf("support_tickets") >= 0;
+      }).map(function (d) { return d.key; });
+    } catch (e) {}
+    (metaQ.documents || []).forEach(function (m) {
+      let badges = [];
+      try { badges = JSON.parse(m.badgesJson || "[]"); if (!Array.isArray(badges)) badges = []; } catch (e) {}
+      if (badges.indexOf("support") >= 0 || badges.some(function (b) { return customPermKeys.indexOf(b) >= 0; })) uids.add(m.$id);
+    });
+  } catch (e) {}
+  return Array.from(uids);
+}
+async function notifySupportAccessHolders(ticketId, subject) {
+  const uids = await supportAccessHolderUids();
+  await Promise.all(uids.map(function (uid) {
+    return pushToUid(uid, { type: "new_ticket", title: "🎧 Nouveau ticket support", body: subject || "Un membre a besoin d'aide.", tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+  }));
+}
+// Un ticket escaladé n'est jamais caché au support comme le sont les
+// signalements urgents au BAP (rien d'illégal en jeu ici, juste "j'ai besoin
+// d'un dev") — seule Shaman reçoit en plus une notification push dédiée.
+async function notifyTicketEscalated(ticketId, subject) {
+  await Promise.all(Array.from(SHAMAN_UIDS).map(function (uid) {
+    return pushToUid(uid, { type: "ticket_escalated", title: "🚨 Ticket support escaladé", body: subject || "Un ticket support a été escaladé.", tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
   }));
 }
 async function pushToUid(uid, payloadObj) {
@@ -2356,6 +2397,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
 .badge-xplus{background-image:linear-gradient(125deg,#78350f,#fbbf24,#7c3aed,#f0abfc,#78350f);color:#1a1005;border-color:rgba(251,191,36,.75);box-shadow:0 0 12px rgba(251,191,36,.55),0 0 22px rgba(124,58,237,.35);animation:badgeShift 3.4s ease infinite,badgePulse 1.9s ease-in-out infinite}
+/* Badge SUPPORT : chaleureux et pro plutôt que sévère (contrairement à BAP,
+   volontairement sans écusson) — dégradé ambre/or, léger halo qui respire, et
+   un anneau fin plutôt qu'un cadre tournant agressif, pour rester accueillant
+   tout en se distinguant clairement des badges "trophée" (hunter, elite…). */
+.badge-support{background-image:linear-gradient(125deg,#7c2d12,#f59e0b,#fde68a,#f59e0b,#7c2d12);color:#451a03;border-color:rgba(245,158,11,.75);box-shadow:0 0 10px rgba(245,158,11,.55),0 0 20px rgba(253,230,138,.3);animation:badgeShift 5s ease infinite,badgePulse 2.6s ease-in-out infinite}
+.badge-support::after{content:'';position:absolute;inset:-3px;border-radius:50%;border:1.5px solid rgba(253,230,138,.6);animation:frameSpin 8s linear infinite;pointer-events:none}
 /* Badge BAP (Brigade Anti-Prédateurs) : une vraie plaque/écusson, pas un
    rond scintillant comme les autres — silhouette d'écusson (clip-path), fond
    doré "métal" porté par l'élément lui-même (donc visible comme un liseré
@@ -2563,6 +2610,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-chainsmoker::before{background:radial-gradient(circle at 30% 20%,#f97316,transparent 40%,#4ade80 85%,transparent);opacity:.32}
 .badge-info-card.badge-xplus{background:linear-gradient(160deg,#1a1205,#3d1a3d 40%,#1a1205);border-color:rgba(251,191,36,.5)}
 .badge-info-card.badge-xplus::before{background:radial-gradient(circle at 30% 20%,#fbbf24,transparent 40%,#7c3aed 85%,transparent);opacity:.35}
+.badge-info-card.badge-support{background:linear-gradient(160deg,#1c0f02,#3d2306 45%,#1c0f02);border-color:rgba(245,158,11,.5)}
+.badge-info-card.badge-support::before{background:radial-gradient(circle at 30% 20%,#f59e0b,transparent 55%);opacity:.35}
 .bi-head{font-size:1.15rem;font-weight:900;display:flex;align-items:center;gap:10px;margin-bottom:12px;position:relative}
 .badge-info-card.badge-base .bi-head{color:#e9d5ff}
 .badge-info-card.badge-dev .bi-head{color:#fca5a5}
@@ -2575,6 +2624,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .badge-info-card.badge-creator .bi-head{color:#f9a8d4}
 .badge-info-card.badge-chainsmoker .bi-head{color:#fdba74}
 .badge-info-card.badge-xplus .bi-head{color:#fde68a}
+.badge-info-card.badge-support .bi-head{color:#fde68a}
 .bi-desc{font-size:.86rem;line-height:1.55;color:rgba(255,255,255,.82);position:relative}
 .hunter-panel{width:min(420px,100%);max-height:88dvh;overflow-y:auto}
 .bug-modal-box{padding:0;overflow:hidden;width:min(420px,100%);max-height:90dvh;display:flex;flex-direction:column}
@@ -2603,6 +2653,38 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .bap-warning-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:12px;padding:14px}
 .bap-warning-title{font-size:.82rem;font-weight:800;color:#fca5a5;margin-bottom:6px}
 .bap-warning-text{font-size:.78rem;line-height:1.55;color:rgba(255,255,255,.82)}
+/* ===== Support : ticket + chat (aussi bien côté membre que côté panel
+   admin/support) — un headset en SVG (pas d'équivalent emoji propre) plutôt
+   qu'une simple icône de texte, pour rester net à toutes les tailles. ===== */
+.ticket-headset-icon{width:34px;height:34px;color:#fbbf24;flex-shrink:0}
+.ticket-headset-icon.sm{width:26px;height:26px}
+.ticket-new-box{width:min(440px,100%);max-height:90dvh;overflow-y:auto;display:flex;flex-direction:column;gap:2px}
+.ticket-new-head{display:flex;align-items:center;gap:10px;margin-bottom:2px}
+.ticket-new-head h3{font-size:1.1rem;font-weight:900}
+.tkn-label{font-size:.75rem;font-weight:700;color:var(--muted);margin:8px 0 4px}
+.ticket-chat-box{width:min(520px,100%);height:min(640px,88dvh);max-height:88dvh;padding:0;overflow:hidden;display:flex;flex-direction:column}
+.ticket-chat-head{display:flex;align-items:center;gap:10px;padding:16px 44px 12px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ticket-chat-subject{font-size:.95rem;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ticket-chat-meta{font-size:.72rem;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ticket-chat-actions{display:flex;gap:8px;flex-wrap:wrap;padding:10px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.ticket-chat-actions:empty{display:none}
+.ticket-chat-msgs{flex:1;min-height:0}
+.ticket-chat-composer{display:flex;gap:8px;align-items:flex-end;padding:12px 14px;border-top:1px solid var(--line);flex-shrink:0}
+.ticket-chat-composer #tkc-input{flex:1}
+.ticket-chat-composer .btn-main{width:44px;height:44px;flex-shrink:0;padding:0;font-size:1.1rem;display:grid;place-items:center}
+.ticket-chat-closed-note{padding:10px 14px;text-align:center;font-size:.78rem;color:var(--muted);border-top:1px solid var(--line);flex-shrink:0}
+.tk-status-pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.tk-status-pill.open{background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.4);color:#7dd3fc}
+.tk-status-pill.assigned{background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.4);color:#fcd34d}
+.tk-status-pill.escalated{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5}
+.tk-status-pill.resolved{background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.4);color:#86efac}
+.tk-status-pill.closed{background:rgba(148,163,184,.15);border:1px solid rgba(148,163,184,.35);color:#cbd5e1}
+.ticket-row{cursor:pointer}
+.ticket-row:hover{background:var(--hover)}
+.tk-act{padding:6px 12px;border-radius:8px;background:var(--elev);border:1px solid var(--line);font-size:.78rem;font-weight:700;color:inherit}
+.tk-act:hover{background:var(--hover)}
+.tk-act.ok{background:rgba(34,197,94,.2);color:#86efac;border-color:rgba(34,197,94,.35)}
+.tk-act.danger{background:rgba(239,68,68,.22);color:#fca5a5;border-color:rgba(239,68,68,.4)}
 .bug-att-wrap{margin-top:2px}
 .bug-att-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.78rem;font-weight:700;color:var(--muted);margin-bottom:8px}
 .bug-att-limit{padding:2px 9px;border-radius:999px;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;font-size:.68rem;font-weight:800;white-space:nowrap}
@@ -3390,6 +3472,7 @@ a.bug-att-item{display:block}
         <button type="button" class="admin-subtab owner-only hidden" data-atab="badges">Badges</button>
         <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
         <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent">🚨 Urgents</button>
+        <button type="button" class="admin-subtab" data-atab="support">🎧 Support</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
         <button type="button" class="admin-subtab" data-atab="team">Candidatures</button>
@@ -4136,6 +4219,50 @@ a.bug-att-item{display:block}
       </div>
       <button type="button" class="btn-main" id="bapi-apply-btn" style="width:100%;margin-top:4px">🚀 Postuler pour la BAP</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-ticket-new">
+  <div class="modal-box ticket-new-box">
+    <button type="button" class="modal-close" id="tkn-close">✕</button>
+    <div class="ticket-new-head">
+      <svg class="ticket-headset-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="4.5" height="7" rx="1.8"/><rect x="17" y="13" width="4.5" height="7" rx="1.8"/><path d="M19.5 20v.5a3 3 0 0 1-3 3H12"/></svg>
+      <h3>Ouvrir un ticket</h3>
+    </div>
+    <div class="scr-sub" style="margin-bottom:12px">Décris ta demande — l'équipe support te répond directement ici, en chat.</div>
+    <label class="tkn-label">Catégorie</label>
+    <select id="tkn-category" class="field-input">
+      <option value="compte">👤 Compte</option>
+      <option value="paiement">💳 Paiement / X1 Coins / X1+</option>
+      <option value="technique">🛠️ Bug technique</option>
+      <option value="autre">💬 Autre</option>
+    </select>
+    <label class="tkn-label">Sujet</label>
+    <input type="text" id="tkn-subject" class="field-input" placeholder="En une phrase, c'est à propos de quoi ?" maxlength="200">
+    <label class="tkn-label">Message</label>
+    <textarea id="tkn-message" class="field-input" placeholder="Explique ta demande en détail…" maxlength="4000" style="height:120px;padding-top:9px;resize:vertical"></textarea>
+    <div class="err" id="tkn-err"></div>
+    <button type="button" class="btn-main" id="tkn-submit" style="margin-top:10px;width:100%">Envoyer le ticket</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-ticket-chat">
+  <div class="modal-box ticket-chat-box">
+    <button type="button" class="modal-close" id="tkc-close">✕</button>
+    <div class="ticket-chat-head">
+      <svg class="ticket-headset-icon sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="2.5" y="13" width="4.5" height="7" rx="1.8"/><rect x="17" y="13" width="4.5" height="7" rx="1.8"/><path d="M19.5 20v.5a3 3 0 0 1-3 3H12"/></svg>
+      <div class="ticket-chat-head-info">
+        <div class="ticket-chat-subject" id="tkc-subject">—</div>
+        <div class="ticket-chat-meta" id="tkc-meta">—</div>
+      </div>
+    </div>
+    <div class="ticket-chat-actions" id="tkc-actions"></div>
+    <div class="msgs ticket-chat-msgs" id="tkc-msgs"></div>
+    <div class="ticket-chat-composer" id="tkc-composer">
+      <textarea id="tkc-input" class="field-input" placeholder="Écris ta réponse…" maxlength="4000" style="height:44px;padding-top:11px;resize:none"></textarea>
+      <button type="button" class="btn-main" id="tkc-send">➤</button>
+    </div>
+    <div class="ticket-chat-closed-note hidden" id="tkc-closed-note">🔒 Ce ticket est fermé.</div>
   </div>
 </div>
 
@@ -6025,6 +6152,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.38.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎧 Équipe Support : tickets + chat en direct',
+    body:'Nouveau badge 🎧 SUPPORT X1 (postule dans Équipe → candidatures, ou assignable directement depuis le panel admin → Membres/Badges). Les membres de l\\'équipe support ont accès à un panel dédié (nouvel onglet admin 🎧 Support) qui liste tous les tickets, avec chat en direct avec la personne qui a ouvert le ticket. Chaque membre peut ouvrir un ticket depuis Paramètres → 🎧 Aide & Support, choisir une catégorie (compte, paiement, bug, autre) et discuter jusqu\\'à résolution. Quand une demande dépasse ce que le support peut résoudre, il l\\'escalade en un clic à l\\'équipe fondatrice — Shaman reçoit alors une notification dédiée et peut seul reprendre la main sur ce ticket.'},
   {version:'4.37.0',category:'fix',date:'29 août 2026',time:'23:59',title:'⚡ App plus rapide et plus réactive à l\\'ouverture',
     body:'Au premier chargement, l\\'app attendait en chaîne — l\\'un après l\\'autre — les amis, les conversations, les membres, les badges, puis en plus stories, statut admin, notifications et compagnie AVANT même d\\'afficher l\\'écran des DM. Tout ce qui peut se charger en parallèle se charge maintenant en parallèle, et l\\'écran s\\'affiche dès que l\\'essentiel (amis, DM, membres) est prêt — le reste continue de charger discrètement derrière. Chaque appel à l\\'API interne évitait aussi un aller-retour réseau inutile en re-générant un jeton d\\'authentification à chaque fois alors qu\\'il reste valide plusieurs minutes ; il est maintenant réutilisé le temps de sa validité. Résultat : nettement moins de latence ressentie partout, pas seulement à l\\'ouverture.'},
   {version:'4.36.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Badge BAP restylisé en véritable écusson',
@@ -6580,7 +6709,7 @@ const TEAM_ROLES=[
   {key:'marketing',icon:'📣',label:'Marketing',color:'#06b6d4',desc:'Fait connaître X1 au monde entier : réseaux, contenus, communauté.'},
   {key:'moderation',icon:'🛡️',label:'Modération',color:'#22c55e',desc:'Veille sur la communauté et fait respecter les règles avec justesse.'},
   {key:'api_ai',icon:'🤖',label:'Gestion API & IA',color:'#a855f7',desc:'Pilote les intégrations techniques et les fonctionnalités liées à l\\'IA.'},
-  {key:'support',icon:'💬',label:'Support',color:'#f59e0b',desc:'Aide les membres, répond à leurs questions, résout leurs soucis.'},
+  {key:'support',icon:'🎧',label:'Support',color:'#f59e0b',desc:'Répond aux tickets et discute en direct avec les membres qui ont besoin d\\'aide, et escalade à l\\'équipe fondatrice quand une demande le dépasse.'},
   {key:'bap',icon:'🛡️',label:'Brigade Anti-Prédateurs (BAP)',color:'#1d4ed8',desc:'Traite les signalements de toute la plateforme et peut mettre un compte en pause le temps d\\'une vérification. Rôle de confiance — voir « Comment ça marche » avant de postuler.'}
 ];
 let teamTab='crew',myTeamApplications=[];
@@ -6606,7 +6735,7 @@ async function renderCrewTab(){
       // communauté ne peut pas être surveillée par une seule personne) —
       // contrairement aux autres postes ci-dessus, "Postuler" reste
       // accessible même une fois des membres déjà en place.
-      const isMultiRole=role.key==='bap';
+      const isMultiRole=role.key==='bap'||role.key==='support';
       const iAlreadyHaveIt=me&&members.some(function(p){return (p.authUserId||p.\$id)===me.\$id});
       let inner='<div class="tr-icon" style="background:'+role.color+'">'+role.icon+'</div>'
         +'<div class="tr-role-label">'+esc(role.label)+'</div>'
@@ -6737,6 +6866,173 @@ function openBapInfoModal(){\$('modal-bap-info').classList.remove('hidden');}
 if(\$('bapi-close'))\$('bapi-close').addEventListener('click',function(){\$('modal-bap-info').classList.add('hidden')});
 if(\$('modal-bap-info'))\$('modal-bap-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 if(\$('bapi-apply-btn'))\$('bapi-apply-btn').addEventListener('click',function(){\$('modal-bap-info').classList.add('hidden');openTeamApplyModal('bap');});
+
+/* ===== Support : tickets + chat (côté membre ET côté panel admin/support) —
+   chat par sondage court (3.5s) pendant que la fenêtre est ouverte plutôt
+   qu'un abonnement temps réel : les tickets sont admin-key-only (même
+   verrouillage que reports/moderation_evidence) donc pas de canal Realtime
+   client possible sans complexifier le modèle de permissions pour un gain
+   perceptible quasi nul sur ce cas d'usage. ===== */
+const TICKET_CATEGORY_LABELS={compte:'👤 Compte',paiement:'💳 Paiement',technique:'🛠️ Bug technique',autre:'💬 Autre'};
+const TICKET_STATUS_LABELS={open:'Ouvert',assigned:'Pris en charge',escalated:'Escaladé',resolved:'Résolu',closed:'Fermé'};
+let ticketChatId=null,ticketChatPollTimer=null,myTicketsCache=[],adminTicketsCache=[];
+function openTicketNewModal(){
+  \$('tkn-category').value='compte';\$('tkn-subject').value='';\$('tkn-message').value='';\$('tkn-err').textContent='';
+  \$('modal-ticket-new').classList.remove('hidden');
+}
+if(\$('tkn-close'))\$('tkn-close').addEventListener('click',function(){\$('modal-ticket-new').classList.add('hidden')});
+if(\$('modal-ticket-new'))\$('modal-ticket-new').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('tkn-submit'))\$('tkn-submit').addEventListener('click',async function(){
+  const subject=(\$('tkn-subject').value||'').trim();
+  const message=(\$('tkn-message').value||'').trim();
+  if(!subject||!message){\$('tkn-err').textContent='Sujet et message requis';return}
+  this.disabled=true;this.textContent='Envoi…';
+  try{
+    const r=await authPost('/api/support/tickets',{subject:subject,message:message,category:\$('tkn-category').value});
+    \$('modal-ticket-new').classList.add('hidden');
+    showToast('Ticket envoyé !');
+    try{myTicketsCache=(await authGet('/api/support/tickets/mine')).tickets||[];if(settingsActiveKey==='helpdesk')renderSetHelpdesk(\$('settings-content'));}catch(e){}
+    openTicketChatModal(r.ticket.\$id);
+  }catch(e){\$('tkn-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Envoyer le ticket';
+});
+function closeTicketChatModal(){
+  \$('modal-ticket-chat').classList.add('hidden');
+  ticketChatId=null;
+  if(ticketChatPollTimer){clearInterval(ticketChatPollTimer);ticketChatPollTimer=null;}
+}
+if(\$('tkc-close'))\$('tkc-close').addEventListener('click',closeTicketChatModal);
+if(\$('modal-ticket-chat'))\$('modal-ticket-chat').addEventListener('click',function(e){if(e.target===this)closeTicketChatModal();});
+async function openTicketChatModal(ticketId){
+  ticketChatId=ticketId;
+  \$('modal-ticket-chat').classList.remove('hidden');
+  await refreshTicketChat();
+  if(ticketChatPollTimer)clearInterval(ticketChatPollTimer);
+  ticketChatPollTimer=setInterval(function(){if(ticketChatId)refreshTicketChat();},3500);
+}
+async function refreshTicketChat(){
+  if(!ticketChatId)return;
+  try{
+    const r=await authGet('/api/support/tickets/thread?id='+encodeURIComponent(ticketChatId));
+    renderTicketChat(r.ticket,r.messages||[]);
+  }catch(e){}
+}
+function renderTicketChat(ticket,messages){
+  if(!ticket||ticket.\$id!==ticketChatId)return;
+  const isOpener=me&&ticket.uid===me.\$id;
+  const isOwnerStaff=staffRole==='owner';
+  const isStaffCapable=!isOpener&&(staffRole==='owner'||staffRole==='mod'||staffRole==='support');
+  \$('tkc-subject').textContent=ticket.subject||'Ticket';
+  \$('tkc-meta').innerHTML='<span class="tk-status-pill '+esc(ticket.status)+'">'+esc(TICKET_STATUS_LABELS[ticket.status]||ticket.status)+'</span>'
+    +'<span>'+esc(TICKET_CATEGORY_LABELS[ticket.category]||ticket.category)+'</span>'
+    +(isStaffCapable?'<span>Par '+esc(ticket.openerName||ticket.uid)+'</span>':'')
+    +(ticket.assignedToName?'<span>🎧 '+esc(ticket.assignedToName)+'</span>':'');
+  const msgsBox=\$('tkc-msgs');
+  msgsBox.innerHTML=messages.map(function(m){
+    const mine=me&&m.senderUid===me.\$id;
+    const staffTag=m.senderRole==='shaman'?' <span style="opacity:.7">(fondateur)</span>':(m.senderRole==='support'?' <span style="opacity:.7">(support)</span>':'');
+    return '<div class="msg'+(mine?' mine':'')+'"><div class="av">'+esc(ini(m.senderName||'?'))+'</div>'
+      +'<div class="bub">'+(mine?'':'<b style="display:block;font-size:.7rem;opacity:.75;margin-bottom:2px">'+esc(m.senderName||'')+staffTag+'</b>')+linkify(esc(m.text||''))+'</div></div>';
+  }).join('');
+  msgsBox.scrollTop=msgsBox.scrollHeight;
+  const canReply=ticket.status!=='closed'&&!(ticket.status==='escalated'&&isStaffCapable&&!isOwnerStaff);
+  \$('tkc-composer').classList.toggle('hidden',!canReply);
+  \$('tkc-closed-note').classList.toggle('hidden',canReply);
+  \$('tkc-closed-note').textContent=ticket.status==='closed'?'🔒 Ce ticket est fermé.':'🚨 Ce ticket est escaladé — seule l\\'équipe fondatrice peut encore y répondre.';
+  const actionsBox=\$('tkc-actions');
+  let actionsHtml='';
+  if(isOpener){
+    if(ticket.status!=='closed')actionsHtml+='<button type="button" class="tk-act" data-tkstatus="closed">Fermer mon ticket</button>';
+  }else if(isStaffCapable){
+    if(ticket.status==='escalated'){
+      if(isOwnerStaff){
+        actionsHtml+='<button type="button" class="tk-act" data-tkstatus="resolved">✅ Marquer résolu</button>';
+        actionsHtml+='<button type="button" class="tk-act" data-tkstatus="closed">🔒 Fermer</button>';
+      }
+    }else{
+      if(ticket.status!=='resolved')actionsHtml+='<button type="button" class="tk-act danger" data-tkescalate="1">🚨 Escalader</button>';
+      if(ticket.status!=='resolved')actionsHtml+='<button type="button" class="tk-act ok" data-tkstatus="resolved">✅ Marquer résolu</button>';
+      else actionsHtml+='<button type="button" class="tk-act" data-tkstatus="closed">🔒 Fermer</button>';
+    }
+  }
+  if(ticket.escalatedNote)actionsHtml+='<div class="scr-sub" style="width:100%;margin-top:4px">Note d\\'escalade : '+esc(ticket.escalatedNote)+'</div>';
+  actionsBox.innerHTML=actionsHtml;
+  actionsBox.querySelectorAll('[data-tkstatus]').forEach(function(b){
+    b.onclick=async function(){
+      b.disabled=true;
+      try{await authPost('/api/support/tickets/status',{id:ticketChatId,status:b.getAttribute('data-tkstatus')});await refreshTicketChat();if(adminTab==='support')loadAdminSupportTickets().then(renderAdminSupportTickets).catch(function(){});}catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    };
+  });
+  actionsBox.querySelectorAll('[data-tkescalate]').forEach(function(b){
+    b.onclick=async function(){
+      const note=(prompt('Pourquoi escalader ce ticket ? (visible par Shaman)','')||'').trim();
+      b.disabled=true;
+      try{await authPost('/api/support/tickets/escalate',{id:ticketChatId,note:note});await refreshTicketChat();if(adminTab==='support')loadAdminSupportTickets().then(renderAdminSupportTickets).catch(function(){});}catch(e){showToast((e&&e.message)||'Erreur','error');b.disabled=false;}
+    };
+  });
+}
+async function sendTicketReply(){
+  const input=\$('tkc-input');
+  const text=(input.value||'').trim();
+  if(!text||!ticketChatId)return;
+  \$('tkc-send').disabled=true;input.disabled=true;
+  try{
+    await authPost('/api/support/tickets/reply',{id:ticketChatId,message:text});
+    input.value='';
+    await refreshTicketChat();
+  }catch(e){showToast((e&&e.message)||'Erreur','error');}
+  \$('tkc-send').disabled=false;input.disabled=false;input.focus();
+}
+if(\$('tkc-send'))\$('tkc-send').addEventListener('click',sendTicketReply);
+if(\$('tkc-input'))\$('tkc-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTicketReply();}});
+async function renderSetHelpdesk(box){
+  box.innerHTML='<div class="set-card"><div class="set-section-label">🎧 Aide & Support</div>'
+    +'<div class="scr-sub" style="margin-bottom:12px">Une question, un souci de compte ou de paiement ? L\\'équipe support te répond directement en chat.</div>'
+    +'<button type="button" class="btn-main" id="helpdesk-new-btn">🎫 Ouvrir un ticket</button>'
+    +'<div class="set-section-label" style="margin-top:20px">Mes tickets</div>'
+    +'<div id="helpdesk-list"><div class="empty-hint">Chargement…</div></div>'
+    +'</div>';
+  \$('helpdesk-new-btn').onclick=openTicketNewModal;
+  try{myTicketsCache=(await authGet('/api/support/tickets/mine')).tickets||[];}catch(e){myTicketsCache=[];}
+  const list=\$('helpdesk-list');
+  if(!list)return;
+  if(!myTicketsCache.length){list.innerHTML='<div class="empty-hint">Aucun ticket pour l\\'instant.</div>';return}
+  list.innerHTML=myTicketsCache.map(function(t){
+    return '<div class="admin-row ticket-row" data-tkopen="'+esc(t.\$id)+'">'
+      +'<div class="info"><div class="n">'+esc(t.subject)+' <span class="tk-status-pill '+esc(t.status)+'">'+esc(TICKET_STATUS_LABELS[t.status]||t.status)+'</span></div>'
+      +'<div class="p">'+esc(TICKET_CATEGORY_LABELS[t.category]||t.category)+(t.lastMessagePreview?' · '+esc(t.lastMessagePreview):'')+'</div></div>'
+      +'</div>';
+  }).join('');
+  list.querySelectorAll('[data-tkopen]').forEach(function(el){
+    el.onclick=function(){closeSettingsPanel();openTicketChatModal(el.getAttribute('data-tkopen'));};
+  });
+}
+async function loadAdminSupportTickets(){
+  const r=await authGet('/api/support/tickets/all');
+  adminTicketsCache=r.tickets||[];
+  return adminTicketsCache;
+}
+function renderAdminSupportTickets(list){
+  const box=\$('admin-body');if(!box)return;
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun ticket support.</div>';return}
+  const order={escalated:0,assigned:1,open:2,resolved:3,closed:4};
+  const sorted=list.slice().sort(function(a,b){return (order[a.status]||9)-(order[b.status]||9)});
+  box.innerHTML=sorted.map(function(t){
+    const when=t.lastMessageAt?new Date(t.lastMessageAt).toLocaleString('fr-FR'):(t.\$createdAt?new Date(t.\$createdAt).toLocaleString('fr-FR'):'');
+    return '<div class="admin-row ticket-row" data-tkopen="'+esc(t.\$id)+'" style="align-items:flex-start;flex-wrap:wrap">'
+      +'<div class="av">🎧</div>'
+      +'<div class="info">'
+        +'<div class="n">'+esc(t.subject)+' <span class="tk-status-pill '+esc(t.status)+'">'+esc(TICKET_STATUS_LABELS[t.status]||t.status)+'</span></div>'
+        +'<div class="p">Par : '+esc(t.openerName||t.uid)+' · '+esc(TICKET_CATEGORY_LABELS[t.category]||t.category)+' · '+esc(when)+'</div>'
+        +(t.assignedToName?'<div class="p">🎧 Pris en charge par '+esc(t.assignedToName)+'</div>':'')
+        +(t.lastMessagePreview?'<div class="p" style="font-style:italic;margin-top:2px">« '+esc(t.lastMessagePreview)+' »</div>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+  box.querySelectorAll('[data-tkopen]').forEach(function(el){
+    el.onclick=function(){openTicketChatModal(el.getAttribute('data-tkopen'));};
+  });
+}
 
 /* ===== Paramètres de l’application ===== */
 function loadAppPrefs(){
@@ -7016,7 +7312,8 @@ const SETTINGS_GROUPS=[
   ]},
   {label:'',items:[
     {key:'changelog',icon:'📋',title:'Notes de version'},
-    {key:'support',icon:'🐞',title:'Support'},
+    {key:'helpdesk',icon:'🎧',title:'Aide & Support'},
+    {key:'support',icon:'🐞',title:'Signaler un bug'},
     {key:'testers',icon:'🧪',title:'Rejoindre X1 Testers'},
     {key:'logout',icon:'🚪',title:'Se déconnecter'}
   ]}
@@ -7064,7 +7361,8 @@ function renderSettingsSection(key){
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
-    myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet
+    myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet,
+    helpdesk:renderSetHelpdesk
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -8623,7 +8921,8 @@ const BADGE_DEFS={
   elite:{icon:'💎',label:'ÉLITE X1',color:'#f0abfc',desc:"Le badge le plus rare de tous, accordé automatiquement à l'équipe et aux membres porteurs d'un badge exclusif (DEV, CRÉATEUR DE CONTENU, CHAINSMOKER) — avec X1+ à vie en prime. Reconnaissable entre tous : c'est le seul qui scintille."},
   botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."},
   xplus:{icon:'⭐',label:'X1+',color:'#fbbf24',desc:"Le badge de présentation de X1+ — visible partout où tu apparais (profil, liste des membres d'un serveur). Débloqué en achetant X1+ par carte ou en X1 Coins, ou en l'obtenant à vie (palier ultime du Bug Hunter, badge ÉLITE X1…). Avec X1+ : qualité audio/vidéo HD sur tes serveurs, jusqu'à 25 bots développeur au lieu de 10, et un cadre de profil animé exclusif."},
-  bap:{icon:'🛡️',label:'BRIGADE ANTI-PRÉDATEURS',color:'#1d4ed8',desc:"Le badge de la Brigade Anti-Prédateurs (BAP) : des membres de confiance, validés par candidature, qui traitent les signalements de toute la plateforme (harcèlement, contenu inapproprié, spam, usurpation…) et peuvent mettre un compte en pause le temps d'une vérification. Les signalements les plus graves (contenu à caractère sexuel impliquant un mineur) ne leur sont jamais montrés : ils remontent directement et exclusivement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."}
+  bap:{icon:'🛡️',label:'BRIGADE ANTI-PRÉDATEURS',color:'#1d4ed8',desc:"Le badge de la Brigade Anti-Prédateurs (BAP) : des membres de confiance, validés par candidature, qui traitent les signalements de toute la plateforme (harcèlement, contenu inapproprié, spam, usurpation…) et peuvent mettre un compte en pause le temps d'une vérification. Les signalements les plus graves (contenu à caractère sexuel impliquant un mineur) ne leur sont jamais montrés : ils remontent directement et exclusivement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."},
+  support:{icon:'🎧',label:'SUPPORT X1',color:'#f59e0b',desc:"Le badge de l'équipe Support : des membres de confiance, validés par candidature, qui répondent aux tickets et discutent en direct avec les membres qui ont besoin d'aide (compte, paiement, bug, question générale…). Quand une demande dépasse ce qu'ils peuvent résoudre, ils l'escaladent directement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -8637,8 +8936,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['elite','dev','bap','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
-const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',bap:'🛡️ BRIGADE ANTI-PRÉDATEURS',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','bap','support','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',bap:'🛡️ BRIGADE ANTI-PRÉDATEURS',support:'🎧 SUPPORT X1',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
 // Badges créés depuis le studio de badges (§ panel admin), en plus des
 // BADGE_DEFS "en dur" ci-dessus — chargés une fois à la connexion
 // (loadCustomBadges), fusionnés partout où un badge doit être affiché/résolu
@@ -16296,14 +16595,16 @@ async function checkAdmin(){
   }catch(e){isAdmin=false;staffRole='member'}
   document.querySelectorAll('.admin-nav-btn').forEach(function(b){b.classList.toggle('hidden',!isAdmin)});
   document.querySelectorAll('.owner-only').forEach(function(b){b.classList.toggle('hidden',staffRole!=='owner')});
-  // BAP (accès via badge, pas mod/owner classique) ne voit QUE Signalements —
-  // toutes les autres sections (dashboard, membres, bannis...) lui restent
-  // fermées, y compris celles qui ne sont pas owner-only.
+  // Un pseudo-rôle accordé par badge (BAP, SUPPORT — pas mod/owner classique)
+  // ne voit QUE sa propre section — toutes les autres (dashboard, membres,
+  // bannis...) lui restent fermées, y compris celles qui ne sont pas
+  // owner-only.
+  const badgeRoleTab={bap:'reports',support:'support'}[staffRole];
   document.querySelectorAll('.admin-subtab:not(.owner-only)').forEach(function(b){
-    if(b.getAttribute('data-atab')==='reports')return;
-    b.classList.toggle('hidden',staffRole==='bap');
+    if(!badgeRoleTab)return;
+    b.classList.toggle('hidden',b.getAttribute('data-atab')!==badgeRoleTab);
   });
-  if(staffRole==='bap'){adminTab='reports';}
+  if(badgeRoleTab)adminTab=badgeRoleTab;
   xlog('admin_check',{isAdmin:isAdmin,role:staffRole});
 }
 if(\$('btn-admin-back'))\$('btn-admin-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
@@ -16320,6 +16621,7 @@ function showAdminTab(tab){
   else if(tab==='badges')loadAdminBadges().then(renderAdminBadges).catch(adminErr);
   else if(tab==='reports')loadAdminReports().then(renderAdminReports).catch(adminErr);
   else if(tab==='urgent')loadAdminUrgentReports().then(renderAdminUrgentReports).catch(adminErr);
+  else if(tab==='support')loadAdminSupportTickets().then(renderAdminSupportTickets).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
   else if(tab==='team')loadAdminTeamApplications().then(renderAdminTeamApplications).catch(adminErr);
@@ -16415,7 +16717,7 @@ async function loadAdminMembers(){
   if(!membersCache.length)await loadMembers();
   return membersCache;
 }
-const TOGGLEABLE_BADGES=['dev','early','creator','chainsmoker'];
+const TOGGLEABLE_BADGES=['dev','early','creator','chainsmoker','support'];
 let adminMembersQuery='';
 function renderAdminMembers(list,focusSearch){
   const box=\$('admin-body');if(!box)return;
@@ -23676,12 +23978,31 @@ async function handle(request, event) {
 
   // --- Secure admin API (Worker-side, no VPS) ---
   if (path === "/api/admin/access") {
-    // "reports" plutôt que "view_admin_dashboard" ici : c'est l'accès qui
-    // ouvre concrètement quelque chose côté client (l'onglet Signalements) —
-    // un badge qui n'accorderait QUE view_admin_dashboard sans "reports"
-    // ouvrirait sinon un panel admin vide et confus pour son détenteur.
-    const gate = await requireStaffOrBadgePermission(request, "view", "reports");
-    if (!gate.ok) {
+    // Owner/mod d'abord (accès complet) ; sinon, on regarde si un badge
+    // accorde un pseudo-rôle connu — "reports" pour BAP, "support_tickets"
+    // pour SUPPORT — chacun n'ouvrant QUE la section correspondante côté
+    // client (checkAdmin()), jamais un panel admin vide et confus.
+    const staffGate = await requireStaff(request, "view");
+    if (staffGate.ok) {
+      return new Response(JSON.stringify({
+        ok: true,
+        role: staffGate.role,
+        uid: staffGate.acc.$id,
+        name: (staffGate.profile && (staffGate.profile.displayName || staffGate.profile.username)) || staffGate.acc.name || "Staff"
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401,
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    const profile = await resolveProfile(acc.$id);
+    let badgeRole = null;
+    if (await hasGlobalBadgePermission(acc, profile, "reports")) badgeRole = "bap";
+    else if (await hasGlobalBadgePermission(acc, profile, "support_tickets")) badgeRole = "support";
+    if (!badgeRole) {
       /* checkAdmin() appelle cette route SANS EXCEPTION à chaque connexion,
          pour absolument tout le monde — "forbidden" (membre normal, pas
          staff) est donc le cas le plus fréquent de tous, pas une vraie
@@ -23690,19 +24011,17 @@ async function handle(request, event) {
          membres, et a été signalé comme bug par un membre qui avait ouvert
          ses outils de dev. Le client ne lit que le champ JSON "ok", jamais
          le code HTTP : renvoyer 200 ici ne change rien côté client, juste la
-         console. "auth_required" (session invalide/expirée) reste, lui, un
-         vrai problème et garde son vrai statut. */
-      const status = gate.error === "forbidden" ? 200 : gate.status;
-      return new Response(JSON.stringify({ ok: false, error: gate.error }), {
-        status: status,
+         console. */
+      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), {
+        status: 200,
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
     return new Response(JSON.stringify({
       ok: true,
-      role: gate.role,
-      uid: gate.acc.$id,
-      name: (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "Staff"
+      role: badgeRole,
+      uid: acc.$id,
+      name: (profile && (profile.displayName || profile.username)) || acc.name || "Staff"
     }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
   }
   if (path === "/api/admin/calls") {
@@ -23959,17 +24278,18 @@ async function handle(request, event) {
       if (status === "accepted" && appDoc.uid && appDoc.role) {
         const lockedPerms = ["read(\"any\")"];
         const data = { teamRole: appDoc.role };
-        // Le rôle BAP accorde aussi le badge correspondant (affichage, et
-        // c'est ce badge — pas teamRole — que hasGlobalBadgePermission()
-        // vérifie pour l'accès à la file de signalements).
-        if (appDoc.role === "bap") {
+        // Les rôles BAP et SUPPORT accordent aussi le badge correspondant
+        // (affichage, et c'est ce badge — pas teamRole — que
+        // hasGlobalBadgePermission() vérifie pour l'accès à la file de
+        // signalements / au panel support).
+        if (appDoc.role === "bap" || appDoc.role === "support") {
           let existingBadges = [];
           try {
             const existingMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + appDoc.uid, { asAdmin: true });
             existingBadges = JSON.parse(existingMeta.badgesJson || "[]");
             if (!Array.isArray(existingBadges)) existingBadges = [];
           } catch (e) {}
-          if (existingBadges.indexOf("bap") < 0) existingBadges.push("bap");
+          if (existingBadges.indexOf(appDoc.role) < 0) existingBadges.push(appDoc.role);
           data.badgesJson = JSON.stringify(existingBadges);
         }
         try {
@@ -24299,6 +24619,165 @@ async function handle(request, event) {
       });
     }
   }
+  // ===== Support (tickets + chat) — badge SUPPORT (permission
+  // "support_tickets") ou owner/mod. Contrairement aux signalements urgents,
+  // rien d'illégal n'est en jeu ici : un ticket escaladé reste visible de
+  // toute l'équipe support, seule Shaman peut encore y répondre ou le
+  // refermer une fois escaladé. =====
+  if (path === "/api/support/tickets" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const subject = String((body && body.subject) || "").trim().slice(0, 200);
+      const message = String((body && body.message) || "").trim().slice(0, 4000);
+      const category = String((body && body.category) || "autre").slice(0, 32);
+      if (!subject || !message) throw new Error("Sujet et message requis");
+      const profile = await resolveProfile(acc.$id);
+      const openerName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const now = new Date().toISOString();
+      const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { uid: acc.$id, openerName, subject, category, status: "open", assignedTo: "", assignedToName: "", escalatedNote: "", lastMessageAt: now, lastMessagePreview: message.slice(0, 200) } }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/support_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { ticketId: ticket.$id, senderUid: acc.$id, senderName: openerName, senderRole: "member", text: message } }
+      });
+      notifySupportAccessHolders(ticket.$id, subject).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, ticket }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/mine" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "lastMessageAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, tickets: q.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/all" && request.method === "GET") {
+    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_tickets", "support");
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "lastMessageAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, tickets: q.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/thread" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const ticketId = String(url.searchParams.get("id") || "");
+      if (!ticketId) throw new Error("id manquant");
+      const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true });
+      if (ticket.uid !== acc.$id) {
+        const profile = await resolveProfile(acc.$id);
+        const role = resolveStaffRole(acc, profile);
+        const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+      }
+      const msgs = await awFetch("/databases/" + AW_DB + "/collections/support_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "ticketId", values: [ticketId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, ticket, messages: msgs.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "forbidden") ? 403 : 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/reply" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const ticketId = String((body && body.id) || "");
+      const message = String((body && body.message) || "").trim().slice(0, 4000);
+      if (!ticketId || !message) throw new Error("paramètres invalides");
+      const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true });
+      if (ticket.status === "closed") throw new Error("Ce ticket est fermé");
+      const profile = await resolveProfile(acc.$id);
+      const isOpener = ticket.uid === acc.$id;
+      let senderRole = "member", senderName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const patch = { lastMessageAt: new Date().toISOString(), lastMessagePreview: message.slice(0, 200) };
+      if (!isOpener) {
+        const role = resolveStaffRole(acc, profile);
+        const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+        if (ticket.status === "escalated" && role !== "owner") throw new Error("Ce ticket est escaladé — seule l'équipe fondatrice peut encore y répondre");
+        senderRole = role === "owner" ? "shaman" : "support";
+        if (!ticket.assignedTo) { patch.assignedTo = acc.$id; patch.assignedToName = senderName; patch.status = "assigned"; }
+        else if (ticket.status === "open") patch.status = "assigned";
+      } else if (ticket.status === "resolved") {
+        patch.status = "assigned";
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/support_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { ticketId, senderUid: acc.$id, senderName, senderRole, text: message } }
+      });
+      await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: patch } });
+      if (isOpener && ticket.assignedTo) {
+        pushToUid(ticket.assignedTo, { type: "ticket_reply", title: "🎧 " + senderName, body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+      } else if (!isOpener) {
+        pushToUid(ticket.uid, { type: "ticket_reply", title: "🎧 Support X1", body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/" }).catch(function () {});
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "forbidden") ? 403 : 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/status" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const ticketId = String((body && body.id) || "");
+      const status = String((body && body.status) || "");
+      if (!ticketId || ["open", "resolved", "closed"].indexOf(status) === -1) throw new Error("paramètres invalides");
+      const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true });
+      const isOpener = ticket.uid === acc.$id;
+      const profile = await resolveProfile(acc.$id);
+      if (isOpener) {
+        if (status !== "closed") throw new Error("forbidden");
+      } else {
+        const role = resolveStaffRole(acc, profile);
+        const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
+        if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_tickets"))) throw new Error("forbidden");
+        if (ticket.status === "escalated" && role !== "owner") throw new Error("Ce ticket est escaladé — seule l'équipe fondatrice peut le refermer");
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: { status: status } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "forbidden") ? 403 : 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/support/tickets/escalate" && request.method === "POST") {
+    const gate = await requireStaffOrBadgePermission(request, "support_tickets", "support_tickets", "support");
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const ticketId = String((body && body.id) || "");
+      const note = String((body && body.note) || "").trim().slice(0, 500);
+      if (!ticketId) throw new Error("id manquant");
+      await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: { status: "escalated", escalatedNote: note } } });
+      const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true }).catch(function () { return null; });
+      notifyTicketEscalated(ticketId, ticket && ticket.subject).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
   // ===== Signalements URGENTS (contenu sexuel impliquant un mineur) — accès
   // strictement réservé à Shaman, jamais BAP ni aucun autre rôle. Le média
   // original n'est renvoyé qu'ici, jamais via /api/admin/reports. =====
@@ -24410,7 +24889,7 @@ async function handle(request, event) {
       // botdev et xplus sont normalement calculés automatiquement (premier
       // bot fonctionnel / statut plan) mais restent assignables ici à la main
       // comme demandé — cf. commentaire plus bas pour la synchro avec "plan".
-      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap"];
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap", "support"];
       let customBadgeDefs = [];
       try {
         const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -24494,7 +24973,7 @@ async function handle(request, event) {
       const body = await request.json();
       const key = String((body && body.key) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
       if (!key || key.length < 2 || key.length > 32) throw new Error("Clé invalide (2-32 caractères, lettres/chiffres/underscore)");
-      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap"];
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus", "bap", "support"];
       if (STANDARD_BADGE_KEYS.indexOf(key) >= 0) throw new Error("Cette clé est déjà utilisée par un badge existant");
       const existing = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "key", values: [key] })), { asAdmin: true });
       if ((existing.documents || []).length) throw new Error("Un badge custom avec cette clé existe déjà");
