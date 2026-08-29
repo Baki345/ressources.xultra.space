@@ -1331,6 +1331,20 @@ async function pushToUid(uid, payloadObj) {
     }));
   } catch (e) {}
 }
+// Équivalent serveur de sendNotification() (client, § db.createDocument
+// 'notifications') — pour les événements déclenchés par une route serveur
+// plutôt que par une action directe de l'utilisateur (réponse à un ticket,
+// signalement traité, candidature d'équipe tranchée, badge accordé, statut
+// de bug changé...). Alimente le même panneau 🔔 que les demandes d'ami,
+// sans dépendre du système de push (fonctionne même sans abonnement push).
+async function createInAppNotification(uid, type, fromUid, fromName, text, refId) {
+  try {
+    await awFetch("/databases/" + AW_DB + "/collections/notifications/documents", {
+      method: "POST", asAdmin: true,
+      body: { documentId: "unique()", data: { uid: String(uid), type: type, fromUid: fromUid ? String(fromUid) : "", fromName: fromName || "", text: (text || "").slice(0, 200), refId: refId || "", read: false } }
+    });
+  } catch (e) {}
+}
 
 /* =====================================================================
    Connexions de comptes tiers (Paramètres → Connexions) — X1 agit ici comme
@@ -6451,6 +6465,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.45.0',category:'fix',date:'29 août 2026',time:'23:59',title:'🔔 Notifications : ton propre pseudo affiché par erreur, corrigé + notifications bien plus riches',
+    body:'Corrigé : le panneau de notifications pouvait afficher "X nouveaux messages de <ton propre pseudo>" au lieu du vrai nom de l\\'expéditeur — le titre d\\'une conversation privée est fixé une seule fois par la personne qui l\\'a démarrée, au nom de l\\'autre, donc le lire tel quel montrait à chacun son propre nom au lieu de celui d\\'en face. Corrigé aussi, plus en profondeur : plusieurs notifications (signalement urgent, réponse à un ticket support, nouveau signalement, nouveau ticket) pouvaient tout simplement ne jamais arriver, un bug de fond où certaines tâches du serveur pouvaient être interrompues juste après avoir répondu à la demande, avant d\\'avoir fini d\\'envoyer la notification. Le panneau 🔔 s\\'enrichit aussi de 6 nouveaux types reliés à de vraies fonctionnalités du site : réponse à un ticket support (clic → ouvre le ticket), ticket escaladé, signalement traité ou classé sans suite, décision sur une candidature d\\'équipe, nouveau badge reçu (clic → affiche le badge), et changement de statut d\\'un bug signalé.'},
   {version:'4.44.0',category:'design',date:'29 août 2026',time:'23:59',title:'🟣 Barres de défilement aux couleurs de X1',
     body:'Toutes les barres de défilement du site (conversations, listes, panneaux, fenêtres…) affichent maintenant le dégradé violet de X1 au lieu de la barre grise par défaut du navigateur — sur Chrome, Edge, Safari comme Firefox.'},
   {version:'4.43.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔑 20 permissions X1 indépendantes, et fond d\\'écran d\\'admin réparé sur les DM',
@@ -9777,7 +9793,8 @@ async function sendFriendRequest(targetUid,targetName){
   }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
 }
 
-const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵'};
+const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵',
+  support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞'};
 let notifCache=[];
 async function loadNotifications(){
   if(!me)return [];
@@ -9793,7 +9810,13 @@ function computeUnreadDmEntries(){
     const unread=parseJsonSafe(d.unreadJson,{});
     const n=unread[me.\$id]||0;
     if(!n)return null;
-    return {kind:'dm',dmId:d.\$id,peerUid:dmIsGroup(d)?null:dmPeerId(d),count:n,title:d.displayName||'Conversation',ts:d.\$updatedAt||d.\$createdAt};
+    // Bug remonté (capture d'écran) : "X nouveaux messages de <mon propre
+    // pseudo>". d.displayName est fixé une seule fois par la personne qui a
+    // démarré la conversation, AU NOM DE LA PERSONNE EN FACE D'ELLE — donc
+    // en le lisant tel quel ici, chacun voit son propre pseudo au lieu de
+    // celui de l'autre (voir le commentaire détaillé sur dmTitleFor(), déjà
+    // corrigé pour l'en-tête de conversation, mais pas encore utilisé ici).
+    return {kind:'dm',dmId:d.\$id,peerUid:dmIsGroup(d)?null:dmPeerId(d),count:n,title:dmTitleFor(d),ts:d.\$updatedAt||d.\$createdAt};
   }).filter(Boolean);
 }
 function updateNotifBadge(){
@@ -9852,7 +9875,7 @@ function renderNotifications(){
   // deux fois, et le bouton "Accepter" du doublon issu de notifCache
   // utilisait l'id du document de notification (pas celui de la relation
   // d'amitié), donc échouait toujours silencieusement.
-  notifCache.filter(function(n){return n.type!=='friend_request';}).forEach(function(n){entries.push({kind:n.type,id:n.\$id,fromUid:n.fromUid,name:n.fromName,text:n.text,ts:n.\$createdAt});});
+  notifCache.filter(function(n){return n.type!=='friend_request';}).forEach(function(n){entries.push({kind:n.type,id:n.\$id,fromUid:n.fromUid,name:n.fromName,text:n.text,refId:n.refId,ts:n.\$createdAt});});
   entries.sort(function(a,b){return new Date(b.ts)-new Date(a.ts);});
   \$('ntf-accept-all').classList.toggle('hidden',!pendingReqs.length);
   \$('ntf-decline-all').classList.toggle('hidden',!pendingReqs.length);
@@ -9883,7 +9906,7 @@ function renderNotifications(){
     }
     return '<div class="row-swipe" data-notif-wrap>'
       +'<div class="row-del-action" data-ntf-del="'+esc(e.kind==='dm'?e.dmId:e.id||'')+'" data-ntf-del-kind="'+esc(e.kind)+'" data-ntf-del-from="'+esc(e.fromUid||'')+'"><span>🗑</span></div>'
-      +'<div class="row notif-row'+(clickable?' clickable':'')+'" data-notif-kind="'+esc(e.kind)+'" data-notif-dm="'+esc(e.dmId||'')+'" data-notif-uid="'+esc(e.fromUid||'')+'">'
+      +'<div class="row notif-row'+(clickable?' clickable':'')+'" data-notif-kind="'+esc(e.kind)+'" data-notif-dm="'+esc(e.dmId||'')+'" data-notif-uid="'+esc(e.fromUid||'')+'" data-notif-ref="'+esc(e.refId||'')+'">'
       +'<span class="ntf-icon">'+(NOTIF_ICONS[e.kind]||'🔔')+'</span>'
       +'<div class="ntf-body">'+body+'<div class="ntf-time">'+esc(fmtRelTime(e.ts))+'</div></div>'
       +'</div></div>';
@@ -9894,9 +9917,15 @@ function renderNotifications(){
       const dmId=el.getAttribute('data-notif-dm');
       const uid=el.getAttribute('data-notif-uid');
       \$('modal-notifications').classList.add('hidden');
+      const refId=el.getAttribute('data-notif-ref');
+      const kind=el.getAttribute('data-notif-kind');
       if(dmId){
         const dm=dmsCache.find(function(d){return d.\$id===dmId});
-        showView('dms');openDm(dmId,dm?dm.displayName:'Conversation',dm?dmPeerId(dm):null);
+        showView('dms');openDm(dmId,dm?dmTitleFor(dm):'Conversation',dm?dmPeerId(dm):null);
+      } else if(kind==='support_ticket_reply'||kind==='support_ticket_escalated'){
+        if(refId)openTicketChatModal(refId);
+      } else if(kind==='badge_granted'){
+        if(refId)showBadgeInfo(refId);
       } else if(uid){openProfileModal(uid);}
     });
   });
@@ -23625,6 +23654,20 @@ async function handle(request, event) {
     const p = dispatchBotEvents(serverId, eventType, data).catch(function () {});
     if (evt && evt.waitUntil) evt.waitUntil(p);
   }
+  // Même principe que fireBotEvent ci-dessus, généralisé à n'importe quelle
+  // promesse "best-effort après coup" (notification push, notification en
+  // app, envoi d'e-mail...) : sans event.waitUntil(), l'isolate Workers peut
+  // tuer une promesse non-attendue dès que la Response est renvoyée, AVANT
+  // qu'elle ait fini d'appeler Appwrite — un bug réel et silencieux découvert
+  // sur les toutes premières notifications enrichies (aucune ne se créait
+  // jamais alors que la route répondait ok:true). event est hoisté (nom du
+  // paramètre de handle(request, event)) — accessible depuis n'importe quel
+  // point de cette fonction, déclaration ou non.
+  function bgTask(promise) {
+    const p = Promise.resolve(promise).catch(function () {});
+    if (typeof event !== "undefined" && event && event.waitUntil) event.waitUntil(p);
+    return p;
+  }
   async function resolveOwnedBot(acc, publicId) {
     const botQ = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents?" +
       "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "publicId", values: [String(publicId || "")] })) +
@@ -25002,6 +25045,12 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "team_application_status", detail: (appDoc.username || applicationId) + " (" + (appDoc.role || "?") + ") -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
+      if (appDoc.uid && (status === "accepted" || status === "rejected")) {
+        const roleLabels = { founder: "Fondateur / Dev", moderation: "Modération", bap: "Brigade Anti-Prédateurs (BAP)", support: "Support", api_ai: "Gestion API & IA", marketing: "Marketing" };
+        const roleLabel = roleLabels[appDoc.role] || appDoc.role || "ce rôle";
+        const txt = status === "accepted" ? "Ta candidature pour « " + roleLabel + " » a été acceptée ! 🎉" : "Ta candidature pour « " + roleLabel + " » n'a pas été retenue.";
+        bgTask(createInAppNotification(appDoc.uid, "team_application_status", gate.acc.$id, by, txt, applicationId));
+      }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
@@ -25067,6 +25116,10 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "bug_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
+      if (updatedReport && updatedReport.uid) {
+        const statusLabels = { pending: "en attente", approved: "en cours de correction", resolved: "corrigé 🎉", duplicate: "identifié comme doublon" };
+        bgTask(createInAppNotification(updatedReport.uid, "bug_status_changed", gate.acc.$id, by, "Ton bug « " + (updatedReport.title || "signalé") + " » est maintenant " + (statusLabels[status] || status), reportId));
+      }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
@@ -25147,11 +25200,14 @@ async function handle(request, event) {
             body: { data: { text: "⚠️ Message masqué suite à un signalement", mediaUrl: "", moderationHidden: true } }
           });
         } catch (e) {}
-        SHAMAN_UIDS.forEach(function (uid) {
-          pushToUid(uid, { type: "urgent_report", title: "🚨 Signalement urgent — contenu impliquant un mineur", body: "Un signalement prioritaire nécessite ton attention immédiate.", tag: "urgent-report-" + reportDoc.$id, url: "/?admintab=urgent" }).catch(function () {});
-        });
+        // bgTask() (=> event.waitUntil) obligatoire ici : sans lui, une alerte
+        // de ce niveau de gravité pourrait ne jamais partir (voir son
+        // commentaire complet plus haut dans ce fichier).
+        bgTask(Promise.all(Array.from(SHAMAN_UIDS).map(function (uid) {
+          return pushToUid(uid, { type: "urgent_report", title: "🚨 Signalement urgent — contenu impliquant un mineur", body: "Un signalement prioritaire nécessite ton attention immédiate.", tag: "urgent-report-" + reportDoc.$id, url: "/?admintab=urgent" });
+        })));
       } else {
-        notifyReportAccessHolders(reportDoc.$id).catch(function () {});
+        bgTask(notifyReportAccessHolders(reportDoc.$id));
       }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
@@ -25290,11 +25346,11 @@ async function handle(request, event) {
       if (!reportId || ["pending", "reviewed", "dismissed"].indexOf(status) === -1) throw new Error("paramètres invalides");
       // Défense en profondeur : même avec un reportId d'un signalement urgent
       // deviné/forgé, cette route générale (mod/BAP) ne doit jamais pouvoir le
-      // toucher — seul /api/reports/resolve-urgent (Shaman) le peut.
-      if (gate.role !== "owner") {
-        const existing = await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, { asAdmin: true }).catch(function () { return null; });
-        if (existing && existing.severity === "urgent_minor") throw new Error("Ce signalement est réservé au propriétaire de la plateforme");
-      }
+      // toucher — seul /api/reports/resolve-urgent (Shaman) le peut. Le
+      // document est de toute façon nécessaire ensuite pour notifier la
+      // personne qui a signalé, d'où la lecture inconditionnelle.
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, { asAdmin: true }).catch(function () { return null; });
+      if (gate.role !== "owner" && existing && existing.severity === "urgent_minor") throw new Error("Ce signalement est réservé au propriétaire de la plateforme");
       const data = { status: status };
       if (resolutionNote) data.resolutionNote = resolutionNote;
       await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
@@ -25305,6 +25361,10 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "report_status", detail: reportId + " -> " + status, by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
+      if (existing && existing.reporterUid && (status === "reviewed" || status === "dismissed")) {
+        const outcomeTxt = status === "reviewed" ? "a été traité" : "a été classé sans suite";
+        bgTask(createInAppNotification(existing.reporterUid, "report_resolved", gate.acc.$id, by, "Ton signalement " + outcomeTxt + (resolutionNote ? " : " + resolutionNote : "."), reportId));
+      }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
@@ -25337,7 +25397,7 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { ticketId: ticket.$id, senderUid: acc.$id, senderName: openerName, senderRole: "member", text: message } }
       });
-      notifySupportAccessHolders(ticket.$id, subject).catch(function () {});
+      bgTask(notifySupportAccessHolders(ticket.$id, subject));
       return new Response(JSON.stringify({ ok: true, ticket }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -25421,9 +25481,11 @@ async function handle(request, event) {
       });
       await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: patch } });
       if (isOpener && ticket.assignedTo) {
-        pushToUid(ticket.assignedTo, { type: "ticket_reply", title: "🎧 " + senderName, body: message.slice(0, 120), tag: "ticket-" + ticketId, icon: (profile && profile.avatar) || "", url: "/?ticket=" + ticketId }).catch(function () {});
+        bgTask(pushToUid(ticket.assignedTo, { type: "ticket_reply", title: "🎧 " + senderName, body: message.slice(0, 120), tag: "ticket-" + ticketId, icon: (profile && profile.avatar) || "", url: "/?ticket=" + ticketId }));
+        bgTask(createInAppNotification(ticket.assignedTo, "support_ticket_reply", acc.$id, senderName, senderName + " a répondu sur le ticket « " + ticket.subject + " »", ticketId));
       } else if (!isOpener) {
-        pushToUid(ticket.uid, { type: "ticket_reply", title: "🎧 Support X1", body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/?ticket=" + ticketId }).catch(function () {});
+        bgTask(pushToUid(ticket.uid, { type: "ticket_reply", title: "🎧 Support X1", body: message.slice(0, 120), tag: "ticket-" + ticketId, url: "/?ticket=" + ticketId }));
+        bgTask(createInAppNotification(ticket.uid, "support_ticket_reply", acc.$id, senderName, "Réponse du support sur ton ticket « " + ticket.subject + " »", ticketId));
       }
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
@@ -25466,7 +25528,8 @@ async function handle(request, event) {
       if (!ticketId) throw new Error("id manquant");
       await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { method: "PATCH", asAdmin: true, body: { data: { status: "escalated", escalatedNote: note } } });
       const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true }).catch(function () { return null; });
-      notifyTicketEscalated(ticketId, ticket && ticket.subject).catch(function () {});
+      bgTask(notifyTicketEscalated(ticketId, ticket && ticket.subject));
+      if (ticket) bgTask(createInAppNotification(ticket.uid, "support_ticket_escalated", gate.acc.$id, "Support X1", "Ton ticket « " + ticket.subject + " » a été transmis à l'équipe fondatrice.", ticketId));
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -25607,10 +25670,12 @@ async function handle(request, event) {
       const badges = requestedBadges.slice();
       if (eliteEligible && badges.indexOf("elite") < 0) badges.push("elite");
       const data = {};
-      let alreadyPlus = false;
+      let alreadyPlus = false, oldBadges = [];
       try {
         const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, { asAdmin: true });
         alreadyPlus = meta.plan === "plus";
+        oldBadges = JSON.parse(meta.badgesJson || "[]");
+        if (!Array.isArray(oldBadges)) oldBadges = [];
       } catch (e) {}
       if (plusEligible && !alreadyPlus) {
         data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
@@ -25641,6 +25706,19 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { action: "set_badges", detail: (targetName || authUserId) + " -> " + badges.join(","), by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
+      // Notifie uniquement les badges VRAIMENT nouveaux (jamais un rappel pour
+      // ceux déjà détenus) — un seul message groupé si plusieurs arrivent d'un
+      // coup, plutôt qu'une rafale de notifications séparées.
+      const newlyAdded = badges.filter(function (b) { return oldBadges.indexOf(b) < 0; });
+      if (newlyAdded.length) {
+        const STANDARD_BADGE_LABELS = { dev: "🛠️ DEV", hunter1: "🔍 CHASSEUR NOVICE", hunter2: "🐛 CHASSEUR CONFIRMÉ", hunter3: "🕷️ CHASSEUR EXPERT", hunter4: "⚔️ EXTERMINATEUR", hunter5: "👑 LÉGENDE DU BUG", early: "✨ EARLY USER", creator: "🎬 CRÉATEUR DE CONTENU", chainsmoker: "🚬 CHAINSMOKER", elite: "💎 ÉLITE X1", botdev: "🤖 DÉVELOPPEUR DE BOT", xplus: "⭐ X1+", bap: "🛡️ BRIGADE ANTI-PRÉDATEURS", support: "🎧 SUPPORT X1" };
+        const labels = newlyAdded.map(function (b) {
+          if (STANDARD_BADGE_LABELS[b]) return STANDARD_BADGE_LABELS[b];
+          const cb = customBadgeDefs.find(function (d) { return d.key === b; });
+          return cb ? cb.icon + " " + cb.label : b;
+        });
+        bgTask(createInAppNotification(authUserId, "badge_granted", gate.acc.$id, by, "Tu as reçu " + (labels.length > 1 ? "de nouveaux badges" : "un nouveau badge") + " : " + labels.join(", "), newlyAdded[0]));
+      }
       return new Response(JSON.stringify({ ok: true, badges }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
