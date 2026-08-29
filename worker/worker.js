@@ -2281,6 +2281,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes eliteShine{0%{background-position:220% 0}100%{background-position:-60% 0}}
 .badge-botdev{background-image:linear-gradient(125deg,#0369a1,#38bdf8,#0ea5e9,#7dd3fc,#0369a1);color:#fff;border-color:rgba(56,189,248,.6);box-shadow:0 0 10px rgba(56,189,248,.5)}
 .badge-xplus{background-image:linear-gradient(125deg,#78350f,#fbbf24,#7c3aed,#f0abfc,#78350f);color:#1a1005;border-color:rgba(251,191,36,.75);box-shadow:0 0 12px rgba(251,191,36,.55),0 0 22px rgba(124,58,237,.35);animation:badgeShift 3.4s ease infinite,badgePulse 1.9s ease-in-out infinite}
+.badge-custom{color:#fff;border-color:rgba(255,255,255,.4);box-shadow:0 0 10px rgba(0,0,0,.35)}
+.badge-info-card.badge-custom{background:linear-gradient(160deg,#160f24,#160f24 55%,var(--custom-badge-color,#7c3aed));border-color:rgba(255,255,255,.2)}
+.badge-info-card.badge-custom::before{background:radial-gradient(circle at 30% 20%,var(--custom-badge-color,#a78bfa),transparent 55%)}
+.badge-info-card.badge-custom .bi-head{color:#e9d5ff}
 .profile-card{width:min(360px,100%);padding:0;overflow:hidden;max-height:90dvh;display:flex;flex-direction:column}
 .pm-scroll{overflow-y:auto;overflow-x:hidden;flex:1;min-height:0}
 .pm-banner{height:110px;background:linear-gradient(135deg,#5b21b6,#7c3aed);background-size:cover;background-position:center}
@@ -2647,6 +2651,7 @@ a.bug-att-item{display:block}
 .msg-embed-thumb{max-width:64px;max-height:64px;border-radius:6px;float:right}
 .msg-embed-footer{font-size:.68rem;opacity:.6;margin-top:8px}
 .bot-perm-check{display:flex;align-items:center;gap:6px;font-size:.82rem;padding:5px 0;cursor:pointer}
+.adm-badge-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 14px;padding:8px;background:rgba(0,0,0,.2);border-radius:10px}
 .bot-perm-check input{cursor:pointer}
 .srv-rules-card{max-width:460px;padding:18px}
 .srv-rules-welcome{background:rgba(124,58,237,.12);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-bottom:10px;white-space:pre-wrap}
@@ -3260,6 +3265,7 @@ a.bug-att-item{display:block}
       <div class="admin-subtabs">
         <button type="button" class="admin-subtab on" data-atab="dashboard">Dashboard</button>
         <button type="button" class="admin-subtab" data-atab="members">Membres</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="badges">Badges</button>
         <button type="button" class="admin-subtab" data-atab="reports">Signalements</button>
         <button type="button" class="admin-subtab" data-atab="bans">Bannis</button>
         <button type="button" class="admin-subtab" data-atab="bugs">Bugs</button>
@@ -5186,6 +5192,7 @@ async function enterApp(e2ePassword){
   try{await loadFriends();}catch(e){xlog('friends_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDms();}catch(e){xlog('dms_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadDmPersonalization();}catch(e){xlog('dm_personalization_init_fail',{msg:(e&&e.message)||String(e)});}
+  try{await loadCustomBadges();}catch(e){xlog('custom_badges_init_fail',{msg:(e&&e.message)||String(e)});}
   try{await loadMembers();}catch(e){xlog('members_init_fail',{msg:(e&&e.message)||String(e)});}
   try{
     const relevantUids=friendsCache.map(function(f){return f.friendId;}).concat(dmsCache.map(dmPeerId)).concat(acc?[acc.\$id]:[]);
@@ -5845,6 +5852,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.32.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🎨 Studio de badges + attribution complète (panel admin)',
+    body:'Nouvel onglet 🏅 Badges dans le panel admin : crée tes propres badges personnalisés (icône, libellé, couleur, description, avec option d\\'accorder X1+ à vie automatiquement) et assigne N\\'IMPORTE QUEL badge — en dur ou personnalisé — à n\\'importe quel membre, plus seulement les 4 badges de l\\'ancien raccourci rapide. Les badges personnalisés s\\'affichent partout (profil, serveurs, popup d\\'info) exactement comme un badge existant.'},
+  {version:'4.31.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔗 Lien d\\'invitation personnalisé pour tous les serveurs',
+    body:'Le lien d\\'invitation personnalisable (ex. "MONSERVEUR" au lieu d\\'un code aléatoire) n\\'est plus réservé au palier de boost 3 — n\\'importe quel propriétaire de serveur (ou membre avec la permission "gérer les invitations") peut le configurer dès maintenant, dans Paramètres du serveur → 🔗.'},
   {version:'4.29.0',category:'design',date:'28 août 2026',time:'23:59',title:'🖱️ Menu d\\'actions message repensé sur ordinateur',
     body:'Sur ordinateur, cliquer sur le ⋯ d\\'un message ouvre maintenant un petit menu ancré juste à côté (répondre, réagir, épingler, supprimer, signaler…), comme n\\'importe quelle appli de bureau — fini le grand tiroir plein écran pensé pour mobile. Sur téléphone, rien ne change : le glisser latéral (swipe) sur un message et le tiroir d\\'actions restent identiques.'},
   {version:'4.28.0',category:'design',date:'28 août 2026',time:'23:59',title:'📱🖥️ Aperçu bureau/téléphone pour le fond partagé des DM',
@@ -8429,23 +8440,43 @@ function hunterTierForCount(count){
 }
 const BADGE_GROUP_ORDER=['elite','dev','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
 const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
+// Badges créés depuis le studio de badges (§ panel admin), en plus des
+// BADGE_DEFS "en dur" ci-dessus — chargés une fois à la connexion
+// (loadCustomBadges), fusionnés partout où un badge doit être affiché/résolu
+// via getBadgeDef() plutôt que BADGE_DEFS[...] directement.
+let CUSTOM_BADGES={};
+async function loadCustomBadges(){
+  try{
+    const r=await authGet('/api/badges/custom');
+    const next={};
+    (r.badges||[]).forEach(function(b){next[b.key]={icon:b.icon,label:b.label,color:b.color,desc:b.description,custom:true,docId:b.\$id,grantsPlus:!!b.grantsPlus};});
+    CUSTOM_BADGES=next;
+  }catch(e){CUSTOM_BADGES={};}
+}
+function getBadgeDef(key){return BADGE_DEFS[key]||CUSTOM_BADGES[key];}
 function parseBadges(meta){
   try{
     const arr=JSON.parse((meta&&meta.badgesJson)||'[]');
-    const set=Array.isArray(arr)?arr.filter(function(b){return BADGE_DEFS[b]}):[];
+    const set=Array.isArray(arr)?arr.filter(function(b){return getBadgeDef(b)}):[];
     if(set.indexOf('base')<0)set.unshift('base');
     return set;
   }catch(e){return ['base']}
 }
 function primaryBadge(badges){
-  for(var i=0;i<BADGE_GROUP_ORDER.length;i++){if(badges.indexOf(BADGE_GROUP_ORDER[i])>=0)return BADGE_GROUP_ORDER[i]}
+  // Les badges custom se glissent juste avant "base" (dernier recours) :
+  // jamais devant un vrai palier/trophée en dur, mais toujours au-dessus du
+  // badge de base par défaut.
+  const order=BADGE_GROUP_ORDER.slice(0,-1).concat(Object.keys(CUSTOM_BADGES)).concat(['base']);
+  for(var i=0;i<order.length;i++){if(badges.indexOf(order[i])>=0)return order[i]}
   return 'base';
 }
 function badgeChipsHtml(badges,size){
   const cls=size==='sm'?'badge-chip sm':'badge-chip';
   return badges.map(function(b){
-    const d=BADGE_DEFS[b];if(!d)return '';
-    return '<button type="button" class="'+cls+' badge-'+b+'" data-badge="'+b+'" title="'+esc(d.label)+'">'+d.icon+'</button>';
+    const d=getBadgeDef(b);if(!d)return '';
+    const isCustom=!BADGE_DEFS[b];
+    const style=isCustom?' style="background-image:linear-gradient(125deg,'+esc(d.color)+',rgba(255,255,255,.3),'+esc(d.color)+')"':'';
+    return '<button type="button" class="'+cls+(isCustom?' badge-custom':' badge-'+b)+'" data-badge="'+b+'" title="'+esc(d.label)+'"'+style+'>'+d.icon+'</button>';
   }).join('');
 }
 function wireBadgeChips(root){
@@ -8454,12 +8485,14 @@ function wireBadgeChips(root){
   });
 }
 function showBadgeInfo(key){
-  const d=BADGE_DEFS[key];if(!d)return;
+  const d=getBadgeDef(key);if(!d)return;
   \$('bi-icon').textContent=d.icon;
   \$('bi-label').textContent=d.label;
   \$('bi-desc').textContent=d.desc;
   const card=\$('bi-card');
-  card.className='modal-box badge-info-card badge-'+key;
+  const isCustom=!BADGE_DEFS[key];
+  card.className='modal-box badge-info-card'+(isCustom?' badge-custom':' badge-'+key);
+  if(isCustom)card.style.setProperty('--custom-badge-color',d.color);else card.style.removeProperty('--custom-badge-color');
   \$('modal-badge-info').classList.remove('hidden');
 }
 if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-badge-info').classList.add('hidden')});
@@ -16051,6 +16084,7 @@ function showAdminTab(tab){
   box.innerHTML='<div class="empty-hint">Chargement…</div>';
   if(tab==='dashboard')loadAdminDashboard().then(renderAdminDashboard).catch(adminErr);
   else if(tab==='members')loadAdminMembers().then(renderAdminMembers).catch(adminErr);
+  else if(tab==='badges')loadAdminBadges().then(renderAdminBadges).catch(adminErr);
   else if(tab==='reports')loadAdminReports().then(renderAdminReports).catch(adminErr);
   else if(tab==='bans')loadAdminBans().then(renderAdminBans).catch(adminErr);
   else if(tab==='bugs')loadAdminBugs().then(renderAdminBugs).catch(adminErr);
@@ -16244,6 +16278,162 @@ function wireAdminMembersSearch(list,focusSearch){
     const v=input.value;input.setSelectionRange(v.length,v.length);
   }
   input.oninput=function(){adminMembersQuery=this.value;renderAdminMembers(list,true);};
+}
+
+// ===== 🏅 Studio de badges (panel admin) — création/édition/suppression de
+// badges personnalisés, et attribution de N'IMPORTE QUEL badge existant
+// (en dur ou custom) à n'importe quel membre, sans se limiter aux 4 icônes
+// rapides déjà présentes dans l'onglet Membres (TOGGLEABLE_BADGES). =====
+let adminBadgeQuery='';
+let adminBadgeEditingUid=null;
+let customBadgesListCache=[];
+async function loadAdminBadges(){
+  const r=await authGet('/api/badges/custom');
+  customBadgesListCache=r.badges||[];
+  if(!membersCache.length){try{await loadAdminMembers();}catch(e){}}
+  return customBadgesListCache;
+}
+function allBadgeKeysForAdmin(){
+  return Object.keys(BADGE_DEFS).filter(function(k){return k!=='base'}).concat(Object.keys(CUSTOM_BADGES));
+}
+function renderAdminBadges(){
+  const box=\$('admin-body');if(!box)return;
+  box.innerHTML=
+    '<div class="set-card"><div class="set-section-label">🎨 Studio de création de badges</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Crée un badge personnalisé (icône, libellé, couleur, description) — assignable ensuite exactement comme n\\'importe quel badge existant, avec option d\\'accorder X1+ à vie automatiquement.</div>'
+    +'<div id="adm-badge-list">'+renderCustomBadgeListHtml()+'</div>'
+    +'<button type="button" class="set-mini-btn" id="adm-badge-new-btn" style="margin-top:10px">+ Créer un badge</button>'
+    +'<div class="hidden" id="adm-badge-form" style="margin-top:12px"></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🏷️ Assigner un badge à un membre</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Coche/décoche librement n\\'importe quel badge (en dur ou personnalisé) pour n\\'importe quel membre.</div>'
+    +'<div class="admin-search-row"><input type="text" id="adm-badge-member-search" placeholder="Rechercher un membre par pseudo, email, UID…" value="'+esc(adminBadgeQuery)+'"/></div>'
+    +'<div id="adm-badge-members"></div>'
+    +'</div>';
+  wireAdminBadgesUi();
+  renderAdminBadgeMembers();
+}
+function renderCustomBadgeListHtml(){
+  if(!customBadgesListCache.length)return '<div class="scr-sub">Aucun badge personnalisé pour l\\'instant.</div>';
+  return customBadgesListCache.map(function(b){
+    return '<div class="admin-row"><span class="badge-chip" style="background-image:linear-gradient(125deg,'+esc(b.color)+',rgba(255,255,255,.3),'+esc(b.color)+')">'+esc(b.icon)+'</span>'
+      +'<div class="info"><div class="n">'+esc(b.label)+(b.grantsPlus?' <span class="tag-mod">X1+</span>':'')+'</div><div class="p">'+esc(b.description||'Pas de description')+'</div></div>'
+      +'<div class="acts"><button type="button" data-badge-edit="'+esc(b.\$id)+'">✏️</button><button type="button" data-badge-del="'+esc(b.\$id)+'" class="danger">🗑</button></div>'
+      +'</div>';
+  }).join('');
+}
+function renderCustomBadgeFormHtml(existing){
+  const b=existing||{};
+  return '<div class="set-row"><label>Clé technique (fixe une fois créé)</label><input type="text" id="adm-badge-key" class="field-input" placeholder="vip_supporter" maxlength="32"'+(existing?' value="'+esc(b.key)+'" disabled':'')+'></div>'
+    +'<div class="set-row"><label>Icône (emoji)</label><input type="text" id="adm-badge-icon" class="field-input" maxlength="8" value="'+esc(b.icon||'🏅')+'"></div>'
+    +'<div class="set-row"><label>Libellé</label><input type="text" id="adm-badge-label" class="field-input" maxlength="60" value="'+esc(b.label||'')+'"></div>'
+    +'<div class="set-row"><label>Couleur</label><input type="color" id="adm-badge-color" value="'+esc(b.color||'#a78bfa')+'"></div>'
+    +'<div class="set-row"><label>Description</label><textarea id="adm-badge-desc" class="field-input" rows="2" maxlength="500">'+esc(b.description||'')+'</textarea></div>'
+    +'<label class="bot-perm-check"><input type="checkbox" id="adm-badge-grantsplus"'+(b.grantsPlus?' checked':'')+'>Accorde X1+ à vie automatiquement dès que ce badge est attribué</label>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="btn-main" id="adm-badge-save">'+(existing?'Enregistrer':'Créer')+'</button><button type="button" class="set-mini-btn" id="adm-badge-cancel">Annuler</button></div>'
+    +'<div class="err" id="adm-badge-form-err"></div>';
+}
+function openCustomBadgeForm(existing){
+  const form=\$('adm-badge-form');if(!form)return;
+  form.classList.remove('hidden');
+  form.innerHTML=renderCustomBadgeFormHtml(existing);
+  \$('adm-badge-cancel').onclick=function(){form.classList.add('hidden');form.innerHTML='';};
+  \$('adm-badge-save').onclick=async function(){
+    const btn=this;btn.disabled=true;
+    \$('adm-badge-form-err').textContent='';
+    try{
+      const payload={
+        icon:\$('adm-badge-icon').value,
+        label:\$('adm-badge-label').value,
+        color:\$('adm-badge-color').value,
+        description:\$('adm-badge-desc').value,
+        grantsPlus:\$('adm-badge-grantsplus').checked
+      };
+      if(existing){
+        payload.docId=existing.\$id;
+        await authPost('/api/admin/badges/custom/update',payload);
+      }else{
+        payload.key=\$('adm-badge-key').value;
+        await authPost('/api/admin/badges/custom/create',payload);
+      }
+      await loadCustomBadges();
+      await loadAdminBadges();
+      renderAdminBadges();
+      showToast(existing?'Badge mis à jour !':'Badge créé !');
+    }catch(e){\$('adm-badge-form-err').textContent=(e&&e.message)||'Erreur';btn.disabled=false;}
+  };
+}
+function wireAdminBadgesUi(){
+  \$('adm-badge-new-btn').onclick=function(){openCustomBadgeForm(null);};
+  document.querySelectorAll('[data-badge-edit]').forEach(function(b){
+    b.onclick=function(){openCustomBadgeForm(customBadgesListCache.find(function(x){return x.\$id===b.getAttribute('data-badge-edit')}));};
+  });
+  document.querySelectorAll('[data-badge-del]').forEach(function(b){
+    b.onclick=async function(){
+      if(!confirm('Supprimer ce badge personnalisé ? Il disparaîtra du profil de tous ceux qui l\\'ont.'))return;
+      b.disabled=true;
+      try{
+        await authPost('/api/admin/badges/custom/delete',{docId:b.getAttribute('data-badge-del')});
+        await loadCustomBadges();
+        await loadAdminBadges();
+        renderAdminBadges();
+      }catch(e){alert((e&&e.message)||'Erreur');b.disabled=false;}
+    };
+  });
+  const search=\$('adm-badge-member-search');
+  if(search)search.oninput=function(){adminBadgeQuery=this.value;renderAdminBadgeMembers();};
+}
+function renderBadgeChecklistHtml(uid){
+  const current=parseBadges(memberMetaByUid[uid]);
+  return '<div class="adm-badge-checklist">'+allBadgeKeysForAdmin().map(function(k){
+    const d=getBadgeDef(k);if(!d)return '';
+    return '<label class="bot-perm-check"><input type="checkbox" data-badge-check="'+k+'"'+(current.indexOf(k)>=0?' checked':'')+'>'+d.icon+' '+esc(d.label)+'</label>';
+  }).join('')
+  +'</div><button type="button" class="btn-main" data-badge-save-uid="'+esc(uid)+'" style="margin-top:8px">Enregistrer</button><div class="err" data-badge-save-err="'+esc(uid)+'"></div>';
+}
+function renderAdminBadgeMembers(){
+  const box=\$('adm-badge-members');if(!box)return;
+  const q=adminBadgeQuery.trim().toLowerCase();
+  if(!q){box.innerHTML='<div class="scr-sub">Tape un pseudo, un e-mail ou un UID pour trouver un membre.</div>';return}
+  const list=membersCache.filter(function(p){
+    const uid=p.authUserId||p.\$id;
+    return [p.displayName,p.username,p.email,p.tag,uid].some(function(v){return v&&String(v).toLowerCase().indexOf(q)>=0});
+  });
+  if(!list.length){box.innerHTML='<div class="empty-hint">Aucun résultat.</div>';return}
+  box.innerHTML=list.slice(0,20).map(function(p){
+    const uid=p.authUserId||p.\$id;
+    const name=p.displayName||p.username||'User';
+    const open=adminBadgeEditingUid===uid;
+    return '<div class="admin-row" style="align-items:flex-start;flex-wrap:wrap">'
+      +rowAvatar(p,name,uid)
+      +'<div class="info"><div class="n">'+esc(name)+'</div><div class="p">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</div></div>'
+      +'<div class="acts"><button type="button" data-badge-manage="'+esc(uid)+'">'+(open?'Fermer':'🏷️ Gérer les badges')+'</button></div>'
+      +(open?'<div style="width:100%;margin-top:8px">'+renderBadgeChecklistHtml(uid)+'</div>':'')
+      +'</div>';
+  }).join('');
+  document.querySelectorAll('[data-badge-manage]').forEach(function(b){
+    b.onclick=function(){
+      const uid=b.getAttribute('data-badge-manage');
+      adminBadgeEditingUid=adminBadgeEditingUid===uid?null:uid;
+      renderAdminBadgeMembers();
+    };
+  });
+  document.querySelectorAll('[data-badge-save-uid]').forEach(function(b){
+    b.onclick=async function(){
+      const uid=b.getAttribute('data-badge-save-uid');
+      const row=b.closest('.admin-row');
+      const checked=Array.from(row.querySelectorAll('[data-badge-check]')).filter(function(c){return c.checked}).map(function(c){return c.getAttribute('data-badge-check')});
+      const errEl=row.querySelector('[data-badge-save-err="'+uid+'"]');
+      b.disabled=true;if(errEl)errEl.textContent='';
+      try{
+        const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+        const r=await authPost('/api/admin/badges',{authUserId:uid,badges:checked,targetName:(p&&(p.displayName||p.username))||uid});
+        memberMetaByUid[uid]=Object.assign({},memberMetaByUid[uid],{badgesJson:JSON.stringify(r.badges||checked)});
+        showToast('Badges mis à jour !');
+        renderAdminBadgeMembers();
+      }catch(e){if(errEl)errEl.textContent=(e&&e.message)||'Erreur';b.disabled=false;}
+    };
+  });
 }
 
 async function loadAdminBans(){
@@ -20659,13 +20849,12 @@ async function renderServerSettingsTab(){
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
     +SERVER_BOOST_THRESHOLDS.map(function(threshold,i){
       const lvl=i+1,unlocked=boostLevel>=lvl;
-      const perk=lvl===1?'Premier palier atteint — d\\'autres avantages arriveront à ce niveau':lvl===2?'Qualité audio/vidéo X1+ débloquée pour tout le serveur':'Code d\\'invitation personnalisable';
+      const perk=lvl===1?'Premier palier atteint — d\\'autres avantages arriveront à ce niveau':lvl===2?'Qualité audio/vidéo X1+ débloquée pour tout le serveur':'D\\'autres avantages pourront arriver à ce palier';
       return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+(unlocked?'✅':'🔒')+' Palier '+lvl+' — '+threshold+' boosts</div><div class="scr-sub">'+esc(perk)+'</div></div></div>';
     }).join('')
     +'</div>'
-    +((isOwner||serverHasPermission('manage_invites'))?('<div class="set-card'+(boostLevel>=3?'':' srv-quality-locked')+'"><div class="set-section-label">🔗 Lien d\\'invitation personnalisé</div>'
-      +(boostLevel>=3?('<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>')
-        :'<div class="srv-upsell">🚀 Nécessite le palier de boost 3 pour ce serveur</div>')
+    +((isOwner||serverHasPermission('manage_invites'))?('<div class="set-card"><div class="set-section-label">🔗 Lien d\\'invitation personnalisé</div>'
+      +'<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>'
       +'</div>'):'')
     +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🤖 Bots</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Ajoute un bot créé par toi ou quelqu\\'un d\\'autre via le Portail développeur de bots (Paramètres → Développeurs → Mes bots). Colle son identifiant public ci-dessous.</div>'
@@ -23782,15 +23971,32 @@ async function handle(request, event) {
     try {
       const body = await request.json();
       const authUserId = String((body && body.authUserId) || "");
-      const requestedBadges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "elite"].indexOf(b) >= 0; }) : [];
+      // Liste blanche : tous les badges "en dur" existants, plus tous les
+      // badges custom créés depuis le studio (§ /api/admin/badges/custom/*).
+      // botdev et xplus sont normalement calculés automatiquement (premier
+      // bot fonctionnel / statut plan) mais restent assignables ici à la main
+      // comme demandé — cf. commentaire plus bas pour la synchro avec "plan".
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus"];
+      let customBadgeDefs = [];
+      try {
+        const cb = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+        customBadgeDefs = cb.documents || [];
+      } catch (e) {}
+      const customBadgeKeys = customBadgeDefs.map(function (d) { return d.key; });
+      const allowedKeys = STANDARD_BADGE_KEYS.concat(customBadgeKeys);
+      const requestedBadges = Array.isArray(body && body.badges) ? body.badges.filter(function (b) { return allowedKeys.indexOf(b) >= 0; }) : [];
       const targetName = String((body && body.targetName) || "");
       if (!authUserId) throw new Error("authUserId requis");
       // Badge ÉLITE X1 + X1+ à vie, accordés automatiquement (jamais retirés
       // ici) à l'équipe (SHAMAN_UIDS) et aux porteurs d'un badge exclusif
       // (DEV, CRÉATEUR DE CONTENU — CHAINSMOKER est déjà couvert via
-      // SHAMAN_UIDS, seule Yani le détient).
+      // SHAMAN_UIDS, seule Yani le détient). Un badge "xplus" demandé
+      // directement (studio de badges) ou un badge custom marqué
+      // grantsPlus:true déclenchent exactement le même octroi de X1+ à vie.
       const exclusiveBadges = ["dev", "creator", "chainsmoker"];
+      const customPlusKeys = customBadgeDefs.filter(function (d) { return d.grantsPlus; }).map(function (d) { return d.key; });
       const eliteEligible = SHAMAN_UIDS.has(authUserId) || requestedBadges.some(function (b) { return exclusiveBadges.indexOf(b) >= 0; });
+      const plusEligible = eliteEligible || requestedBadges.some(function (b) { return b === "xplus" || customPlusKeys.indexOf(b) >= 0; });
       const badges = requestedBadges.slice();
       if (eliteEligible && badges.indexOf("elite") < 0) badges.push("elite");
       const data = {};
@@ -23799,12 +24005,12 @@ async function handle(request, event) {
         const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + authUserId, { asAdmin: true });
         alreadyPlus = meta.plan === "plus";
       } catch (e) {}
-      if (eliteEligible && !alreadyPlus) {
+      if (plusEligible && !alreadyPlus) {
         data.plan = "plus"; data.planAssignedBy = "elite_badge"; data.planAssignedAt = new Date().toISOString();
       }
       // Reflète le badge ⭐ X1+ dès que ce compte a (ou obtient à l'instant) le
       // plan "plus", quelle qu'en soit l'origine (achat, Bug Hunter, ÉLITE...).
-      if ((eliteEligible || alreadyPlus) && badges.indexOf("xplus") < 0) badges.push("xplus");
+      if ((plusEligible || alreadyPlus) && badges.indexOf("xplus") < 0) badges.push("xplus");
       data.badgesJson = JSON.stringify(badges);
       // Locked to admin-key writes only: user_meta documents were created with a
       // self-update permission that would otherwise let anyone grant themselves
@@ -23833,6 +24039,85 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+  // ===== Studio de badges custom — lecture publique (nécessaire pour afficher
+  // correctement le badge de n'importe qui), écriture réservée à Shaman. =====
+  if (path === "/api/badges/custom" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, badges: q.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/admin/badges/custom/create" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const key = String((body && body.key) || "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+      if (!key || key.length < 2 || key.length > 32) throw new Error("Clé invalide (2-32 caractères, lettres/chiffres/underscore)");
+      const STANDARD_BADGE_KEYS = ["base", "dev", "hunter1", "hunter2", "hunter3", "hunter4", "hunter5", "early", "creator", "chainsmoker", "elite", "botdev", "xplus"];
+      if (STANDARD_BADGE_KEYS.indexOf(key) >= 0) throw new Error("Cette clé est déjà utilisée par un badge existant");
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents?" + "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "key", values: [key] })), { asAdmin: true });
+      if ((existing.documents || []).length) throw new Error("Un badge custom avec cette clé existe déjà");
+      const icon = String((body && body.icon) || "🏅").trim().slice(0, 8) || "🏅";
+      const label = String((body && body.label) || "").trim().toUpperCase().slice(0, 60);
+      if (!label) throw new Error("Libellé requis");
+      const color = /^#[0-9a-fA-F]{6}$/.test(String((body && body.color) || "")) ? body.color : "#a78bfa";
+      const description = String((body && body.description) || "").trim().slice(0, 500);
+      const grantsPlus = !!(body && body.grantsPlus);
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { key, icon, label, color, description, grantsPlus, createdBy: gate.acc.$id } }
+      });
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "create_custom_badge", detail: key + " (" + label + ")", by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, badge: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/admin/badges/custom/update" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const docId = String((body && body.docId) || "");
+      if (!docId) throw new Error("docId requis");
+      const data = {};
+      if (typeof body.icon === "string") data.icon = body.icon.trim().slice(0, 8) || "🏅";
+      if (typeof body.label === "string") {
+        const label = body.label.trim().toUpperCase().slice(0, 60);
+        if (!label) throw new Error("Libellé requis");
+        data.label = label;
+      }
+      if (typeof body.color === "string" && /^#[0-9a-fA-F]{6}$/.test(body.color)) data.color = body.color;
+      if (typeof body.description === "string") data.description = body.description.trim().slice(0, 500);
+      if (typeof body.grantsPlus === "boolean") data.grantsPlus = body.grantsPlus;
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data } });
+      return new Response(JSON.stringify({ ok: true, badge: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/admin/badges/custom/delete" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const docId = String((body && body.docId) || "");
+      if (!docId) throw new Error("docId requis");
+      await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents/" + docId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
   if (path === "/api/admin/notes" && request.method === "GET") {
@@ -25432,8 +25717,6 @@ async function handle(request, event) {
       const code = String((body && body.code) || "").trim().toUpperCase();
       const gate = await serverCheckPermission(serverId, acc.$id, "manage_invites");
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
-      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      if (serverBoostLevel(server) < 3) throw new Error("Ce serveur doit atteindre le palier de boost 3 pour un lien personnalisé");
       if (!/^[A-Z0-9-]{3,20}$/.test(code)) throw new Error("Le lien doit faire 3 à 20 caractères (lettres, chiffres, tirets)");
       const dup = await awFetch("/databases/" + AW_DB + "/collections/servers/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "inviteCode", values: [code] })) +
