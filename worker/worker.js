@@ -1295,6 +1295,228 @@ async function pushToUid(uid, payloadObj) {
   } catch (e) {}
 }
 
+/* =====================================================================
+   Connexions de comptes tiers (Paramètres → Connexions) — X1 agit ici comme
+   CLIENT OAuth consommant 12 fournisseurs externes (Spotify, Steam, Twitch,
+   YouTube, GitHub, Reddit, TikTok, Instagram, Facebook, Battle.net, Epic
+   Games, Bluesky) — l'inverse de /api/oauth/apps/*, où X1 est fournisseur
+   d'identité POUR des sites tiers.
+
+   Xbox, PlayStation et Riot Games sont volontairement absents : ces
+   plateformes n'offrent aucune inscription libre-service à un développeur
+   indépendant (accès réservé à un partenariat éditeur certifié) — aucune
+   quantité de code ne peut contourner ça.
+
+   Chaque service a son propre couple client_id/client_secret, posé en
+   secret Cloudflare (jamais dans ce fichier, jamais dans git) — tant qu'un
+   secret n'est pas configuré, "authorize-url" répond clairement
+   "not_configured" plutôt que d'échouer silencieusement plus tard dans le
+   flux. URL de redirection à enregistrer chez chaque fournisseur :
+   https://xultra.space/api/connections/<provider>/callback
+
+   "state" transporte l'identité (uid) à travers la redirection chez le
+   fournisseur externe puis son retour — signé HMAC (même mécanique que les
+   JWT VAPID plus haut) pour qu'il ne soit ni forgeable ni rejouable après
+   expiration, sans avoir besoin d'exposer le vrai JWT de session dans une
+   URL suivie par un navigateur tiers. ===== */
+const CONN_STATE_KEY = "xu_conn_9fQe1ZpV3sYkC7mLtA2xR_o6HnDb4uWi";
+const CONN_REDIRECT_BASE = "https://xultra.space/api/connections/";
+async function signConnState(payloadObj) {
+  const bodyB64 = bytesToB64url(strToBytes(JSON.stringify(payloadObj)));
+  const sig = await hmacSha256(strToBytes(CONN_STATE_KEY), strToBytes(bodyB64));
+  return bodyB64 + "." + bytesToB64url(sig);
+}
+async function verifyConnState(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) return null;
+  const [bodyB64, sigB64] = parts;
+  const expectedSig = await hmacSha256(strToBytes(CONN_STATE_KEY), strToBytes(bodyB64));
+  if (bytesToB64url(expectedSig) !== sigB64) return null;
+  let payload;
+  try { payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(bodyB64))); } catch (e) { return null; }
+  if (!payload || !payload.exp || Date.now() > payload.exp) return null;
+  return payload;
+}
+// Chaque adaptateur sait construire sa propre URL d'autorisation, échanger
+// le code contre un jeton, aller chercher le profil, et normaliser la
+// réponse — les 3 formes varient trop d'un fournisseur à l'autre (en-têtes
+// spécifiques, Basic Auth vs body, noms de paramètres non-standard chez
+// TikTok...) pour un unique gabarit générique sans finir par des exceptions
+// partout ; seules les 3 routes qui les appellent sont, elles, génériques.
+const OAUTH_PROVIDERS = {
+  spotify: {
+    label: "Spotify", icon: "🎵",
+    clientId: typeof SPOTIFY_CLIENT_ID !== "undefined" ? SPOTIFY_CLIENT_ID : null,
+    clientSecret: typeof SPOTIFY_CLIENT_SECRET !== "undefined" ? SPOTIFY_CLIENT_SECRET : null,
+    scope: "user-read-email user-read-private",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://accounts.spotify.com/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://accounts.spotify.com/api/token", headers: { "Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic " + btoa(creds.clientId + ":" + creds.clientSecret) }, body: "grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://api.spotify.com/v1/me", headers: { "Authorization": "Bearer " + accessToken } }; },
+    normalize: function (p) { return { id: String(p.id || ""), username: p.display_name || p.id || "", avatar: (p.images && p.images[0] && p.images[0].url) || "", url: (p.external_urls && p.external_urls.spotify) || "" }; }
+  },
+  twitch: {
+    label: "Twitch", icon: "🟣",
+    clientId: typeof TWITCH_CLIENT_ID !== "undefined" ? TWITCH_CLIENT_ID : null,
+    clientSecret: typeof TWITCH_CLIENT_SECRET !== "undefined" ? TWITCH_CLIENT_SECRET : null,
+    scope: "user:read:email",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://id.twitch.tv/oauth2/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://id.twitch.tv/oauth2/token", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "client_id=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken, creds) { return { url: "https://api.twitch.tv/helix/users", headers: { "Authorization": "Bearer " + accessToken, "Client-Id": creds.clientId } }; },
+    normalize: function (p) { const u = (p.data && p.data[0]) || {}; return { id: String(u.id || ""), username: u.display_name || u.login || "", avatar: u.profile_image_url || "", url: u.login ? "https://twitch.tv/" + u.login : "" }; }
+  },
+  youtube: {
+    label: "YouTube", icon: "▶️",
+    clientId: typeof GOOGLE_CLIENT_ID !== "undefined" ? GOOGLE_CLIENT_ID : null,
+    clientSecret: typeof GOOGLE_CLIENT_SECRET !== "undefined" ? GOOGLE_CLIENT_SECRET : null,
+    scope: "https://www.googleapis.com/auth/youtube.readonly",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://accounts.google.com/o/oauth2/v2/auth?response_type=code&access_type=offline&prompt=consent&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://oauth2.googleapis.com/token", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "client_id=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true", headers: { "Authorization": "Bearer " + accessToken } }; },
+    normalize: function (p) { const c = (p.items && p.items[0]) || {}; const sn = c.snippet || {}; return { id: String(c.id || ""), username: sn.title || "", avatar: (sn.thumbnails && sn.thumbnails.default && sn.thumbnails.default.url) || "", url: c.id ? "https://www.youtube.com/channel/" + c.id : "" }; }
+  },
+  github: {
+    label: "GitHub", icon: "🐙",
+    clientId: typeof GITHUB_CLIENT_ID !== "undefined" ? GITHUB_CLIENT_ID : null,
+    clientSecret: typeof GITHUB_CLIENT_SECRET !== "undefined" ? GITHUB_CLIENT_SECRET : null,
+    scope: "read:user",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://github.com/login/oauth/authorize?client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://github.com/login/oauth/access_token", headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" }, body: "client_id=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://api.github.com/user", headers: { "Authorization": "Bearer " + accessToken, "User-Agent": "xultra-space" } }; },
+    normalize: function (p) { return { id: String(p.id || ""), username: p.login || p.name || "", avatar: p.avatar_url || "", url: p.html_url || "" }; }
+  },
+  reddit: {
+    label: "Reddit", icon: "👽",
+    clientId: typeof REDDIT_CLIENT_ID !== "undefined" ? REDDIT_CLIENT_ID : null,
+    clientSecret: typeof REDDIT_CLIENT_SECRET !== "undefined" ? REDDIT_CLIENT_SECRET : null,
+    scope: "identity",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://www.reddit.com/api/v1/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state) + "&duration=temporary";
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://www.reddit.com/api/v1/access_token", headers: { "Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic " + btoa(creds.clientId + ":" + creds.clientSecret), "User-Agent": "xultra-space:connections:v1" }, body: "grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://oauth.reddit.com/api/v1/me", headers: { "Authorization": "Bearer " + accessToken, "User-Agent": "xultra-space:connections:v1" } }; },
+    normalize: function (p) { return { id: String(p.id || ""), username: p.name ? "u/" + p.name : "", avatar: (p.icon_img || "").split("?")[0], url: p.name ? "https://reddit.com/user/" + p.name : "" }; }
+  },
+  tiktok: {
+    label: "TikTok", icon: "🎬",
+    clientId: typeof TIKTOK_CLIENT_KEY !== "undefined" ? TIKTOK_CLIENT_KEY : null,
+    clientSecret: typeof TIKTOK_CLIENT_SECRET !== "undefined" ? TIKTOK_CLIENT_SECRET : null,
+    scope: "user.info.basic",
+    // TikTok utilise "client_key", jamais "client_id" — la seule vraie
+    // divergence de nommage parmi les 10 fournisseurs OAuth2 standards ici.
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://www.tiktok.com/v2/auth/authorize/?response_type=code&client_key=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://open.tiktokapis.com/v2/oauth/token/", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "client_key=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url", headers: { "Authorization": "Bearer " + accessToken } }; },
+    normalize: function (p) { const u = (p.data && p.data.user) || {}; return { id: String(u.open_id || ""), username: u.display_name || "", avatar: u.avatar_url || "", url: "" }; }
+  },
+  instagram: {
+    label: "Instagram", icon: "📸",
+    clientId: typeof INSTAGRAM_CLIENT_ID !== "undefined" ? INSTAGRAM_CLIENT_ID : null,
+    clientSecret: typeof INSTAGRAM_CLIENT_SECRET !== "undefined" ? INSTAGRAM_CLIENT_SECRET : null,
+    scope: "user_profile",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://www.instagram.com/oauth/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://api.instagram.com/oauth/access_token", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "client_id=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken, creds, tokenJson) { return { url: "https://graph.instagram.com/me?fields=id,username&access_token=" + encodeURIComponent(accessToken) }; },
+    normalize: function (p) { return { id: String(p.id || ""), username: p.username ? "@" + p.username : "", avatar: "", url: p.username ? "https://instagram.com/" + p.username : "" }; }
+  },
+  facebook: {
+    label: "Facebook", icon: "📘",
+    clientId: typeof FACEBOOK_CLIENT_ID !== "undefined" ? FACEBOOK_CLIENT_ID : null,
+    clientSecret: typeof FACEBOOK_CLIENT_SECRET !== "undefined" ? FACEBOOK_CLIENT_SECRET : null,
+    scope: "public_profile",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://www.facebook.com/v19.0/dialog/oauth?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://graph.facebook.com/v19.0/oauth/access_token?client_id=" + encodeURIComponent(creds.clientId) + "&client_secret=" + encodeURIComponent(creds.clientSecret) + "&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri), method: "GET" };
+    },
+    profileRequest: function (accessToken) { return { url: "https://graph.facebook.com/me?fields=id,name,picture&access_token=" + encodeURIComponent(accessToken) }; },
+    normalize: function (p) { return { id: String(p.id || ""), username: p.name || "", avatar: (p.picture && p.picture.data && p.picture.data.url) || "", url: p.id ? "https://facebook.com/" + p.id : "" }; }
+  },
+  battlenet: {
+    label: "Battle.net", icon: "⚔️",
+    clientId: typeof BATTLENET_CLIENT_ID !== "undefined" ? BATTLENET_CLIENT_ID : null,
+    clientSecret: typeof BATTLENET_CLIENT_SECRET !== "undefined" ? BATTLENET_CLIENT_SECRET : null,
+    scope: "openid",
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://oauth.battle.net/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://oauth.battle.net/token", headers: { "Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic " + btoa(creds.clientId + ":" + creds.clientSecret) }, body: "grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken) { return { url: "https://oauth.battle.net/userinfo", headers: { "Authorization": "Bearer " + accessToken } }; },
+    normalize: function (p) { return { id: String(p.sub || ""), username: p.battletag || "", avatar: "", url: "" }; }
+  },
+  epicgames: {
+    label: "Epic Games", icon: "🏹",
+    clientId: typeof EPIC_CLIENT_ID !== "undefined" ? EPIC_CLIENT_ID : null,
+    clientSecret: typeof EPIC_CLIENT_SECRET !== "undefined" ? EPIC_CLIENT_SECRET : null,
+    scope: "basic_profile",
+    // Le fournisseur le moins standardisé des 10 : Epic documente surtout
+    // l'intégration via le SDK Epic Online Services plutôt qu'un simple
+    // "login" web classique — à revalider en priorité une fois de vraies
+    // clés en place, plus que les 9 autres.
+    authUrl: function (clientId, redirectUri, scope, state) {
+      return "https://www.epicgames.com/id/authorize?response_type=code&client_id=" + encodeURIComponent(clientId) +
+        "&scope=" + encodeURIComponent(scope) + "&redirect_uri=" + encodeURIComponent(redirectUri) + "&state=" + encodeURIComponent(state);
+    },
+    tokenRequest: function (code, redirectUri, creds) {
+      return { url: "https://api.epicgames.dev/epic/oauth/v2/token", headers: { "Content-Type": "application/x-www-form-urlencoded", "Authorization": "Basic " + btoa(creds.clientId + ":" + creds.clientSecret) }, body: "grant_type=authorization_code&code=" + encodeURIComponent(code) + "&redirect_uri=" + encodeURIComponent(redirectUri) };
+    },
+    profileRequest: function (accessToken, creds, tokenJson) { return { url: "https://api.epicgames.dev/epic/id/v2/accounts?accountId=" + encodeURIComponent((tokenJson && tokenJson.account_id) || ""), headers: { "Authorization": "Bearer " + accessToken } }; },
+    normalize: function (p) { const u = (Array.isArray(p) && p[0]) || {}; return { id: String(u.accountId || ""), username: u.displayName || "", avatar: "", url: "" }; }
+  }
+};
+async function upsertSocialConnection(uid, provider, normalized) {
+  const existing = await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uid] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "provider", values: [provider] })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true }).catch(function () { return { documents: [] }; });
+  const data = {
+    uid, provider, externalId: normalized.id || "", externalUsername: normalized.username || "",
+    externalAvatar: normalized.avatar || "", externalUrl: normalized.url || "",
+    accessToken: normalized.accessToken || "", refreshToken: normalized.refreshToken || "",
+    expiresAt: normalized.expiresAt || "", connectedAt: new Date().toISOString()
+  };
+  const row = (existing.documents || [])[0];
+  if (row) await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents/" + row.$id, { method: "PATCH", asAdmin: true, body: { data } });
+  else await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data } });
+}
+
 async function listActiveDmCalls() {
   const url = "/databases/" + AW_DB + "/collections/direct_calls/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [80] }));
@@ -3207,10 +3429,14 @@ a.bug-att-item{display:block}
 .settings-account-head .sah-tag{font-size:.78rem;color:var(--muted)}
 .settings-danger{border-color:rgba(239,68,68,.25)!important}
 .settings-danger .set-section-label{color:#fca5a5}
-.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.conn-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);opacity:.6}
-.conn-item .ci-ico{font-size:1.15rem}
-.conn-item .ci-name{font-size:.78rem;font-weight:700;flex:1}
+.conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.conn-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
+.conn-item.unavailable{opacity:.5}
+.conn-item.connected{border-color:rgba(34,197,94,.3);background:rgba(34,197,94,.06)}
+.conn-item .ci-ico{font-size:1.15rem;flex-shrink:0}
+.conn-item .ci-ico.ci-avatar{width:22px;height:22px;border-radius:50%;object-fit:cover}
+.conn-item .ci-name{font-size:.78rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.conn-item .set-mini-btn{flex-shrink:0}
 .session-row{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:8px}
 .session-row .sr-ico{font-size:1.3rem}
 .session-row .sr-info{flex:1;min-width:0}
@@ -4276,6 +4502,20 @@ a.bug-att-item{display:block}
       <button type="button" class="btn-main" id="tkc-send">➤</button>
     </div>
     <div class="ticket-chat-closed-note hidden" id="tkc-closed-note">🔒 Ce ticket est fermé.</div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-bluesky-connect">
+  <div class="modal-box" style="width:min(400px,100%)">
+    <button type="button" class="modal-close" id="bsky-close">✕</button>
+    <h3>🦋 Connecter Bluesky</h3>
+    <div class="scr-sub" style="margin:6px 0 12px">Bluesky ne propose pas de connexion en un clic — crée un <b>mot de passe d'application</b> dans Réglages → Confidentialité et sécurité → Mots de passe d'application sur Bluesky, puis colle-le ici. Jamais ton vrai mot de passe de compte.</div>
+    <label class="tkn-label">Identifiant</label>
+    <input type="text" id="bsky-handle" class="field-input" placeholder="toi.bsky.social">
+    <label class="tkn-label">Mot de passe d'application</label>
+    <input type="password" id="bsky-app-password" class="field-input" placeholder="xxxx-xxxx-xxxx-xxxx">
+    <div class="err" id="bsky-err"></div>
+    <button type="button" class="btn-main" id="bsky-submit" style="margin-top:10px;width:100%">Connecter</button>
   </div>
 </div>
 
@@ -6160,6 +6400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.41.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔗 Connexions de comptes tiers — 12 services',
+    body:'Paramètres → Connexions relie maintenant vraiment Spotify, Steam, Twitch, YouTube, GitHub, Reddit, TikTok, Instagram, Facebook, Battle.net, Epic Games et Bluesky à ton compte X1 — pseudo et photo du service affichés une fois connecté, déconnexion en un clic. Bluesky se connecte via un mot de passe d\\'application (jamais ton vrai mot de passe). Xbox, PlayStation et Riot Games restent marqués « Indisponible » : ces plateformes n\\'offrent aucun accès développeur en libre-service, impossible à contourner par du code. Chaque service affiche « pas encore configuré » tant qu\\'il n\\'a pas sa propre clé côté serveur — comme pour Stripe, la mise en ligne réelle de chacun se fait service par service.'},
   {version:'4.40.0',category:'fix',date:'29 août 2026',time:'23:59',title:'♿ Grossissement du chat au clavier, et ménage dans les réglages "bientôt disponible"',
     body:'Le réglage Accessibilité → « Grossissement du chat au clavier » fonctionne enfin : le texte des messages grossit temporairement pendant que tu écris, pour le relire sans dézoomer tout l\\'écran. Le réglage « Accélération matérielle » (Avancé) n\\'affiche plus un « Bientôt disponible » indéfiniment : cette option dépend de ton navigateur ou de ton système, pas de X1 — on te le dit clairement plutôt que de laisser un bouton qui n\\'arrivera jamais.'},
   {version:'4.39.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔔 Notifications de bureau avec photo, et clic direct vers la conversation',
@@ -8066,16 +8308,85 @@ function renderSetDevices(box){
 }
 
 const CONNECTION_SERVICES=[
-  {name:'Spotify',icon:'🎵'},{name:'Steam',icon:'🎮'},{name:'Xbox',icon:'🕹️'},{name:'PlayStation',icon:'🎮'},
-  {name:'Twitch',icon:'🟣'},{name:'YouTube',icon:'▶️'},{name:'GitHub',icon:'🐙'},{name:'Reddit',icon:'👽'},
-  {name:'TikTok',icon:'🎬'},{name:'Instagram',icon:'📸'},{name:'Facebook',icon:'📘'},{name:'Battle.net',icon:'⚔️'},
-  {name:'Epic Games',icon:'🏹'},{name:'Riot Games',icon:'🔫'},{name:'Bluesky',icon:'🦋'}
+  {key:'spotify',name:'Spotify',icon:'🎵'},{key:'steam',name:'Steam',icon:'🎮'},
+  {key:'xbox',name:'Xbox',icon:'🕹️',unavailable:"Microsoft n'offre pas d'accès développeur indépendant à ce service."},
+  {key:'playstation',name:'PlayStation',icon:'🎮',unavailable:"Sony n'offre pas d'accès développeur indépendant à ce service."},
+  {key:'twitch',name:'Twitch',icon:'🟣'},{key:'youtube',name:'YouTube',icon:'▶️'},{key:'github',name:'GitHub',icon:'🐙'},{key:'reddit',name:'Reddit',icon:'👽'},
+  {key:'tiktok',name:'TikTok',icon:'🎬'},{key:'instagram',name:'Instagram',icon:'📸'},{key:'facebook',name:'Facebook',icon:'📘'},{key:'battlenet',name:'Battle.net',icon:'⚔️'},
+  {key:'epicgames',name:'Epic Games',icon:'🏹'},
+  {key:'riotgames',name:'Riot Games',icon:'🔫',unavailable:"Riot Games n'offre pas d'accès développeur indépendant à ce service."},
+  {key:'bluesky',name:'Bluesky',icon:'🦋'}
 ];
-function renderSetConnections(box){
-  box.innerHTML='<h2>Connexions</h2><div class="sc-desc">Relie tes autres comptes pour les afficher sur ton profil. Bientôt disponible !</div><div class="conn-grid">'
-    +CONNECTION_SERVICES.map(function(s){return '<div class="conn-item"><span class="ci-ico">'+s.icon+'</span><span class="ci-name">'+esc(s.name)+'</span><span class="soon-badge">Bientôt</span></div>';}).join('')
-    +'</div>';
+let myConnectionsCache=[];
+async function renderSetConnections(box){
+  box.innerHTML='<h2>Connexions</h2><div class="sc-desc">Relie tes autres comptes pour les afficher sur ton profil.</div><div class="conn-grid" id="conn-grid"><div class="empty-hint">Chargement…</div></div>';
+  try{myConnectionsCache=(await authGet('/api/connections/mine')).connections||[];}catch(e){myConnectionsCache=[];}
+  renderConnGrid();
 }
+function renderConnGrid(){
+  const grid=\$('conn-grid');if(!grid)return;
+  grid.innerHTML=CONNECTION_SERVICES.map(function(s){
+    if(s.unavailable){
+      return '<div class="conn-item unavailable" title="'+esc(s.unavailable)+'"><span class="ci-ico">'+s.icon+'</span><span class="ci-name">'+esc(s.name)+'</span><span class="soon-badge">Indisponible</span></div>';
+    }
+    const conn=myConnectionsCache.find(function(c){return c.provider===s.key});
+    if(conn){
+      return '<div class="conn-item connected">'
+        +(conn.avatar?'<img class="ci-ico ci-avatar" src="'+esc(conn.avatar)+'" alt="">':'<span class="ci-ico">'+s.icon+'</span>')
+        +'<span class="ci-name">'+esc(conn.username||s.name)+'</span>'
+        +'<button type="button" class="set-mini-btn danger" data-conn-disconnect="'+s.key+'">Déconnecter</button></div>';
+    }
+    return '<div class="conn-item"><span class="ci-ico">'+s.icon+'</span><span class="ci-name">'+esc(s.name)+'</span>'
+      +'<button type="button" class="set-mini-btn" data-conn-connect="'+s.key+'">Connecter</button></div>';
+  }).join('');
+  grid.querySelectorAll('[data-conn-connect]').forEach(function(btn){
+    btn.onclick=function(){startConnectionFlow(btn.getAttribute('data-conn-connect'));};
+  });
+  grid.querySelectorAll('[data-conn-disconnect]').forEach(function(btn){
+    btn.onclick=async function(){
+      btn.disabled=true;
+      try{
+        await authPost('/api/connections/'+btn.getAttribute('data-conn-disconnect')+'/disconnect',{});
+        myConnectionsCache=myConnectionsCache.filter(function(c){return c.provider!==btn.getAttribute('data-conn-disconnect')});
+        renderConnGrid();
+        showToast('Compte déconnecté.');
+      }catch(e){showToast((e&&e.message)||'Erreur','error');btn.disabled=false;}
+    };
+  });
+}
+async function startConnectionFlow(key){
+  if(key==='bluesky'){openBlueskyConnectModal();return}
+  try{
+    // authGet() lève une exception dès que {ok:false} revient, quel que soit
+    // le code HTTP (200 y compris) — "not_configured" arrive donc ici via
+    // e.message, jamais via un r.ok à tester après coup.
+    const r=await authGet('/api/connections/'+key+'/authorize-url');
+    location.href=r.url;
+  }catch(e){
+    const msg=(e&&e.message)||'';
+    showToast(msg==='not_configured'?'Ce service n\\'est pas encore configuré côté X1.':'Connexion impossible','error');
+  }
+}
+function openBlueskyConnectModal(){
+  \$('bsky-handle').value='';\$('bsky-app-password').value='';\$('bsky-err').textContent='';
+  \$('modal-bluesky-connect').classList.remove('hidden');
+}
+if(\$('bsky-close'))\$('bsky-close').addEventListener('click',function(){\$('modal-bluesky-connect').classList.add('hidden')});
+if(\$('modal-bluesky-connect'))\$('modal-bluesky-connect').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
+if(\$('bsky-submit'))\$('bsky-submit').addEventListener('click',async function(){
+  const handle=(\$('bsky-handle').value||'').trim();
+  const appPassword=(\$('bsky-app-password').value||'').trim();
+  if(!handle||!appPassword){\$('bsky-err').textContent='Identifiant et mot de passe d\\'application requis';return}
+  this.disabled=true;this.textContent='Connexion…';
+  try{
+    await authPost('/api/connections/bluesky/connect',{handle:handle,appPassword:appPassword});
+    \$('modal-bluesky-connect').classList.add('hidden');
+    showToast('Bluesky connecté !');
+    myConnectionsCache=(await authGet('/api/connections/mine')).connections||[];
+    renderConnGrid();
+  }catch(e){\$('bsky-err').textContent=(e&&e.message)||'Erreur';}
+  this.disabled=false;this.textContent='Connecter';
+});
 async function renderSetApps(box){
   box.innerHTML='<h2>Applications autorisées</h2><div class="sc-desc">Les sites tiers que tu as autorisés à se connecter avec ton compte X1.</div><div class="set-card" id="oauth-authorized-list"><div class="scr-sub">Chargement…</div></div>';
   const listBox=\$('oauth-authorized-list');
@@ -16528,7 +16839,15 @@ function routeToDeepLink(urlStr){
   let p;
   try{p=new URL(urlStr,location.origin).searchParams;}catch(e){return false}
   const dm=p.get('dm'),ticket=p.get('ticket'),admintab=p.get('admintab'),
-    serverId=p.get('server'),channelId=p.get('channel'),profile=p.get('profile'),invite=p.get('invite');
+    serverId=p.get('server'),channelId=p.get('channel'),profile=p.get('profile'),invite=p.get('invite'),
+    connset=p.get('connset'),connStatus=p.get('status');
+  if(connset){
+    const label=(CONNECTION_SERVICES.find(function(s){return s.key===connset})||{}).name||connset;
+    if(connStatus==='ok')showToast(label+' connecté !');
+    else showToast('Connexion à '+label+' impossible : '+(p.get('msg')||'réessaie plus tard.'),'error');
+    openSettingsPanel().then(function(){handleSettingsNavClick('connections');});
+    return true;
+  }
   if(dm){closeSettingsPanel();showView('dms');openDm(dm);return true}
   if(ticket){openTicketChatModal(ticket);return true}
   if(admintab){closeSettingsPanel();showView('admin');showAdminTab(admintab);return true}
@@ -22824,6 +23143,169 @@ async function handle(request, event) {
       return new Response(JSON.stringify({
         ok: true, found: true, coverUrl: coverUrl, genre: genre, album: album, year: year
       }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== Connexions de comptes tiers (voir le registre OAUTH_PROVIDERS et
+  // les commentaires associés plus haut dans ce fichier, juste après
+  // pushToUid()) =====
+  if (path === "/api/connections/mine" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+      // Jamais accessToken/refreshToken vers le client — ils ne servent
+      // qu'aux appels serveur (aujourd'hui : uniquement à la connexion
+      // elle-même ; un futur usage ne les exposerait toujours pas ici).
+      const connections = (q.documents || []).map(function (d) {
+        return { provider: d.provider, username: d.externalUsername, avatar: d.externalAvatar, url: d.externalUrl, connectedAt: d.connectedAt };
+      });
+      return new Response(JSON.stringify({ ok: true, connections }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (/^\/api\/connections\/[a-z]+\/authorize-url$/.test(path) && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    const provider = path.split("/")[3];
+    try {
+      const redirectUri = CONN_REDIRECT_BASE + provider + "/callback";
+      const state = await signConnState({ uid: acc.$id, provider, nonce: Math.random().toString(36).slice(2), exp: Date.now() + 10 * 60 * 1000 });
+      if (provider === "steam") {
+        // OpenID 2.0, pas OAuth2 : aucun client_id nécessaire pour cette
+        // étape, seul un compte Steam Web API key (server-side) sert plus
+        // tard à récupérer le profil. STEAM_API_KEY absent => "not_configured"
+        // quand même, puisque la connexion serait sinon acceptée sans jamais
+        // pouvoir afficher le profil ensuite.
+        if (typeof STEAM_API_KEY === "undefined" || !STEAM_API_KEY) {
+          return new Response(JSON.stringify({ ok: false, error: "not_configured" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+        }
+        const returnTo = redirectUri + "?state=" + encodeURIComponent(state);
+        const url = "https://steamcommunity.com/openid/login?" +
+          "openid.ns=" + encodeURIComponent("http://specs.openid.net/auth/2.0") +
+          "&openid.mode=checkid_setup" +
+          "&openid.return_to=" + encodeURIComponent(returnTo) +
+          "&openid.realm=" + encodeURIComponent("https://xultra.space") +
+          "&openid.identity=" + encodeURIComponent("http://specs.openid.net/auth/2.0/identifier_select") +
+          "&openid.claimed_id=" + encodeURIComponent("http://specs.openid.net/auth/2.0/identifier_select");
+        return new Response(JSON.stringify({ ok: true, url }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const prov = OAUTH_PROVIDERS[provider];
+      if (!prov) return new Response(JSON.stringify({ ok: false, error: "unknown_provider" }), { status: 404, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      if (!prov.clientId || !prov.clientSecret) {
+        return new Response(JSON.stringify({ ok: false, error: "not_configured" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const url = prov.authUrl(prov.clientId, redirectUri, prov.scope, state);
+      return new Response(JSON.stringify({ ok: true, url }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (/^\/api\/connections\/[a-z]+\/callback$/.test(path) && request.method === "GET") {
+    const provider = path.split("/")[3];
+    const finish = function (status, msg) {
+      const q = "?connset=" + encodeURIComponent(provider) + "&status=" + status + (msg ? "&msg=" + encodeURIComponent(msg) : "");
+      return new Response(null, { status: 302, headers: { Location: "https://xultra.space/" + q } });
+    };
+    try {
+      const state = url.searchParams.get("state");
+      const claims = await verifyConnState(state);
+      if (!claims || claims.provider !== provider) return finish("error", "Lien de connexion invalide ou expiré");
+      const uid = claims.uid;
+      if (provider === "steam") {
+        // Vérification OpenID : Steam exige de renvoyer EXACTEMENT les mêmes
+        // paramètres openid.* reçus, avec juste openid.mode changé en
+        // "check_authentication" — c'est cette requête serveur-à-serveur
+        // (jamais un simple décodage local) qui prouve que la réponse vient
+        // bien de Steam et n'a pas été forgée par le navigateur du visiteur.
+        const p = new URLSearchParams(url.search);
+        p.set("openid.mode", "check_authentication");
+        const verifyResp = await fetch("https://steamcommunity.com/openid/login", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: p.toString() });
+        const verifyText = await verifyResp.text();
+        if (!/is_valid\s*:\s*true/.test(verifyText)) return finish("error", "Connexion Steam refusée");
+        const claimedId = url.searchParams.get("openid.claimed_id") || "";
+        const m = /\/openid\/id\/(\d+)$/.exec(claimedId);
+        if (!m) return finish("error", "Identifiant Steam introuvable");
+        const steamId = m[1];
+        let username = "", avatar = "", profileUrl = "https://steamcommunity.com/profiles/" + steamId;
+        try {
+          const sr = await fetch("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=" + STEAM_API_KEY + "&steamids=" + steamId);
+          const sj = await sr.json();
+          const player = (sj.response && sj.response.players && sj.response.players[0]) || {};
+          username = player.personaname || ""; avatar = player.avatarfull || ""; profileUrl = player.profileurl || profileUrl;
+        } catch (e) {}
+        await upsertSocialConnection(uid, "steam", { id: steamId, username, avatar, url: profileUrl });
+        return finish("ok");
+      }
+      const prov = OAUTH_PROVIDERS[provider];
+      if (!prov || !prov.clientId || !prov.clientSecret) return finish("error", "Service non configuré");
+      const code = url.searchParams.get("code");
+      if (!code) return finish("error", "Autorisation refusée");
+      const redirectUri = CONN_REDIRECT_BASE + provider + "/callback";
+      const tr = prov.tokenRequest(code, redirectUri, { clientId: prov.clientId, clientSecret: prov.clientSecret });
+      const tokenResp = await fetch(tr.url, { method: tr.method || "POST", headers: tr.headers, body: tr.method === "GET" ? undefined : tr.body });
+      const tokenJson = await tokenResp.json().catch(function () { return {}; });
+      const accessToken = tokenJson.access_token;
+      if (!tokenResp.ok || !accessToken) return finish("error", "Échec de l'échange de jeton");
+      const pr = prov.profileRequest(accessToken, { clientId: prov.clientId, clientSecret: prov.clientSecret }, tokenJson);
+      const profResp = await fetch(pr.url, { headers: pr.headers });
+      const profJson = await profResp.json().catch(function () { return {}; });
+      const normalized = prov.normalize(profJson);
+      normalized.accessToken = accessToken;
+      normalized.refreshToken = tokenJson.refresh_token || "";
+      normalized.expiresAt = tokenJson.expires_in ? new Date(Date.now() + tokenJson.expires_in * 1000).toISOString() : "";
+      await upsertSocialConnection(uid, provider, normalized);
+      return finish("ok");
+    } catch (e) {
+      return finish("error", (e && e.message) || "Erreur");
+    }
+  }
+  if (/^\/api\/connections\/[a-z]+\/disconnect$/.test(path) && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    const provider = path.split("/")[3];
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "provider", values: [provider] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const row = (q.documents || [])[0];
+      if (row) await awFetch("/databases/" + AW_DB + "/collections/social_connections/documents/" + row.$id, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Bluesky (AT Protocol) n'a pas d'OAuth "classique" stabilisé pour un
+  // usage aussi simple qu'ici : on utilise le mécanisme officiel des "App
+  // Passwords" (créés par la personne elle-même dans ses réglages Bluesky,
+  // jamais son vrai mot de passe de compte) — pas de redirection, juste un
+  // petit formulaire côté client.
+  if (path === "/api/connections/bluesky/connect" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const handle = String((body && body.handle) || "").trim().replace(/^@/, "");
+      const appPassword = String((body && body.appPassword) || "").trim();
+      if (!handle || !appPassword) throw new Error("Identifiant et mot de passe d'application requis");
+      const sr = await fetch("https://bsky.social/xrpc/com.atproto.server.createSession", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ identifier: handle, password: appPassword })
+      });
+      const sj = await sr.json().catch(function () { return {}; });
+      if (!sr.ok || !sj.accessJwt) throw new Error(sj.message || "Identifiant ou mot de passe d'application invalide");
+      let avatar = "", displayName = handle;
+      try {
+        const pr = await fetch("https://bsky.social/xrpc/app.bsky.actor.getProfile?actor=" + encodeURIComponent(sj.did), { headers: { "Authorization": "Bearer " + sj.accessJwt } });
+        const pj = await pr.json();
+        avatar = pj.avatar || ""; displayName = pj.displayName || handle;
+      } catch (e) {}
+      await upsertSocialConnection(acc.$id, "bluesky", { id: sj.did, username: "@" + handle, avatar, url: "https://bsky.app/profile/" + handle, accessToken: sj.accessJwt, refreshToken: sj.refreshJwt });
+      return new Response(JSON.stringify({ ok: true, username: displayName }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
