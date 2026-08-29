@@ -1877,6 +1877,20 @@ html.xultra-restoring #stage{visibility:hidden}
 
 /* Phase 2: app shell */
 :root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px}
+/* Barres de défilement aux couleurs de X1 (dégradé violet du bouton
+   principal) partout sur le site, au lieu de la barre native du
+   navigateur — une seule règle globale (pas de sélecteur devant
+   ::-webkit-scrollbar) suffit : chaque élément qui défile la reçoit
+   individuellement. scrollbar-width/-color couvrent Firefox, qui n'a pas
+   de pseudo-éléments ::-webkit-scrollbar-*. Le mode clair (filter:invert
+   sur body, voir plus bas) inverse ces couleurs comme tout le reste du
+   site, sans réglage séparé à faire ici. */
+*{scrollbar-width:thin;scrollbar-color:#7c3aed rgba(255,255,255,.06)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,.04)}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#8b5cf6,#7c3aed);border-radius:999px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#a78bfa,#8b5cf6)}
+::-webkit-scrollbar-corner{background:transparent}
 #app{display:none;height:calc((100dvh - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-shrink:0}
@@ -6437,6 +6451,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.44.0',category:'design',date:'29 août 2026',time:'23:59',title:'🟣 Barres de défilement aux couleurs de X1',
+    body:'Toutes les barres de défilement du site (conversations, listes, panneaux, fenêtres…) affichent maintenant le dégradé violet de X1 au lieu de la barre grise par défaut du navigateur — sur Chrome, Edge, Safari comme Firefox.'},
   {version:'4.43.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🔑 20 permissions X1 indépendantes, et fond d\\'écran d\\'admin réparé sur les DM',
     body:'Le système de permissions passe de 3 à 20 capacités indépendantes, chacune reliée à une vraie action existante du site (signalements, support, sanctions temporaires/définitives, levée de sanction, gestion des modérateurs, notes internes, statut des bugs et suggestions, candidatures, journal d\\'audit, appels actifs, état de maintenance…) — accordables une par une à n\\'importe quel membre, sans lui donner plus que ce qui est coché. Comme avant, seules Shaman et Yani peuvent les distribuer, badge ou octroi direct confondus. Corrigé aussi : ouvrir une conversation depuis la liste de gauche pendant qu\\'on est dans le panneau Admin ou Serveurs laissait les deux affichés en même temps au lieu de basculer proprement sur la conversation.'},
   {version:'4.42.0',category:'feature',date:'29 août 2026',time:'23:59',title:'🏷️ Membres : tous les badges assignables directement, et permissions au cas par cas',
