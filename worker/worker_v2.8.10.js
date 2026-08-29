@@ -3060,6 +3060,10 @@ a.bug-att-item{display:block}
 .cb-av-mute{position:absolute;z-index:2;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #1a0f2e;display:grid;place-items:center;font-size:8px;line-height:1}
 .cb-av-mute.hidden{display:none}
 .group-call-bar{max-width:520px;padding-top:14px}
+.gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
+.gcb-video-grid.hidden{display:none}
+.gcb-vtile{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15)}
+.gcb-vtile-name{position:absolute;left:6px;bottom:6px;font-size:.64rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;z-index:1}
 .gcb-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .gcb-title{font-weight:800;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gcb-count{font-size:.72rem;color:var(--muted);font-weight:700;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:999px;flex-shrink:0}
@@ -4326,8 +4330,11 @@ a.bug-att-item{display:block}
     <span class="gcb-count" id="gcb-count"></span>
   </div>
   <div class="gcb-participants" id="gcb-participants"></div>
+  <div class="gcb-video-grid hidden" id="gcb-video-grid"></div>
   <div class="cb-controls">
     <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
+    <button type="button" class="cb-ctl" id="gcb-cam" title="Caméra"><span class="cb-ico">📹</span></button>
+    <button type="button" class="cb-ctl" id="gcb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
     <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
   </div>
 </div>
@@ -6494,6 +6501,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.47.0',category:'feature',date:'29 août 2026',time:'23:59',title:'📹 Caméra et partage d\\'écran dans les appels de groupe, Ephem enfin possible en groupe',
+    body:'Le salon vocal d\\'un groupe DM a maintenant ses propres boutons 📹 caméra et 🖥️ partage d\\'écran, avec une grille vidéo qui affiche caméra et écran de tout le monde simultanément (jusqu\\'à 6 membres). Et 👻 Snap éphémère n\\'est plus limité aux conversations privées : en groupe, chaque membre peut l\\'ouvrir une fois, et l\\'expéditeur voit combien l\\'ont vu (ex. "vu par 2/4") — le fichier n\\'est réellement supprimé du serveur qu\\'une fois que tout le monde l\\'a regardé, jamais avant.'},
   {version:'4.46.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Panneau admin repensé : navigation groupée, pastilles de comptage, dashboard enrichi',
     body:'La barre d\\'onglets du panel admin gagne une icône par onglet, des groupes visuels (aperçu / communauté / modération / organisation / système) et une pastille rouge de comptage sur Signalements, Urgents, Support, Bugs et Candidatures — le nombre de choses en attente se voit d\\'un coup d\\'œil sans cliquer partout. Le Dashboard affiche maintenant une tendance (▲/▼ vs période précédente) sur les nouveaux comptes et les messages, un vrai graphique (messages + nouveaux comptes sur 7 jours) à la place des barres, et ses cartes cliquent directement vers l\\'onglet concerné. Signalements, Bannis, Bugs et Candidatures affichent leur statut avec le même code couleur que les tickets support, et Bannis, Bugs, Candidatures et Logs ont chacun leur barre de recherche.'},
   {version:'4.45.0',category:'fix',date:'29 août 2026',time:'23:59',title:'🔔 Notifications : ton propre pseudo affiché par erreur, corrigé + notifications bien plus riches',
@@ -12045,11 +12054,19 @@ function renderMsgBody(m,text,mediaUrl){
   if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
     const mine=m.uid===(me&&me.\$id);
     const noShotTag=m.noScreenshot?' <span class="msg-snap-noshot" title="Captures d\\'écran découragées">🚫</span>':'';
-    if(m.viewedAt){
-      return '<div class="msg-snap-placeholder viewed">👻 <span>'+(mine?'Ephem vu par le destinataire':'Ephem vu')+'</span>'+noShotTag+'</div>';
-    }
+    let viewedBy=[];try{viewedBy=JSON.parse(m.viewedByJson||'[]');if(!Array.isArray(viewedBy))viewedBy=[];}catch(e){}
+    const myUid=me&&String(me.\$id);
     if(mine){
-      return '<div class="msg-snap-placeholder">👻 <span>Ephem envoyé — pas encore ouvert</span>'+noShotTag+'</div>';
+      if(!viewedBy.length){
+        return '<div class="msg-snap-placeholder">👻 <span>Ephem envoyé — pas encore ouvert</span>'+noShotTag+'</div>';
+      }
+      const totalRecipients=Math.max(1,(activeDmMembers||[]).length-1);
+      const label=(activeDmIsGroup&&totalRecipients>1)?('Ephem vu par '+viewedBy.length+'/'+totalRecipients):'Ephem vu par le destinataire';
+      return '<div class="msg-snap-placeholder viewed">👻 <span>'+label+'</span>'+noShotTag+'</div>';
+    }
+    const iViewed=!!myUid&&viewedBy.indexOf(myUid)>=0;
+    if(iViewed||!url){
+      return '<div class="msg-snap-placeholder viewed">👻 <span>Ephem vu</span>'+noShotTag+'</div>';
     }
     return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'" data-snap-noshot="'+(m.noScreenshot?'1':'0')+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span>'+noShotTag+'</div>';
   }
@@ -12106,9 +12123,14 @@ function openSnapViewer(messageId,url,type,durationSec,noScreenshot){
     +(noScreenshot?'<div class="snap-viewer-noshot">🚫 Captures d\\'écran découragées</div>':'')
     +(type==='video'?('<video src="'+esc(url)+'" autoplay playsinline'+(durationSec?'':' controls')+(noScreenshot?' controlslist="nodownload" oncontextmenu="return false"':'')+'></video>'):('<img src="'+esc(url)+'" alt=""'+(noScreenshot?' draggable="false" oncontextmenu="return false" style="-webkit-touch-callout:none;-webkit-user-select:none;user-select:none"':'')+'>'));
   document.body.appendChild(overlay);
-  authPost('/api/dms/media/view',{messageId:messageId}).then(function(){
+  authPost('/api/dms/media/view',{messageId:messageId}).then(function(r){
     const m=msgsCache.find(function(x){return x.\$id===messageId;});
-    if(m){m.viewedAt=new Date().toISOString();m.mediaUrl='';}
+    if(m){
+      let viewedBy=[];try{viewedBy=JSON.parse(m.viewedByJson||'[]');if(!Array.isArray(viewedBy))viewedBy=[];}catch(e){}
+      if(me&&viewedBy.indexOf(String(me.\$id))<0)viewedBy.push(String(me.\$id));
+      m.viewedByJson=JSON.stringify(viewedBy);
+      if(r&&r.allViewed){m.viewedAt=new Date().toISOString();m.mediaUrl='';}
+    }
   }).catch(function(){});
   let autoCloseTimer=null,countdownTimer=null;
   function close(){
@@ -13755,7 +13777,6 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
     \$('attach-menu').classList.add('hidden');
     if(kind==='image'){pendingSnapEphemeral=false;\$('file-image').click();}
     else if(kind==='snap'){
-      if(activeDmIsGroup){showToast('Les snaps éphémères ne sont possibles qu\\'en conversation privée.','error');return}
       openSnapStudio();
     }
     else if(kind==='file')\$('file-generic').click();
@@ -19358,7 +19379,7 @@ function startGroupWaveformLoop(){
 }
 function wireGroupRoomEvents(room){
   room.on(LivekitClient.RoomEvent.ParticipantConnected,function(){renderGroupParticipants();refreshChannelVoiceStageIfVisible();});
-  room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){renderGroupParticipants();refreshChannelVoiceStageIfVisible();});
+  room.on(LivekitClient.RoomEvent.ParticipantDisconnected,function(){renderGroupParticipants();refreshChannelVoiceStageIfVisible();renderGroupCallVideoGrid();});
   room.on(LivekitClient.RoomEvent.TrackSubscribed,function(track,pub,participant){
     if(track.kind==='audio'){
       const el=track.attach();
@@ -19367,23 +19388,85 @@ function wireGroupRoomEvents(room){
       document.body.appendChild(el);
     }else if(track.kind==='video'){
       attachStageVideoIfAny(participant.identity,false);
+      renderGroupCallVideoGrid();
     }
   });
   room.on(LivekitClient.RoomEvent.TrackUnsubscribed,function(track,pub,participant){
     track.detach().forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
-    if(track.kind==='video')attachStageVideoIfAny(participant.identity,false);
+    if(track.kind==='video'){attachStageVideoIfAny(participant.identity,false);renderGroupCallVideoGrid();}
   });
   room.on(LivekitClient.RoomEvent.LocalTrackPublished,function(pub){
-    if(pub.track&&pub.track.kind==='video'){attachStageVideoIfAny(String(me.\$id),true);updateStageControlsUi();}
+    if(pub.track&&pub.track.kind==='video'){
+      attachStageVideoIfAny(String(me.\$id),true);
+      updateStageControlsUi();
+      renderGroupCallVideoGrid();
+      if(pub.track.source===LivekitClient.Track.Source.Camera){const b=\$('gcb-cam');if(b)b.classList.add('on');}
+      if(pub.track.source===LivekitClient.Track.Source.ScreenShare){const b=\$('gcb-screen');if(b)b.classList.add('on');}
+    }
   });
   room.on(LivekitClient.RoomEvent.LocalTrackUnpublished,function(pub){
-    if(pub.track&&pub.track.kind==='video'){attachStageVideoIfAny(String(me.\$id),true);updateStageControlsUi();}
+    if(pub.track&&pub.track.kind==='video'){
+      attachStageVideoIfAny(String(me.\$id),true);
+      updateStageControlsUi();
+      renderGroupCallVideoGrid();
+      if(pub.track.source===LivekitClient.Track.Source.Camera){const b=\$('gcb-cam');if(b)b.classList.remove('on');}
+      if(pub.track.source===LivekitClient.Track.Source.ScreenShare){const b=\$('gcb-screen');if(b)b.classList.remove('on');}
+    }
   });
   room.on(LivekitClient.RoomEvent.Disconnected,function(){
     showToast('Salon vocal terminé.','error');
     cleanupGroupCall();
   });
 }
+// ===== Caméra + partage d'écran dans un appel de groupe en DM — même salon
+// LiveKit que la barre flottante (gcb-mute/gcb-leave), pas de reconnexion.
+// Une tuile par PISTE (pas par personne) : quelqu'un peut publier sa caméra
+// ET son écran en même temps, comme en 1:1 (cf. renderVideoGrid plus haut). */
+function groupCallVideoTileHtml(key,label){
+  return '<div class="gcb-vtile" data-gcb-vtile="'+esc(key)+'"><div class="gcb-vtile-name">'+esc(label)+'</div></div>';
+}
+function renderGroupCallVideoGrid(){
+  const grid=\$('gcb-video-grid');if(!grid||!groupRoom||!me||groupCallContextType!=='dm')return;
+  const myUid=String(me.\$id);
+  const tiles=[];
+  function collect(identity,isLocal){
+    const lp=isLocal?groupRoom.localParticipant:groupRoom.remoteParticipants.get(identity);
+    if(!lp)return;
+    const prof=isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===identity});
+    const baseName=isLocal?'Toi':((prof&&(prof.displayName||prof.username))||'Membre');
+    let camPub=null,screenPub=null;
+    try{camPub=lp.getTrackPublication(LivekitClient.Track.Source.Camera);}catch(e){}
+    try{screenPub=lp.getTrackPublication(LivekitClient.Track.Source.ScreenShare);}catch(e){}
+    if(camPub&&camPub.track)tiles.push({key:identity+':cam',track:camPub.track,label:baseName,mirror:isLocal});
+    if(screenPub&&screenPub.track)tiles.push({key:identity+':screen',track:screenPub.track,label:baseName+' · Écran',mirror:false});
+  }
+  collect(myUid,true);
+  groupRoom.remoteParticipants.forEach(function(p){collect(p.identity,false);});
+  grid.classList.toggle('hidden',tiles.length===0);
+  grid.innerHTML=tiles.map(function(t){return groupCallVideoTileHtml(t.key,t.label);}).join('');
+  tiles.forEach(function(t){
+    const wrap=grid.querySelector('[data-gcb-vtile="'+t.key+'"]');
+    if(!wrap)return;
+    const el=t.track.attach();
+    el.style.cssText='width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0';
+    if(t.mirror)el.style.transform='scaleX(-1)';
+    wrap.insertBefore(el,wrap.firstChild);
+  });
+}
+async function toggleGroupCamera(){
+  if(!groupRoom)return;
+  const enabledNow=!!groupRoom.localParticipant.isCameraEnabled;
+  try{await groupRoom.localParticipant.setCameraEnabled(!enabledNow);}
+  catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');}
+}
+async function toggleGroupScreenShare(){
+  if(!groupRoom)return;
+  const enabledNow=!!groupRoom.localParticipant.isScreenShareEnabled;
+  try{await groupRoom.localParticipant.setScreenShareEnabled(!enabledNow,{audio:false});}
+  catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
+}
+if(\$('gcb-cam'))\$('gcb-cam').addEventListener('click',toggleGroupCamera);
+if(\$('gcb-screen'))\$('gcb-screen').addEventListener('click',toggleGroupScreenShare);
 const AUDIO_BITRATE_PRESETS={standard:64000,high:256000};
 async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
   if(!me)return;
@@ -19438,7 +19521,10 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       \$('group-call-bar').classList.remove('hidden');
       \$('gcb-group-name').textContent=groupCallGroupName;
       \$('gcb-mute').classList.remove('on');
+      \$('gcb-cam').classList.remove('on');
+      \$('gcb-screen').classList.remove('on');
       renderGroupParticipants();
+      renderGroupCallVideoGrid();
     }else{
       // Sans barre flottante pour lancer la boucle, on la démarre nous-même
       // ici — sinon mon état "en train de parler" ne serait jamais poussé
@@ -19607,6 +19693,9 @@ function cleanupGroupCall(){
   groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';stageCanPublish=true;
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
+  const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');}
+  \$('gcb-cam').classList.remove('on');
+  \$('gcb-screen').classList.remove('on');
   if(wasChannelId&&activeChannel&&activeChannel.\$id===wasChannelId)renderServerChannelContent();
   if(wasChannelId)loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
 }
@@ -30028,11 +30117,15 @@ async function handle(request, event) {
     }
   }
 
-  // Média éphémère en DM (façon Snapchat) : le destinataire (jamais
-  // l'expéditeur) déclenche cette route en ouvrant le snap. Le fichier de
-  // stockage est réellement supprimé côté serveur (pas juste masqué côté
-  // client) — sinon "éphémère" ne voudrait rien dire, l'URL resterait
-  // accessible indéfiniment à qui la devine.
+  // Média éphémère en DM (façon Snapchat) : un destinataire (jamais
+  // l'expéditeur) déclenche cette route en ouvrant le snap. En groupe,
+  // chaque destinataire ne peut l'ouvrir qu'une fois (viewedByJson garde qui
+  // a déjà vu) mais le fichier de stockage n'est réellement supprimé côté
+  // serveur qu'une fois que TOUT LE MONDE (hors expéditeur) l'a vu — sinon
+  // le premier à l'ouvrir le ferait disparaître pour les autres avant même
+  // qu'ils l'aient regardé. En 1:1 (un seul destinataire possible) ça revient
+  // exactement au comportement d'avant : suppression dès la première (et
+  // seule) ouverture.
   if (path === "/api/dms/media/view" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -30045,15 +30138,26 @@ async function handle(request, event) {
       if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
       if (String(msg.uid) === String(acc.$id)) throw new Error("Tu ne peux pas \"voir\" ton propre Ephem");
       if (msg.mediaMode !== "ephemeral") throw new Error("Ce média n'est pas éphémère");
-      if (!msg.mediaUrl || msg.viewedAt) {
-        return new Response(JSON.stringify({ ok: true, alreadyViewed: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      let viewedBy = [];
+      try { viewedBy = JSON.parse(msg.viewedByJson || "[]"); if (!Array.isArray(viewedBy)) viewedBy = []; } catch (e) {}
+      const myUid = String(acc.$id);
+      const recipientUids = members.filter(function (u) { return u !== String(msg.uid); });
+      if (viewedBy.indexOf(myUid) >= 0 || !msg.mediaUrl) {
+        return new Response(JSON.stringify({ ok: true, alreadyViewed: true, viewedCount: viewedBy.length, recipientsCount: recipientUids.length }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
       }
-      const fileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(msg.mediaUrl);
-      if (fileMatch) {
-        await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+      viewedBy.push(myUid);
+      const allViewed = recipientUids.every(function (u) { return viewedBy.indexOf(u) >= 0; });
+      const data = { viewedByJson: JSON.stringify(viewedBy) };
+      if (allViewed) {
+        const fileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(msg.mediaUrl);
+        if (fileMatch) {
+          await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+        }
+        data.mediaUrl = "";
+        data.viewedAt = new Date().toISOString();
       }
-      await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { method: "PATCH", asAdmin: true, body: { data: { mediaUrl: "", viewedAt: new Date().toISOString() } } });
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true, allViewed: allViewed, viewedCount: viewedBy.length, recipientsCount: recipientUids.length }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
