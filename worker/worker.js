@@ -3071,9 +3071,13 @@ a.bug-att-item{display:block}
 .cmp-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--elev);color:#f2ebff;font-size:.85rem;display:grid;place-items:center}
 .cmp-btn.danger{background:rgba(239,68,68,.22);color:#fca5a5}
 @media (max-width:640px){.call-mini-pill{top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}.cmp-title{max-width:90px}}
-.gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
+.gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0;max-height:280px;overflow-y:auto}
 .gcb-video-grid.hidden{display:none}
-.gcb-vtile{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15)}
+.gcb-video-grid.n1{grid-template-columns:1fr}
+.gcb-video-grid.cinema{flex:1;min-height:0;max-height:none;margin:0;padding:0 14px 14px;grid-auto-rows:1fr}
+.gcb-video-grid.cinema .gcb-vtile{aspect-ratio:auto}
+.gcb-vtile{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15);cursor:pointer;min-height:0}
+.gcb-vtile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:260px}
 .gcb-vtile-name{position:absolute;left:6px;bottom:6px;font-size:.64rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;z-index:1}
 .gcb-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .gcb-title{font-weight:800;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -3087,7 +3091,11 @@ a.bug-att-item{display:block}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
 .chan-voice-stage{display:flex;flex-direction:column;height:calc(100dvh - 220px);min-height:320px}
 .chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:4px;overflow-y:auto;align-content:start}
-.cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease}
+.chan-voice-stage-grid.n1{grid-template-columns:1fr}
+.chan-voice-stage-grid.cinema{flex:1;min-height:0;align-content:stretch;grid-auto-rows:1fr}
+.chan-voice-stage-grid.cinema .cvs-tile{aspect-ratio:auto}
+.cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease;cursor:pointer;min-height:0}
+.cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:280px}
 @keyframes voiceSpeakGlow{0%,100%{box-shadow:0 0 0 2px rgba(57,255,20,.55),0 0 10px 3px rgba(57,255,20,.45)}50%{box-shadow:0 0 0 3px rgba(57,255,20,.95),0 0 18px 6px rgba(57,255,20,.85)}}
 .cvs-tile.speaking{border-color:#39ff14;animation:voiceSpeakGlow 1.1s ease-in-out infinite}
 .cvs-tile-video-wrap{position:absolute;inset:0}
@@ -4346,6 +4354,7 @@ a.bug-att-item{display:block}
     <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
     <button type="button" class="cb-ctl" id="gcb-cam" title="Caméra"><span class="cb-ico">📹</span></button>
     <button type="button" class="cb-ctl" id="gcb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
+    <button type="button" class="cb-ctl" id="gcb-cinema" title="Plein écran" disabled><span class="cb-ico">⛶</span></button>
     <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
   </div>
 </div>
@@ -6521,6 +6530,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.49.0',category:'feature',date:'30 août 2026',time:'00:30',title:'🖼️ Grille vidéo dynamique, agrandissement au clic et plein écran',
+    body:'Les caméras et partages d\\'écran (DM, groupe DM, salon vocal de serveur) s\\'organisent maintenant en grille qui s\\'ajuste automatiquement selon le nombre de flux actifs, toutes de la même taille par défaut. Cliquer sur une caméra ou un partage l\\'agrandit au premier plan pendant que les autres restent visibles en dessous, en plus petit — reclique pour revenir à la taille normale. Nouveau bouton ⛶ pour passer en plein écran (caméras et partages compris) dans les trois contextes. Corrigé au passage : dans un salon vocal de serveur, ton propre compte pouvait apparaître deux fois dans la grille si un autre appareil connecté au même compte partageait la même session vocale.'},
   {version:'4.48.0',category:'design',date:'30 août 2026',time:'00:00',title:'📞 Widgets d\\'appel repensés : plus jamais par-dessus le chat',
     body:'Fini les barres d\\'appel qui flottaient n\\'importe où et pouvaient recouvrir une conversation ou le champ pour écrire : l\\'appel (1:1, salon de groupe en DM, ou salon vocal de serveur) s\\'intègre maintenant directement dans le fil de LA conversation appelée — entre l\\'en-tête et les messages, jamais en superposition, jamais bloquant. Dès que tu regardes autre chose, tout se réduit automatiquement en une petite pastille compacte en haut à droite de l\\'écran (avatar, nom, durée ou nombre de participants, micro et raccrocher) — un clic dessus te ramène direct dans la conversation. Les salons vocaux de serveur ont enfin, eux aussi, une trace visible quand tu navigues ailleurs dans le serveur, ce qui n\\'existait pas avant.'},
   {version:'4.47.0',category:'feature',date:'29 août 2026',time:'23:59',title:'📹 Caméra et partage d\\'écran dans les appels de groupe, Ephem enfin possible en groupe',
@@ -11965,9 +11976,14 @@ function repositionCallPanel(){
   const gbar=\$('group-call-bar');
   if(gbar&&groupRoom&&groupCallContextType==='dm'){
     const viewingGroupDm=chatVisible&&view==='dms'&&activeDm===groupCallContextId;
+    if(!viewingGroupDm&&gcbCinemaMode)exitGroupCinema();
     if(viewingGroupDm&&anchor){anchor.appendChild(gbar);gbar.classList.remove('hidden');gbar.classList.add('embedded');}
     else{gbar.classList.add('hidden');gbar.classList.remove('embedded');document.body.appendChild(gbar);}
-  }
+  }else if(gcbCinemaMode)exitGroupCinema();
+  // Filet de sécurité : si on quitte le salon (retour à la liste, autre
+  // serveur/canal) sans être passé par le bouton "Réduire", la grille en
+  // plein écran resterait sinon orpheline dans #call-video-stage.
+  if(cvsCinemaMode&&!isViewingActiveCall({kind:'channel'}))exitChannelCinema();
   updateCallMiniPill();
 }
 function callMiniPillTarget(){
@@ -18414,6 +18430,12 @@ let remoteTiles={cam:null,screen:null};
 let remoteMetaByMid={}, pendingRemoteTracksByMid={}, localMetaQueue=[];
 let remoteMicMuted=false, remoteDeafened=false, screenShareRevealed=false;
 let videoMasked=true, cinemaMode=false, enlargedTileKey=null, videoEls={};
+// Quel système d'appel occupe actuellement #call-video-stage en plein écran
+// (1:1, salon de groupe DM, ou salon vocal de serveur) — un seul à la fois
+// possible (les 3 systèmes s'excluent déjà mutuellement), sert juste à
+// savoir quelle fonction exitXCinema() appeler depuis le bouton "Réduire"
+// partagé et depuis l'écoute globale de sortie de plein écran navigateur.
+let activeCinemaKind=null;
 let camQualityKey='720p30', screenQualityKey='1080p60';
 let micVolumePct=100, outVolumePct=100;
 let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='mono';
@@ -18758,7 +18780,7 @@ function renderVideoGrid(){
 }
 function enterCinema(){
   if(cinemaMode)return;
-  cinemaMode=true;videoMasked=false;
+  cinemaMode=true;videoMasked=false;activeCinemaKind='1v1';
   const stage=\$('call-video-stage'),grid=\$('vgrid');
   if(stage&&grid){stage.appendChild(grid);grid.classList.add('cinema');stage.classList.remove('hidden');}
   const btn=\$('cb-cinema');if(btn)btn.classList.add('on');
@@ -18767,7 +18789,7 @@ function enterCinema(){
 }
 function exitCinema(){
   if(!cinemaMode)return;
-  cinemaMode=false;
+  cinemaMode=false;activeCinemaKind=null;
   const cbv=\$('cb-video'),grid=\$('vgrid');
   if(cbv&&grid){
     const top=cbv.querySelector('.cbv-top');
@@ -18780,7 +18802,10 @@ function exitCinema(){
   renderVideoGrid();
 }
 document.addEventListener('fullscreenchange',function(){
-  if(!document.fullscreenElement&&cinemaMode)exitCinema();
+  if(document.fullscreenElement)return;
+  if(activeCinemaKind==='1v1')exitCinema();
+  else if(activeCinemaKind==='dmgroup')exitGroupCinema();
+  else if(activeCinemaKind==='channel')exitChannelCinema();
 });
 (function initVideoGrid(){
   const grid=document.createElement('div');
@@ -19526,9 +19551,12 @@ function wireGroupRoomEvents(room){
 // LiveKit que la barre flottante (gcb-mute/gcb-leave), pas de reconnexion.
 // Une tuile par PISTE (pas par personne) : quelqu'un peut publier sa caméra
 // ET son écran en même temps, comme en 1:1 (cf. renderVideoGrid plus haut). */
-function groupCallVideoTileHtml(key,label){
-  return '<div class="gcb-vtile" data-gcb-vtile="'+esc(key)+'"><div class="gcb-vtile-name">'+esc(label)+'</div></div>';
-}
+// Cache de tuiles indexé par clé (identity+':cam' ou ':screen'), réutilisé
+// d'un rendu à l'autre — recréer l'élément <video> à chaque appel (au lieu
+// de le réutiliser) ferait fuir la piste LiveKit précédente (jamais
+// détachée) et casserait le survol/agrandissement au clic à chaque
+// changement ailleurs dans le salon (nouveau participant, mute...).
+let gcbVideoEls={}, gcbEnlargedKey=null;
 function renderGroupCallVideoGrid(){
   const grid=\$('gcb-video-grid');if(!grid||!groupRoom||!me||groupCallContextType!=='dm')return;
   const myUid=String(me.\$id);
@@ -19546,17 +19574,77 @@ function renderGroupCallVideoGrid(){
   }
   collect(myUid,true);
   groupRoom.remoteParticipants.forEach(function(p){collect(p.identity,false);});
+  if(gcbEnlargedKey&&!tiles.some(function(t){return t.key===gcbEnlargedKey}))gcbEnlargedKey=null;
+  // La tuile agrandie passe en tête pour occuper la première ligne (span
+  // complet via .enlarged) — les autres suivent en dessous, même taille.
+  tiles.sort(function(a,b){return (a.key===gcbEnlargedKey?0:1)-(b.key===gcbEnlargedKey?0:1);});
   grid.classList.toggle('hidden',tiles.length===0);
-  grid.innerHTML=tiles.map(function(t){return groupCallVideoTileHtml(t.key,t.label);}).join('');
+  grid.classList.toggle('n1',tiles.length===1);
+  const cinemaBtn=\$('gcb-cinema');if(cinemaBtn)cinemaBtn.disabled=tiles.length===0;
+  if(!tiles.length&&gcbCinemaMode)exitGroupCinema();
+  const seen={};
   tiles.forEach(function(t){
-    const wrap=grid.querySelector('[data-gcb-vtile="'+t.key+'"]');
-    if(!wrap)return;
-    const el=t.track.attach();
-    el.style.cssText='width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0';
-    if(t.mirror)el.style.transform='scaleX(-1)';
-    wrap.insertBefore(el,wrap.firstChild);
+    seen[t.key]=true;
+    let wrap=gcbVideoEls[t.key];
+    if(!wrap){
+      wrap=document.createElement('div');
+      wrap.className='gcb-vtile';
+      const lbl=document.createElement('div');lbl.className='gcb-vtile-name';
+      wrap.appendChild(lbl);
+      wrap.addEventListener('click',function(){
+        gcbEnlargedKey=(gcbEnlargedKey===t.key)?null:t.key;
+        renderGroupCallVideoGrid();
+      });
+      gcbVideoEls[t.key]=wrap;
+    }
+    if(wrap._track!==t.track){
+      const oldVideo=wrap.querySelector('video');
+      if(oldVideo){if(wrap._track){try{wrap._track.detach(oldVideo);}catch(e){}}oldVideo.remove();}
+      const el=t.track.attach();
+      el.style.cssText='width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0';
+      if(t.mirror)el.style.transform='scaleX(-1)';
+      wrap.insertBefore(el,wrap.firstChild);
+      wrap._track=t.track;
+    }
+    wrap.querySelector('.gcb-vtile-name').textContent=t.label;
+    wrap.classList.toggle('enlarged',gcbEnlargedKey===t.key);
+    grid.appendChild(wrap);
+  });
+  Object.keys(gcbVideoEls).forEach(function(k){
+    if(!seen[k]){
+      const wrap=gcbVideoEls[k];
+      const v=wrap.querySelector('video');
+      if(v&&wrap._track){try{wrap._track.detach(v);}catch(e){}}
+      if(wrap.parentElement)wrap.parentElement.removeChild(wrap);
+      delete gcbVideoEls[k];
+    }
   });
 }
+// ===== Mode plein écran (cinéma) pour un appel de groupe en DM — même
+// #call-video-stage partagé que le 1:1 (un seul appel actif à la fois,
+// jamais de conflit) ; la grille est simplement déplacée puis ramenée. =====
+let gcbCinemaMode=false;
+function enterGroupCinema(){
+  if(gcbCinemaMode)return;
+  gcbCinemaMode=true;activeCinemaKind='dmgroup';
+  const stage=\$('call-video-stage'),grid=\$('gcb-video-grid');
+  if(stage&&grid){stage.appendChild(grid);grid.classList.add('cinema');grid.classList.remove('hidden');stage.classList.remove('hidden');}
+  const btn=\$('gcb-cinema');if(btn)btn.classList.add('on');
+  try{if(stage&&stage.requestFullscreen)stage.requestFullscreen().catch(function(){});}catch(e){}
+}
+function exitGroupCinema(){
+  if(!gcbCinemaMode)return;
+  gcbCinemaMode=false;activeCinemaKind=null;
+  const participants=\$('gcb-participants'),grid=\$('gcb-video-grid');
+  if(participants&&grid){participants.insertAdjacentElement('afterend',grid);grid.classList.remove('cinema');}
+  const stage=\$('call-video-stage');if(stage)stage.classList.add('hidden');
+  const btn=\$('gcb-cinema');if(btn)btn.classList.remove('on');
+  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
+  renderGroupCallVideoGrid();
+}
+if(\$('gcb-cinema'))\$('gcb-cinema').addEventListener('click',function(){
+  if(gcbCinemaMode)exitGroupCinema();else enterGroupCinema();
+});
 async function toggleGroupCamera(){
   if(!groupRoom)return;
   const enabledNow=!!groupRoom.localParticipant.isCameraEnabled;
@@ -19660,6 +19748,7 @@ function channelVoiceStageHtml(){
     +'<div class="chan-voice-stage-controls">'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">📹</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-cinema-btn" title="Plein écran">⛶</button>'
       +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">📞</button>'
     +'</div>'
   +'</div>';
@@ -19677,27 +19766,73 @@ function chanVoiceStageTileHtml(uid,name,avatarUrl){
 // détache et se rattache (flash/re-bufferisation) à chaque fois que
 // N'IMPORTE QUI d'autre rejoint ou quitte le salon — une tuile déjà en
 // place (vidéo comprise) n'est jamais touchée.
+let cvsEnlargedUid=null;
 function renderChannelVoiceStage(){
   const grid=\$('chan-voice-stage-grid');if(!grid||!groupRoom||!me)return;
-  const list=[{identity:String(me.\$id),isLocal:true}];
-  groupRoom.remoteParticipants.forEach(function(p){list.push({identity:p.identity,isLocal:false});});
+  const myUid=String(me.\$id);
+  const list=[{identity:myUid,isLocal:true}];
+  // Un autre onglet/appareil connecté avec le même compte se reconnecte à la
+  // même room LiveKit sous la même identité — sans ce filtre, il apparaîtrait
+  // comme un "remote participant" séparé et ferait apparaître ton propre
+  // compte deux fois dans la grille.
+  groupRoom.remoteParticipants.forEach(function(p){if(String(p.identity)!==myUid)list.push({identity:p.identity,isLocal:false});});
+  if(cvsEnlargedUid&&!list.some(function(it){return it.identity===cvsEnlargedUid}))cvsEnlargedUid=null;
+  // La personne agrandie passe en tête pour occuper la première ligne
+  // (span complet via .enlarged) — simple réordonnancement DOM, ne recrée ni
+  // ne redétache aucune tuile déjà en place (cf. commentaire plus haut).
+  list.sort(function(a,b){return (a.identity===cvsEnlargedUid?0:1)-(b.identity===cvsEnlargedUid?0:1);});
   const wantedIds=list.map(function(item){return item.identity;});
   grid.querySelectorAll('.cvs-tile').forEach(function(tile){
     if(wantedIds.indexOf(tile.getAttribute('data-cvs-uid'))<0)tile.remove();
   });
   list.forEach(function(item){
     const uid=item.identity;
-    if(grid.querySelector('[data-cvs-uid="'+uid+'"]'))return;
-    const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
-    const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
-    const avatarUrl=safeUrl(prof&&prof.avatar);
-    const holder=document.createElement('div');
-    holder.innerHTML=chanVoiceStageTileHtml(uid,name,avatarUrl);
-    grid.appendChild(holder.firstChild);
-    attachStageVideoIfAny(uid,item.isLocal);
+    let tile=grid.querySelector('[data-cvs-uid="'+uid+'"]');
+    if(!tile){
+      const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
+      const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
+      const avatarUrl=safeUrl(prof&&prof.avatar);
+      const holder=document.createElement('div');
+      holder.innerHTML=chanVoiceStageTileHtml(uid,name,avatarUrl);
+      tile=holder.firstChild;
+      tile.addEventListener('click',function(){
+        cvsEnlargedUid=(cvsEnlargedUid===uid)?null:uid;
+        renderChannelVoiceStage();
+      });
+      grid.appendChild(tile);
+      attachStageVideoIfAny(uid,item.isLocal);
+    }else{
+      grid.appendChild(tile);
+    }
+    tile.classList.toggle('enlarged',cvsEnlargedUid===uid);
   });
+  grid.classList.toggle('n1',list.length===1);
   updateStageControlsUi();
   startGroupWaveformLoop();
+}
+// ===== Mode plein écran (cinéma) pour un salon vocal de serveur — même
+// #call-video-stage partagé que le 1:1/groupe DM (un seul appel actif à la
+// fois). La vue plein écran d'un salon vocal (channelVoiceStageHtml) sert
+// déjà de "grande vue" par défaut ; ce mode va un cran plus loin en passant
+// en plein écran navigateur, utile en multi-écrans ou pour masquer le reste
+// de l'interface X1 pendant un partage d'écran collectif. =====
+let cvsCinemaMode=false;
+function enterChannelCinema(){
+  if(cvsCinemaMode)return;
+  cvsCinemaMode=true;activeCinemaKind='channel';
+  const stage=\$('call-video-stage'),grid=\$('chan-voice-stage-grid');
+  if(stage&&grid){stage.appendChild(grid);grid.classList.add('cinema');stage.classList.remove('hidden');}
+  const btn=\$('cvs-cinema-btn');if(btn)btn.classList.add('on');
+  try{if(stage&&stage.requestFullscreen)stage.requestFullscreen().catch(function(){});}catch(e){}
+}
+function exitChannelCinema(){
+  if(!cvsCinemaMode)return;
+  cvsCinemaMode=false;activeCinemaKind=null;
+  const stageWrap=document.querySelector('.chan-voice-stage'),grid=\$('chan-voice-stage-grid');
+  if(stageWrap&&grid){stageWrap.insertBefore(grid,stageWrap.firstChild);grid.classList.remove('cinema');}
+  const stage=\$('call-video-stage');if(stage)stage.classList.add('hidden');
+  const btn=\$('cvs-cinema-btn');if(btn)btn.classList.remove('on');
+  if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
 }
 // Rattache (ou détache) le flux vidéo caméra d'un participant dans sa tuile
 // de la grille, sans reconstruire toute la grille — appelé au (dés)abonnement
@@ -19769,6 +19904,8 @@ function wireChannelVoiceStage(){
   };
   const camBtn=\$('cvs-cam-btn');
   if(camBtn)camBtn.onclick=toggleStageCamera;
+  const cinemaBtn=\$('cvs-cinema-btn');
+  if(cinemaBtn)cinemaBtn.onclick=function(){if(cvsCinemaMode)exitChannelCinema();else enterChannelCinema();};
   const leaveBtn=\$('cvs-leave-btn');
   if(leaveBtn)leaveBtn.onclick=function(){leaveGroupCall();};
 }
@@ -19789,6 +19926,8 @@ function stopGroupHeartbeat(){
   if(groupHeartbeatId){clearInterval(groupHeartbeatId);groupHeartbeatId=null;}
 }
 function cleanupGroupCall(){
+  if(gcbCinemaMode)exitGroupCinema();
+  if(cvsCinemaMode)exitChannelCinema();
   if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
   stopGroupHeartbeat();
   document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
@@ -19800,7 +19939,8 @@ function cleanupGroupCall(){
   groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallServerId=null;groupCallGroupName='';stageCanPublish=true;
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
-  const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');}
+  const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');gcbVGrid.classList.remove('n1');}
+  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;
   \$('gcb-cam').classList.remove('on');
   \$('gcb-screen').classList.remove('on');
   document.body.appendChild(\$('group-call-bar'));
@@ -20470,6 +20610,11 @@ function renderServerChannelContent(){
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     if(inVoiceHere){
+      // En plein écran (cinéma), la grille vit déjà dans #call-video-stage,
+      // hors de "box" — reconstruire innerHTML ici créerait une DEUXIÈME
+      // grille avec le même id et casserait tout (vidéos live comprises).
+      // Rien à refaire tant qu'on n'en est pas sorti.
+      if(cvsCinemaMode)return;
       html+=channelVoiceStageHtml();
       box.innerHTML=html;
       wireServerChannelBack();
@@ -22846,7 +22991,11 @@ if(\$('cb-deafen'))\$('cb-deafen').addEventListener('click',function(){
 if(\$('cb-cinema'))\$('cb-cinema').addEventListener('click',function(){
   if(cinemaMode)exitCinema();else enterCinema();
 });
-if(\$('vstage-exit'))\$('vstage-exit').addEventListener('click',function(){exitCinema();});
+if(\$('vstage-exit'))\$('vstage-exit').addEventListener('click',function(){
+  if(activeCinemaKind==='1v1')exitCinema();
+  else if(activeCinemaKind==='dmgroup')exitGroupCinema();
+  else if(activeCinemaKind==='channel')exitChannelCinema();
+});
 if(\$('cb-mask'))\$('cb-mask').addEventListener('click',function(){videoMasked=true;renderVideoGrid();});
 if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMasked=false;renderVideoGrid();});
 
