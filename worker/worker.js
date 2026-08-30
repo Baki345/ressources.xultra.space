@@ -3096,23 +3096,35 @@ a.bug-att-item{display:block}
 .gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
 .chan-voice-stage{display:flex;flex-direction:column;height:calc(100dvh - 220px);min-height:320px}
-.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;padding:4px;overflow-y:auto;align-content:start}
+.chan-voice-stage-top{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 10px;flex-shrink:0}
+.cvst-title{font-weight:800;font-size:.92rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvst-fs-btn{width:34px;height:34px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:.95rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
+.cvst-fs-btn:hover{background:rgba(255,255,255,.16)}
+.cvst-fs-btn.on{background:rgba(124,58,237,.55)}
+.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:4px;overflow-y:auto;align-content:start}
 .chan-voice-stage-grid.n1{grid-template-columns:1fr}
 .chan-voice-stage-grid.cinema{flex:1;min-height:0;align-content:stretch;grid-auto-rows:1fr}
 .chan-voice-stage-grid.cinema .cvs-tile{aspect-ratio:auto}
-.cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease;cursor:pointer;min-height:0}
-.cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:280px}
+@media (min-width:520px){.chan-voice-stage-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
+.cvs-tile{position:relative;aspect-ratio:1/1;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease;cursor:pointer;min-height:0}
+.cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:16/10;min-height:280px}
 @keyframes voiceSpeakGlow{0%,100%{box-shadow:0 0 0 2px rgba(57,255,20,.55),0 0 10px 3px rgba(57,255,20,.45)}50%{box-shadow:0 0 0 3px rgba(57,255,20,.95),0 0 18px 6px rgba(57,255,20,.85)}}
 .cvs-tile.speaking{border-color:#39ff14;animation:voiceSpeakGlow 1.1s ease-in-out infinite}
 .cvs-tile-video-wrap{position:absolute;inset:0}
 .cvs-tile-video-wrap.hidden{display:none}
-.cvs-tile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.3rem;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.cvs-tile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.3rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1}
 .cvs-tile-avatar.hidden{display:none}
 .cvs-tile-avatar img{width:100%;height:100%;object-fit:cover}
-.cvs-tile-name{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cvs-tile-mute{position:absolute;right:10px;bottom:8px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center}
+.cvs-tile-name{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1}
+.cvs-tile-mute{position:absolute;right:10px;bottom:8px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;z-index:1}
 .cvs-tile-mute.hidden{display:none}
-.chan-voice-stage-controls{display:flex;justify-content:center;gap:14px;padding:14px 4px 4px}
+.cvs-tile-hand{position:absolute;left:8px;top:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.4);font-size:.85rem;display:flex;align-items:center;justify-content:center;z-index:1}
+.cvs-tile-hand.hidden{display:none}
+.cvs-tile-expand{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:8px;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1}
+.cvs-tile-expand:hover{background:rgba(0,0,0,.65)}
+.cvs-tile-screen{background:#000;aspect-ratio:16/10}
+.cvs-tile-screen video{width:100%;height:100%;object-fit:contain;display:block}
+.chan-voice-stage-controls{display:flex;justify-content:center;gap:14px;padding:14px 4px 4px;flex-shrink:0}
 .cvs-ctrl-btn{width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
 .cvs-ctrl-btn:hover{background:rgba(255,255,255,.16)}
 .cvs-ctrl-btn.on{background:rgba(124,58,237,.55)}
@@ -3156,7 +3168,7 @@ a.bug-att-item{display:block}
 .srv-chan-icon{color:var(--muted);font-weight:800;width:16px;text-align:center;flex-shrink:0}
 .srv-chan-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-chan-lock{font-size:.72rem;flex-shrink:0}
-.srv-chan-voice-count{font-size:.72rem;font-weight:700;color:var(--muted);flex-shrink:0}
+.srv-chan-voice-count{font-size:.7rem;font-weight:800;color:#c4b5fd;background:rgba(124,58,237,.15);border:1px solid rgba(167,139,250,.25);padding:2px 8px;border-radius:999px;flex-shrink:0}
 .srv-chan-voice-members{display:flex;flex-direction:column;gap:2px;padding:0 10px 8px 30px;margin-top:-4px}
 .srv-voice-member{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;cursor:pointer;font-size:.8rem;color:var(--muted)}
 .srv-voice-member:hover{background:rgba(124,58,237,.1);color:#e9d5ff}
@@ -3172,6 +3184,17 @@ a.bug-att-item{display:block}
 .srv-chan-author{font-weight:800;font-size:.72rem;margin-right:4px}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
+.svc-icon{font-size:2rem;margin-bottom:4px}
+.svc-title{font-weight:800;font-size:1.05rem;color:#fff;margin-bottom:2px}
+.svc-present-label{font-size:.78rem;color:var(--muted);margin:10px 0 6px}
+.svc-present-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;text-align:left;margin-bottom:6px}
+.svc-present-row{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px;background:rgba(255,255,255,.04);font-size:.82rem;color:#e9d5ff;cursor:pointer}
+.svc-present-row:hover{background:rgba(255,255,255,.08)}
+.svc-present-av{width:24px;height:24px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.66rem;font-weight:800}
+.svc-present-av img{width:100%;height:100%;object-fit:cover}
+.svc-present-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+.svc-join-btn{background:linear-gradient(135deg,#22c55e,#16a34a) !important;margin-top:8px}
+.svc-join-btn:hover{box-shadow:0 6px 20px rgba(34,197,94,.35)}
 .srv-stage-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px}
 .srv-stage-topic-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px}
 .srv-stage-topic{font-weight:800;font-size:1rem}
@@ -6547,6 +6570,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.51.0',category:'design',date:'30 août 2026',time:'16:00',title:'🎙️ Salon vocal de serveur repensé façon Discord',
+    body:'Rejoindre un salon vocal de serveur montre maintenant un écran de pré-jonction — qui est déjà connecté, avec avatars et pseudos, avant de cliquer sur le gros bouton vert "Rejoindre" — plutôt qu\\'une connexion automatique au simple clic sur le nom du salon. Une fois dedans : partage d\\'écran désormais possible aussi dans les salons de serveur (pas seulement en DM), avec sa propre tuile distincte de la caméra ; nouveau bouton ✋ Lever la main, visible par tout le monde en temps réel ; chaque tuile a un fond coloré propre à la personne (au lieu du même violet pour tout le monde) et une icône d\\'agrandissement ⤢ dans le coin pour rendre le clic évident ; barre de contrôle réordonnée (caméra, micro, écran, main, raccrocher) et bouton plein écran déplacé dans un petit bandeau au-dessus de la grille, avec le nom du salon.'},
   {version:'4.50.1',category:'design',date:'30 août 2026',time:'08:00',title:'🎨 X1Moji : premier passage de style, plus rond et plus mignon',
     body:'Première retouche visuelle du dessin X1Moji (d\\'autres suivront) : tête agrandie pour l\\'effet "cute" voulu dès le départ, joues rosées, yeux plus grands, vêtements aux coins arrondis au lieu d\\'angles droits, jambes de pantalon nettement séparées, chapeaux et manches redessinés. Même système, même config, juste un dessin plus soigné.'},
   {version:'4.50.0',category:'feature',date:'30 août 2026',time:'06:50',title:'🎭 X1Moji — le créateur d\\'avatar 2D fait peau neuve',
@@ -19749,17 +19774,17 @@ function wireGroupRoomEvents(room){
       el.style.display='none';
       document.body.appendChild(el);
     }else if(track.kind==='video'){
-      attachStageVideoIfAny(participant.identity,false);
+      renderChannelVoiceStage();
       renderGroupCallVideoGrid();
     }
   });
   room.on(LivekitClient.RoomEvent.TrackUnsubscribed,function(track,pub,participant){
     track.detach().forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
-    if(track.kind==='video'){attachStageVideoIfAny(participant.identity,false);renderGroupCallVideoGrid();}
+    if(track.kind==='video'){renderChannelVoiceStage();renderGroupCallVideoGrid();}
   });
   room.on(LivekitClient.RoomEvent.LocalTrackPublished,function(pub){
     if(pub.track&&pub.track.kind==='video'){
-      attachStageVideoIfAny(String(me.\$id),true);
+      renderChannelVoiceStage();
       updateStageControlsUi();
       renderGroupCallVideoGrid();
       if(pub.track.source===LivekitClient.Track.Source.Camera){const b=\$('gcb-cam');if(b)b.classList.add('on');}
@@ -19768,7 +19793,7 @@ function wireGroupRoomEvents(room){
   });
   room.on(LivekitClient.RoomEvent.LocalTrackUnpublished,function(pub){
     if(pub.track&&pub.track.kind==='video'){
-      attachStageVideoIfAny(String(me.\$id),true);
+      renderChannelVoiceStage();
       updateStageControlsUi();
       renderGroupCallVideoGrid();
       if(pub.track.source===LivekitClient.Track.Source.Camera){const b=\$('gcb-cam');if(b)b.classList.remove('on');}
@@ -19975,23 +20000,42 @@ function joinServerVoice(serverId,serverName){return joinVoiceRoom('server',serv
    fait place à une grille de tuiles (une par participant), caméra si
    publiée sinon avatar — même connexion LiveKit que la petite barre
    flottante, donc pas de reconnexion, juste un affichage plus riche. ===== */
-function channelVoiceStageHtml(){
+function channelVoiceStageHtml(title){
   return '<div class="chan-voice-stage">'
+    +'<div class="chan-voice-stage-top"><span class="cvst-title" id="cvs-title">'+esc(title||'')+'</span><button type="button" class="cvst-fs-btn" id="cvs-cinema-btn" title="Plein écran">⛶</button></div>'
     +'<div class="chan-voice-stage-grid" id="chan-voice-stage-grid"></div>'
     +'<div class="chan-voice-stage-controls">'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">📹</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-cinema-btn" title="Plein écran">⛶</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-screen-btn" title="Partager l\\'écran">🖥️</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-hand-btn" title="Lever la main">✋</button>'
       +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">📞</button>'
     +'</div>'
   +'</div>';
 }
+// Couleur de fond variant par personne (façon Discord) — dérivée d'un hash
+// simple de l'uid, purement cosmétique (pas de dépendance à des données de
+// rôle/thème indisponibles côté serveur).
+const CVS_TILE_PALETTE=['#7c3aed','#4D96FF','#6BCB77','#FFD93D','#FF6B6B','#9B59B6','#2A9D8F','#E76F51'];
+function cvsTileBg(uid){
+  let h=0;for(let i=0;i<uid.length;i++)h=(h*31+uid.charCodeAt(i))>>>0;
+  return CVS_TILE_PALETTE[h%CVS_TILE_PALETTE.length];
+}
 function chanVoiceStageTileHtml(uid,name,avatarUrl){
-  return '<div class="cvs-tile" data-cvs-uid="'+esc(uid)+'">'
+  const bg=cvsTileBg(uid);
+  return '<div class="cvs-tile" data-cvs-key="'+esc(uid)+'" data-cvs-uid="'+esc(uid)+'" style="background:linear-gradient(160deg,'+bg+'55,#0f0818)">'
     +'<div class="cvs-tile-video-wrap hidden" data-cvs-video-wrap="'+esc(uid)+'"></div>'
     +'<div class="cvs-tile-avatar" data-cvs-avatar="'+esc(uid)+'">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="">':esc(ini(name||'?')))+'</div>'
     +'<div class="cvs-tile-name">'+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+'</div>'
     +'<div class="cvs-tile-mute hidden" data-cvs-mute="'+esc(uid)+'">🔇</div>'
+    +'<div class="cvs-tile-hand hidden" data-cvs-hand="'+esc(uid)+'">✋</div>'
+    +'<button type="button" class="cvs-tile-expand" title="Agrandir">⤢</button>'
+    +'</div>';
+}
+function chanVoiceScreenTileHtml(uid,name){
+  return '<div class="cvs-tile cvs-tile-screen" data-cvs-key="'+esc(uid)+':screen">'
+    +'<div class="cvs-tile-name">🖥️ '+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+' · Écran</div>'
+    +'<button type="button" class="cvs-tile-expand" title="Agrandir">⤢</button>'
     +'</div>';
 }
 // Ajoute/retire des tuiles au lieu de reconstruire toute la grille à chaque
@@ -20000,6 +20044,11 @@ function chanVoiceStageTileHtml(uid,name,avatarUrl){
 // N'IMPORTE QUI d'autre rejoint ou quitte le salon — une tuile déjà en
 // place (vidéo comprise) n'est jamais touchée.
 let cvsEnlargedUid=null;
+// Comme dans un salon Discord : une tuile par PERSONNE (caméra ou avatar) +
+// une tuile SUPPLÉMENTAIRE par partage d'écran actif, indexées par clé
+// ('uid' pour la personne, 'uid:screen' pour son partage) — permet à
+// quelqu'un de publier caméra ET écran en même temps sans se marcher dessus,
+// comme le fait déjà renderGroupCallVideoGrid() côté DM de groupe.
 function renderChannelVoiceStage(){
   const grid=\$('chan-voice-stage-grid');if(!grid||!groupRoom||!me)return;
   const myUid=String(me.\$id);
@@ -20009,37 +20058,92 @@ function renderChannelVoiceStage(){
   // comme un "remote participant" séparé et ferait apparaître ton propre
   // compte deux fois dans la grille.
   groupRoom.remoteParticipants.forEach(function(p){if(String(p.identity)!==myUid)list.push({identity:p.identity,isLocal:false});});
-  if(cvsEnlargedUid&&!list.some(function(it){return it.identity===cvsEnlargedUid}))cvsEnlargedUid=null;
-  // La personne agrandie passe en tête pour occuper la première ligne
-  // (span complet via .enlarged) — simple réordonnancement DOM, ne recrée ni
-  // ne redétache aucune tuile déjà en place (cf. commentaire plus haut).
-  list.sort(function(a,b){return (a.identity===cvsEnlargedUid?0:1)-(b.identity===cvsEnlargedUid?0:1);});
-  const wantedIds=list.map(function(item){return item.identity;});
-  grid.querySelectorAll('.cvs-tile').forEach(function(tile){
-    if(wantedIds.indexOf(tile.getAttribute('data-cvs-uid'))<0)tile.remove();
-  });
+  const presenceList=(activeChannel&&serverVoicePresenceCache[activeChannel.\$id])||[];
+  const tiles=[];
   list.forEach(function(item){
-    const uid=item.identity;
-    let tile=grid.querySelector('[data-cvs-uid="'+uid+'"]');
+    tiles.push({key:item.identity,kind:'person',identity:item.identity,isLocal:item.isLocal});
+    const lp=item.isLocal?groupRoom.localParticipant:groupRoom.remoteParticipants.get(item.identity);
+    let screenPub=null;
+    try{screenPub=lp&&lp.getTrackPublication(LivekitClient.Track.Source.ScreenShare);}catch(e){}
+    if(screenPub&&screenPub.track)tiles.push({key:item.identity+':screen',kind:'screen',identity:item.identity,isLocal:item.isLocal,track:screenPub.track});
+  });
+  if(cvsEnlargedUid&&!tiles.some(function(t){return t.key===cvsEnlargedUid}))cvsEnlargedUid=null;
+  // La tuile agrandie passe en tête pour occuper la première ligne (span
+  // complet via .enlarged) — simple réordonnancement DOM, ne recrée ni ne
+  // redétache aucune tuile déjà en place (cf. commentaire plus haut).
+  tiles.sort(function(a,b){return (a.key===cvsEnlargedUid?0:1)-(b.key===cvsEnlargedUid?0:1);});
+  const wantedKeys=tiles.map(function(t){return t.key;});
+  grid.querySelectorAll('.cvs-tile').forEach(function(tile){
+    const key=tile.getAttribute('data-cvs-key');
+    if(wantedKeys.indexOf(key)<0){
+      const v=tile.querySelector('video');
+      if(v&&tile._track){try{tile._track.detach(v);}catch(e){}}
+      tile.remove();
+    }
+  });
+  tiles.forEach(function(t){
+    let tile=grid.querySelector('[data-cvs-key="'+t.key+'"]');
     if(!tile){
-      const prof=item.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===uid});
-      const name=(prof&&(prof.displayName||prof.username))||(item.isLocal?'Toi':'Membre');
-      const avatarUrl=safeUrl(prof&&prof.avatar);
       const holder=document.createElement('div');
-      holder.innerHTML=chanVoiceStageTileHtml(uid,name,avatarUrl);
+      if(t.kind==='screen'){
+        const prof=t.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===t.identity});
+        const name=(prof&&(prof.displayName||prof.username))||(t.isLocal?'Toi':'Membre');
+        holder.innerHTML=chanVoiceScreenTileHtml(t.identity,name);
+      }else{
+        const prof=t.isLocal?meProfile:membersCache.find(function(x){return String(x.authUserId||x.\$id)===t.identity});
+        const name=(prof&&(prof.displayName||prof.username))||(t.isLocal?'Toi':'Membre');
+        const avatarUrl=safeUrl(prof&&prof.avatar);
+        holder.innerHTML=chanVoiceStageTileHtml(t.identity,name,avatarUrl);
+      }
       tile=holder.firstChild;
       tile.addEventListener('click',function(){
-        cvsEnlargedUid=(cvsEnlargedUid===uid)?null:uid;
+        cvsEnlargedUid=(cvsEnlargedUid===t.key)?null:t.key;
         renderChannelVoiceStage();
       });
       grid.appendChild(tile);
-      attachStageVideoIfAny(uid,item.isLocal);
     }else{
       grid.appendChild(tile);
     }
-    tile.classList.toggle('enlarged',cvsEnlargedUid===uid);
+    if(t.kind==='screen'){
+      if(tile._track!==t.track){
+        const oldVideo=tile.querySelector('video');
+        if(oldVideo){if(tile._track){try{tile._track.detach(oldVideo);}catch(e){}}oldVideo.remove();}
+        const el=t.track.attach();
+        el.style.cssText='width:100%;height:100%;object-fit:contain;display:block';
+        tile.insertBefore(el,tile.firstChild);
+        tile._track=t.track;
+      }
+    }else{
+      const wrap=tile.querySelector('[data-cvs-video-wrap]');
+      const avatarEl=tile.querySelector('[data-cvs-avatar]');
+      let camPub=null;
+      try{
+        const lp=t.isLocal?groupRoom.localParticipant:groupRoom.remoteParticipants.get(t.identity);
+        camPub=lp&&lp.getTrackPublication(LivekitClient.Track.Source.Camera);
+      }catch(e){}
+      const camTrack=camPub&&camPub.track;
+      if(tile._camTrack!==camTrack){
+        if(wrap){
+          const oldVideo=wrap.querySelector('video');
+          if(oldVideo){if(tile._camTrack){try{tile._camTrack.detach(oldVideo);}catch(e){}}oldVideo.remove();}
+          if(camTrack){
+            const el=camTrack.attach();
+            el.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+            if(t.isLocal)el.style.transform='scaleX(-1)';
+            wrap.appendChild(el);
+          }
+        }
+        tile._camTrack=camTrack;
+      }
+      if(wrap)wrap.classList.toggle('hidden',!camTrack);
+      if(avatarEl)avatarEl.classList.toggle('hidden',!!camTrack);
+      const presEntry=presenceList.find(function(pp){return String(pp.uid)===t.identity;});
+      const handEl=tile.querySelector('[data-cvs-hand]');
+      if(handEl)handEl.classList.toggle('hidden',!(presEntry&&presEntry.handRaised));
+    }
+    tile.classList.toggle('enlarged',cvsEnlargedUid===t.key);
   });
-  grid.classList.toggle('n1',list.length===1);
+  grid.classList.toggle('n1',tiles.length===1);
   updateStageControlsUi();
   startGroupWaveformLoop();
 }
@@ -20067,33 +20171,6 @@ function exitChannelCinema(){
   const btn=\$('cvs-cinema-btn');if(btn)btn.classList.remove('on');
   if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
 }
-// Rattache (ou détache) le flux vidéo caméra d'un participant dans sa tuile
-// de la grille, sans reconstruire toute la grille — appelé au (dés)abonnement
-// d'une piste vidéo LiveKit ou à la (dés)activation de sa propre caméra.
-function attachStageVideoIfAny(identity,isLocal){
-  const grid=\$('chan-voice-stage-grid');if(!grid)return;
-  const wrap=grid.querySelector('[data-cvs-video-wrap="'+identity+'"]');
-  const avatarEl=grid.querySelector('[data-cvs-avatar="'+identity+'"]');
-  if(!wrap)return;
-  let pub=null;
-  try{
-    if(isLocal)pub=groupRoom&&groupRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Camera);
-    else{const p=groupRoom&&groupRoom.remoteParticipants.get(identity);pub=p&&p.getTrackPublication(LivekitClient.Track.Source.Camera);}
-  }catch(e){}
-  const track=pub&&pub.track;
-  wrap.innerHTML='';
-  if(track){
-    const el=track.attach();
-    el.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
-    if(isLocal)el.style.transform='scaleX(-1)';
-    wrap.appendChild(el);
-    wrap.classList.remove('hidden');
-    if(avatarEl)avatarEl.classList.add('hidden');
-  }else{
-    wrap.classList.add('hidden');
-    if(avatarEl)avatarEl.classList.remove('hidden');
-  }
-}
 function updateStageControlsUi(){
   if(!groupRoom)return;
   const muted=!groupRoom.localParticipant.isMicrophoneEnabled;
@@ -20109,6 +20186,13 @@ function updateStageControlsUi(){
     camBtn.classList.toggle('on',camOn);
     camBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
+  const screenBtn=\$('cvs-screen-btn');
+  if(screenBtn){
+    screenBtn.classList.toggle('on',!!groupRoom.localParticipant.isScreenShareEnabled);
+    screenBtn.classList.toggle('stage-listener',!stageCanPublish);
+  }
+  const handBtn=\$('cvs-hand-btn');
+  if(handBtn)handBtn.classList.toggle('on',cvsHandRaised);
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -20125,6 +20209,27 @@ async function toggleStageCamera(){
     db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{cameraOn:!enabledNow}).catch(function(){});
   }
 }
+async function toggleStageScreenShare(){
+  if(!groupRoom)return;
+  if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir partager ton écran.','error');return}
+  const enabledNow=!!groupRoom.localParticipant.isScreenShareEnabled;
+  try{await groupRoom.localParticipant.setScreenShareEnabled(!enabledNow,{audio:false});}
+  catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
+}
+// Lever la main — signal purement social (comme les "réactions" Discord),
+// répercuté sur le document de présence server_voice_presence pour que
+// n'importe qui voie l'icône ✋ sur la tuile de la personne, connectée à la
+// room ou juste en train de regarder la liste des salons.
+let cvsHandRaised=false;
+function toggleStageHand(){
+  if(!groupRoom)return;
+  cvsHandRaised=!cvsHandRaised;
+  updateStageControlsUi();
+  if(groupPresenceDocId&&groupPresenceCollection==='server_voice_presence'){
+    db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{handRaised:cvsHandRaised}).catch(function(){});
+  }
+  showToast(cvsHandRaised?'Main levée ✋':'Main baissée');
+}
 function wireChannelVoiceStage(){
   const micBtn=\$('cvs-mic-btn');
   if(micBtn)micBtn.onclick=async function(){
@@ -20137,6 +20242,10 @@ function wireChannelVoiceStage(){
   };
   const camBtn=\$('cvs-cam-btn');
   if(camBtn)camBtn.onclick=toggleStageCamera;
+  const screenBtn=\$('cvs-screen-btn');
+  if(screenBtn)screenBtn.onclick=toggleStageScreenShare;
+  const handBtn=\$('cvs-hand-btn');
+  if(handBtn)handBtn.onclick=toggleStageHand;
   const cinemaBtn=\$('cvs-cinema-btn');
   if(cinemaBtn)cinemaBtn.onclick=function(){if(cvsCinemaMode)exitChannelCinema();else enterChannelCinema();};
   const leaveBtn=\$('cvs-leave-btn');
@@ -20173,7 +20282,7 @@ function cleanupGroupCall(){
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
   const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');gcbVGrid.classList.remove('n1');}
-  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;
+  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;cvsHandRaised=false;
   \$('gcb-cam').classList.remove('on');
   \$('gcb-screen').classList.remove('on');
   document.body.appendChild(\$('group-call-bar'));
@@ -20651,7 +20760,7 @@ function subscribeServerVoicePresence(){
     if(eventIs(res.events,'.update')){
       const cached=(serverVoicePresenceCache[payload.channelId]||[]).find(function(p){return String(p.uid)===String(payload.uid);});
       if(cached){
-        cached.speaking=payload.speaking;cached.cameraOn=payload.cameraOn;
+        cached.speaking=payload.speaking;cached.cameraOn=payload.cameraOn;cached.handRaised=payload.handRaised;
         const row=document.querySelector('[data-srv-voice-member="'+payload.uid+'"]');
         if(row){
           row.classList.toggle('speaking',!!payload.speaking);
@@ -20739,13 +20848,11 @@ function renderServerChannelList(){
 function openServerChannel(channelId){
   activeChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
   if(!activeChannel)return;
+  // Un salon vocal affiche d'abord un écran de pré-jonction (qui est déjà
+  // là, qualité audio) — façon Discord — plutôt que de se connecter tout de
+  // suite : renderServerChannelContent() ne rejoint la room que si on l'est
+  // déjà (inVoiceHere), sinon il faut un clic explicite sur "Rejoindre".
   renderServerChannelContent();
-  // Un salon vocal se rejoint directement au clic sur son nom dans la liste
-  // — comme Discord — plutôt que d'exiger un second clic sur "Rejoindre"
-  // une fois la vue ouverte. startVoiceChannelJoin() ne fait rien si on est
-  // déjà connecté à CE salon, et refuse proprement si on est déjà dans un
-  // AUTRE salon vocal/appel.
-  if(activeChannel.type==='voice')startVoiceChannelJoin(activeChannel);
 }
 let joiningVoiceChannelId=null;
 function startVoiceChannelJoin(channel){
@@ -20848,20 +20955,45 @@ function renderServerChannelContent(){
       // grille avec le même id et casserait tout (vidéos live comprises).
       // Rien à refaire tant qu'on n'en est pas sorti.
       if(cvsCinemaMode)return;
-      html+=channelVoiceStageHtml();
+      html+=channelVoiceStageHtml(srvChanTypeIcon(activeChannel.type)+' '+activeChannel.name);
       box.innerHTML=html;
       wireServerChannelBack();
       wireChannelVoiceStage();
       renderChannelVoiceStage();
       return;
     }
+    // Écran de "pré-jonction" (façon Discord) : on montre qui est déjà là
+    // avant de rejoindre, plutôt que de se connecter automatiquement au
+    // simple clic sur le salon — startVoiceChannelJoin() n'est déclenché
+    // qu'au clic explicite sur "Rejoindre le salon vocal".
     const isJoining=joiningVoiceChannelId===activeChannel.\$id;
-    html+='<div class="srv-voice-card"><div class="scr-sub" style="margin-bottom:12px">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
-      +'<button type="button" class="btn-main" id="srv-voice-join"'+(isJoining?' disabled':'')+'>'+(isJoining?'⏳ Connexion…':'🎙️ Rejoindre')+'</button></div>';
+    const presence=serverVoicePresenceCache[activeChannel.\$id]||[];
+    html+='<div class="srv-voice-card">'
+      +'<div class="svc-icon">🔊</div>'
+      +'<div class="svc-title">'+esc(activeChannel.name)+'</div>'
+      +'<div class="scr-sub">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
+      +(presence.length?(
+        '<div class="svc-present-label">'+presence.length+' personne'+(presence.length>1?'s':'')+' dans ce salon</div>'
+        +'<div class="svc-present-list">'+presence.map(function(p){
+          const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(p.uid);});
+          const name=p.username||(prof&&(prof.displayName||prof.username))||'Membre';
+          const av=prof&&safeUrl(prof.avatar);
+          return '<div class="svc-present-row" data-svc-present="'+esc(p.uid)+'">'
+            +'<span class="svc-present-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</span>'
+            +'<span class="svc-present-name">'+esc(name)+'</span>'
+            +(p.cameraOn?'<span title="Caméra active">📹</span>':'')
+          +'</div>';
+        }).join('')+'</div>'
+      ):'<div class="svc-present-label">Personne dans ce salon pour l\\'instant</div>')
+      +'<button type="button" class="btn-main svc-join-btn" id="srv-voice-join"'+(isJoining?' disabled':'')+'>'+(isJoining?'⏳ Connexion…':'🎙️ Rejoindre le salon vocal')+'</button>'
+    +'</div>';
     box.innerHTML=html;
     wireServerChannelBack();
     const voiceBtn=\$('srv-voice-join');
     if(voiceBtn)voiceBtn.onclick=function(){startVoiceChannelJoin(activeChannel);};
+    box.querySelectorAll('[data-svc-present]').forEach(function(el){
+      el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-svc-present'));});
+    });
     return;
   }
   if(activeChannel.type==='stage'){
@@ -29368,11 +29500,12 @@ async function handle(request, event) {
       // toujours le même document, donc rejoindre plusieurs fois écrase
       // proprement au lieu d'accumuler des doublons) tout en tenant dans la limite.
       const docId = "vp_" + (await sha256HexShort(channelId + ":" + acc.$id, 32));
-      // cameraOn repart toujours à false ici : rejoindre = une nouvelle
-      // session LiveKit où la caméra n'est jamais activée automatiquement,
-      // même si un ancien document trainait avec cameraOn:true suite à une
-      // déconnexion brutale (crash, batterie) sans passage par cleanupGroupCall().
-      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname, cameraOn: false, speaking: false };
+      // cameraOn/handRaised repartent toujours à false ici : rejoindre = une
+      // nouvelle session LiveKit où ni la caméra ni la main levée ne sont
+      // jamais actives automatiquement, même si un ancien document trainait
+      // avec l'un des deux à true suite à une déconnexion brutale (crash,
+      // batterie) sans passage par cleanupGroupCall().
+      const data = { serverId: serverId, channelId: channelId, uid: String(acc.$id), username: uname, cameraOn: false, speaking: false, handRaised: false };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: fullPerms } });
       } catch (e) {
