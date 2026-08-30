@@ -5370,6 +5370,19 @@ if(\$('in-tag')){
     updateRegPreview();
   });
 }
+// Sur mobile, taper sur un bouton retire le focus du champ de texte juste
+// avant — comportement natif du navigateur, rien à voir avec notre code —
+// ce qui ferme le clavier virtuel. Le remettre au premier plan APRÈS coup
+// (ancienne version de ce correctif) rouvrait bien le clavier mais avec un
+// clignotement fermeture/réouverture visible, le temps de l'aller-retour
+// réseau — pas ce qui était demandé ("je veux qu'il reste affiché"). La
+// vraie solution est d'empêcher le focus de partir DU TOUT : annuler l'action
+// par défaut du "mousedown" (déclenché aussi sur tap mobile, avant le focus
+// change et avant le "click") sur les boutons du composer — le champ ne perd
+// alors jamais le focus, donc le clavier ne se ferme jamais.
+document.addEventListener('mousedown',function(e){
+  if(e.target.closest('.composer .send-btn, .composer .composer-btn'))e.preventDefault();
+},true);
 document.querySelectorAll('[data-pw-toggle]').forEach(function(btn){
   btn.addEventListener('click',function(){
     const input=\$(btn.getAttribute('data-pw-toggle'));if(!input)return;
@@ -6793,6 +6806,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.53.1',category:'fix',date:'30 août 2026',time:'19:10',title:'⌨️ Clavier mobile : le correctif précédent rouvrait le clavier au lieu de ne jamais le fermer',
+    body:'Le correctif du clavier qui se refermait à l\\'envoi d\\'un message (v4.53.0) le remettait au premier plan APRÈS l\\'envoi — ça rouvrait bien le clavier, mais avec un clignotement fermeture/réouverture visible le temps de l\\'aller-retour réseau, pas ce qui était demandé. Cette fois le focus ne part plus DU TOUT : le tap sur ➤ Envoyer (ou tout autre bouton du champ de saisie) n\\'enlève plus jamais le focus du champ, donc le clavier reste simplement affiché du début à la fin, sans à-coup.'},
   {version:'4.53.0',category:'feature',date:'30 août 2026',time:'18:45',title:'📱 Connexion par QR code, mot de passe visible, clavier mobile qui ne se ferme plus',
     body:'Nouveau sur l\\'écran de connexion : "Connexion instantanée par QR code" — scanne-le avec ton téléphone déjà connecté à X1 pour te connecter à l\\'ordinateur (ou tout autre appareil) sans retaper ton mot de passe, avec une confirmation à valider sur ton téléphone avant que la connexion ait vraiment lieu. Le code se renouvelle tout seul toutes les 60 secondes. Ajouté aussi : un bouton 👁 pour afficher/masquer le mot de passe (connexion et inscription), et l\\'inscription gagne une section "Identifiants" mieux séparée du profil. Corrigé, suite à un retour : sur mobile, envoyer un message (DM, salon de serveur ou Chatroulette) fermait le clavier à chaque fois — il reste maintenant ouvert pour enchaîner sans avoir à retoucher le champ.'},
   {version:'4.52.0',category:'fix',date:'30 août 2026',time:'17:30',title:'🎲 Chatroulette en vidéo plein écran + doublons corrigés en salon vocal',
