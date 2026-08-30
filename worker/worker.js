@@ -2261,7 +2261,12 @@ html.xultra-restoring #stage{visibility:hidden}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
 .chat-active.chat-dragover:after{content:'📎 Dépose le fichier ici';position:absolute;inset:8px;border:2px dashed #7c3aed;border-radius:14px;background:rgba(124,58,237,.12);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#c4b5fd;pointer-events:none;z-index:50}
 .chat-top{min-height:52px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
-.chat-top .av{width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+.chat-top .av{position:relative;width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
+@keyframes dmPresencePop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+@keyframes dmPresenceRing{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.55)}50%{box-shadow:0 0 0 4px rgba(255,107,107,0)}}
+.dm-presence-bubble{position:absolute;right:-6px;bottom:-6px;width:20px;height:20px;border-radius:50%;background:#fff8f0;border:2px solid #ff6b6b;overflow:hidden;animation:dmPresencePop .25s ease,dmPresenceRing 1.8s ease-in-out infinite;z-index:2}
+.dm-presence-bubble.hidden{display:none}
+.dm-presence-bubble svg{width:100%;height:100%;display:block}
 .chat-top .t{font-weight:800;font-size:.9rem}
 .ch-e2e{font-size:.66rem;color:#4ade80;font-weight:700;margin-top:1px}
 .ch-sub-row{display:flex;align-items:center;gap:8px;margin-top:1px}
@@ -2859,6 +2864,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-pane{display:flex;flex-direction:column;gap:14px}
 .pe-pane.hidden{display:none}
 .pe-field{display:flex;flex-direction:column;gap:6px;font-size:.76rem;font-weight:700;color:var(--muted)}
+.pe-field.x1m-field-dimmed{opacity:.4;pointer-events:none}
 .pe-field .field-input{width:100%}
 /* Infobulle légère façon X1 pour les boutons icône-seule (juste un
    emoji, sans texte visible) — le title= natif du navigateur reste en
@@ -3771,7 +3777,7 @@ a.bug-att-item{display:block}
     <div class="chat-active hidden" id="chat-active">
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
-        <div class="av" id="ch-av">?</div>
+        <div class="av" id="ch-av">?<span class="dm-presence-bubble hidden" id="dm-presence-bubble" title=""></span></div>
         <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="dm-streak-badge hidden" id="ch-streak"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
         <button type="button" class="ub-btn hidden" id="btn-dm-personalize" title="Personnaliser cette conversation">🎨</button>
@@ -4039,7 +4045,7 @@ a.bug-att-item{display:block}
         <div class="pe-tabs" id="pe-tabs">
           <button type="button" class="pe-tab on" data-tab="general">Général</button>
           <button type="button" class="pe-tab" data-tab="style">Style</button>
-          <button type="button" class="pe-tab" data-tab="bitmoji">xMoji</button>
+          <button type="button" class="pe-tab" data-tab="x1moji">X1Moji</button>
           <button type="button" class="pe-tab" data-tab="social">Réseaux</button>
         </div>
         <div class="pe-pane" data-pane="general">
@@ -4100,22 +4106,32 @@ a.bug-att-item{display:block}
           <div class="pe-field"><span>Statut de présence</span><div class="pe-presence-row" id="pe-presence-row"></div></div>
           <button type="button" class="btn-main" id="pe-randomize-style" style="margin-top:4px">🎲 Style aléatoire</button>
         </div>
-        <div class="pe-pane hidden" data-pane="bitmoji">
-          <div class="pe-hint">🎭 Un avatar 2D xMoji, 100% personnalisable — jamais une vraie photo, dessiné à partir de tes choix.</div>
+        <div class="pe-pane hidden" data-pane="x1moji">
+          <div class="pe-hint">🎭 X1Moji — ton avatar 2D cartoon, 100% personnalisable, jamais une vraie photo, dessiné à partir de tes choix.</div>
           <div id="bm-preview" style="width:140px;height:140px;margin:0 auto 10px;border-radius:50%;overflow:hidden;background:#111;border:2px solid rgba(167,139,250,.3)"></div>
-          <label class="pe-field"><span>Utiliser mon xMoji comme photo de profil</span><div class="set-switch" id="bm-use-toggle"></div></label>
+          <label class="pe-field"><span>Utiliser mon X1Moji comme photo de profil</span><div class="set-switch" id="bm-use-toggle"></div></label>
           <div class="pe-field"><span>Teint</span><div class="pe-swatches" id="bm-skin-swatches"></div></div>
-          <div class="pe-field"><span>Forme du visage</span><div class="seg-group" id="bm-face-seg"></div></div>
-          <div class="pe-field"><span>Coiffure</span><div class="seg-group" id="bm-hair-seg"></div></div>
-          <div class="pe-field"><span>Couleur des cheveux</span><div class="pe-swatches" id="bm-haircolor-swatches"></div></div>
           <div class="pe-field"><span>Yeux</span><div class="seg-group" id="bm-eyes-seg"></div></div>
           <div class="pe-field"><span>Sourcils</span><div class="seg-group" id="bm-brows-seg"></div></div>
           <div class="pe-field"><span>Bouche</span><div class="seg-group" id="bm-mouth-seg"></div></div>
-          <div class="pe-field"><span>Tenue</span><div class="seg-group" id="bm-outfit-seg"></div></div>
-          <div class="pe-field"><span>Couleur de la tenue</span><div class="pe-swatches" id="bm-outfitcolor-swatches"></div></div>
-          <div class="pe-field"><span>Accessoire</span><div class="seg-group" id="bm-accessory-seg"></div></div>
-          <div class="pe-field"><span>Fond</span><div class="pe-swatches" id="bm-bg-swatches"></div></div>
-          <button type="button" class="btn-main" id="bm-randomize" style="margin-top:4px">🎲 xMoji aléatoire</button>
+          <div class="pe-field"><span>Pilosité faciale</span><div class="seg-group" id="bm-facialhair-seg"></div></div>
+          <div class="pe-field"><span>Coiffure</span><div class="seg-group" id="bm-hair-seg"></div></div>
+          <div class="pe-field"><span>Couleur des cheveux</span><div class="pe-swatches" id="bm-haircolor-swatches"></div></div>
+          <div class="pe-field" id="x1m-top-field"><span>Haut</span><div class="seg-group" id="bm-top-seg"></div></div>
+          <div class="pe-field" id="x1m-topcolor-field"><span>Couleur du haut</span><div class="pe-swatches" id="bm-topcolor-swatches"></div></div>
+          <div class="pe-field" id="x1m-bottoms-field"><span>Bas</span><div class="seg-group" id="bm-bottoms-seg"></div></div>
+          <div class="pe-field" id="x1m-bottomscolor-field"><span>Couleur du bas</span><div class="pe-swatches" id="bm-bottomscolor-swatches"></div></div>
+          <div class="pe-field"><span>Robe / combo</span><div class="seg-group" id="bm-outfit-seg"></div><div class="pe-hint" style="margin-top:4px">Masque le haut et le bas tant qu'une robe ou une salopette est choisie.</div></div>
+          <div class="pe-field"><span>Couleur de la robe/combo</span><div class="pe-swatches" id="bm-outfitcolor-swatches"></div></div>
+          <div class="pe-field"><span>Manteau</span><div class="seg-group" id="bm-outerwear-seg"></div></div>
+          <div class="pe-field"><span>Couleur du manteau</span><div class="pe-swatches" id="bm-outerwearcolor-swatches"></div></div>
+          <div class="pe-field"><span>Chaussures</span><div class="seg-group" id="bm-shoes-seg"></div></div>
+          <div class="pe-field"><span>Couleur des chaussures</span><div class="pe-swatches" id="bm-shoescolor-swatches"></div></div>
+          <div class="pe-field"><span>Chapeau</span><div class="seg-group" id="bm-hat-seg"></div></div>
+          <div class="pe-field"><span>Couleur du chapeau</span><div class="pe-swatches" id="bm-hatcolor-swatches"></div></div>
+          <div class="pe-field"><span>Lunettes</span><div class="seg-group" id="bm-glasses-seg"></div></div>
+          <div class="pe-field"><span>Extras</span><div class="seg-group" id="bm-extras-seg"></div></div>
+          <button type="button" class="btn-main" id="bm-randomize" style="margin-top:4px">🎲 X1Moji aléatoire</button>
         </div>
         <div class="pe-pane hidden" data-pane="social">
           <label class="pe-field"><span>📸 Instagram</span><input type="text" id="pe-social-instagram" class="field-input" placeholder="pseudo ou lien complet"/></label>
@@ -6419,6 +6435,7 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
 let view='dms';
 function showView(v){
   view=v;
+  dmViewingTick();
   // Bug remonté ("configurer les paramètres du serveur puis aller en DM
   // affichait la conversation sur la moitié inférieure de l'écran") : #app
   // se dimensionne via 100dvh, et les nombreux champs texte des paramètres
@@ -6530,6 +6547,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.50.0',category:'feature',date:'30 août 2026',time:'06:50',title:'🎭 X1Moji — le créateur d\\'avatar 2D fait peau neuve',
+    body:'L\\'onglet avatar 2D de l\\'éditeur de profil devient X1Moji : garde-robe complète (haut, bas, robe/salopette, manteau, chaussures, chapeau, chacun avec sa propre couleur), pilosité faciale, et un avatar dessiné en pied plutôt qu\\'en simple buste — recadré automatiquement sur le visage partout où il s\\'affiche en petit (barre du bas, cartes de profil, carte des amis, sticker Ephem). Choisir une robe ou une salopette masque proprement le haut et le bas, comme prévu. Les avatars déjà composés avant ce changement sont repris automatiquement (teint, coiffure, yeux, bouche) la prochaine fois que l\\'éditeur de profil s\\'ouvre. Nouveau : quand la personne avec qui tu discutes a CETTE conversation ouverte en ce moment (comme sur Snap), son X1Moji apparaît en petite bulle animée sur son avatar dans l\\'en-tête — disparaît dès qu\\'elle quitte la conversation.'},
   {version:'4.49.0',category:'feature',date:'30 août 2026',time:'00:30',title:'🖼️ Grille vidéo dynamique, agrandissement au clic et plein écran',
     body:'Les caméras et partages d\\'écran (DM, groupe DM, salon vocal de serveur) s\\'organisent maintenant en grille qui s\\'ajuste automatiquement selon le nombre de flux actifs, toutes de la même taille par défaut. Cliquer sur une caméra ou un partage l\\'agrandit au premier plan pendant que les autres restent visibles en dessous, en plus petit — reclique pour revenir à la taille normale. Nouveau bouton ⛶ pour passer en plein écran (caméras et partages compris) dans les trois contextes. Corrigé au passage : dans un salon vocal de serveur, ton propre compte pouvait apparaître deux fois dans la grille si un autre appareil connecté au même compte partageait la même session vocale.'},
   {version:'4.48.0',category:'design',date:'30 août 2026',time:'00:00',title:'📞 Widgets d\\'appel repensés : plus jamais par-dessus le chat',
@@ -10590,6 +10609,7 @@ function subscribeDmDeleteWatcher(){
           updateTypingIndicator();
           if(readChanged)renderMessages();
           if(wallpaperChanged)applyDmPersonalizationStyle(p.\$id);
+          updateDmPresenceBubble();
         }
         if(contentChanged){
           dmsCache.sort(function(a,b){return new Date(b.\$updatedAt||b.\$createdAt)-new Date(a.\$updatedAt||a.\$createdAt);});
@@ -10707,68 +10727,187 @@ const PRESENCE_DEFS={
   dnd:{dot:'#ef4444',label:'Ne pas déranger'},
   invisible:{dot:'#6b7280',label:'Invisible'}
 };
-/* ===== Bitmoji X1 — avatar 2D façon Bitmoji, entièrement dessiné en SVG,
-   sans aucun asset externe (inventé de zéro, pas une vraie 3D — les Bitmoji
-   Snapchat eux-mêmes sont des illustrations plates, jamais du vrai 3D). ===== */
-const BITMOJI_SKIN_TONES=['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524','#5c3317'];
-const BITMOJI_HAIR_COLORS=['#1c1410','#3a2317','#8a5a2b','#d4a017','#c0392b','#7c3aed','#3498db','#e0e0e0'];
-const BITMOJI_OUTFIT_COLORS=['#7c3aed','#ef4444','#22c55e','#3b82f6','#f97316','#111827','#ec4899','#0891b2'];
-const BITMOJI_BG_COLORS=['#2a1548','#0b3d2e','#3d0b0b','#0b1e3d','#3d2b0b','#1a1a2e'];
-const BITMOJI_FACE_SHAPES=[{key:'round',label:'Ronde'},{key:'oval',label:'Ovale'},{key:'square',label:'Carrée'}];
-const BITMOJI_HAIR_STYLES=[{key:'bald',label:'Chauve'},{key:'short',label:'Court'},{key:'long',label:'Long'},{key:'curly',label:'Bouclé'},{key:'ponytail',label:'Queue de cheval'},{key:'mohawk',label:'Crête'}];
-const BITMOJI_EYE_STYLES=[{key:'normal',label:'Normal'},{key:'happy',label:'Rieur'},{key:'wide',label:'Grand ouvert'},{key:'wink',label:'Clin d\\'œil'}];
-const BITMOJI_BROW_STYLES=[{key:'straight',label:'Droits'},{key:'arched',label:'Arqués'},{key:'thick',label:'Épais'}];
-const BITMOJI_MOUTH_STYLES=[{key:'smile',label:'Sourire'},{key:'grin',label:'Grand sourire'},{key:'neutral',label:'Neutre'},{key:'open',label:'Surpris'}];
-const BITMOJI_OUTFIT_STYLES=[{key:'tshirt',label:'T-shirt'},{key:'hoodie',label:'Sweat à capuche'},{key:'collar',label:'Chemise'},{key:'jacket',label:'Veste'}];
-const BITMOJI_ACCESSORIES=[{key:'none',label:'Aucun'},{key:'glasses',label:'Lunettes'},{key:'sunglasses',label:'Lunettes de soleil'},{key:'headphones',label:'Casque audio'},{key:'cap',label:'Casquette'},{key:'hat',label:'Chapeau'}];
-function defaultBitmojiConfig(){
-  return {skinTone:BITMOJI_SKIN_TONES[0],faceShape:'round',hair:'short',hairColor:BITMOJI_HAIR_COLORS[0],eyes:'normal',brows:'straight',mouth:'smile',outfit:'tshirt',outfitColor:BITMOJI_OUTFIT_COLORS[0],accessory:'none',bg:BITMOJI_BG_COLORS[0]};
+/* ===== X1Moji — créateur d'avatar 2D cartoon original, entièrement dessiné
+   en SVG, sans aucun asset externe (dessiné de zéro pour X1, jamais une
+   photo, jamais un asset tiers). Marque : X1Moji. Porté depuis le proto
+   fourni (03_proto/index.html du pack X1Moji) — mêmes calques, mêmes ids
+   de pièces, même viewBox 200×360, juste raccordé à ce fichier. ===== */
+const X1MOJI_SKIN_TONES=['#F3D1B0','#E0AC69','#C68642','#8D5524','#5C3317','#3B2214'];
+const X1MOJI_HAIR_COLORS=['#1A1A1A','#2B1B12','#6B3A2A','#E0B04A','#C4491D','#F48FB1','#4D96FF','#EDE6DA'];
+const X1MOJI_DYE_COLORS=['#FF6B6B','#FFD93D','#6BCB77','#4D96FF','#9B59B6','#1A1A2E','#FFFFFF','#F4A261','#E76F51','#2A9D8F','#264653','#E9C46A','#BDB2FF','#FF8FAB','#111111'];
+const X1MOJI_BODY_TYPES=[{key:'adult-regular',label:'Classique'},{key:'adult-tall',label:'Grand'},{key:'adult-plus',label:'Pulpeux'}];
+const X1MOJI_EYE_STYLES=[{key:'round',label:'Ronds'},{key:'wide',label:'Grands'},{key:'happy',label:'Rieurs'}];
+const X1MOJI_BROW_STYLES=[{key:'soft',label:'Doux'},{key:'thick',label:'Épais'},{key:'arch',label:'Archés'}];
+const X1MOJI_MOUTH_STYLES=[{key:'smile',label:'Sourire'},{key:'grin',label:'Grand sourire'},{key:'neutral',label:'Neutre'},{key:'open',label:'Surprise'}];
+const X1MOJI_FACIAL_HAIR_STYLES=[{key:'none',label:'Aucune'},{key:'stubble',label:'Barbiche'},{key:'mustache',label:'Moustache'},{key:'beard',label:'Barbe'}];
+const X1MOJI_HAIR_STYLES=[{key:'short',label:'Courts'},{key:'fade',label:'Fade'},{key:'wavy-long',label:'Longs ondulés'},{key:'bob',label:'Carré'},{key:'bun',label:'Chignon'},{key:'afro',label:'Afro'},{key:'braids',label:'Tresses'},{key:'ponytail',label:'Queue'},{key:'buzz',label:'Rasés'},{key:'hijab',label:'Hijab'}];
+const X1MOJI_TOP_STYLES=[{key:'tee',label:'T-shirt'},{key:'hoodie',label:'Hoodie'},{key:'sweater',label:'Pull'},{key:'shirt',label:'Chemise'},{key:'tank',label:'Débardeur'}];
+const X1MOJI_BOTTOMS_STYLES=[{key:'jeans',label:'Jeans'},{key:'skinny',label:'Skinny'},{key:'shorts',label:'Short'},{key:'skirt',label:'Jupe'},{key:'joggers',label:'Joggers'}];
+const X1MOJI_OUTFIT_STYLES=[{key:'none',label:'Aucun'},{key:'dress',label:'Robe'},{key:'overalls',label:'Salopette'}];
+const X1MOJI_OUTERWEAR_STYLES=[{key:'none',label:'Aucun'},{key:'denim',label:'Veste jean'},{key:'bomber',label:'Bomber'},{key:'blazer',label:'Blazer'}];
+const X1MOJI_SHOES_STYLES=[{key:'sneakers',label:'Baskets'},{key:'boots',label:'Bottes'},{key:'sandals',label:'Sandales'}];
+const X1MOJI_HAT_STYLES=[{key:'none',label:'Aucun'},{key:'cap',label:'Casquette'},{key:'beanie',label:'Bonnet'}];
+const X1MOJI_GLASSES_STYLES=[{key:'none',label:'Aucune'},{key:'round',label:'Rondes'},{key:'sun',label:'Solaires'}];
+const X1MOJI_EXTRAS_STYLES=[{key:'none',label:'Aucun'},{key:'hoops',label:'Créoles'},{key:'bag',label:'Sac'}];
+function defaultX1mojiConfig(){
+  return {
+    version:1,skin:X1MOJI_SKIN_TONES[1],body:'adult-regular',
+    eyes:'round',brows:'soft',nose:'short',mouth:'smile',facialHair:'none',
+    hair:'wavy-long',hairColor:X1MOJI_HAIR_COLORS[1],
+    top:'hoodie',topColor:'#FF6B6B',
+    bottoms:'jeans',bottomsColor:'#3D5A80',
+    outfit:'none',outfitColor:'#F4A261',
+    outerwear:'none',outerwearColor:'#1D3557',
+    shoes:'sneakers',shoesColor:'#FFFFFF',
+    hat:'none',hatColor:'#4D96FF',
+    glasses:'none',extras:'none'
+  };
 }
-function renderBitmojiSvg(cfgIn){
-  const cfg=Object.assign(defaultBitmojiConfig(),cfgIn||{});
-  const skin=cfg.skinTone,hairColor=cfg.hairColor,outfitColor=cfg.outfitColor,bg=cfg.bg;
-  const faceR=cfg.faceShape==='oval'?{rx:50,ry:63}:cfg.faceShape==='square'?{rx:53,ry:56}:{rx:56,ry:58};
-  let svg='<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">';
-  svg+='<rect width="200" height="200" fill="'+bg+'"/>';
-  // Corps / tenue
-  svg+='<path d="M35,200 Q40,150 100,146 Q160,150 165,200 Z" fill="'+outfitColor+'"/>';
-  if(cfg.outfit==='hoodie')svg+='<path d="M60,150 Q100,130 140,150 L140,168 Q100,150 60,168 Z" fill="'+outfitColor+'" opacity=".75"/>';
-  if(cfg.outfit==='collar')svg+='<path d="M85,147 L100,168 L115,147" fill="none" stroke="#fff" stroke-width="6" stroke-linejoin="round"/>';
-  if(cfg.outfit==='jacket'){svg+='<rect x="70" y="150" width="8" height="50" fill="#fff" opacity=".5"/><rect x="122" y="150" width="8" height="50" fill="#fff" opacity=".5"/>';}
-  // Cou
-  svg+='<rect x="85" y="132" width="30" height="26" fill="'+skin+'"/>';
-  // Oreilles
-  svg+='<circle cx="44" cy="97" r="9" fill="'+skin+'"/><circle cx="156" cy="97" r="9" fill="'+skin+'"/>';
-  // Tête
-  svg+='<ellipse cx="100" cy="93" rx="'+faceR.rx+'" ry="'+faceR.ry+'" fill="'+skin+'"/>';
-  // Cheveux (arrière, sous certains accessoires)
-  if(cfg.hair==='short')svg+='<path d="M42,88 Q46,32 100,30 Q154,32 158,88 Q150,55 100,52 Q50,55 42,88 Z" fill="'+hairColor+'"/>';
-  else if(cfg.hair==='long')svg+='<path d="M40,150 Q34,40 100,32 Q166,40 160,150 L150,150 Q152,58 100,50 Q48,58 50,150 Z" fill="'+hairColor+'"/>';
-  else if(cfg.hair==='curly'){for(let i=0;i<10;i++){const a=(i/9)*Math.PI-Math.PI;svg+='<circle cx="'+(100+Math.cos(a)*58).toFixed(1)+'" cy="'+(70+Math.sin(a)*40).toFixed(1)+'" r="14" fill="'+hairColor+'"/>';}}
-  else if(cfg.hair==='ponytail'){svg+='<path d="M42,88 Q46,32 100,30 Q154,32 158,88 Q150,55 100,52 Q50,55 42,88 Z" fill="'+hairColor+'"/><path d="M158,60 Q182,80 168,120 Q160,100 152,68 Z" fill="'+hairColor+'"/>';}
-  else if(cfg.hair==='mohawk'){svg+='<path d="M88,40 Q100,10 112,40 L108,60 Q100,50 92,60 Z" fill="'+hairColor+'"/>';}
-  // Sourcils
-  const browY=cfg.eyes==='wide'?68:72;
-  if(cfg.brows==='straight')svg+='<rect x="70" y="'+browY+'" width="20" height="5" rx="2.5" fill="'+hairColor+'"/><rect x="110" y="'+browY+'" width="20" height="5" rx="2.5" fill="'+hairColor+'"/>';
-  else if(cfg.brows==='arched')svg+='<path d="M70,'+(browY+4)+' Q80,'+(browY-4)+' 90,'+(browY+2)+'" stroke="'+hairColor+'" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M110,'+(browY+2)+' Q120,'+(browY-4)+' 130,'+(browY+4)+'" stroke="'+hairColor+'" stroke-width="5" fill="none" stroke-linecap="round"/>';
-  else svg+='<rect x="68" y="'+(browY-1)+'" width="22" height="8" rx="3" fill="'+hairColor+'"/><rect x="110" y="'+(browY-1)+'" width="22" height="8" rx="3" fill="'+hairColor+'"/>';
-  // Yeux
-  if(cfg.eyes==='happy'){svg+='<path d="M74,90 Q80,82 86,90" stroke="#1c1410" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M114,90 Q120,82 126,90" stroke="#1c1410" stroke-width="4" fill="none" stroke-linecap="round"/>';}
-  else if(cfg.eyes==='wink'){svg+='<ellipse cx="80" cy="88" rx="6" ry="8" fill="#1c1410"/><path d="M114,88 Q120,84 126,88" stroke="#1c1410" stroke-width="4" fill="none" stroke-linecap="round"/>';}
-  else{const eyeR=cfg.eyes==='wide'?9:6.5;svg+='<ellipse cx="80" cy="88" rx="'+eyeR+'" ry="'+(eyeR+2)+'" fill="#fff"/><circle cx="80" cy="89" r="'+(eyeR-3)+'" fill="#1c1410"/><ellipse cx="120" cy="88" rx="'+eyeR+'" ry="'+(eyeR+2)+'" fill="#fff"/><circle cx="120" cy="89" r="'+(eyeR-3)+'" fill="#1c1410"/>';}
-  // Bouche
-  if(cfg.mouth==='smile')svg+='<path d="M82,112 Q100,124 118,112" stroke="#7a3b2e" stroke-width="4" fill="none" stroke-linecap="round"/>';
-  else if(cfg.mouth==='grin')svg+='<path d="M78,110 Q100,130 122,110 Q100,120 78,110 Z" fill="#7a3b2e"/><path d="M82,113 Q100,120 118,113" stroke="#fff" stroke-width="3" fill="none"/>';
-  else if(cfg.mouth==='open')svg+='<ellipse cx="100" cy="116" rx="10" ry="13" fill="#7a3b2e"/>';
-  else svg+='<rect x="86" y="113" width="28" height="4" rx="2" fill="#7a3b2e"/>';
-  // Accessoires
-  if(cfg.accessory==='glasses')svg+='<circle cx="80" cy="88" r="16" fill="none" stroke="#1c1410" stroke-width="3.5"/><circle cx="120" cy="88" r="16" fill="none" stroke="#1c1410" stroke-width="3.5"/><rect x="96" y="86" width="8" height="3.5" fill="#1c1410"/>';
-  else if(cfg.accessory==='sunglasses')svg+='<rect x="64" y="78" width="34" height="20" rx="8" fill="#111827"/><rect x="102" y="78" width="34" height="20" rx="8" fill="#111827"/><rect x="98" y="85" width="4" height="4" fill="#111827"/>';
-  else if(cfg.accessory==='headphones')svg+='<path d="M44,90 Q44,30 100,28 Q156,30 156,90" fill="none" stroke="#111827" stroke-width="8" stroke-linecap="round"/><rect x="34" y="82" width="18" height="30" rx="9" fill="#111827"/><rect x="148" y="82" width="18" height="30" rx="9" fill="#111827"/>';
-  else if(cfg.accessory==='cap'){svg+='<path d="M42,72 Q46,26 100,24 Q154,26 158,72 Q100,54 42,72 Z" fill="'+outfitColor+'"/><path d="M100,54 Q140,52 158,72 L100,66 Z" fill="'+outfitColor+'" opacity=".8"/>';}
-  else if(cfg.accessory==='hat'){svg+='<path d="M55,58 Q100,10 145,58 Z" fill="'+outfitColor+'"/><ellipse cx="100" cy="58" rx="60" ry="10" fill="'+outfitColor+'"/>';}
-  svg+='</svg>';
-  return svg;
+// Reprend un ancien avatar "Bitmoji" (nom de code interne avant le rebrand
+// X1Moji — jamais montré nulle part côté produit) au premier affichage
+// après la mise à jour, plutôt que de perdre le travail des personnes qui
+// en avaient déjà composé un. Correspondance best-effort : les catégories
+// ne se recoupent pas toutes exactement entre l'ancien et le nouveau système
+// (garde-robe bien plus riche côté X1Moji), donc seuls les champs qui ont un
+// équivalent clair sont repris — le reste part sur les valeurs par défaut.
+function migrateX1mojiFromLegacy(oldCfg){
+  if(!oldCfg||typeof oldCfg!=='object')return null;
+  const hairMap={bald:'buzz',short:'short',long:'wavy-long',curly:'afro',ponytail:'ponytail',mohawk:'short'};
+  const eyesMap={normal:'round',wide:'wide',happy:'happy',wink:'happy'};
+  const next=defaultX1mojiConfig();
+  if(oldCfg.skinTone)next.skin=oldCfg.skinTone;
+  if(oldCfg.hairColor)next.hairColor=oldCfg.hairColor;
+  if(oldCfg.hair&&hairMap[oldCfg.hair])next.hair=hairMap[oldCfg.hair];
+  if(oldCfg.eyes&&eyesMap[oldCfg.eyes])next.eyes=eyesMap[oldCfg.eyes];
+  if(oldCfg.mouth)next.mouth=oldCfg.mouth;
+  if(oldCfg.outfitColor)next.topColor=oldCfg.outfitColor;
+  if(oldCfg.outfit==='collar')next.top='shirt';
+  else if(oldCfg.outfit==='jacket'){next.outerwear='bomber';next.outerwearColor=oldCfg.outfitColor;}
+  else if(oldCfg.outfit==='hoodie')next.top='hoodie';
+  else next.top='tee';
+  if(oldCfg.accessory==='glasses')next.glasses='round';
+  else if(oldCfg.accessory==='sunglasses')next.glasses='sun';
+  else if(oldCfg.accessory==='cap')next.hat='cap';
+  else if(oldCfg.accessory==='hat')next.hat='beanie';
+  return next;
+}
+// Point d'entrée unique pour lire la config X1Moji d'un profil (avec reprise
+// silencieuse de l'ancien format si besoin) — à utiliser PARTOUT où on
+// affiche l'avatar de quelqu'un, jamais lire extra.x1moji directement.
+function resolveX1mojiConfig(extra){
+  if(!extra)return null;
+  if(extra.x1moji)return extra.x1moji;
+  if(extra.bitmoji)return migrateX1mojiFromLegacy(extra.bitmoji);
+  return null;
+}
+function useX1mojiConfig(extra){
+  const cfg=resolveX1mojiConfig(extra);
+  return {use:!!(extra&&(extra.useX1moji||extra.useBitmoji))&&!!cfg,cfg:cfg};
+}
+function renderX1mojiSvg(cfgIn,opts){
+  const cfg=Object.assign(defaultX1mojiConfig(),cfgIn||{});
+  opts=opts||{};
+  const s=cfg.skin,hc=cfg.hairColor;
+  const one=cfg.outfit&&cfg.outfit!=='none';
+  const eye={
+    round:'<circle cx="82" cy="78" r="7" fill="#1A1A2E"/><circle cx="118" cy="78" r="7" fill="#1A1A2E"/><circle cx="84" cy="76" r="2.2" fill="#fff"/><circle cx="120" cy="76" r="2.2" fill="#fff"/>',
+    wide:'<ellipse cx="82" cy="78" rx="8" ry="7" fill="#1A1A2E"/><ellipse cx="118" cy="78" rx="8" ry="7" fill="#1A1A2E"/><circle cx="85" cy="76" r="2.4" fill="#fff"/><circle cx="121" cy="76" r="2.4" fill="#fff"/>',
+    happy:'<path d="M74 80 q8 -10 16 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/><path d="M110 80 q8 -10 16 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>'
+  }[cfg.eyes];
+  const mouth={
+    smile:'<path d="M88 102 q12 12 24 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>',
+    grin:'<path d="M86 98 q14 16 28 0 v4 q-14 12 -28 0z" fill="#c44545" stroke="#1A1A2E" stroke-width="2"/>',
+    neutral:'<path d="M90 104 h20" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>',
+    open:'<ellipse cx="100" cy="106" rx="7" ry="8" fill="#3b1020" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.mouth];
+  const brows='<path d="M72 64 q10 -8 20 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/><path d="M108 64 q10 -8 20 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>';
+  const facial={
+    none:'',
+    stubble:'<path d="M78 112 q22 18 44 0" fill="none" stroke="#1A1A2E" stroke-width="4" opacity=".28"/>',
+    mustache:'<path d="M90 100 q10 8 20 0" fill="#1A1A2E"/>',
+    beard:'<path d="M78 108 q22 28 44 0 q-4 22 -22 26 q-18 -4 -22 -26z" fill="#1A1A2E"/>'
+  }[cfg.facialHair];
+  const hairBack={
+    'wavy-long':'<ellipse cx="100" cy="78" rx="52" ry="58" fill="'+hc+'"/><rect x="52" y="78" width="96" height="90" rx="20" fill="'+hc+'"/>',
+    bob:'<ellipse cx="100" cy="82" rx="50" ry="48" fill="'+hc+'"/>',
+    afro:'<circle cx="100" cy="70" r="62" fill="'+hc+'"/>',
+    braids:'<ellipse cx="100" cy="70" rx="46" ry="40" fill="'+hc+'"/><rect x="62" y="100" width="14" height="70" rx="7" fill="'+hc+'"/><rect x="124" y="100" width="14" height="70" rx="7" fill="'+hc+'"/>',
+    ponytail:'<ellipse cx="100" cy="68" rx="44" ry="38" fill="'+hc+'"/><ellipse cx="148" cy="120" rx="16" ry="36" fill="'+hc+'"/>',
+    bun:'<ellipse cx="100" cy="72" rx="44" ry="36" fill="'+hc+'"/><circle cx="100" cy="32" r="18" fill="'+hc+'"/>',
+    hijab:'<path d="M48 70 q52 -70 104 0 v90 q-52 30 -104 0z" fill="'+hc+'"/>',
+    short:'',fade:'',buzz:''
+  }[cfg.hair]||'';
+  const hairFront={
+    short:'<path d="M58 70 q42 -48 84 0 q-8 18 -42 8 q-34 8 -42 -8z" fill="'+hc+'"/>',
+    fade:'<path d="M60 68 q40 -40 80 0 q-6 14 -40 6 q-34 6 -40 -6z" fill="'+hc+'"/>',
+    'wavy-long':'<path d="M55 62 q45 -52 90 0 q-10 22 -45 10 q-36 10 -45 -10z" fill="'+hc+'"/>',
+    bob:'<path d="M56 64 q44 -46 88 0 q-8 16 -44 8 q-36 8 -44 -8z" fill="'+hc+'"/>',
+    bun:'<path d="M60 66 q40 -36 80 0 q-10 14 -40 6 q-30 6 -40 -6z" fill="'+hc+'"/>',
+    afro:'<path d="M70 58 q30 -16 60 0" fill="none"/>',
+    braids:'<path d="M58 64 q42 -36 84 0 q-12 12 -42 6 q-30 6 -42 -6z" fill="'+hc+'"/>',
+    ponytail:'<path d="M58 64 q42 -40 84 0 q-10 14 -42 6 q-32 6 -42 -6z" fill="'+hc+'"/>',
+    buzz:'<path d="M62 70 q38 -18 76 0" fill="none" stroke="'+hc+'" stroke-width="6"/>',
+    hijab:''
+  }[cfg.hair]||'';
+  const top=one?'':{
+    tee:'<path d="M60 168 h80 v70 h-80z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M60 168 l-18 28 v18 l18 -10z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M140 168 l18 28 v18 l-18 -10z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    hoodie:'<path d="M58 166 h84 v78 h-84z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M58 166 l-20 32 v22 l20 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M142 166 l20 32 v22 l-20 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><circle cx="100" cy="200" r="10" fill="none" stroke="#1A1A2E" stroke-width="2"/>',
+    sweater:'<path d="M56 166 h88 v80 h-88z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M56 166 l-18 26 v30 h18z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M144 166 l18 26 v30 h-18z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    shirt:'<path d="M60 168 h80 v72 h-80z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M96 168 v72" stroke="#1A1A2E" stroke-width="2"/><circle cx="104" cy="186" r="2" fill="#1A1A2E"/><circle cx="104" cy="204" r="2" fill="#1A1A2E"/>',
+    tank:'<path d="M70 170 h60 v68 h-60z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.top];
+  const bottoms=one?'':{
+    jeans:'<path d="M68 236 h64 v70 h-28 v-40 h-8 v40 h-28z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    skinny:'<path d="M72 236 h56 v74 h-24 v-48 h-8 v48 h-24z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    shorts:'<path d="M68 236 h64 v28 h-64z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    skirt:'<path d="M68 236 l-8 40 h80 l-8 -40z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    joggers:'<path d="M68 236 h64 v68 h-28 v-36 h-8 v36 h-28z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.bottoms];
+  const outfit={
+    none:'',
+    dress:'<path d="M70 168 h60 l18 120 h-96z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M70 168 l-16 26 v16 l16 -8z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M130 168 l16 26 v16 l-16 -8z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    overalls:'<path d="M74 168 h16 v28 h20 v-28 h16 v40 h-52z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M68 208 h64 v98 h-28 v-50 h-8 v50 h-28z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.outfit];
+  const outer={
+    none:'',
+    denim:'<path d="M52 166 h28 v86 h-20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M120 166 h28 v86 h-8z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    bomber:'<path d="M50 164 h32 v90 h-24z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M118 164 h32 v90 h-8z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    blazer:'<path d="M52 166 l24 10 v78 h-20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M148 166 l-24 10 v78 h20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.outerwear];
+  const shoes={
+    sneakers:'<rect x="62" y="318" width="30" height="14" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="318" width="30" height="14" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    boots:'<rect x="62" y="300" width="30" height="32" rx="4" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="300" width="30" height="32" rx="4" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    sandals:'<rect x="62" y="324" width="30" height="8" rx="3" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="324" width="30" height="8" rx="3" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.shoes];
+  const hat={
+    none:'',
+    cap:'<path d="M60 52 q40 -28 80 0 l8 8 h-50 q-8 10 -20 0z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    beanie:'<path d="M58 58 q42 -40 84 0 v10 h-84z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/><circle cx="100" cy="22" r="7" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.hat];
+  const glasses={
+    none:'',
+    round:'<circle cx="82" cy="78" r="12" fill="none" stroke="#1A1A2E" stroke-width="3"/><circle cx="118" cy="78" r="12" fill="none" stroke="#1A1A2E" stroke-width="3"/><path d="M94 78 h12" stroke="#1A1A2E" stroke-width="3"/>',
+    sun:'<circle cx="82" cy="78" r="12" fill="#1A1A2E" opacity=".75"/><circle cx="118" cy="78" r="12" fill="#1A1A2E" opacity=".75"/><path d="M94 78 h12" stroke="#1A1A2E" stroke-width="3"/>'
+  }[cfg.glasses];
+  const extras={
+    none:'',
+    hoops:'<circle cx="58" cy="100" r="6" fill="none" stroke="#E0B04A" stroke-width="3"/><circle cx="142" cy="100" r="6" fill="none" stroke="#E0B04A" stroke-width="3"/>',
+    bag:'<rect x="148" y="210" width="28" height="34" rx="6" fill="#2A9D8F" stroke="#1A1A2E" stroke-width="2"/><path d="M156 210 q6 -16 12 0" fill="none" stroke="#1A1A2E" stroke-width="2"/>'
+  }[cfg.extras];
+  // Cadrage tête pour les petites tailles (avatar circulaire, icônes) — même
+  // dessin, juste une fenêtre de viewBox resserrée sur le visage plutôt que
+  // le corps entier, comme documenté dans le pack (ARCHITECTURE.md § Embed).
+  const viewBox=opts.headCrop?'40 10 120 140':'0 0 200 360';
+  return '<svg viewBox="'+viewBox+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Avatar X1Moji">'
+    +hairBack
+    +'<ellipse cx="100" cy="250" rx="28" ry="16" fill="'+s+'"/>'
+    +'<rect x="84" y="148" width="32" height="40" fill="'+s+'"/>'
+    +bottoms+shoes+top+outfit+outer
+    +'<circle cx="100" cy="86" r="42" fill="'+s+'" stroke="#1A1A2E" stroke-width="3"/>'
+    +brows+eye
+    +'<ellipse cx="100" cy="90" rx="5" ry="4" fill="#d9a078" opacity=".45"/>'
+    +mouth+facial+hairFront+glasses+hat+extras
+    +'</svg>';
 }
 const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon','xplus'];
 function parseProfileExtra(json){
@@ -10942,8 +11081,9 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const frame=AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none';
   const gallery=(Array.isArray(extra.avatarGallery)?extra.avatarGallery:[]).map(safeUrl).filter(Boolean);
   const avatarUrls=gallery.length?gallery:(safeUrl(p.avatar)?[safeUrl(p.avatar)]:[]);
-  const avatarInner=extra.useBitmoji&&extra.bitmoji
-    ? renderBitmojiSvg(extra.bitmoji)
+  const x1mojiPick=useX1mojiConfig(extra);
+  const avatarInner=x1mojiPick.use
+    ? renderX1mojiSvg(x1mojiPick.cfg,{headCrop:true})
     : (avatarUrls.length
       ? avatarUrls.map(function(u,i){return '<img src="'+esc(u)+'" alt="" class="pc-av-img'+(i===0?' on':'')+'"/>';}).join('')
       : esc(ini(name)));
@@ -11179,7 +11319,8 @@ function refreshSelfBar(){
   // place malgré une vraie photo de profil déjà choisie.
   const myGallery=Array.isArray(myExtra.avatarGallery)?myExtra.avatarGallery:[];
   const myAvatarUrl=safeUrl(meProfile.avatar)||safeUrl(myGallery[0]);
-  if(myExtra.useBitmoji&&myExtra.bitmoji)av.innerHTML=renderBitmojiSvg(myExtra.bitmoji)+'<span class="dot" style="background:'+myDef.dot+'"></span>';
+  const myX1moji=useX1mojiConfig(myExtra);
+  if(myX1moji.use)av.innerHTML=renderX1mojiSvg(myX1moji.cfg,{headCrop:true})+'<span class="dot" style="background:'+myDef.dot+'"></span>';
   else if(myAvatarUrl)av.innerHTML='<img src="'+esc(myAvatarUrl)+'" alt=""/><span class="dot" style="background:'+myDef.dot+'"></span>';
   else av.innerHTML=esc(ini(name))+'<span class="dot" style="background:'+myDef.dot+'"></span>';
   const dotEl=\$('ub-presence-dot');if(dotEl)dotEl.style.background=myDef.dot;
@@ -11260,8 +11401,8 @@ function openProfileEditPanel(p,meta){
     pronouns:extra.pronouns||'',
     customStatus:extra.customStatus||'',
     customStatusExpiresAt:extra.customStatusExpiresAt||'',
-    bitmoji:Object.assign(defaultBitmojiConfig(),extra.bitmoji||{}),
-    useBitmoji:!!extra.useBitmoji,
+    x1moji:Object.assign(defaultX1mojiConfig(),resolveX1mojiConfig(extra)||{}),
+    useX1moji:!!(extra.useX1moji||extra.useBitmoji),
     avatarFrame:AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none',
     avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
     cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none'
@@ -11298,7 +11439,7 @@ function openProfileEditPanel(p,meta){
   renderFrameSwatches();
   renderPresenceRow();
   renderGalleryThumbs();
-  renderBitmojiBuilder();
+  renderX1mojiBuilder();
   updatePePreview();
   document.querySelectorAll('.pe-tab').forEach(function(b,i){b.classList.toggle('on',i===0)});
   document.querySelectorAll('.pe-pane').forEach(function(p2,i){p2.classList.toggle('hidden',i!==0)});
@@ -11318,63 +11459,93 @@ function renderThemeSwatches(){
     });
   });
 }
-function updateBitmojiPreview(){
+function updateX1mojiPreview(){
   const el=\$('bm-preview');if(!el||!peDraft)return;
-  el.innerHTML=renderBitmojiSvg(peDraft.bitmoji);
+  el.innerHTML=renderX1mojiSvg(peDraft.x1moji,{headCrop:true});
 }
-function bmSwatches(wrapId,field,colors){
+function x1mSwatches(wrapId,field,colors){
   const wrap=\$(wrapId);if(!wrap||!peDraft)return;
   wrap.innerHTML=colors.map(function(c){
-    return '<button type="button" class="pe-swatch'+(peDraft.bitmoji[field]===c?' on':'')+'" data-bm-color="'+c+'" style="background:'+c+'"></button>';
+    return '<button type="button" class="pe-swatch'+(peDraft.x1moji[field]===c?' on':'')+'" data-x1m-color="'+c+'" style="background:'+c+'"></button>';
   }).join('');
-  wrap.querySelectorAll('[data-bm-color]').forEach(function(b){
+  wrap.querySelectorAll('[data-x1m-color]').forEach(function(b){
     b.addEventListener('click',function(){
-      peDraft.bitmoji[field]=b.getAttribute('data-bm-color');
-      bmSwatches(wrapId,field,colors);updateBitmojiPreview();updatePePreview();
+      peDraft.x1moji[field]=b.getAttribute('data-x1m-color');
+      x1mSwatches(wrapId,field,colors);updateX1mojiPreview();updatePePreview();
     });
   });
 }
-function bmSeg(wrapId,field,defs){
+function x1mSeg(wrapId,field,defs){
   const wrap=\$(wrapId);if(!wrap||!peDraft)return;
   wrap.innerHTML=defs.map(function(d){
-    return '<button type="button" class="seg-btn'+(peDraft.bitmoji[field]===d.key?' on':'')+'" data-bm-seg="'+d.key+'">'+esc(d.label)+'</button>';
+    return '<button type="button" class="seg-btn'+(peDraft.x1moji[field]===d.key?' on':'')+'" data-x1m-seg="'+d.key+'">'+esc(d.label)+'</button>';
   }).join('');
-  wrap.querySelectorAll('[data-bm-seg]').forEach(function(b){
+  wrap.querySelectorAll('[data-x1m-seg]').forEach(function(b){
     b.addEventListener('click',function(){
-      peDraft.bitmoji[field]=b.getAttribute('data-bm-seg');
-      bmSeg(wrapId,field,defs);updateBitmojiPreview();updatePePreview();
+      peDraft.x1moji[field]=b.getAttribute('data-x1m-seg');
+      x1mSeg(wrapId,field,defs);
+      if(field==='outfit')updateX1mojiSplitHint();
+      updateX1mojiPreview();updatePePreview();
     });
   });
 }
-function renderBitmojiBuilder(){
+// Règle de calques : un outfit une-pièce (robe/salopette) masque haut + bas
+// dans le rendu — le rappelle visuellement dans l'éditeur plutôt que de
+// laisser choisir un haut/bas qui n'apparaîtra nulle part sans explication.
+function updateX1mojiSplitHint(){
+  const hidden=!!(peDraft&&peDraft.x1moji.outfit&&peDraft.x1moji.outfit!=='none');
+  ['x1m-top-field','x1m-topcolor-field','x1m-bottoms-field','x1m-bottomscolor-field'].forEach(function(id){
+    const el=\$(id);if(el)el.classList.toggle('x1m-field-dimmed',hidden);
+  });
+}
+function renderX1mojiBuilder(){
   if(!peDraft)return;
-  updateBitmojiPreview();
+  updateX1mojiPreview();
   const useToggle=\$('bm-use-toggle');
   if(useToggle){
-    useToggle.classList.toggle('on',!!peDraft.useBitmoji);
-    useToggle.onclick=function(){peDraft.useBitmoji=!peDraft.useBitmoji;useToggle.classList.toggle('on',peDraft.useBitmoji);updatePePreview();};
+    useToggle.classList.toggle('on',!!peDraft.useX1moji);
+    useToggle.onclick=function(){peDraft.useX1moji=!peDraft.useX1moji;useToggle.classList.toggle('on',peDraft.useX1moji);updatePePreview();};
   }
-  bmSwatches('bm-skin-swatches','skinTone',BITMOJI_SKIN_TONES);
-  bmSwatches('bm-haircolor-swatches','hairColor',BITMOJI_HAIR_COLORS);
-  bmSwatches('bm-outfitcolor-swatches','outfitColor',BITMOJI_OUTFIT_COLORS);
-  bmSwatches('bm-bg-swatches','bg',BITMOJI_BG_COLORS);
-  bmSeg('bm-face-seg','faceShape',BITMOJI_FACE_SHAPES);
-  bmSeg('bm-hair-seg','hair',BITMOJI_HAIR_STYLES);
-  bmSeg('bm-eyes-seg','eyes',BITMOJI_EYE_STYLES);
-  bmSeg('bm-brows-seg','brows',BITMOJI_BROW_STYLES);
-  bmSeg('bm-mouth-seg','mouth',BITMOJI_MOUTH_STYLES);
-  bmSeg('bm-outfit-seg','outfit',BITMOJI_OUTFIT_STYLES);
-  bmSeg('bm-accessory-seg','accessory',BITMOJI_ACCESSORIES);
+  x1mSwatches('bm-skin-swatches','skin',X1MOJI_SKIN_TONES);
+  x1mSeg('bm-eyes-seg','eyes',X1MOJI_EYE_STYLES);
+  x1mSeg('bm-brows-seg','brows',X1MOJI_BROW_STYLES);
+  x1mSeg('bm-mouth-seg','mouth',X1MOJI_MOUTH_STYLES);
+  x1mSeg('bm-facialhair-seg','facialHair',X1MOJI_FACIAL_HAIR_STYLES);
+  x1mSeg('bm-hair-seg','hair',X1MOJI_HAIR_STYLES);
+  x1mSwatches('bm-haircolor-swatches','hairColor',X1MOJI_HAIR_COLORS);
+  x1mSeg('bm-top-seg','top',X1MOJI_TOP_STYLES);
+  x1mSwatches('bm-topcolor-swatches','topColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-bottoms-seg','bottoms',X1MOJI_BOTTOMS_STYLES);
+  x1mSwatches('bm-bottomscolor-swatches','bottomsColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-outfit-seg','outfit',X1MOJI_OUTFIT_STYLES);
+  x1mSwatches('bm-outfitcolor-swatches','outfitColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-outerwear-seg','outerwear',X1MOJI_OUTERWEAR_STYLES);
+  x1mSwatches('bm-outerwearcolor-swatches','outerwearColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-shoes-seg','shoes',X1MOJI_SHOES_STYLES);
+  x1mSwatches('bm-shoescolor-swatches','shoesColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-hat-seg','hat',X1MOJI_HAT_STYLES);
+  x1mSwatches('bm-hatcolor-swatches','hatColor',X1MOJI_DYE_COLORS);
+  x1mSeg('bm-glasses-seg','glasses',X1MOJI_GLASSES_STYLES);
+  x1mSeg('bm-extras-seg','extras',X1MOJI_EXTRAS_STYLES);
+  updateX1mojiSplitHint();
   const randBtn=\$('bm-randomize');
   if(randBtn)randBtn.onclick=function(){
     function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
-    peDraft.bitmoji={
-      skinTone:pick(BITMOJI_SKIN_TONES),faceShape:pick(BITMOJI_FACE_SHAPES).key,hair:pick(BITMOJI_HAIR_STYLES).key,
-      hairColor:pick(BITMOJI_HAIR_COLORS),eyes:pick(BITMOJI_EYE_STYLES).key,brows:pick(BITMOJI_BROW_STYLES).key,
-      mouth:pick(BITMOJI_MOUTH_STYLES).key,outfit:pick(BITMOJI_OUTFIT_STYLES).key,outfitColor:pick(BITMOJI_OUTFIT_COLORS),
-      accessory:pick(BITMOJI_ACCESSORIES).key,bg:pick(BITMOJI_BG_COLORS)
+    function pickKey(defs){return pick(defs).key;}
+    peDraft.x1moji={
+      version:1,
+      skin:pick(X1MOJI_SKIN_TONES),body:pickKey(X1MOJI_BODY_TYPES),
+      eyes:pickKey(X1MOJI_EYE_STYLES),brows:pickKey(X1MOJI_BROW_STYLES),nose:'short',mouth:pickKey(X1MOJI_MOUTH_STYLES),facialHair:pickKey(X1MOJI_FACIAL_HAIR_STYLES),
+      hair:pickKey(X1MOJI_HAIR_STYLES),hairColor:pick(X1MOJI_HAIR_COLORS),
+      top:pickKey(X1MOJI_TOP_STYLES),topColor:pick(X1MOJI_DYE_COLORS),
+      bottoms:pickKey(X1MOJI_BOTTOMS_STYLES),bottomsColor:pick(X1MOJI_DYE_COLORS),
+      outfit:pickKey(X1MOJI_OUTFIT_STYLES),outfitColor:pick(X1MOJI_DYE_COLORS),
+      outerwear:pickKey(X1MOJI_OUTERWEAR_STYLES),outerwearColor:pick(X1MOJI_DYE_COLORS),
+      shoes:pickKey(X1MOJI_SHOES_STYLES),shoesColor:pick(X1MOJI_DYE_COLORS),
+      hat:pickKey(X1MOJI_HAT_STYLES),hatColor:pick(X1MOJI_DYE_COLORS),
+      glasses:pickKey(X1MOJI_GLASSES_STYLES),extras:pickKey(X1MOJI_EXTRAS_STYLES)
     };
-    renderBitmojiBuilder();updatePePreview();
+    renderX1mojiBuilder();updatePePreview();
   };
 }
 const FRAME_LABELS={none:'Aucun',fire:'🔥 Feu',frost:'❄️ Givre',gold:'✨ Or',rainbow:'🌈 Arc-en-ciel',neon:'💜 Néon',xplus:'⭐ X1+ (exclusif)'};
@@ -11425,7 +11596,7 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,bitmoji:peDraft.bitmoji,useBitmoji:peDraft.useBitmoji})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji})
   });
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
@@ -11604,7 +11775,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
        par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
        qu'aucune erreur ne soit jamais visible. */
     let extraSaveFailed=false;
-    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,bitmoji:peDraft.bitmoji,useBitmoji:peDraft.useBitmoji});
+    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji});
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
@@ -11799,6 +11970,8 @@ async function openDm(threadId,title,peerUid){
   updateChatHeaderPresence();
   updateTypingIndicator();
   markDmRead(threadId);
+  dmViewingTick();
+  updateDmPresenceBubble();
   let streak=null;try{streak=JSON.parse((dm&&dm.streakJson)||'{}');}catch(e){}
   updateDmStreakUi(!activeDmIsGroup&&streak&&streak.count>0?streak:null);
 }
@@ -11880,6 +12053,55 @@ function updateTypingIndicator(){
   }
 }
 setInterval(updateTypingIndicator,2000);
+// ===== Présence X1Moji dans un DM ouvert, façon Snap : montre l'avatar de
+// l'autre personne dans l'en-tête tant qu'elle a CETTE conversation ouverte
+// en ce moment (pas juste "en ligne quelque part sur X1"). Réutilise le même
+// principe que typingJson (un JSON {uid: timestamp} sur le document dms,
+// déjà propagé en temps réel via l'abonnement existant à la collection
+// dms) — une tuile de plus, pas un nouveau système de présence.
+function notifyDmViewing(){
+  if(!activeDm||!me)return;
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const viewing=parseJsonSafe(dm&&dm.viewingJson,{});
+  viewing[me.\$id]=Date.now();
+  if(dm)dm.viewingJson=JSON.stringify(viewing);
+  db.updateDocument(DB,'dms',activeDm,{viewingJson:JSON.stringify(viewing)}).catch(function(){});
+}
+function clearDmViewingState(dmId){
+  if(!dmId||!me)return;
+  const dm=dmsCache.find(function(d){return d.\$id===dmId});
+  const viewing=parseJsonSafe(dm&&dm.viewingJson,{});
+  if(!viewing[me.\$id])return;
+  delete viewing[me.\$id];
+  if(dm)dm.viewingJson=JSON.stringify(viewing);
+  db.updateDocument(DB,'dms',dmId,{viewingJson:JSON.stringify(viewing)}).catch(function(){});
+}
+let dmViewingLastActiveId=null;
+function dmViewingTick(){
+  const app=document.getElementById('app');
+  const chatVisible=window.innerWidth>640||app.classList.contains('chat-open');
+  const shouldView=(view==='dms'&&activeDm&&!activeDmIsGroup&&chatVisible)?activeDm:null;
+  if(dmViewingLastActiveId&&dmViewingLastActiveId!==shouldView)clearDmViewingState(dmViewingLastActiveId);
+  if(shouldView)notifyDmViewing();
+  dmViewingLastActiveId=shouldView;
+}
+setInterval(dmViewingTick,8000);
+function updateDmPresenceBubble(){
+  const el=\$('dm-presence-bubble');if(!el)return;
+  if(activeDmIsGroup||!activeDmPeerUid){el.classList.add('hidden');el.innerHTML='';return}
+  const dm=dmsCache.find(function(d){return d.\$id===activeDm});
+  const viewing=parseJsonSafe(dm&&dm.viewingJson,{});
+  const ts=viewing[String(activeDmPeerUid)];
+  const present=!!ts&&(Date.now()-ts)<15000;
+  if(!present){el.classList.add('hidden');el.innerHTML='';return}
+  const peerMeta=memberMetaByUid[String(activeDmPeerUid)];
+  const extra=parseProfileExtra(peerMeta&&peerMeta.profileExtraJson);
+  const cfg=resolveX1mojiConfig(extra)||defaultX1mojiConfig();
+  el.innerHTML=renderX1mojiSvg(cfg,{headCrop:true});
+  el.title=(peerMeta&&(peerMeta.displayName||peerMeta.username))||'';
+  el.classList.remove('hidden');
+}
+setInterval(function(){if(activeDm&&!activeDmIsGroup)updateDmPresenceBubble();},4000);
 function updateChatHeaderPresence(){
   const el=\$('ch-presence');if(!el)return;
   if(activeDmIsGroup||!activeDmPeerUid){el.classList.add('hidden');return}
@@ -13222,7 +13444,7 @@ if(\$('chat-active')){
     if(files.length)showAttachPreview(files[0]);
   });
 }
-if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();});
+if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();dmViewingTick();});
 
 /* ===== Pièces jointes ===== */
 if(\$('btn-attach'))\$('btn-attach').addEventListener('click',function(e){e.stopPropagation();\$('attach-menu').classList.toggle('hidden')});
@@ -13479,7 +13701,7 @@ function stopStudioRecording(){
 }
 function studioHasXmoji(){
   const myExtra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
-  return !!(myExtra.useBitmoji&&myExtra.bitmoji);
+  return useX1mojiConfig(myExtra).use;
 }
 function openSnapStudioEditor(){
   const view=\$('snap-studio-camera-view');if(view)view.classList.add('hidden');
@@ -13498,7 +13720,7 @@ function openSnapStudioEditor(){
   +(isVideo?'':'<div class="snap-studio-edit-tools" id="snap-studio-edit-tools">'
     +'<button type="button" class="snap-studio-add-text" id="snap-studio-add-text" title="Ajouter du texte">Aa</button>'
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-sticker" title="Ajouter un sticker">😀</button>'
-    +(studioHasXmoji()?'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-xmoji" title="Ajouter mon xMoji">🙂</button>':'')
+    +(studioHasXmoji()?'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-xmoji" title="Ajouter mon X1Moji">🙂</button>':'')
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-add-draw" title="Dessiner">✏️</button>'
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-rotate" title="Pivoter">🔄</button>'
     +'<button type="button" class="snap-studio-add-sticker" id="snap-studio-crop" title="Recadrer">✂️</button>'
@@ -13531,8 +13753,9 @@ function openSnapStudioEditor(){
   const addXmojiBtn=\$('snap-studio-add-xmoji');
   if(addXmojiBtn)addXmojiBtn.onclick=function(){
     const myExtra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
-    if(!myExtra.useBitmoji||!myExtra.bitmoji)return;
-    studioLayers.push({id:'x'+Date.now()+Math.random().toString(36).slice(2,6),type:'xmoji',bitmoji:myExtra.bitmoji,x:50,y:50,scale:1.6,rotation:0});
+    const pick=useX1mojiConfig(myExtra);
+    if(!pick.use)return;
+    studioLayers.push({id:'x'+Date.now()+Math.random().toString(36).slice(2,6),type:'xmoji',x1moji:pick.cfg,x:50,y:50,scale:1.6,rotation:0});
     renderStudioLayers();
   };
   const rotateBtn=\$('snap-studio-rotate');
@@ -13659,7 +13882,7 @@ async function bakeStudioPhotoCanvas(){
     }else if(t.type==='xmoji'){
       const size=Math.round(64*scaleX);
       try{
-        const svgUrl='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(renderBitmojiSvg(t.bitmoji))));
+        const svgUrl='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(renderX1mojiSvg(t.x1moji,{headCrop:true}))));
         const img=await loadImagePromise(svgUrl);
         ctx.drawImage(img,-size/2,-size/2,size,size);
       }catch(e){}
@@ -13767,7 +13990,7 @@ function renderStudioLayers(){
     const content=t.type==='sticker'
       ? '<span class="snap-layer-content">'+t.emoji+'</span>'
       : t.type==='xmoji'
-      ? '<span class="snap-layer-content snap-layer-xmoji-content">'+renderBitmojiSvg(t.bitmoji)+'</span>'
+      ? '<span class="snap-layer-content snap-layer-xmoji-content">'+renderX1mojiSvg(t.x1moji,{headCrop:true})+'</span>'
       : '<span class="snap-layer-content" contenteditable="true" data-layer-edit="'+t.id+'" style="color:'+esc(t.color)+'">'+esc(t.text)+'</span>';
     const colors=t.type==='text'?('<div class="snap-text-layer-colors">'+SNAP_TEXT_COLORS.map(function(c){return '<button type="button" data-layer-color="'+t.id+'" data-color="'+c+'" style="background:'+c+'"></button>';}).join('')+'</div>'):'';
     return '<div class="snap-layer snap-layer-'+t.type+'" data-layer-id="'+t.id+'" style="left:'+t.x+'%;top:'+t.y+'%;transform:'+transform+'">'
@@ -14693,14 +14916,15 @@ function xultraMapMarkerIcon(){
     popupAnchor:[0,-12]
   });
 }
-// Icône de calque friend-map : Bitmoji si configuré, sinon l'avatar de
+// Icône de calque friend-map : X1Moji si configuré, sinon l'avatar de
 // profil, sinon les initiales — même ordre de priorité que partout ailleurs
-// dans l'app (refreshSelfBar, sticker xMoji du studio Ephem, etc.).
+// dans l'app (refreshSelfBar, sticker X1Moji du studio Ephem, etc.).
 function mapFriendAvatarIcon(friend){
   let extra={};
   try{extra=JSON.parse(friend.profileExtraJson||'{}');}catch(e){}
   let inner;
-  if(extra.useBitmoji&&extra.bitmoji)inner=renderBitmojiSvg(extra.bitmoji);
+  const mapX1moji=useX1mojiConfig(extra);
+  if(mapX1moji.use)inner=renderX1mojiSvg(mapX1moji.cfg,{headCrop:true});
   else if(safeUrl(friend.avatar))inner='<img src="'+esc(safeUrl(friend.avatar))+'" alt="">';
   else inner=esc(ini(friend.name||'?'));
   return L.divIcon({
@@ -14744,7 +14968,7 @@ async function renderDiscoverMap(){
       if(link)link.addEventListener('click',function(e){e.preventDefault();openDiscoverStorySingle(s);});
     });
   });
-  // Les amis qui partagent leur position s'affichent avec leur avatar/xMoji,
+  // Les amis qui partagent leur position s'affichent avec leur avatar/X1Moji,
   // au-dessus des autres marqueurs (zIndexOffset) — un clic ouvre directement
   // leur profil, sans étape de popup intermédiaire (contrairement aux stories
   // géolocalisées, où le popup sert à choisir "voir la story").
