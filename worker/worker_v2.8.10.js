@@ -1928,7 +1928,7 @@ html.xultra-restoring #stage{visibility:hidden}
 ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#8b5cf6,#7c3aed);border-radius:999px}
 ::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#a78bfa,#8b5cf6)}
 ::-webkit-scrollbar-corner{background:transparent}
-#app{display:none;height:calc((100dvh - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
+#app{display:none;height:calc((var(--app-vh, 100dvh) - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-shrink:0}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
@@ -5237,6 +5237,32 @@ function detectAppPlatformKey(){
   bar.classList.remove('hidden');
   requestAnimationFrame(function(){document.documentElement.style.setProperty('--banner-h',bar.offsetHeight+'px');});
 })();
+// ===== #app suit la hauteur RÉELLEMENT visible (window.visualViewport),
+// pas juste 100dvh — 100dvh ne rétrécit pas pour le clavier virtuel sur la
+// plupart des navigateurs mobiles (il ne compte que le repli de la barre
+// d'adresse). Sans ça, #msgs/.composer restaient dimensionnés sur la
+// hauteur "clavier fermé" pendant que le clavier était ouvert, laissant un
+// grand vide sous le dernier message — invisible tant que le clavier se
+// refermait à chaque envoi (le blur/refocus forçait un défilement natif qui
+// masquait le problème), mais visible en continu maintenant que le clavier
+// reste ouvert (cf. correctif v4.53.1). visualViewport.resize se déclenche
+// à l'ouverture/fermeture du clavier comme au moindre changement de zoom
+// navigateur — c'est la seule API qui reflète fidèlement l'espace vraiment
+// disponible à l'écran sur mobile.
+(function initAppViewportHeight(){
+  function sync(){
+    const vv=window.visualViewport;
+    const h=vv?vv.height:window.innerHeight;
+    document.documentElement.style.setProperty('--app-vh',h+'px');
+  }
+  sync();
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize',sync);
+    window.visualViewport.addEventListener('scroll',sync);
+  }else{
+    window.addEventListener('resize',sync);
+  }
+})();
 (function initShowcase(){
   const track=\$('showcase-track'),dotsWrap=\$('showcase-dots');
   if(!track||!dotsWrap)return;
@@ -6806,6 +6832,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.53.2',category:'fix',date:'30 août 2026',time:'19:35',title:'⌨️ Clavier mobile : le grand vide sous les messages est corrigé',
+    body:'Suite au correctif du clavier qui restait ouvert (v4.53.1), un vide s\\'affichait sous le dernier message pendant que le clavier était ouvert : la zone de conversation se dimensionnait sur "100dvh", une unité qui ne tient pas compte du clavier virtuel sur la plupart des navigateurs mobiles — invisible avant seulement parce que le clavier se refermait à chaque envoi, ce qui forçait un réajustement à chaque fois. La conversation suit maintenant la hauteur RÉELLEMENT visible à l\\'écran (window.visualViewport), qui se met à jour à l\\'ouverture et à la fermeture du clavier — plus de vide, que le clavier reste ouvert ou non.'},
   {version:'4.53.1',category:'fix',date:'30 août 2026',time:'19:10',title:'⌨️ Clavier mobile : le correctif précédent rouvrait le clavier au lieu de ne jamais le fermer',
     body:'Le correctif du clavier qui se refermait à l\\'envoi d\\'un message (v4.53.0) le remettait au premier plan APRÈS l\\'envoi — ça rouvrait bien le clavier, mais avec un clignotement fermeture/réouverture visible le temps de l\\'aller-retour réseau, pas ce qui était demandé. Cette fois le focus ne part plus DU TOUT : le tap sur ➤ Envoyer (ou tout autre bouton du champ de saisie) n\\'enlève plus jamais le focus du champ, donc le clavier reste simplement affiché du début à la fin, sans à-coup.'},
   {version:'4.53.0',category:'feature',date:'30 août 2026',time:'18:45',title:'📱 Connexion par QR code, mot de passe visible, clavier mobile qui ne se ferme plus',
