@@ -6832,6 +6832,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.54.0',category:'feature',date:'30 août 2026',time:'20:20',title:'🌐 116 langues, détection automatique par pays, traduction de toute l\\'interface',
+    body:'La langue de X1 se règle maintenant automatiquement selon le pays détecté à la première visite (via Cloudflare, aucun service de géolocalisation tiers) — reste modifiable à tout moment dans Paramètres → Langue, qui passe de 6 à 116 langues avec une recherche pour s\\'y retrouver. Les 6 langues déjà traduites à la main (français, anglais, espagnol, portugais, allemand, italien) restent instantanées ; les 110 autres traduisent maintenant TOUTE l\\'interface visible (boutons, menus, paramètres, info-bulles…) à la volée par un modèle d\\'IA dédié à la traduction, mise en cache pour rester rapide et gratuite après la première fois — bonne qualité sur les langues les plus parlées au monde, plus approximative sur certaines langues rares peu représentées en ligne. Comme sur Discord ou WhatsApp, ce que vous écrivez vous-même (messages, pseudo, statut, bio, nom de serveur) n\\'est volontairement jamais traduit automatiquement.'},
   {version:'4.53.2',category:'fix',date:'30 août 2026',time:'19:35',title:'⌨️ Clavier mobile : le grand vide sous les messages est corrigé',
     body:'Suite au correctif du clavier qui restait ouvert (v4.53.1), un vide s\\'affichait sous le dernier message pendant que le clavier était ouvert : la zone de conversation se dimensionnait sur "100dvh", une unité qui ne tient pas compte du clavier virtuel sur la plupart des navigateurs mobiles — invisible avant seulement parce que le clavier se refermait à chaque envoi, ce qui forçait un réajustement à chaque fois. La conversation suit maintenant la hauteur RÉELLEMENT visible à l\\'écran (window.visualViewport), qui se met à jour à l\\'ouverture et à la fermeture du clavier — plus de vide, que le clavier reste ouvert ou non.'},
   {version:'4.53.1',category:'fix',date:'30 août 2026',time:'19:10',title:'⌨️ Clavier mobile : le correctif précédent rouvrait le clavier au lieu de ne jamais le fermer',
@@ -7755,9 +7757,11 @@ function renderAdminSupportTickets(list){
 }
 
 /* ===== Paramètres de l’application ===== */
+let appPrefsLanguageWasSet=false;
 function loadAppPrefs(){
   let p={};
   try{p=JSON.parse(localStorage.getItem('xultra_app_prefs')||'{}')||{};}catch(e){p={};}
+  appPrefsLanguageWasSet=('language' in p);
   return Object.assign({
     displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
     animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
@@ -7813,19 +7817,40 @@ const I18N={
     common_send:'Invia',common_cancel:'Annulla',common_save:'Salva',common_close:'Chiudi',common_delete:'Elimina'
   }
 };
+// Les 6 premières ont un dictionnaire I18N complet (instantané, sans appel
+// réseau) — les ~110 suivantes passent par la traduction automatique à la
+// volée (voir initAutoTranslate plus bas) : mêmes chaînes sources, traduites
+// à la demande par IA et mises en cache, pas de dictionnaire à maintenir à
+// la main pour chacune.
 const I18N_LANGS=[
   {code:'fr',label:'Français',flag:'🇫🇷'},
   {code:'en',label:'English',flag:'🇬🇧'},
   {code:'es',label:'Español',flag:'🇪🇸'},
   {code:'pt',label:'Português',flag:'🇵🇹'},
   {code:'de',label:'Deutsch',flag:'🇩🇪'},
-  {code:'it',label:'Italiano',flag:'🇮🇹'}
+  {code:'it',label:'Italiano',flag:'🇮🇹'},
+  {code:'nl',label:'Nederlands',flag:'🇳🇱'},{code:'sv',label:'Svenska',flag:'🇸🇪'},{code:'no',label:'Norsk',flag:'🇳🇴'},{code:'da',label:'Dansk',flag:'🇩🇰'},{code:'fi',label:'Suomi',flag:'🇫🇮'},{code:'is',label:'Íslenska',flag:'🇮🇸'},
+  {code:'pl',label:'Polski',flag:'🇵🇱'},{code:'cs',label:'Čeština',flag:'🇨🇿'},{code:'sk',label:'Slovenčina',flag:'🇸🇰'},{code:'hu',label:'Magyar',flag:'🇭🇺'},{code:'ro',label:'Română',flag:'🇷🇴'},{code:'bg',label:'Български',flag:'🇧🇬'},{code:'el',label:'Ελληνικά',flag:'🇬🇷'},
+  {code:'ru',label:'Русский',flag:'🇷🇺'},{code:'uk',label:'Українська',flag:'🇺🇦'},{code:'be',label:'Беларуская',flag:'🇧🇾'},{code:'lt',label:'Lietuvių',flag:'🇱🇹'},{code:'lv',label:'Latviešu',flag:'🇱🇻'},{code:'et',label:'Eesti',flag:'🇪🇪'},
+  {code:'tr',label:'Türkçe',flag:'🇹🇷'},{code:'ar',label:'العربية',flag:'🇸🇦'},{code:'he',label:'עברית',flag:'🇮🇱'},{code:'fa',label:'فارسی',flag:'🇮🇷'},{code:'ur',label:'اردو',flag:'🇵🇰'},
+  {code:'hi',label:'हिन्दी',flag:'🇮🇳'},{code:'bn',label:'বাংলা',flag:'🇧🇩'},{code:'pa',label:'ਪੰਜਾਬੀ',flag:'🇮🇳'},{code:'gu',label:'ગુજરાતી',flag:'🇮🇳'},{code:'mr',label:'मराठी',flag:'🇮🇳'},{code:'ta',label:'தமிழ்',flag:'🇮🇳'},{code:'te',label:'తెలుగు',flag:'🇮🇳'},{code:'kn',label:'ಕನ್ನಡ',flag:'🇮🇳'},{code:'ml',label:'മലയാളം',flag:'🇮🇳'},{code:'or',label:'ଓଡ଼ିଆ',flag:'🇮🇳'},{code:'as',label:'অসমীয়া',flag:'🇮🇳'},{code:'ne',label:'नेपाली',flag:'🇳🇵'},{code:'si',label:'සිංහල',flag:'🇱🇰'},
+  {code:'th',label:'ไทย',flag:'🇹🇭'},{code:'vi',label:'Tiếng Việt',flag:'🇻🇳'},{code:'id',label:'Bahasa Indonesia',flag:'🇮🇩'},{code:'ms',label:'Bahasa Melayu',flag:'🇲🇾'},{code:'tl',label:'Filipino',flag:'🇵🇭'},{code:'km',label:'ខ្មែរ',flag:'🇰🇭'},{code:'lo',label:'ລາວ',flag:'🇱🇦'},{code:'my',label:'မြန်မာ',flag:'🇲🇲'},
+  {code:'ja',label:'日本語',flag:'🇯🇵'},{code:'ko',label:'한국어',flag:'🇰🇷'},{code:'zh',label:'中文（简体）',flag:'🇨🇳'},{code:'zh-TW',label:'中文（繁體）',flag:'🇹🇼'},{code:'mn',label:'Монгол',flag:'🇲🇳'},
+  {code:'ka',label:'ქართული',flag:'🇬🇪'},{code:'hy',label:'Հայերեն',flag:'🇦🇲'},{code:'az',label:'Azərbaycan',flag:'🇦🇿'},{code:'kk',label:'Қазақша',flag:'🇰🇿'},{code:'uz',label:'Oʻzbekcha',flag:'🇺🇿'},{code:'tg',label:'Тоҷикӣ',flag:'🇹🇯'},{code:'ky',label:'Кыргызча',flag:'🇰🇬'},
+  {code:'sw',label:'Kiswahili',flag:'🇰🇪'},{code:'am',label:'አማርኛ',flag:'🇪🇹'},{code:'ha',label:'Hausa',flag:'🇳🇬'},{code:'yo',label:'Yorùbá',flag:'🇳🇬'},{code:'ig',label:'Igbo',flag:'🇳🇬'},{code:'zu',label:'isiZulu',flag:'🇿🇦'},{code:'xh',label:'isiXhosa',flag:'🇿🇦'},{code:'af',label:'Afrikaans',flag:'🇿🇦'},{code:'so',label:'Soomaali',flag:'🇸🇴'},{code:'rw',label:'Kinyarwanda',flag:'🇷🇼'},{code:'mg',label:'Malagasy',flag:'🇲🇬'},{code:'sn',label:'chiShona',flag:'🇿🇼'},{code:'ny',label:'Chichewa',flag:'🇲🇼'},{code:'ti',label:'ትግርኛ',flag:'🇪🇷'},{code:'om',label:'Oromoo',flag:'🇪🇹'},{code:'wo',label:'Wolof',flag:'🇸🇳'},{code:'lg',label:'Luganda',flag:'🇺🇬'},{code:'ak',label:'Akan',flag:'🇬🇭'},{code:'ee',label:'Eʋegbe',flag:'🇹🇬'},{code:'tn',label:'Setswana',flag:'🇧🇼'},{code:'ts',label:'Xitsonga',flag:'🇿🇦'},
+  {code:'sq',label:'Shqip',flag:'🇦🇱'},{code:'mk',label:'Македонски',flag:'🇲🇰'},{code:'sr',label:'Српски',flag:'🇷🇸'},{code:'hr',label:'Hrvatski',flag:'🇭🇷'},{code:'bs',label:'Bosanski',flag:'🇧🇦'},{code:'sl',label:'Slovenščina',flag:'🇸🇮'},
+  {code:'cy',label:'Cymraeg',flag:'🏴󠁧󠁢󠁷󠁬󠁳󠁿'},{code:'ga',label:'Gaeilge',flag:'🇮🇪'},{code:'gd',label:'Gàidhlig',flag:'🏴󠁧󠁢󠁳󠁣󠁴󠁿'},{code:'eu',label:'Euskara',flag:'🇪🇸'},{code:'ca',label:'Català',flag:'🇪🇸'},{code:'gl',label:'Galego',flag:'🇪🇸'},{code:'mt',label:'Malti',flag:'🇲🇹'},{code:'lb',label:'Lëtzebuergesch',flag:'🇱🇺'},{code:'fo',label:'Føroyskt',flag:'🇫🇴'},{code:'yi',label:'ייִדיש',flag:'🌍'},{code:'eo',label:'Esperanto',flag:'🌍'},
+  {code:'ku',label:'Kurdî',flag:'🌍'},{code:'ps',label:'پښتو',flag:'🇦🇫'},{code:'sd',label:'سنڌي',flag:'🇵🇰'},
+  {code:'su',label:'Basa Sunda',flag:'🇮🇩'},{code:'jv',label:'Basa Jawa',flag:'🇮🇩'},{code:'ceb',label:'Cebuano',flag:'🇵🇭'},{code:'haw',label:'ʻŌlelo Hawaiʻi',flag:'🇺🇸'},{code:'sm',label:'Gagana Samoa',flag:'🇼🇸'},{code:'to',label:'Lea Fakatonga',flag:'🇹🇴'},{code:'fj',label:'Vosa Vakaviti',flag:'🇫🇯'},{code:'mi',label:'Te Reo Māori',flag:'🇳🇿'},{code:'ht',label:'Kreyòl Ayisyen',flag:'🇭🇹'},{code:'qu',label:'Runasimi',flag:'🇵🇪'},{code:'gn',label:'Avañeʼẽ',flag:'🇵🇾'},{code:'ay',label:'Aymar aru',flag:'🇧🇴'}
 ];
-// Traduction v1 : couvre le socle le plus visible (barre de navigation, écran
-// de connexion, titres des paramètres) — pas encore l'intégralité des
-// milliers de chaînes du site (notes de version, descriptions de badges…),
-// qui restent en français quelle que soit la langue choisie pour l'instant.
-// Base extensible : ajouter une clé ici + data-i18n sur l'élément suffit.
+// Dictionnaire codé en dur pour les 6 langues les plus demandées (aucun
+// appel réseau, traduction instantanée). Pour les ~110 autres langues
+// proposées dans les paramètres, initAutoTranslate() (plus bas) prend le
+// relais : traduction automatique de TOUT le texte d'interface visible à
+// l'écran (boutons, menus, titres, info-bulles…), à la volée et mise en
+// cache — voir /api/i18n/translate côté Worker. Le contenu que les gens
+// écrivent eux-mêmes (messages, pseudos, statuts, bios) n'est volontairement
+// JAMAIS traduit automatiquement, comme sur Discord ou WhatsApp.
 function t(key,fallback){
   const lang=(appPrefs&&appPrefs.language)||'fr';
   const dict=I18N[lang]||I18N.fr;
@@ -7836,6 +7861,129 @@ function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(function(el){el.textContent=t(el.getAttribute('data-i18n'));});
   document.querySelectorAll('[data-i18n-title]').forEach(function(el){el.title=t(el.getAttribute('data-i18n-title'));});
   document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){el.placeholder=t(el.getAttribute('data-i18n-placeholder'));});
+  if(typeof initAutoTranslate==='function')initAutoTranslate();
+}
+/* ===== Traduction automatique de l'interface (langues au-delà des 6 du
+   dictionnaire codé en dur) — voir /api/i18n/translate côté Worker pour la
+   partie serveur (appel IA + cache KV partagé). Parcourt #app et #stage
+   (l'app connectée ET l'écran de connexion) nœud texte par nœud texte, en
+   sautant explicitement tout ce qui est du contenu écrit par les gens
+   eux-mêmes (AT_DENY_SELECTOR) plutôt que du texte d'interface fixe — ce
+   n'est pas une limitation, c'est le comportement correct : personne ne
+   veut que ses messages privés ou son pseudo soient retraduits sans le
+   demander.
+   Anti-boucle : un MutationObserver qui traduit du texte DÉCLENCHE
+   forcément de nouvelles mutations (celles qu'il vient de créer). On évite
+   la boucle infinie en gardant, par nœud texte (WeakMap — jamais de fuite
+   mémoire, le nœud disparaît du DOM sans laisser de trace), la langue et le
+   texte de SORTIE de la dernière traduction appliquée : si le texte actuel
+   du nœud est déjà exactement cette sortie, on ne fait rien. */
+let autoTranslateObserver=null;
+const AT_NODE_STATE=new WeakMap();
+const AT_DENY_SELECTOR='.bub, .row .info .n, .row .info .p, .userbar .n, .pc-custom-status, .rp-name, .rp-tag, pre, code, [contenteditable], [data-i18n-skip], input, textarea, .msgs .msg, .cr-textchat-panel .msgs, .lang-opt, .emoji-picker-pop, .qr-login-frame, .cvs-tile-name, .gcb-vtile-name, .gcb-p-name, .srv-voice-member-name, .svc-present-name, .srv-item-name, .srv-item-sub, .srv-chan-name, .srv-detail-desc, .srv-cat-label';
+let atTranslationMemory={};
+function atLoadMemory(lang){
+  if(atTranslationMemory[lang])return atTranslationMemory[lang];
+  let mem={};
+  try{mem=JSON.parse(localStorage.getItem('xultra_i18n_cache_'+lang)||'{}')||{};}catch(e){mem={};}
+  atTranslationMemory[lang]=mem;
+  return mem;
+}
+function atSaveMemory(lang){
+  try{
+    const mem=atTranslationMemory[lang]||{};
+    // Borne la taille du cache local — au-delà de ~2000 entrées on repart de
+    // zéro plutôt que de gérer une éviction LRU : ce cache n'est qu'une
+    // optimisation de confort (le cache serveur KV, partagé entre tout le
+    // monde, reste la source de vérité et évite de re-payer l'IA).
+    if(Object.keys(mem).length>2000){atTranslationMemory[lang]={};return;}
+    localStorage.setItem('xultra_i18n_cache_'+lang,JSON.stringify(mem));
+  }catch(e){}
+}
+let atPendingQueue=[],atFlushTimer=null;
+function atQueueTranslate(text,lang,cb){
+  const mem=atLoadMemory(lang);
+  if(mem[text]!=null){cb(mem[text]);return}
+  atPendingQueue.push({text:text,lang:lang,cb:cb});
+  if(atFlushTimer)clearTimeout(atFlushTimer);
+  if(atPendingQueue.length>=40)atFlushQueue();
+  else atFlushTimer=setTimeout(atFlushQueue,250);
+}
+function atFlushQueue(){
+  if(atFlushTimer){clearTimeout(atFlushTimer);atFlushTimer=null;}
+  if(!atPendingQueue.length)return;
+  const batch=atPendingQueue.splice(0,50);
+  const lang=batch[0].lang;
+  const sameLang=batch.filter(function(e){return e.lang===lang;});
+  const rest=batch.filter(function(e){return e.lang!==lang;});
+  if(rest.length)atPendingQueue=rest.concat(atPendingQueue);
+  const uniqueTexts=Array.from(new Set(sameLang.map(function(e){return e.text;})));
+  fetch('/api/i18n/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texts:uniqueTexts,targetLang:lang})})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      const translations=(j&&j.translations)||{};
+      const mem=atLoadMemory(lang);
+      uniqueTexts.forEach(function(txt){mem[txt]=translations[txt]||txt;});
+      atSaveMemory(lang);
+      sameLang.forEach(function(e){e.cb(mem[e.text]||e.text);});
+    })
+    .catch(function(){sameLang.forEach(function(e){e.cb(e.text);});});
+  if(atPendingQueue.length)atFlushTimer=setTimeout(atFlushQueue,250);
+}
+function atLooksTranslatable(text){
+  if(!text)return false;
+  const trimmed=text.trim();
+  if(trimmed.length<2)return false;
+  if(!/\\p{L}/u.test(trimmed))return false;
+  return true;
+}
+function atProcessNode(node,lang){
+  const parent=node.parentElement;
+  if(!parent||parent.closest(AT_DENY_SELECTOR))return;
+  const current=node.nodeValue;
+  if(!atLooksTranslatable(current))return;
+  const state=AT_NODE_STATE.get(node);
+  if(state&&state.lang===lang&&(state.out===current||state.pending))return;
+  const newState={lang:lang,src:current,out:null,pending:true};
+  AT_NODE_STATE.set(node,newState);
+  atQueueTranslate(current,lang,function(translated){
+    if(!node.isConnected)return;
+    newState.out=translated;newState.pending=false;
+    if(node.nodeValue===current)node.nodeValue=translated;
+  });
+}
+function atScan(root,lang){
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
+  let node;
+  while((node=walker.nextNode()))atProcessNode(node,lang);
+}
+function initAutoTranslate(){
+  const lang=(appPrefs&&appPrefs.language)||'fr';
+  if(I18N[lang]){
+    if(autoTranslateObserver){autoTranslateObserver.disconnect();autoTranslateObserver=null;}
+    return;
+  }
+  ['app','stage'].forEach(function(id){const el=\$(id);if(el)atScan(el,lang);});
+  if(autoTranslateObserver)autoTranslateObserver.disconnect();
+  autoTranslateObserver=new MutationObserver(function(mutations){
+    const curLang=(appPrefs&&appPrefs.language)||'fr';
+    if(I18N[curLang])return;
+    const roots=new Set();
+    mutations.forEach(function(m){
+      if(m.type==='characterData')atProcessNode(m.target,curLang);
+      else if(m.type==='childList'){
+        m.addedNodes.forEach(function(n){
+          if(n.nodeType===3)atProcessNode(n,curLang);
+          else if(n.nodeType===1)roots.add(n);
+        });
+      }
+    });
+    roots.forEach(function(r){atScan(r,curLang);});
+  });
+  ['app','stage'].forEach(function(id){
+    const el=\$(id);
+    if(el)autoTranslateObserver.observe(el,{subtree:true,childList:true,characterData:true});
+  });
 }
 
 function applyAppPrefs(){
@@ -7879,6 +8027,42 @@ try{
   window.matchMedia('(prefers-color-scheme: light)').addEventListener('change',function(){if(appPrefs.theme==='system')applyThemeMode();});
 }catch(e){}
 applyAppPrefs();
+// ===== Langue déduite du pays (via /api/ip, lui-même basé sur l'IP côté
+// Cloudflare — aucun service de géolocalisation tiers, aucune donnée
+// envoyée ailleurs) — UNIQUEMENT tant que la personne n'a jamais choisi de
+// langue elle-même explicitement dans les paramètres (appPrefsLanguageWasSet).
+// Un choix explicite, même "Français" au clic, n'est plus jamais écrasé.
+const COUNTRY_TO_LANG={
+  FR:'fr',BE:'fr',CH:'fr',LU:'fr',MC:'fr',CI:'fr',ML:'fr',BF:'fr',NE:'fr',TG:'fr',BJ:'fr',CD:'fr',CG:'fr',CM:'fr',GA:'fr',DZ:'fr',TN:'fr',
+  US:'en',GB:'en',IE:'en',AU:'en',NZ:'en',CA:'en',ZA:'en',NG:'en',GH:'en',KE:'en',UG:'en',IN:'en',SG:'en',MT:'en',
+  ES:'es',MX:'es',AR:'es',CO:'es',CL:'es',PE:'es',VE:'es',EC:'es',GT:'es',CU:'es',BO:'es',DO:'es',HN:'es',PY:'es',SV:'es',NI:'es',CR:'es',PA:'es',UY:'es',GQ:'es',
+  PT:'pt',BR:'pt',AO:'pt',MZ:'pt',
+  DE:'de',AT:'de',LI:'de',
+  IT:'it',SM:'it',VA:'it',
+  NL:'nl',SR:'nl',
+  SE:'sv',NO:'no',DK:'da',FI:'fi',IS:'is',
+  PL:'pl',CZ:'cs',SK:'sk',HU:'hu',RO:'ro',MD:'ro',BG:'bg',GR:'el',CY:'el',
+  RU:'ru',BY:'be',LT:'lt',LV:'lv',EE:'et',UA:'uk',
+  TR:'tr',SA:'ar',AE:'ar',EG:'ar',IQ:'ar',JO:'ar',KW:'ar',QA:'ar',OM:'ar',BH:'ar',MA:'ar',LY:'ar',LB:'ar',SY:'ar',YE:'ar',SD:'ar',
+  IL:'he',IR:'fa',AF:'ps',PK:'ur',
+  BD:'bn',NP:'ne',LK:'si',
+  TH:'th',VN:'vi',ID:'id',MY:'ms',PH:'tl',KH:'km',LA:'lo',MM:'my',
+  JP:'ja',KR:'ko',CN:'zh',TW:'zh-TW',HK:'zh-TW',MO:'zh-TW',MN:'mn',
+  GE:'ka',AM:'hy',AZ:'az',KZ:'kk',UZ:'uz',TJ:'tg',KG:'ky',TM:'tr',
+  TZ:'sw',ET:'am',SO:'so',RW:'rw',MG:'mg',ZW:'sn',MW:'ny',ER:'ti',SN:'wo',
+  AL:'sq',MK:'mk',RS:'sr',HR:'hr',BA:'bs',SI:'sl',ME:'sr',XK:'sq',
+  HT:'ht',WS:'sm',TO:'to',FJ:'fj'
+};
+(function detectLanguageFromIp(){
+  if(appPrefsLanguageWasSet)return;
+  fetch('/api/ip').then(function(r){return r.json();}).then(function(j){
+    if(appPrefsLanguageWasSet)return;
+    const lang=COUNTRY_TO_LANG[(j&&j.country||'').toUpperCase()];
+    if(!lang||lang===appPrefs.language)return;
+    appPrefs.language=lang;saveAppPrefs();
+    applyI18n();
+  }).catch(function(){});
+})();
 function vibrateFor(kind){
   if(appPrefs.vibrate===false)return;
   try{
@@ -9442,23 +9626,35 @@ function wireSetShortcuts(box){
     };
   });
 }
+let setLangQuery='';
 function renderSetLanguage(box){
   const cur=(appPrefs&&appPrefs.language)||'fr';
-  box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">La langue de l\\'interface X1.</div>'
-    +'<div class="set-card"><div class="lang-grid" id="lang-grid">'
-    +I18N_LANGS.map(function(l){
+  const curEntry=I18N_LANGS.find(function(l){return l.code===cur;});
+  const q=setLangQuery.trim().toLowerCase();
+  const list=q?I18N_LANGS.filter(function(l){return l.label.toLowerCase().indexOf(q)>=0||l.code.toLowerCase().indexOf(q)>=0;}):I18N_LANGS;
+  box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">La langue de l\\'interface X1 — '+I18N_LANGS.length+' langues disponibles.</div>'
+    +'<div class="set-card">'
+    +'<input type="text" id="lang-search" class="field-input" placeholder="Rechercher une langue…" value="'+esc(setLangQuery)+'" style="margin-bottom:10px"/>'
+    +'<div class="lang-grid" id="lang-grid">'
+    +(list.length?list.map(function(l){
       return '<button type="button" class="lang-opt'+(l.code===cur?' on':'')+'" data-lang="'+l.code+'"><span class="lang-flag">'+l.flag+'</span>'+esc(l.label)+'</button>';
-    }).join('')
+    }).join(''):'<div class="empty-hint">Aucune langue ne correspond à "'+esc(setLangQuery)+'".</div>')
     +'</div></div>'
-    +'<div class="set-card"><div class="scr-sub">🚧 Traduction v1 : la navigation, l\\'écran de connexion et les titres des réglages changent déjà de langue. Le reste du site (notes de version, descriptions détaillées…) est encore en cours de traduction et reste en français pour l\\'instant. Envie d\\'aider à traduire X1 ? Écris-nous via le support !</div></div>';
+    +'<div class="set-card"><div class="scr-sub">'+(I18N[cur]?'✅ '+esc(curEntry?curEntry.label:cur)+' est traduite intégralement, sans délai.':'🤖 '+esc(curEntry?curEntry.label:cur)+' est traduite automatiquement par IA au fil de la navigation (mise en cache après la première fois) — boutons, menus, paramètres… Ce que les autres écrivent eux-mêmes (messages, pseudos, statuts) n\\'est volontairement jamais traduit automatiquement, comme sur Discord ou WhatsApp.')+'</div></div>';
+  const searchInput=\$('lang-search');
+  if(searchInput){
+    searchInput.addEventListener('input',function(){setLangQuery=this.value;renderSetLanguage(box);});
+    if(setLangQuery){searchInput.focus();searchInput.setSelectionRange(searchInput.value.length,searchInput.value.length);}
+  }
   box.querySelectorAll('[data-lang]').forEach(function(btn){
     btn.addEventListener('click',function(){
       const code=btn.getAttribute('data-lang');
+      appPrefsLanguageWasSet=true;
       if(code===appPrefs.language)return;
       appPrefs.language=code;saveAppPrefs();applyAppPrefs();
       renderSetLanguage(box);
       if(typeof renderSettingsSidebar==='function')renderSettingsSidebar();
-      showToast(t('set_language')+' → '+I18N_LANGS.find(function(l){return l.code===code}).label);
+      showToast(t('set_language')+' → '+I18N_LANGS.find(function(l){return l.code===code;}).label);
     });
   });
 }
@@ -27817,6 +28013,135 @@ async function handle(request, event) {
       corrected = corrected.replace(/^["“„«]+|["”»]+$/g, "").trim();
       if (!corrected) throw new Error("Réponse vide de l'IA, réessaie");
       return new Response(JSON.stringify({ ok: true, corrected: corrected.slice(0, 4000) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ===== Traduction automatique de l'interface (langues au-delà des 6
+  // couvertes par le dictionnaire I18N codé en dur) — voir initAutoTranslate
+  // côté client. Volontairement PUBLIC (pas de resolveSessionUser) : le
+  // sélecteur de langue doit aussi fonctionner sur l'écran de connexion,
+  // avant tout compte. Le cache KV (partagé entre TOUS les visiteurs, jamais
+  // par utilisateur) fait qu'une chaîne d'interface donnée n'est traduite
+  // par l'IA qu'UNE SEULE FOIS au total, quel que soit le nombre de
+  // visiteurs qui la déclenchent ensuite — coût et latence bornés même à
+  // grande échelle. Plafonds (50 chaînes, 300 caractères chacune) : ce sont
+  // des libellés d'interface courts, jamais des messages ou des documents.
+  const I18N_LANG_NAMES = {
+    fr: "French", en: "English", es: "Spanish", pt: "Portuguese", de: "German", it: "Italian",
+    nl: "Dutch", sv: "Swedish", no: "Norwegian", da: "Danish", fi: "Finnish", is: "Icelandic",
+    pl: "Polish", cs: "Czech", sk: "Slovak", hu: "Hungarian", ro: "Romanian", bg: "Bulgarian", el: "Greek",
+    ru: "Russian", uk: "Ukrainian", be: "Belarusian", lt: "Lithuanian", lv: "Latvian", et: "Estonian",
+    tr: "Turkish", ar: "Arabic", he: "Hebrew", fa: "Persian", ur: "Urdu",
+    hi: "Hindi", bn: "Bengali", pa: "Punjabi", gu: "Gujarati", mr: "Marathi", ta: "Tamil", te: "Telugu",
+    kn: "Kannada", ml: "Malayalam", or: "Odia", as: "Assamese", ne: "Nepali", si: "Sinhala",
+    th: "Thai", vi: "Vietnamese", id: "Indonesian", ms: "Malay", tl: "Filipino (Tagalog)", km: "Khmer",
+    lo: "Lao", my: "Burmese",
+    ja: "Japanese", ko: "Korean", zh: "Simplified Chinese", "zh-TW": "Traditional Chinese", mn: "Mongolian",
+    ka: "Georgian", hy: "Armenian", az: "Azerbaijani", kk: "Kazakh", uz: "Uzbek", tg: "Tajik", ky: "Kyrgyz",
+    sw: "Swahili", am: "Amharic", ha: "Hausa", yo: "Yoruba", ig: "Igbo", zu: "Zulu", xh: "Xhosa",
+    af: "Afrikaans", so: "Somali", rw: "Kinyarwanda", mg: "Malagasy", sn: "Shona", ny: "Chichewa",
+    ti: "Tigrinya", om: "Oromo", wo: "Wolof", lg: "Luganda", ak: "Akan", ee: "Ewe", tn: "Tswana", ts: "Tsonga",
+    sq: "Albanian", mk: "Macedonian", sr: "Serbian", hr: "Croatian", bs: "Bosnian", sl: "Slovenian",
+    cy: "Welsh", ga: "Irish", gd: "Scottish Gaelic", eu: "Basque", ca: "Catalan", gl: "Galician",
+    mt: "Maltese", lb: "Luxembourgish", fo: "Faroese", yi: "Yiddish", eo: "Esperanto",
+    ku: "Kurdish", ps: "Pashto", sd: "Sindhi",
+    su: "Sundanese", jv: "Javanese", ceb: "Cebuano", haw: "Hawaiian", sm: "Samoan", to: "Tongan",
+    fj: "Fijian", mi: "Māori", ht: "Haitian Creole", qu: "Quechua", gn: "Guarani", ay: "Aymara"
+  };
+  if (path === "/api/i18n/translate" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const targetLang = String((body && body.targetLang) || "");
+      const langName = I18N_LANG_NAMES[targetLang];
+      if (!langName) throw new Error("Langue non prise en charge");
+      const rawTexts = Array.isArray(body && body.texts) ? body.texts : [];
+      const texts = rawTexts.slice(0, 50).map(function (s) { return String(s || "").slice(0, 300); }).filter(Boolean);
+      if (!texts.length) return new Response(JSON.stringify({ ok: true, translations: {} }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const unique = Array.from(new Set(texts));
+      const translations = {};
+      const missing = [];
+      if (typeof SITE_KV !== "undefined" && SITE_KV) {
+        await Promise.all(unique.map(async function (text) {
+          const key = "i18n2:" + targetLang + ":" + (await sha256HexShort(text, 40));
+          const cached = await SITE_KV.get(key).catch(function () { return null; });
+          if (cached != null) translations[text] = cached; else missing.push(text);
+        }));
+      } else {
+        missing.push.apply(missing, unique);
+      }
+      if (missing.length) {
+        if (typeof CF_AI_TOKEN === "undefined" || !CF_AI_TOKEN) throw new Error("Traduction indisponible pour le moment");
+        // m2m100 est un modèle DÉDIÉ à la traduction (pas un modèle de chat
+        // généraliste) — nettement plus fiable et plus juste pour ça que
+        // llama-3.1-8b-instruct, testé en premier ici : sur un lot de test
+        // en production, llama traduisait correctement "Envoyer"/"Annuler"
+        // mais donnait "savon" pour "Paramètres" (hallucination). m2m100 sert
+        // de premier choix ; llama reste le filet de secours pour les
+        // langues qu'il ne couvre pas ou en cas d'erreur — un appel PAR
+        // chaîne, texte brut en entrée / texte brut en sortie (jamais de
+        // tableau JSON : un test de bout en bout en production a montré que
+        // llama pouvait simplement renvoyer un tableau non traduit tel quel
+        // plutôt que de transformer chaque élément). Le cache (KV +
+        // navigateur) fait qu'aucune chaîne d'interface n'est jamais
+        // traduite deux fois, donc le coût d'un appel par chaîne ne se paie
+        // qu'une seule fois au total.
+        const AT_CONCURRENCY = 8;
+        let cursor = 0;
+        async function translateViaM2m100(src) {
+          const aiRes = await fetch("https://api.cloudflare.com/client/v4/accounts/" + CF_ACCOUNT_ID + "/ai/run/@cf/meta/m2m100-1.2b", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + CF_AI_TOKEN, "Content-Type": "application/json" },
+            body: JSON.stringify({ text: src, source_lang: "french", target_lang: langName.toLowerCase() })
+          });
+          const aiJson = await aiRes.json();
+          if (!aiRes.ok || !aiJson.success) return null;
+          const out = String((aiJson.result && aiJson.result.translated_text) || "").trim();
+          return out || null;
+        }
+        async function translateViaLlama(src) {
+          try {
+            const aiRes = await fetch("https://api.cloudflare.com/client/v4/accounts/" + CF_ACCOUNT_ID + "/ai/run/@cf/meta/llama-3.1-8b-instruct", {
+              method: "POST",
+              headers: { "Authorization": "Bearer " + CF_AI_TOKEN, "Content-Type": "application/json" },
+              body: JSON.stringify({
+                messages: [
+                  { role: "system", content: "You translate a single short user-interface string (a button label, menu item, or hint) from French into " + langName + ". Respond with ONLY the translation — no quotes, no explanation, no markdown. Preserve emoji, punctuation style, capitalization conventions, and any {placeholder} tokens exactly. If the text is already in " + langName + " or has no meaningful translation (a name, a number, a symbol), return it unchanged." },
+                  { role: "user", content: src }
+                ],
+                max_tokens: 200
+              })
+            });
+            const aiJson = await aiRes.json();
+            if (!aiRes.ok || !aiJson.success) return src;
+            let out = String((aiJson.result && aiJson.result.response) || "").trim();
+            out = out.replace(/^["“„«]+|["”»]+$/g, "").trim();
+            return out || src;
+          } catch (e) { return src; }
+        }
+        async function translateOne(src) {
+          try {
+            const viaM2m = await translateViaM2m100(src);
+            if (viaM2m) return viaM2m;
+          } catch (e) {}
+          return translateViaLlama(src);
+        }
+        async function worker() {
+          while (cursor < missing.length) {
+            const src = missing[cursor++];
+            translations[src] = await translateOne(src);
+          }
+        }
+        await Promise.all(Array.from({ length: Math.min(AT_CONCURRENCY, missing.length) }, worker));
+        if (typeof SITE_KV !== "undefined" && SITE_KV) {
+          bgTask(Promise.all(missing.map(async function (src) {
+            const key = "i18n2:" + targetLang + ":" + (await sha256HexShort(src, 40));
+            await SITE_KV.put(key, translations[src]).catch(function () {});
+          })));
+        }
+      }
+      return new Response(JSON.stringify({ ok: true, translations: translations }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
