@@ -6832,6 +6832,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.1',category:'fix',date:'30 août 2026',time:'21:45',title:'🌐 Traduction : le changement de langue ne restait plus visible nulle part',
+    body:'Corrigé, suite à un retour : choisir une langue dans les paramètres ne changeait presque rien à l\\'écran. Deux causes réelles, trouvées en relisant le code puis vérifiées avec un test isolé : (1) le moteur de traduction ne parcourait que #app, alors que la quasi-totalité des panneaux et fenêtres du site (paramètres, profil, signalement…) sont des éléments SÉPARÉS ailleurs dans la page — il traduit maintenant toute la page ; (2) pour les 5 langues qui ont un dictionnaire tout fait (anglais, espagnol, portugais, allemand, italien), la traduction automatique par IA était désactivée en pensant le dictionnaire suffisant — il ne couvre qu\\'une quarantaine de libellés (menu, écran de connexion), tout le reste restait donc en français. Ces langues profitent maintenant aussi de la traduction automatique pour tout ce que le dictionnaire ne couvre pas.'},
   {version:'4.55.0',category:'feature',date:'30 août 2026',time:'21:15',title:'🔞 Badge 18+ VÉRIFIÉ (estimation d\\'âge par IA)',
     body:'Nouveau dans Paramètres → Vérification d\\'âge : confirme que tu as plus de 18 ans via une estimation par IA à partir d\\'un selfie, pour débloquer plus tard des fonctionnalités et sections réservées aux adultes. Important à savoir : c\\'est une ESTIMATION, pas une vérification d\\'identité officielle — aucune pièce d\\'identité n\\'est demandée, et ta photo n\\'est jamais conservée (analysée en mémoire puis immédiatement jetée). Le badge n\\'est accordé que si l\\'IA estime un âge nettement au-dessus de 18 ans, avec une marge de sécurité.'},
   {version:'4.54.0',category:'feature',date:'30 août 2026',time:'20:20',title:'🌐 116 langues, détection automatique par pays, traduction de toute l\\'interface',
@@ -7882,7 +7884,14 @@ function applyI18n(){
    du nœud est déjà exactement cette sortie, on ne fait rien. */
 let autoTranslateObserver=null;
 const AT_NODE_STATE=new WeakMap();
-const AT_DENY_SELECTOR='.bub, .row .info .n, .row .info .p, .userbar .n, .pc-custom-status, .rp-name, .rp-tag, pre, code, [contenteditable], [data-i18n-skip], input, textarea, .msgs .msg, .cr-textchat-panel .msgs, .lang-opt, .emoji-picker-pop, .qr-login-frame, .cvs-tile-name, .gcb-vtile-name, .gcb-p-name, .srv-voice-member-name, .svc-present-name, .srv-item-name, .srv-item-sub, .srv-chan-name, .srv-detail-desc, .srv-cat-label';
+// script/style/noscript/template EN PREMIER : un TreeWalker(SHOW_TEXT) ne
+// connaît pas la sémantique HTML — sans cette exclusion explicite, un
+// parcours sur document.body descendrait aussi dans le texte des balises
+// de script (le code source de l'appli elle-même, plus d'un million de
+// caractères) et tenterait de le "traduire" comme n'importe quel texte
+// visible. Repéré en relisant le code avant déploiement, jamais vu en
+// production, mais aurait été un vrai désastre.
+const AT_DENY_SELECTOR='script, style, noscript, template, .bub, .row .info .n, .row .info .p, .userbar .n, .pc-custom-status, .rp-name, .rp-tag, pre, code, [contenteditable], [data-i18n-skip], [data-i18n], [data-i18n-title], [data-i18n-placeholder], input, textarea, .msgs .msg, .cr-textchat-panel .msgs, .lang-opt, .emoji-picker-pop, .qr-login-frame, .cvs-tile-name, .gcb-vtile-name, .gcb-p-name, .srv-voice-member-name, .svc-present-name, .srv-item-name, .srv-item-sub, .srv-chan-name, .srv-detail-desc, .srv-cat-label';
 let atTranslationMemory={};
 function atLoadMemory(lang){
   if(atTranslationMemory[lang])return atTranslationMemory[lang];
@@ -7961,15 +7970,31 @@ function atScan(root,lang){
 }
 function initAutoTranslate(){
   const lang=(appPrefs&&appPrefs.language)||'fr';
-  if(I18N[lang]){
+  // 'fr' est la langue SOURCE de toutes les chaînes codées en dur — jamais
+  // rien à traduire dans ce cas, contrairement aux 5 autres langues du
+  // dictionnaire codé en dur (en/es/pt/de/it) : leur dictionnaire ne couvre
+  // qu'un socle d'une quarantaine de clés (nav, écran de connexion, titres
+  // de réglages) — tout le reste du site (panneaux de paramètres, modales,
+  // conversations, salons de serveur…) a besoin d'auto-traduction tout
+  // autant qu'une langue "non couverte". Les éléments [data-i18n] sont
+  // explicitement exclus (voir AT_DENY_SELECTOR) puisqu'ils reçoivent déjà
+  // la traduction exacte du dictionnaire — inutile et parfois contre-
+  // productif de les repasser aussi par l'IA.
+  if(lang==='fr'){
     if(autoTranslateObserver){autoTranslateObserver.disconnect();autoTranslateObserver=null;}
     return;
   }
-  ['app','stage'].forEach(function(id){const el=\$(id);if(el)atScan(el,lang);});
+  // document.body, pas juste #app/#stage : la quasi-totalité des modales et
+  // panneaux du site (paramètres, profil, signalement, consentement OAuth,
+  // approbation QR…) sont des enfants DIRECTS de <body>, PAS de #app —
+  // s'en tenir à #app/#stage laissait tout ce qui s'affiche en overlay
+  // intégralement en français, quelle que soit la langue choisie (bug
+  // remonté par un utilisateur : "le site reste toujours en français").
+  atScan(document.body,lang);
   if(autoTranslateObserver)autoTranslateObserver.disconnect();
   autoTranslateObserver=new MutationObserver(function(mutations){
     const curLang=(appPrefs&&appPrefs.language)||'fr';
-    if(I18N[curLang])return;
+    if(curLang==='fr')return;
     const roots=new Set();
     mutations.forEach(function(m){
       if(m.type==='characterData')atProcessNode(m.target,curLang);
@@ -7982,10 +8007,7 @@ function initAutoTranslate(){
     });
     roots.forEach(function(r){atScan(r,curLang);});
   });
-  ['app','stage'].forEach(function(id){
-    const el=\$(id);
-    if(el)autoTranslateObserver.observe(el,{subtree:true,childList:true,characterData:true});
-  });
+  autoTranslateObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
 }
 
 function applyAppPrefs(){
