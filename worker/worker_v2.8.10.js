@@ -1790,9 +1790,32 @@ html.xultra-restoring #stage{visibility:hidden}
 .field-grow{flex:1;min-width:0}
 .field-tag{width:82px;flex-shrink:0}
 .field-tag input{padding:0 10px;text-align:center;letter-spacing:.05em}
-.field label{display:block;font-size:.68rem;font-weight:700;color:#9a8fb0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.04em}
-.field input{width:100%;height:42px;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2ebff;padding:0 14px;outline:0;transition:border-color .15s}
-.field input:focus{border-color:#8b5cf6}
+.field label{display:block;font-size:.74rem;font-weight:700;color:#b3a6cf;margin-bottom:5px}
+.field input{width:100%;height:44px;border-radius:11px;border:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.25);color:#f2ebff;padding:0 14px;outline:0;transition:border-color .15s,box-shadow .15s}
+.field input:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.18)}
+.field-pw-wrap{position:relative}
+.field-pw-wrap input{padding-right:42px}
+.field-pw-toggle{position:absolute;right:4px;top:0;height:44px;width:38px;display:flex;align-items:center;justify-content:center;color:#9a8fb0;font-size:.95rem;background:transparent;border:0;cursor:pointer}
+.field-pw-toggle:hover{color:#e9d5ff}
+.reg-section-div{display:flex;align-items:center;gap:10px;margin:12px 0 8px;color:#7a6d94;font-size:.7rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+.reg-section-div::before,.reg-section-div::after{content:'';flex:1;height:1px;background:rgba(167,139,250,.15)}
+.qr-login-block{margin-top:10px}
+.qr-login-toggle{width:100%;display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(167,139,250,.18);color:#c4b5fd;font-weight:700;font-size:.82rem;cursor:pointer;transition:background .15s ease}
+.qr-login-toggle:hover{background:rgba(255,255,255,.08)}
+.qr-login-toggle-ico{font-size:1rem}
+.qr-login-toggle-txt{flex:1;text-align:left}
+.qr-login-toggle-chev{transition:transform .2s ease;color:#7a6d94;font-size:1.1rem}
+.qr-login-toggle.open .qr-login-toggle-chev{transform:rotate(90deg)}
+.qr-login-panel{margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:10px;animation:qrPanelIn .18s ease}
+.qr-login-panel.hidden{display:none}
+@keyframes qrPanelIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.qr-login-card{padding:12px;border-radius:16px;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);box-shadow:0 8px 26px rgba(124,58,237,.35);line-height:0}
+.qr-login-frame{width:168px;height:168px;background:#fff8f0;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.qr-login-frame svg{width:100%;height:100%;display:block}
+.qr-login-hint{font-size:.72rem;color:#9a8fb0;text-align:center;max-width:260px;line-height:1.4}
+.qr-login-refresh{width:168px;height:3px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.qr-login-refresh-bar{height:100%;width:100%;background:linear-gradient(90deg,#7c3aed,#ec4899);transform-origin:left;transition:transform 1s linear}
+.qr-approve-user{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.04);margin:10px 0}
 .field select,.field textarea{width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2ebff;padding:10px 14px;outline:0;transition:border-color .15s;font:inherit;resize:vertical}
 .field select{height:42px}
 .field select:focus,.field textarea:focus{border-color:#8b5cf6}
@@ -3665,7 +3688,7 @@ a.bug-att-item{display:block}
     </div>
     <form id="pane-login" autocomplete="on">
       <div class="field"><label data-i18n="auth_email_or_tag">Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" data-i18n-placeholder="auth_email_or_tag_ph" placeholder="toi@exemple.com ou pseudo#1234"/></div>
-      <div class="field"><label data-i18n="auth_password">Mot de passe</label><input id="in-pass" type="password" name="password" autocomplete="current-password"/></div>
+      <div class="field"><label data-i18n="auth_password">Mot de passe</label><div class="field-pw-wrap"><input id="in-pass" type="password" name="password" autocomplete="current-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
       <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0" data-i18n="auth_forgot_password">Mot de passe oublié ?</button>
       <label class="remember-row" for="in-remember">
         <input type="checkbox" id="in-remember" checked/>
@@ -3675,6 +3698,18 @@ a.bug-att-item{display:block}
       <button type="submit" class="btn-main" id="btn-login" data-i18n="auth_enter">Entrer</button>
       <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔑 Se connecter avec une clé d’accès</button>
     </form>
+    <div class="qr-login-block" id="qr-login-block">
+      <button type="button" class="qr-login-toggle" id="qr-login-toggle">
+        <span class="qr-login-toggle-ico">📱</span>
+        <span class="qr-login-toggle-txt">Connexion instantanée par QR code</span>
+        <span class="qr-login-toggle-chev">›</span>
+      </button>
+      <div class="qr-login-panel hidden" id="qr-login-panel">
+        <div class="qr-login-card"><div class="qr-login-frame" id="qr-login-frame"></div></div>
+        <div class="qr-login-hint">Ouvre l’appareil photo sur ton téléphone déjà connecté à X1 et scanne ce code.</div>
+        <div class="qr-login-refresh"><div class="qr-login-refresh-bar" id="qr-login-refresh-bar"></div></div>
+      </div>
+    </div>
     <form id="pane-register" class="hidden" autocomplete="on">
       <div class="reg-preview">
         <div class="rp-banner" id="rp-banner" title="Ajouter une bannière (optionnel)">
@@ -3698,8 +3733,9 @@ a.bug-att-item{display:block}
         <div class="field field-grow"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
         <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
       </div>
+      <div class="reg-section-div"><span>Identifiants</span></div>
       <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
-      <div class="field"><label>Mot de passe</label><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/></div>
+      <div class="field"><label>Mot de passe</label><div class="field-pw-wrap"><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass2" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
       <div class="pw-strength" id="pw-strength">
         <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
         <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
@@ -4302,6 +4338,19 @@ a.bug-att-item{display:block}
   </div>
 </div>
 
+<div class="overlay hidden" id="modal-qr-approve">
+  <div class="modal-box" style="text-align:center">
+    <div class="oauth-consent-icon">📱</div>
+    <h3>Connecter un nouvel appareil ?</h3>
+    <div class="call-sub">Quelqu’un scanne un code de connexion sur xultra.space depuis un ordinateur ou un autre appareil. Confirme uniquement si c’est bien toi.</div>
+    <div class="qr-approve-user" id="qr-approve-user"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button type="button" class="set-mini-btn" id="qr-approve-deny" style="flex:1">Refuser</button>
+      <button type="button" class="btn-main" id="qr-approve-allow" style="flex:1">Connecter</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay hidden" id="modal-call-settings">
   <div class="modal-box settings-modal">
     <button type="button" class="modal-close" id="cs-close">✕</button>
@@ -4742,6 +4791,7 @@ a.bug-att-item{display:block}
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite@15.0.0" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/livekit-client@2/dist/livekit-client.umd.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" crossorigin="anonymous"></script>
 <script>
 window.__awReady=false;
 (function poll(){
@@ -5231,8 +5281,9 @@ document.querySelectorAll('.tabs button').forEach(function(b){
       const reg=b.dataset.tab==='register';
       \$('pane-login').classList.toggle('hidden',reg);
       \$('pane-register').classList.toggle('hidden',!reg);
+      if(\$('qr-login-block'))\$('qr-login-block').classList.toggle('hidden',reg);
       showErrTxt('');
-      if(reg){regShownAt=Date.now();updateRegPreview();renderTurnstile('register');}
+      if(reg){regShownAt=Date.now();updateRegPreview();renderTurnstile('register');qrLoginCollapse();}
       else{renderTurnstile('login');}
     }catch(e){xlog('tab_click_error',{msg:(e&&e.message)||String(e)});}
   });
@@ -5319,6 +5370,15 @@ if(\$('in-tag')){
     updateRegPreview();
   });
 }
+document.querySelectorAll('[data-pw-toggle]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    const input=\$(btn.getAttribute('data-pw-toggle'));if(!input)return;
+    const showing=input.type==='text';
+    input.type=showing?'password':'text';
+    btn.textContent=showing?'👁':'🙈';
+    btn.title=showing?'Afficher le mot de passe':'Masquer le mot de passe';
+  });
+});
 if(\$('reg-tag-random'))\$('reg-tag-random').addEventListener('click',function(e){e.preventDefault();randomizeRegTag();});
 if(\$('rp-av-wrap'))\$('rp-av-wrap').addEventListener('click',function(){if(\$('reg-file-av'))\$('reg-file-av').click()});
 if(\$('reg-file-av'))\$('reg-file-av').addEventListener('change',function(){
@@ -5449,6 +5509,103 @@ function readSession(){
 function readStoredJwt(){
   try{return localStorage.getItem('xultra_jwt');}catch(e){return null}
 }
+/* ===== Connexion instantanée par QR code (écran de connexion) — voir
+   /api/auth/qr/{create,approve,poll} côté Worker pour le détail du protocole
+   (jeton à usage unique, 90s d'expiration, aucun mot de passe transmis). Le
+   QR est dessiné entièrement côté client (librairie qrcode-generator, aucune
+   image ne part vers un service tiers) pour rester aux couleurs de X1. */
+let qrLoginToken=null,qrLoginPollInterval=null,qrLoginRotateTimeout=null,qrLoginActive=false;
+const QR_LOGIN_PERIOD_MS=60000;
+function renderQrCodeSvg(targetEl,text){
+  if(!targetEl||typeof qrcode==='undefined')return;
+  try{
+    const qr=qrcode(0,'M');
+    qr.addData(text);
+    qr.make();
+    const count=qr.getModuleCount();
+    const cell=6,margin=2;
+    const size=(count+margin*2)*cell;
+    let path='';
+    for(let r=0;r<count;r++){
+      for(let c=0;c<count;c++){
+        if(qr.isDark(r,c)){
+          const x=(c+margin)*cell,y=(r+margin)*cell;
+          path+='M'+x+','+y+'h'+cell+'v'+cell+'h-'+cell+'z';
+        }
+      }
+    }
+    targetEl.innerHTML='<svg viewBox="0 0 '+size+' '+size+'" xmlns="http://www.w3.org/2000/svg"><rect width="'+size+'" height="'+size+'" fill="#fff8f0"/><path d="'+path+'" fill="#1a1030"/></svg>';
+  }catch(e){}
+}
+async function qrLoginCreateToken(){
+  try{
+    const r=await fetch('/api/auth/qr/create',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const j=await r.json();
+    return (j&&j.ok&&j.token)||null;
+  }catch(e){return null}
+}
+async function qrLoginRotate(){
+  if(!qrLoginActive)return;
+  const token=await qrLoginCreateToken();
+  if(!qrLoginActive||!token)return;
+  qrLoginToken=token;
+  renderQrCodeSvg(\$('qr-login-frame'),location.origin+'/?qrlogin='+token);
+  const bar=\$('qr-login-refresh-bar');
+  if(bar){
+    bar.style.transition='none';bar.style.transform='scaleX(1)';
+    void bar.offsetWidth;
+    bar.style.transition='transform '+(QR_LOGIN_PERIOD_MS/1000)+'s linear';
+    bar.style.transform='scaleX(0)';
+  }
+  if(qrLoginRotateTimeout)clearTimeout(qrLoginRotateTimeout);
+  qrLoginRotateTimeout=setTimeout(qrLoginRotate,QR_LOGIN_PERIOD_MS);
+}
+async function qrLoginPollTick(){
+  if(!qrLoginActive||!qrLoginToken)return;
+  try{
+    const r=await fetch('/api/auth/qr/poll',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:qrLoginToken})});
+    const j=await r.json();
+    if(!qrLoginActive||!j||!j.ok)return;
+    if(j.status==='approved'&&j.secret){
+      qrLoginStop();
+      applySession(j.secret,j.jwt);
+      xlog('login_qr_ok',{});
+      await enterApp();
+    }
+    // 'expired' est normal entre deux rotations (fenêtre de quelques
+    // secondes autour de la limite de 90s côté serveur vs 60s côté
+    // affichage) — qrLoginRotate() est déjà programmé pour reprendre la
+    // main tout seul, pas besoin de forcer une deuxième rotation ici.
+  }catch(e){}
+}
+function qrLoginStart(){
+  qrLoginActive=true;
+  qrLoginRotate();
+  if(qrLoginPollInterval)clearInterval(qrLoginPollInterval);
+  qrLoginPollInterval=setInterval(qrLoginPollTick,2500);
+}
+function qrLoginStop(){
+  qrLoginActive=false;qrLoginToken=null;
+  if(qrLoginPollInterval){clearInterval(qrLoginPollInterval);qrLoginPollInterval=null;}
+  if(qrLoginRotateTimeout){clearTimeout(qrLoginRotateTimeout);qrLoginRotateTimeout=null;}
+}
+function qrLoginCollapse(){
+  qrLoginStop();
+  const panel=\$('qr-login-panel'),toggle=\$('qr-login-toggle');
+  if(panel)panel.classList.add('hidden');
+  if(toggle)toggle.classList.remove('open');
+}
+if(\$('qr-login-toggle'))\$('qr-login-toggle').addEventListener('click',function(){
+  const panel=\$('qr-login-panel');if(!panel)return;
+  const opening=panel.classList.contains('hidden');
+  if(opening){
+    panel.classList.remove('hidden');
+    this.classList.add('open');
+    qrLoginStart();
+  }else{
+    qrLoginCollapse();
+  }
+});
 async function fetchMe(){
   const secret=readSession();
   const jwt=readStoredJwt();
@@ -5974,6 +6131,40 @@ async function enterApp(e2ePassword){
     if(routeToDeepLink(location.href))history.replaceState(null,'',location.pathname);
   }catch(e){}
   try{maybeShowOauthConsent();}catch(e){}
+  try{maybeShowQrLoginApproval();}catch(e){}
+}
+// ===== Connexion par QR code : confirmation côté appareil déjà connecté —
+// on arrive ici depuis un lien https://xultra.space/?qrlogin=<jeton> ouvert
+// en scannant le QR affiché sur l'écran de connexion d'un AUTRE appareil.
+// Ne s'affiche qu'une fois connecté (sinon rien à confirmer avec) — même
+// principe que maybeShowOauthConsent() juste au-dessus, revérifié ici juste
+// après enterApp(). Le jeton est retiré de l'URL dans tous les cas, pour ne
+// pas redéclencher la boîte de dialogue à un simple rechargement de page.
+function maybeShowQrLoginApproval(){
+  const params=new URLSearchParams(location.search);
+  const token=params.get('qrlogin')||'';
+  if(!token)return;
+  history.replaceState(null,'',location.pathname);
+  if(!me){showToast('Connecte-toi sur ce téléphone pour valider cette connexion, puis rescanne le QR code.','error');return}
+  const userBox=\$('qr-approve-user');
+  if(userBox){
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Toi';
+    const av=meProfile&&safeUrl(meProfile.avatar);
+    userBox.innerHTML='<span class="av" style="width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800">'+(av?'<img src="'+esc(av)+'" alt="" style="width:100%;height:100%;object-fit:cover">':esc(ini(name)))+'</span><span style="font-weight:700;font-size:.85rem">Connexion sur le compte de '+esc(name)+'</span>';
+  }
+  \$('modal-qr-approve').classList.remove('hidden');
+  const allowBtn=\$('qr-approve-allow'),denyBtn=\$('qr-approve-deny');
+  function close(){\$('modal-qr-approve').classList.add('hidden');}
+  if(allowBtn)allowBtn.onclick=async function(){
+    allowBtn.disabled=true;allowBtn.textContent='Connexion…';
+    try{
+      await authPost('/api/auth/qr/approve',{token:token});
+      close();
+      showToast('Appareil connecté !');
+    }catch(e){showToast((e&&e.message)||'Ce code a expiré, réessaie avec un nouveau QR code.','error');}
+    allowBtn.disabled=false;allowBtn.textContent='Connecter';
+  };
+  if(denyBtn)denyBtn.onclick=close;
 }
 // ===== "Se connecter avec X1" — écran de consentement côté visiteur =====
 // Redirigé ici depuis /oauth/authorize?client_id=...&redirect_uri=...&state=...
@@ -6602,6 +6793,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.53.0',category:'feature',date:'30 août 2026',time:'18:45',title:'📱 Connexion par QR code, mot de passe visible, clavier mobile qui ne se ferme plus',
+    body:'Nouveau sur l\\'écran de connexion : "Connexion instantanée par QR code" — scanne-le avec ton téléphone déjà connecté à X1 pour te connecter à l\\'ordinateur (ou tout autre appareil) sans retaper ton mot de passe, avec une confirmation à valider sur ton téléphone avant que la connexion ait vraiment lieu. Le code se renouvelle tout seul toutes les 60 secondes. Ajouté aussi : un bouton 👁 pour afficher/masquer le mot de passe (connexion et inscription), et l\\'inscription gagne une section "Identifiants" mieux séparée du profil. Corrigé, suite à un retour : sur mobile, envoyer un message (DM, salon de serveur ou Chatroulette) fermait le clavier à chaque fois — il reste maintenant ouvert pour enchaîner sans avoir à retoucher le champ.'},
   {version:'4.52.0',category:'fix',date:'30 août 2026',time:'17:30',title:'🎲 Chatroulette en vidéo plein écran + doublons corrigés en salon vocal',
     body:'Chatroulette change complètement de visage sur mobile : ta caméra et celle de la personne en face prennent maintenant tout l\\'écran, empilées en grand (l\\'inconnu en haut, toi en bas), avec un rail de boutons flottant (🚩 Signaler, ➕ Ami, ⏭️ Suivant, ⏹️ Arrêter, 💬 Chat) et une ligne de réactions rapides en bas qui s\\'envoient en direct à l\\'autre personne. Le chat texte devient un tiroir optionnel plutôt que de monopoliser l\\'écran par défaut. Corrigé au passage, suite à un signalement : rejoindre un salon vocal de serveur ouvre à nouveau directement les caméras et la liste des présents (plus d\\'étape intermédiaire), et un bug de fond qui pouvait faire apparaître ton propre compte dupliqué 2 ou 3 fois dans la liste d\\'un salon (une course entre plusieurs rafraîchissements de présence qui se chevauchaient) est corrigé.'},
   {version:'4.51.0',category:'design',date:'30 août 2026',time:'16:00',title:'🎙️ Salon vocal de serveur repensé façon Discord',
@@ -13397,6 +13590,7 @@ async function sendMessage(){
       await handleFileAttach(file,'auto',false,0,false,text.slice(0,2000));
       clearTypingState();
     }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
+    const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
     return;
   }
   if(!text||!activeDm||!me)return;
@@ -13419,6 +13613,12 @@ async function sendMessage(){
           if(r.ephemeral)showBotEphemeralReply(r.content,r.embed,'msgs');
           else{await appendNewMessages();await loadDms();if(view==='dms')renderDms();}
         }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu à temps','error');input.value=text;}
+        // Sur mobile, envoyer un message avec le bouton ➤ retire le focus du
+        // champ de saisie (comportement natif du navigateur au clic sur un
+        // bouton) et ferme le clavier virtuel — le remettre au premier plan
+        // juste après garde le clavier ouvert pour enchaîner les messages
+        // sans avoir à retaper dessus à chaque fois.
+        const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
         return;
       }
     }
@@ -13430,6 +13630,7 @@ async function sendMessage(){
     await postMessage({text:text.slice(0,2000),type:'text'},text,keyCtx);
     clearTypingState();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
+  const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
 }
 if(\$('msg-input'))wireSlashCommandAutocomplete(\$('msg-input'),activeDmBotCommands);
 if(\$('btn-emoji'))\$('btn-emoji').addEventListener('click',function(e){
@@ -15296,6 +15497,7 @@ async function crSendMessage(){
   input.value='';input.dispatchEvent(new Event('input'));
   try{await authPost('/api/chatroulette/messages/send',{sessionId:crSession.\$id,text:text.slice(0,2000)});}
   catch(e){showToast((e&&e.message)||'Erreur','error');}
+  const freshInput=\$('cr-input');if(freshInput)freshInput.focus();
 }
 function renderCrMessages(){
   const box=\$('cr-msgs');if(!box)return;
@@ -21655,6 +21857,7 @@ async function sendServerChannelMessage(){
         if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
         if(r.ephemeral)showBotEphemeralReply(r.content,r.embed);
       }catch(e){showToast((e&&e.message)||'Le bot n\\'a pas répondu à temps','error');input.value=text;}
+      const freshInput=\$('srv-chan-input');if(freshInput)freshInput.focus();
       return;
     }
   }
@@ -21667,6 +21870,11 @@ async function sendServerChannelMessage(){
     if(replyToId)clearReplyTarget('channel');
   }
   catch(e){if(!handleRulesGateError(e))showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
+  // Même correctif que sendMessage() côté DM : sur mobile, le clic sur ➤
+  // fait perdre le focus au champ (comportement natif du navigateur) et
+  // ferme le clavier — on le remet au premier plan pour enchaîner sans
+  // avoir à retoucher le champ à chaque message.
+  const freshInput=\$('srv-chan-input');if(freshInput)freshInput.focus();
 }
 async function sendServerSticker(stickerId){
   if(!activeChannel)return;
@@ -31219,6 +31427,91 @@ async function handle(request, event) {
         ok: false,
         error: (e && e.message) || "Identifiants invalides"
       }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ===== Connexion par QR code (façon WhatsApp/Telegram Web) : l'écran de
+  // connexion (jamais authentifié) affiche un code qui encode juste un jeton
+  // aléatoire (122 bits d'entropie, aucun autre secret) — le scanner avec un
+  // téléphone déjà connecté à X1 ouvre cette même page avec ?qrlogin=<jeton>,
+  // qui déclenche un écran de confirmation (maybeShowQrLoginApproval, côté
+  // client) plutôt qu'une connexion automatique. Une fois confirmé, l'écran
+  // d'origine (qui sonde /poll toutes les ~2.5s) reçoit une vraie session
+  // Appwrite, mintée côté serveur via l'API admin "créer une session pour cet
+  // utilisateur" (aucun mot de passe transmis ni requis). Jeton à usage
+  // unique (le document est supprimé dès qu'il est consommé) et expire de
+  // lui-même après 90s, que quelqu'un l'utilise ou non.
+  const QR_LOGIN_TTL_MS = 90000;
+  if (path === "/api/auth/qr/create" && request.method === "POST") {
+    try {
+      const token = crypto.randomUUID().replace(/-/g, "");
+      await awFetch("/databases/" + AW_DB + "/collections/qr_login_sessions/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { token: token, status: "pending", uid: "" }, permissions: [] }
+      });
+      return new Response(JSON.stringify({ ok: true, token: token }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/auth/qr/approve" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const token = String((body && body.token) || "");
+      if (!token) throw new Error("Jeton manquant");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/qr_login_sessions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "token", values: [token] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const doc = (found.documents || [])[0];
+      if (!doc || doc.status !== "pending" || (Date.now() - new Date(doc.$createdAt).getTime()) > QR_LOGIN_TTL_MS) {
+        throw new Error("Ce code a expiré, réessaie avec un nouveau QR code.");
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/qr_login_sessions/documents/" + doc.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { status: "approved", uid: String(acc.$id) } }
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/auth/qr/poll" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const token = String((body && body.token) || "");
+      if (!token) throw new Error("Jeton manquant");
+      const found = await awFetch("/databases/" + AW_DB + "/collections/qr_login_sessions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "token", values: [token] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const doc = (found.documents || [])[0];
+      if (!doc || (Date.now() - new Date(doc.$createdAt).getTime()) > QR_LOGIN_TTL_MS) {
+        return new Response(JSON.stringify({ ok: true, status: "expired" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      if (doc.status === "pending") {
+        return new Response(JSON.stringify({ ok: true, status: "pending" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      if (doc.status === "approved" && doc.uid) {
+        // Jeton à usage unique : on le supprime AVANT de renvoyer la session,
+        // pour qu'un deuxième sondage concurrent (ou une tentative de rejeu)
+        // tombe sur "introuvable" plutôt que de recevoir une deuxième session
+        // valide pour le même code.
+        await awFetch("/databases/" + AW_DB + "/collections/qr_login_sessions/documents/" + doc.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+        const sess = await awFetch("/users/" + doc.uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+        const secret = sess && sess.secret;
+        if (!secret) throw new Error("Connexion impossible");
+        let jwt = null;
+        try {
+          const jwtRes = await awFetch("/account/jwts", { method: "POST", body: {}, headers: { "X-Appwrite-Session": secret } });
+          jwt = (jwtRes && (jwtRes.jwt || jwtRes.$id)) || null;
+        } catch (eJwt) {}
+        return new Response(JSON.stringify({ ok: true, status: "approved", secret: secret, jwt: jwt, userId: doc.uid }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      return new Response(JSON.stringify({ ok: true, status: "expired" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
