@@ -2170,14 +2170,46 @@ html.xultra-restoring #stage{visibility:hidden}
 .cr-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;height:100%;padding:20px}
 .cr-spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);border-top-color:#a78bfa;animation:crSpin .8s linear infinite}
 @keyframes crSpin{to{transform:rotate(360deg)}}
-.cr-chat-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
-.cr-chat-head .av{width:34px;height:34px;border-radius:50%;background:var(--elev);display:flex;align-items:center;justify-content:center;overflow:hidden;font-weight:700;font-size:.85rem}
-.cr-chat-head .av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.cr-chat-head .n{font-weight:700;font-size:.9rem}
-.cr-chat-head .spacer{flex:1}
-#cr-call-btn.on{color:#22c55e}
 .casino-balance{font-weight:800;font-size:.95rem;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);border-radius:999px;padding:6px 14px;flex-shrink:0}
 #chatroulette-overlay .msgs{padding:12px 14px}
+/* ===== Chatroulette : écran vidéo façon "chat au hasard" mobile — deux
+   grandes tuiles empilées (inconnu en haut, moi en bas), rail de contrôles
+   flottant à droite, ligne de réactions rapides en bas. ===== */
+.cr-video-shell{display:flex;flex-direction:column;height:100%;min-height:0;position:relative}
+.cr-topbar{display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0}
+.cr-topbar-title{font-weight:800;font-size:.92rem}
+.cr-topbar-status{margin-left:auto;font-size:.72rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50vw}
+.cr-topbar-status.cr-status-tap{cursor:pointer;color:#c4b5fd;text-decoration:underline}
+.cr-icon-btn{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0}
+.cr-icon-btn:hover{background:var(--elev);color:#f2ebff}
+.cr-video-stack{position:relative;flex:1;display:flex;flex-direction:column;gap:8px;padding:0 8px 8px;min-height:0}
+.cr-vbox{position:relative;flex:1;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#1a1030,#0f0818);min-height:0}
+.cr-vbox video{width:100%;height:100%;object-fit:cover;display:block}
+.cr-vbox-mine video{transform:scaleX(-1)}
+.cr-vbox-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;padding:12px;text-align:center}
+.cr-vbox-placeholder.hidden{display:none}
+.cr-vbox-av{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:1.25rem;overflow:hidden;flex-shrink:0}
+.cr-vbox-av img{width:100%;height:100%;object-fit:cover}
+.cr-vbox-hint{font-size:.74rem;color:var(--muted)}
+.cr-vbox-label{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:1;pointer-events:none}
+.cr-side-rail{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:2}
+.cr-rail-btn{width:44px;height:44px;border-radius:50%;border:none;background:rgba(10,6,18,.55);backdrop-filter:blur(6px);color:#fff;font-size:1.05rem;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.cr-rail-btn:hover{background:rgba(124,58,237,.55)}
+.cr-rail-btn.danger{background:rgba(239,68,68,.85)}
+.cr-rail-btn.danger:hover{background:#dc2626}
+.cr-rail-btn.on{background:rgba(124,58,237,.7)}
+.cr-reactions-row{display:flex;gap:8px;padding:8px 12px;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch}
+.cr-reactions-row::-webkit-scrollbar{display:none}
+.cr-reaction-btn{width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.06);font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;transition:transform .1s ease}
+.cr-reaction-btn:hover{background:rgba(255,255,255,.12)}
+.cr-reaction-btn:active{transform:scale(.88)}
+.cr-reaction-fly{position:absolute;font-size:1.6rem;left:50%;bottom:10%;transform:translateX(-50%);pointer-events:none;z-index:6;animation:crReactionFly 1.6s ease-out forwards}
+@keyframes crReactionFly{0%{opacity:1;transform:translate(-50%,0) scale(.7)}20%{transform:translate(-50%,-20px) scale(1.15)}100%{opacity:0;transform:translate(calc(-50% + var(--cr-fly-x,0px)),-180px) scale(1)}}
+.cr-textchat-panel{position:absolute;left:8px;right:8px;bottom:8px;height:48%;background:#120b1e;border:1px solid rgba(167,139,250,.2);display:flex;flex-direction:column;z-index:5;border-radius:16px;box-shadow:0 -8px 30px rgba(0,0,0,.45);overflow:hidden}
+.cr-textchat-panel.hidden{display:none}
+.cr-textchat-head{display:flex;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-shrink:0;font-weight:700;font-size:.8rem;color:#e9d5ff}
+.cr-textchat-head .spacer{flex:1}
+.cr-textchat-panel .msgs{flex:1;min-height:0;overflow-y:auto}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
@@ -6570,6 +6602,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.52.0',category:'fix',date:'30 août 2026',time:'17:30',title:'🎲 Chatroulette en vidéo plein écran + doublons corrigés en salon vocal',
+    body:'Chatroulette change complètement de visage sur mobile : ta caméra et celle de la personne en face prennent maintenant tout l\\'écran, empilées en grand (l\\'inconnu en haut, toi en bas), avec un rail de boutons flottant (🚩 Signaler, ➕ Ami, ⏭️ Suivant, ⏹️ Arrêter, 💬 Chat) et une ligne de réactions rapides en bas qui s\\'envoient en direct à l\\'autre personne. Le chat texte devient un tiroir optionnel plutôt que de monopoliser l\\'écran par défaut. Corrigé au passage, suite à un signalement : rejoindre un salon vocal de serveur ouvre à nouveau directement les caméras et la liste des présents (plus d\\'étape intermédiaire), et un bug de fond qui pouvait faire apparaître ton propre compte dupliqué 2 ou 3 fois dans la liste d\\'un salon (une course entre plusieurs rafraîchissements de présence qui se chevauchaient) est corrigé.'},
   {version:'4.51.0',category:'design',date:'30 août 2026',time:'16:00',title:'🎙️ Salon vocal de serveur repensé façon Discord',
     body:'Rejoindre un salon vocal de serveur montre maintenant un écran de pré-jonction — qui est déjà connecté, avec avatars et pseudos, avant de cliquer sur le gros bouton vert "Rejoindre" — plutôt qu\\'une connexion automatique au simple clic sur le nom du salon. Une fois dedans : partage d\\'écran désormais possible aussi dans les salons de serveur (pas seulement en DM), avec sa propre tuile distincte de la caméra ; nouveau bouton ✋ Lever la main, visible par tout le monde en temps réel ; chaque tuile a un fond coloré propre à la personne (au lieu du même violet pour tout le monde) et une icône d\\'agrandissement ⤢ dans le coin pour rendre le clic évident ; barre de contrôle réordonnée (caméra, micro, écran, main, raccrocher) et bouton plein écran déplacé dans un petit bandeau au-dessus de la grille, avec le nom du salon.'},
   {version:'4.50.1',category:'design',date:'30 août 2026',time:'08:00',title:'🎨 X1Moji : premier passage de style, plus rond et plus mignon',
@@ -15110,7 +15144,8 @@ async function openLocationShareSheet(){
 
 /* ===== Chatroulette (appariement aléatoire entre membres, texte + appel
    vocal/vidéo facultatif à double consentement) ===== */
-let crState='landing',crSession=null,crMessages=[],crMsgUnsub=null,crSessionUnsub=null;
+let crState='landing',crSession=null,crMessages=[],crMsgUnsub=null,crSessionUnsub=null,crTextChatOpen=false,crLastSeenReactionJson='';
+const CR_REACTION_EMOJIS=['👍','❤️','😂','😮','😢','🔥','👏','😱','🎉','😍'];
 function chatroulettePartnerUid(session){
   if(!session||!me)return null;
   return String(session.uid1)===String(me.\$id)?String(session.uid2):String(session.uid1);
@@ -15178,7 +15213,12 @@ function crDialPartner(session){
 }
 async function crEnterChat(session){
   crTeardownSubs();
-  crSession=session;crState='chat';crMessages=[];
+  crSession=session;crState='chat';crMessages=[];crTextChatOpen=false;
+  // Une réaction déjà présente sur la session au moment d'y entrer (mise en
+  // relation avec quelqu'un qui a réagi juste avant qu'on rejoigne, cas
+  // limite) ne doit pas rejouer une animation immédiatement — seul un NOUVEL
+  // événement ".update" pendant qu'on est là déclenche la petite bulle.
+  crLastSeenReactionJson=session.lastReactionJson||'';
   renderChatroulette();
   try{const r=await authPost('/api/chatroulette/messages/list',{sessionId:session.\$id});crMessages=r.messages||[];}catch(e){}
   renderCrMessages();
@@ -15193,6 +15233,17 @@ async function crEnterChat(session){
     if(!eventIs(res.events,'.update'))return;
     const p=res.payload;if(!p)return;
     crSession=p;
+    // Ma propre réaction s'anime déjà instantanément côté client au clic
+    // (crSendReaction) — ici on ne rejoue l'animation que pour CELLE du
+    // partenaire, reçue via ce même abonnement déjà ouvert pour détecter la
+    // fin de session (pas de canal temps réel dédié en plus).
+    if(p.lastReactionJson&&p.lastReactionJson!==crLastSeenReactionJson){
+      crLastSeenReactionJson=p.lastReactionJson;
+      try{
+        const r=JSON.parse(p.lastReactionJson);
+        if(r&&r.uid&&String(r.uid)!==String(me.\$id))crShowReactionBurst(r.emoji);
+      }catch(e){}
+    }
     if(p.status!=='active'){
       showToast('Ton partenaire a quitté la conversation.');
       if(activeCallDoc)endCall('ended');
@@ -15212,24 +15263,29 @@ async function crEnterChat(session){
   if(String(session.uid1)===String(me.\$id))crDialPartner(session);
 }
 let crCallSyncInterval=null;
+// La caméra reste TOUJOURS une décision individuelle, jamais automatique :
+// toucher sa propre tuile vidéo (#cr-local-box) l'active/la coupe, rien
+// d'autre ne le fait pour toi — seul le point le plus sensible d'Omegle
+// (vidéo imposée à un inconnu) reste protégé. Le statut en haut sert de
+// filet de secours (mic refusé la première fois, appel raccroché par
+// erreur…) : toucher "Appel interrompu" relance l'appel, puisqu'il se
+// lance déjà tout seul à la mise en relation et n'a normalement pas besoin
+// d'intervention.
 function crSyncCallUi(){
-  const camBtn=\$('cr-cam-btn'),callBtn=\$('cr-call-btn');
-  if(!camBtn||!callBtn||!crSession)return;
+  const statusEl=\$('cr-status');
+  if(!statusEl||!crSession)return;
   const partnerUid=chatroulettePartnerUid(crSession);
-  // Une fois l'appel EFFECTIVEMENT connecté avec ce partenaire précis, on
-  // affiche un bouton caméra propre au chatroulette (plutôt que de compter
-  // sur la barre d'appel flottante générique, facile à ne pas remarquer) —
-  // activer sa caméra reste TOUJOURS une décision individuelle, jamais
-  // automatique. Le bouton "Rappeler" ne sert que de filet de secours (mic
-  // refusé la première fois, appel raccroché par erreur…) puisque l'appel
-  // se lance déjà tout seul à la mise en relation.
   const inCallWithPartner=!!(activeCallDoc&&String(callPeerUid)===String(partnerUid));
-  camBtn.classList.toggle('hidden',!inCallWithPartner);
-  callBtn.classList.toggle('hidden',inCallWithPartner||!!incomingCallDoc);
   if(inCallWithPartner){
-    const camOn=!!camSender;
-    camBtn.classList.toggle('on',camOn);
-    camBtn.title=camOn?'Couper ma caméra':'Activer ma caméra';
+    statusEl.textContent='🎙️ Connecté';
+    statusEl.onclick=null;statusEl.classList.remove('cr-status-tap');
+  }else if(incomingCallDoc||activeCallDoc){
+    statusEl.textContent='Connexion…';
+    statusEl.onclick=null;statusEl.classList.remove('cr-status-tap');
+  }else{
+    statusEl.textContent='Appel interrompu — toucher pour rappeler';
+    statusEl.classList.add('cr-status-tap');
+    statusEl.onclick=function(){if(crSession)crDialPartner(crSession);};
   }
 }
 async function crSendMessage(){
@@ -15249,6 +15305,57 @@ function renderCrMessages(){
   }).join('');
   box.scrollTop=box.scrollHeight;
 }
+// Reflète camStream (moi) / remoteTiles.cam (le partenaire) dans les deux
+// grandes tuiles vidéo empilées de l'écran chatroulette — appelé depuis
+// renderVideoGrid() à chaque changement d'état vidéo de l'appel 1:1 partagé
+// (chatroulette réutilise EXACTEMENT le même appel que le reste du site,
+// juste affiché ici dans un gabarit différent). No-op si on n'est pas sur
+// l'écran de chat de chatroulette.
+function crSyncVideoTiles(){
+  if(crState!=='chat')return;
+  const localV=\$('cr-local-video'),localPh=\$('cr-local-placeholder');
+  if(localV){
+    if(camStream){
+      if(localV.srcObject!==camStream){localV.srcObject=camStream;localV.play().catch(function(){});}
+      if(localPh)localPh.classList.add('hidden');
+    }else{
+      localV.srcObject=null;
+      if(localPh)localPh.classList.remove('hidden');
+    }
+  }
+  const remoteV=\$('cr-remote-video'),remotePh=\$('cr-remote-placeholder');
+  const remoteStream=remoteTiles.cam&&remoteTiles.cam.stream;
+  if(remoteV){
+    if(remoteStream){
+      if(remoteV.srcObject!==remoteStream){remoteV.srcObject=remoteStream;remoteV.play().catch(function(){});}
+      if(remotePh)remotePh.classList.add('hidden');
+    }else{
+      remoteV.srcObject=null;
+      if(remotePh)remotePh.classList.remove('hidden');
+    }
+  }
+}
+function crShowReactionBurst(emoji){
+  const stack=\$('cr-video-stack');if(!stack||!emoji)return;
+  const el=document.createElement('div');
+  el.className='cr-reaction-fly';
+  el.textContent=emoji;
+  el.style.setProperty('--cr-fly-x',(Math.round(Math.random()*80-40))+'px');
+  el.style.left=(32+Math.random()*36)+'%';
+  stack.appendChild(el);
+  setTimeout(function(){if(el.parentElement)el.parentElement.removeChild(el);},1700);
+}
+function crSendReaction(emoji){
+  if(!crSession||CR_REACTION_EMOJIS.indexOf(emoji)<0)return;
+  crShowReactionBurst(emoji);
+  authPost('/api/chatroulette/react',{sessionId:crSession.\$id,emoji:emoji}).catch(function(){});
+}
+function crToggleTextChat(){
+  crTextChatOpen=!crTextChatOpen;
+  const panel=\$('cr-textchat-panel');if(panel)panel.classList.toggle('hidden',!crTextChatOpen);
+  const btn=\$('cr-chat-toggle-btn');if(btn)btn.classList.toggle('on',crTextChatOpen);
+  if(crTextChatOpen){renderCrMessages();const inp=\$('cr-input');if(inp)inp.focus();}
+}
 function renderChatroulette(){
   const overlay=\$('chatroulette-overlay');if(!overlay)return;
   if(crState==='landing'){
@@ -15256,7 +15363,7 @@ function renderChatroulette(){
       +'<div class="discover-body cr-center">'
       +'<div style="font-size:3rem">🎲</div>'
       +'<h3>Discute avec un membre au hasard</h3>'
-      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de X1 au hasard : chat texte ET appel vocal démarrent directement. Passe au suivant quand tu veux. La caméra reste elle toujours facultative : elle ne s\\'active jamais automatiquement, seulement si tu appuies toi-même sur 🎥.</p>'
+      +'<p class="scr-sub" style="max-width:420px">Tu es mis en relation avec un autre membre de X1 au hasard : chat texte ET appel vocal démarrent directement. Passe au suivant quand tu veux. La caméra reste elle toujours facultative : elle ne s\\'active jamais automatiquement, seulement si tu touches toi-même ta propre tuile vidéo.</p>'
       +'<p class="scr-sub" style="max-width:420px">Sois respectueux·se — le bouton 🚨 Signaler est toujours accessible et coupe immédiatement la conversation.</p>'
       +'<button type="button" class="btn-main" id="cr-start" style="width:auto;padding:14px 32px">Commencer</button>'
       +'</div>';
@@ -15272,30 +15379,70 @@ function renderChatroulette(){
     \$('cr-cancel').onclick=closeChatroulette;
     return;
   }
-  // 'chat'
+  // 'chat' — écran vidéo façon "chat au hasard" mobile : partenaire en
+  // grand en haut, moi en grand en bas, rail de contrôles flottant à droite,
+  // réactions rapides en bas ; le texte devient un tiroir optionnel (💬)
+  // plutôt que de monopoliser l'écran par défaut.
   const partnerUid=chatroulettePartnerUid(crSession);
   const p=membersCache.find(function(x){return String(x.authUserId||x.\$id)===partnerUid;});
   const name=(p&&(p.displayName||p.username))||'Membre';
   const av=p&&safeUrl(p.avatar);
-  overlay.innerHTML='<div class="cr-chat-head">'
-    +'<div class="av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div>'
-    +'<div class="n">'+esc(name)+'</div><div class="spacer"></div>'
-    +'<button type="button" class="ub-btn" id="cr-call-btn" title="Rappeler">📞</button>'
-    +'<button type="button" class="ub-btn hidden" id="cr-cam-btn" title="Activer ma caméra">🎥</button>'
-    +'<button type="button" class="ub-btn" id="cr-report-btn" title="Signaler">🚨</button>'
-    +'<button type="button" class="ub-btn" id="cr-skip-btn" title="Suivant">⏭️</button>'
-    +'<button type="button" class="ub-btn" id="cr-leave-btn" title="Quitter">✕</button>'
+  const myAv=meProfile&&safeUrl(meProfile.avatar);
+  const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me&&me.name||'Toi';
+  overlay.innerHTML='<div class="cr-video-shell">'
+    +'<div class="cr-topbar">'
+      +'<button type="button" class="cr-icon-btn" id="cr-close" title="Quitter">✕</button>'
+      +'<div class="cr-topbar-title">🎲 Chatroulette</div>'
+      +'<div class="cr-topbar-status" id="cr-status">Connexion avec '+esc(name)+'…</div>'
     +'</div>'
-    +'<div class="msgs" id="cr-msgs" style="flex:1"></div>'
-    +'<div class="composer" id="cr-composer">'
-    +'<textarea id="cr-input" placeholder="Écrire à '+esc(name)+'…" rows="1" maxlength="2000"></textarea>'
-    +'<button type="button" class="composer-btn ai-fix-btn" id="cr-ai-fix" title="Corriger avec l\\'IA">✨</button>'
-    +'<button type="button" class="composer-btn" id="cr-emoji" title="Emoji">😊</button>'
-    +'<button type="button" class="send-btn" id="cr-send">➤</button>'
-    +'</div>';
+    +'<div class="cr-video-stack" id="cr-video-stack">'
+      +'<div class="cr-vbox" id="cr-remote-box">'
+        +'<video id="cr-remote-video" autoplay playsinline muted></video>'
+        +'<div class="cr-vbox-placeholder" id="cr-remote-placeholder">'
+          +'<div class="cr-vbox-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</div>'
+          +'<div class="cr-vbox-hint">Caméra désactivée</div>'
+        +'</div>'
+        +'<div class="cr-vbox-label">'+esc(name)+'</div>'
+      +'</div>'
+      +'<div class="cr-vbox cr-vbox-mine" id="cr-local-box">'
+        +'<video id="cr-local-video" autoplay playsinline muted></video>'
+        +'<div class="cr-vbox-placeholder" id="cr-local-placeholder">'
+          +'<div class="cr-vbox-av">'+(myAv?'<img src="'+esc(myAv)+'" alt="">':esc(ini(myName)))+'</div>'
+          +'<div class="cr-vbox-hint">Touche pour activer ta caméra</div>'
+        +'</div>'
+        +'<div class="cr-vbox-label">Toi</div>'
+      +'</div>'
+      +'<div class="cr-side-rail">'
+        +'<button type="button" class="cr-rail-btn" id="cr-report-btn" title="Signaler">🚩</button>'
+        +'<button type="button" class="cr-rail-btn" id="cr-friend-btn" title="Ajouter en ami">➕</button>'
+        +'<button type="button" class="cr-rail-btn" id="cr-skip-btn" title="Suivant">⏭️</button>'
+        +'<button type="button" class="cr-rail-btn danger" id="cr-leave-btn" title="Arrêter">⏹️</button>'
+        +'<button type="button" class="cr-rail-btn" id="cr-chat-toggle-btn" title="Chat">💬</button>'
+      +'</div>'
+      +'<div class="cr-textchat-panel hidden" id="cr-textchat-panel">'
+        +'<div class="cr-textchat-head">Écrire à '+esc(name)+'<div class="spacer"></div><button type="button" class="cr-icon-btn" id="cr-textchat-close">✕</button></div>'
+        +'<div class="msgs" id="cr-msgs"></div>'
+        +'<div class="composer" id="cr-composer">'
+        +'<textarea id="cr-input" placeholder="Écrire à '+esc(name)+'…" rows="1" maxlength="2000"></textarea>'
+        +'<button type="button" class="composer-btn ai-fix-btn" id="cr-ai-fix" title="Corriger avec l\\'IA">✨</button>'
+        +'<button type="button" class="composer-btn" id="cr-emoji" title="Emoji">😊</button>'
+        +'<button type="button" class="send-btn" id="cr-send">➤</button>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+    +'<div class="cr-reactions-row" id="cr-reactions-row">'
+      +CR_REACTION_EMOJIS.map(function(emo){return '<button type="button" class="cr-reaction-btn" data-cr-react="'+esc(emo)+'">'+emo+'</button>';}).join('')
+    +'</div>'
+  +'</div>';
   renderCrMessages();
-  \$('cr-call-btn').onclick=function(){if(crSession)crDialPartner(crSession);};
-  \$('cr-cam-btn').onclick=function(){toggleCamera();};
+  crSyncVideoTiles();
+  \$('cr-close').onclick=closeChatroulette;
+  \$('cr-leave-btn').onclick=closeChatroulette;
+  \$('cr-local-box').addEventListener('click',function(){toggleCamera();});
+  \$('cr-friend-btn').onclick=function(){
+    if(!partnerUid)return;
+    sendFriendRequest(partnerUid,name);
+  };
   crSyncCallUi();
   if(crCallSyncInterval)clearInterval(crCallSyncInterval);
   crCallSyncInterval=setInterval(crSyncCallUi,1000);
@@ -15316,7 +15463,8 @@ function renderChatroulette(){
       else crEnterWaiting();
     }catch(e){showToast((e&&e.message)||'Erreur','error');crState='landing';renderChatroulette();}
   };
-  \$('cr-leave-btn').onclick=closeChatroulette;
+  \$('cr-chat-toggle-btn').onclick=crToggleTextChat;
+  \$('cr-textchat-close').onclick=crToggleTextChat;
   \$('cr-send').onclick=crSendMessage;
   \$('cr-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();crSendMessage();}});
   \$('cr-emoji').addEventListener('click',function(e){
@@ -15324,6 +15472,9 @@ function renderChatroulette(){
     openEmojiPicker(\$('cr-emoji'),function(emo){const inp=\$('cr-input');inp.value+=emo;inp.focus();});
   });
   \$('cr-ai-fix').addEventListener('click',function(){aiFixText(\$('cr-input'),\$('cr-ai-fix'));});
+  overlay.querySelectorAll('[data-cr-react]').forEach(function(btn){
+    btn.addEventListener('click',function(){crSendReaction(btn.getAttribute('data-cr-react'));});
+  });
 }
 /* ===== Casino virtuel (jetons fictifs, duels PvP entre membres) ===== */
 let casinoChips=0,casinoOpenDuels=[],casinoDuelUnsub=null;
@@ -18983,6 +19134,7 @@ function renderVideoGrid(){
     if(!wrap){
       wrap=document.createElement('div');
       wrap.className='vtile';
+      wrap.setAttribute('data-tile-key',t.key);
       const video=document.createElement('video');
       video.autoplay=true;video.playsInline=true;
       /* Toujours muet : le son passe uniquement par #call-remote-audio, donc
@@ -19035,6 +19187,7 @@ function renderVideoGrid(){
   const lp=\$('lp-label');if(lp)lp.textContent=pillLabel;
   const pill=\$('live-pill');if(pill)pill.classList.toggle('show',hasVideo&&videoMasked);
   const cin=\$('cb-cinema');if(cin)cin.disabled=!hasVideo;
+  crSyncVideoTiles();
 }
 function enterCinema(){
   if(cinemaMode)return;
@@ -20728,21 +20881,37 @@ function serverChannelRowHtml(c,canManageChannels){
   return html;
 }
 let serverVoicePresenceCache={},serverVoicePresenceUnsub=null;
+// Jeton anti-course : joinVoiceRoom(), l'événement temps réel ".create" de
+// server_voice_presence ET cleanupGroupCall() peuvent chacun déclencher
+// loadServerVoicePresence() quasi simultanément (rejoindre un salon crée sa
+// propre présence, ce qui fait remonter un ".create" qui redéclenche un
+// rechargement en parallèle). Sans ce garde-fou, deux appels se chevauchant
+// pouvaient chacun repartir d'un cache vidé PUIS écrire leur résultat l'un
+// après l'autre SANS se re-vider entre les deux — la même personne finissait
+// alors dupliquée 2 ou 3 fois dans la liste (un seul document réel côté
+// Appwrite, plusieurs fois poussé dans le tableau). On construit maintenant
+// le résultat dans une variable locale et on ne l'affecte au cache global
+// que si aucun appel plus récent n'a démarré entre-temps — une réponse
+// périmée est jetée en bloc plutôt que fusionnée.
+let voicePresenceLoadToken=0;
 async function loadServerVoicePresence(){
-  serverVoicePresenceCache={};
-  if(!activeServer)return;
+  const myToken=++voicePresenceLoadToken;
+  if(!activeServer){if(myToken===voicePresenceLoadToken)serverVoicePresenceCache={};return}
   const voiceChanIds=(activeServerChannels||[]).filter(function(c){return c.type==='voice'||c.type==='stage';}).map(function(c){return c.\$id;});
-  if(!voiceChanIds.length)return;
+  if(!voiceChanIds.length){if(myToken===voicePresenceLoadToken)serverVoicePresenceCache={};return}
   try{
     const r=await db.listDocuments(DB,'server_voice_presence',[Appwrite.Query.equal('channelId',voiceChanIds),Appwrite.Query.limit(200)]);
+    if(myToken!==voicePresenceLoadToken)return;
     // Filet de sécurité identique à refreshGroupCallBadge() côté DM : une
     // présence non rafraîchie depuis plus de 2 minutes (heartbeat coupé sans
     // nettoyage propre) est traitée comme abandonnée.
     const staleCutoff=Date.now()-120000;
+    const fresh={};
     (r.documents||[]).forEach(function(d){
       if(new Date(d.\$updatedAt).getTime()<=staleCutoff)return;
-      (serverVoicePresenceCache[d.channelId]=serverVoicePresenceCache[d.channelId]||[]).push(d);
+      (fresh[d.channelId]=fresh[d.channelId]||[]).push(d);
     });
+    serverVoicePresenceCache=fresh;
   }catch(e){}
 }
 function subscribeServerVoicePresence(){
@@ -20848,11 +21017,14 @@ function renderServerChannelList(){
 function openServerChannel(channelId){
   activeChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
   if(!activeChannel)return;
-  // Un salon vocal affiche d'abord un écran de pré-jonction (qui est déjà
-  // là, qualité audio) — façon Discord — plutôt que de se connecter tout de
-  // suite : renderServerChannelContent() ne rejoint la room que si on l'est
-  // déjà (inVoiceHere), sinon il faut un clic explicite sur "Rejoindre".
   renderServerChannelContent();
+  // Un salon vocal se rejoint directement au clic sur son nom dans la liste
+  // — comme Discord — plutôt que d'exiger un second clic sur "Rejoindre"
+  // une fois la vue ouverte : on passe tout de suite aux caméras et à la
+  // liste des présents. startVoiceChannelJoin() ne fait rien si on est déjà
+  // connecté à CE salon, et refuse proprement si on est déjà dans un AUTRE
+  // salon vocal/appel.
+  if(activeChannel.type==='voice')startVoiceChannelJoin(activeChannel);
 }
 let joiningVoiceChannelId=null;
 function startVoiceChannelJoin(channel){
@@ -27493,6 +27665,36 @@ async function handle(request, event) {
         method: "POST", asAdmin: true, body: { documentId: "unique()", data: { sessionId: sessionId, uid: String(acc.$id), text: text }, permissions: perms }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Réaction rapide (façon Chamet/Holla) : un seul champ JSON réutilisé sur
+  // le document de session (jamais historisé, jamais une nouvelle collection)
+  // — le partenaire la voit via l'abonnement temps réel déjà ouvert sur CE
+  // document précis (chatroulette_sessions.documents.<id>, déjà utilisé pour
+  // détecter la fin de session), donc rien de nouveau à écouter côté client.
+  // Emoji restreint à une liste fixe : la session n'a pas de permission
+  // d'écriture cliente sur elle-même (contrairement à typingJson/viewingJson
+  // en DM), tout passe par cette route avec clé admin, donc autant fermer la
+  // porte à un texte arbitraire envoyé comme "réaction".
+  const CR_REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "😱", "🎉", "😍"];
+  if (path === "/api/chatroulette/react" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      const emoji = String((body && body.emoji) || "");
+      if (CR_REACTION_EMOJIS.indexOf(emoji) < 0) throw new Error("Réaction invalide");
+      const session = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, { asAdmin: true });
+      if (String(session.uid1) !== String(acc.$id) && String(session.uid2) !== String(acc.$id)) throw new Error("Tu ne fais pas partie de cette session");
+      if (session.status !== "active") throw new Error("Cette session est terminée");
+      await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents/" + sessionId, {
+        method: "PATCH", asAdmin: true, body: { data: { lastReactionJson: JSON.stringify({ emoji: emoji, uid: String(acc.$id), ts: Date.now() }) } }
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
