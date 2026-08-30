@@ -3060,6 +3060,17 @@ a.bug-att-item{display:block}
 .cb-av-mute{position:absolute;z-index:2;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #1a0f2e;display:grid;place-items:center;font-size:8px;line-height:1}
 .cb-av-mute.hidden{display:none}
 .group-call-bar{max-width:520px;padding-top:14px}
+.call-mini-pill{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:3100;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 8px 26px rgba(0,0,0,.45);width:min(240px,calc(100vw - 20px));box-sizing:border-box}
+.call-mini-pill.hidden{display:none}
+.cmp-body{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;padding:2px 4px 2px 2px;flex:1 1 0}
+.cmp-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:var(--elev);display:grid;place-items:center;font-size:.9rem;overflow:hidden;color:#f2ebff;font-weight:800}
+.cmp-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cmp-text{display:flex;flex-direction:column;min-width:0;text-align:left}
+.cmp-title{font-size:.76rem;font-weight:800;color:#f2ebff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.cmp-sub{font-size:.66rem;color:var(--muted);font-weight:700;white-space:nowrap}
+.cmp-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--elev);color:#f2ebff;font-size:.85rem;display:grid;place-items:center}
+.cmp-btn.danger{background:rgba(239,68,68,.22);color:#fca5a5}
+@media (max-width:640px){.call-mini-pill{top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}.cmp-title{max-width:90px}}
 .gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0}
 .gcb-video-grid.hidden{display:none}
 .gcb-vtile{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15)}
@@ -4337,6 +4348,15 @@ a.bug-att-item{display:block}
     <button type="button" class="cb-ctl" id="gcb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
     <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
   </div>
+</div>
+
+<div class="call-mini-pill hidden" id="call-mini-pill">
+  <button type="button" class="cmp-body" id="cmp-body">
+    <span class="cmp-avatar" id="cmp-avatar">📞</span>
+    <span class="cmp-text"><span class="cmp-title" id="cmp-title">Appel</span><span class="cmp-sub" id="cmp-sub"></span></span>
+  </button>
+  <button type="button" class="cmp-btn" id="cmp-mute" title="Muet">🎤</button>
+  <button type="button" class="cmp-btn danger" id="cmp-leave" title="Quitter">✕</button>
 </div>
 
 <div class="e2e-backup-banner hidden" id="e2e-backup-banner">
@@ -6501,6 +6521,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.48.0',category:'design',date:'30 août 2026',time:'00:00',title:'📞 Widgets d\\'appel repensés : plus jamais par-dessus le chat',
+    body:'Fini les barres d\\'appel qui flottaient n\\'importe où et pouvaient recouvrir une conversation ou le champ pour écrire : l\\'appel (1:1, salon de groupe en DM, ou salon vocal de serveur) s\\'intègre maintenant directement dans le fil de LA conversation appelée — entre l\\'en-tête et les messages, jamais en superposition, jamais bloquant. Dès que tu regardes autre chose, tout se réduit automatiquement en une petite pastille compacte en haut à droite de l\\'écran (avatar, nom, durée ou nombre de participants, micro et raccrocher) — un clic dessus te ramène direct dans la conversation. Les salons vocaux de serveur ont enfin, eux aussi, une trace visible quand tu navigues ailleurs dans le serveur, ce qui n\\'existait pas avant.'},
   {version:'4.47.0',category:'feature',date:'29 août 2026',time:'23:59',title:'📹 Caméra et partage d\\'écran dans les appels de groupe, Ephem enfin possible en groupe',
     body:'Le salon vocal d\\'un groupe DM a maintenant ses propres boutons 📹 caméra et 🖥️ partage d\\'écran, avec une grille vidéo qui affiche caméra et écran de tout le monde simultanément (jusqu\\'à 6 membres). Et 👻 Snap éphémère n\\'est plus limité aux conversations privées : en groupe, chaque membre peut l\\'ouvrir une fois, et l\\'expéditeur voit combien l\\'ont vu (ex. "vu par 2/4") — le fichier n\\'est réellement supprimé du serveur qu\\'une fois que tout le monde l\\'a regardé, jamais avant.'},
   {version:'4.46.0',category:'design',date:'29 août 2026',time:'23:59',title:'🛡️ Panneau admin repensé : navigation groupée, pastilles de comptage, dashboard enrichi',
@@ -11923,20 +11945,96 @@ function subscribeCallBadgeWatcher(){
     });
   }catch(e){}
 }
+// ===== Placement unifié des widgets d'appel (1:1, groupe DM, salon vocal de
+// serveur) : la grosse interface (participants, vidéo, contrôles complets)
+// ne s'affiche JAMAIS que dans le fil de LA conversation appelée elle-même —
+// embarquée entre l'en-tête et les messages, jamais en survol. Partout
+// ailleurs sur le site, seule la pastille compacte #call-mini-pill reste
+// visible (voir plus bas), pour ne plus jamais recouvrir une autre
+// conversation ni son champ de saisie. =====
 function repositionCallPanel(){
-  const bar=\$('call-bar');if(!bar||bar.classList.contains('hidden'))return;
-  const anchor=\$('call-panel-anchor');
   const app=document.getElementById('app');
   const chatVisible=window.innerWidth>640||app.classList.contains('chat-open');
-  const viewingCallDm=chatVisible&&view==='dms'&&activeDm&&callPeerUid&&activeDmPeerUid===callPeerUid;
-  if(viewingCallDm&&anchor){
-    anchor.appendChild(bar);
-    bar.classList.add('embedded');
-  } else {
-    document.body.appendChild(bar);
-    bar.classList.remove('embedded');
+  const anchor=\$('call-panel-anchor');
+  const bar=\$('call-bar');
+  if(bar&&!bar.classList.contains('hidden')){
+    const viewingCallDm=chatVisible&&view==='dms'&&activeDm&&callPeerUid&&activeDmPeerUid===callPeerUid;
+    if(viewingCallDm&&anchor){anchor.appendChild(bar);bar.classList.add('embedded');}
+    else{document.body.appendChild(bar);bar.classList.remove('embedded');}
   }
+  const gbar=\$('group-call-bar');
+  if(gbar&&groupRoom&&groupCallContextType==='dm'){
+    const viewingGroupDm=chatVisible&&view==='dms'&&activeDm===groupCallContextId;
+    if(viewingGroupDm&&anchor){anchor.appendChild(gbar);gbar.classList.remove('hidden');gbar.classList.add('embedded');}
+    else{gbar.classList.add('hidden');gbar.classList.remove('embedded');document.body.appendChild(gbar);}
+  }
+  updateCallMiniPill();
 }
+function callMiniPillTarget(){
+  if(activeCallDoc)return {kind:'1v1'};
+  if(groupRoom&&groupCallContextType==='dm')return {kind:'dmgroup'};
+  if(groupRoom&&groupCallContextType==='channel')return {kind:'channel'};
+  return null;
+}
+function isViewingActiveCall(target){
+  if(!target)return false;
+  const app=document.getElementById('app');
+  const chatVisible=window.innerWidth>640||app.classList.contains('chat-open');
+  if(target.kind==='1v1')return chatVisible&&view==='dms'&&activeDm&&callPeerUid&&activeDmPeerUid===callPeerUid;
+  if(target.kind==='dmgroup')return chatVisible&&view==='dms'&&activeDm===groupCallContextId;
+  if(target.kind==='channel')return view==='servers'&&!activeThread&&activeChannel&&activeChannel.\$id===groupCallContextId;
+  return false;
+}
+// Pastille compacte, position fixe (coin supérieur, jamais au-dessus d'un
+// composer) — seule trace visible d'un appel en cours tant qu'on n'est pas
+// revenu dans sa conversation d'origine. Un clic dessus y ramène direct.
+function updateCallMiniPill(){
+  const pill=\$('call-mini-pill');if(!pill)return;
+  const target=callMiniPillTarget();
+  if(!target||isViewingActiveCall(target)){pill.classList.add('hidden');return}
+  pill.classList.remove('hidden');
+  pill.setAttribute('data-cmp-kind',target.kind);
+  let title='Appel en cours',sub='',avatarHtml='📞';
+  if(target.kind==='1v1'){
+    title=callPeerName||'Appel';
+    const statusEl=\$('cb-status');
+    sub=statusEl?statusEl.textContent:'';
+    const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(callPeerUid);});
+    const av=safeUrl(prof&&prof.avatar);
+    avatarHtml=av?'<img src="'+esc(av)+'" alt="">':esc(ini(callPeerName||'?'));
+  }else{
+    title=groupCallGroupName||(target.kind==='channel'?'Salon vocal':'Salon de groupe');
+    const n=groupRoom?(1+groupRoom.remoteParticipants.size):1;
+    sub=n+(n>1?' personnes':' personne');
+    avatarHtml='🎙️';
+  }
+  \$('cmp-avatar').innerHTML=avatarHtml;
+  \$('cmp-title').textContent=title;
+  \$('cmp-sub').textContent=sub;
+}
+if(\$('cmp-body'))\$('cmp-body').addEventListener('click',function(){
+  const pill=\$('call-mini-pill');const kind=pill&&pill.getAttribute('data-cmp-kind');
+  if(kind==='1v1'){if(callPeerUid)startDmWith(callPeerUid,callPeerName);}
+  else if(kind==='dmgroup'){if(groupCallContextId){showView('dms');openDm(groupCallContextId,groupCallGroupName,null);}}
+  else if(kind==='channel'){
+    if(groupCallServerId&&groupCallContextId){
+      showView('servers');
+      openServerDetail(groupCallServerId).then(function(){openServerChannel(groupCallContextId);});
+    }
+  }
+});
+if(\$('cmp-mute'))\$('cmp-mute').addEventListener('click',function(e){
+  e.stopPropagation();
+  const pill=\$('call-mini-pill');const kind=pill&&pill.getAttribute('data-cmp-kind');
+  const target=kind==='1v1'?\$('cb-mute'):\$('gcb-mute');
+  if(target)target.click();
+});
+if(\$('cmp-leave'))\$('cmp-leave').addEventListener('click',function(e){
+  e.stopPropagation();
+  const pill=\$('call-mini-pill');const kind=pill&&pill.getAttribute('data-cmp-kind');
+  if(kind==='1v1'){const h=\$('cb-hangup');if(h)h.click();}
+  else{leaveGroupCall();}
+});
 async function loadMessages(threadId){
   msgsOldestId=null;msgsHasMoreOlder=true;msgsLoadingOlder=false;
   try{
@@ -18968,6 +19066,7 @@ function logCallHistory(callId,outcome,durationSec){
 async function startCall(peerUid,peerName){
   if(!me||!peerUid||peerUid===me.\$id)return;
   if(activeCallDoc||incomingCallDoc){alert('Un appel est déjà en cours.');return}
+  if(groupRoom){showToast('Quitte d\\'abord le salon vocal en cours.','error');return}
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
   pendingLocalIce=[];
   try{
@@ -19198,6 +19297,7 @@ function renderCallStatus(){
     bar.classList.toggle('mood-live',callLive);
     bar.classList.toggle('mood-ringing',!callLive);
   }
+  updateCallMiniPill();
 }
 function cleanupCallLocal(){
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
@@ -19246,6 +19346,9 @@ function cleanupCallLocal(){
   \$('cb-screen').classList.remove('on');
   \$('cb-deafen').classList.remove('on');
   subscribeIncomingCalls();
+  document.body.appendChild(\$('call-bar'));
+  \$('call-bar').classList.remove('embedded');
+  repositionCallPanel();
 }
 async function endCall(finalStatus,skipRemoteUpdate){
   const doc=activeCallDoc;
@@ -19263,7 +19366,7 @@ async function endCall(finalStatus,skipRemoteUpdate){
    Chaque participant n'envoie qu'un seul flux au serveur, qui le redistribue
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
-let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallGroupName='', groupWaveRaf=null, stageCanPublish=true;
+let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallServerId=null, groupCallGroupName='', groupWaveRaf=null, stageCanPublish=true;
 let groupPresenceDocId=null, groupPresenceCollection='group_call_presence', groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
@@ -19287,6 +19390,7 @@ function renderGroupParticipants(){
     return groupParticipantTileHtml(uid,name,avatarUrl);
   }).join('');
   startGroupWaveformLoop();
+  updateCallMiniPill();
 }
 function drawParticipantWave(canvas,level){
   if(!canvas)return;
@@ -19481,6 +19585,7 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
     const res=await authPost(endpoint,payload);
     const room=new LivekitClient.Room({adaptiveStream:true,dynacast:true});
     groupRoom=room;groupCallContextType=contextType;groupCallContextId=contextId;groupCallGroupName=roomLabel||'Groupe';
+    groupCallServerId=contextType==='channel'?(activeServer&&activeServer.\$id||null):(contextType==='server'?contextId:null);
     wireGroupRoomEvents(room);
     await room.connect(res.wsUrl,res.token);
     // Sur un salon de scène, le jeton n'accorde le droit de publier qu'aux
@@ -19512,13 +19617,13 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       startGroupHeartbeat();
       loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
     }
-    // La petite barre flottante ne sert plus que pour les appels de groupe
-    // en DM : un salon vocal de serveur n'a pas de widget persistant — ses
-    // seuls contrôles (micro/caméra/quitter) vivent dans la vue plein écran
-    // du salon (ouverte en cliquant dessus), et qui parle s'affiche
-    // directement dans la liste des salons (cf. serverChannelRowHtml).
+    // La grosse barre (avec grille participants/vidéo) ne s'affiche que dans
+    // le fil de la conversation appelée elle-même (repositionCallPanel s'en
+    // charge, embarquée ou pas) — un salon de serveur, lui, se vit en plein
+    // écran dès qu'on l'ouvre (channelVoiceStageHtml). Partout ailleurs,
+    // seule la pastille compacte #call-mini-pill reste visible, jamais
+    // par-dessus une autre conversation.
     if(contextType!=='channel'){
-      \$('group-call-bar').classList.remove('hidden');
       \$('gcb-group-name').textContent=groupCallGroupName;
       \$('gcb-mute').classList.remove('on');
       \$('gcb-cam').classList.remove('on');
@@ -19531,13 +19636,15 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       // vers ma présence tant que je n'ouvre pas moi-même la vue du salon.
       startGroupWaveformLoop();
     }
+    repositionCallPanel();
     xlog('group_call_joined',{contextType:contextType,contextId:contextId});
     if(contextType==='channel'&&activeChannel&&activeChannel.\$id===contextId)renderServerChannelContent();
   }catch(e){
     showToast('Impossible de rejoindre le salon vocal','error');
     xlog('group_call_join_fail',{msg:(e&&e.message)||String(e)});
     if(groupRoom){try{groupRoom.disconnect();}catch(e2){}}
-    groupRoom=null;groupCallContextType=null;groupCallContextId=null;
+    groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallServerId=null;
+    repositionCallPanel();
   }
 }
 function joinGroupCall(dmId,groupName){return joinVoiceRoom('dm',dmId,groupName);}
@@ -19690,14 +19797,17 @@ function cleanupGroupCall(){
     db.deleteDocument(DB,groupPresenceCollection,groupPresenceDocId).catch(function(){});
     groupPresenceDocId=null;
   }
-  groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallGroupName='';stageCanPublish=true;
+  groupRoom=null;groupCallContextType=null;groupCallContextId=null;groupCallServerId=null;groupCallGroupName='';stageCanPublish=true;
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
   const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');}
   \$('gcb-cam').classList.remove('on');
   \$('gcb-screen').classList.remove('on');
+  document.body.appendChild(\$('group-call-bar'));
+  \$('group-call-bar').classList.remove('embedded');
   if(wasChannelId&&activeChannel&&activeChannel.\$id===wasChannelId)renderServerChannelContent();
   if(wasChannelId)loadServerVoicePresence().then(function(){if(!activeChannel)renderServerChannelList();});
+  repositionCallPanel();
 }
 async function leaveGroupCall(){
   if(!groupRoom)return;
@@ -20340,6 +20450,7 @@ function srvChanTypeIcon(type){
 }
 function renderServerChannelContent(){
   const box=\$('srv-detail-body');if(!box||!activeChannel)return;
+  repositionCallPanel();
   if(activeThread)return renderThreadContent(box);
   if(stageStateUnsub&&(activeChannel.type!=='stage'||activeChannel.\$id!==stageViewChannelId)){
     try{stageStateUnsub();}catch(e){}
@@ -20595,6 +20706,7 @@ function wireServerChannelBack(){
     activeChannel=null;
     activeThread=null;
     renderServerChannelList();
+    repositionCallPanel();
   };
 }
 async function loadChannelMessages(){
