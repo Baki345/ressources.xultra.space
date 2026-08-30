@@ -6547,6 +6547,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.50.1',category:'design',date:'30 août 2026',time:'08:00',title:'🎨 X1Moji : premier passage de style, plus rond et plus mignon',
+    body:'Première retouche visuelle du dessin X1Moji (d\\'autres suivront) : tête agrandie pour l\\'effet "cute" voulu dès le départ, joues rosées, yeux plus grands, vêtements aux coins arrondis au lieu d\\'angles droits, jambes de pantalon nettement séparées, chapeaux et manches redessinés. Même système, même config, juste un dessin plus soigné.'},
   {version:'4.50.0',category:'feature',date:'30 août 2026',time:'06:50',title:'🎭 X1Moji — le créateur d\\'avatar 2D fait peau neuve',
     body:'L\\'onglet avatar 2D de l\\'éditeur de profil devient X1Moji : garde-robe complète (haut, bas, robe/salopette, manteau, chaussures, chapeau, chacun avec sa propre couleur), pilosité faciale, et un avatar dessiné en pied plutôt qu\\'en simple buste — recadré automatiquement sur le visage partout où il s\\'affiche en petit (barre du bas, cartes de profil, carte des amis, sticker Ephem). Choisir une robe ou une salopette masque proprement le haut et le bas, comme prévu. Les avatars déjà composés avant ce changement sont repris automatiquement (teint, coiffure, yeux, bouche) la prochaine fois que l\\'éditeur de profil s\\'ouvre. Nouveau : quand la personne avec qui tu discutes a CETTE conversation ouverte en ce moment (comme sur Snap), son X1Moji apparaît en petite bulle animée sur son avatar dans l\\'en-tête — disparaît dès qu\\'elle quitte la conversation.'},
   {version:'4.49.0',category:'feature',date:'30 août 2026',time:'00:30',title:'🖼️ Grille vidéo dynamique, agrandissement au clic et plein écran',
@@ -10809,103 +10811,110 @@ function renderX1mojiSvg(cfgIn,opts){
   opts=opts||{};
   const s=cfg.skin,hc=cfg.hairColor;
   const one=cfg.outfit&&cfg.outfit!=='none';
+  // Tête agrandie (r 42→46) pour l'effet "cute" chibi voulu par la spec —
+  // les cheveux étaient déjà dessinés en surdimension par rapport à
+  // l'ancienne tête, ils couvrent donc la nouvelle sans retouche.
   const eye={
-    round:'<circle cx="82" cy="78" r="7" fill="#1A1A2E"/><circle cx="118" cy="78" r="7" fill="#1A1A2E"/><circle cx="84" cy="76" r="2.2" fill="#fff"/><circle cx="120" cy="76" r="2.2" fill="#fff"/>',
-    wide:'<ellipse cx="82" cy="78" rx="8" ry="7" fill="#1A1A2E"/><ellipse cx="118" cy="78" rx="8" ry="7" fill="#1A1A2E"/><circle cx="85" cy="76" r="2.4" fill="#fff"/><circle cx="121" cy="76" r="2.4" fill="#fff"/>',
-    happy:'<path d="M74 80 q8 -10 16 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/><path d="M110 80 q8 -10 16 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>'
+    round:'<circle cx="80" cy="80" r="8" fill="#1A1A2E"/><circle cx="120" cy="80" r="8" fill="#1A1A2E"/><circle cx="82.6" cy="77.4" r="2.6" fill="#fff"/><circle cx="122.6" cy="77.4" r="2.6" fill="#fff"/>',
+    wide:'<ellipse cx="80" cy="80" rx="9" ry="8" fill="#1A1A2E"/><ellipse cx="120" cy="80" rx="9" ry="8" fill="#1A1A2E"/><circle cx="83" cy="77" r="2.8" fill="#fff"/><circle cx="123" cy="77" r="2.8" fill="#fff"/>',
+    happy:'<path d="M72 82 q8 -11 17 0" fill="none" stroke="#1A1A2E" stroke-width="3.4" stroke-linecap="round"/><path d="M111 82 q8 -11 17 0" fill="none" stroke="#1A1A2E" stroke-width="3.4" stroke-linecap="round"/>'
   }[cfg.eyes];
   const mouth={
-    smile:'<path d="M88 102 q12 12 24 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>',
-    grin:'<path d="M86 98 q14 16 28 0 v4 q-14 12 -28 0z" fill="#c44545" stroke="#1A1A2E" stroke-width="2"/>',
-    neutral:'<path d="M90 104 h20" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>',
-    open:'<ellipse cx="100" cy="106" rx="7" ry="8" fill="#3b1020" stroke="#1A1A2E" stroke-width="2"/>'
+    smile:'<path d="M86 102 q14 13 28 0" fill="none" stroke="#1A1A2E" stroke-width="3.2" stroke-linecap="round"/>',
+    grin:'<path d="M84 98 q16 18 32 0 v4 q-16 14 -32 0z" fill="#c44545" stroke="#1A1A2E" stroke-width="2"/>',
+    neutral:'<path d="M88 104 h24" fill="none" stroke="#1A1A2E" stroke-width="3.2" stroke-linecap="round"/>',
+    open:'<ellipse cx="100" cy="107" rx="8" ry="9" fill="#3b1020" stroke="#1A1A2E" stroke-width="2"/>'
   }[cfg.mouth];
-  const brows='<path d="M72 64 q10 -8 20 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/><path d="M108 64 q10 -8 20 0" fill="none" stroke="#1A1A2E" stroke-width="3" stroke-linecap="round"/>';
+  const brows='<path d="M68 62 q12 -11 24 -1" fill="none" stroke="#1A1A2E" stroke-width="3.4" stroke-linecap="round"/><path d="M108 61 q12 -10 24 1" fill="none" stroke="#1A1A2E" stroke-width="3.4" stroke-linecap="round"/>';
   const facial={
     none:'',
-    stubble:'<path d="M78 112 q22 18 44 0" fill="none" stroke="#1A1A2E" stroke-width="4" opacity=".28"/>',
-    mustache:'<path d="M90 100 q10 8 20 0" fill="#1A1A2E"/>',
-    beard:'<path d="M78 108 q22 28 44 0 q-4 22 -22 26 q-18 -4 -22 -26z" fill="#1A1A2E"/>'
+    stubble:'<path d="M76 112 q24 20 48 0" fill="none" stroke="#1A1A2E" stroke-width="4" opacity=".28"/>',
+    mustache:'<path d="M88 99 q12 9 24 0" fill="#1A1A2E"/>',
+    beard:'<path d="M76 108 q24 30 48 0 q-4 24 -24 28 q-20 -4 -24 -28z" fill="#1A1A2E"/>'
   }[cfg.facialHair];
   const hairBack={
-    'wavy-long':'<ellipse cx="100" cy="78" rx="52" ry="58" fill="'+hc+'"/><rect x="52" y="78" width="96" height="90" rx="20" fill="'+hc+'"/>',
-    bob:'<ellipse cx="100" cy="82" rx="50" ry="48" fill="'+hc+'"/>',
-    afro:'<circle cx="100" cy="70" r="62" fill="'+hc+'"/>',
-    braids:'<ellipse cx="100" cy="70" rx="46" ry="40" fill="'+hc+'"/><rect x="62" y="100" width="14" height="70" rx="7" fill="'+hc+'"/><rect x="124" y="100" width="14" height="70" rx="7" fill="'+hc+'"/>',
-    ponytail:'<ellipse cx="100" cy="68" rx="44" ry="38" fill="'+hc+'"/><ellipse cx="148" cy="120" rx="16" ry="36" fill="'+hc+'"/>',
-    bun:'<ellipse cx="100" cy="72" rx="44" ry="36" fill="'+hc+'"/><circle cx="100" cy="32" r="18" fill="'+hc+'"/>',
-    hijab:'<path d="M48 70 q52 -70 104 0 v90 q-52 30 -104 0z" fill="'+hc+'"/>',
+    'wavy-long':'<ellipse cx="100" cy="76" rx="54" ry="60" fill="'+hc+'"/><rect x="50" y="78" width="100" height="92" rx="24" fill="'+hc+'"/>',
+    bob:'<ellipse cx="100" cy="80" rx="52" ry="50" fill="'+hc+'"/>',
+    afro:'<circle cx="100" cy="68" r="64" fill="'+hc+'"/>',
+    braids:'<ellipse cx="100" cy="68" rx="48" ry="42" fill="'+hc+'"/><rect x="60" y="98" width="15" height="72" rx="7.5" fill="'+hc+'"/><rect x="125" y="98" width="15" height="72" rx="7.5" fill="'+hc+'"/>',
+    ponytail:'<ellipse cx="100" cy="66" rx="46" ry="40" fill="'+hc+'"/><ellipse cx="150" cy="118" rx="17" ry="38" fill="'+hc+'"/>',
+    bun:'<ellipse cx="100" cy="70" rx="46" ry="38" fill="'+hc+'"/><circle cx="100" cy="28" r="19" fill="'+hc+'"/>',
+    hijab:'<path d="M46 68 q54 -72 108 0 v92 q-54 32 -108 0z" fill="'+hc+'"/>',
     short:'',fade:'',buzz:''
   }[cfg.hair]||'';
   const hairFront={
-    short:'<path d="M58 70 q42 -48 84 0 q-8 18 -42 8 q-34 8 -42 -8z" fill="'+hc+'"/>',
-    fade:'<path d="M60 68 q40 -40 80 0 q-6 14 -40 6 q-34 6 -40 -6z" fill="'+hc+'"/>',
-    'wavy-long':'<path d="M55 62 q45 -52 90 0 q-10 22 -45 10 q-36 10 -45 -10z" fill="'+hc+'"/>',
-    bob:'<path d="M56 64 q44 -46 88 0 q-8 16 -44 8 q-36 8 -44 -8z" fill="'+hc+'"/>',
-    bun:'<path d="M60 66 q40 -36 80 0 q-10 14 -40 6 q-30 6 -40 -6z" fill="'+hc+'"/>',
-    afro:'<path d="M70 58 q30 -16 60 0" fill="none"/>',
-    braids:'<path d="M58 64 q42 -36 84 0 q-12 12 -42 6 q-30 6 -42 -6z" fill="'+hc+'"/>',
-    ponytail:'<path d="M58 64 q42 -40 84 0 q-10 14 -42 6 q-32 6 -42 -6z" fill="'+hc+'"/>',
-    buzz:'<path d="M62 70 q38 -18 76 0" fill="none" stroke="'+hc+'" stroke-width="6"/>',
+    short:'<path d="M54 68 q46 -50 92 0 q-9 20 -46 9 q-37 9 -46 -9z" fill="'+hc+'"/>',
+    fade:'<path d="M57 66 q43 -42 86 0 q-7 15 -43 7 q-36 7 -43 -7z" fill="'+hc+'"/>',
+    'wavy-long':'<path d="M50 60 q50 -55 100 0 q-11 24 -50 11 q-39 11 -50 -11z" fill="'+hc+'"/>',
+    bob:'<path d="M52 62 q48 -49 96 0 q-9 18 -48 9 q-39 9 -48 -9z" fill="'+hc+'"/>',
+    bun:'<path d="M56 64 q44 -39 88 0 q-11 15 -44 6 q-33 9 -44 -6z" fill="'+hc+'"/>',
+    afro:'<path d="M68 56 q32 -17 64 0" fill="none"/>',
+    braids:'<path d="M54 62 q46 -39 92 0 q-13 13 -46 6 q-33 7 -46 -6z" fill="'+hc+'"/>',
+    ponytail:'<path d="M54 62 q46 -43 92 0 q-11 15 -46 6 q-35 9 -46 -6z" fill="'+hc+'"/>',
+    buzz:'<path d="M60 68 q40 -20 80 0" fill="none" stroke="'+hc+'" stroke-width="6.5" stroke-linecap="round"/>',
     hijab:''
   }[cfg.hair]||'';
   const top=one?'':{
-    tee:'<path d="M60 168 h80 v70 h-80z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M60 168 l-18 28 v18 l18 -10z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M140 168 l18 28 v18 l-18 -10z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    hoodie:'<path d="M58 166 h84 v78 h-84z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M58 166 l-20 32 v22 l20 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M142 166 l20 32 v22 l-20 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><circle cx="100" cy="200" r="10" fill="none" stroke="#1A1A2E" stroke-width="2"/>',
-    sweater:'<path d="M56 166 h88 v80 h-88z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M56 166 l-18 26 v30 h18z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M144 166 l18 26 v30 h-18z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    shirt:'<path d="M60 168 h80 v72 h-80z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M96 168 v72" stroke="#1A1A2E" stroke-width="2"/><circle cx="104" cy="186" r="2" fill="#1A1A2E"/><circle cx="104" cy="204" r="2" fill="#1A1A2E"/>',
-    tank:'<path d="M70 170 h60 v68 h-60z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    tee:'<rect x="58" y="168" width="84" height="72" rx="14" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M58 172 q-20 8 -20 26 q0 8 4 14 l16 -12 q-2 -6 0 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M142 172 q20 8 20 26 q0 8 -4 14 l-16 -12 q2 -6 0 -12z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>',
+    hoodie:'<rect x="56" y="166" width="88" height="80" rx="18" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M56 170 q-22 10 -22 30 q0 9 5 16 l17 -13 q-2 -7 0 -14z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M144 170 q22 10 22 30 q0 9 -5 16 l-17 -13 q2 -7 0 -14z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M84 166 q16 14 32 0" fill="none" stroke="#1A1A2E" stroke-width="2"/><circle cx="100" cy="202" r="10" fill="none" stroke="#1A1A2E" stroke-width="2"/>',
+    sweater:'<rect x="54" y="166" width="92" height="82" rx="16" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M54 170 q-19 8 -19 28 v22 h19z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M146 170 q19 8 19 28 v22 h-19z" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M64 178 h72M64 190 h72" stroke="#1A1A2E" stroke-width="1.5" opacity=".25"/>',
+    shirt:'<rect x="58" y="168" width="84" height="74" rx="12" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M96 168 v74" stroke="#1A1A2E" stroke-width="2"/><circle cx="104" cy="184" r="2" fill="#1A1A2E"/><circle cx="104" cy="200" r="2" fill="#1A1A2E"/><circle cx="104" cy="216" r="2" fill="#1A1A2E"/>',
+    tank:'<rect x="68" y="170" width="64" height="70" rx="16" fill="'+cfg.topColor+'" stroke="#1A1A2E" stroke-width="2"/>'
   }[cfg.top];
+  function legPair(x1,x2,w,yTop,h,rx,color){
+    return '<rect x="'+x1+'" y="'+yTop+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+color+'" stroke="#1A1A2E" stroke-width="2"/><rect x="'+x2+'" y="'+yTop+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+color+'" stroke="#1A1A2E" stroke-width="2"/>';
+  }
   const bottoms=one?'':{
-    jeans:'<path d="M68 236 h64 v70 h-28 v-40 h-8 v40 h-28z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    skinny:'<path d="M72 236 h56 v74 h-24 v-48 h-8 v48 h-24z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    shorts:'<path d="M68 236 h64 v28 h-64z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    skirt:'<path d="M68 236 l-8 40 h80 l-8 -40z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    joggers:'<path d="M68 236 h64 v68 h-28 v-36 h-8 v36 h-28z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    jeans:'<rect x="66" y="234" width="68" height="24" rx="12" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>'+legPair(70,106,24,250,58,11,cfg.bottomsColor),
+    skinny:'<rect x="70" y="234" width="60" height="24" rx="12" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>'+legPair(76,106,18,250,60,9,cfg.bottomsColor),
+    shorts:'<rect x="66" y="234" width="68" height="38" rx="16" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    skirt:'<path d="M66 234 q34 -6 68 0 l8 44 q-42 12 -84 0z" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>',
+    joggers:'<rect x="66" y="234" width="68" height="24" rx="12" fill="'+cfg.bottomsColor+'" stroke="#1A1A2E" stroke-width="2"/>'+legPair(71,107,22,250,44,10,cfg.bottomsColor)+legPair(74,110,16,292,14,7,cfg.bottomsColor)
   }[cfg.bottoms];
   const outfit={
     none:'',
-    dress:'<path d="M70 168 h60 l18 120 h-96z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M70 168 l-16 26 v16 l16 -8z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M130 168 l16 26 v16 l-16 -8z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    overalls:'<path d="M74 168 h16 v28 h20 v-28 h16 v40 h-52z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M68 208 h64 v98 h-28 v-50 h-8 v50 h-28z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    dress:'<path d="M72 168 q28 -8 56 0 l20 118 q-48 14 -96 0z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M72 172 q-18 8 -18 24 q0 7 4 13 l15 -11 q-2 -6 0 -12z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M128 172 q18 8 18 24 q0 7 -4 13 l-15 -11 q2 -6 0 -12z" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>',
+    overalls:'<rect x="72" y="168" width="56" height="42" rx="10" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="66" y="204" width="68" height="24" rx="12" fill="'+cfg.outfitColor+'" stroke="#1A1A2E" stroke-width="2"/>'+legPair(70,106,24,224,82,11,cfg.outfitColor)+'<circle cx="80" cy="182" r="3" fill="#1A1A2E" opacity=".5"/><circle cx="120" cy="182" r="3" fill="#1A1A2E" opacity=".5"/>'
   }[cfg.outfit];
   const outer={
     none:'',
-    denim:'<path d="M52 166 h28 v86 h-20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M120 166 h28 v86 h-8z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    bomber:'<path d="M50 164 h32 v90 h-24z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M118 164 h32 v90 h-8z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    blazer:'<path d="M52 166 l24 10 v78 h-20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/><path d="M148 166 l-24 10 v78 h20z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    denim:'<path d="M50 166 q22 -6 30 2 v82 q-16 6 -26 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M150 166 q-22 -6 -30 2 v82 q16 6 26 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>',
+    bomber:'<path d="M48 164 q24 -6 34 2 v86 q-18 7 -30 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M152 164 q-24 -6 -34 2 v86 q18 7 30 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M52 244 h28M148 244 h-28" stroke="#1A1A2E" stroke-width="1.5" opacity=".3"/>',
+    blazer:'<path d="M50 166 q26 12 28 8 v76 q-14 6 -26 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M150 166 q-26 12 -28 8 v76 q14 6 26 0z" fill="'+cfg.outerwearColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>'
   }[cfg.outerwear];
   const shoes={
-    sneakers:'<rect x="62" y="318" width="30" height="14" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="318" width="30" height="14" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    boots:'<rect x="62" y="300" width="30" height="32" rx="4" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="300" width="30" height="32" rx="4" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    sandals:'<rect x="62" y="324" width="30" height="8" rx="3" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="324" width="30" height="8" rx="3" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    sneakers:'<rect x="60" y="316" width="32" height="16" rx="7" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="316" width="32" height="16" rx="7" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    boots:'<rect x="60" y="298" width="32" height="34" rx="6" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="298" width="32" height="34" rx="6" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>',
+    sandals:'<rect x="60" y="322" width="32" height="10" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/><rect x="108" y="322" width="32" height="10" rx="5" fill="'+cfg.shoesColor+'" stroke="#1A1A2E" stroke-width="2"/>'
   }[cfg.shoes];
   const hat={
     none:'',
-    cap:'<path d="M60 52 q40 -28 80 0 l8 8 h-50 q-8 10 -20 0z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/>',
-    beanie:'<path d="M58 58 q42 -40 84 0 v10 h-84z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/><circle cx="100" cy="22" r="7" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/>'
+    cap:'<path d="M58 54 q42 -30 84 0 q4 6 2 12 h-18 q-6 -8 -26 -8 q-20 0 -26 8 h-18 q-2 -6 2 -12z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><path d="M126 58 q22 0 30 10 l-10 8 q-8 -8 -22 -8z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/>',
+    beanie:'<path d="M56 60 q44 -42 88 0 v12 q-44 -8 -88 0z" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2" stroke-linejoin="round"/><circle cx="100" cy="20" r="8" fill="'+cfg.hatColor+'" stroke="#1A1A2E" stroke-width="2"/>'
   }[cfg.hat];
   const glasses={
     none:'',
-    round:'<circle cx="82" cy="78" r="12" fill="none" stroke="#1A1A2E" stroke-width="3"/><circle cx="118" cy="78" r="12" fill="none" stroke="#1A1A2E" stroke-width="3"/><path d="M94 78 h12" stroke="#1A1A2E" stroke-width="3"/>',
-    sun:'<circle cx="82" cy="78" r="12" fill="#1A1A2E" opacity=".75"/><circle cx="118" cy="78" r="12" fill="#1A1A2E" opacity=".75"/><path d="M94 78 h12" stroke="#1A1A2E" stroke-width="3"/>'
+    round:'<circle cx="80" cy="80" r="13" fill="none" stroke="#1A1A2E" stroke-width="3"/><circle cx="120" cy="80" r="13" fill="none" stroke="#1A1A2E" stroke-width="3"/><path d="M93 79 h14" stroke="#1A1A2E" stroke-width="3"/>',
+    sun:'<circle cx="80" cy="80" r="13" fill="#1A1A2E" opacity=".75"/><circle cx="120" cy="80" r="13" fill="#1A1A2E" opacity=".75"/><path d="M93 79 h14" stroke="#1A1A2E" stroke-width="3"/>'
   }[cfg.glasses];
   const extras={
     none:'',
-    hoops:'<circle cx="58" cy="100" r="6" fill="none" stroke="#E0B04A" stroke-width="3"/><circle cx="142" cy="100" r="6" fill="none" stroke="#E0B04A" stroke-width="3"/>',
-    bag:'<rect x="148" y="210" width="28" height="34" rx="6" fill="#2A9D8F" stroke="#1A1A2E" stroke-width="2"/><path d="M156 210 q6 -16 12 0" fill="none" stroke="#1A1A2E" stroke-width="2"/>'
+    hoops:'<circle cx="56" cy="100" r="6.5" fill="none" stroke="#E0B04A" stroke-width="3"/><circle cx="144" cy="100" r="6.5" fill="none" stroke="#E0B04A" stroke-width="3"/>',
+    bag:'<rect x="146" y="208" width="30" height="36" rx="8" fill="#2A9D8F" stroke="#1A1A2E" stroke-width="2"/><path d="M154 208 q6 -18 14 0" fill="none" stroke="#1A1A2E" stroke-width="2"/>'
   }[cfg.extras];
   // Cadrage tête pour les petites tailles (avatar circulaire, icônes) — même
   // dessin, juste une fenêtre de viewBox resserrée sur le visage plutôt que
   // le corps entier, comme documenté dans le pack (ARCHITECTURE.md § Embed).
-  const viewBox=opts.headCrop?'40 10 120 140':'0 0 200 360';
+  const viewBox=opts.headCrop?'38 8 124 144':'0 0 200 360';
   return '<svg viewBox="'+viewBox+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Avatar X1Moji">'
     +hairBack
-    +'<ellipse cx="100" cy="250" rx="28" ry="16" fill="'+s+'"/>'
-    +'<rect x="84" y="148" width="32" height="40" fill="'+s+'"/>'
+    +'<ellipse cx="100" cy="250" rx="30" ry="17" fill="'+s+'"/>'
+    +'<rect x="82" y="146" width="36" height="42" rx="8" fill="'+s+'"/>'
     +bottoms+shoes+top+outfit+outer
-    +'<circle cx="100" cy="86" r="42" fill="'+s+'" stroke="#1A1A2E" stroke-width="3"/>'
+    +'<circle cx="100" cy="86" r="46" fill="'+s+'" stroke="#1A1A2E" stroke-width="3"/>'
+    +'<ellipse cx="76" cy="94" rx="8" ry="5.5" fill="#e8836b" opacity=".38"/><ellipse cx="124" cy="94" rx="8" ry="5.5" fill="#e8836b" opacity=".38"/>'
     +brows+eye
-    +'<ellipse cx="100" cy="90" rx="5" ry="4" fill="#d9a078" opacity=".45"/>'
+    +'<ellipse cx="100" cy="90" rx="4" ry="3" fill="#d9a078" opacity=".4"/>'
     +mouth+facial+hairFront+glasses+hat+extras
     +'</svg>';
 }
