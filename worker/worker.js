@@ -6832,6 +6832,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.0',category:'feature',date:'30 août 2026',time:'21:15',title:'🔞 Badge 18+ VÉRIFIÉ (estimation d\\'âge par IA)',
+    body:'Nouveau dans Paramètres → Vérification d\\'âge : confirme que tu as plus de 18 ans via une estimation par IA à partir d\\'un selfie, pour débloquer plus tard des fonctionnalités et sections réservées aux adultes. Important à savoir : c\\'est une ESTIMATION, pas une vérification d\\'identité officielle — aucune pièce d\\'identité n\\'est demandée, et ta photo n\\'est jamais conservée (analysée en mémoire puis immédiatement jetée). Le badge n\\'est accordé que si l\\'IA estime un âge nettement au-dessus de 18 ans, avec une marge de sécurité.'},
   {version:'4.54.0',category:'feature',date:'30 août 2026',time:'20:20',title:'🌐 116 langues, détection automatique par pays, traduction de toute l\\'interface',
     body:'La langue de X1 se règle maintenant automatiquement selon le pays détecté à la première visite (via Cloudflare, aucun service de géolocalisation tiers) — reste modifiable à tout moment dans Paramètres → Langue, qui passe de 6 à 116 langues avec une recherche pour s\\'y retrouver. Les 6 langues déjà traduites à la main (français, anglais, espagnol, portugais, allemand, italien) restent instantanées ; les 110 autres traduisent maintenant TOUTE l\\'interface visible (boutons, menus, paramètres, info-bulles…) à la volée par un modèle d\\'IA dédié à la traduction, mise en cache pour rester rapide et gratuite après la première fois — bonne qualité sur les langues les plus parlées au monde, plus approximative sur certaines langues rares peu représentées en ligne. Comme sur Discord ou WhatsApp, ce que vous écrivez vous-même (messages, pseudo, statut, bio, nom de serveur) n\\'est volontairement jamais traduit automatiquement.'},
   {version:'4.53.2',category:'fix',date:'30 août 2026',time:'19:35',title:'⌨️ Clavier mobile : le grand vide sous les messages est corrigé',
@@ -8210,6 +8212,7 @@ const SETTINGS_GROUPS=[
     {key:'wallet',icon:'💰',title:'Portefeuille'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
+    {key:'agecheck',icon:'🔞',title:'Vérification d\\'âge'},
     {key:'blocked',icon:'🚫',title:'Utilisateurs bloqués'},
     {key:'myreports',icon:'🚩',title:'Mes signalements'},
     {key:'devices',icon:'💻',title:'Appareils'},
@@ -8278,6 +8281,7 @@ function renderSettingsSection(key){
   const box=\$('settings-content');if(!box)return;
   const renderers={
     account:renderSetAccount,subscription:renderSetSubscription,profiles:renderSetProfiles,privacy:renderSetPrivacy,
+    agecheck:renderSetAgeVerify,
     blocked:renderSetBlocked,
     devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
     family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
@@ -9658,6 +9662,90 @@ function renderSetLanguage(box){
     });
   });
 }
+/* ===== Vérification d'âge (badge 18+ VÉRIFIÉ) — voir /api/account/verify-age
+   côté Worker. IMPORTANT, à garder honnête dans toute l'UI : ceci est une
+   ESTIMATION D'ÂGE PAR IA à partir d'un selfie, PAS une vérification
+   d'identité officielle (pas de pièce d'identité demandée, la photo n'est
+   jamais conservée — analysée puis jetée). Pensé comme préparation pour de
+   futures fonctionnalités réservées aux adultes, pas comme une conformité
+   légale béton — un vrai prestataire tiers (Veriff, Persona…) serait
+   nécessaire pour ça, et n'est pas gratuit. */
+let agecheckImageDataUrl=null;
+function compressImageFileToDataUrl(file,maxDim,quality){
+  return new Promise(function(resolve,reject){
+    const img=new Image();
+    const reader=new FileReader();
+    reader.onload=function(){
+      img.onload=function(){
+        let w=img.naturalWidth,h=img.naturalHeight;
+        if(w>h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim;}
+        else if(h>=w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        resolve(canvas.toDataURL('image/jpeg',quality||0.75));
+      };
+      img.onerror=function(){reject(new Error('Image invalide'));};
+      img.src=reader.result;
+    };
+    reader.onerror=function(){reject(new Error('Lecture du fichier impossible'));};
+    reader.readAsDataURL(file);
+  });
+}
+function renderSetAgeVerify(box){
+  let badges=[];
+  try{badges=JSON.parse((settingsMeta&&settingsMeta.badgesJson)||'[]');if(!Array.isArray(badges))badges=[];}catch(e){badges=[];}
+  const verified=badges.indexOf('adult18')>=0;
+  agecheckImageDataUrl=null;
+  box.innerHTML='<h2>🔞 Vérification d\\'âge</h2>'
+    +'<div class="sc-desc">Confirme que tu as bien plus de 18 ans grâce à une estimation faite par IA à partir d\\'un selfie — sert à débloquer, plus tard, des fonctionnalités et sections réservées aux adultes.</div>'
+    +(verified
+      ?('<div class="set-card" style="text-align:center;padding:22px"><div style="font-size:2.2rem">🔞✅</div><div style="font-weight:800;margin-top:6px">Badge 18+ VÉRIFIÉ obtenu</div><div class="scr-sub" style="margin-top:4px">Aucune action supplémentaire nécessaire.</div></div>')
+      :('<div class="set-card">'
+        +'<div class="scr-sub" style="margin-bottom:12px">⚠️ C\\'est une <b>estimation par IA</b>, pas une vérification d\\'identité officielle : aucune pièce d\\'identité n\\'est demandée, et ta photo n\\'est jamais conservée — elle est analysée puis immédiatement jetée. Prends une photo de face, seul·e, visage bien dégagé et éclairé.</div>'
+        +'<div id="agecheck-preview-wrap" class="hidden" style="text-align:center;margin-bottom:12px"><img id="agecheck-preview" style="max-width:180px;max-height:180px;border-radius:14px;object-fit:cover"/></div>'
+        +'<input type="file" id="agecheck-file" accept="image/*" capture="user" class="hidden"/>'
+        +'<button type="button" class="set-mini-btn" id="agecheck-pick" style="width:100%;margin-bottom:8px">📷 Prendre / choisir une photo</button>'
+        +'<button type="button" class="btn-main hidden" id="agecheck-submit">Vérifier mon âge</button>'
+        +'<div class="err" id="agecheck-err" style="min-height:1em;margin-top:8px"></div>'
+      +'</div>')
+    )
+    +'<div class="set-card"><div class="scr-sub">Comme pour toute estimation par IA, le résultat n\\'est pas garanti à 100% — une photo nette et bien éclairée donne les meilleurs résultats. En cas de souci, contacte le support.</div></div>';
+  if(verified)return;
+  const fileInput=\$('agecheck-file');
+  \$('agecheck-pick').onclick=function(){fileInput.click();};
+  fileInput.addEventListener('change',async function(){
+    const file=this.files&&this.files[0];this.value='';
+    if(!file)return;
+    \$('agecheck-err').textContent='';
+    try{
+      agecheckImageDataUrl=await compressImageFileToDataUrl(file,640,0.75);
+      \$('agecheck-preview').src=agecheckImageDataUrl;
+      \$('agecheck-preview-wrap').classList.remove('hidden');
+      \$('agecheck-submit').classList.remove('hidden');
+    }catch(e){\$('agecheck-err').textContent=(e&&e.message)||'Photo invalide, réessaie.';}
+  });
+  \$('agecheck-submit').onclick=async function(){
+    if(!agecheckImageDataUrl)return;
+    const btn=this;btn.disabled=true;btn.textContent='Analyse en cours…';
+    \$('agecheck-err').textContent='';
+    try{
+      const r=await authPost('/api/account/verify-age',{image:agecheckImageDataUrl});
+      if(r.granted){
+        showToast('🔞 Badge 18+ VÉRIFIÉ obtenu !');
+        settingsMeta=await db.getDocument(DB,'user_meta',me.\$id).catch(function(){return settingsMeta;});
+        renderSetAgeVerify(box);
+      }else{
+        \$('agecheck-err').textContent=r.reason||'L\\'IA n\\'a pas pu confirmer ton âge à partir de cette photo. Réessaie avec une photo de face, bien éclairée.';
+        btn.disabled=false;btn.textContent='Vérifier mon âge';
+      }
+    }catch(e){
+      \$('agecheck-err').textContent=(e&&e.message)||'Vérification indisponible pour le moment, réessaie plus tard.';
+      btn.disabled=false;btn.textContent='Vérifier mon âge';
+    }
+  };
+}
 async function renderSetOs(box){
   const desktop=(typeof window!=='undefined')&&window.xultraDesktop&&window.xultraDesktop.isDesktop;
   if(!desktop){
@@ -9926,7 +10014,8 @@ const BADGE_DEFS={
   botdev:{icon:'🤖',label:'DÉVELOPPEUR DE BOT',color:'#38bdf8',desc:"Accordé automatiquement dès que ton tout premier bot répond avec succès à une interaction en direct sur un serveur — la preuve qu'il est fonctionnel et bien en ligne, pas juste créé dans le Portail développeur."},
   xplus:{icon:'⭐',label:'X1+',color:'#fbbf24',desc:"Le badge de présentation de X1+ — visible partout où tu apparais (profil, liste des membres d'un serveur). Débloqué en achetant X1+ par carte ou en X1 Coins, ou en l'obtenant à vie (palier ultime du Bug Hunter, badge ÉLITE X1…). Avec X1+ : qualité audio/vidéo HD sur tes serveurs, jusqu'à 25 bots développeur au lieu de 10, et un cadre de profil animé exclusif."},
   bap:{icon:'🛡️',label:'BRIGADE ANTI-PRÉDATEURS',color:'#1d4ed8',desc:"Le badge de la Brigade Anti-Prédateurs (BAP) : des membres de confiance, validés par candidature, qui traitent les signalements de toute la plateforme (harcèlement, contenu inapproprié, spam, usurpation…) et peuvent mettre un compte en pause le temps d'une vérification. Les signalements les plus graves (contenu à caractère sexuel impliquant un mineur) ne leur sont jamais montrés : ils remontent directement et exclusivement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."},
-  support:{icon:'🎧',label:'SUPPORT X1',color:'#f59e0b',desc:"Le badge de l'équipe Support : des membres de confiance, validés par candidature, qui répondent aux tickets et discutent en direct avec les membres qui ont besoin d'aide (compte, paiement, bug, question générale…). Quand une demande dépasse ce qu'ils peuvent résoudre, ils l'escaladent directement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."}
+  support:{icon:'🎧',label:'SUPPORT X1',color:'#f59e0b',desc:"Le badge de l'équipe Support : des membres de confiance, validés par candidature, qui répondent aux tickets et discutent en direct avec les membres qui ont besoin d'aide (compte, paiement, bug, question générale…). Quand une demande dépasse ce qu'ils peuvent résoudre, ils l'escaladent directement à l'équipe fondatrice. Badge accordé via Paramètres → Équipe → Candidatures."},
+  adult18:{icon:'🔞',label:'18+ VÉRIFIÉ',color:'#dc2626',desc:"Obtenu via Paramètres → Vérification d'âge, en confirmant ton âge par une estimation faite par IA à partir d'un selfie. C'est une ESTIMATION, pas une vérification d'identité officielle (aucune pièce d'identité n'est demandée ni conservée) — pensée pour débloquer, plus tard, des fonctionnalités et sections réservées aux adultes."}
 };
 const HUNTER_TIERS=[
   {tier:1,min:1,key:'hunter1'},
@@ -9940,8 +10029,8 @@ function hunterTierForCount(count){
   for(let i=0;i<HUNTER_TIERS.length;i++){if(count>=HUNTER_TIERS[i].min)best=HUNTER_TIERS[i];}
   return best;
 }
-const BADGE_GROUP_ORDER=['elite','dev','bap','support','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','early','base'];
-const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',bap:'🛡️ BRIGADE ANTI-PRÉDATEURS',support:'🎧 SUPPORT X1',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',early:'EARLY USERS',base:'MEMBRES'};
+const BADGE_GROUP_ORDER=['elite','dev','bap','support','chainsmoker','creator','botdev','hunter5','hunter4','hunter3','hunter2','hunter1','xplus','adult18','early','base'];
+const BADGE_GROUP_LABEL={elite:'💎 ÉLITE X1',dev:'STAFF / DEV',bap:'🛡️ BRIGADE ANTI-PRÉDATEURS',support:'🎧 SUPPORT X1',chainsmoker:'🚬 CHAINSMOKER',creator:'CRÉATEURS DE CONTENU',botdev:'🤖 DÉVELOPPEURS DE BOT',hunter5:'LÉGENDES DU BUG',hunter4:'EXTERMINATEURS',hunter3:'CHASSEURS EXPERTS',hunter2:'CHASSEURS CONFIRMÉS',hunter1:'CHASSEURS NOVICES',xplus:'⭐ X1+',adult18:'🔞 18+ VÉRIFIÉ',early:'EARLY USERS',base:'MEMBRES'};
 // Badges créés depuis le studio de badges (§ panel admin), en plus des
 // BADGE_DEFS "en dur" ci-dessus — chargés une fois à la connexion
 // (loadCustomBadges), fusionnés partout où un badge doit être affiché/résolu
@@ -27795,6 +27884,83 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    }
+  }
+
+  // ===== Vérification d'âge (badge 18+ VÉRIFIÉ) : ESTIMATION par IA à
+  // partir d'un selfie, pas une vérification d'identité (pas de pièce
+  // d'identité, la photo n'est JAMAIS écrite sur disque/en base — décodée en
+  // mémoire, envoyée à Workers AI, puis oubliée dès la fin de la requête).
+  // Seuil délibérément au-dessus de 18 ans (marge de sécurité) : une
+  // estimation d'âge par IA a une marge d'erreur réelle de plusieurs années,
+  // viser pile 18 laisserait passer des mineurs proches de la limite.
+  const AGE_VERIFY_THRESHOLD = 21;
+  const AGE_VERIFY_MAX_ATTEMPTS = 5;
+  const AGE_VERIFY_WINDOW_MS = 24 * 60 * 60 * 1000;
+  if (path === "/api/account/verify-age" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return {}; });
+      let badges = [];
+      try { badges = JSON.parse(meta.badgesJson || "[]"); if (!Array.isArray(badges)) badges = []; } catch (e) { badges = []; }
+      if (badges.indexOf("adult18") >= 0) return new Response(JSON.stringify({ ok: true, granted: true, alreadyVerified: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      // Anti-abus simple : au plus AGE_VERIFY_MAX_ATTEMPTS tentatives par
+      // fenêtre glissante de 24h — protège le coût IA d'un essai-erreur en
+      // boucle avec des photos différentes plutôt que d'empêcher un usage
+      // normal (une poignée d'essais suffit largement pour une vraie photo).
+      const windowStart = meta.ageVerifyWindowStart ? new Date(meta.ageVerifyWindowStart).getTime() : 0;
+      const now = Date.now();
+      let attempts = Number(meta.ageVerifyAttempts) || 0;
+      let newWindowStart = meta.ageVerifyWindowStart || "";
+      if (!windowStart || (now - windowStart) > AGE_VERIFY_WINDOW_MS) { attempts = 0; newWindowStart = new Date(now).toISOString(); }
+      if (attempts >= AGE_VERIFY_MAX_ATTEMPTS) throw new Error("Trop de tentatives récentes — réessaie dans quelques heures.");
+      const body = await request.json();
+      const imageDataUrl = String((body && body.image) || "");
+      const m = /^data:image\/(png|jpe?g|webp);base64,([a-zA-Z0-9+/=]+)$/.exec(imageDataUrl);
+      if (!m || m[2].length > 2000000) throw new Error("Photo invalide ou trop volumineuse.");
+      // Comme /api/account/update-meta : un compte tout juste créé (ou qui
+      // n'a jamais rien écrit dans user_meta) n'a pas encore de document —
+      // PATCH échoue avec 404 dans ce cas, donc on bascule sur POST plutôt
+      // que de planter toute la vérification pour ça.
+      async function upsertMeta(data) {
+        try {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data, permissions: ["read(\"any\")"] } });
+        } catch (e) {
+          if (e && e.status === 404) await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data, permissions: ["read(\"any\")"] } });
+          else throw e;
+        }
+      }
+      await upsertMeta({ ageVerifyAttempts: attempts + 1, ageVerifyWindowStart: newWindowStart }).catch(function () {});
+      if (typeof CF_AI_TOKEN === "undefined" || !CF_AI_TOKEN) throw new Error("Vérification indisponible pour le moment, réessaie plus tard.");
+      const binary = atob(m[2]);
+      const bytes = new Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const aiRes = await fetch("https://api.cloudflare.com/client/v4/accounts/" + CF_ACCOUNT_ID + "/ai/run/@cf/meta/llama-3.2-11b-vision-instruct", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + CF_AI_TOKEN, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image: bytes,
+          prompt: "Look at this photo. If it clearly shows a real human face, respond with ONLY a single integer: your best estimate of that person's age in years. If there is no clear human face visible (blurry, no face, drawing, screenshot, multiple unclear faces), respond with ONLY the number 0. No words, no explanation — just the number.",
+          max_tokens: 20
+        })
+      });
+      const aiJson = await aiRes.json();
+      if (!aiRes.ok || !aiJson.success) throw new Error("Vérification indisponible pour le moment, réessaie plus tard.");
+      const rawOut = String((aiJson.result && aiJson.result.response) || aiJson.result || "");
+      const numMatch = /\d+/.exec(rawOut);
+      const estimatedAge = numMatch ? parseInt(numMatch[0], 10) : 0;
+      if (!estimatedAge) {
+        return new Response(JSON.stringify({ ok: true, granted: false, reason: "Aucun visage clair n'a été détecté sur cette photo. Réessaie avec une photo de face, seul·e, bien éclairée." }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      if (estimatedAge < AGE_VERIFY_THRESHOLD) {
+        return new Response(JSON.stringify({ ok: true, granted: false, reason: "L'IA n'a pas pu confirmer que tu as largement plus de 18 ans à partir de cette photo. Réessaie avec une photo plus récente et bien éclairée, ou contacte le support si le problème persiste." }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const next = badges.concat(["adult18"]);
+      await upsertMeta({ badgesJson: JSON.stringify(next), ageVerifiedAt: new Date().toISOString() });
+      return new Response(JSON.stringify({ ok: true, granted: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
