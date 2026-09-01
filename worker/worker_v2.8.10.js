@@ -835,59 +835,12 @@ async function chatroulettePartnerUid(session, myUid) {
   return String(session.uid1) === String(myUid) ? String(session.uid2) : String(session.uid1);
 }
 
-// Casino virtuel (jetons fictifs, sans valeur réelle — "pour l'instant" par
-// design explicite : la conversion en argent réel n'est ni prévue ni
-// implémentée). Portefeuille et résolution des parties entièrement
-// server-side, jamais un champ modifiable côté client, pour qu'un simple
-// appel db.updateDocument() depuis la console du navigateur ne permette pas
-// de s'auto-créditer des jetons.
-const CASINO_GAMES = ["coinflip", "dice"];
-const CASINO_MIN_STAKE = 10;
-const CASINO_MAX_STAKE = 5000;
-const CASINO_STARTING_CHIPS = 1000;
-async function casinoGetOrCreateWallet(uid) {
-  const q = await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents?" +
-    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
-    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
-  const existing = (q.documents || [])[0];
-  if (existing) return existing;
-  return awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents", {
-    method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: String(uid), chips: CASINO_STARTING_CHIPS } }
-  });
-}
-function casinoRandomByte() {
-  return crypto.getRandomValues(new Uint8Array(1))[0];
-}
-function casinoRollDie() {
-  // Rejet d'échantillonnage pour éviter le léger biais d'un simple modulo 6
-  // sur un octet (256 n'est pas un multiple de 6).
-  let b;
-  do { b = casinoRandomByte(); } while (b >= 252);
-  return (b % 6) + 1;
-}
-function casinoResolveGame(gameType) {
-  if (gameType === "coinflip") {
-    // Pile = le créateur du duel, Face = celui qui l'a rejoint — un seul
-    // tirage détermine à la fois le résultat affiché et le gagnant.
-    const isPile = casinoRandomByte() % 2 === 0;
-    return { game: "coinflip", flip: isPile ? "pile" : "face", winnerIndex: isPile ? 0 : 1 };
-  }
-  // dice : chaque camp lance 2 dés, la somme la plus haute gagne, égalité = push
-  const creatorRoll = [casinoRollDie(), casinoRollDie()];
-  const joinerRoll = [casinoRollDie(), casinoRollDie()];
-  const creatorSum = creatorRoll[0] + creatorRoll[1];
-  const joinerSum = joinerRoll[0] + joinerRoll[1];
-  const winnerIndex = creatorSum === joinerSum ? -1 : (creatorSum > joinerSum ? 0 : 1);
-  return { game: "dice", creatorRoll: creatorRoll, joinerRoll: joinerRoll, winnerIndex: winnerIndex };
-}
-
-// ===== X1 Coins — monnaie interne à valeur réelle (contrairement aux jetons
-// de casino ci-dessus, explicitement fictifs) : achetée par carte via Stripe,
-// envoyable librement entre membres, utilisable pour acheter X1+. Portefeuille
-// et journal de transactions entièrement server-side, collections verrouillées
-// (permissions vides + documentSecurity désactivé, comme casino_wallets) —
-// un appel db.*() direct depuis la console du navigateur ne peut ni lire ni
-// modifier un solde, tout passe par les routes /api/wallet/* ci-dessous. =====
+// ===== X1 Coins — monnaie interne à valeur réelle : achetée par carte via
+// Stripe, envoyable librement entre membres, utilisable pour acheter X1+.
+// Portefeuille et journal de transactions entièrement server-side, collections
+// verrouillées (permissions vides + documentSecurity désactivé) — un appel
+// db.*() direct depuis la console du navigateur ne peut ni lire ni modifier
+// un solde, tout passe par les routes /api/wallet/* ci-dessous. =====
 const COIN_PACKS = {
   small: { coins: 500, cadCents: 699, label: "500 X1 Coins" },
   medium: { coins: 1200, cadCents: 1399, label: "1 200 X1 Coins" },
@@ -2356,7 +2309,6 @@ html.xultra-restoring #stage{visibility:hidden}
 .cr-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;height:100%;padding:20px}
 .cr-spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);border-top-color:#a78bfa;animation:crSpin .8s linear infinite}
 @keyframes crSpin{to{transform:rotate(360deg)}}
-.casino-balance{font-weight:800;font-size:.95rem;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);border-radius:999px;padding:6px 14px;flex-shrink:0}
 #chatroulette-overlay .msgs{padding:12px 14px}
 /* ===== Chatroulette : écran vidéo façon "chat au hasard" mobile — deux
    grandes tuiles empilées (inconnu en haut, moi en bas), rail de contrôles
@@ -3969,14 +3921,12 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette" data-i18n-title="nav_chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-casino" data-i18n-title="nav_casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-status" data-i18n-title="nav_status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
     <button type="button" class="rail-btn" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
     <button type="button" class="rail-btn" id="nav-suggestions" data-i18n-title="nav_suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-team" data-i18n-title="nav_team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
@@ -3986,7 +3936,6 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" data-view="friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music-mobile" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
@@ -4743,6 +4692,9 @@ a.bug-att-item{display:block}
       <p>La modération sur X1 ne repose pas sur la lecture de tes messages privés — chiffrement de bout en bout oblige — mais sur un mélange de signalements communautaires, d'analyse du contenu public (profils, serveurs, salons publics) et d'une communauté de Bug Hunters qui nous aide à repérer failles et abus. Un contenu signalé est examiné par une vraie personne, pas juste un algorithme aveugle. Tu peux signaler n'importe quel contenu ou compte en un clic, à tout moment.</p>
       <div class="tos-h">⚖️ Ta responsabilité</div>
       <p>Tu restes seul responsable de ce que tu publies, partages et dis sur X1. La liberté qu'on te donne s'accompagne d'une responsabilité : ce que tu publies engage ta responsabilité légale et personnelle, comme partout ailleurs sur internet ou dans la vie réelle.</p>
+      <div class="tos-h">© Copyright &amp; propriété intellectuelle</div>
+      <p>Le nom « X1 », le logo, le code source, l'interface, le design et les fonctionnalités originales de la plateforme sont la propriété exclusive de son créateur et protégés par le droit d'auteur. Toute copie, décompilation, rétro-ingénierie, extraction ou réutilisation commerciale du code, du design ou de la marque X1 — en tout ou en partie, sans autorisation écrite préalable — est interdite et peut donner lieu à des poursuites.</p>
+      <p>À l'inverse, tu restes seul propriétaire de tout ce que TU publies sur X1 (messages, fichiers, publications, contenu de créateur). En le publiant, tu nous accordes seulement une licence limitée, non exclusive et révocable pour héberger, transmettre et afficher ce contenu dans la stricte mesure nécessaire au fonctionnement du service — jamais le droit de le vendre ou de te l'enlever. Tu peux le supprimer à tout moment, et tes messages privés chiffrés de bout en bout ne nous appartiennent jamais. Le détail complet de cette section est disponible à tout moment depuis Paramètres → Copyright &amp; propriété intellectuelle.</p>
       <p class="tos-final">En créant un compte, tu confirmes avoir lu et accepté cette charte.</p>
     </div>
     <div class="tos-foot">
@@ -6168,7 +6120,6 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-friends',mobileSel:'.tabbar [data-view="friends"]',placement:'right',icon:'👥',title:'Amis',text:'Envoie des demandes d\\'ami et gère celles que tu reçois.'},
   {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'Serveurs',text:'Rejoins ou crée des communautés avec salons textuels et vocaux.'},
   {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
-  {desktopSel:'#nav-casino',mobileSel:'#nav-casino-mobile',placement:'right',icon:'🎰',title:'Casino',text:'Des mini-jeux et des duels amicaux avec tes amis.'},
   {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
   {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'X1 Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
@@ -6282,6 +6233,17 @@ function maybeStartTutorial(){
   setTimeout(function(){if(!tutState)startTutorial();},700);
 }
 
+// Musique et Chatroulette : en pause pour tout le monde sauf le compte
+// propriétaire (isShaman, posé côté serveur dans /api/auth/me — jamais
+// recalculable ici). Un simple masquage de bouton n'est PAS un contrôle
+// d'accès réel : Chatroulette est en plus verrouillée côté serveur sur
+// chacune de ses routes /api/chatroulette/*.
+function applyOwnerOnlyNav(){
+  const isOwner=!!(me&&me.isShaman);
+  ['nav-music','nav-music-mobile','nav-chatroulette','nav-chatroulette-mobile'].forEach(function(id){
+    const b=\$(id);if(b)b.classList.toggle('hidden',!isOwner);
+  });
+}
 async function enterApp(e2ePassword){
   xlog('show_dash_start',{});
   let acc=null;
@@ -6292,6 +6254,7 @@ async function enterApp(e2ePassword){
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
+  applyOwnerOnlyNav();
   if(e2ePassword)xdTryAutoUnlockAfterLogin(e2ePassword);
   ensureE2EKeys(e2ePassword).then(function(status){
     /* Si cet appareil a bien une clé E2E locale mais qu'elle n'a jamais été
@@ -7062,11 +7025,8 @@ async function refreshStatusPanel(){
     if(sub)sub.textContent='Vérification impossible.';
   }
 }
-if(\$('nav-status'))\$('nav-status').addEventListener('click',openStatusPanel);
 if(\$('nav-chatroulette'))\$('nav-chatroulette').addEventListener('click',openChatroulette);
 if(\$('nav-chatroulette-mobile'))\$('nav-chatroulette-mobile').addEventListener('click',openChatroulette);
-if(\$('nav-casino'))\$('nav-casino').addEventListener('click',openCasino);
-if(\$('nav-casino-mobile'))\$('nav-casino-mobile').addEventListener('click',openCasino);
 if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){openCreators();});
 if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
 if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();});
@@ -7080,6 +7040,10 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.14',category:'design',date:'1 septembre 2026',time:'23:15',title:'🧹 Un peu de ménage dans la barre latérale',
+    body:'État du système a déménagé dans Paramètres pour désencombrer la barre latérale — toujours accessible, juste ailleurs. La section Musique est mise en pause le temps qu\\'on la retravaille en profondeur, elle reviendra. Chatroulette est également en pause pour le moment. Et le Casino virtuel a été retiré du site.'},
+  {version:'4.55.13',category:'feature',date:'1 septembre 2026',time:'23:00',title:'© Une section Copyright ajoutée',
+    body:'Une section Copyright & propriété intellectuelle a été ajoutée à la charte affichée à l\\'inscription, et dans Paramètres → Copyright & propriété intellectuelle. Elle protège X1 (nom, code, design), tout en confirmant clairement que TOI tu restes propriétaire de tout ce que tu publies (messages, fichiers, publications) — ça, X1 ne pourra jamais te le retirer ni le vendre.'},
   {version:'4.55.12',category:'feature',date:'1 septembre 2026',time:'22:30',title:'☁️ X1 Drive s\\'enrichit : sélection multiple, dossiers complets, duplication…',
     body:'Plusieurs ajouts dans X1 Drive : sélectionne plusieurs fichiers à la fois (case à cocher) pour les télécharger, déplacer ou supprimer d\\'un coup ; envoie un dossier entier avec toute son arborescence en un clic ; duplique un fichier ; consulte ses informations (taille, dates…) ; et si quelqu\\'un te partage un fichier par lien, tu peux maintenant le sauvegarder directement dans ton propre Drive. Une notification t\\'avertit aussi quand ton espace de stockage approche de sa limite.'},
   {version:'4.55.11',category:'feature',date:'1 septembre 2026',time:'21:15',title:'☁️ Nouveau : X1 Drive, 1 Go de stockage chiffré de bout en bout',
@@ -7981,6 +7945,21 @@ async function sendTicketReply(){
 }
 if(\$('tkc-send'))\$('tkc-send').addEventListener('click',sendTicketReply);
 if(\$('tkc-input'))\$('tkc-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendTicketReply();}});
+function renderSetLegal(box){
+  box.innerHTML='<h2>© Copyright & propriété intellectuelle</h2><div class="sc-desc">Ce qui protège X1, et ce qui te protège toi.</div>'
+    +'<div class="set-card"><div class="set-section-label">🔒 Ce qui appartient à X1</div>'
+      +'<div class="scr-sub">Le nom « X1 », le logo, le code source, l\\'interface, le design et les fonctionnalités originales de la plateforme sont la propriété exclusive de son créateur et protégés par le droit d\\'auteur. Toute copie, décompilation, rétro-ingénierie, extraction ou réutilisation commerciale du code, du design ou de la marque X1 — en tout ou en partie, sans autorisation écrite préalable — est interdite et peut donner lieu à des poursuites.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🎨 Ce qui t\\'appartient, à toi</div>'
+      +'<div class="scr-sub">Tu restes seul propriétaire de tout ce que tu publies sur X1 : messages, fichiers, publications XBin, fichiers X1 Drive, contenu de créateur. En le publiant, tu nous accordes seulement une licence limitée, non exclusive et révocable, permettant d\\'héberger, transmettre et afficher ce contenu dans la stricte mesure nécessaire au fonctionnement du service — jamais le droit de le vendre, de le republier ailleurs en ton nom, ou de te l\\'enlever. Tu peux supprimer ton contenu à tout moment ; les messages privés restent chiffrés de bout en bout et ne nous appartiennent jamais.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🚩 Signaler une atteinte au droit d\\'auteur</div>'
+      +'<div class="scr-sub" style="margin-bottom:12px">Si tu penses qu\\'un contenu publié sur X1 viole tes droits (les tiens ou ceux d\\'un tiers), contacte le support avec les détails — on examine chaque signalement et on retire le contenu concerné si la demande est fondée.</div>'
+      +'<button type="button" class="btn-main" id="legal-contact-btn">🎧 Contacter le support</button>'
+    +'</div>'
+    +'<div class="set-card"><div class="scr-sub">Ces règles complètent la charte X1 acceptée à l\\'inscription et peuvent évoluer ; toute mise à jour importante est annoncée dans les Notes de version.</div></div>';
+  const btn=\$('legal-contact-btn');if(btn)btn.onclick=function(){settingsActiveKey='helpdesk';renderSettingsSidebar();renderSettingsSection('helpdesk');setTimeout(openTicketNewModal,50);};
+}
 async function renderSetHelpdesk(box){
   box.innerHTML='<div class="set-card"><div class="set-section-label">🎧 Aide & Support</div>'
     +'<div class="scr-sub" style="margin-bottom:12px">Une question, un souci de compte ou de paiement ? L\\'équipe support te répond directement en chat.</div>'
@@ -8049,42 +8028,42 @@ let appPrefs=loadAppPrefs();
 function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
 const I18N={
   fr:{
-    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'Serveurs',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
+    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'Serveurs',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
     auth_tagline:'Messages · Amis · Profils',auth_tab_login:'Connexion',auth_tab_register:'Inscription',auth_email_or_tag:'Email ou pseudo#tag',auth_email_or_tag_ph:'toi@exemple.com ou pseudo#1234',auth_password:'Mot de passe',auth_forgot_password:'Mot de passe oublié ?',auth_remember_me:'Rester connecté',auth_enter:'Entrer',auth_create_account:'Créer mon compte',
     set_account:'Mon compte',set_subscription:'Abonnement',set_profiles:'Profils',set_privacy:'Confidentialité et sécurité',set_blocked:'Utilisateurs bloqués',set_myreports:'Mes signalements',set_devices:'Appareils',set_connections:'Connexions',set_apps:'Applications autorisées',set_family:'Coffre-fort / Family Center',set_appearance:'Apparence',set_accessibility:'Accessibilité',set_voice:'Voix et vidéo',set_notifications:'Notifications',set_shortcuts:'Raccourcis clavier',set_language:'Langue',set_os:'Paramètres du système',set_advanced:'Avancé',set_activity:'Activité',set_developers:'Se connecter avec X1',set_changelog:'Notes de version',set_support:'Support',set_testers:'Rejoindre X1 Testers',set_logout:'Se déconnecter',
     setgrp_account:'Compte',setgrp_application:'Application',setgrp_developers:'Développeurs',
     common_send:'Envoyer',common_cancel:'Annuler',common_save:'Enregistrer',common_close:'Fermer',common_delete:'Supprimer'
   },
   en:{
-    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Music',nav_creators:'Creators',nav_servers:'Servers',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
+    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_music:'Music',nav_creators:'Creators',nav_servers:'Servers',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
     auth_tagline:'Messages · Friends · Profiles',auth_tab_login:'Log In',auth_tab_register:'Sign Up',auth_email_or_tag:'Email or username#tag',auth_email_or_tag_ph:'you@example.com or username#1234',auth_password:'Password',auth_forgot_password:'Forgot password?',auth_remember_me:'Stay signed in',auth_enter:'Log In',auth_create_account:'Create my account',
     set_account:'My account',set_subscription:'Subscription',set_profiles:'Profiles',set_privacy:'Privacy & security',set_blocked:'Blocked users',set_myreports:'My reports',set_devices:'Devices',set_connections:'Connections',set_apps:'Authorized apps',set_family:'Vault / Family Center',set_appearance:'Appearance',set_accessibility:'Accessibility',set_voice:'Voice & video',set_notifications:'Notifications',set_shortcuts:'Keyboard shortcuts',set_language:'Language',set_os:'System settings',set_advanced:'Advanced',set_activity:'Activity',set_developers:'Sign in with X1',set_changelog:'Release notes',set_support:'Support',set_testers:'Join X1 Testers',set_logout:'Log out',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Developers',
     common_send:'Send',common_cancel:'Cancel',common_save:'Save',common_close:'Close',common_delete:'Delete'
   },
   es:{
-    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Música',nav_creators:'Creadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
+    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Creadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
     auth_tagline:'Mensajes · Amigos · Perfiles',auth_tab_login:'Iniciar sesión',auth_tab_register:'Registrarse',auth_email_or_tag:'Correo o usuario#etiqueta',auth_email_or_tag_ph:'tu@ejemplo.com o usuario#1234',auth_password:'Contraseña',auth_forgot_password:'¿Olvidaste tu contraseña?',auth_remember_me:'Mantener sesión iniciada',auth_enter:'Entrar',auth_create_account:'Crear mi cuenta',
     set_account:'Mi cuenta',set_subscription:'Suscripción',set_profiles:'Perfiles',set_privacy:'Privacidad y seguridad',set_blocked:'Usuarios bloqueados',set_myreports:'Mis reportes',set_devices:'Dispositivos',set_connections:'Conexiones',set_apps:'Aplicaciones autorizadas',set_family:'Bóveda / Centro familiar',set_appearance:'Apariencia',set_accessibility:'Accesibilidad',set_voice:'Voz y video',set_notifications:'Notificaciones',set_shortcuts:'Atajos de teclado',set_language:'Idioma',set_os:'Ajustes del sistema',set_advanced:'Avanzado',set_activity:'Actividad',set_developers:'Iniciar sesión con X1',set_changelog:'Notas de versión',set_support:'Soporte',set_testers:'Unirse a X1 Testers',set_logout:'Cerrar sesión',
     setgrp_account:'Cuenta',setgrp_application:'Aplicación',setgrp_developers:'Desarrolladores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Guardar',common_close:'Cerrar',common_delete:'Eliminar'
   },
   pt:{
-    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_casino:'Cassino',nav_music:'Música',nav_creators:'Criadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
+    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Criadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
     auth_tagline:'Mensagens · Amigos · Perfis',auth_tab_login:'Entrar',auth_tab_register:'Cadastrar',auth_email_or_tag:'Email ou usuário#tag',auth_email_or_tag_ph:'voce@exemplo.com ou usuario#1234',auth_password:'Senha',auth_forgot_password:'Esqueceu a senha?',auth_remember_me:'Manter conectado',auth_enter:'Entrar',auth_create_account:'Criar minha conta',
     set_account:'Minha conta',set_subscription:'Assinatura',set_profiles:'Perfis',set_privacy:'Privacidade e segurança',set_blocked:'Usuários bloqueados',set_myreports:'Minhas denúncias',set_devices:'Dispositivos',set_connections:'Conexões',set_apps:'Aplicativos autorizados',set_family:'Cofre / Central da família',set_appearance:'Aparência',set_accessibility:'Acessibilidade',set_voice:'Voz e vídeo',set_notifications:'Notificações',set_shortcuts:'Atalhos de teclado',set_language:'Idioma',set_os:'Configurações do sistema',set_advanced:'Avançado',set_activity:'Atividade',set_developers:'Entrar com X1',set_changelog:'Notas de versão',set_support:'Suporte',set_testers:'Entrar para X1 Testers',set_logout:'Sair',
     setgrp_account:'Conta',setgrp_application:'Aplicativo',setgrp_developers:'Desenvolvedores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Salvar',common_close:'Fechar',common_delete:'Excluir'
   },
   de:{
-    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_casino:'Casino',nav_music:'Musik',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
+    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_music:'Musik',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
     auth_tagline:'Nachrichten · Freunde · Profile',auth_tab_login:'Anmelden',auth_tab_register:'Registrieren',auth_email_or_tag:'E-Mail oder Nutzername#Tag',auth_email_or_tag_ph:'du@beispiel.com oder nutzer#1234',auth_password:'Passwort',auth_forgot_password:'Passwort vergessen?',auth_remember_me:'Angemeldet bleiben',auth_enter:'Anmelden',auth_create_account:'Konto erstellen',
     set_account:'Mein Konto',set_subscription:'Abonnement',set_profiles:'Profile',set_privacy:'Datenschutz & Sicherheit',set_blocked:'Blockierte Nutzer',set_myreports:'Meine Meldungen',set_devices:'Geräte',set_connections:'Verbindungen',set_apps:'Autorisierte Apps',set_family:'Tresor / Familiencenter',set_appearance:'Erscheinungsbild',set_accessibility:'Barrierefreiheit',set_voice:'Sprache & Video',set_notifications:'Benachrichtigungen',set_shortcuts:'Tastenkürzel',set_language:'Sprache',set_os:'Systemeinstellungen',set_advanced:'Erweitert',set_activity:'Aktivität',set_developers:'Mit X1 anmelden',set_changelog:'Versionshinweise',set_support:'Support',set_testers:'X1 Testers beitreten',set_logout:'Abmelden',
     setgrp_account:'Konto',setgrp_application:'App',setgrp_developers:'Entwickler',
     common_send:'Senden',common_cancel:'Abbrechen',common_save:'Speichern',common_close:'Schließen',common_delete:'Löschen'
   },
   it:{
-    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_casino:'Casinò',nav_music:'Musica',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
+    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_music:'Musica',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
     auth_tagline:'Messaggi · Amici · Profili',auth_tab_login:'Accedi',auth_tab_register:'Registrati',auth_email_or_tag:'Email o nome utente#tag',auth_email_or_tag_ph:'tu@esempio.com o utente#1234',auth_password:'Password',auth_forgot_password:'Password dimenticata?',auth_remember_me:'Resta connesso',auth_enter:'Accedi',auth_create_account:'Crea il mio account',
     set_account:'Il mio account',set_subscription:'Abbonamento',set_profiles:'Profili',set_privacy:'Privacy e sicurezza',set_blocked:'Utenti bloccati',set_myreports:'Le mie segnalazioni',set_devices:'Dispositivi',set_connections:'Connessioni',set_apps:'App autorizzate',set_family:'Cassaforte / Family Center',set_appearance:'Aspetto',set_accessibility:'Accessibilità',set_voice:'Voce e video',set_notifications:'Notifiche',set_shortcuts:'Scorciatoie da tastiera',set_language:'Lingua',set_os:'Impostazioni di sistema',set_advanced:'Avanzate',set_activity:'Attività',set_developers:'Accedi con X1',set_changelog:'Note di rilascio',set_support:'Supporto',set_testers:'Unisciti a X1 Testers',set_logout:'Esci',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Sviluppatori',
@@ -8620,7 +8599,9 @@ const SETTINGS_GROUPS=[
     {key:'bots',icon:'🤖',title:'Mes bots'}
   ]},
   {label:'',items:[
+    {key:'sysstatus',icon:'📡',title:'État du système'},
     {key:'changelog',icon:'📋',title:'Notes de version'},
+    {key:'legal',icon:'©️',title:'Copyright & propriété intellectuelle'},
     {key:'helpdesk',icon:'🎧',title:'Aide & Support'},
     {key:'support',icon:'🐞',title:'Signaler un bug'},
     {key:'testers',icon:'🧪',title:'Rejoindre X1 Testers'},
@@ -8653,6 +8634,7 @@ function renderSettingsSidebar(){
   });
 }
 function handleSettingsNavClick(key){
+  if(key==='sysstatus'){closeSettingsPanel();openStatusPanel();return}
   if(key==='changelog'){closeSettingsPanel();openChangelogPanel();return}
   if(key==='support'){closeSettingsPanel();openBugModal(null);return}
   if(key==='testers'){showToast('Bientôt disponible !');return}
@@ -8672,7 +8654,7 @@ function renderSettingsSection(key){
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
     myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet,
-    helpdesk:renderSetHelpdesk
+    helpdesk:renderSetHelpdesk,legal:renderSetLegal
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -10200,10 +10182,6 @@ const SECTION_GUIDES={
     "Mise en relation aléatoire avec un autre membre, en texte ou en vidéo.",
     "Passe au suivant à tout moment ; signale un comportement gênant en un clic.",
     "Aucune caméra ne s'active jamais automatiquement — c'est toujours un choix explicite."
-  ]},
-  casino:{icon:'🎰',title:'Casino',tips:[
-    "Mini-jeux et duels amicaux entre membres, avec un portefeuille virtuel propre à X1.",
-    "Aucun argent réel n'est jamais impliqué — c'est purement pour le fun."
   ]},
   suggestions:{icon:'💡',title:'Boîte à idées',tips:[
     "Propose une fonctionnalité, un correctif de design ou une idée de marketing, avec une catégorie.",
@@ -12108,7 +12086,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ X1+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
-      +'<button type="button" class="pc-music-btn" data-music-open="'+esc(p.authUserId||p.\$id||'')+'" data-music-name="'+esc(name)+'">🎵 Musique</button>'
+      +((me&&me.isShaman)?('<button type="button" class="pc-music-btn" data-music-open="'+esc(p.authUserId||p.\$id||'')+'" data-music-name="'+esc(name)+'">🎵 Musique</button>'):'')
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
       +(opts.mutualCount!=null&&opts.mutualCount>0?'<div class="pc-mutual">👥 '+opts.mutualCount+' ami'+(opts.mutualCount>1?'s':'')+' en commun</div>':'')
       +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+(opts.showLastSeen&&lastSeenTxt?' · '+esc(lastSeenTxt):'')+'</div>')
@@ -18230,154 +18208,6 @@ async function loadAndRenderXDriveTab(uid,container){
       else xdDownloadItem(item);
     });
   });
-}
-
-/* ===== Casino virtuel (jetons fictifs, duels PvP entre membres) ===== */
-let casinoChips=0,casinoOpenDuels=[],casinoDuelUnsub=null;
-const casinoShownResults=new Set();
-const CASINO_GAME_LABELS={coinflip:'🪙 Pile ou face',dice:'🎲 Dés'};
-const CASINO_MIN_STAKE_CLIENT=10,CASINO_MAX_STAKE_CLIENT=5000;
-async function openCasino(){
-  let overlay=\$('casino-overlay');
-  if(!overlay){
-    overlay=document.createElement('div');
-    overlay.id='casino-overlay';
-    overlay.className='discover-overlay';
-    document.body.appendChild(overlay);
-  }
-  overlay.classList.add('show');
-  renderCasinoShell();
-  try{const r=await authPost('/api/casino/wallet',{});casinoChips=r.chips||0;}catch(e){}
-  await loadCasinoDuels();
-  renderCasinoBody();
-  casinoSubscribe();
-}
-function closeCasino(){
-  const overlay=\$('casino-overlay');
-  if(overlay)overlay.classList.remove('show');
-  if(casinoDuelUnsub){try{casinoDuelUnsub();}catch(e){}casinoDuelUnsub=null;}
-}
-function casinoSubscribe(){
-  if(casinoDuelUnsub)return;
-  casinoDuelUnsub=client.subscribe('databases.'+DB+'.collections.casino_duels.documents',function(res){
-    const p=res.payload;if(!p)return;
-    if(eventIs(res.events,'.create')&&p.status==='open'){
-      casinoOpenDuels.unshift(p);
-      renderCasinoBody();
-      return;
-    }
-    if(eventIs(res.events,'.update')){
-      casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==p.\$id;});
-      renderCasinoBody();
-      if(me&&p.status==='resolved'&&(String(p.creatorUid)===String(me.\$id)||String(p.opponentUid)===String(me.\$id)))casinoShowResult(p);
-    }
-  });
-}
-async function loadCasinoDuels(){
-  try{
-    const r=await db.listDocuments(DB,'casino_duels',[Appwrite.Query.equal('status','open'),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
-    casinoOpenDuels=r.documents||[];
-  }catch(e){casinoOpenDuels=[];}
-}
-function casinoShowResult(duel){
-  if(casinoShownResults.has(duel.\$id))return;
-  casinoShownResults.add(duel.\$id);
-  let result={};try{result=JSON.parse(duel.resultJson||'{}');}catch(e){}
-  const isPush=!duel.winnerUid;
-  const won=!isPush&&String(duel.winnerUid)===String(me.\$id);
-  let msg;
-  if(isPush)msg='🤝 Égalité — ta mise de '+duel.stake+' jetons t\\'a été rendue.';
-  else if(won)msg='🎉 Tu as gagné '+(duel.stake*2)+' jetons !';
-  else msg='💀 Tu as perdu '+duel.stake+' jetons.';
-  if(result.game==='dice'&&result.creatorRoll&&result.joinerRoll)msg+=' ('+result.creatorRoll.join('+')+' vs '+result.joinerRoll.join('+')+')';
-  else if(result.game==='coinflip')msg+=' (Résultat : '+(result.flip==='pile'?'Pile':'Face')+')';
-  showToast(msg,(won||isPush)?undefined:'error');
-  refreshCasinoWallet();
-}
-async function refreshCasinoWallet(){
-  try{const r=await authPost('/api/casino/wallet',{});casinoChips=r.chips||0;}catch(e){}
-  const bal=\$('casino-balance');if(bal)bal.textContent='🪙 '+casinoChips;
-}
-function renderCasinoShell(){
-  const overlay=\$('casino-overlay');if(!overlay)return;
-  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="casino-close">← Retour</button><h2>🎰 Casino</h2><div class="casino-balance" id="casino-balance">🪙 …</div></div>'
-    +'<div class="discover-body" id="casino-body"></div>';
-  \$('casino-close').onclick=closeCasino;
-}
-function renderCasinoBody(){
-  const box=\$('casino-body');if(!box)return;
-  const bal=\$('casino-balance');if(bal)bal.textContent='🪙 '+casinoChips;
-  const mine=me&&me.\$id;
-  box.innerHTML='<div class="scr-sub" style="margin-bottom:10px">Jetons fictifs, pour le fun — pas de valeur réelle, pas d\\'échange contre de l\\'argent. D\\'autres jeux arriveront plus tard.</div>'
-    +'<button type="button" class="btn-main" id="casino-create-btn" style="width:100%;margin-bottom:14px">+ Créer un duel</button>'
-    +'<div class="set-section-label">Duels ouverts</div>'
-    +(casinoOpenDuels.length?casinoOpenDuels.map(function(d){
-      const isMine=mine&&String(d.creatorUid)===String(mine);
-      return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(CASINO_GAME_LABELS[d.gameType]||d.gameType)+' · 🪙 '+d.stake+'</div><div class="scr-sub">'+esc(d.creatorName||'Membre')+'</div></div>'
-        +(isMine?('<button type="button" class="set-mini-btn danger" data-casino-cancel="'+esc(d.\$id)+'">Annuler</button>'):('<button type="button" class="btn-main" style="width:auto;padding:8px 16px" data-casino-join="'+esc(d.\$id)+'">Rejoindre</button>'))
-        +'</div>';
-    }).join(''):'<div class="scr-sub">Aucun duel ouvert pour l\\'instant — sois le premier à en créer un !</div>');
-  box.querySelectorAll('[data-casino-join]').forEach(function(b){
-    b.addEventListener('click',function(){casinoJoinDuel(b.getAttribute('data-casino-join'),b);});
-  });
-  box.querySelectorAll('[data-casino-cancel]').forEach(function(b){
-    b.addEventListener('click',function(){casinoCancelDuel(b.getAttribute('data-casino-cancel'),b);});
-  });
-  \$('casino-create-btn').onclick=openCasinoCreateForm;
-}
-async function casinoJoinDuel(duelId,btn){
-  if(btn)btn.disabled=true;
-  try{
-    const r=await authPost('/api/casino/duel/join',{duelId:duelId});
-    casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==duelId;});
-    renderCasinoBody();
-    if(r.duel)casinoShowResult(r.duel);
-  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
-}
-async function casinoCancelDuel(duelId,btn){
-  if(btn)btn.disabled=true;
-  try{
-    await authPost('/api/casino/duel/cancel',{duelId:duelId});
-    casinoOpenDuels=casinoOpenDuels.filter(function(d){return d.\$id!==duelId;});
-    renderCasinoBody();
-    refreshCasinoWallet();
-    showToast('Duel annulé, mise remboursée.');
-  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
-}
-function openCasinoCreateForm(){
-  const overlay=document.createElement('div');
-  overlay.className='action-sheet-overlay show';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
-    +'<div class="set-section-label">+ Nouveau duel</div>'
-    +'<div class="set-row"><label>Jeu</label><div class="seg-group"><button type="button" class="seg-btn on" data-casino-game="coinflip">🪙 Pile ou face</button><button type="button" class="seg-btn" data-casino-game="dice">🎲 Dés</button></div></div>'
-    +'<div class="set-row"><label>Mise ('+CASINO_MIN_STAKE_CLIENT+' à '+CASINO_MAX_STAKE_CLIENT+' jetons)</label><input type="number" id="casino-stake-input" class="field-input" min="'+CASINO_MIN_STAKE_CLIENT+'" max="'+CASINO_MAX_STAKE_CLIENT+'" value="100"></div>'
-    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="casino-create-go">Créer</button><button type="button" class="set-mini-btn" id="casino-create-cancel">Annuler</button></div>'
-    +'<div class="err" id="casino-create-err"></div>'
-    +'</div>';
-  document.body.appendChild(overlay);
-  function close(){overlay.remove();}
-  \$('casino-create-cancel').onclick=close;
-  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
-  let gameType='coinflip';
-  overlay.querySelectorAll('[data-casino-game]').forEach(function(b){
-    b.addEventListener('click',function(){
-      gameType=b.getAttribute('data-casino-game');
-      overlay.querySelectorAll('[data-casino-game]').forEach(function(x){x.classList.toggle('on',x===b);});
-    });
-  });
-  \$('casino-create-go').onclick=async function(){
-    const stake=parseInt(\$('casino-stake-input').value,10);
-    if(!stake||stake<CASINO_MIN_STAKE_CLIENT||stake>CASINO_MAX_STAKE_CLIENT){\$('casino-create-err').textContent='Mise invalide.';return}
-    if(stake>casinoChips){\$('casino-create-err').textContent='Tu n\\'as pas assez de jetons.';return}
-    this.disabled=true;this.textContent='Création…';
-    try{
-      const r=await authPost('/api/casino/duel/create',{gameType:gameType,stake:stake});
-      casinoChips=r.chips!=null?r.chips:casinoChips;
-      close();
-      renderCasinoBody();
-      showToast('Duel créé, en attente d\\'un adversaire…');
-    }catch(e){\$('casino-create-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Créer';}
-  };
 }
 
 /* ===== X1 Music (plateforme d'écoute/partage ouverte à tout le monde,
@@ -30807,6 +30637,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/join" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const result = await chatrouletteTryMatchOrQueue(acc.$id);
       return new Response(JSON.stringify(Object.assign({ ok: true }, result)), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -30818,6 +30649,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/status" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const active = await awFetch("/databases/" + AW_DB + "/collections/chatroulette_sessions/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid1", values: [String(acc.$id)] })) +
@@ -30843,6 +30675,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/leave" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
       const sessionId = String((body && body.sessionId) || "");
@@ -30866,6 +30699,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/skip" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
       const sessionId = String((body && body.sessionId) || "");
@@ -30885,6 +30719,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/messages/send" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
       const sessionId = String((body && body.sessionId) || "");
@@ -30916,6 +30751,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/react" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
       const sessionId = String((body && body.sessionId) || "");
@@ -30936,6 +30772,7 @@ async function handle(request, event) {
   if (path === "/api/chatroulette/messages/list" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    if (!isShamanAccount(acc)) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
       const sessionId = String((body && body.sessionId) || "");
@@ -30946,107 +30783,6 @@ async function handle(request, event) {
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       return new Response(JSON.stringify({ ok: true, messages: msgs.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/casino/wallet" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const wallet = await casinoGetOrCreateWallet(acc.$id);
-      return new Response(JSON.stringify({ ok: true, chips: wallet.chips }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/casino/duel/create" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const gameType = CASINO_GAMES.indexOf(body && body.gameType) >= 0 ? body.gameType : "";
-      const stake = Math.floor(Number(body && body.stake));
-      if (!gameType) throw new Error("Jeu invalide");
-      if (!Number.isFinite(stake) || stake < CASINO_MIN_STAKE || stake > CASINO_MAX_STAKE) throw new Error("Mise invalide (entre " + CASINO_MIN_STAKE + " et " + CASINO_MAX_STAKE + " jetons)");
-      const wallet = await casinoGetOrCreateWallet(acc.$id);
-      if (wallet.chips < stake) throw new Error("Pas assez de jetons");
-      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + wallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: wallet.chips - stake } } });
-      const profile = await resolveProfile(acc.$id);
-      const creatorName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents", {
-        method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { creatorUid: String(acc.$id), creatorName: creatorName, gameType: gameType, stake: stake, status: "open", opponentUid: "", opponentName: "", winnerUid: "", resultJson: "" } }
-      });
-      return new Response(JSON.stringify({ ok: true, duel: duel, chips: wallet.chips - stake }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/casino/duel/cancel" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const duelId = String((body && body.duelId) || "");
-      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { asAdmin: true });
-      if (String(duel.creatorUid) !== String(acc.$id)) throw new Error("Tu ne peux annuler que tes propres duels");
-      if (duel.status !== "open") throw new Error("Ce duel n'est plus annulable");
-      const wallet = await casinoGetOrCreateWallet(acc.$id);
-      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + wallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: wallet.chips + Number(duel.stake) } } });
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { method: "PATCH", asAdmin: true, body: { data: { status: "cancelled" } } });
-      return new Response(JSON.stringify({ ok: true, duel: updated, chips: wallet.chips + Number(duel.stake) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/casino/duel/join" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const duelId = String((body && body.duelId) || "");
-      const duel = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, { asAdmin: true });
-      if (duel.status !== "open") throw new Error("Ce duel n'est plus disponible");
-      if (String(duel.creatorUid) === String(acc.$id)) throw new Error("Tu ne peux pas rejoindre ton propre duel");
-      const joinerWallet = await casinoGetOrCreateWallet(acc.$id);
-      const stake = Number(duel.stake);
-      if (joinerWallet.chips < stake) throw new Error("Pas assez de jetons");
-      // Verrou optimiste : on ne débite le rejoignant et on ne résout la
-      // partie qu'APRÈS avoir réussi à faire passer le duel de "open" à
-      // "resolved" via une réécriture complète — si un autre appel a résolu
-      // le duel entre-temps (statut déjà changé), la relecture juste avant
-      // l'échoue naturellement puisqu'on revérifie duel.status ci-dessus à
-      // chaque tentative, mais deux requêtes concurrentes pourraient encore
-      // lire "open" toutes les deux avant que l'une n'écrive — best-effort
-      // pour un casino fictif, pas un système financier réel.
-      await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + joinerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: joinerWallet.chips - stake } } });
-      const profile = await resolveProfile(acc.$id);
-      const opponentName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      const result = casinoResolveGame(duel.gameType);
-      const creatorWon = result.winnerIndex === 0;
-      const winnerUid = result.winnerIndex === -1 ? "" : (creatorWon ? String(duel.creatorUid) : String(acc.$id));
-      if (result.winnerIndex === -1) {
-        // Égalité : on rembourse les deux mises plutôt que d'en désigner un
-        // gagnant arbitraire. joinerWallet.chips est encore la valeur AVANT
-        // le débit fait plus haut, donc la réécrire telle quelle annule
-        // exactement ce débit.
-        const creatorWallet = await casinoGetOrCreateWallet(duel.creatorUid);
-        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + creatorWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: creatorWallet.chips + stake } } });
-        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + joinerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: joinerWallet.chips } } });
-      } else {
-        const winnerWallet = await casinoGetOrCreateWallet(winnerUid);
-        await awFetch("/databases/" + AW_DB + "/collections/casino_wallets/documents/" + winnerWallet.$id, { method: "PATCH", asAdmin: true, body: { data: { chips: winnerWallet.chips + stake * 2 } } });
-      }
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/casino_duels/documents/" + duelId, {
-        method: "PATCH", asAdmin: true,
-        body: { data: { status: "resolved", opponentUid: String(acc.$id), opponentName: opponentName, winnerUid: winnerUid, resultJson: JSON.stringify(result) } }
-      });
-      return new Response(JSON.stringify({ ok: true, duel: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -34808,6 +34544,12 @@ async function handle(request, event) {
         headers: secret ? { "X-Appwrite-Session": secret } : { "X-Appwrite-JWT": jwt }
       });
       if (acc && acc.$id) bgTask(updateUserGeoMeta(acc.$id, request.cf || {}));
+      // isShaman posé directement sur l'objet account (jamais recalculable
+      // côté client, qui ne connaît ni SHAMAN_UIDS ni l'e-mail du
+      // propriétaire) : sert uniquement à afficher/masquer des boutons —
+      // les sections réellement restreintes (Chatroulette) sont EN PLUS
+      // vérifiées côté serveur, jamais sur la seule confiance de ce champ.
+      if (acc) acc.isShaman = isShamanAccount(acc);
       return new Response(JSON.stringify({ ok: true, account: acc }), {
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
