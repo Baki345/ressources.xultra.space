@@ -2086,6 +2086,83 @@ html.xultra-restoring #stage{visibility:hidden}
   .xbin-grid{grid-template-columns:1fr}
   .xbin-linenums{padding:14px 6px;font-size:.74rem}
 }
+/* ===== X1 Drive (stockage cloud chiffré de bout en bout) — inspiré de
+   MEGA/Google Drive dans la structure (rail latéral, grille de fichiers,
+   glisser-déposer), mais aux couleurs X1 ===== */
+.xd-shell{display:flex;height:100%;min-height:0}
+.xd-side{width:220px;flex-shrink:0;border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.xd-side-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:.85rem;font-weight:700;color:var(--muted);transition:all .15s ease}
+.xd-side-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.xd-side-item.on{background:linear-gradient(135deg,rgba(124,58,237,.28),rgba(168,85,247,.16));color:#fff}
+.xd-side-quota{margin-top:auto;padding:14px 12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14)}
+.xd-quota-bar{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin:8px 0}
+.xd-quota-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:99px;transition:width .4s ease}
+.xd-quota-fill.xd-quota-warn{background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.xd-quota-txt{font-size:.7rem;color:var(--muted)}
+.xd-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.xd-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.xd-breadcrumb{display:flex;align-items:center;gap:4px;flex:1;min-width:120px;font-size:.85rem;font-weight:700;overflow-x:auto;white-space:nowrap}
+.xd-breadcrumb button{color:var(--muted);padding:4px 8px;border-radius:8px}
+.xd-breadcrumb button:hover{background:rgba(255,255,255,.08);color:#fff}
+.xd-breadcrumb button.xd-crumb-current{color:#fff;cursor:default}
+.xd-breadcrumb button.xd-crumb-current:hover{background:0}
+.xd-tool-btn{padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.06);font-size:.8rem;font-weight:700;color:#e9d5ff;display:flex;align-items:center;gap:6px;transition:all .15s ease}
+.xd-tool-btn:hover{background:rgba(167,139,250,.18);transform:translateY(-1px)}
+.xd-tool-btn.xd-upload-btn{background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.35)}
+.xd-view-toggle{display:flex;gap:2px;background:rgba(255,255,255,.05);border-radius:10px;padding:2px}
+.xd-view-toggle button{padding:6px 10px;border-radius:8px;color:var(--muted)}
+.xd-view-toggle button.on{background:#7c3aed;color:#fff}
+.xd-body{flex:1;min-height:0;overflow-y:auto;padding:16px;position:relative}
+.xd-body.xd-dragover::after{content:'⬇️ Dépose ici pour envoyer';position:absolute;inset:8px;border:2px dashed #a855f7;border-radius:16px;background:rgba(124,58,237,.12);display:flex;align-items:center;justify-content:center;font-weight:800;color:#e9d5ff;font-size:1rem;z-index:5;pointer-events:none}
+.xd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.xd-tile{background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14);border-radius:14px;padding:14px 10px;cursor:pointer;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;animation:xdTileIn .3s ease both;text-align:center;position:relative}
+@keyframes xdTileIn{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.xd-tile:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5);box-shadow:0 10px 26px rgba(124,58,237,.22)}
+.xd-tile.xd-selected{border-color:#a855f7;background:rgba(124,58,237,.14)}
+.xd-tile-icon{font-size:2.1rem;margin-bottom:8px}
+.xd-tile-thumb{width:100%;height:74px;object-fit:cover;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.05)}
+.xd-tile-name{font-size:.78rem;font-weight:700;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xd-tile-meta{font-size:.68rem;color:var(--muted);margin-top:2px}
+.xd-tile-star{position:absolute;top:8px;right:8px;font-size:.85rem;opacity:0;transition:opacity .15s ease}
+.xd-tile:hover .xd-tile-star,.xd-tile-star.on{opacity:1}
+.xd-list{display:flex;flex-direction:column;gap:2px}
+.xd-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s ease}
+.xd-row:hover{background:rgba(255,255,255,.05)}
+.xd-row.xd-selected{background:rgba(124,58,237,.16)}
+.xd-row-icon{font-size:1.2rem;width:26px;text-align:center;flex-shrink:0}
+.xd-row-name{flex:1;font-size:.85rem;font-weight:700;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xd-row-meta{font-size:.72rem;color:var(--muted);flex-shrink:0;width:90px;text-align:right}
+.xd-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:70px 20px;color:var(--muted);text-align:center;gap:10px}
+.xd-empty .xd-empty-ico{font-size:2.6rem}
+.xd-ctx-menu{position:fixed;z-index:3000;background:#1a1030;border:1px solid rgba(167,139,250,.3);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);padding:6px;min-width:190px;animation:xdTileIn .15s ease both}
+.xd-ctx-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:.82rem;font-weight:600;color:#e9d5ff;width:100%;text-align:left}
+.xd-ctx-item:hover{background:rgba(167,139,250,.16)}
+.xd-ctx-item.xd-ctx-danger{color:#fca5a5}
+.xd-ctx-item.xd-ctx-danger:hover{background:rgba(239,68,68,.14)}
+.xd-ctx-sep{height:1px;background:var(--line);margin:5px 4px}
+.xd-upload-panel{position:fixed;right:20px;bottom:20px;width:320px;max-width:calc(100vw - 40px);background:#160c26;border:1px solid rgba(167,139,250,.3);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:2600;overflow:hidden;animation:xdTileIn .25s ease both}
+.xd-upload-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line);font-size:.82rem;font-weight:800}
+.xd-upload-list{max-height:260px;overflow-y:auto;padding:8px}
+.xd-upload-row{padding:8px 10px}
+.xd-upload-row-top{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px;gap:8px}
+.xd-upload-row-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.xd-upload-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.xd-upload-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .2s ease}
+.xd-upload-fill.xd-upload-done{background:#22c55e}
+.xd-upload-fill.xd-upload-err{background:#ef4444}
+.xd-unlock-wrap{max-width:420px;margin:60px auto;text-align:center;animation:xdTileIn .3s ease both}
+.xd-unlock-wrap .xd-lock-ico{font-size:2.6rem;margin-bottom:10px}
+.xd-unlock-wrap input{width:100%;margin:14px 0 6px}
+.xd-recovery-box{max-width:480px;margin:40px auto;background:rgba(124,58,237,.1);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:24px;text-align:center}
+.xd-recovery-key{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0d0814;border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px;margin:14px 0;word-break:break-all;font-size:.82rem;color:#a78bfa;user-select:all}
+.xd-preview-wrap{display:flex;align-items:center;justify-content:center;height:100%;padding:20px}
+.xd-preview-wrap img,.xd-preview-wrap video{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.xd-preview-text{width:100%;height:100%;overflow:auto;background:#0d0814;border-radius:12px;padding:20px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;white-space:pre-wrap;word-break:break-word}
+@media (max-width:760px){
+  .xd-side{position:fixed;left:0;top:0;bottom:0;z-index:20;background:#0b0714;transform:translateX(-100%);transition:transform .2s ease}
+  .xd-side.show{transform:translateX(0)}
+  .xd-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
 .music-tabs{padding:0 14px 12px}
 /* Streaming (grille, esprit Spotify) : pochettes carrées bien visibles,
    carte plate qui ne se soulève qu'au survol, gros bouton de lecture
@@ -3893,6 +3970,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn" id="nav-status" data-i18n-title="nav_status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
@@ -3909,6 +3987,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-music-mobile" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-xdrive-mobile" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
@@ -4214,6 +4293,7 @@ a.bug-att-item{display:block}
         <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
       </div>
       <div class="pm-section pm-xbin-section hidden" id="pm-xbin-section"></div>
+      <div class="pm-section pm-xdrive-section hidden" id="pm-xdrive-section"></div>
     </div>
   </div>
 </div>
@@ -6088,6 +6168,7 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-casino',mobileSel:'#nav-casino-mobile',placement:'right',icon:'🎰',title:'Casino',text:'Des mini-jeux et des duels amicaux avec tes amis.'},
   {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
+  {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'X1 Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -6208,6 +6289,7 @@ async function enterApp(e2ePassword){
     profile=(r.documents&&r.documents[0])||null;
   }catch(e){xlog('dash_profile_fail',{msg:(e&&e.message)||String(e)});}
   me=acc;meProfile=profile;
+  if(e2ePassword)xdTryAutoUnlockAfterLogin(e2ePassword);
   ensureE2EKeys(e2ePassword).then(function(status){
     /* Si cet appareil a bien une clé E2E locale mais qu'elle n'a jamais été
        sauvegardée côté serveur (généralement parce qu'on ne s'est pas
@@ -6986,6 +7068,8 @@ if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){ope
 if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
 if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();});
 if(\$('nav-xbin-mobile'))\$('nav-xbin-mobile').addEventListener('click',function(){openXBin();});
+if(\$('nav-xdrive'))\$('nav-xdrive').addEventListener('click',function(){openXDrive();});
+if(\$('nav-xdrive-mobile'))\$('nav-xdrive-mobile').addEventListener('click',function(){openXDrive();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -12112,6 +12196,7 @@ async function openProfileModal(uid){
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
   }
   if(typeof loadAndRenderXBinTab==='function')loadAndRenderXBinTab(uid,\$('pm-xbin-section'));
+  if(typeof loadAndRenderXDriveTab==='function')loadAndRenderXDriveTab(uid,\$('pm-xdrive-section'));
   const shareBtn=\$('pm-share');
   if(shareBtn){
     shareBtn.onclick=function(){
@@ -16679,6 +16764,1209 @@ async function loadAndRenderXBinTab(uid,container){
     });
   });
 }
+/* ===== X1 Drive : chiffrement de bout en bout (zero-knowledge) =====
+   AES-256-GCM via l'API Web Crypto native du navigateur (SubtleCrypto) —
+   aucune bibliothèque tierce, implémentation auditée par les fournisseurs
+   de navigateurs eux-mêmes, pas par nous. Le Worker/serveur ne voit jamais
+   une clé en clair ni un mot de passe : tout ce qui transite est soit du
+   texte chiffré (inutile sans la clé), soit dérivé exclusivement dans le
+   navigateur de la personne. base64 utilisé uniquement pour le stockage/
+   transport JSON (qui ne sait pas transporter des octets bruts). */
+function xdBufToB64(buf){
+  const bytes=new Uint8Array(buf);
+  let bin='';
+  for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+function xdB64ToBuf(b64){
+  const bin=atob(b64||'');
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  return bytes.buffer;
+}
+async function xdGenerateKey(){
+  return crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+}
+async function xdExportKeyRaw(key){ return crypto.subtle.exportKey('raw',key); }
+async function xdImportKeyRaw(raw){ return crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},true,['encrypt','decrypt']); }
+async function xdDeriveKeyFromPassword(password,saltBuf){
+  const enc=new TextEncoder();
+  const baseKey=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2',salt:saltBuf,iterations:250000,hash:'SHA-256'},
+    baseKey,{name:'AES-GCM',length:256},true,['encrypt','decrypt']
+  );
+}
+async function xdEncryptBuf(key,plainBuf){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plainBuf);
+  return {cipher:cipher,iv:iv};
+}
+async function xdDecryptBuf(key,cipherBuf,ivBuf){
+  return crypto.subtle.decrypt({name:'AES-GCM',iv:ivBuf},key,cipherBuf);
+}
+async function xdEncryptString(key,str){
+  const enc=new TextEncoder();
+  const r=await xdEncryptBuf(key,enc.encode(str));
+  return {data:xdBufToB64(r.cipher),iv:xdBufToB64(r.iv)};
+}
+async function xdDecryptString(key,dataB64,ivB64){
+  const buf=await xdDecryptBuf(key,xdB64ToBuf(dataB64),new Uint8Array(xdB64ToBuf(ivB64)));
+  return new TextDecoder().decode(buf);
+}
+
+/* ===== Compte : clé maîtresse + clé de récupération =====
+   xdMasterKey ne vit qu'en mémoire (variable JS), jamais dans
+   localStorage/IndexedDB, jamais envoyée au serveur — perdue à chaque
+   rechargement de page, d'où l'écran de déverrouillage à chaque ouverture
+   de Drive tant qu'elle n'a pas été redérivée du mot de passe (ou de la clé
+   de récupération) pour CETTE session de navigateur. */
+let xdMasterKey=null;
+let xdDriveMeta=null;
+async function xdFetchQuotaMeta(){
+  const r=await authPost('/api/xdrive/quota',{});
+  xdDriveMeta=r;
+  return r;
+}
+async function xdSetupDrive(password){
+  const masterKey=await xdGenerateKey();
+  const masterKeyRaw=await xdExportKeyRaw(masterKey);
+  const pwSalt=crypto.getRandomValues(new Uint8Array(16));
+  const pwWrapKey=await xdDeriveKeyFromPassword(password,pwSalt);
+  const pwWrapped=await xdEncryptBuf(pwWrapKey,masterKeyRaw);
+  const recoveryKeyRaw=crypto.getRandomValues(new Uint8Array(32));
+  const recoveryKey=await xdImportKeyRaw(recoveryKeyRaw.buffer);
+  const recWrapped=await xdEncryptBuf(recoveryKey,masterKeyRaw);
+  await authPost('/api/xdrive/setup-keys',{
+    masterKeyWrapped:xdBufToB64(pwWrapped.cipher),masterKeySalt:xdBufToB64(pwSalt),masterKeyIv:xdBufToB64(pwWrapped.iv),
+    recoveryWrapped:xdBufToB64(recWrapped.cipher),recoveryIv:xdBufToB64(recWrapped.iv),markSetupDone:true
+  });
+  xdMasterKey=masterKey;
+  return xdBufToB64(recoveryKeyRaw.buffer);
+}
+async function xdUnlockWithPassword(password,meta){
+  const pwSalt=xdB64ToBuf(meta.masterKeySalt);
+  const pwWrapKey=await xdDeriveKeyFromPassword(password,pwSalt);
+  const masterKeyRaw=await xdDecryptBuf(pwWrapKey,xdB64ToBuf(meta.masterKeyWrapped),new Uint8Array(xdB64ToBuf(meta.masterKeyIv)));
+  xdMasterKey=await xdImportKeyRaw(masterKeyRaw);
+}
+async function xdUnlockWithRecoveryKey(recoveryKeyB64,meta){
+  const recoveryKeyRaw=xdB64ToBuf(recoveryKeyB64.trim());
+  const recoveryKey=await xdImportKeyRaw(recoveryKeyRaw);
+  const masterKeyRaw=await xdDecryptBuf(recoveryKey,xdB64ToBuf(meta.recoveryWrapped),new Uint8Array(xdB64ToBuf(meta.recoveryIv)));
+  xdMasterKey=await xdImportKeyRaw(masterKeyRaw);
+}
+// Redérive automatiquement la clé maîtresse au moment de la connexion, tant
+// que le mot de passe est encore disponible en clair dans le formulaire —
+// évite de redemander le mot de passe une seconde fois juste pour ouvrir
+// Drive dans la même session. Échec silencieux (Drive pas encore activé,
+// ou mot de passe qui a changé entre-temps sans resynchroniser Drive) :
+// l'écran de déverrouillage prendra simplement le relais le cas échéant.
+async function xdTryAutoUnlockAfterLogin(password){
+  try{
+    const meta=await xdFetchQuotaMeta();
+    if(meta&&meta.setupDone&&meta.masterKeyWrapped)await xdUnlockWithPassword(password,meta);
+  }catch(e){}
+}
+
+/* ===== Utilitaires ===== */
+function xdFmtBytes(n){
+  if(!n)return '0 o';
+  const units=['o','Ko','Mo','Go','To'];
+  let i=0,v=n;
+  while(v>=1024&&i<units.length-1){v/=1024;i++;}
+  return (i===0?v:v.toFixed(1))+' '+units[i];
+}
+function xdFileIcon(mime,type){
+  if(type==='folder')return '📁';
+  const m=(mime||'').toLowerCase();
+  if(m.indexOf('image/')===0)return '🖼️';
+  if(m.indexOf('video/')===0)return '🎬';
+  if(m.indexOf('audio/')===0)return '🎵';
+  if(m==='application/pdf')return '📕';
+  if(m.indexOf('zip')>=0||m.indexOf('rar')>=0||m.indexOf('7z')>=0||m.indexOf('tar')>=0||m.indexOf('gzip')>=0)return '🗜️';
+  if(m.indexOf('word')>=0||m.indexOf('document')>=0)return '📘';
+  if(m.indexOf('sheet')>=0||m.indexOf('excel')>=0)return '📗';
+  if(m.indexOf('presentation')>=0||m.indexOf('powerpoint')>=0)return '📙';
+  if(m.indexOf('text/')===0||m==='application/json')return '📄';
+  return '📦';
+}
+function xdIsPreviewable(mime){
+  const m=(mime||'').toLowerCase();
+  return m.indexOf('image/')===0||m.indexOf('video/')===0||m.indexOf('audio/')===0||m.indexOf('text/')===0||m==='application/pdf'||m==='application/json';
+}
+// Déchiffre le nom + type MIME d'un item (les deux voyagent ensemble dans
+// encName, un seul blob JSON chiffré — pas la peine d'une clé/IV séparée
+// rien que pour le type MIME). Pour un item PUBLIC (voir xdMakePublic),
+// rien à déchiffrer : le nom et le type sont stockés en clair par design,
+// puisque "public" et "secret" sont contradictoires.
+async function xdDecryptItemMeta(item){
+  if(item.visibility==='public'){item._name=item.plainName||'Sans nom';item._mime=item.mime||'';return item;}
+  if(!item.encName){item._name='Sans nom';item._mime='';return item;}
+  try{
+    const json=await xdDecryptString(xdMasterKey,item.encName,item.nameIv);
+    const meta=JSON.parse(json);
+    item._name=meta.name||'Sans nom';
+    item._mime=meta.mime||'';
+  }catch(e){
+    item._name='(nom illisible)';item._mime='';
+  }
+  return item;
+}
+
+/* ===== Envoi (chiffrement client puis upload du blob chiffré) ===== */
+function xdUploadBlobFile(file,onProgress,permissions){
+  // Même seuil et même repli XHR-vs-SDK-chunké que uploadFileWithProgress()
+  // plus haut dans ce fichier (au-delà de 5 Mo, un envoi en un seul bloc
+  // s'est montré instable en test) — comportement déjà validé, juste
+  // reciblé sur le bucket xultra_drive et des permissions par fichier.
+  if(file.size>UPLOAD_CHUNK_SIZE){
+    return storage.createFile('xultra_drive',Appwrite.ID.unique(),file,permissions,function(p){
+      if(onProgress)onProgress(p.sizeUploaded,file.size);
+    });
+  }
+  return new Promise(function(resolve,reject){
+    try{
+      const xhr=new XMLHttpRequest();
+      const fd=new FormData();
+      const fileId=Appwrite.ID.unique();
+      fd.append('fileId',fileId);
+      fd.append('file',file,file.name||'upload');
+      permissions.forEach(function(p){fd.append('permissions[]',p);});
+      xhr.open('POST',PROXY_EP+'/storage/buckets/xultra_drive/files',true);
+      xhr.withCredentials=true;
+      const hdrs=(client&&client.headers)||{};
+      Object.keys(hdrs).forEach(function(k){try{xhr.setRequestHeader(k,hdrs[k]);}catch(e){}});
+      xhr.upload.onprogress=function(e){if(onProgress)onProgress(e.loaded,e.lengthComputable?e.total:file.size);};
+      xhr.onload=function(){
+        if(xhr.status>=200&&xhr.status<400){if(onProgress)onProgress(file.size,file.size);resolve({\$id:fileId});}
+        else{
+          let msg='Envoi échoué ('+xhr.status+')';
+          try{const j=JSON.parse(xhr.responseText);if(j&&j.message)msg=j.message;}catch(e){}
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror=function(){reject(new Error('Envoi échoué (réseau)'));};
+      xhr.send(fd);
+    }catch(e){reject(e);}
+  });
+}
+let xdActiveUploads={};
+function xdShowUploadPanel(){
+  let panel=\$('xd-upload-panel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='xd-upload-panel';
+    panel.className='xd-upload-panel';
+    document.body.appendChild(panel);
+  }
+  panel.classList.remove('hidden');
+  xdRenderUploadPanel();
+}
+function xdRenderUploadPanel(){
+  const panel=\$('xd-upload-panel');if(!panel)return;
+  const ids=Object.keys(xdActiveUploads);
+  if(!ids.length){panel.classList.add('hidden');return}
+  panel.innerHTML='<div class="xd-upload-head"><span>Envois ('+ids.length+')</span><button type="button" id="xd-upload-panel-close">✕</button></div>'
+    +'<div class="xd-upload-list">'+ids.map(function(id){
+      const u=xdActiveUploads[id];
+      const pct=u.total?Math.round(u.progress/u.total*100):0;
+      return '<div class="xd-upload-row"><div class="xd-upload-row-top"><span class="xd-upload-row-name">'+esc(u.name)+'</span><span>'+(u.status==='error'?'Échec':(u.status==='done'?'✅':pct+'%'))+'</span></div><div class="xd-upload-bar"><div class="xd-upload-fill'+(u.status==='done'?' xd-upload-done':(u.status==='error'?' xd-upload-err':''))+'" style="width:'+(u.status==='done'?100:pct)+'%"></div></div></div>';
+    }).join('')+'</div>';
+  const closeBtn=panel.querySelector('#xd-upload-panel-close');
+  if(closeBtn)closeBtn.onclick=function(){panel.classList.add('hidden');};
+}
+async function xdUploadOneFile(file){
+  const fileKey=await xdGenerateKey();
+  const plainBuf=await file.arrayBuffer();
+  const enc=await xdEncryptBuf(fileKey,plainBuf);
+  // IV du contenu préfixé aux 12 premiers octets du blob envoyé plutôt que
+  // stocké dans un champ séparé — un aller-retour upload/download réel
+  // (Blob -> Storage -> fetch -> ArrayBuffer) a été testé avant d'écrire ce
+  // code pour confirmer que rien ne le corrompt en chemin.
+  const combined=new Uint8Array(enc.iv.length+enc.cipher.byteLength);
+  combined.set(enc.iv,0);
+  combined.set(new Uint8Array(enc.cipher),enc.iv.length);
+  const encFile=new File([combined],'enc.bin',{type:'application/octet-stream'});
+  const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+  const uploadId='u'+Date.now()+Math.random().toString(36).slice(2,8);
+  xdActiveUploads[uploadId]={name:file.name,progress:0,total:combined.byteLength,status:'uploading'};
+  xdRenderUploadPanel();
+  let up;
+  try{
+    up=await xdUploadBlobFile(encFile,function(loaded,total){
+      xdActiveUploads[uploadId].progress=loaded;xdActiveUploads[uploadId].total=total;
+      xdRenderUploadPanel();
+    },perms);
+  }catch(e){
+    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    throw e;
+  }
+  const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:file.name,mime:file.type||'application/octet-stream'}));
+  const fileKeyRaw=await xdExportKeyRaw(fileKey);
+  const wrappedKey=await xdEncryptBuf(xdMasterKey,fileKeyRaw);
+  // Réenvoyer un fichier du même nom, au même endroit, archive la version
+  // précédente (dans xdrive_versions) plutôt que de créer un doublon ou
+  // d'effacer silencieusement l'ancien contenu — voir
+  // xdShowVersionHistory() pour la consulter/la restaurer.
+  const existing=(xdSection==='drive'?xdCurrentListing:[]).find(function(d){return d.type==='file'&&d._name===file.name;});
+  let itemDoc;
+  try{
+    if(existing){
+      if(existing.fileId){
+        try{
+          await db.createDocument(DB,'xdrive_versions',Appwrite.ID.unique(),{
+            itemId:existing.\$id,ownerId:me.\$id,fileId:existing.fileId,keyWrapped:existing.keyWrapped||'',keyIv:existing.keyIv||'',size:existing.size||0
+          },[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+        }catch(e){}
+      }
+      await db.updateDocument(DB,'xdrive_items',existing.\$id,{
+        encName:metaEnc.data,nameIv:metaEnc.iv,fileId:up.\$id,mime:'',size:combined.byteLength,
+        keyWrapped:xdBufToB64(wrappedKey.cipher),keyIv:xdBufToB64(wrappedKey.iv)
+      });
+      itemDoc={\$id:existing.\$id};
+    }else{
+      const itemData={
+        ownerId:me.\$id,parentId:xdCurrentFolder||'',type:'file',
+        encName:metaEnc.data,nameIv:metaEnc.iv,
+        fileId:up.\$id,mime:'',size:combined.byteLength,
+        keyWrapped:xdBufToB64(wrappedKey.cipher),keyIv:xdBufToB64(wrappedKey.iv),
+        visibility:'private',starred:false,trashed:false
+      };
+      itemDoc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
+    }
+  }catch(e){
+    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    await storage.deleteFile('xultra_drive',up.\$id).catch(function(){});
+    throw e;
+  }
+  try{
+    const r=await authPost('/api/xdrive/commit-upload',{itemId:itemDoc.\$id,fileId:up.\$id});
+    if(xdDriveMeta){xdDriveMeta.used=r.used;xdDriveMeta.quota=r.quota;}
+  }catch(e){
+    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    showToast('Quota dépassé, envoi de "'+file.name+'" annulé.','error');
+    throw e;
+  }
+  xdActiveUploads[uploadId].status='done';xdRenderUploadPanel();
+  return itemDoc;
+}
+async function xdHandleFileUpload(files){
+  if(!files||!files.length)return;
+  if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
+  try{await xdFetchQuotaMeta();}catch(e){}
+  const totalNeeded=files.reduce(function(s,f){return s+f.size;},0);
+  const avail=Math.max(0,(xdDriveMeta?xdDriveMeta.quota:1073741824)-(xdDriveMeta?xdDriveMeta.used:0));
+  if(totalNeeded>avail){
+    showToast('Espace insuffisant : '+xdFmtBytes(avail)+' disponible, '+xdFmtBytes(totalNeeded)+' nécessaire.','error');
+    return;
+  }
+  xdShowUploadPanel();
+  await Promise.all(Array.from(files).map(function(file){return xdUploadOneFile(file).catch(function(){});}));
+  setTimeout(function(){
+    Object.keys(xdActiveUploads).forEach(function(id){if(xdActiveUploads[id].status==='done')delete xdActiveUploads[id];});
+    xdRenderUploadPanel();
+  },2500);
+  showToast('Envoi terminé ! 🎉');
+  xdRenderQuotaBox();
+  xdRenderCurrentView();
+}
+
+/* ===== Téléchargement / déchiffrement ===== */
+function xdFileUrl(fileId){
+  return PROXY_EP+'/storage/buckets/xultra_drive/files/'+fileId+'/view?project='+PID;
+}
+async function xdFetchFileBytes(fileId){
+  const headers=Object.assign({},(client&&client.headers)||{});
+  const r=await fetch(xdFileUrl(fileId),{headers:headers});
+  if(!r.ok)throw new Error('Téléchargement impossible ('+r.status+')');
+  return r.arrayBuffer();
+}
+async function xdDecryptItemContent(item){
+  const raw=await xdFetchFileBytes(item.fileId);
+  if(item.visibility==='public')return raw;
+  const wrappedRaw=xdB64ToBuf(item.keyWrapped);
+  const keyIv=new Uint8Array(xdB64ToBuf(item.keyIv));
+  const fileKeyRaw=await xdDecryptBuf(xdMasterKey,wrappedRaw,keyIv);
+  const fileKey=await xdImportKeyRaw(fileKeyRaw);
+  const bytes=new Uint8Array(raw);
+  const iv=bytes.slice(0,12);
+  const cipher=bytes.slice(12);
+  return xdDecryptBuf(fileKey,cipher.buffer,iv);
+}
+async function xdDownloadItem(item){
+  showToast('Déchiffrement de "'+item._name+'"…');
+  try{
+    const buf=await xdDecryptItemContent(item);
+    const blob=new Blob([buf],{type:item._mime||'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=item._name||'fichier';
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(function(){URL.revokeObjectURL(url);},4000);
+  }catch(e){
+    showToast('Déchiffrement impossible : mauvaise clé ou fichier corrompu.','error');
+  }
+}
+
+/* ===== Aperçu (déchiffré côté navigateur uniquement — voir le choix
+   "zero-knowledge" : aucune miniature n'est jamais générée côté serveur) ===== */
+async function xdOpenPreview(item){
+  const overlay=\$('xdrive-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-preview-back">← Retour</button><h2>'+esc(item._name)+'</h2>'
+    +'<button type="button" class="xd-tool-btn" id="xd-preview-dl">⬇️ Télécharger</button></div>'
+    +'<div class="discover-body xbin-body" style="max-width:none;height:calc(100% - 60px)"><div class="xd-preview-wrap" id="xd-preview-body"><span class="bs-ring"></span></div></div>';
+  \$('xd-preview-back').onclick=function(){xdRenderShell();};
+  \$('xd-preview-dl').onclick=function(){xdDownloadItem(item);};
+  const body=\$('xd-preview-body');
+  try{
+    const buf=await xdDecryptItemContent(item);
+    const blob=new Blob([buf],{type:item._mime||'application/octet-stream'});
+    const url=URL.createObjectURL(blob);
+    const m=(item._mime||'').toLowerCase();
+    if(m.indexOf('image/')===0){
+      body.innerHTML='<img src="'+url+'" alt=""/>';
+    }else if(m.indexOf('video/')===0){
+      body.innerHTML='<video src="'+url+'" controls autoplay style="max-width:100%;max-height:100%;border-radius:12px"></video>';
+    }else if(m.indexOf('audio/')===0){
+      body.innerHTML='<audio src="'+url+'" controls autoplay style="width:100%;max-width:500px"></audio>';
+    }else if(m==='application/pdf'){
+      body.innerHTML='<iframe src="'+url+'" style="width:100%;height:100%;border:0;border-radius:12px;background:#fff"></iframe>';
+    }else if(m.indexOf('text/')===0||m==='application/json'){
+      const text=await blob.text();
+      body.innerHTML='<div class="xd-preview-text"></div>';
+      body.querySelector('.xd-preview-text').textContent=text.slice(0,200000);
+    }else{
+      body.innerHTML='<div class="empty-hint">Pas d\\'aperçu disponible pour ce type de fichier — télécharge-le pour l\\'ouvrir.</div>';
+    }
+  }catch(e){
+    body.innerHTML='<div class="empty-hint">Déchiffrement impossible : mauvaise clé ou fichier corrompu.</div>';
+  }
+}
+
+/* ===== Navigation / chargement des dossiers ===== */
+let xdCurrentFolder='';
+let xdBreadcrumb=[];
+let xdViewMode='grid';
+let xdSortBy='name';
+let xdSearchQuery='';
+let xdSection='drive';
+let xdCurrentListing=[];
+async function xdLoadFolder(parentId){
+  const r=await db.listDocuments(DB,'xdrive_items',[
+    Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('parentId',parentId||''),
+    Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)
+  ]);
+  const docs=r.documents||[];
+  await Promise.all(docs.map(xdDecryptItemMeta));
+  return docs;
+}
+async function xdLoadTrash(){
+  const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('trashed',true),Appwrite.Query.limit(500)]);
+  const docs=r.documents||[];
+  await Promise.all(docs.map(xdDecryptItemMeta));
+  return docs;
+}
+async function xdLoadStarred(){
+  const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('starred',true),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
+  const docs=r.documents||[];
+  await Promise.all(docs.map(xdDecryptItemMeta));
+  return docs;
+}
+async function xdLoadShared(){
+  const r=await db.listDocuments(DB,'xdrive_shares',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('revoked',false),Appwrite.Query.limit(200)]);
+  const shares=r.documents||[];
+  const items=[];
+  for(let i=0;i<shares.length;i++){
+    try{
+      const it=await db.getDocument(DB,'xdrive_items',shares[i].itemId);
+      await xdDecryptItemMeta(it);
+      it._shareToken=shares[i].token;it._shareDoc=shares[i];
+      items.push(it);
+    }catch(e){}
+  }
+  return items;
+}
+async function xdRenderCurrentView(){
+  const bodyEl=\$('xd-body');if(!bodyEl)return;
+  bodyEl.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  let docs=[];
+  try{
+    if(xdSection==='trash')docs=await xdLoadTrash();
+    else if(xdSection==='starred')docs=await xdLoadStarred();
+    else if(xdSection==='shared')docs=await xdLoadShared();
+    else docs=await xdLoadFolder(xdCurrentFolder);
+  }catch(e){
+    bodyEl.innerHTML='<div class="empty-hint">Impossible de charger tes fichiers pour le moment.</div>';
+    return;
+  }
+  if(xdSearchQuery.trim()){
+    const q=xdSearchQuery.trim().toLowerCase();
+    docs=docs.filter(function(d){return (d._name||'').toLowerCase().indexOf(q)>=0;});
+  }
+  docs.sort(function(a,b){
+    if(a.type!==b.type)return a.type==='folder'?-1:1;
+    if(xdSortBy==='size')return (b.size||0)-(a.size||0);
+    if(xdSortBy==='date')return new Date(b.\$createdAt)-new Date(a.\$createdAt);
+    return (a._name||'').localeCompare(b._name||'');
+  });
+  xdCurrentListing=docs;
+  xdRenderBreadcrumb();
+  if(!docs.length){
+    const emptyMsgs={trash:['🗑️','Corbeille vide'],starred:['⭐','Aucun favori pour l\\'instant'],shared:['🔗','Aucun partage actif'],drive:['☁️','Ce dossier est vide']};
+    const em=emptyMsgs[xdSection]||emptyMsgs.drive;
+    bodyEl.innerHTML='<div class="xd-empty"><div class="xd-empty-ico">'+em[0]+'</div><div>'+em[1]+'</div></div>';
+    return;
+  }
+  bodyEl.innerHTML=xdViewMode==='grid'?xdGridHtml(docs):xdListHtml(docs);
+  xdWireItemEvents(bodyEl);
+}
+function xdRenderBreadcrumb(){
+  const el=\$('xd-breadcrumb');if(!el)return;
+  if(xdSection!=='drive'){
+    const labels={trash:'🗑️ Corbeille',starred:'⭐ Favoris',shared:'🔗 Partagés'};
+    el.innerHTML='<button type="button" class="xd-crumb-current">'+(labels[xdSection]||'')+'</button>';
+    return;
+  }
+  let html='<button type="button" data-xd-crumb="">☁️ Mon Drive</button>';
+  xdBreadcrumb.forEach(function(c,i){
+    html+=' / <button type="button" '+(i===xdBreadcrumb.length-1?'class="xd-crumb-current"':'data-xd-crumb="'+c.id+'"')+'>'+esc(c.name)+'</button>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('[data-xd-crumb]').forEach(function(btn){
+    btn.onclick=function(){
+      const id=btn.getAttribute('data-xd-crumb');
+      const idx=xdBreadcrumb.findIndex(function(c){return c.id===id;});
+      xdCurrentFolder=id;
+      xdBreadcrumb=id?xdBreadcrumb.slice(0,idx+1):[];
+      xdRenderCurrentView();
+    };
+  });
+}
+function xdGridHtml(docs){
+  return '<div class="xd-grid">'+docs.map(function(d){
+    const icon=xdFileIcon(d._mime,d.type);
+    const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
+    return '<div class="xd-tile" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+      +'<span class="xd-tile-star'+(d.starred?' on':'')+'" data-xd-star="'+d.\$id+'">'+(d.starred?'⭐':'☆')+'</span>'
+      +'<div class="xd-tile-icon">'+icon+'</div>'
+      +'<div class="xd-tile-name">'+esc(d._name)+'</div>'
+      +'<div class="xd-tile-meta">'+meta+'</div>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+function xdListHtml(docs){
+  return '<div class="xd-list">'+docs.map(function(d){
+    const icon=xdFileIcon(d._mime,d.type);
+    const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
+    return '<div class="xd-row" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+      +'<span class="xd-row-icon">'+icon+'</span>'
+      +'<span class="xd-row-name">'+esc(d._name)+(d.starred?' ⭐':'')+'</span>'
+      +'<span class="xd-row-meta">'+meta+'</span>'
+      +'<span class="xd-row-meta">'+fmtRelTime(d.\$createdAt)+'</span>'
+    +'</div>';
+  }).join('')+'</div>';
+}
+function xdItemById(id){
+  return xdCurrentListing.find(function(d){return d.\$id===id;});
+}
+function xdWireItemEvents(container){
+  container.querySelectorAll('[data-xd-id]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      if(e.target.closest('[data-xd-star]'))return;
+      const id=el.getAttribute('data-xd-id');
+      const item=xdItemById(id);
+      if(!item)return;
+      if(item.type==='folder'&&xdSection==='drive'){
+        xdBreadcrumb.push({id:item.\$id,name:item._name});
+        xdCurrentFolder=item.\$id;
+        xdRenderCurrentView();
+      }else if(item.type==='file'){
+        if(xdIsPreviewable(item._mime))xdOpenPreview(item);
+        else xdDownloadItem(item);
+      }
+    });
+    el.addEventListener('contextmenu',function(e){
+      e.preventDefault();
+      const id=el.getAttribute('data-xd-id');
+      const item=xdItemById(id);
+      if(item)xdShowContextMenu(item,e.clientX,e.clientY);
+    });
+    let pressTimer=null;
+    el.addEventListener('touchstart',function(e){
+      pressTimer=setTimeout(function(){
+        const id=el.getAttribute('data-xd-id');
+        const item=xdItemById(id);
+        const t=e.touches[0];
+        if(item)xdShowContextMenu(item,t.clientX,t.clientY);
+      },500);
+    });
+    el.addEventListener('touchend',function(){clearTimeout(pressTimer);});
+  });
+  container.querySelectorAll('[data-xd-star]').forEach(function(btn){
+    btn.addEventListener('click',function(e){
+      e.stopPropagation();
+      xdToggleStar(btn.getAttribute('data-xd-star'));
+    });
+  });
+}
+
+/* ===== Opérations sur les fichiers/dossiers ===== */
+async function xdCreateFolder(){
+  const name=(prompt('Nom du dossier :')||'').trim();
+  if(!name)return;
+  if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
+  try{
+    const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:name,mime:''}));
+    const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+    await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
+      ownerId:me.\$id,parentId:xdCurrentFolder||'',type:'folder',encName:metaEnc.data,nameIv:metaEnc.iv,
+      visibility:'private',starred:false,trashed:false,size:0
+    },perms);
+    showToast('Dossier créé.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Création impossible','error');}
+}
+async function xdRenameItem(item){
+  const name=(prompt('Nouveau nom :',item._name)||'').trim();
+  if(!name||name===item._name)return;
+  try{
+    if(item.visibility==='public'){
+      await db.updateDocument(DB,'xdrive_items',item.\$id,{plainName:name.slice(0,260)});
+    }else{
+      const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:name,mime:item._mime||''}));
+      await db.updateDocument(DB,'xdrive_items',item.\$id,{encName:metaEnc.data,nameIv:metaEnc.iv});
+    }
+    showToast('Renommé.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Renommage impossible','error');}
+}
+async function xdToggleStar(id){
+  const item=xdItemById(id);if(!item)return;
+  try{
+    await db.updateDocument(DB,'xdrive_items',id,{starred:!item.starred});
+    item.starred=!item.starred;
+    xdRenderCurrentView();
+  }catch(e){}
+}
+async function xdMoveToTrash(item){
+  try{
+    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:true,trashedAt:new Date().toISOString()});
+    showToast('Déplacé dans la corbeille.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Suppression impossible','error');}
+}
+async function xdRestoreItem(item){
+  try{
+    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:false,trashedAt:null});
+    showToast('Restauré.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Restauration impossible','error');}
+}
+async function xdPermanentDelete(item){
+  if(!confirm('Supprimer définitivement "'+item._name+'" ? Cette action est irréversible.'))return;
+  try{
+    if(item.type==='file'&&item.fileId){
+      await storage.deleteFile('xultra_drive',item.fileId).catch(function(){});
+      try{await authPost('/api/xdrive/commit-delete',{size:item.size||0});}catch(e){}
+    }
+    await db.deleteDocument(DB,'xdrive_items',item.\$id);
+    showToast('Supprimé définitivement.');
+    if(xdDriveMeta&&item.size)xdDriveMeta.used=Math.max(0,xdDriveMeta.used-item.size);
+    xdRenderQuotaBox();
+    xdRenderCurrentView();
+  }catch(e){showToast('Suppression impossible','error');}
+}
+async function xdEmptyTrash(){
+  if(!confirm('Vider définitivement la corbeille ?'))return;
+  try{
+    const docs=await xdLoadTrash();
+    for(let i=0;i<docs.length;i++)await xdPermanentDelete(docs[i]).catch(function(){});
+    showToast('Corbeille vidée.');
+    xdRenderCurrentView();
+  }catch(e){}
+}
+async function xdShowMoveDialog(item){
+  // Sélecteur de destination minimal : liste tous les dossiers du compte
+  // (chargés à la volée, noms déchiffrés) — pas d'arborescence dépliable
+  // pleine page pour rester simple, suffisant pour un usage courant.
+  let folders=[];
+  try{
+    const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('type','folder'),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
+    folders=r.documents||[];
+    await Promise.all(folders.map(xdDecryptItemMeta));
+  }catch(e){}
+  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return f.\$id!==item.\$id;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:360px"><h3>Déplacer "'+esc(item._name)+'"</h3>'
+    +'<select id="xd-move-select" class="field-input" style="margin:14px 0">'+options.join('')+'</select>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="xd-move-go">Déplacer</button><button type="button" class="set-mini-btn" id="xd-move-cancel">Annuler</button></div></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-move-cancel').onclick=function(){box.remove();};
+  box.querySelector('#xd-move-go').onclick=async function(){
+    const dest=box.querySelector('#xd-move-select').value;
+    try{
+      await db.updateDocument(DB,'xdrive_items',item.\$id,{parentId:dest});
+      showToast('Déplacé.');
+      box.remove();
+      xdRenderCurrentView();
+    }catch(e){showToast('Déplacement impossible','error');}
+  };
+}
+async function xdShowContextMenu(item,x,y){
+  const old=document.querySelector('.xd-ctx-menu');if(old)old.remove();
+  const menu=document.createElement('div');
+  menu.className='xd-ctx-menu';
+  const isTrash=xdSection==='trash';
+  const isShared=xdSection==='shared';
+  let items=[];
+  if(isTrash){
+    items=[
+      ['♻️ Restaurer',function(){xdRestoreItem(item);}],
+      ['🗑️ Supprimer définitivement',function(){xdPermanentDelete(item);},true]
+    ];
+  }else{
+    items=[
+      item.type==='file'?['⬇️ Télécharger',function(){xdDownloadItem(item);}]:null,
+      ['✏️ Renommer',function(){xdRenameItem(item);}],
+      ['📂 Déplacer',function(){xdShowMoveDialog(item);}],
+      [item.starred?'☆ Retirer des favoris':'⭐ Ajouter aux favoris',function(){xdToggleStar(item.\$id);}],
+      item.type==='file'?['🔗 Partager',function(){xdShowShareDialog(item);}]:null,
+      item.type==='file'?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
+      item.type==='file'?['📜 Historique des versions',function(){xdShowVersionHistory(item);}]:null,
+      item.type==='file'?[item.visibility==='public'?'🔒 Rendre privé':'🌐 Rendre public',function(){xdToggleVisibility(item);}]:null,
+      ['🗑️ Supprimer',function(){xdMoveToTrash(item);},true]
+    ].filter(Boolean);
+  }
+  if(isShared){
+    items=[
+      item.type==='file'?['⬇️ Télécharger',function(){xdDownloadItem(item);}]:null,
+      ['🚫 Révoquer le partage',function(){xdRevokeShareByToken(item._shareToken);},true]
+    ].filter(Boolean);
+  }
+  menu.innerHTML=items.map(function(it){return '<button type="button" class="xd-ctx-item'+(it[2]?' xd-ctx-danger':'')+'">'+it[0]+'</button>';}).join('');
+  document.body.appendChild(menu);
+  const btns=menu.querySelectorAll('.xd-ctx-item');
+  btns.forEach(function(btn,i){btn.onclick=function(){menu.remove();items[i][1]();};});
+  const vw=window.innerWidth,vh=window.innerHeight;
+  const mw=200,mh=btns.length*38+12;
+  menu.style.left=Math.min(x,vw-mw-10)+'px';
+  menu.style.top=Math.min(y,vh-mh-10)+'px';
+  setTimeout(function(){
+    document.addEventListener('click',function onDocClick(){menu.remove();document.removeEventListener('click',onDocClick);},{once:true});
+  },10);
+}
+async function xdToggleVisibility(item){
+  if(item.visibility==='public'){
+    try{
+      await db.updateDocument(DB,'xdrive_items',item.\$id,{visibility:'private',plainName:''});
+      showToast('Fichier rendu privé.');
+      xdRenderCurrentView();
+    }catch(e){showToast('Action impossible','error');}
+    return;
+  }
+  if(!confirm('Rendre ce fichier PUBLIC ? Il sera visible par tout le monde dans l\\'onglet Fichiers de ton profil, et ne sera plus chiffré de bout en bout (il n\\'y a plus de secret à garder une fois rendu public).'))return;
+  try{
+    // Rendre public = republier le contenu déchiffré séparément (jamais
+    // réutiliser le blob chiffré existant, qui resterait illisible sans la
+    // clé) avec des permissions read("any"), puis basculer l'item dessus.
+    const buf=await xdDecryptItemContent(item);
+    const blob=new Blob([buf],{type:item._mime||'application/octet-stream'});
+    const publicFile=new File([blob],item._name,{type:item._mime||'application/octet-stream'});
+    const up=await xdUploadBlobFile(publicFile,null,[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+    await db.updateDocument(DB,'xdrive_items',item.\$id,{visibility:'public',plainName:item._name.slice(0,260),mime:item._mime||'',fileId:up.\$id,keyWrapped:'',keyIv:''});
+    const oldFileId=item.fileId;
+    if(oldFileId)await storage.deleteFile('xultra_drive',oldFileId).catch(function(){});
+    showToast('Fichier rendu public.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Action impossible : mauvaise clé ou fichier corrompu.','error');}
+}
+
+/* ===== Barre de quota ===== */
+function xdRenderQuotaBox(){
+  const box=\$('xd-quota-box');if(!box||!xdDriveMeta)return;
+  const used=xdDriveMeta.used||0,quota=xdDriveMeta.quota||1073741824;
+  const pct=Math.min(100,Math.round(used/quota*100));
+  box.innerHTML='<div class="xd-quota-txt">'+xdFmtBytes(used)+' / '+xdFmtBytes(quota)+'</div>'
+    +'<div class="xd-quota-bar"><div class="xd-quota-fill'+(pct>=90?' xd-quota-warn':'')+'" style="width:'+pct+'%"></div></div>'
+    +'<div class="xd-quota-txt">'+pct+'% utilisé'+(pct>=90?' — presque plein !':'')+'</div>';
+}
+
+/* ===== Partage =====
+   Lien sans mot de passe : la clé du fichier voyage dans le FRAGMENT de
+   l'URL (#k=…), jamais envoyé au serveur dans une requête HTTP — même
+   principe que MEGA/Firefox Send. Lien avec mot de passe : la clé
+   n'apparaît JAMAIS dans le lien, elle est enveloppée par une clé dérivée
+   du mot de passe et stockée chiffrée sur le document de partage —
+   déverrouillable uniquement en tapant le mot de passe côté destinataire. */
+async function xdCreateShare(item,password,expMs){
+  const fileKeyRaw=await xdDecryptBuf(xdMasterKey,xdB64ToBuf(item.keyWrapped),new Uint8Array(xdB64ToBuf(item.keyIv)));
+  const fileKey=await xdImportKeyRaw(fileKeyRaw);
+  // Nom/type re-chiffrés avec la clé du FICHIER (pas la clé maîtresse,
+  // jamais transmise) et copiés sur le document de partage lui-même : un
+  // destinataire qui n'a que cette clé précise doit pouvoir lire le nom
+  // sans jamais toucher à xdrive_items (qui reste privé, protège aussi la
+  // structure de dossiers/l'état favori/etc. du reste du Drive).
+  const nameForShare=await xdEncryptString(fileKey,JSON.stringify({name:item._name,mime:item._mime||''}));
+  const token=xdBufToB64(crypto.getRandomValues(new Uint8Array(24)).buffer).replace(/[+/=]/g,'').slice(0,28);
+  const shareData={itemId:item.\$id,ownerId:me.\$id,token:token,passwordProtected:!!password,revoked:false,views:0,fileId:item.fileId||'',type:item.type,encName:nameForShare.data,nameIv:nameForShare.iv};
+  if(expMs>0)shareData.expiresAt=new Date(Date.now()+expMs).toISOString();
+  let fragmentKeyPart='';
+  if(password){
+    const salt=crypto.getRandomValues(new Uint8Array(16));
+    const wrapKey=await xdDeriveKeyFromPassword(password,salt);
+    const wrapped=await xdEncryptBuf(wrapKey,fileKeyRaw);
+    shareData.keyWrapped=xdBufToB64(wrapped.cipher);
+    shareData.keySalt=xdBufToB64(salt);
+    shareData.keyIv=xdBufToB64(wrapped.iv);
+  }else{
+    fragmentKeyPart=xdBufToB64(fileKeyRaw);
+  }
+  const perms=[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+  await db.createDocument(DB,'xdrive_shares',Appwrite.ID.unique(),shareData,perms);
+  // Le blob chiffré doit devenir accessible à un visiteur non connecté — le
+  // rendre public via Storage ne compromet rien tant que la clé, elle, ne
+  // l'est jamais (voyage à part, dans le fragment ou derrière un mot de
+  // passe, jamais dans le corps d'une requête HTTP que le serveur voit).
+  if(item.fileId){
+    await storage.updateFile('xultra_drive',item.fileId,[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]).catch(function(){});
+  }
+  return location.origin+'/?dshare='+token+(fragmentKeyPart?('#k='+fragmentKeyPart):'');
+}
+function xdShowShareDialog(item){
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:420px"><h3>🔗 Partager "'+esc(item._name)+'"</h3>'
+    +'<label style="display:block;margin:14px 0 6px;font-size:.8rem;color:var(--muted)">Mot de passe (optionnel)</label>'
+    +'<input type="password" id="xd-share-pass" class="field-input" placeholder="Laisser vide pour aucun"/>'
+    +'<label style="display:block;margin:14px 0 6px;font-size:.8rem;color:var(--muted)">Expiration</label>'
+    +'<select id="xd-share-exp" class="field-input">'
+      +'<option value="0">Jamais</option><option value="3600000">1 heure</option><option value="86400000">1 jour</option>'
+      +'<option value="604800000">1 semaine</option><option value="2592000000">1 mois</option>'
+    +'</select>'
+    +'<div style="display:flex;gap:8px;margin-top:16px"><button type="button" class="btn-main" id="xd-share-go">Créer le lien</button><button type="button" class="set-mini-btn" id="xd-share-cancel">Annuler</button></div>'
+    +'<div id="xd-share-result" style="margin-top:14px"></div>'
+  +'</div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-share-cancel').onclick=function(){box.remove();};
+  box.querySelector('#xd-share-go').onclick=async function(){
+    const password=box.querySelector('#xd-share-pass').value||'';
+    const expMs=parseInt(box.querySelector('#xd-share-exp').value,10)||0;
+    const goBtn=this;
+    goBtn.disabled=true;goBtn.textContent='Création…';
+    try{
+      const url=await xdCreateShare(item,password,expMs);
+      box.querySelector('#xd-share-result').innerHTML='<div class="xd-recovery-key" style="font-size:.72rem">'+esc(url)+'</div><button type="button" class="btn-main" id="xd-share-copy" style="width:100%">📋 Copier le lien</button>';
+      box.querySelector('#xd-share-copy').onclick=function(){
+        (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject())
+          .then(function(){showToast('Lien copié !');}).catch(function(){});
+      };
+      goBtn.remove();
+      box.querySelector('#xd-share-cancel').textContent='Fermer';
+    }catch(e){
+      showToast('Création du lien impossible','error');
+      goBtn.disabled=false;goBtn.textContent='Créer le lien';
+    }
+  };
+}
+async function xdRevokeShareByToken(token){
+  if(!token)return;
+  try{
+    const r=await db.listDocuments(DB,'xdrive_shares',[Appwrite.Query.equal('token',token),Appwrite.Query.limit(1)]);
+    const doc=(r.documents||[])[0];
+    if(doc)await db.updateDocument(DB,'xdrive_shares',doc.\$id,{revoked:true});
+    showToast('Partage révoqué.');
+    xdRenderCurrentView();
+  }catch(e){showToast('Révocation impossible','error');}
+}
+async function xdShareToDm(item){
+  if(!dmsCache||!dmsCache.length){showToast('Aucune conversation — ouvre d\\'abord une discussion.','error');return}
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:360px"><h3>💬 Partager en message</h3>'
+    +'<div style="max-height:300px;overflow-y:auto;margin:14px 0">'+dmsCache.map(function(d){
+      return '<button type="button" class="settings-nav-btn" data-xd-dm="'+d.\$id+'" style="width:100%;margin-bottom:6px">'+esc(d.displayName||'Conversation')+'</button>';
+    }).join('')+'</div>'
+    +'<button type="button" class="set-mini-btn" id="xd-dm-cancel" style="width:100%">Annuler</button></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-dm-cancel').onclick=function(){box.remove();};
+  box.querySelectorAll('[data-xd-dm]').forEach(function(btn){
+    btn.onclick=async function(){
+      const dmId=btn.getAttribute('data-xd-dm');
+      box.remove();
+      try{
+        showToast('Création du lien…');
+        const url=await xdCreateShare(item,'',0);
+        closeXDrive();
+        showView('dms');
+        await openDm(dmId);
+        const input=\$('msg-input');
+        if(input){input.value='📎 '+item._name+' — '+url;}
+        await sendMessage();
+      }catch(e){showToast('Partage impossible','error');}
+    };
+  });
+}
+
+/* ===== Historique des versions =====
+   Simple : conserve le blob chiffré précédent quand on réenvoie un fichier
+   du même nom au même endroit (voir xdCheckAndUpload plus bas), consultable
+   et restaurable — pas de comparaison ligne à ligne (peu de sens sur du
+   contenu chiffré/binaire arbitraire). */
+async function xdShowVersionHistory(item){
+  let versions=[];
+  try{
+    const r=await db.listDocuments(DB,'xdrive_versions',[Appwrite.Query.equal('itemId',item.\$id),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(50)]);
+    versions=r.documents||[];
+  }catch(e){}
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:420px"><h3>📜 Versions de "'+esc(item._name)+'"</h3>'
+    +'<div style="max-height:320px;overflow-y:auto;margin:14px 0">'
+    +(versions.length?versions.map(function(v){
+      return '<div class="xd-row" style="cursor:default"><span class="xd-row-name">'+fmtRelTime(v.\$createdAt)+' — '+xdFmtBytes(v.size)+'</span>'
+        +'<button type="button" class="xd-tool-btn" data-xd-restore-v="'+v.\$id+'">Restaurer</button>'
+        +'<button type="button" class="xd-tool-btn" data-xd-del-v="'+v.\$id+'" style="color:#fca5a5">Suppr.</button></div>';
+    }).join(''):'<div class="empty-hint">Aucune ancienne version pour l\\'instant.</div>')
+    +'</div><button type="button" class="set-mini-btn" id="xd-vh-close" style="width:100%">Fermer</button></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-vh-close').onclick=function(){box.remove();};
+  box.querySelectorAll('[data-xd-restore-v]').forEach(function(btn){
+    btn.onclick=async function(){
+      const vid=btn.getAttribute('data-xd-restore-v');
+      const v=versions.find(function(x){return x.\$id===vid;});
+      if(!v)return;
+      try{
+        await db.updateDocument(DB,'xdrive_items',item.\$id,{fileId:v.fileId,keyWrapped:v.keyWrapped,keyIv:v.keyIv,size:v.size});
+        showToast('Version restaurée.');
+        box.remove();
+        xdRenderCurrentView();
+      }catch(e){showToast('Restauration impossible','error');}
+    };
+  });
+  box.querySelectorAll('[data-xd-del-v]').forEach(function(btn){
+    btn.onclick=async function(){
+      const vid=btn.getAttribute('data-xd-del-v');
+      const v=versions.find(function(x){return x.\$id===vid;});
+      if(!v)return;
+      try{
+        if(v.fileId)await storage.deleteFile('xultra_drive',v.fileId).catch(function(){});
+        await db.deleteDocument(DB,'xdrive_versions',vid);
+        try{await authPost('/api/xdrive/commit-delete',{size:v.size||0});}catch(e){}
+        showToast('Version supprimée.');
+        btn.closest('.xd-row').remove();
+      }catch(e){showToast('Suppression impossible','error');}
+    };
+  });
+}
+
+/* ===== Coquille principale / écrans de déverrouillage ===== */
+async function openXDrive(){
+  if(!me){showToast('Connecte-toi pour accéder à X1 Drive','error');return}
+  let overlay=\$('xdrive-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='xdrive-overlay';
+    overlay.className='discover-overlay xdrive-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-close-boot">← Retour</button><h2>☁️ X1 Drive</h2></div><div class="discover-body xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  overlay.querySelector('#xd-close-boot').onclick=closeXDrive;
+  try{
+    await xdFetchQuotaMeta();
+  }catch(e){
+    overlay.querySelector('.discover-body').innerHTML='<div class="empty-hint">Impossible de charger X1 Drive pour le moment.</div>';
+    return;
+  }
+  if(!xdMasterKey)xdRenderUnlockScreen();
+  else xdRenderShell();
+}
+function closeXDrive(){
+  const overlay=\$('xdrive-overlay');
+  if(overlay)overlay.classList.remove('show');
+}
+function xdRenderUnlockScreen(){
+  const overlay=\$('xdrive-overlay');if(!overlay)return;
+  const body=overlay.querySelector('.discover-body');
+  if(!xdDriveMeta.setupDone){
+    body.innerHTML='<div class="xd-unlock-wrap">'
+      +'<div class="xd-lock-ico">☁️🔒</div><h2>Active X1 Drive</h2>'
+      +'<p style="color:var(--muted);font-size:.85rem;line-height:1.5">Tes fichiers seront chiffrés dans ton navigateur avant tout envoi — même X1 ne peut pas les lire. Confirme ton mot de passe pour créer ta clé de chiffrement.</p>'
+      +'<input type="password" id="xd-setup-pass" class="field-input" placeholder="Ton mot de passe X1"/>'
+      +'<button type="button" class="btn-main" id="xd-setup-go" style="width:100%;margin-top:10px">🔐 Activer le chiffrement</button>'
+      +'<div class="err" id="xd-setup-err"></div>'
+    +'</div>';
+    body.querySelector('#xd-setup-go').onclick=async function(){
+      const pass=body.querySelector('#xd-setup-pass').value||'';
+      const err=body.querySelector('#xd-setup-err');err.textContent='';
+      if(!pass){err.textContent='Mot de passe requis';return}
+      this.disabled=true;this.textContent='Activation…';
+      try{
+        const recoveryKey=await xdSetupDrive(pass);
+        xdDriveMeta.setupDone=true;
+        xdRenderRecoveryKeyScreen(recoveryKey);
+      }catch(e){
+        err.textContent='Activation impossible, réessaie.';
+        this.disabled=false;this.textContent='🔐 Activer le chiffrement';
+      }
+    };
+    return;
+  }
+  body.innerHTML='<div class="xd-unlock-wrap">'
+    +'<div class="xd-lock-ico">🔒</div><h2>Déverrouille X1 Drive</h2>'
+    +'<p style="color:var(--muted);font-size:.85rem">Entre ton mot de passe pour déchiffrer tes fichiers.</p>'
+    +'<input type="password" id="xd-unlock-pass" class="field-input" placeholder="Mot de passe"/>'
+    +'<button type="button" class="btn-main" id="xd-unlock-go" style="width:100%;margin-top:10px">🔓 Déverrouiller</button>'
+    +'<button type="button" class="xd-tool-btn" id="xd-use-recovery" style="width:100%;margin-top:8px;justify-content:center">Utiliser ma clé de récupération</button>'
+    +'<div class="err" id="xd-unlock-err"></div>'
+  +'</div>';
+  body.querySelector('#xd-unlock-go').onclick=async function(){
+    const pass=body.querySelector('#xd-unlock-pass').value||'';
+    const err=body.querySelector('#xd-unlock-err');err.textContent='';
+    this.disabled=true;this.textContent='Déverrouillage…';
+    try{
+      await xdUnlockWithPassword(pass,xdDriveMeta);
+      xdRenderShell();
+    }catch(e){
+      err.textContent='Mot de passe incorrect.';
+      this.disabled=false;this.textContent='🔓 Déverrouiller';
+    }
+  };
+  body.querySelector('#xd-use-recovery').onclick=function(){xdRenderRecoveryUnlockScreen();};
+}
+function xdRenderRecoveryUnlockScreen(){
+  const body=\$('xdrive-overlay').querySelector('.discover-body');
+  body.innerHTML='<div class="xd-unlock-wrap">'
+    +'<div class="xd-lock-ico">🗝️</div><h2>Clé de récupération</h2>'
+    +'<p style="color:var(--muted);font-size:.85rem">Colle la clé de récupération sauvegardée à l\\'activation.</p>'
+    +'<input type="text" id="xd-recovery-input" class="field-input" placeholder="Clé de récupération"/>'
+    +'<button type="button" class="btn-main" id="xd-recovery-go" style="width:100%;margin-top:10px">🔓 Déverrouiller</button>'
+    +'<div class="err" id="xd-recovery-err"></div>'
+  +'</div>';
+  body.querySelector('#xd-recovery-go').onclick=async function(){
+    const key=(body.querySelector('#xd-recovery-input').value||'').trim();
+    const err=body.querySelector('#xd-recovery-err');err.textContent='';
+    this.disabled=true;this.textContent='Déverrouillage…';
+    try{
+      await xdUnlockWithRecoveryKey(key,xdDriveMeta);
+      xdRenderShell();
+    }catch(e){
+      err.textContent='Clé de récupération invalide.';
+      this.disabled=false;this.textContent='🔓 Déverrouiller';
+    }
+  };
+}
+function xdRenderRecoveryKeyScreen(recoveryKey){
+  const overlay=\$('xdrive-overlay');
+  overlay.querySelector('.discover-body').innerHTML='<div class="xd-recovery-box">'
+    +'<div style="font-size:2rem">🗝️</div><h2>Ta clé de récupération</h2>'
+    +'<p style="color:var(--muted);font-size:.85rem;line-height:1.5">Sauvegarde-la maintenant, dans un endroit sûr. Si tu oublies ton mot de passe, c\\'est la SEULE façon de récupérer tes fichiers — X1 ne peut pas le faire à ta place.</p>'
+    +'<div class="xd-recovery-key">'+esc(recoveryKey)+'</div>'
+    +'<button type="button" class="btn-main" id="xd-recovery-copy">📋 Copier</button>'
+    +'<button type="button" class="btn-main" id="xd-recovery-continue" style="margin-top:10px;background:linear-gradient(135deg,#22c55e,#16a34a)">✅ Je l\\'ai sauvegardée, continuer</button>'
+  +'</div>';
+  overlay.querySelector('#xd-recovery-copy').onclick=function(){
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(recoveryKey):Promise.reject())
+      .then(function(){showToast('Clé copiée !');}).catch(function(){});
+  };
+  overlay.querySelector('#xd-recovery-continue').onclick=function(){xdRenderShell();};
+}
+function xdRenderShell(){
+  const overlay=\$('xdrive-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="xd-shell">'
+    +'<div class="xd-side" id="xd-side">'
+      +'<div class="xd-side-item on" data-xd-section="drive">☁️ Mon Drive</div>'
+      +'<div class="xd-side-item" data-xd-section="starred">⭐ Favoris</div>'
+      +'<div class="xd-side-item" data-xd-section="shared">🔗 Partagés</div>'
+      +'<div class="xd-side-item" data-xd-section="trash">🗑️ Corbeille</div>'
+      +'<div class="xd-side-quota" id="xd-quota-box"></div>'
+    +'</div>'
+    +'<div class="xd-main">'
+      +'<div class="xd-toolbar">'
+        +'<button type="button" class="set-mini-btn" id="xd-close">← Retour</button>'
+        +'<div class="xd-breadcrumb" id="xd-breadcrumb"></div>'
+        +'<button type="button" class="xd-tool-btn" id="xd-new-folder-btn">📁+ Dossier</button>'
+        +'<button type="button" class="xd-tool-btn xd-upload-btn" id="xd-upload-btn">⬆️ Envoyer</button>'
+        +'<input type="file" id="xd-file-input" multiple class="hidden"/>'
+        +'<div class="xd-view-toggle"><button type="button" data-xd-view="grid" class="on">▦</button><button type="button" data-xd-view="list">☰</button></div>'
+      +'</div>'
+      +'<div class="xd-search-row" style="padding:0 16px"><input type="text" id="xd-search" class="field-input" placeholder="🔎 Rechercher dans ce dossier…"/></div>'
+      +'<div class="xd-body" id="xd-body"></div>'
+    +'</div>'
+  +'</div>';
+  overlay.querySelector('#xd-close').onclick=closeXDrive;
+  overlay.querySelectorAll('[data-xd-section]').forEach(function(el){
+    el.onclick=function(){
+      overlay.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.remove('on');});
+      el.classList.add('on');
+      xdSection=el.getAttribute('data-xd-section');
+      xdCurrentFolder='';xdBreadcrumb=[];xdSearchQuery='';
+      const s=\$('xd-search');if(s)s.value='';
+      const nfb=\$('xd-new-folder-btn'),ub=\$('xd-upload-btn');
+      if(nfb)nfb.classList.toggle('hidden',xdSection!=='drive');
+      if(ub)ub.classList.toggle('hidden',xdSection!=='drive');
+      xdRenderCurrentView();
+    };
+  });
+  overlay.querySelector('#xd-new-folder-btn').onclick=xdCreateFolder;
+  const fileInput=overlay.querySelector('#xd-file-input');
+  overlay.querySelector('#xd-upload-btn').onclick=function(){fileInput.click();};
+  fileInput.onchange=function(){
+    if(fileInput.files&&fileInput.files.length)xdHandleFileUpload(Array.from(fileInput.files));
+    fileInput.value='';
+  };
+  overlay.querySelectorAll('[data-xd-view]').forEach(function(btn){
+    btn.onclick=function(){
+      overlay.querySelectorAll('[data-xd-view]').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      xdViewMode=btn.getAttribute('data-xd-view');
+      xdRenderCurrentView();
+    };
+  });
+  let searchTimer=null;
+  overlay.querySelector('#xd-search').addEventListener('input',function(){
+    xdSearchQuery=this.value;
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(function(){xdRenderCurrentView();},250);
+  });
+  const bodyEl=overlay.querySelector('#xd-body');
+  bodyEl.addEventListener('dragover',function(e){e.preventDefault();if(xdSection==='drive')bodyEl.classList.add('xd-dragover');});
+  bodyEl.addEventListener('dragleave',function(){bodyEl.classList.remove('xd-dragover');});
+  bodyEl.addEventListener('drop',function(e){
+    e.preventDefault();bodyEl.classList.remove('xd-dragover');
+    if(xdSection==='drive'&&e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length)xdHandleFileUpload(Array.from(e.dataTransfer.files));
+  });
+  xdRenderQuotaBox();
+  xdRenderCurrentView();
+}
+
+/* ===== Consultation d'un partage — fonctionne SANS connexion pour les
+   fichiers publics/partagés, la clé voyageant dans le fragment d'URL
+   (jamais vue par le serveur) ou dérivée d'un mot de passe tapé ici même. */
+async function xdOpenSharedView(token,fragmentKey){
+  document.documentElement.classList.remove('xultra-restoring');
+  hideBootSplash();
+  let overlay=\$('xdrive-overlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='xdrive-overlay';overlay.className='discover-overlay xdrive-overlay';document.body.appendChild(overlay);}
+  overlay.classList.add('show');
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-shared-close">✕</button><h2>☁️ X1 Drive — partage</h2></div><div class="discover-body xbin-body" id="xd-shared-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  overlay.querySelector('#xd-shared-close').onclick=function(){
+    overlay.classList.remove('show');
+    try{const url=new URL(location.href);url.searchParams.delete('dshare');history.replaceState(null,'',url.pathname);}catch(e){}
+  };
+  const body=\$('xd-shared-body');
+  let share;
+  try{
+    const r=await db.listDocuments(DB,'xdrive_shares',[Appwrite.Query.equal('token',token),Appwrite.Query.limit(1)]);
+    share=(r.documents||[])[0];
+  }catch(e){}
+  if(!share||share.revoked){body.innerHTML='<div class="empty-hint">Ce lien de partage est introuvable ou a été révoqué.</div>';return}
+  if(share.expiresAt&&new Date(share.expiresAt).getTime()<=Date.now()){body.innerHTML='<div class="empty-hint">⏱️ Ce lien de partage a expiré.</div>';return}
+  async function renderWithKey(fileKey){
+    try{
+      const json=await xdDecryptString(fileKey,share.encName,share.nameIv);
+      const meta=JSON.parse(json);
+      const headers=Object.assign({},(client&&client.headers)||{});
+      const raw=await fetch(xdFileUrl(share.fileId),{headers:headers}).then(function(r){if(!r.ok)throw new Error();return r.arrayBuffer();});
+      const bytes=new Uint8Array(raw);
+      const iv=bytes.slice(0,12),cipher=bytes.slice(12);
+      const plain=await xdDecryptBuf(fileKey,cipher.buffer,iv);
+      const blob=new Blob([plain],{type:meta.mime||'application/octet-stream'});
+      const url=URL.createObjectURL(blob);
+      let previewHtml='';
+      const m=(meta.mime||'').toLowerCase();
+      if(m.indexOf('image/')===0)previewHtml='<div class="xd-preview-wrap"><img src="'+url+'" alt=""/></div>';
+      else if(m.indexOf('video/')===0)previewHtml='<div class="xd-preview-wrap"><video src="'+url+'" controls style="max-width:100%;max-height:100%;border-radius:12px"></video></div>';
+      else if(m.indexOf('audio/')===0)previewHtml='<div class="xd-preview-wrap"><audio src="'+url+'" controls style="width:100%;max-width:500px"></audio></div>';
+      body.innerHTML='<div style="text-align:center;padding:20px 0"><h2>'+esc(meta.name)+'</h2><p style="color:var(--muted);font-size:.82rem">'+xdFmtBytes(blob.size)+'</p></div>'
+        +previewHtml
+        +'<div style="text-align:center;margin-top:20px"><a class="btn-main" href="'+url+'" download="'+esc(meta.name)+'" style="display:inline-block;text-decoration:none">⬇️ Télécharger</a></div>';
+    }catch(e){
+      body.innerHTML='<div class="empty-hint">Déchiffrement impossible — mauvaise clé/mot de passe, ou lien corrompu.</div>';
+    }
+  }
+  if(share.passwordProtected){
+    body.innerHTML='<div class="xd-unlock-wrap"><div class="xd-lock-ico">🔒</div><h2>Fichier protégé</h2>'
+      +'<input type="password" id="xd-shared-pass" class="field-input" placeholder="Mot de passe"/>'
+      +'<button type="button" class="btn-main" id="xd-shared-go" style="width:100%;margin-top:10px">Déverrouiller</button>'
+      +'<div class="err" id="xd-shared-err"></div></div>';
+    \$('xd-shared-go').onclick=async function(){
+      const pass=\$('xd-shared-pass').value||'';
+      const err=\$('xd-shared-err');err.textContent='';
+      this.disabled=true;this.textContent='Déverrouillage…';
+      try{
+        const wrapKey=await xdDeriveKeyFromPassword(pass,new Uint8Array(xdB64ToBuf(share.keySalt)));
+        const fileKeyRaw=await xdDecryptBuf(wrapKey,xdB64ToBuf(share.keyWrapped),new Uint8Array(xdB64ToBuf(share.keyIv)));
+        const fileKey=await xdImportKeyRaw(fileKeyRaw);
+        body.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+        await renderWithKey(fileKey);
+      }catch(e){
+        err.textContent='Mot de passe incorrect.';
+        this.disabled=false;this.textContent='Déverrouiller';
+      }
+    };
+    return;
+  }
+  if(!fragmentKey){body.innerHTML='<div class="empty-hint">Lien incomplet — la clé de déchiffrement est manquante.</div>';return}
+  try{
+    const fileKey=await xdImportKeyRaw(xdB64ToBuf(fragmentKey));
+    await renderWithKey(fileKey);
+  }catch(e){
+    body.innerHTML='<div class="empty-hint">Lien invalide.</div>';
+  }
+}
+function handleXDriveShareDeepLink(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const token=params.get('dshare');
+    if(!token||!ensureSdk())return;
+    let fragmentKey='';
+    const hash=location.hash||'';
+    const m=hash.match(/[#&]k=([^&]+)/);
+    if(m)fragmentKey=decodeURIComponent(m[1]);
+    xdOpenSharedView(token,fragmentKey);
+  }catch(e){}
+}
+
+/* ===== Onglet "Fichiers" sur les profils (fichiers PUBLICS de la
+   personne uniquement — voir xdToggleVisibility) ===== */
+async function loadAndRenderXDriveTab(uid,container){
+  if(!container)return;
+  let docs=[];
+  try{
+    const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',uid),Appwrite.Query.equal('visibility','public'),Appwrite.Query.equal('trashed',false),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(12)]);
+    docs=r.documents||[];
+    docs.forEach(function(d){d._name=d.plainName||'Sans nom';d._mime=d.mime||'';});
+  }catch(e){container.classList.add('hidden');return}
+  if(!docs.length){container.classList.add('hidden');return}
+  container.classList.remove('hidden');
+  container.innerHTML='<div class="pm-section-label">☁️ Fichiers</div>'+docs.map(function(d){
+    return '<button type="button" class="xbin-profile-item" data-xd-profile-open="'+d.\$id+'">'
+      +'<span>'+xdFileIcon(d._mime,d.type)+'</span>'
+      +'<span class="xbin-profile-title">'+esc(d._name)+'</span>'
+      +'<span class="xbin-profile-views">'+xdFmtBytes(d.size)+'</span>'
+    +'</button>';
+  }).join('');
+  container.querySelectorAll('[data-xd-profile-open]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      const id=btn.getAttribute('data-xd-profile-open');
+      const item=docs.find(function(d){return d.\$id===id;});
+      if(!item)return;
+      const pm=\$('modal-profile');if(pm)pm.classList.add('hidden');
+      if(!\$('xdrive-overlay')){const o=document.createElement('div');o.id='xdrive-overlay';o.className='discover-overlay xdrive-overlay';document.body.appendChild(o);}
+      \$('xdrive-overlay').classList.add('show');
+      if(xdIsPreviewable(item._mime))xdOpenPreview(item);
+      else xdDownloadItem(item);
+    });
+  });
+}
+
 /* ===== Casino virtuel (jetons fictifs, duels PvP entre membres) ===== */
 let casinoChips=0,casinoOpenDuels=[],casinoDuelUnsub=null;
 const casinoShownResults=new Set();
@@ -24906,6 +26194,7 @@ function boot(){
     await handleEmailVerificationLink();
     await handlePasswordRecoveryLink();
     handleXBinDeepLink();
+    handleXDriveShareDeepLink();
     const s=readSession();
     if(!s){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();xlog('boot_no_session',{});return}
     try{
@@ -27555,6 +28844,127 @@ async function handle(request, event) {
         method: "PATCH", asAdmin: true, body: { data: { views: (doc.views || 0) + 1 } }
       }));
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ===== X1 Drive (stockage cloud chiffré de bout en bout) =====
+  // Comme XBin/suggestions/etc, la création/lecture/déplacement/suppression
+  // des dossiers et fichiers (métadonnées) se fait DIRECTEMENT côté client
+  // via le SDK Appwrite — le Worker ne voit jamais le contenu en clair (zero-
+  // knowledge : les fichiers et leurs noms sont chiffrés dans le navigateur
+  // avant tout envoi, voir le bloc crypto côté client). Le Worker
+  // n'intervient que là où une vérification/écriture ne peut PAS être
+  // confiée à un client potentiellement malveillant : le quota de stockage
+  // (diskUsed, verrouillé en écriture admin-only comme le reste de
+  // user_meta) et l'enveloppe de clés de chiffrement du compte (déposée une
+  // fois, jamais lisible en clair par le Worker lui-même — il ne fait que la
+  // stocker/renvoyer telle quelle).
+  function xdEffectiveQuotaBytes(meta) {
+    const GB = 1073741824;
+    // planStorageGb a une valeur par défaut de 30 posée au niveau du schéma
+    // Appwrite (préexistante, pas la mienne) — donc TOUJOURS non nulle pour
+    // TOUT le monde, même un compte gratuit qui n'a jamais eu de plan payant
+    // assigné. Ne s'y fier que pour un abonnement X1+ RÉELLEMENT actif
+    // (meta.plan==='plus'), jamais sur sa simple présence — sinon 1 Go de
+    // base (la demande explicite) ne s'appliquerait jamais à personne.
+    if (meta && meta.plan === "plus" && meta.planStorageGb) return meta.planStorageGb * GB;
+    if (meta && meta.diskQuota) return meta.diskQuota;
+    return GB;
+  }
+  if (path === "/api/xdrive/setup-keys" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const data = {};
+      if (body && body.masterKeyWrapped != null) data.driveMasterKeyWrapped = String(body.masterKeyWrapped).slice(0, 500);
+      if (body && body.masterKeySalt != null) data.driveMasterKeySalt = String(body.masterKeySalt).slice(0, 64);
+      if (body && body.masterKeyIv != null) data.driveMasterKeyIv = String(body.masterKeyIv).slice(0, 64);
+      if (body && body.recoveryWrapped != null) data.driveRecoveryWrapped = String(body.recoveryWrapped).slice(0, 500);
+      if (body && body.recoveryIv != null) data.driveRecoveryIv = String(body.recoveryIv).slice(0, 64);
+      if (body && body.markSetupDone) data.driveSetupDone = true;
+      if (!Object.keys(data).length) throw new Error("Aucune donnée à enregistrer");
+      const perms = ["read(\"any\")"];
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data: data, permissions: perms }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: acc.$id, data: data, permissions: perms }
+          });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/xdrive/quota" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      const quota = xdEffectiveQuotaBytes(meta);
+      const used = (meta && meta.diskUsed) || 0;
+      const setupDone = !!(meta && meta.driveSetupDone);
+      return new Response(JSON.stringify({
+        ok: true, used: used, quota: quota, setupDone: setupDone,
+        masterKeyWrapped: (meta && meta.driveMasterKeyWrapped) || "", masterKeySalt: (meta && meta.driveMasterKeySalt) || "", masterKeyIv: (meta && meta.driveMasterKeyIv) || "",
+        recoveryWrapped: (meta && meta.driveRecoveryWrapped) || "", recoveryIv: (meta && meta.driveRecoveryIv) || ""
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/xdrive/commit-upload" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const itemId = String((body && body.itemId) || "");
+      const fileId = String((body && body.fileId) || "");
+      if (!itemId || !fileId) throw new Error("itemId/fileId requis");
+      const item = await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { asAdmin: true });
+      if (item.ownerId !== acc.$id) throw new Error("forbidden");
+      // Taille RÉELLE du blob chiffré tel que reçu par Appwrite Storage,
+      // jamais celle déclarée par le client — sinon un client modifié
+      // pourrait mentir sur la taille pour contourner le quota.
+      const fileInfo = await awFetch("/storage/buckets/xultra_drive/files/" + fileId, { asAdmin: true });
+      const realSize = fileInfo.sizeOriginal || 0;
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      const quota = xdEffectiveQuotaBytes(meta);
+      const used = (meta && meta.diskUsed) || 0;
+      if (used + realSize > quota) {
+        // Quota dépassé — vérifiable seulement APRÈS coup (la vraie taille du
+        // blob chiffré n'est connue qu'une fois reçue). On annule proprement :
+        // supprime le fichier et le document fraîchement créés plutôt que de
+        // laisser un objet fantôme qui ne compterait jamais dans le quota.
+        await awFetch("/storage/buckets/xultra_drive/files/" + fileId, { method: "DELETE", asAdmin: true }).catch(function () {});
+        await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { method: "DELETE", asAdmin: true }).catch(function () {});
+        return new Response(JSON.stringify({ ok: false, error: "quota_exceeded" }), { status: 413, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { method: "PATCH", asAdmin: true, body: { data: { size: realSize } } });
+      const newUsed = used + realSize;
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { diskUsed: newUsed }, permissions: ["read(\"any\")"] } });
+      return new Response(JSON.stringify({ ok: true, size: realSize, used: newUsed, quota: quota }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/xdrive/commit-delete" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const size = Math.max(0, parseInt((body && body.size) || 0, 10) || 0);
+      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      const newUsed = Math.max(0, ((meta && meta.diskUsed) || 0) - size);
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { diskUsed: newUsed }, permissions: ["read(\"any\")"] } });
+      return new Response(JSON.stringify({ ok: true, used: newUsed }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
