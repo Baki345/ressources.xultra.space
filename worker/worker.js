@@ -2894,8 +2894,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @media (hover:none){.pc-edit-btn{opacity:.85}}
 .pc-edit-banner-btn{top:8px;right:8px}
 .pc-edit-avatar-btn{right:-2px;bottom:-2px;width:24px;height:24px}
-.pc-geo-badge{position:absolute;top:8px;right:8px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:2px;font-size:1rem;line-height:1;z-index:3;backdrop-filter:blur(3px);color:#fff}
-.pc-banner:has(.pc-edit-banner-btn) .pc-geo-badge{right:44px}
+.pc-geo-badge{position:absolute;top:8px;left:8px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:2px;font-size:1rem;line-height:1;z-index:3;backdrop-filter:blur(3px);color:#fff}
 .pc-geo-badge.pc-geo-vpn{cursor:pointer;border-color:rgba(34,197,94,.55);background:rgba(6,40,20,.7)}
 .pc-geo-badge.pc-geo-vpn:hover{background:rgba(6,60,28,.85)}
 .pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
@@ -11824,7 +11823,9 @@ function buildProfileCardHtml(p,meta,badges,opts){
     const stale=Date.now()-new Date(p.lastSeen).getTime()>PRESENCE_STALE_MS;
     if(stale||p.statusManual==='invisible')lastSeenTxt='Vu il y a '+fmtRelTime(p.lastSeen);
   }
-  // Badge pays/VPN coin haut-droit de la bannière : soit le drapeau du pays
+  // Badge pays/VPN coin haut-GAUCHE de la bannière (déplacé depuis la droite :
+  // ça chevauchait le bouton de fermeture ✕ de la modale de profil, lui-même
+  // au-dessus à droite) : soit le drapeau du pays
   // détecté par IP (meta.geoCountry, capturé côté serveur à chaque connexion
   // — voir updateUserGeoMeta), soit un bouclier+cadenas si l'IP ressemble à
   // un VPN/hébergeur (meta.vpnDetected, heuristique par ASN, voir
