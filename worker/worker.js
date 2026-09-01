@@ -8048,16 +8048,36 @@ function atLooksTranslatable(text){
 function atProcessNode(node,lang){
   const parent=node.parentElement;
   if(!parent||parent.closest(AT_DENY_SELECTOR))return;
-  const current=node.nodeValue;
-  if(!atLooksTranslatable(current))return;
   const state=AT_NODE_STATE.get(node);
-  if(state&&state.lang===lang&&(state.out===current||state.pending))return;
-  const newState={lang:lang,src:current,out:null,pending:true};
+  // Bug remonté : changer de langue plusieurs fois de suite (ex. es -> en ->
+  // es) traduisait mal ou pas du tout. Cause : le code lisait node.nodeValue
+  // comme "texte source", mais après une première traduction, nodeValue
+  // n'est déjà PLUS le français d'origine — c'est la traduction précédente.
+  // Un deuxième changement de langue demandait donc à l'IA de traduire une
+  // traduction, avec source_lang toujours annoncé "fr" côté serveur alors
+  // que ce n'était souvent plus vrai (m2m100 est un modèle de traduction
+  // dédié, pas un LLM — un mauvais tag de langue source lui fait produire du
+  // charabia). Et le cache (local + KV serveur), qui indexe par texte
+  // source, ratait alors systématiquement les langues déjà visitées
+  // (indexées sous le vrai français) puisqu'on cherchait sous la mauvaise
+  // clé — nouvel appel IA à chaque fois, jamais de cache hit, jamais
+  // "instantané". Fix : le texte source d'origine (français) est figé une
+  // bonne fois pour toutes au tout premier passage sur ce nœud, et reste la
+  // seule chose jamais envoyée à traduire, quel que soit ce que nodeValue
+  // affiche au moment où on change à nouveau de langue.
+  const origSrc=state?state.origSrc:node.nodeValue;
+  if(!atLooksTranslatable(origSrc))return;
+  if(state&&state.lang===lang&&(state.out===node.nodeValue||state.pending))return;
+  const newState={lang:lang,origSrc:origSrc,out:null,pending:true};
   AT_NODE_STATE.set(node,newState);
-  atQueueTranslate(current,lang,function(translated){
+  atQueueTranslate(origSrc,lang,function(translated){
     if(!node.isConnected)return;
+    // Comparaison par identité de state (pas par texte) : si un changement de
+    // langue plus récent a déjà pris le relais sur ce nœud entre-temps, cette
+    // réponse arrivée en retard ne doit pas l'écraser.
+    if(AT_NODE_STATE.get(node)!==newState)return;
     newState.out=translated;newState.pending=false;
-    if(node.nodeValue===current)node.nodeValue=translated;
+    node.nodeValue=translated;
   });
 }
 function atScan(root,lang){
