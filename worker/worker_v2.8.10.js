@@ -7961,9 +7961,16 @@ function atFlushQueue(){
     .then(function(j){
       const translations=(j&&j.translations)||{};
       const mem=atLoadMemory(lang);
-      uniqueTexts.forEach(function(txt){mem[txt]=translations[txt]||txt;});
+      // Comme côté serveur (voir /api/i18n/translate) : ne jamais figer dans le
+      // cache local une "traduction" identique au texte source — un lot entier
+      // parti en échec (réponse serveur vide/erreur) resterait sinon collé en
+      // français dans localStorage pour toujours, sans jamais réessayer.
+      uniqueTexts.forEach(function(txt){
+        const out=translations[txt]||txt;
+        if(out!==txt)mem[txt]=out;
+      });
       atSaveMemory(lang);
-      sameLang.forEach(function(e){e.cb(mem[e.text]||e.text);});
+      sameLang.forEach(function(e){e.cb(translations[e.text]||e.text);});
     })
     .catch(function(){sameLang.forEach(function(e){e.cb(e.text);});});
   if(atPendingQueue.length)atFlushTimer=setTimeout(atFlushQueue,250);
@@ -28304,11 +28311,24 @@ async function handle(request, event) {
         // qu'une seule fois au total.
         const AT_CONCURRENCY = 8;
         let cursor = 0;
+        // m2m100 attend des CODES ISO ('fr','es'…), pas des noms anglais complets :
+        // la doc Cloudflare l'indique explicitement ("language code, e.g. 'es' for
+        // Spanish"), malgré un exemple d'usage trompeur écrit en toutes lettres.
+        // Avant ce correctif, target_lang recevait langName.toLowerCase() — donc
+        // des valeurs comme "filipino (tagalog)" ou "scottish gaelic", qu'aucun
+        // modèle ne reconnaît : m2m100 échouait alors SYSTÉMATIQUEMENT pour ces
+        // langues (repli sur llama à chaque fois, jamais un vrai essai réussi).
+        // zh-TW : m2m100 ne distingue pas simplifié/traditionnel et produit du
+        // simplifié quoi qu'il arrive — un essai "réussi" y renverrait donc du
+        // mauvais script sans jamais déclencher le repli sur llama. On saute
+        // m2m100 pour ce cas précis ; seul llama (via son prompt explicite) sait
+        // viser spécifiquement le traditionnel.
         async function translateViaM2m100(src) {
+          if (targetLang === "zh-TW") return null;
           const aiRes = await fetch("https://api.cloudflare.com/client/v4/accounts/" + CF_ACCOUNT_ID + "/ai/run/@cf/meta/m2m100-1.2b", {
             method: "POST",
             headers: { "Authorization": "Bearer " + CF_AI_TOKEN, "Content-Type": "application/json" },
-            body: JSON.stringify({ text: src, source_lang: "french", target_lang: langName.toLowerCase() })
+            body: JSON.stringify({ text: src, source_lang: "fr", target_lang: targetLang })
           });
           const aiJson = await aiRes.json();
           if (!aiRes.ok || !aiJson.success) return null;
@@ -28350,7 +28370,18 @@ async function handle(request, event) {
         }
         await Promise.all(Array.from({ length: Math.min(AT_CONCURRENCY, missing.length) }, worker));
         if (typeof SITE_KV !== "undefined" && SITE_KV) {
+          // Ne JAMAIS mettre en cache une "traduction" identique au texte source :
+          // m2m100/llama renvoient parfois le texte français tel quel en cas
+          // d'échec silencieux (réseau, langue non reconnue, IA qui refuse). Comme
+          // ce cache KV est PARTAGÉ par tout le monde et sert une seule fois pour
+          // toujours, une seule requête ratée figeait la chaîne "non traduite"
+          // pour cette langue pour TOUS les visiteurs suivants — cause probable
+          // principale des langues qui "ne marchent pas". Un résultat vraiment
+          // identique au source (nom propre, emoji…) sera juste retraduit à
+          // chaque fois plutôt que mis en cache : coût minime, jamais de blocage
+          // permanent.
           bgTask(Promise.all(missing.map(async function (src) {
+            if (translations[src] === src) return;
             const key = "i18n2:" + targetLang + ":" + (await sha256HexShort(src, 40));
             await SITE_KV.put(key, translations[src]).catch(function () {});
           })));
