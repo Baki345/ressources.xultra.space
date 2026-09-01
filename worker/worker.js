@@ -1667,20 +1667,11 @@ const APP = `<!DOCTYPE html>
     if(localStorage.getItem('xultra_session'))document.documentElement.classList.add('xultra-restoring');
   }catch(e){}
   // Splash de démarrage (#boot-splash, dans le HTML, visible par défaut) :
-  // fait défiler quelques phrases pour expliquer ce qui charge, et impose un
-  // temps d'affichage minimum (window.__bsMinUntil) pour qu'il reste lisible
-  // même quand la restauration de session est quasi instantanée — voir
+  // juste le logo + un cercle qui tourne, pas de texte — impose un temps
+  // d'affichage minimum (window.__bsMinUntil) pour qu'il reste lisible même
+  // quand la restauration de session est quasi instantanée — voir
   // hideBootSplash() plus bas (défini avec le reste de l'appli).
   window.__bsMinUntil=Date.now()+700;
-  try{
-    var bsPhrases=['Connexion à X1…','Chargement de ton profil…','Synchronisation de tes messages…','Presque prêt…'];
-    var bsIdx=0;
-    window.__bsInterval=setInterval(function(){
-      bsIdx=(bsIdx+1)%bsPhrases.length;
-      var el=document.getElementById('boot-splash-status');
-      if(el)el.textContent=bsPhrases[bsIdx];
-    },900);
-  }catch(e){}
 })();
 </script>
 <style>
@@ -1713,12 +1704,9 @@ button{cursor:pointer;border:0;background:0}
 #boot-splash.bs-out{opacity:0;pointer-events:none}
 .bs-logo{font-size:2.4rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;animation:bs-pulse 1.8s ease-in-out infinite}
 @keyframes bs-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.96)}}
-.bs-spinner{display:flex;gap:7px}
-.bs-spinner span{width:9px;height:9px;border-radius:50%;background:#a78bfa;animation:bs-bounce 1s ease-in-out infinite}
-.bs-spinner span:nth-child(2){animation-delay:.15s}
-.bs-spinner span:nth-child(3){animation-delay:.3s}
-@keyframes bs-bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
-.bs-status{font-size:.82rem;color:#c4b5fd;letter-spacing:.02em;min-height:1.2em}
+/* Simple cercle qui tourne — logo + animation, volontairement sans texte. */
+.bs-ring{width:38px;height:38px;border-radius:50%;border:3.5px solid rgba(167,139,250,.22);border-top-color:#a78bfa;animation:bs-spin .8s linear infinite}
+@keyframes bs-spin{to{transform:rotate(360deg)}}
 
 /* Écran de chargement de section (changement de vue DMs/Amis/Membres/
    Serveurs quand ça implique un vrai appel réseau) — voir
@@ -3712,8 +3700,7 @@ a.bug-att-item{display:block}
 <body>
 <div id="boot-splash">
   <div class="bs-logo">X1</div>
-  <div class="bs-spinner"><span></span><span></span><span></span></div>
-  <div class="bs-status" id="boot-splash-status">Démarrage…</div>
+  <div class="bs-ring"></div>
 </div>
 <div id="install-banner" class="hidden">
   <span id="install-banner-text"></span>
@@ -3842,7 +3829,7 @@ a.bug-att-item{display:block}
 </div>
 
 <div id="app" class="hidden">
-  <div id="section-loading-ov" class="hidden" aria-hidden="true"><div class="bs-spinner"><span></span><span></span><span></span></div></div>
+  <div id="section-loading-ov" class="hidden" aria-hidden="true"><div class="bs-ring"></div></div>
   <nav class="rail">
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
@@ -24369,7 +24356,6 @@ async function handleEmailVerificationLink(){
 // appelée depuis plusieurs chemins de boot() (succès, échec, pas de
 // session, filet de sécurité 12s) sans se soucier de laquelle a déjà joué.
 function hideBootSplash(){
-  try{clearInterval(window.__bsInterval);}catch(e){}
   const el=document.getElementById('boot-splash');
   if(!el||el.classList.contains('bs-out'))return;
   const wait=Math.max(0,(window.__bsMinUntil||0)-Date.now());
