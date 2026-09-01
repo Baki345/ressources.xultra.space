@@ -5249,11 +5249,38 @@ function detectAppPlatformKey(){
 // à l'ouverture/fermeture du clavier comme au moindre changement de zoom
 // navigateur — c'est la seule API qui reflète fidèlement l'espace vraiment
 // disponible à l'écran sur mobile.
+// Bug remonté : "le chat remonte un peu à chaque message envoyé". Cause
+// directe de ce correctif-ci : changer la hauteur de #app (var(--app-vh))
+// redimensionne la liste de messages, mais un navigateur ne réajuste JAMAIS
+// scrollTop tout seul quand un conteneur défilant rétrécit — le contenu
+// reste au même scrollTop numérique, donc un vide apparaît sous le dernier
+// message (l'impression que "ça remonte"), sans qu'aucun code n'ait
+// explicitement bougé le scroll. Le clavier restant maintenant ouvert en
+// continu (v4.53.1), chaque frappe/envoi peut redéclencher un micro-
+// ajustement de visualViewport — donc ce petit saut à chaque message.
+// Comme pinScrollBottomAfterImages/pinScrollBottomDeferred plus bas : on
+// capture "était en bas" AVANT le changement de taille, jamais après (sinon
+// le vide qu'on cherche justement à corriger fausserait la détection), puis
+// on ne réancre que les listes qui l'étaient vraiment — jamais interrompre
+// quelqu'un en train de relire d'anciens messages plus haut.
+const AT_VIEWPORT_SCROLL_BOXES=['msgs','srv-chan-msgs','cr-msgs'];
 (function initAppViewportHeight(){
   function sync(){
+    const wasNear={};
+    AT_VIEWPORT_SCROLL_BOXES.forEach(function(id){
+      const box=document.getElementById(id);
+      wasNear[id]=!!(box&&(box.scrollHeight-box.scrollTop-box.clientHeight<120));
+    });
     const vv=window.visualViewport;
     const h=vv?vv.height:window.innerHeight;
     document.documentElement.style.setProperty('--app-vh',h+'px');
+    requestAnimationFrame(function(){
+      AT_VIEWPORT_SCROLL_BOXES.forEach(function(id){
+        if(!wasNear[id])return;
+        const box=document.getElementById(id);
+        if(box)box.scrollTop=box.scrollHeight;
+      });
+    });
   }
   sync();
   if(window.visualViewport){
