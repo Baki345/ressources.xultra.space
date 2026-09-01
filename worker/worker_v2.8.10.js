@@ -7962,7 +7962,7 @@ function applyI18n(){
    partie serveur (appel IA + cache KV partagé). Parcourt #app et #stage
    (l'app connectée ET l'écran de connexion) nœud texte par nœud texte, en
    sautant explicitement tout ce qui est du contenu écrit par les gens
-   eux-mêmes (AT_DENY_SELECTOR) plutôt que du texte d'interface fixe — ce
+   eux-mêmes (atDenySelector) plutôt que du texte d'interface fixe — ce
    n'est pas une limitation, c'est le comportement correct : personne ne
    veut que ses messages privés ou son pseudo soient retraduits sans le
    demander.
@@ -7981,7 +7981,21 @@ const AT_NODE_STATE=new WeakMap();
 // caractères) et tenterait de le "traduire" comme n'importe quel texte
 // visible. Repéré en relisant le code avant déploiement, jamais vu en
 // production, mais aurait été un vrai désastre.
-const AT_DENY_SELECTOR='script, style, noscript, template, .bub, .row .info .n, .row .info .p, .userbar .n, .pc-custom-status, .rp-name, .rp-tag, pre, code, [contenteditable], [data-i18n-skip], [data-i18n], [data-i18n-title], [data-i18n-placeholder], input, textarea, .msgs .msg, .cr-textchat-panel .msgs, .lang-opt, .emoji-picker-pop, .qr-login-frame, .cvs-tile-name, .gcb-vtile-name, .gcb-p-name, .srv-voice-member-name, .svc-present-name, .srv-item-name, .srv-item-sub, .srv-chan-name, .srv-detail-desc, .srv-cat-label';
+const AT_DENY_SELECTOR_BASE='script, style, noscript, template, .bub, .row .info .n, .row .info .p, .userbar .n, .pc-custom-status, .rp-name, .rp-tag, pre, code, [contenteditable], [data-i18n-skip], input, textarea, .msgs .msg, .cr-textchat-panel .msgs, .lang-opt, .emoji-picker-pop, .qr-login-frame, .cvs-tile-name, .gcb-vtile-name, .gcb-p-name, .srv-voice-member-name, .svc-present-name, .srv-item-name, .srv-item-sub, .srv-chan-name, .srv-detail-desc, .srv-cat-label';
+// Bug remonté ("plein de langues qui ne fonctionnent pas") : les éléments
+// [data-i18n]/[data-i18n-title]/[data-i18n-placeholder] étaient TOUJOURS
+// exclus de l'auto-traduction — correct pour les 6 langues qui ont un vrai
+// dictionnaire (I18N ci-dessus), puisqu'ils reçoivent déjà la bonne
+// traduction via t(). Mais pour les ~110 AUTRES langues, I18N[lang]
+// n'existe pas : t() retombe alors sur I18N.fr (français, voir sa
+// définition plus haut) — ces éléments restaient donc bloqués en français
+// pour toujours dans TOUTE langue non couverte par le dictionnaire,
+// puisqu'exclus ici de la traduction automatique qui aurait pu les
+// rattraper. Ne les exclure QUE quand la langue courante a vraiment un
+// dictionnaire complet.
+function atDenySelector(lang){
+  return I18N[lang]?(AT_DENY_SELECTOR_BASE+', [data-i18n], [data-i18n-title], [data-i18n-placeholder]'):AT_DENY_SELECTOR_BASE;
+}
 let atTranslationMemory={};
 function atLoadMemory(lang){
   if(atTranslationMemory[lang])return atTranslationMemory[lang];
@@ -8047,7 +8061,7 @@ function atLooksTranslatable(text){
 }
 function atProcessNode(node,lang){
   const parent=node.parentElement;
-  if(!parent||parent.closest(AT_DENY_SELECTOR))return;
+  if(!parent||parent.closest(atDenySelector(lang)))return;
   const state=AT_NODE_STATE.get(node);
   // Bug remonté : changer de langue plusieurs fois de suite (ex. es -> en ->
   // es) traduisait mal ou pas du tout. Cause : le code lisait node.nodeValue
@@ -8080,10 +8094,57 @@ function atProcessNode(node,lang){
     node.nodeValue=translated;
   });
 }
+// Bug remonté ("certains trucs pas du tout traduits") : jusqu'ici seul le
+// TEXTE VISIBLE (nœuds texte) passait par l'auto-traduction — les ~280
+// attributs title="…"/placeholder="…"/aria-label="…" codés en dur en
+// français dans toute l'appli (infobulles, champs de recherche/saisie…)
+// n'étaient JAMAIS traduits, dans AUCUNE langue, pas même les 6 du
+// dictionnaire. Même mécanique que atProcessNode (texte source figé au
+// premier passage, jamais retraduit à partir d'une traduction précédente),
+// appliquée à un attribut au lieu d'un nœud texte.
+const AT_ATTR_STATE=new WeakMap();
+const AT_ATTRS=['title','placeholder','aria-label'];
+function atProcessAttr(el,attr,lang){
+  if(!el||!el.hasAttribute||!el.hasAttribute(attr))return;
+  if(el.closest&&el.closest(atDenySelector(lang)))return;
+  let byAttr=AT_ATTR_STATE.get(el);
+  const prev=byAttr&&byAttr[attr];
+  const origSrc=prev?prev.origSrc:el.getAttribute(attr);
+  if(!atLooksTranslatable(origSrc))return;
+  if(prev&&prev.lang===lang&&(prev.out===el.getAttribute(attr)||prev.pending))return;
+  const entry={lang:lang,origSrc:origSrc,out:null,pending:true};
+  if(!byAttr){byAttr={};AT_ATTR_STATE.set(el,byAttr);}
+  byAttr[attr]=entry;
+  atQueueTranslate(origSrc,lang,function(translated){
+    if(!el.isConnected)return;
+    const cur=AT_ATTR_STATE.get(el);
+    if(!cur||cur[attr]!==entry)return;
+    entry.out=translated;entry.pending=false;
+    el.setAttribute(attr,translated);
+  });
+}
+function atScanAttrs(root,lang){
+  AT_ATTRS.forEach(function(attr){
+    if(root.nodeType===1&&root.hasAttribute&&root.hasAttribute(attr))atProcessAttr(root,attr,lang);
+    if(root.querySelectorAll){
+      root.querySelectorAll('['+attr+']').forEach(function(el){atProcessAttr(el,attr,lang);});
+    }
+  });
+}
+// mode:'open' uniquement (pages de guilde personnalisées, voir
+// buildGuildPageHtml/openGuildPage) : un shadowRoot bloque normalement tout
+// TreeWalker/MutationObserver posé sur le document — sans ce détour
+// explicite, ce contenu restait figé en français quelle que soit la langue.
 function atScan(root,lang){
   const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,null);
   let node;
   while((node=walker.nextNode()))atProcessNode(node,lang);
+  atScanAttrs(root,lang);
+  if(root.querySelectorAll){
+    root.querySelectorAll('*').forEach(function(el){
+      if(el.shadowRoot)atScan(el.shadowRoot,lang);
+    });
+  }
 }
 function initAutoTranslate(){
   const lang=(appPrefs&&appPrefs.language)||'fr';
@@ -8094,9 +8155,12 @@ function initAutoTranslate(){
   // de réglages) — tout le reste du site (panneaux de paramètres, modales,
   // conversations, salons de serveur…) a besoin d'auto-traduction tout
   // autant qu'une langue "non couverte". Les éléments [data-i18n] sont
-  // explicitement exclus (voir AT_DENY_SELECTOR) puisqu'ils reçoivent déjà
-  // la traduction exacte du dictionnaire — inutile et parfois contre-
-  // productif de les repasser aussi par l'IA.
+  // exclus (voir atDenySelector) UNIQUEMENT pour ces 6 langues, puisqu'ils
+  // reçoivent déjà la traduction exacte du dictionnaire — inutile et
+  // parfois contre-productif de les repasser aussi par l'IA. Pour toute
+  // autre langue, ils sont au contraire scannés comme le reste (voir
+  // atDenySelector plus haut) : sans dictionnaire, ils resteraient sinon
+  // bloqués en français pour toujours.
   if(lang==='fr'){
     if(autoTranslateObserver){autoTranslateObserver.disconnect();autoTranslateObserver=null;}
     return;
@@ -8115,6 +8179,7 @@ function initAutoTranslate(){
     const roots=new Set();
     mutations.forEach(function(m){
       if(m.type==='characterData')atProcessNode(m.target,curLang);
+      else if(m.type==='attributes'&&AT_ATTRS.indexOf(m.attributeName)>=0)atProcessAttr(m.target,m.attributeName,curLang);
       else if(m.type==='childList'){
         m.addedNodes.forEach(function(n){
           if(n.nodeType===3)atProcessNode(n,curLang);
@@ -8124,7 +8189,7 @@ function initAutoTranslate(){
     });
     roots.forEach(function(r){atScan(r,curLang);});
   });
-  autoTranslateObserver.observe(document.body,{subtree:true,childList:true,characterData:true});
+  autoTranslateObserver.observe(document.body,{subtree:true,childList:true,characterData:true,attributes:true,attributeFilter:AT_ATTRS});
 }
 
 function applyAppPrefs(){
