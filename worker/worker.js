@@ -2103,9 +2103,22 @@ html.xultra-restoring #stage{visibility:hidden}
 .xd-upload-row-top{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px;gap:8px}
 .xd-upload-row-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
 .xd-upload-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
-.xd-upload-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .2s ease}
-.xd-upload-fill.xd-upload-done{background:#22c55e}
-.xd-upload-fill.xd-upload-err{background:#ef4444}
+.xd-upload-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7,#ec4899);background-size:200% 100%;animation:xdFillShimmer 1.6s linear infinite;transition:width .25s ease;border-radius:99px}
+.xd-upload-fill.xd-upload-done{background:#22c55e;animation:none}
+.xd-upload-fill.xd-upload-err{background:#ef4444;animation:none}
+.xd-upload-fill.xd-upload-indeterminate{position:absolute;width:40%!important;animation:xdIndeterminate 1.1s ease-in-out infinite}
+.xd-upload-bar{position:relative}
+@keyframes xdFillShimmer{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+@keyframes xdIndeterminate{0%{left:-40%}100%{left:100%}}
+.xd-upload-row{padding:9px 10px;border-radius:10px;transition:background .15s}
+.xd-upload-row:hover{background:rgba(255,255,255,.03)}
+.xd-upload-row-sub{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:4px}
+.xd-upload-dir-icon{margin-right:5px}
+.xd-upload-status-txt{white-space:nowrap}
+.xd-upload-status-txt.xd-st-done{color:#4ade80}
+.xd-upload-status-txt.xd-st-error{color:#f87171}
+.xd-upload-status-txt.xd-st-busy{color:#c4b5fd}
+.xd-upload-clear-btn{background:none;border:0;color:var(--muted);font-size:.7rem;cursor:pointer;text-decoration:underline;padding:0}
 .xd-unlock-wrap{max-width:420px;margin:60px auto;text-align:center;animation:xdTileIn .3s ease both}
 .xd-unlock-wrap .xd-lock-ico{font-size:2.6rem;margin-bottom:10px}
 .xd-unlock-wrap input{width:100%;margin:14px 0 6px}
@@ -7040,6 +7053,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.16',category:'design',date:'1 septembre 2026',time:'23:50',title:'📊 X1 Drive : un vrai gestionnaire de transferts',
+    body:'Le petit panneau d\\'envoi de X1 Drive devient un vrai gestionnaire de transferts : il suit maintenant aussi tes téléchargements et tes aperçus, pas juste tes envois. Chaque ligne affiche la taille du fichier et son état précis — 🔒 Chiffrement, ⬆️ Envoi (avec le %), ⬇️ Téléchargement (avec le %), 🔓 Déchiffrement, ✅ Terminé ou ❌ Échec — avec une barre animée. Le panneau reste visible même si tu fermes X1 Drive, et se nettoie tout seul une fois les transferts terminés (ou en un clic sur "Effacer terminés").'},
   {version:'4.55.15',category:'feature',date:'1 septembre 2026',time:'23:45',title:'👥 X1 Drive : dossiers partagés en équipe',
     body:'Nouveau dans X1 Drive : transforme n\\'importe quel dossier en dossier partagé et invite d\\'autres membres, en Lecteur (consultation) ou en Éditeur (peut ajouter/modifier). Toujours chiffré de bout en bout — la clé du dossier voyage uniquement via le même chiffrement déjà utilisé pour tes messages privés, jamais en clair sur nos serveurs. Retrouve les dossiers partagés avec toi dans le nouvel onglet "Partagés avec moi". Retirer un membre coupe son accès immédiatement. Pour cette première version : pas encore d\\'envoi de dossier entier ni de duplication à l\\'intérieur d\\'un dossier partagé, et chaque envoi compte sur l\\'espace de stockage de la personne qui envoie.'},
   {version:'4.55.14',category:'design',date:'1 septembre 2026',time:'23:15',title:'🧹 Un peu de ménage dans la barre latérale',
@@ -17006,7 +17021,7 @@ function xdUploadBlobFile(file,onProgress,permissions){
   });
 }
 let xdActiveUploads={};
-function xdShowUploadPanel(){
+function xdShowTransferPanel(){
   let panel=\$('xd-upload-panel');
   if(!panel){
     panel=document.createElement('div');
@@ -17015,20 +17030,56 @@ function xdShowUploadPanel(){
     document.body.appendChild(panel);
   }
   panel.classList.remove('hidden');
-  xdRenderUploadPanel();
+  xdRenderTransferPanel();
 }
-function xdRenderUploadPanel(){
+const XD_TRANSFER_STATUS_LABELS={
+  encrypting:{txt:'🔒 Chiffrement…',cls:'xd-st-busy',indeterminate:true},
+  uploading:{txt:'⬆️ Envoi…',cls:'xd-st-busy',indeterminate:false},
+  downloading:{txt:'⬇️ Téléchargement…',cls:'xd-st-busy',indeterminate:false},
+  decrypting:{txt:'🔓 Déchiffrement…',cls:'xd-st-busy',indeterminate:true},
+  done:{txt:'✅ Terminé',cls:'xd-st-done',indeterminate:false},
+  error:{txt:'❌ Échec',cls:'xd-st-error',indeterminate:false}
+};
+function xdTransferCleanupSoon(kind,id){
+  setTimeout(function(){
+    const store=kind==='up'?xdActiveUploads:xdActiveDownloads;
+    if(store[id]&&store[id].status==='done'){delete store[id];xdRenderTransferPanel();}
+  },3500);
+}
+function xdRenderTransferPanel(){
   const panel=\$('xd-upload-panel');if(!panel)return;
-  const ids=Object.keys(xdActiveUploads);
-  if(!ids.length){panel.classList.add('hidden');return}
-  panel.innerHTML='<div class="xd-upload-head"><span>Envois ('+ids.length+')</span><button type="button" id="xd-upload-panel-close">✕</button></div>'
-    +'<div class="xd-upload-list">'+ids.map(function(id){
-      const u=xdActiveUploads[id];
-      const pct=u.total?Math.round(u.progress/u.total*100):0;
-      return '<div class="xd-upload-row"><div class="xd-upload-row-top"><span class="xd-upload-row-name">'+esc(u.name)+'</span><span>'+(u.status==='error'?'Échec':(u.status==='done'?'✅':pct+'%'))+'</span></div><div class="xd-upload-bar"><div class="xd-upload-fill'+(u.status==='done'?' xd-upload-done':(u.status==='error'?' xd-upload-err':''))+'" style="width:'+(u.status==='done'?100:pct)+'%"></div></div></div>';
+  const upRows=Object.keys(xdActiveUploads).map(function(id){return {id:id,dir:'up',icon:'⬆️',u:xdActiveUploads[id]};});
+  const downRows=Object.keys(xdActiveDownloads).map(function(id){return {id:id,dir:'down',icon:'⬇️',u:xdActiveDownloads[id]};});
+  const rows=upRows.concat(downRows);
+  if(!rows.length){panel.classList.add('hidden');return}
+  const activeCount=rows.filter(function(r){return r.u.status!=='done'&&r.u.status!=='error';}).length;
+  const doneCount=rows.length-activeCount;
+  panel.innerHTML='<div class="xd-upload-head"><span>Transferts ('+rows.length+')</span>'
+    +(doneCount?'<button type="button" class="xd-upload-clear-btn" id="xd-upload-clear">Effacer terminés</button>':'')
+    +'<button type="button" id="xd-upload-panel-close">✕</button></div>'
+    +'<div class="xd-upload-list">'+rows.map(function(r){
+      const u=r.u;
+      const pct=u.total?Math.min(100,Math.round(u.progress/u.total*100)):0;
+      const st=XD_TRANSFER_STATUS_LABELS[u.status]||XD_TRANSFER_STATUS_LABELS.uploading;
+      const sizeTxt=xdFmtBytes(u.size||u.total||0);
+      const showPct=!st.indeterminate&&u.status!=='done'&&u.status!=='error';
+      const fillCls=u.status==='done'?' xd-upload-done':(u.status==='error'?' xd-upload-err':(st.indeterminate?' xd-upload-indeterminate':''));
+      const fillWidth=u.status==='done'?100:(st.indeterminate?40:pct);
+      return '<div class="xd-upload-row">'
+        +'<div class="xd-upload-row-top"><span class="xd-upload-row-name"><span class="xd-upload-dir-icon">'+r.icon+'</span>'+esc(u.name)+'</span></div>'
+        +'<div class="xd-upload-bar"><div class="xd-upload-fill'+fillCls+'" style="width:'+fillWidth+'%"></div></div>'
+        +'<div class="xd-upload-row-sub"><span>'+sizeTxt+(showPct?' · '+pct+'%':'')+'</span><span class="xd-upload-status-txt '+st.cls+'">'+st.txt+'</span></div>'
+      +'</div>';
     }).join('')+'</div>';
   const closeBtn=panel.querySelector('#xd-upload-panel-close');
   if(closeBtn)closeBtn.onclick=function(){panel.classList.add('hidden');};
+  const clearBtn=panel.querySelector('#xd-upload-clear');
+  if(clearBtn)clearBtn.onclick=function(){
+    Object.keys(xdActiveUploads).forEach(function(id){if(xdActiveUploads[id].status==='done'||xdActiveUploads[id].status==='error')delete xdActiveUploads[id];});
+    Object.keys(xdActiveDownloads).forEach(function(id){if(xdActiveDownloads[id].status==='done'||xdActiveDownloads[id].status==='error')delete xdActiveDownloads[id];});
+    xdRenderTransferPanel();
+  };
+  rows.forEach(function(r){if(r.u.status==='done'&&!r.u._cleanupScheduled){r.u._cleanupScheduled=true;xdTransferCleanupSoon(r.dir,r.id);}});
 }
 // Sauvegarde un fichier reçu par lien de partage dans SON PROPRE Drive
 // (déjà déchiffré à ce stade, dans le navigateur du destinataire) : il est
@@ -17058,6 +17109,9 @@ async function xdImportSharedToDrive(plainBuf,name,mime,btn){
   }
 }
 async function xdUploadOneFile(file){
+  const uploadId='u'+Date.now()+Math.random().toString(36).slice(2,8);
+  xdActiveUploads[uploadId]={name:file.name,size:file.size,progress:0,total:file.size,status:'encrypting'};
+  xdShowTransferPanel();
   const fileKey=await xdGenerateKey();
   const plainBuf=await file.arrayBuffer();
   const enc=await xdEncryptBuf(fileKey,plainBuf);
@@ -17070,22 +17124,23 @@ async function xdUploadOneFile(file){
   combined.set(new Uint8Array(enc.cipher),enc.iv.length);
   const encFile=new File([combined],'enc.bin',{type:'application/octet-stream'});
   const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
-  const uploadId='u'+Date.now()+Math.random().toString(36).slice(2,8);
-  xdActiveUploads[uploadId]={name:file.name,progress:0,total:combined.byteLength,status:'uploading'};
-  xdRenderUploadPanel();
+  xdActiveUploads[uploadId].status='uploading';
+  xdActiveUploads[uploadId].progress=0;
+  xdActiveUploads[uploadId].total=combined.byteLength;
+  xdRenderTransferPanel();
   let up;
   try{
     up=await xdUploadBlobFile(encFile,function(loaded,total){
       xdActiveUploads[uploadId].progress=loaded;xdActiveUploads[uploadId].total=total;
-      xdRenderUploadPanel();
+      xdRenderTransferPanel();
     },perms);
   }catch(e){
-    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    xdActiveUploads[uploadId].status='error';xdRenderTransferPanel();
     throw e;
   }
   const folderKey=await xdResolveCurrentFolderKey();
   if(!folderKey){
-    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    xdActiveUploads[uploadId].status='error';xdRenderTransferPanel();
     await storage.deleteFile('xultra_drive',up.\$id).catch(function(){});
     throw new Error('Clé du dossier partagé indisponible');
   }
@@ -17125,7 +17180,7 @@ async function xdUploadOneFile(file){
       if(xdCurrentSharedFolderId)await xdSyncSharedItemPerms(itemDoc.\$id);
     }
   }catch(e){
-    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    xdActiveUploads[uploadId].status='error';xdRenderTransferPanel();
     await storage.deleteFile('xultra_drive',up.\$id).catch(function(){});
     throw e;
   }
@@ -17133,11 +17188,11 @@ async function xdUploadOneFile(file){
     const r=await authPost('/api/xdrive/commit-upload',{itemId:itemDoc.\$id,fileId:up.\$id});
     if(xdDriveMeta){xdDriveMeta.used=r.used;xdDriveMeta.quota=r.quota;}
   }catch(e){
-    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    xdActiveUploads[uploadId].status='error';xdRenderTransferPanel();
     showToast('Quota dépassé, envoi de "'+file.name+'" annulé.','error');
     throw e;
   }
-  xdActiveUploads[uploadId].status='done';xdRenderUploadPanel();
+  xdActiveUploads[uploadId].status='done';xdRenderTransferPanel();
   return itemDoc;
 }
 async function xdHandleFileUpload(files){
@@ -17150,11 +17205,11 @@ async function xdHandleFileUpload(files){
     showToast('Espace insuffisant : '+xdFmtBytes(avail)+' disponible, '+xdFmtBytes(totalNeeded)+' nécessaire.','error');
     return;
   }
-  xdShowUploadPanel();
+  xdShowTransferPanel();
   await Promise.all(Array.from(files).map(function(file){return xdUploadOneFile(file).catch(function(){});}));
   setTimeout(function(){
     Object.keys(xdActiveUploads).forEach(function(id){if(xdActiveUploads[id].status==='done')delete xdActiveUploads[id];});
-    xdRenderUploadPanel();
+    xdRenderTransferPanel();
   },2500);
   showToast('Envoi terminé ! 🎉');
   xdRenderQuotaBox();
@@ -17180,7 +17235,7 @@ async function xdHandleFolderUpload(fileList){
     showToast('Espace insuffisant : '+xdFmtBytes(avail)+' disponible, '+xdFmtBytes(totalNeeded)+' nécessaire.','error');
     return;
   }
-  xdShowUploadPanel();
+  xdShowTransferPanel();
   const folderCache={};
   const rootParent=xdCurrentFolder||'';
   async function resolveFolderPath(parts){
@@ -17216,7 +17271,7 @@ async function xdHandleFolderUpload(fileList){
   }
   setTimeout(function(){
     Object.keys(xdActiveUploads).forEach(function(id){if(xdActiveUploads[id].status==='done')delete xdActiveUploads[id];});
-    xdRenderUploadPanel();
+    xdRenderTransferPanel();
   },2500);
   showToast('Dossier envoyé : '+okCount+' fichier(s)'+(failCount?(', '+failCount+' échec(s)'):'')+'.');
   xdRenderQuotaBox();
@@ -17227,15 +17282,31 @@ async function xdHandleFolderUpload(fileList){
 function xdFileUrl(fileId){
   return PROXY_EP+'/storage/buckets/xultra_drive/files/'+fileId+'/view?project='+PID;
 }
-async function xdFetchFileBytes(fileId){
+async function xdFetchFileBytes(fileId,onProgress){
   const headers=Object.assign({},(client&&client.headers)||{});
   const r=await fetch(xdFileUrl(fileId),{headers:headers});
   if(!r.ok)throw new Error('Téléchargement impossible ('+r.status+')');
-  return r.arrayBuffer();
+  if(!onProgress||!r.body||!r.body.getReader)return r.arrayBuffer();
+  const totalHeader=parseInt(r.headers.get('Content-Length')||'0',10)||0;
+  const reader=r.body.getReader();
+  const chunks=[];
+  let received=0;
+  while(true){
+    const res=await reader.read();
+    if(res.done)break;
+    chunks.push(res.value);
+    received+=res.value.length;
+    onProgress(received,totalHeader||received);
+  }
+  const out=new Uint8Array(received);
+  let offset=0;
+  for(let i=0;i<chunks.length;i++){out.set(chunks[i],offset);offset+=chunks[i].length;}
+  return out.buffer;
 }
-async function xdDecryptItemContent(item){
-  const raw=await xdFetchFileBytes(item.fileId);
+async function xdDecryptItemContent(item,onProgress,onPhase){
+  const raw=await xdFetchFileBytes(item.fileId,onProgress);
   if(item.visibility==='public')return raw;
+  if(onPhase)onPhase('decrypting');
   const wrappedRaw=xdB64ToBuf(item.keyWrapped);
   const keyIv=new Uint8Array(xdB64ToBuf(item.keyIv));
   const itemKey=await xdResolveItemKey(item);
@@ -17247,10 +17318,22 @@ async function xdDecryptItemContent(item){
   const cipher=bytes.slice(12);
   return xdDecryptBuf(fileKey,cipher.buffer,iv);
 }
+let xdActiveDownloads={};
 async function xdDownloadItem(item){
-  showToast('Déchiffrement de "'+item._name+'"…');
+  const downloadId='d'+Date.now()+Math.random().toString(36).slice(2,8);
+  xdActiveDownloads[downloadId]={name:item._name,size:item.size||0,progress:0,total:item.size||0,status:'downloading'};
+  xdShowTransferPanel();
   try{
-    const buf=await xdDecryptItemContent(item);
+    const buf=await xdDecryptItemContent(item,function(loaded,total){
+      xdActiveDownloads[downloadId].progress=loaded;
+      if(total)xdActiveDownloads[downloadId].total=total;
+      xdRenderTransferPanel();
+    },function(phase){
+      xdActiveDownloads[downloadId].status=phase;
+      xdRenderTransferPanel();
+    });
+    xdActiveDownloads[downloadId].status='done';
+    xdRenderTransferPanel();
     const blob=new Blob([buf],{type:item._mime||'application/octet-stream'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
@@ -17258,6 +17341,8 @@ async function xdDownloadItem(item){
     document.body.appendChild(a);a.click();a.remove();
     setTimeout(function(){URL.revokeObjectURL(url);},4000);
   }catch(e){
+    xdActiveDownloads[downloadId].status='error';
+    xdRenderTransferPanel();
     showToast('Déchiffrement impossible : mauvaise clé ou fichier corrompu.','error');
   }
 }
@@ -17272,8 +17357,20 @@ async function xdOpenPreview(item){
   \$('xd-preview-back').onclick=function(){xdRenderShell();};
   \$('xd-preview-dl').onclick=function(){xdDownloadItem(item);};
   const body=\$('xd-preview-body');
+  const previewId='d'+Date.now()+Math.random().toString(36).slice(2,8);
+  xdActiveDownloads[previewId]={name:item._name,size:item.size||0,progress:0,total:item.size||0,status:'downloading'};
+  xdShowTransferPanel();
   try{
-    const buf=await xdDecryptItemContent(item);
+    const buf=await xdDecryptItemContent(item,function(loaded,total){
+      xdActiveDownloads[previewId].progress=loaded;
+      if(total)xdActiveDownloads[previewId].total=total;
+      xdRenderTransferPanel();
+    },function(phase){
+      xdActiveDownloads[previewId].status=phase;
+      xdRenderTransferPanel();
+    });
+    xdActiveDownloads[previewId].status='done';
+    xdRenderTransferPanel();
     const blob=new Blob([buf],{type:item._mime||'application/octet-stream'});
     const url=URL.createObjectURL(blob);
     const m=(item._mime||'').toLowerCase();
@@ -17293,6 +17390,7 @@ async function xdOpenPreview(item){
       body.innerHTML='<div class="empty-hint">Pas d\\'aperçu disponible pour ce type de fichier — télécharge-le pour l\\'ouvrir.</div>';
     }
   }catch(e){
+    if(xdActiveDownloads[previewId]){xdActiveDownloads[previewId].status='error';xdRenderTransferPanel();}
     body.innerHTML='<div class="empty-hint">Déchiffrement impossible : mauvaise clé ou fichier corrompu.</div>';
   }
 }
@@ -17584,12 +17682,25 @@ async function xdBulkMove(){
 async function xdDuplicateItem(item){
   if(item.type==='folder'){showToast('Duplication de dossier pas encore disponible','error');return}
   if(item.sharedFolderId){showToast('Duplication pas encore disponible dans un dossier partagé','error');return}
-  showToast('Duplication…');
+  const dupId='d'+Date.now()+Math.random().toString(36).slice(2,8);
+  const uploadId='u'+Date.now()+Math.random().toString(36).slice(2,8);
+  xdActiveDownloads[dupId]={name:item._name,size:item.size||0,progress:0,total:item.size||0,status:'downloading'};
+  xdShowTransferPanel();
   try{
-    const raw=await xdFetchFileBytes(item.fileId);
+    const raw=await xdFetchFileBytes(item.fileId,function(loaded,total){
+      xdActiveDownloads[dupId].progress=loaded;
+      if(total)xdActiveDownloads[dupId].total=total;
+      xdRenderTransferPanel();
+    });
+    xdActiveDownloads[dupId].status='done';xdRenderTransferPanel();
+    xdActiveUploads[uploadId]={name:item._name+' (copie)',size:item.size||0,progress:0,total:raw.byteLength,status:'uploading'};
+    xdRenderTransferPanel();
     const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
     const dupFile=new File([raw],'enc.bin',{type:'application/octet-stream'});
-    const up=await xdUploadBlobFile(dupFile,null,perms);
+    const up=await xdUploadBlobFile(dupFile,function(loaded,total){
+      xdActiveUploads[uploadId].progress=loaded;xdActiveUploads[uploadId].total=total;
+      xdRenderTransferPanel();
+    },perms);
     const dotIdx=item._name.lastIndexOf('.');
     const newName=dotIdx>0?(item._name.slice(0,dotIdx)+' (copie)'+item._name.slice(dotIdx)):(item._name+' (copie)');
     const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:newName,mime:item._mime||''}));
@@ -17602,10 +17713,16 @@ async function xdDuplicateItem(item){
     };
     const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
     await authPost('/api/xdrive/commit-upload',{itemId:doc.\$id,fileId:up.\$id});
+    xdActiveUploads[uploadId].status='done';xdRenderTransferPanel();
     showToast('Copie créée.');
     xdRenderQuotaBox();
     xdRenderCurrentView();
-  }catch(e){showToast('Duplication impossible','error');}
+  }catch(e){
+    if(xdActiveDownloads[dupId]&&xdActiveDownloads[dupId].status!=='done')xdActiveDownloads[dupId].status='error';
+    if(xdActiveUploads[uploadId]&&xdActiveUploads[uploadId].status!=='done')xdActiveUploads[uploadId].status='error';
+    xdRenderTransferPanel();
+    showToast('Duplication impossible','error');
+  }
 }
 function xdShowInfoPanel(item){
   const box=document.createElement('div');
