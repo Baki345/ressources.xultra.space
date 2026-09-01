@@ -2125,8 +2125,11 @@ html.xultra-restoring #stage{visibility:hidden}
 .xd-tile-meta{font-size:.68rem;color:var(--muted);margin-top:2px}
 .xd-tile-star{position:absolute;top:8px;right:8px;font-size:.85rem;opacity:0;transition:opacity .15s ease}
 .xd-tile:hover .xd-tile-star,.xd-tile-star.on{opacity:1}
+.xd-tile-check{position:absolute;top:8px;left:8px;width:17px;height:17px;accent-color:#a855f7;opacity:0;transition:opacity .15s ease;cursor:pointer}
+.xd-tile:hover .xd-tile-check,.xd-tile-check:checked,.xd-selected .xd-tile-check{opacity:1}
 .xd-list{display:flex;flex-direction:column;gap:2px}
 .xd-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s ease}
+.xd-row-check{width:16px;height:16px;accent-color:#a855f7;flex-shrink:0;cursor:pointer}
 .xd-row:hover{background:rgba(255,255,255,.05)}
 .xd-row.xd-selected{background:rgba(124,58,237,.16)}
 .xd-row-icon{font-size:1.2rem;width:26px;text-align:center;flex-shrink:0}
@@ -7077,6 +7080,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.12',category:'feature',date:'1 septembre 2026',time:'22:30',title:'☁️ X1 Drive s\\'enrichit : sélection multiple, dossiers complets, duplication…',
+    body:'Plusieurs ajouts dans X1 Drive : sélectionne plusieurs fichiers à la fois (case à cocher) pour les télécharger, déplacer ou supprimer d\\'un coup ; envoie un dossier entier avec toute son arborescence en un clic ; duplique un fichier ; consulte ses informations (taille, dates…) ; et si quelqu\\'un te partage un fichier par lien, tu peux maintenant le sauvegarder directement dans ton propre Drive. Une notification t\\'avertit aussi quand ton espace de stockage approche de sa limite.'},
   {version:'4.55.11',category:'feature',date:'1 septembre 2026',time:'21:15',title:'☁️ Nouveau : X1 Drive, 1 Go de stockage chiffré de bout en bout',
     body:'Nouvelle section façon MEGA/Google Drive, aux couleurs de X1 : dossiers, glisser-déposer, corbeille, favoris, recherche, aperçu des images/vidéos/documents, partage par lien (avec mot de passe et expiration en option), historique des versions… Point important : tes fichiers sont chiffrés directement dans ton navigateur avant d\\'être envoyés — X1 lui-même ne peut pas les lire. En échange, ta clé de récupération (affichée une seule fois à l\\'activation) est la SEULE façon de récupérer tes fichiers si tu oublies ton mot de passe : garde-la précieusement, personne ne peut te la redonner. Un onglet "Fichiers" apparaît aussi sur les profils pour les fichiers explicitement rendus publics.'},
   {version:'4.55.10',category:'feature',date:'1 septembre 2026',time:'20:30',title:'📋 Nouveau : XBin, pour héberger et partager du texte ou du code',
@@ -16996,6 +17001,33 @@ function xdRenderUploadPanel(){
   const closeBtn=panel.querySelector('#xd-upload-panel-close');
   if(closeBtn)closeBtn.onclick=function(){panel.classList.add('hidden');};
 }
+// Sauvegarde un fichier reçu par lien de partage dans SON PROPRE Drive
+// (déjà déchiffré à ce stade, dans le navigateur du destinataire) : il est
+// re-chiffré avec la clé maîtresse du destinataire, jamais celle de la
+// personne qui l'a partagé — deux comptes différents, deux clés
+// différentes, comme n'importe quel autre envoi.
+async function xdImportSharedToDrive(plainBuf,name,mime,btn){
+  if(btn){btn.disabled=true;btn.textContent='Sauvegarde…';}
+  try{
+    if(!xdMasterKey){
+      const quotaMeta=await xdFetchQuotaMeta();
+      if(!quotaMeta.setupDone){showToast('Active d\\'abord X1 Drive depuis la barre latérale.','error');if(btn){btn.disabled=false;btn.textContent='💾 Sauvegarder dans mon Drive';}return}
+      const pass=prompt('Entre ton mot de passe X1 pour déverrouiller ton Drive :');
+      if(!pass){if(btn){btn.disabled=false;btn.textContent='💾 Sauvegarder dans mon Drive';}return}
+      await xdUnlockWithPassword(pass,quotaMeta);
+    }
+    try{await xdFetchQuotaMeta();}catch(e){}
+    const avail=Math.max(0,(xdDriveMeta?xdDriveMeta.quota:1073741824)-(xdDriveMeta?xdDriveMeta.used:0));
+    if(plainBuf.byteLength>avail){showToast('Espace insuffisant dans ton Drive.','error');if(btn){btn.disabled=false;btn.textContent='💾 Sauvegarder dans mon Drive';}return}
+    const fakeFile=new File([plainBuf],name,{type:mime||'application/octet-stream'});
+    await xdUploadOneFile(fakeFile);
+    showToast('Sauvegardé dans ton Drive ! 🎉');
+    if(btn){btn.textContent='✅ Sauvegardé';}
+  }catch(e){
+    showToast('Sauvegarde impossible : mot de passe incorrect ou erreur réseau.','error');
+    if(btn){btn.disabled=false;btn.textContent='💾 Sauvegarder dans mon Drive';}
+  }
+}
 async function xdUploadOneFile(file){
   const fileKey=await xdGenerateKey();
   const plainBuf=await file.arrayBuffer();
@@ -17088,6 +17120,67 @@ async function xdHandleFileUpload(files){
     xdRenderUploadPanel();
   },2500);
   showToast('Envoi terminé ! 🎉');
+  xdRenderQuotaBox();
+  xdRenderCurrentView();
+}
+// Envoi d'un dossier complet (bouton dédié "📁⬆️ Dossier", pas le
+// glisser-déposer — un dossier glissé ne fournit pas de chemin relatif
+// fiable dans tous les navigateurs, contrairement au sélecteur avec
+// webkitdirectory) : chaque File porte son chemin relatif dans
+// webkitRelativePath (ex. "MonDossier/Photos/img.png") — on recrée cette
+// arborescence en vrais dossiers X1 Drive AVANT d'y envoyer les fichiers,
+// dans l'ordre (une sous-arborescence dépend du dossier parent déjà créé),
+// avec un petit cache pour ne jamais recréer deux fois le même dossier.
+async function xdHandleFolderUpload(fileList){
+  const files=Array.from(fileList||[]).filter(function(f){return f.size>0||((f.webkitRelativePath||'').indexOf('/')>=0);});
+  if(!files.length)return;
+  if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
+  try{await xdFetchQuotaMeta();}catch(e){}
+  const totalNeeded=files.reduce(function(s,f){return s+f.size;},0);
+  const avail=Math.max(0,(xdDriveMeta?xdDriveMeta.quota:1073741824)-(xdDriveMeta?xdDriveMeta.used:0));
+  if(totalNeeded>avail){
+    showToast('Espace insuffisant : '+xdFmtBytes(avail)+' disponible, '+xdFmtBytes(totalNeeded)+' nécessaire.','error');
+    return;
+  }
+  xdShowUploadPanel();
+  const folderCache={};
+  const rootParent=xdCurrentFolder||'';
+  async function resolveFolderPath(parts){
+    let parentId=rootParent,pathKey='';
+    for(let i=0;i<parts.length;i++){
+      pathKey+=(i?'/':'')+parts[i];
+      if(folderCache[pathKey]){parentId=folderCache[pathKey];continue}
+      const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:parts[i],mime:''}));
+      const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+      const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
+        ownerId:me.\$id,parentId:parentId,type:'folder',encName:metaEnc.data,nameIv:metaEnc.iv,
+        visibility:'private',starred:false,trashed:false,size:0
+      },perms);
+      folderCache[pathKey]=doc.\$id;
+      parentId=doc.\$id;
+    }
+    return parentId;
+  }
+  let okCount=0,failCount=0;
+  for(let i=0;i<files.length;i++){
+    const file=files[i];
+    const relPath=file.webkitRelativePath||file.name;
+    const parts=relPath.split('/').filter(Boolean);
+    parts.pop();
+    try{
+      const parentId=parts.length?await resolveFolderPath(parts):rootParent;
+      const savedFolder=xdCurrentFolder;
+      xdCurrentFolder=parentId;
+      await xdUploadOneFile(file);
+      xdCurrentFolder=savedFolder;
+      okCount++;
+    }catch(e){failCount++;}
+  }
+  setTimeout(function(){
+    Object.keys(xdActiveUploads).forEach(function(id){if(xdActiveUploads[id].status==='done')delete xdActiveUploads[id];});
+    xdRenderUploadPanel();
+  },2500);
+  showToast('Dossier envoyé : '+okCount+' fichier(s)'+(failCount?(', '+failCount+' échec(s)'):'')+'.');
   xdRenderQuotaBox();
   xdRenderCurrentView();
 }
@@ -17259,6 +17352,7 @@ function xdRenderBreadcrumb(){
       const idx=xdBreadcrumb.findIndex(function(c){return c.id===id;});
       xdCurrentFolder=id;
       xdBreadcrumb=id?xdBreadcrumb.slice(0,idx+1):[];
+      xdSelectedIds.clear();xdRenderSelectionBar();
       xdRenderCurrentView();
     };
   });
@@ -17267,7 +17361,8 @@ function xdGridHtml(docs){
   return '<div class="xd-grid">'+docs.map(function(d){
     const icon=xdFileIcon(d._mime,d.type);
     const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
-    return '<div class="xd-tile" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+    return '<div class="xd-tile'+(xdSelectedIds.has(d.\$id)?' xd-selected':'')+'" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+      +'<input type="checkbox" class="xd-tile-check" data-xd-check="'+d.\$id+'"'+(xdSelectedIds.has(d.\$id)?' checked':'')+'/>'
       +'<span class="xd-tile-star'+(d.starred?' on':'')+'" data-xd-star="'+d.\$id+'">'+(d.starred?'⭐':'☆')+'</span>'
       +'<div class="xd-tile-icon">'+icon+'</div>'
       +'<div class="xd-tile-name">'+esc(d._name)+'</div>'
@@ -17279,7 +17374,8 @@ function xdListHtml(docs){
   return '<div class="xd-list">'+docs.map(function(d){
     const icon=xdFileIcon(d._mime,d.type);
     const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
-    return '<div class="xd-row" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+    return '<div class="xd-row'+(xdSelectedIds.has(d.\$id)?' xd-selected':'')+'" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
+      +'<input type="checkbox" class="xd-row-check" data-xd-check="'+d.\$id+'"'+(xdSelectedIds.has(d.\$id)?' checked':'')+'/>'
       +'<span class="xd-row-icon">'+icon+'</span>'
       +'<span class="xd-row-name">'+esc(d._name)+(d.starred?' ⭐':'')+'</span>'
       +'<span class="xd-row-meta">'+meta+'</span>'
@@ -17293,7 +17389,8 @@ function xdItemById(id){
 function xdWireItemEvents(container){
   container.querySelectorAll('[data-xd-id]').forEach(function(el){
     el.addEventListener('click',function(e){
-      if(e.target.closest('[data-xd-star]'))return;
+      if(e.target.closest('[data-xd-star]')||e.target.closest('[data-xd-check]'))return;
+      if(xdSelectedIds.size>0){xdToggleSelect(el.getAttribute('data-xd-id'));return}
       const id=el.getAttribute('data-xd-id');
       const item=xdItemById(id);
       if(!item)return;
@@ -17329,6 +17426,135 @@ function xdWireItemEvents(container){
       xdToggleStar(btn.getAttribute('data-xd-star'));
     });
   });
+  container.querySelectorAll('[data-xd-check]').forEach(function(cb){
+    cb.addEventListener('click',function(e){e.stopPropagation();});
+    cb.addEventListener('change',function(){xdToggleSelect(cb.getAttribute('data-xd-check'));});
+  });
+}
+/* ===== Sélection multiple (téléchargements/suppressions/déplacements
+   groupés) — une case toujours visible sur chaque tuile/ligne, une barre
+   flottante en bas dès qu'au moins un élément est coché. Cliquer un
+   élément normalement PENDANT qu'une sélection est active bascule sa
+   propre case plutôt que de l'ouvrir, pour rester cohérent. ===== */
+let xdSelectedIds=new Set();
+function xdToggleSelect(id){
+  if(xdSelectedIds.has(id))xdSelectedIds.delete(id);else xdSelectedIds.add(id);
+  const el=document.querySelector('[data-xd-id="'+id+'"]');
+  if(el)el.classList.toggle('xd-selected',xdSelectedIds.has(id));
+  const cb=document.querySelector('[data-xd-check="'+id+'"]');
+  if(cb)cb.checked=xdSelectedIds.has(id);
+  xdRenderSelectionBar();
+}
+function xdClearSelection(){
+  xdSelectedIds.clear();
+  xdRenderSelectionBar();
+  xdRenderCurrentView();
+}
+function xdRenderSelectionBar(){
+  let bar=\$('xd-selection-bar');
+  if(!xdSelectedIds.size){if(bar)bar.remove();return}
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='xd-selection-bar';
+    bar.className='xd-upload-panel';
+    bar.style.left='20px';bar.style.right='auto';
+    document.body.appendChild(bar);
+  }
+  bar.innerHTML='<div class="xd-upload-head"><span>'+xdSelectedIds.size+' sélectionné(s)</span><button type="button" id="xd-sel-clear">✕</button></div>'
+    +'<div style="display:flex;gap:6px;padding:10px;flex-wrap:wrap">'
+    +'<button type="button" class="xd-tool-btn" id="xd-sel-download">⬇️ Télécharger</button>'
+    +'<button type="button" class="xd-tool-btn" id="xd-sel-move">📂 Déplacer</button>'
+    +'<button type="button" class="xd-tool-btn" id="xd-sel-delete" style="color:#fca5a5">🗑️ Supprimer</button>'
+    +'</div>';
+  bar.querySelector('#xd-sel-clear').onclick=xdClearSelection;
+  bar.querySelector('#xd-sel-download').onclick=xdBulkDownload;
+  bar.querySelector('#xd-sel-move').onclick=xdBulkMove;
+  bar.querySelector('#xd-sel-delete').onclick=xdBulkDelete;
+}
+async function xdBulkDownload(){
+  const ids=Array.from(xdSelectedIds);
+  for(let i=0;i<ids.length;i++){
+    const item=xdItemById(ids[i]);
+    if(item&&item.type==='file')await xdDownloadItem(item).catch(function(){});
+  }
+  xdClearSelection();
+}
+async function xdBulkDelete(){
+  const ids=Array.from(xdSelectedIds);
+  if(!confirm(ids.length+' élément(s) : déplacer dans la corbeille ?'))return;
+  for(let i=0;i<ids.length;i++){
+    const item=xdItemById(ids[i]);
+    if(item)await xdMoveToTrash(item).catch(function(){});
+  }
+  xdClearSelection();
+}
+async function xdBulkMove(){
+  const ids=Array.from(xdSelectedIds);
+  let folders=[];
+  try{
+    const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('type','folder'),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
+    folders=r.documents||[];
+    await Promise.all(folders.map(xdDecryptItemMeta));
+  }catch(e){}
+  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return ids.indexOf(f.\$id)===-1;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:360px"><h3>Déplacer '+ids.length+' élément(s)</h3>'
+    +'<select id="xd-bulk-move-select" class="field-input" style="margin:14px 0">'+options.join('')+'</select>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="xd-bulk-move-go">Déplacer</button><button type="button" class="set-mini-btn" id="xd-bulk-move-cancel">Annuler</button></div></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-bulk-move-cancel').onclick=function(){box.remove();};
+  box.querySelector('#xd-bulk-move-go').onclick=async function(){
+    const dest=box.querySelector('#xd-bulk-move-select').value;
+    for(let i=0;i<ids.length;i++){
+      try{await db.updateDocument(DB,'xdrive_items',ids[i],{parentId:dest});}catch(e){}
+    }
+    box.remove();
+    showToast('Déplacé.');
+    xdClearSelection();
+  };
+}
+async function xdDuplicateItem(item){
+  if(item.type==='folder'){showToast('Duplication de dossier pas encore disponible','error');return}
+  showToast('Duplication…');
+  try{
+    const raw=await xdFetchFileBytes(item.fileId);
+    const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+    const dupFile=new File([raw],'enc.bin',{type:'application/octet-stream'});
+    const up=await xdUploadBlobFile(dupFile,null,perms);
+    const dotIdx=item._name.lastIndexOf('.');
+    const newName=dotIdx>0?(item._name.slice(0,dotIdx)+' (copie)'+item._name.slice(dotIdx)):(item._name+' (copie)');
+    const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:newName,mime:item._mime||''}));
+    const itemData={
+      ownerId:me.\$id,parentId:item.parentId||'',type:'file',
+      encName:metaEnc.data,nameIv:metaEnc.iv,
+      fileId:up.\$id,mime:'',size:item.size||0,
+      keyWrapped:item.keyWrapped||'',keyIv:item.keyIv||'',
+      visibility:'private',starred:false,trashed:false
+    };
+    const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
+    await authPost('/api/xdrive/commit-upload',{itemId:doc.\$id,fileId:up.\$id});
+    showToast('Copie créée.');
+    xdRenderQuotaBox();
+    xdRenderCurrentView();
+  }catch(e){showToast('Duplication impossible','error');}
+}
+function xdShowInfoPanel(item){
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:360px"><h3>'+xdFileIcon(item._mime,item.type)+' '+esc(item._name)+'</h3>'
+    +'<div class="pm-section-body" style="text-align:left;margin-top:14px;line-height:2">'
+    +'<div><b>Type :</b> '+(item.type==='folder'?'Dossier':(item._mime||'Inconnu'))+'</div>'
+    +(item.type==='file'?'<div><b>Taille :</b> '+xdFmtBytes(item.size)+'</div>':'')
+    +'<div><b>Créé :</b> '+fmtRelTime(item.\$createdAt)+'</div>'
+    +'<div><b>Modifié :</b> '+fmtRelTime(item.\$updatedAt)+'</div>'
+    +'<div><b>Visibilité :</b> '+(item.visibility==='public'?'🌐 Public':'🔒 Privé')+'</div>'
+    +(item.starred?'<div>⭐ Favori</div>':'')
+    +'</div><button type="button" class="set-mini-btn" id="xd-info-close" style="width:100%;margin-top:16px">Fermer</button></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-info-close').onclick=function(){box.remove();};
 }
 
 /* ===== Opérations sur les fichiers/dossiers ===== */
@@ -17450,6 +17676,7 @@ async function xdShowContextMenu(item,x,y){
   }else{
     items=[
       item.type==='file'?['⬇️ Télécharger',function(){xdDownloadItem(item);}]:null,
+      item.type==='file'?['📑 Dupliquer',function(){xdDuplicateItem(item);}]:null,
       ['✏️ Renommer',function(){xdRenameItem(item);}],
       ['📂 Déplacer',function(){xdShowMoveDialog(item);}],
       [item.starred?'☆ Retirer des favoris':'⭐ Ajouter aux favoris',function(){xdToggleStar(item.\$id);}],
@@ -17457,6 +17684,7 @@ async function xdShowContextMenu(item,x,y){
       item.type==='file'?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
       item.type==='file'?['📜 Historique des versions',function(){xdShowVersionHistory(item);}]:null,
       item.type==='file'?[item.visibility==='public'?'🔒 Rendre privé':'🌐 Rendre public',function(){xdToggleVisibility(item);}]:null,
+      ['ℹ️ Informations',function(){xdShowInfoPanel(item);}],
       ['🗑️ Supprimer',function(){xdMoveToTrash(item);},true]
     ].filter(Boolean);
   }
@@ -17710,6 +17938,8 @@ async function openXDrive(){
 function closeXDrive(){
   const overlay=\$('xdrive-overlay');
   if(overlay)overlay.classList.remove('show');
+  xdSelectedIds.clear();
+  const bar=\$('xd-selection-bar');if(bar)bar.remove();
 }
 function xdRenderUnlockScreen(){
   const overlay=\$('xdrive-overlay');if(!overlay)return;
@@ -17813,7 +18043,9 @@ function xdRenderShell(){
         +'<div class="xd-breadcrumb" id="xd-breadcrumb"></div>'
         +'<button type="button" class="xd-tool-btn" id="xd-new-folder-btn">📁+ Dossier</button>'
         +'<button type="button" class="xd-tool-btn xd-upload-btn" id="xd-upload-btn">⬆️ Envoyer</button>'
+        +'<button type="button" class="xd-tool-btn" id="xd-upload-folder-btn">📁⬆️ Dossier</button>'
         +'<input type="file" id="xd-file-input" multiple class="hidden"/>'
+        +'<input type="file" id="xd-folder-input" webkitdirectory directory multiple class="hidden"/>'
         +'<div class="xd-view-toggle"><button type="button" data-xd-view="grid" class="on">▦</button><button type="button" data-xd-view="list">☰</button></div>'
       +'</div>'
       +'<div class="xd-search-row" style="padding:0 16px"><input type="text" id="xd-search" class="field-input" placeholder="🔎 Rechercher dans ce dossier…"/></div>'
@@ -17827,10 +18059,12 @@ function xdRenderShell(){
       el.classList.add('on');
       xdSection=el.getAttribute('data-xd-section');
       xdCurrentFolder='';xdBreadcrumb=[];xdSearchQuery='';
+      xdSelectedIds.clear();xdRenderSelectionBar();
       const s=\$('xd-search');if(s)s.value='';
-      const nfb=\$('xd-new-folder-btn'),ub=\$('xd-upload-btn');
+      const nfb=\$('xd-new-folder-btn'),ub=\$('xd-upload-btn'),ufb=\$('xd-upload-folder-btn');
       if(nfb)nfb.classList.toggle('hidden',xdSection!=='drive');
       if(ub)ub.classList.toggle('hidden',xdSection!=='drive');
+      if(ufb)ufb.classList.toggle('hidden',xdSection!=='drive');
       xdRenderCurrentView();
     };
   });
@@ -17840,6 +18074,12 @@ function xdRenderShell(){
   fileInput.onchange=function(){
     if(fileInput.files&&fileInput.files.length)xdHandleFileUpload(Array.from(fileInput.files));
     fileInput.value='';
+  };
+  const folderInput=overlay.querySelector('#xd-folder-input');
+  overlay.querySelector('#xd-upload-folder-btn').onclick=function(){folderInput.click();};
+  folderInput.onchange=function(){
+    if(folderInput.files&&folderInput.files.length)xdHandleFolderUpload(Array.from(folderInput.files));
+    folderInput.value='';
   };
   overlay.querySelectorAll('[data-xd-view]').forEach(function(btn){
     btn.onclick=function(){
@@ -17906,7 +18146,12 @@ async function xdOpenSharedView(token,fragmentKey){
       else if(m.indexOf('audio/')===0)previewHtml='<div class="xd-preview-wrap"><audio src="'+url+'" controls style="width:100%;max-width:500px"></audio></div>';
       body.innerHTML='<div style="text-align:center;padding:20px 0"><h2>'+esc(meta.name)+'</h2><p style="color:var(--muted);font-size:.82rem">'+xdFmtBytes(blob.size)+'</p></div>'
         +previewHtml
-        +'<div style="text-align:center;margin-top:20px"><a class="btn-main" href="'+url+'" download="'+esc(meta.name)+'" style="display:inline-block;text-decoration:none">⬇️ Télécharger</a></div>';
+        +'<div style="text-align:center;margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">'
+        +'<a class="btn-main" href="'+url+'" download="'+esc(meta.name)+'" style="display:inline-block;text-decoration:none">⬇️ Télécharger</a>'
+        +(me?'<button type="button" class="btn-main" id="xd-shared-save" style="background:linear-gradient(135deg,#22c55e,#16a34a)">💾 Sauvegarder dans mon Drive</button>':'')
+        +'</div>';
+      const saveBtn=\$('xd-shared-save');
+      if(saveBtn)saveBtn.onclick=function(){xdImportSharedToDrive(plain,meta.name,meta.mime,saveBtn);};
     }catch(e){
       body.innerHTML='<div class="empty-hint">Déchiffrement impossible — mauvaise clé/mot de passe, ou lien corrompu.</div>';
     }
@@ -20046,6 +20291,7 @@ function routeToDeepLink(urlStr){
     return true;
   }
   if(dm){closeSettingsPanel();showView('dms');openDm(dm);return true}
+  if(p.get('xdrive')){closeSettingsPanel();openXDrive();return true}
   if(ticket){openTicketChatModal(ticket);return true}
   if(admintab){closeSettingsPanel();showView('admin');showAdminTab(admintab);return true}
   if(serverId){
@@ -28970,6 +29216,18 @@ async function handle(request, event) {
       await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { method: "PATCH", asAdmin: true, body: { data: { size: realSize } } });
       const newUsed = used + realSize;
       await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { diskUsed: newUsed }, permissions: ["read(\"any\")"] } });
+      // Notification "stockage presque plein" — au plus une fois par 24h par
+      // compte (SITE_KV comme garde-fou anti-spam), pour ne pas en envoyer
+      // une à chaque fichier une fois le seuil franchi.
+      if (newUsed >= quota * 0.9 && typeof SITE_KV !== "undefined" && SITE_KV) {
+        bgTask((async function () {
+          const kvKey = "xdrive_full_warn:" + acc.$id;
+          const already = await SITE_KV.get(kvKey).catch(function () { return null; });
+          if (already) return;
+          await SITE_KV.put(kvKey, "1", { expirationTtl: 86400 }).catch(function () {});
+          await pushToUid(acc.$id, { type: "xdrive_storage_full", title: "☁️ X1 Drive presque plein", body: "Tu as utilisé plus de 90% de ton espace de stockage.", tag: "xdrive-storage-warn", url: "/?xdrive=1" });
+        })());
+      }
       return new Response(JSON.stringify({ ok: true, size: realSize, used: newUsed, quota: quota }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
