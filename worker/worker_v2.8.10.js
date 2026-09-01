@@ -7040,6 +7040,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.15',category:'feature',date:'1 septembre 2026',time:'23:45',title:'👥 X1 Drive : dossiers partagés en équipe',
+    body:'Nouveau dans X1 Drive : transforme n\\'importe quel dossier en dossier partagé et invite d\\'autres membres, en Lecteur (consultation) ou en Éditeur (peut ajouter/modifier). Toujours chiffré de bout en bout — la clé du dossier voyage uniquement via le même chiffrement déjà utilisé pour tes messages privés, jamais en clair sur nos serveurs. Retrouve les dossiers partagés avec toi dans le nouvel onglet "Partagés avec moi". Retirer un membre coupe son accès immédiatement. Pour cette première version : pas encore d\\'envoi de dossier entier ni de duplication à l\\'intérieur d\\'un dossier partagé, et chaque envoi compte sur l\\'espace de stockage de la personne qui envoie.'},
   {version:'4.55.14',category:'design',date:'1 septembre 2026',time:'23:15',title:'🧹 Un peu de ménage dans la barre latérale',
     body:'État du système a déménagé dans Paramètres pour désencombrer la barre latérale — toujours accessible, juste ailleurs. La section Musique est mise en pause le temps qu\\'on la retravaille en profondeur, elle reviendra. Chatroulette est également en pause pour le moment. Et le Casino virtuel a été retiré du site.'},
   {version:'4.55.13',category:'feature',date:'1 septembre 2026',time:'23:00',title:'© Une section Copyright ajoutée',
@@ -10830,7 +10832,7 @@ async function sendFriendRequest(targetUid,targetName){
 }
 
 const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵',
-  support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞'};
+  support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞',xdrive_folder_invite:'📁'};
 let notifCache=[];
 async function loadNotifications(){
   if(!me)return [];
@@ -10962,6 +10964,8 @@ function renderNotifications(){
         if(refId)openTicketChatModal(refId);
       } else if(kind==='badge_granted'){
         if(refId)showBadgeInfo(refId);
+      } else if(kind==='xdrive_folder_invite'){
+        if(refId)xdShowFolderInviteDialog(refId);
       } else if(uid){openProfileModal(uid);}
     });
   });
@@ -16792,6 +16796,51 @@ async function xdGenerateKey(){
 }
 async function xdExportKeyRaw(key){ return crypto.subtle.exportKey('raw',key); }
 async function xdImportKeyRaw(raw){ return crypto.subtle.importKey('raw',raw,{name:'AES-GCM'},true,['encrypt','decrypt']); }
+/* ===== Dossiers partagés en équipe : la clé du dossier est un simple
+   AES-256 généré côté client, jamais transmise en clair au serveur. Le
+   propriétaire garde sa propre copie enveloppée par SA clé maîtresse
+   (comme un fichier normal) ; chaque membre invité reçoit sa copie
+   enveloppée par la clé de session PAIRWISE déjà utilisée pour chiffrer
+   les messages privés (ECDH P-256 + HKDF, voir e2eThreadKey plus haut) —
+   aucune nouvelle paire de clés à générer, on réutilise l'identité E2E
+   déjà en place pour les DM. */
+let xdCurrentSharedFolderId='';
+const xdSharedFolderKeyCache={};
+async function xdGetSharedFolderKey(sharedFolderId){
+  if(!sharedFolderId)return xdMasterKey;
+  if(xdSharedFolderKeyCache[sharedFolderId])return xdSharedFolderKeyCache[sharedFolderId];
+  try{
+    const sf=await db.getDocument(DB,'xdrive_shared_folders',sharedFolderId);
+    if(sf&&sf.folderKeyWrapped){
+      const raw=await xdDecryptBuf(xdMasterKey,xdB64ToBuf(sf.folderKeyWrapped),new Uint8Array(xdB64ToBuf(sf.folderKeyIv)));
+      const key=await xdImportKeyRaw(raw);
+      xdSharedFolderKeyCache[sharedFolderId]=key;
+      return key;
+    }
+  }catch(e){}
+  try{
+    const r=await db.listDocuments(DB,'xdrive_folder_members',[Appwrite.Query.equal('sharedFolderId',sharedFolderId),Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(1)]);
+    const md=(r.documents||[])[0];
+    if(!md||!md.folderKeyWrapped)return null;
+    const threadKey=await e2eThreadKey(md.ownerId);
+    if(!threadKey)return null;
+    const raw=await xdDecryptBuf(threadKey,xdB64ToBuf(md.folderKeyWrapped),new Uint8Array(xdB64ToBuf(md.folderKeyIv)));
+    const key=await xdImportKeyRaw(raw);
+    xdSharedFolderKeyCache[sharedFolderId]=key;
+    return key;
+  }catch(e){return null}
+}
+async function xdResolveItemKey(item){
+  if(!item||!item.sharedFolderId)return xdMasterKey;
+  return xdGetSharedFolderKey(item.sharedFolderId);
+}
+async function xdResolveCurrentFolderKey(){
+  if(!xdCurrentSharedFolderId)return xdMasterKey;
+  return xdGetSharedFolderKey(xdCurrentSharedFolderId);
+}
+async function xdSyncSharedItemPerms(itemId){
+  try{await authPost('/api/xdrive/shared-folder/sync-item-perms',{itemId:itemId});}catch(e){}
+}
 async function xdDeriveKeyFromPassword(password,saltBuf){
   const enc=new TextEncoder();
   const baseKey=await crypto.subtle.importKey('raw',enc.encode(password),{name:'PBKDF2'},false,['deriveKey']);
@@ -16907,7 +16956,9 @@ async function xdDecryptItemMeta(item){
   if(item.visibility==='public'){item._name=item.plainName||'Sans nom';item._mime=item.mime||'';return item;}
   if(!item.encName){item._name='Sans nom';item._mime='';return item;}
   try{
-    const json=await xdDecryptString(xdMasterKey,item.encName,item.nameIv);
+    const itemKey=await xdResolveItemKey(item);
+    if(!itemKey)throw new Error('no_key');
+    const json=await xdDecryptString(itemKey,item.encName,item.nameIv);
     const meta=JSON.parse(json);
     item._name=meta.name||'Sans nom';
     item._mime=meta.mime||'';
@@ -17032,9 +17083,15 @@ async function xdUploadOneFile(file){
     xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
     throw e;
   }
-  const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:file.name,mime:file.type||'application/octet-stream'}));
+  const folderKey=await xdResolveCurrentFolderKey();
+  if(!folderKey){
+    xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
+    await storage.deleteFile('xultra_drive',up.\$id).catch(function(){});
+    throw new Error('Clé du dossier partagé indisponible');
+  }
+  const metaEnc=await xdEncryptString(folderKey,JSON.stringify({name:file.name,mime:file.type||'application/octet-stream'}));
   const fileKeyRaw=await xdExportKeyRaw(fileKey);
-  const wrappedKey=await xdEncryptBuf(xdMasterKey,fileKeyRaw);
+  const wrappedKey=await xdEncryptBuf(folderKey,fileKeyRaw);
   // Réenvoyer un fichier du même nom, au même endroit, archive la version
   // précédente (dans xdrive_versions) plutôt que de créer un doublon ou
   // d'effacer silencieusement l'ancien contenu — voir
@@ -17061,9 +17118,11 @@ async function xdUploadOneFile(file){
         encName:metaEnc.data,nameIv:metaEnc.iv,
         fileId:up.\$id,mime:'',size:combined.byteLength,
         keyWrapped:xdBufToB64(wrappedKey.cipher),keyIv:xdBufToB64(wrappedKey.iv),
-        visibility:'private',starred:false,trashed:false
+        visibility:'private',starred:false,trashed:false,
+        sharedFolderId:xdCurrentSharedFolderId||''
       };
       itemDoc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
+      if(xdCurrentSharedFolderId)await xdSyncSharedItemPerms(itemDoc.\$id);
     }
   }catch(e){
     xdActiveUploads[uploadId].status='error';xdRenderUploadPanel();
@@ -17113,6 +17172,7 @@ async function xdHandleFolderUpload(fileList){
   const files=Array.from(fileList||[]).filter(function(f){return f.size>0||((f.webkitRelativePath||'').indexOf('/')>=0);});
   if(!files.length)return;
   if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
+  if(xdCurrentSharedFolderId){showToast('L\\'envoi d\\'un dossier complet n\\'est pas encore possible dans un dossier partagé — envoie les fichiers un par un pour l\\'instant.','error');return}
   try{await xdFetchQuotaMeta();}catch(e){}
   const totalNeeded=files.reduce(function(s,f){return s+f.size;},0);
   const avail=Math.max(0,(xdDriveMeta?xdDriveMeta.quota:1073741824)-(xdDriveMeta?xdDriveMeta.used:0));
@@ -17178,7 +17238,9 @@ async function xdDecryptItemContent(item){
   if(item.visibility==='public')return raw;
   const wrappedRaw=xdB64ToBuf(item.keyWrapped);
   const keyIv=new Uint8Array(xdB64ToBuf(item.keyIv));
-  const fileKeyRaw=await xdDecryptBuf(xdMasterKey,wrappedRaw,keyIv);
+  const itemKey=await xdResolveItemKey(item);
+  if(!itemKey)throw new Error('Clé indisponible');
+  const fileKeyRaw=await xdDecryptBuf(itemKey,wrappedRaw,keyIv);
   const fileKey=await xdImportKeyRaw(fileKeyRaw);
   const bytes=new Uint8Array(raw);
   const iv=bytes.slice(0,12);
@@ -17278,6 +17340,20 @@ async function xdLoadShared(){
   }
   return items;
 }
+async function xdLoadTeamShared(){
+  const r=await db.listDocuments(DB,'xdrive_folder_members',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('status','accepted'),Appwrite.Query.limit(200)]);
+  const members=r.documents||[];
+  const items=[];
+  for(let i=0;i<members.length;i++){
+    try{
+      const it=await db.getDocument(DB,'xdrive_items',members[i].rootItemId);
+      await xdDecryptItemMeta(it);
+      it._teamRole=members[i].role;it._teamOwnerName=members[i].ownerName;it._teamMemberId=members[i].\$id;
+      items.push(it);
+    }catch(e){}
+  }
+  return items;
+}
 async function xdRenderCurrentView(){
   const bodyEl=\$('xd-body');if(!bodyEl)return;
   bodyEl.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
@@ -17286,6 +17362,7 @@ async function xdRenderCurrentView(){
     if(xdSection==='trash')docs=await xdLoadTrash();
     else if(xdSection==='starred')docs=await xdLoadStarred();
     else if(xdSection==='shared')docs=await xdLoadShared();
+    else if(xdSection==='teamshared')docs=await xdLoadTeamShared();
     else docs=await xdLoadFolder(xdCurrentFolder);
   }catch(e){
     bodyEl.innerHTML='<div class="empty-hint">Impossible de charger tes fichiers pour le moment.</div>';
@@ -17304,7 +17381,7 @@ async function xdRenderCurrentView(){
   xdCurrentListing=docs;
   xdRenderBreadcrumb();
   if(!docs.length){
-    const emptyMsgs={trash:['🗑️','Corbeille vide'],starred:['⭐','Aucun favori pour l\\'instant'],shared:['🔗','Aucun partage actif'],drive:['☁️','Ce dossier est vide']};
+    const emptyMsgs={trash:['🗑️','Corbeille vide'],starred:['⭐','Aucun favori pour l\\'instant'],shared:['🔗','Aucun partage actif'],teamshared:['👥','Aucun dossier partagé avec toi pour l\\'instant'],drive:['☁️','Ce dossier est vide']};
     const em=emptyMsgs[xdSection]||emptyMsgs.drive;
     bodyEl.innerHTML='<div class="xd-empty"><div class="xd-empty-ico">'+em[0]+'</div><div>'+em[1]+'</div></div>';
     return;
@@ -17329,6 +17406,7 @@ function xdRenderBreadcrumb(){
       const id=btn.getAttribute('data-xd-crumb');
       const idx=xdBreadcrumb.findIndex(function(c){return c.id===id;});
       xdCurrentFolder=id;
+      xdCurrentSharedFolderId=id?((xdBreadcrumb[idx]&&xdBreadcrumb[idx].sharedFolderId)||''):'';
       xdBreadcrumb=id?xdBreadcrumb.slice(0,idx+1):[];
       xdSelectedIds.clear();xdRenderSelectionBar();
       xdRenderCurrentView();
@@ -17372,9 +17450,18 @@ function xdWireItemEvents(container){
       const id=el.getAttribute('data-xd-id');
       const item=xdItemById(id);
       if(!item)return;
-      if(item.type==='folder'&&xdSection==='drive'){
-        xdBreadcrumb.push({id:item.\$id,name:item._name});
+      if(item.type==='folder'&&xdSection==='teamshared'){
+        xdSection='drive';
+        const ov=\$('xdrive-overlay');
+        if(ov)ov.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-xd-section')==='drive');});
+        xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||item.\$id}];
         xdCurrentFolder=item.\$id;
+        xdCurrentSharedFolderId=item.sharedFolderId||item.\$id;
+        xdRenderCurrentView();
+      }else if(item.type==='folder'&&xdSection==='drive'){
+        xdBreadcrumb.push({id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''});
+        xdCurrentFolder=item.\$id;
+        xdCurrentSharedFolderId=item.sharedFolderId||'';
         xdRenderCurrentView();
       }else if(item.type==='file'){
         if(xdIsPreviewable(item._mime))xdOpenPreview(item);
@@ -17467,14 +17554,15 @@ async function xdBulkDelete(){
   xdClearSelection();
 }
 async function xdBulkMove(){
-  const ids=Array.from(xdSelectedIds);
+  const ids=Array.from(xdSelectedIds).filter(function(id){const it=xdItemById(id);return !it||!it.sharedFolderId;});
+  if(!ids.length){showToast('Déplacement pas encore disponible pour des éléments d\\'un dossier partagé','error');return}
   let folders=[];
   try{
     const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('type','folder'),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
     folders=r.documents||[];
     await Promise.all(folders.map(xdDecryptItemMeta));
   }catch(e){}
-  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return ids.indexOf(f.\$id)===-1;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
+  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return ids.indexOf(f.\$id)===-1&&!f.sharedFolderId;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
   const box=document.createElement('div');
   box.className='overlay';
   box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
@@ -17495,6 +17583,7 @@ async function xdBulkMove(){
 }
 async function xdDuplicateItem(item){
   if(item.type==='folder'){showToast('Duplication de dossier pas encore disponible','error');return}
+  if(item.sharedFolderId){showToast('Duplication pas encore disponible dans un dossier partagé','error');return}
   showToast('Duplication…');
   try{
     const raw=await xdFetchFileBytes(item.fileId);
@@ -17541,12 +17630,16 @@ async function xdCreateFolder(){
   if(!name)return;
   if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
   try{
-    const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:name,mime:''}));
+    const folderKey=await xdResolveCurrentFolderKey();
+    if(!folderKey)throw new Error('no_key');
+    const metaEnc=await xdEncryptString(folderKey,JSON.stringify({name:name,mime:''}));
     const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
-    await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
+    const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
       ownerId:me.\$id,parentId:xdCurrentFolder||'',type:'folder',encName:metaEnc.data,nameIv:metaEnc.iv,
-      visibility:'private',starred:false,trashed:false,size:0
+      visibility:'private',starred:false,trashed:false,size:0,
+      sharedFolderId:xdCurrentSharedFolderId||''
     },perms);
+    if(xdCurrentSharedFolderId)await xdSyncSharedItemPerms(doc.\$id);
     showToast('Dossier créé.');
     xdRenderCurrentView();
   }catch(e){showToast('Création impossible','error');}
@@ -17558,7 +17651,9 @@ async function xdRenameItem(item){
     if(item.visibility==='public'){
       await db.updateDocument(DB,'xdrive_items',item.\$id,{plainName:name.slice(0,260)});
     }else{
-      const metaEnc=await xdEncryptString(xdMasterKey,JSON.stringify({name:name,mime:item._mime||''}));
+      const itemKey=await xdResolveItemKey(item);
+      if(!itemKey)throw new Error('no_key');
+      const metaEnc=await xdEncryptString(itemKey,JSON.stringify({name:name,mime:item._mime||''}));
       await db.updateDocument(DB,'xdrive_items',item.\$id,{encName:metaEnc.data,nameIv:metaEnc.iv});
     }
     showToast('Renommé.');
@@ -17620,7 +17715,7 @@ async function xdShowMoveDialog(item){
     folders=r.documents||[];
     await Promise.all(folders.map(xdDecryptItemMeta));
   }catch(e){}
-  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return f.\$id!==item.\$id;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
+  const options=['<option value="">☁️ Mon Drive (racine)</option>'].concat(folders.filter(function(f){return f.\$id!==item.\$id&&!f.sharedFolderId;}).map(function(f){return '<option value="'+f.\$id+'">'+esc(f._name)+'</option>';}));
   const box=document.createElement('div');
   box.className='overlay';
   box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
@@ -17656,12 +17751,14 @@ async function xdShowContextMenu(item,x,y){
       item.type==='file'?['⬇️ Télécharger',function(){xdDownloadItem(item);}]:null,
       item.type==='file'?['📑 Dupliquer',function(){xdDuplicateItem(item);}]:null,
       ['✏️ Renommer',function(){xdRenameItem(item);}],
-      ['📂 Déplacer',function(){xdShowMoveDialog(item);}],
+      !item.sharedFolderId?['📂 Déplacer',function(){xdShowMoveDialog(item);}]:null,
       [item.starred?'☆ Retirer des favoris':'⭐ Ajouter aux favoris',function(){xdToggleStar(item.\$id);}],
-      item.type==='file'?['🔗 Partager',function(){xdShowShareDialog(item);}]:null,
-      item.type==='file'?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
+      (item.type==='file'&&!item.sharedFolderId)?['🔗 Partager',function(){xdShowShareDialog(item);}]:null,
+      (item.type==='file'&&!item.sharedFolderId)?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
       item.type==='file'?['📜 Historique des versions',function(){xdShowVersionHistory(item);}]:null,
-      item.type==='file'?[item.visibility==='public'?'🔒 Rendre privé':'🌐 Rendre public',function(){xdToggleVisibility(item);}]:null,
+      (item.type==='file'&&!item.sharedFolderId)?[item.visibility==='public'?'🔒 Rendre privé':'🌐 Rendre public',function(){xdToggleVisibility(item);}]:null,
+      (item.type==='folder'&&!item.sharedFolderId&&String(item.ownerId)===String(me.\$id))?['👥 Partager avec des membres',function(){xdShowFolderShareDialog(item);}]:null,
+      (item.type==='folder'&&item.sharedFolderId&&String(item.ownerId)===String(me.\$id))?['👥 Gérer les membres',function(){xdShowFolderShareDialog(item);}]:null,
       ['ℹ️ Informations',function(){xdShowInfoPanel(item);}],
       ['🗑️ Supprimer',function(){xdMoveToTrash(item);},true]
     ].filter(Boolean);
@@ -17671,6 +17768,12 @@ async function xdShowContextMenu(item,x,y){
       item.type==='file'?['⬇️ Télécharger',function(){xdDownloadItem(item);}]:null,
       ['🚫 Révoquer le partage',function(){xdRevokeShareByToken(item._shareToken);},true]
     ].filter(Boolean);
+  }
+  if(xdSection==='teamshared'){
+    items=[
+      ['👥 Voir les membres',function(){xdShowFolderMembersDialog(item);}],
+      ['🚪 Quitter ce dossier partagé',function(){xdLeaveSharedFolder(item);},true]
+    ];
   }
   menu.innerHTML=items.map(function(it){return '<button type="button" class="xd-ctx-item'+(it[2]?' xd-ctx-danger':'')+'">'+it[0]+'</button>';}).join('');
   document.body.appendChild(menu);
@@ -17685,6 +17788,7 @@ async function xdShowContextMenu(item,x,y){
   },10);
 }
 async function xdToggleVisibility(item){
+  if(item.sharedFolderId){showToast('Rendre public n\\'est pas disponible pour un fichier dans un dossier partagé','error');return}
   if(item.visibility==='public'){
     try{
       await db.updateDocument(DB,'xdrive_items',item.\$id,{visibility:'private',plainName:''});
@@ -17807,6 +17911,171 @@ async function xdRevokeShareByToken(token){
     showToast('Partage révoqué.');
     xdRenderCurrentView();
   }catch(e){showToast('Révocation impossible','error');}
+}
+/* ===== Dossiers partagés en équipe (owner : créer/inviter/gérer) ===== */
+async function xdShowFolderShareDialog(item){
+  if(!xdMasterKey){showToast('Déverrouille X1 Drive d\\'abord','error');return}
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:440px"><h3>👥 Partager "'+esc(item._name)+'" avec des membres</h3>'
+    +'<div class="scr-sub" style="margin:8px 0 12px">Les membres invités pourront voir (et, s\\'ils sont éditeurs, ajouter ou modifier) le contenu de ce dossier — toujours chiffré de bout en bout, comme le reste de ton Drive.</div>'
+    +'<input type="text" id="xdfs-search" class="field-input" placeholder="Chercher un membre par pseudo…"/>'
+    +'<div id="xdfs-results" style="max-height:160px;overflow-y:auto;margin-top:8px"></div>'
+    +'<div class="set-section-label" style="margin-top:16px">Membres actuels</div>'
+    +'<div id="xdfs-members"><div class="empty-hint">Chargement…</div></div>'
+    +'<button type="button" class="set-mini-btn" id="xdfs-close" style="width:100%;margin-top:14px">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(box);
+  box.querySelector('#xdfs-close').onclick=function(){box.remove();xdRenderCurrentView();};
+  let sharedFolderId=item.sharedFolderId||'';
+  let folderKey=null;
+  async function ensureShared(){
+    if(sharedFolderId)return true;
+    try{
+      const folderKeyObj=await xdGenerateKey();
+      const json=await xdDecryptString(xdMasterKey,item.encName,item.nameIv);
+      const meta=JSON.parse(json);
+      const metaEnc=await xdEncryptString(folderKeyObj,JSON.stringify(meta));
+      const raw=await xdExportKeyRaw(folderKeyObj);
+      const wrapped=await xdEncryptBuf(xdMasterKey,raw);
+      const r=await authPost('/api/xdrive/shared-folder/create',{
+        itemId:item.\$id,folderKeyWrapped:xdBufToB64(wrapped.cipher),folderKeyIv:xdBufToB64(wrapped.iv)
+      });
+      sharedFolderId=r.sharedFolderId;
+      await db.updateDocument(DB,'xdrive_items',item.\$id,{encName:metaEnc.data,nameIv:metaEnc.iv,sharedFolderId:sharedFolderId});
+      item.sharedFolderId=sharedFolderId;
+      xdSharedFolderKeyCache[sharedFolderId]=folderKeyObj;
+      folderKey=folderKeyObj;
+      return true;
+    }catch(e){showToast('Impossible de créer le partage','error');return false}
+  }
+  async function refreshFolderMembersUi(){
+    const list=box.querySelector('#xdfs-members');
+    if(!sharedFolderId){list.innerHTML='<div class="empty-hint">Invite quelqu\\'un pour activer le partage.</div>';return}
+    try{
+      const r=await db.listDocuments(DB,'xdrive_folder_members',[Appwrite.Query.equal('sharedFolderId',sharedFolderId),Appwrite.Query.limit(100)]);
+      const membersList=r.documents||[];
+      if(!membersList.length){list.innerHTML='<div class="empty-hint">Aucun membre pour l\\'instant.</div>';return}
+      list.innerHTML=membersList.map(function(m){
+        const p=membersCache.find(function(x){return (x.authUserId||x.\$id)===m.uid;});
+        const name=(p&&(p.displayName||p.username))||'Membre';
+        return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(name)+'</div>'
+          +'<div class="scr-sub">'+(m.status==='accepted'?'✅ '+(m.role==='editor'?'Éditeur':'Lecteur'):'⏳ Invitation envoyée')+'</div></div>'
+          +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+          +(m.status==='accepted'?'<button type="button" class="set-mini-btn" data-xdfs-role="'+esc(m.\$id)+'" data-role="'+(m.role==='editor'?'viewer':'editor')+'">'+(m.role==='editor'?'Passer lecteur':'Passer éditeur')+'</button>':'')
+          +'<button type="button" class="set-mini-btn danger" data-xdfs-remove="'+esc(m.\$id)+'">Retirer</button>'
+          +'</div></div>';
+      }).join('');
+      list.querySelectorAll('[data-xdfs-role]').forEach(function(btn){
+        btn.onclick=async function(){
+          try{await authPost('/api/xdrive/shared-folder/set-role',{memberId:btn.getAttribute('data-xdfs-role'),role:btn.getAttribute('data-role')});refreshFolderMembersUi();}catch(e){showToast('Action impossible','error');}
+        };
+      });
+      list.querySelectorAll('[data-xdfs-remove]').forEach(function(btn){
+        btn.onclick=async function(){
+          if(!confirm('Retirer ce membre ? Il perdra immédiatement l\\'accès à ce dossier.'))return;
+          try{await authPost('/api/xdrive/shared-folder/remove-member',{memberId:btn.getAttribute('data-xdfs-remove')});refreshFolderMembersUi();}catch(e){showToast('Action impossible','error');}
+        };
+      });
+    }catch(e){list.innerHTML='<div class="empty-hint">Impossible de charger les membres.</div>';}
+  }
+  box.querySelector('#xdfs-search').addEventListener('input',async function(){
+    const q=this.value.trim().toLowerCase();
+    const results=box.querySelector('#xdfs-results');
+    if(q.length<2){results.innerHTML='';return}
+    if(!membersCache.length)await loadMembers();
+    const matches=membersCache.filter(function(p){
+      return (p.username||'').toLowerCase().indexOf(q)>=0||(p.displayName||'').toLowerCase().indexOf(q)>=0;
+    }).filter(function(p){return (p.authUserId||p.\$id)!==me.\$id;}).slice(0,8);
+    results.innerHTML=matches.map(function(p){
+      const name=p.displayName||p.username||'Membre';
+      const uid=p.authUserId||p.\$id;
+      return '<div class="row" data-xdfs-add="'+esc(uid)+'" style="cursor:default">'
+        +'<div class="av">'+esc(ini(name))+'</div>'
+        +'<div class="info"><div class="n">'+esc(name)+'</div></div>'
+        +'<select class="field-input" data-xdfs-roleselect style="width:auto"><option value="viewer">Lecteur</option><option value="editor">Éditeur</option></select>'
+        +'<button type="button" data-xdfs-invite-btn>Inviter</button></div>';
+    }).join('')||'<div class="empty-hint">Aucun résultat</div>';
+    results.querySelectorAll('[data-xdfs-add]').forEach(function(row){
+      row.querySelector('[data-xdfs-invite-btn]').onclick=async function(){
+        this.disabled=true;this.textContent='…';
+        const ok=await ensureShared();
+        if(!ok){this.disabled=false;this.textContent='Inviter';return}
+        if(!folderKey)folderKey=await xdGetSharedFolderKey(sharedFolderId);
+        const uid=row.getAttribute('data-xdfs-add');
+        const role=row.querySelector('[data-xdfs-roleselect]').value;
+        try{
+          const threadKey=await e2eThreadKey(uid);
+          if(!threadKey)throw new Error('Cette personne n\\'a pas encore de clé de chiffrement (elle doit d\\'abord se connecter une fois à X1)');
+          const raw=await xdExportKeyRaw(folderKey);
+          const wrapped=await xdEncryptBuf(threadKey,raw);
+          await authPost('/api/xdrive/shared-folder/invite',{
+            sharedFolderId:sharedFolderId,uid:uid,role:role,
+            folderKeyWrapped:xdBufToB64(wrapped.cipher),folderKeyIv:xdBufToB64(wrapped.iv)
+          });
+          showToast('Invitation envoyée !');
+          this.textContent='Invité';
+          refreshFolderMembersUi();
+        }catch(e){showToast((e&&e.message)||'Invitation impossible','error');this.disabled=false;this.textContent='Inviter';}
+      };
+    });
+  });
+  refreshFolderMembersUi();
+}
+/* ===== Dossiers partagés en équipe (membre : infos + quitter) ===== */
+async function xdShowFolderMembersDialog(item){
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:400px"><h3>👥 "'+esc(item._name)+'"</h3>'
+    +'<div class="scr-sub" style="margin:10px 0">Dossier partagé par <b>'+esc(item._teamOwnerName||'quelqu\\'un')+'</b>. Ton rôle : <b>'+(item._teamRole==='editor'?'Éditeur (tu peux ajouter/modifier)':'Lecteur (lecture seule)')+'</b>.</div>'
+    +'<button type="button" class="set-mini-btn danger" id="xdfm-leave" style="width:100%;margin-top:6px">🚪 Quitter ce dossier partagé</button>'
+    +'<button type="button" class="set-mini-btn" id="xdfm-close" style="width:100%;margin-top:8px">Fermer</button>'
+    +'</div>';
+  document.body.appendChild(box);
+  box.querySelector('#xdfm-close').onclick=function(){box.remove();};
+  box.querySelector('#xdfm-leave').onclick=function(){box.remove();xdLeaveSharedFolder(item);};
+}
+async function xdLeaveSharedFolder(item){
+  if(!confirm('Quitter ce dossier partagé ? Tu perdras immédiatement l\\'accès à son contenu.'))return;
+  try{
+    await authPost('/api/xdrive/shared-folder/leave',{sharedFolderId:item.sharedFolderId});
+    showToast('Tu as quitté ce dossier partagé.');
+    if(xdCurrentSharedFolderId===item.sharedFolderId){xdSection='teamshared';xdCurrentFolder='';xdCurrentSharedFolderId='';xdBreadcrumb=[];}
+    xdRenderCurrentView();
+  }catch(e){showToast('Action impossible','error');}
+}
+async function xdShowFolderInviteDialog(memberId){
+  let member=null;
+  try{member=await db.getDocument(DB,'xdrive_folder_members',memberId);}catch(e){}
+  if(!member){showToast('Cette invitation n\\'existe plus.');return}
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:400px"><h3>👥 Invitation à un dossier partagé</h3>'
+    +'<div class="scr-sub" style="margin:10px 0"><b>'+esc(member.ownerName||'Quelqu\\'un')+'</b> t\\'invite à rejoindre un dossier X1 Drive partagé, en tant que <b>'+(member.role==='editor'?'Éditeur (tu pourras ajouter/modifier)':'Lecteur (lecture seule)')+'</b>.</div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="xdfi-accept" style="flex:1">Accepter</button><button type="button" class="set-mini-btn" id="xdfi-decline" style="flex:1">Refuser</button></div>'
+    +'</div>';
+  document.body.appendChild(box);
+  box.querySelector('#xdfi-accept').onclick=async function(){
+    this.disabled=true;this.textContent='…';
+    try{
+      await authPost('/api/xdrive/shared-folder/respond',{memberId:memberId,accept:true});
+      showToast('Dossier partagé rejoint ! Retrouve-le dans X1 Drive → Partagés avec moi.');
+      box.remove();
+      const notif=notifCache.find(function(n){return n.type==='xdrive_folder_invite'&&n.refId===memberId;});
+      if(notif)try{await db.deleteDocument(DB,'notifications',notif.\$id);}catch(e){}
+      loadNotifications().then(function(){renderNotifications();updateNotifBadge();});
+    }catch(e){showToast('Action impossible','error');this.disabled=false;this.textContent='Accepter';}
+  };
+  box.querySelector('#xdfi-decline').onclick=async function(){
+    try{await authPost('/api/xdrive/shared-folder/respond',{memberId:memberId,accept:false});}catch(e){}
+    box.remove();
+    const notif=notifCache.find(function(n){return n.type==='xdrive_folder_invite'&&n.refId===memberId;});
+    if(notif)try{await db.deleteDocument(DB,'notifications',notif.\$id);}catch(e){}
+    loadNotifications().then(function(){renderNotifications();updateNotifBadge();});
+  };
 }
 async function xdShareToDm(item){
   if(!dmsCache||!dmsCache.length){showToast('Aucune conversation — ouvre d\\'abord une discussion.','error');return}
@@ -18012,6 +18281,7 @@ function xdRenderShell(){
       +'<div class="xd-side-item on" data-xd-section="drive">☁️ Mon Drive</div>'
       +'<div class="xd-side-item" data-xd-section="starred">⭐ Favoris</div>'
       +'<div class="xd-side-item" data-xd-section="shared">🔗 Partagés</div>'
+      +'<div class="xd-side-item" data-xd-section="teamshared">👥 Partagés avec moi</div>'
       +'<div class="xd-side-item" data-xd-section="trash">🗑️ Corbeille</div>'
       +'<div class="xd-side-quota" id="xd-quota-box"></div>'
     +'</div>'
@@ -18036,7 +18306,7 @@ function xdRenderShell(){
       overlay.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.remove('on');});
       el.classList.add('on');
       xdSection=el.getAttribute('data-xd-section');
-      xdCurrentFolder='';xdBreadcrumb=[];xdSearchQuery='';
+      xdCurrentFolder='';xdCurrentSharedFolderId='';xdBreadcrumb=[];xdSearchQuery='';
       xdSelectedIds.clear();xdRenderSelectionBar();
       const s=\$('xd-search');if(s)s.value='';
       const nfb=\$('xd-new-folder-btn'),ub=\$('xd-upload-btn'),ufb=\$('xd-upload-folder-btn');
@@ -29073,6 +29343,232 @@ async function handle(request, event) {
       const newUsed = Math.max(0, ((meta && meta.diskUsed) || 0) - size);
       await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { diskUsed: newUsed }, permissions: ["read(\"any\")"] } });
       return new Response(JSON.stringify({ ok: true, used: newUsed }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ===== X1 Drive — dossiers partagés en équipe =====
+  // Le serveur ne voit JAMAIS la clé du dossier en clair : le client génère
+  // cette clé, garde sa propre copie enveloppée par sa clé maîtresse, et
+  // enveloppe une copie par membre invité via la clé de session pairwise
+  // E2E déjà utilisée pour les DM (ECDH P-256). Le rôle serveur ici se
+  // limite à la comptabilité des membres/invitations et à la SEULE chose
+  // qu'un client ne peut pas faire honnêtement lui-même : accorder/retirer
+  // les permissions Appwrite (lecture/écriture) sur les documents du
+  // dossier partagé, qui restent le véritable contrôle d'accès — masquer
+  // un bouton côté client n'en est jamais un.
+  async function xdBuildSharedFolderPerms(sharedFolderId, ownerId) {
+    const perms = [
+      "read(\"user:" + ownerId + "\")", "update(\"user:" + ownerId + "\")", "delete(\"user:" + ownerId + "\")"
+    ];
+    const r = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sharedFolderId", values: [sharedFolderId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["accepted"] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+    (r.documents || []).forEach(function (m) {
+      perms.push("read(\"user:" + m.uid + "\")");
+      if (m.role === "editor") { perms.push("update(\"user:" + m.uid + "\")"); perms.push("delete(\"user:" + m.uid + "\")"); }
+    });
+    return perms;
+  }
+  async function xdSyncSharedFolderTreePerms(sharedFolderId, ownerId) {
+    const perms = await xdBuildSharedFolderPerms(sharedFolderId, ownerId);
+    const r = await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sharedFolderId", values: [sharedFolderId] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+    for (const it of (r.documents || [])) {
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + it.$id, {
+        method: "PATCH", asAdmin: true, body: { data: {}, permissions: perms }
+      }).catch(function () {});
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const itemId = String((body && body.itemId) || "");
+      const folderKeyWrapped = String((body && body.folderKeyWrapped) || "");
+      const folderKeyIv = String((body && body.folderKeyIv) || "");
+      if (!itemId || !folderKeyWrapped || !folderKeyIv) throw new Error("Requête invalide");
+      const item = await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { asAdmin: true });
+      if (String(item.ownerId) !== String(acc.$id)) throw new Error("Tu n'es pas propriétaire de ce dossier");
+      if (item.type !== "folder") throw new Error("Seul un dossier peut être partagé en équipe");
+      if (item.sharedFolderId) throw new Error("Ce dossier est déjà partagé");
+      if (item.trashed) throw new Error("Ce dossier est dans la corbeille");
+      const sf = await awFetch("/databases/" + AW_DB + "/collections/xdrive_shared_folders/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: { ownerId: String(acc.$id), rootItemId: itemId, folderKeyWrapped: folderKeyWrapped, folderKeyIv: folderKeyIv },
+          permissions: ["read(\"user:" + acc.$id + "\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+        }
+      });
+      // sharedFolderId posé ici côté serveur (pas seulement laissé au client
+      // qui doit de toute façon repasser derrière pour re-chiffrer le nom
+      // avec la nouvelle clé de dossier) : sans ça, un échec/une fermeture
+      // d'onglet entre les deux appels laissait un dossier "partagé" fantôme,
+      // jamais synchronisable puisque rien ne le reliait plus à sa fiche.
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, {
+        method: "PATCH", asAdmin: true, body: { data: { sharedFolderId: sf.$id } }
+      });
+      return new Response(JSON.stringify({ ok: true, sharedFolderId: sf.$id }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/invite" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sharedFolderId = String((body && body.sharedFolderId) || "");
+      const uid = String((body && body.uid) || "");
+      const role = ["viewer", "editor"].indexOf(body && body.role) >= 0 ? body.role : "viewer";
+      const folderKeyWrapped = String((body && body.folderKeyWrapped) || "");
+      const folderKeyIv = String((body && body.folderKeyIv) || "");
+      if (!sharedFolderId || !uid || !folderKeyWrapped || !folderKeyIv) throw new Error("Requête invalide");
+      if (String(uid) === String(acc.$id)) throw new Error("Tu ne peux pas t'inviter toi-même");
+      const sf = await awFetch("/databases/" + AW_DB + "/collections/xdrive_shared_folders/documents/" + sharedFolderId, { asAdmin: true });
+      if (String(sf.ownerId) !== String(acc.$id)) throw new Error("Tu n'es pas propriétaire de ce dossier partagé");
+      const existingQ = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sharedFolderId", values: [sharedFolderId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uid] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      if ((existingQ.documents || []).length) throw new Error("Cette personne est déjà membre ou invitée");
+      const profile = await resolveProfile(acc.$id);
+      const ownerName = (profile && (profile.displayName || profile.username)) || acc.name || "Quelqu'un";
+      const member = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents", {
+        method: "POST", asAdmin: true,
+        body: {
+          documentId: "unique()",
+          data: {
+            sharedFolderId: sharedFolderId, rootItemId: sf.rootItemId, ownerId: String(acc.$id), ownerName: ownerName,
+            uid: uid, role: role, status: "pending", folderKeyWrapped: folderKeyWrapped, folderKeyIv: folderKeyIv
+          },
+          permissions: [
+            "read(\"user:" + uid + "\")", "read(\"user:" + acc.$id + "\")",
+            "update(\"user:" + uid + "\")", "update(\"user:" + acc.$id + "\")",
+            "delete(\"user:" + uid + "\")", "delete(\"user:" + acc.$id + "\")"
+          ]
+        }
+      });
+      // Le nom du dossier n'est JAMAIS écrit ici en clair (il reste chiffré,
+      // même le serveur ne le connaît pas) — la notification reste
+      // volontairement générique.
+      await createInAppNotification(uid, "xdrive_folder_invite", acc.$id, ownerName,
+        ownerName + " t'invite à rejoindre un dossier X1 Drive partagé (" + (role === "editor" ? "en édition" : "en lecture") + ")", member.$id);
+      return new Response(JSON.stringify({ ok: true, memberId: member.$id }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/respond" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const memberId = String((body && body.memberId) || "");
+      const accept = !!(body && body.accept);
+      const member = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { asAdmin: true });
+      if (String(member.uid) !== String(acc.$id)) throw new Error("Cette invitation ne t'est pas destinée");
+      if (member.status !== "pending") throw new Error("Cette invitation a déjà été traitée");
+      if (!accept) {
+        await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { method: "DELETE", asAdmin: true });
+        return new Response(JSON.stringify({ ok: true, accepted: false }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, {
+        method: "PATCH", asAdmin: true, body: { data: { status: "accepted", acceptedAt: new Date().toISOString() } }
+      });
+      await xdSyncSharedFolderTreePerms(member.sharedFolderId, member.ownerId);
+      return new Response(JSON.stringify({ ok: true, accepted: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/remove-member" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const memberId = String((body && body.memberId) || "");
+      const member = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { asAdmin: true });
+      if (String(member.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire du dossier peut retirer un membre");
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { method: "DELETE", asAdmin: true });
+      if (member.status === "accepted") await xdSyncSharedFolderTreePerms(member.sharedFolderId, member.ownerId);
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/set-role" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const memberId = String((body && body.memberId) || "");
+      const role = ["viewer", "editor"].indexOf(body && body.role) >= 0 ? body.role : "viewer";
+      const member = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { asAdmin: true });
+      if (String(member.ownerId) !== String(acc.$id)) throw new Error("Seul le propriétaire du dossier peut changer un rôle");
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + memberId, { method: "PATCH", asAdmin: true, body: { data: { role: role } } });
+      if (member.status === "accepted") await xdSyncSharedFolderTreePerms(member.sharedFolderId, member.ownerId);
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/leave" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sharedFolderId = String((body && body.sharedFolderId) || "");
+      const q = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sharedFolderId", values: [sharedFolderId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const member = (q.documents || [])[0];
+      if (!member) throw new Error("Tu ne fais pas partie de ce dossier partagé");
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents/" + member.$id, { method: "DELETE", asAdmin: true });
+      await xdSyncSharedFolderTreePerms(member.sharedFolderId, member.ownerId);
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xdrive/shared-folder/sync-item-perms" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const itemId = String((body && body.itemId) || "");
+      const item = await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { asAdmin: true });
+      if (!item.sharedFolderId) throw new Error("Cet élément n'appartient pas à un dossier partagé");
+      const sf = await awFetch("/databases/" + AW_DB + "/collections/xdrive_shared_folders/documents/" + item.sharedFolderId, { asAdmin: true });
+      const isOwner = String(sf.ownerId) === String(acc.$id);
+      let isMember = false;
+      if (!isOwner) {
+        const q = await awFetch("/databases/" + AW_DB + "/collections/xdrive_folder_members/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "sharedFolderId", values: [item.sharedFolderId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["accepted"] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        isMember = !!(q.documents || []).length;
+      }
+      if (!isOwner && !isMember) throw new Error("Tu n'as pas accès à ce dossier partagé");
+      const perms = await xdBuildSharedFolderPerms(item.sharedFolderId, sf.ownerId);
+      await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, {
+        method: "PATCH", asAdmin: true, body: { data: {}, permissions: perms }
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
