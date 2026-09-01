@@ -2853,6 +2853,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @media (hover:none){.pc-edit-btn{opacity:.85}}
 .pc-edit-banner-btn{top:8px;right:8px}
 .pc-edit-avatar-btn{right:-2px;bottom:-2px;width:24px;height:24px}
+.pc-geo-badge{position:absolute;top:8px;right:8px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:2px;font-size:1rem;line-height:1;z-index:3;backdrop-filter:blur(3px);color:#fff}
+.pc-banner:has(.pc-edit-banner-btn) .pc-geo-badge{right:44px}
+.pc-geo-badge.pc-geo-vpn{cursor:pointer;border-color:rgba(34,197,94,.55);background:rgba(6,40,20,.7)}
+.pc-geo-badge.pc-geo-vpn:hover{background:rgba(6,60,28,.85)}
 .pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
 .pc-card.pc-centered .pc-banner{height:112px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
@@ -11689,6 +11693,15 @@ function renderGuildPageShadow(shadow,server,page){
     openServerDetail(server.id).then(function(){switchServerTab('settings');});
   });
 }
+// Convertit un code pays ISO 3166-1 alpha-2 ('FR','JP'…) en emoji drapeau via
+// les "regional indicator symbols" Unicode (U+1F1E6..U+1F1FF, décalés depuis
+// 'A'/'a') — pas d'image ni de police d'icônes à charger, chaque navigateur
+// rend le drapeau nativement à partir de ces deux points de code.
+function countryFlagEmoji(cc){
+  const s=String(cc||'').trim().toUpperCase();
+  if(!/^[A-Z]{2}$/.test(s))return '';
+  return String.fromCodePoint(0x1F1E6+(s.charCodeAt(0)-65),0x1F1E6+(s.charCodeAt(1)-65));
+}
 function buildProfileCardHtml(p,meta,badges,opts){
   p=p||{};meta=meta||{};opts=opts||{};
   const extra=parseProfileExtra(meta.profileExtraJson);
@@ -11738,9 +11751,24 @@ function buildProfileCardHtml(p,meta,badges,opts){
     const stale=Date.now()-new Date(p.lastSeen).getTime()>PRESENCE_STALE_MS;
     if(stale||p.statusManual==='invisible')lastSeenTxt='Vu il y a '+fmtRelTime(p.lastSeen);
   }
+  // Badge pays/VPN coin haut-droit de la bannière : soit le drapeau du pays
+  // détecté par IP (meta.geoCountry, capturé côté serveur à chaque connexion
+  // — voir updateUserGeoMeta), soit un bouclier+cadenas si l'IP ressemble à
+  // un VPN/hébergeur (meta.vpnDetected, heuristique par ASN, voir
+  // VPN_ORG_KEYWORDS) — dans ce cas la localisation réelle n'a jamais été
+  // fiable, donc pas de drapeau trompeur. Clic/survol : voir mountProfileCardExtras.
+  const vpnTipTxt='Cet utilisateur utilise un VPN, sa localisation est donc masquée';
+  const geoFlag=countryFlagEmoji(meta.geoCountry);
+  let geoBadgeHtml='';
+  if(meta.vpnDetected){
+    geoBadgeHtml='<button type="button" class="pc-geo-badge pc-geo-vpn" data-geo-vpn-tip="'+esc(vpnTipTxt)+'" title="'+esc(vpnTipTxt)+'">🛡️🔒</button>';
+  }else if(geoFlag){
+    geoBadgeHtml='<span class="pc-geo-badge" title="'+esc(meta.geoCountry.toUpperCase())+'">'+geoFlag+'</span>';
+  }
   return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
     +'<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
+      +geoBadgeHtml
     +'</div>'
     +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"><div class="pc-av">'+avatarInner+'</div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo" data-tip="Changer la photo">📷</button>':'')
@@ -11768,6 +11796,8 @@ function mountProfileCardExtras(container){
   if(pel)mountParticles(pel,pel.getAttribute('data-particles'));
   const musicBtn=container.querySelector('[data-music-open]');
   if(musicBtn)musicBtn.addEventListener('click',function(){openMusic(musicBtn.getAttribute('data-music-open'),musicBtn.getAttribute('data-music-name'));});
+  const vpnBadge=container.querySelector('[data-geo-vpn-tip]');
+  if(vpnBadge)vpnBadge.addEventListener('click',function(){showToast(vpnBadge.getAttribute('data-geo-vpn-tip'));});
   const card=container.querySelector('.pc-card');
   if(card){
     const n=parseInt(card.getAttribute('data-avatar-count')||'0',10);
@@ -24463,6 +24493,59 @@ async function finishLoginSession(secret, sessionId, userId) {
   return new Response(JSON.stringify({ ok: true, secret, jwt, sessionId, userId }), { headers: cookieHeaders });
 }
 
+// Mots-clés (organisation ASN) associés à des fournisseurs de VPN connus ou à
+// de l'hébergement cloud/datacenter — un nœud de sortie VPN tourne presque
+// toujours sur un serveur loué, jamais sur une IP résidentielle d'un
+// particulier. Heuristique GRATUITE, basée sur request.cf.asOrganization
+// (fourni par Cloudflare sans coût ni requête réseau supplémentaire) :
+// attrape la grande majorité des VPN grand public et proxys commerciaux,
+// mais reste un best-effort par mots-clés — PAS un vrai service payant de
+// détection d'anonymiseurs (IPQualityScore, MaxMind Anonymous IP DB…) et pas
+// infaillible face à un petit fournisseur obscur ou un VPN "maison".
+const VPN_ORG_KEYWORDS = [
+  "nordvpn", "expressvpn", "surfshark", "cyberghost", "private internet access", "protonvpn", "proton ag",
+  "mullvad", "ipvanish", "tunnelbear", "windscribe", "hotspot shield", "hide.me", "purevpn", "vyprvpn",
+  "strongvpn", "perfect privacy", "airvpn", " ivpn", "torguard", "zenmate", "atlas vpn", "privatevpn",
+  "vpn unlimited", "namecheap", "bitdefender", "kaspersky", "norton", "avast", "avg technolog", "f-secure",
+  "malwarebytes", "mcafee",
+  "amazon.com, inc.", "amazon technologies", "aws", "google cloud", "google llc", "microsoft azure",
+  "microsoft corporation", "digitalocean", "linode", "akamai connected cloud", "ovh sas", "ovh us", "hetzner",
+  "vultr", "scaleway", "m247", "choopa", "colocrossing", "leaseweb", "contabo", "packethub", "datacamp",
+  "psychz", "g-core", "hostinger", "alibaba", "tencent", "oracle cloud", "ucloud", "the constant company"
+];
+function isLikelyVpnOrg(org) {
+  const s = String(org || "").toLowerCase();
+  if (!s) return false;
+  return VPN_ORG_KEYWORDS.some(function (kw) { return s.indexOf(kw) !== -1; });
+}
+// Capture la géoloc/pays + l'heuristique VPN à chaque restauration de session
+// (/api/auth/me, appelée à chaque démarrage de l'app — pas juste à la
+// connexion par mot de passe) pour rester à jour même pour les sessions
+// longues. Écriture best-effort en tâche de fond (bgTask), jamais bloquante
+// pour la réponse de connexion. user_meta reste verrouillé en écriture
+// admin-only (permissions read("any") : le badge doit être visible par
+// n'importe quel visiteur qui consulte le profil, jamais modifiable par le
+// compte lui-même).
+async function updateUserGeoMeta(uid, cf) {
+  try {
+    const country = String((cf && cf.country) || "").slice(0, 8);
+    if (!uid || !country) return;
+    const data = { geoCountry: country, vpnDetected: isLikelyVpnOrg(cf && cf.asOrganization) };
+    const perms = ["read(\"any\")"];
+    try {
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
+        method: "PATCH", asAdmin: true, body: { data: data, permissions: perms }
+      });
+    } catch (e) {
+      if (e && e.status === 404) {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+          method: "POST", asAdmin: true, body: { documentId: uid, data: data, permissions: perms }
+        });
+      }
+    }
+  } catch (e) {}
+}
+
 // Résout un identifiant de connexion (e-mail OU pseudo#tag) vers l'e-mail réel du
 // compte, pour permettre la connexion par les deux moyens. Lève une erreur générique
 // si rien ne correspond (on ne précise jamais si c'est l'identifiant ou le mot de
@@ -32026,6 +32109,7 @@ async function handle(request, event) {
         });
       }
       if (!jwt) throw new Error("Connexion impossible, réessaie.");
+      if (userId) bgTask(updateUserGeoMeta(userId, request.cf || {}));
       const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors);
       cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
       return new Response(JSON.stringify({
@@ -32395,6 +32479,7 @@ async function handle(request, event) {
       const acc = await awFetch("/account", {
         headers: secret ? { "X-Appwrite-Session": secret } : { "X-Appwrite-JWT": jwt }
       });
+      if (acc && acc.$id) bgTask(updateUserGeoMeta(acc.$id, request.cf || {}));
       return new Response(JSON.stringify({ ok: true, account: acc }), {
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
