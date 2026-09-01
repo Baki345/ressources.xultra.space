@@ -1666,6 +1666,21 @@ const APP = `<!DOCTYPE html>
   try{
     if(localStorage.getItem('xultra_session'))document.documentElement.classList.add('xultra-restoring');
   }catch(e){}
+  // Splash de démarrage (#boot-splash, dans le HTML, visible par défaut) :
+  // fait défiler quelques phrases pour expliquer ce qui charge, et impose un
+  // temps d'affichage minimum (window.__bsMinUntil) pour qu'il reste lisible
+  // même quand la restauration de session est quasi instantanée — voir
+  // hideBootSplash() plus bas (défini avec le reste de l'appli).
+  window.__bsMinUntil=Date.now()+700;
+  try{
+    var bsPhrases=['Connexion à X1…','Chargement de ton profil…','Synchronisation de tes messages…','Presque prêt…'];
+    var bsIdx=0;
+    window.__bsInterval=setInterval(function(){
+      bsIdx=(bsIdx+1)%bsPhrases.length;
+      var el=document.getElementById('boot-splash-status');
+      if(el)el.textContent=bsPhrases[bsIdx];
+    },900);
+  }catch(e){}
 })();
 </script>
 <style>
@@ -1686,6 +1701,32 @@ body{
 button,input{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:0}
 .hidden{display:none!important}
+
+/* Splash de démarrage (navigateur ET app installée) : visible par défaut,
+   sans classe JS, dès la toute première peinture — avant même que le SDK
+   Appwrite ait fini de charger. z-index sous la bannière d'erreur JS
+   (#xultra-err-banner, 999999) : si le boot plante, le message d'erreur
+   doit rester visible par-dessus. hideBootSplash() (plus bas) l'estompe une
+   fois la session restaurée (ou l'échec constaté) — jamais avant un délai
+   minimum, pour qu'il reste lisible même sur un chargement quasi instantané. */
+#boot-splash{position:fixed;inset:0;z-index:99998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(1200px 600px at 50% -10%,rgba(124,58,237,.35),transparent 60%),radial-gradient(800px 400px at 100% 100%,rgba(88,28,135,.25),transparent 50%),#0d0814;transition:opacity .4s ease}
+#boot-splash.bs-out{opacity:0;pointer-events:none}
+.bs-logo{font-size:2.4rem;font-weight:900;letter-spacing:.12em;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;animation:bs-pulse 1.8s ease-in-out infinite}
+@keyframes bs-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.75;transform:scale(.96)}}
+.bs-spinner{display:flex;gap:7px}
+.bs-spinner span{width:9px;height:9px;border-radius:50%;background:#a78bfa;animation:bs-bounce 1s ease-in-out infinite}
+.bs-spinner span:nth-child(2){animation-delay:.15s}
+.bs-spinner span:nth-child(3){animation-delay:.3s}
+@keyframes bs-bounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+.bs-status{font-size:.82rem;color:#c4b5fd;letter-spacing:.02em;min-height:1.2em}
+
+/* Écran de chargement de section (changement de vue DMs/Amis/Membres/
+   Serveurs quand ça implique un vrai appel réseau) — voir
+   showSectionLoading()/hideSectionLoading(), appelées depuis showView().
+   Révélation retardée de 200ms (dans showSectionLoading) : sur un chargement
+   quasi instantané, l'overlay n'a pas le temps d'apparaître, aucun flash
+   inutile. */
+#section-loading-ov{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(13,8,20,.55);backdrop-filter:blur(2px);transition:opacity .2s ease}
 
 #install-banner{
   position:relative;z-index:50;display:flex;align-items:center;justify-content:center;gap:14px;
@@ -3670,6 +3711,11 @@ a.bug-att-item{display:block}
 </style>
 </head>
 <body>
+<div id="boot-splash">
+  <div class="bs-logo">X1</div>
+  <div class="bs-spinner"><span></span><span></span><span></span></div>
+  <div class="bs-status" id="boot-splash-status">Démarrage…</div>
+</div>
 <div id="install-banner" class="hidden">
   <span id="install-banner-text"></span>
   <div class="ib-actions">
@@ -3797,6 +3843,7 @@ a.bug-att-item{display:block}
 </div>
 
 <div id="app" class="hidden">
+  <div id="section-loading-ov" class="hidden" aria-hidden="true"><div class="bs-spinner"><span></span><span></span><span></span></div></div>
   <nav class="rail">
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
@@ -6749,8 +6796,33 @@ if(\$('btn-logout'))\$('btn-logout').addEventListener('click',async function(){
 });
 
 let view='dms';
+// Écran de chargement (animé) affiché uniquement quand un changement de
+// section déclenche un VRAI appel réseau (loadMyServers/loadMembers dans
+// showView, plus bas) — pas à chaque clic sur la barre latérale : DMs et
+// Amis se rendent depuis le cache déjà en mémoire, instantanément.
+// Révélation retardée de 200ms : un chargement quasi instantané n'a pas le
+// temps de le montrer, jamais de flash inutile pour rien.
+let sectionLoadingTimer=null;
+function showSectionLoading(){
+  clearTimeout(sectionLoadingTimer);
+  sectionLoadingTimer=setTimeout(function(){
+    const ov=\$('section-loading-ov');
+    if(ov)ov.classList.remove('hidden');
+  },200);
+}
+function hideSectionLoading(){
+  clearTimeout(sectionLoadingTimer);
+  const ov=\$('section-loading-ov');
+  if(ov)ov.classList.add('hidden');
+}
 function showView(v){
   view=v;
+  // Annule tout écran de chargement en attente d'un changement de section
+  // précédent (ex. clic sur Membres puis, avant la fin du chargement, clic
+  // sur Messages) — sinon le minuteur de showSectionLoading() pouvait encore
+  // se déclencher après coup et afficher l'overlay par-dessus une section
+  // qui, elle, n'a rien à charger.
+  hideSectionLoading();
   dmViewingTick();
   // Bug remonté ("configurer les paramètres du serveur puis aller en DM
   // affichait la conversation sur la moitié inférieure de l'écran") : #app
@@ -6800,7 +6872,8 @@ function showView(v){
       renderEmptyState('🏘️','Sélectionne un serveur','Ou crée le tien avec le bouton 🏘️+ ci-dessus.');
       app.classList.remove('chat-open');
     }
-    loadMyServers().then(renderServersListView).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})});
+    showSectionLoading();
+    loadMyServers().then(renderServersListView).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);
     repositionCallPanel();
     return;
   }
@@ -6811,7 +6884,7 @@ function showView(v){
   app.classList.remove('chat-open');
   if(v==='dms')renderDms();
   else if(v==='friends')renderFriends();
-  else{loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})});}
+  else{showSectionLoading();loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);}
   repositionCallPanel();
 }
 document.querySelectorAll('.rail-btn[data-view]').forEach(function(b){
@@ -24288,18 +24361,34 @@ async function handleEmailVerificationLink(){
     showToast('Lien de vérification invalide ou expiré.','error');
   }
 }
+// Masque #boot-splash (voir le script tout en tête du <head> pour l'affichage
+// et le défilement des phrases) — jamais avant le délai minimum posé au tout
+// début du chargement (window.__bsMinUntil), pour qu'il reste lisible même
+// quand la restauration de session est quasi instantanée. Idempotent :
+// appelée depuis plusieurs chemins de boot() (succès, échec, pas de
+// session, filet de sécurité 12s) sans se soucier de laquelle a déjà joué.
+function hideBootSplash(){
+  try{clearInterval(window.__bsInterval);}catch(e){}
+  const el=document.getElementById('boot-splash');
+  if(!el||el.classList.contains('bs-out'))return;
+  const wait=Math.max(0,(window.__bsMinUntil||0)-Date.now());
+  setTimeout(function(){
+    el.classList.add('bs-out');
+    setTimeout(function(){try{el.remove();}catch(e){}},450);
+  },wait);
+}
 function boot(){
   xlog('boot_start',{hasStored:!!readSession()});
   // Filet de sécurité : si le SDK ne charge jamais (CDN bloqué…), la chaîne
   // asynchrone ci-dessous ne se termine jamais et l'écran de connexion,
   // masqué plus haut en attendant, resterait invisible pour toujours.
-  setTimeout(function(){document.documentElement.classList.remove('xultra-restoring');},12000);
+  setTimeout(function(){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();},12000);
   waitSdk(async function(){
     xlog('sdk_ready',{});
     await handleEmailVerificationLink();
     await handlePasswordRecoveryLink();
     const s=readSession();
-    if(!s){document.documentElement.classList.remove('xultra-restoring');xlog('boot_no_session',{});return}
+    if(!s){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();xlog('boot_no_session',{});return}
     try{
       applySession(s,readStoredJwt());
       await enterApp();
@@ -24310,6 +24399,7 @@ function boot(){
       else{try{\$('auth-err')&&(\$('auth-err').textContent='Connexion au serveur impossible, vérifie ta connexion et réessaie.');}catch(e3){}}
     }finally{
       document.documentElement.classList.remove('xultra-restoring');
+      hideBootSplash();
     }
   });
 }
