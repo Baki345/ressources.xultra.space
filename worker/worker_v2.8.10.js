@@ -2032,6 +2032,60 @@ html.xultra-restoring #stage{visibility:hidden}
 .discover-tabs button{flex:1;padding:8px;border-radius:10px;background:var(--elev);font-size:.82rem;font-weight:700}
 .discover-tabs button.on{background:#7c3aed;color:#fff}
 .discover-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 14px}
+/* ===== XBin (partage de texte façon pastebin) ===== */
+.xbin-head{flex-wrap:wrap;background:linear-gradient(90deg,rgba(124,58,237,.14),rgba(236,72,153,.08));position:relative}
+.xbin-head h2{background:linear-gradient(135deg,#e9d5ff,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+.xbin-tabs{display:flex;gap:6px}
+.xbin-tab{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.8rem;font-weight:700;color:var(--muted);transition:all .18s ease}
+.xbin-tab:hover{background:rgba(255,255,255,.12);color:#fff}
+.xbin-tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}
+.xbin-new-btn{background:linear-gradient(135deg,#7c3aed,#ec4899);box-shadow:0 4px 14px rgba(124,58,237,.35);transition:transform .15s ease,box-shadow .15s ease}
+.xbin-new-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.5)}
+.xbin-body{max-width:1080px;margin:0 auto;width:100%}
+.xbin-search-row{padding:14px 0}
+.xbin-search-row .field-input{width:100%}
+.xbin-loading{display:flex;justify-content:center;padding:60px 0}
+.xbin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding-bottom:20px}
+.xbin-card{background:linear-gradient(165deg,rgba(124,58,237,.1),rgba(20,12,32,.6));border:1px solid rgba(167,139,250,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
+@keyframes xbinCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.xbin-card:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5);box-shadow:0 12px 30px rgba(124,58,237,.25)}
+.xbin-card-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.xbin-lang-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(167,139,250,.16);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;font-size:.68rem;font-weight:800;letter-spacing:.02em;white-space:nowrap}
+.xbin-vis-chip{font-size:.68rem;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.xbin-vis-chip.xbin-vis-private{background:rgba(239,68,68,.14);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.xbin-vis-chip.xbin-vis-unlisted{background:rgba(245,158,11,.14);color:#fcd34d;border:1px solid rgba(245,158,11,.3)}
+.xbin-card-title{font-size:.98rem;font-weight:800;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xbin-card-preview{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.74rem;line-height:1.5;color:var(--muted);white-space:pre-wrap;overflow:hidden;max-height:64px;margin:0}
+.xbin-card-foot{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--muted);border-top:1px solid rgba(255,255,255,.06);padding-top:8px}
+.xbin-card-author{font-weight:700;color:#c4b5fd}
+.xbin-editor{display:flex;flex-direction:column;gap:12px;max-width:760px;margin:14px auto 0;animation:xbinCardIn .3s ease both}
+.xbin-editor-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.xbin-textarea{width:100%;min-height:360px;resize:vertical;border-radius:14px;background:#0d0814;border:1px solid rgba(167,139,250,.25);color:#f2ebff;padding:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;line-height:1.6;outline:0;transition:border-color .15s ease}
+.xbin-textarea:focus{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+.xbin-editor-foot{display:flex;justify-content:space-between;align-items:center}
+.xbin-char-count{font-size:.75rem;color:var(--muted)}
+.xbin-detail{max-width:900px;margin:0 auto;animation:xbinCardIn .3s ease both}
+.xbin-detail-head h1{font-size:1.4rem;font-weight:900;margin-bottom:6px;word-break:break-word}
+.xbin-detail-meta{font-size:.8rem;color:var(--muted)}
+.xbin-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}
+.xbin-act-btn{padding:9px 16px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(167,139,250,.22);color:#e9d5ff;font-size:.82rem;font-weight:700;transition:all .15s ease}
+.xbin-act-btn:hover{background:rgba(167,139,250,.16);transform:translateY(-1px)}
+.xbin-act-btn.xbin-act-danger{border-color:rgba(239,68,68,.3);color:#fca5a5}
+.xbin-act-btn.xbin-act-danger:hover{background:rgba(239,68,68,.14)}
+.xbin-code-wrap{display:flex;background:#0d0814;border:1px solid rgba(167,139,250,.2);border-radius:14px;overflow:auto;max-height:70vh}
+.xbin-linenums{flex-shrink:0;padding:16px 10px;text-align:right;color:rgba(167,139,250,.4);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.6;user-select:none;border-right:1px solid rgba(167,139,250,.14)}
+.xbin-linenums span{display:block}
+.xbin-code{flex:1;margin:0;padding:16px;overflow:visible}
+.xbin-code code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important;font-size:.82rem!important;line-height:1.6!important;white-space:pre!important;background:transparent!important}
+.xbin-profile-item{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.14);margin-bottom:6px;text-align:left;transition:background .15s ease}
+.xbin-profile-item:hover{background:rgba(167,139,250,.12)}
+.xbin-profile-title{flex:1;font-size:.85rem;font-weight:700;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xbin-profile-views{font-size:.72rem;color:var(--muted)}
+@media (max-width:640px){
+  .xbin-editor-row{grid-template-columns:1fr}
+  .xbin-grid{grid-template-columns:1fr}
+  .xbin-linenums{padding:14px 6px;font-size:.74rem}
+}
 .music-tabs{padding:0 14px 12px}
 /* Streaming (grille, esprit Spotify) : pochettes carrées bien visibles,
    carte plate qui ne se soulève qu'au survol, gros bouton de lecture
@@ -3838,6 +3892,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-casino" data-i18n-title="nav_casino" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn" id="nav-status" data-i18n-title="nav_status" title="État du système"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg></button>
@@ -3853,6 +3908,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-casino-mobile" title="Casino"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="2.4"/><path d="M5 6v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4V6"/><path d="M5 12v6c0 1.3 3.1 2.4 7 2.4s7-1.1 7-2.4v-6"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music-mobile" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
@@ -4157,6 +4213,7 @@ a.bug-att-item{display:block}
         <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
         <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
       </div>
+      <div class="pm-section pm-xbin-section hidden" id="pm-xbin-section"></div>
     </div>
   </div>
 </div>
@@ -6030,6 +6087,7 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
   {desktopSel:'#nav-casino',mobileSel:'#nav-casino-mobile',placement:'right',icon:'🎰',title:'Casino',text:'Des mini-jeux et des duels amicaux avec tes amis.'},
   {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
+  {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -6569,6 +6627,17 @@ async function handlePasswordRecoveryLink(){
   pendingRecovery={userId:uid,secret:secret};
   \$('modal-reset-password').classList.remove('hidden');
 }
+// Ouvre directement un paste XBin depuis ?xbin=<id> (lien partagé) — DOIT
+// fonctionner sans connexion (public/non-listé consultables sans compte,
+// voir la liste de fonctionnalités demandée), donc appelée dans boot() AVANT
+// toute vérification de session, contrairement à routeToDeepLink() (qui
+// exige une session active, pensée pour les liens internes ouverts une fois connecté).
+function handleXBinDeepLink(){
+  try{
+    const id=new URLSearchParams(location.search).get('xbin');
+    if(id&&ensureSdk())openXBin(id);
+  }catch(e){}
+}
 async function doLogin(){
   xlog('login_click',{});
   showErrTxt('');
@@ -6915,6 +6984,8 @@ if(\$('nav-casino'))\$('nav-casino').addEventListener('click',openCasino);
 if(\$('nav-casino-mobile'))\$('nav-casino-mobile').addEventListener('click',openCasino);
 if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){openCreators();});
 if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
+if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();});
+if(\$('nav-xbin-mobile'))\$('nav-xbin-mobile').addEventListener('click',function(){openXBin();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -12040,6 +12111,7 @@ async function openProfileModal(uid){
     mountProfileCardExtras(renderEl);
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
   }
+  if(typeof loadAndRenderXBinTab==='function')loadAndRenderXBinTab(uid,\$('pm-xbin-section'));
   const shareBtn=\$('pm-share');
   if(shareBtn){
     shareBtn.onclick=function(){
@@ -16238,6 +16310,375 @@ function renderChatroulette(){
     btn.addEventListener('click',function(){crSendReaction(btn.getAttribute('data-cr-react'));});
   });
 }
+/* ===== XBin (hébergement/partage de texte façon pastebin, coloration
+   syntaxique) ===== Écriture DIRECTE côté client via le SDK Appwrite (comme
+   suggestions/stories/xm_playlists…), permissions posées à la création
+   selon la visibilité — même modèle que le reste de l'appli, pas besoin de
+   routes Worker dédiées pour créer/lire/lister/supprimer. Seule exception :
+   /api/xbin/view (compter une vue) exige un droit d'écriture qu'on ne peut
+   pas donner à "any" sans lui laisser aussi le pouvoir de modifier le
+   contenu — voir ce endpoint côté Worker. */
+const XBIN_LANGS=[
+  {id:'auto',label:'🪄 Détection automatique'},
+  {id:'plaintext',label:'Texte brut'},
+  {id:'javascript',label:'JavaScript'},{id:'typescript',label:'TypeScript'},{id:'python',label:'Python'},
+  {id:'java',label:'Java'},{id:'c',label:'C'},{id:'cpp',label:'C++'},{id:'csharp',label:'C#'},
+  {id:'php',label:'PHP'},{id:'ruby',label:'Ruby'},{id:'go',label:'Go'},{id:'rust',label:'Rust'},
+  {id:'kotlin',label:'Kotlin'},{id:'swift',label:'Swift'},{id:'lua',label:'Lua'},{id:'perl',label:'Perl'},
+  {id:'sql',label:'SQL'},{id:'xml',label:'HTML / XML'},{id:'css',label:'CSS'},{id:'json',label:'JSON'},
+  {id:'yaml',label:'YAML'},{id:'markdown',label:'Markdown'},{id:'bash',label:'Bash'},
+  {id:'powershell',label:'PowerShell'},{id:'dos',label:'Batch'},{id:'dockerfile',label:'Dockerfile'},
+  {id:'ini',label:'INI / TOML'},{id:'x86asm',label:'Assembleur'},{id:'diff',label:'Diff'}
+];
+const XBIN_EXPIRY_OPTS=[
+  {id:'never',label:'Jamais',ms:0},{id:'10m',label:'10 minutes',ms:10*60*1000},{id:'1h',label:'1 heure',ms:60*60*1000},
+  {id:'1d',label:'1 jour',ms:24*60*60*1000},{id:'1w',label:'1 semaine',ms:7*24*60*60*1000},{id:'1mo',label:'1 mois',ms:30*24*60*60*1000}
+];
+let xbinHlLoaded=false,xbinHlLoading=null;
+function ensureHighlightJs(){
+  if(xbinHlLoaded)return Promise.resolve();
+  if(xbinHlLoading)return xbinHlLoading;
+  xbinHlLoading=new Promise(function(resolve){
+    try{
+      const link=document.createElement('link');
+      link.rel='stylesheet';
+      link.href='https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css';
+      document.head.appendChild(link);
+      const s=document.createElement('script');
+      s.src='https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js';
+      s.crossOrigin='anonymous';
+      s.onload=function(){xbinHlLoaded=true;resolve();};
+      // Dégradé propre si le CDN est bloqué/hors service : le texte reste
+      // lisible en monospace, juste sans les couleurs de syntaxe.
+      s.onerror=function(){resolve();};
+      document.head.appendChild(s);
+    }catch(e){resolve();}
+  });
+  return xbinHlLoading;
+}
+let xbinView='feed',xbinCurrentPaste=null,xbinFeedCache=[],xbinMineCache=[],xbinSearchQuery='';
+function xbinLangLabel(id){
+  const l=XBIN_LANGS.find(function(x){return x.id===id});
+  return l?l.label:(id||'Texte brut');
+}
+function xbinIsExpired(doc){
+  return !!(doc&&doc.expiresAt&&new Date(doc.expiresAt).getTime()<=Date.now());
+}
+// Réimplémente une logique "temps relatif" dédiée (plutôt que réutiliser
+// fmtRelTime, pensée uniquement pour du PASSÉ — elle clampe tout écart
+// négatif à 0, donc inutilisable telle quelle pour un compte à rebours
+// d'expiration future).
+function xbinFmtExpiry(doc){
+  if(!doc||!doc.expiresAt)return 'N\\'expire jamais';
+  const diff=(new Date(doc.expiresAt).getTime()-Date.now())/1000;
+  if(diff<=0)return 'Expiré';
+  if(diff<60)return 'Expire dans '+Math.ceil(diff)+'s';
+  if(diff<3600)return 'Expire dans '+Math.ceil(diff/60)+'min';
+  if(diff<86400)return 'Expire dans '+Math.ceil(diff/3600)+'h';
+  if(diff<604800)return 'Expire dans '+Math.ceil(diff/86400)+'j';
+  if(diff<2629800)return 'Expire dans '+Math.ceil(diff/604800)+'sem';
+  return 'Expire dans '+Math.ceil(diff/2629800)+'mois';
+}
+async function openXBin(id){
+  let overlay=\$('xbin-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='xbin-overlay';
+    overlay.className='discover-overlay xbin-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  ensureHighlightJs();
+  if(id){openXBinPaste(id);}
+  else{xbinView='feed';renderXBinShell();loadXBinFeed();}
+}
+function closeXBin(){
+  const overlay=\$('xbin-overlay');
+  if(overlay)overlay.classList.remove('show');
+  try{
+    const url=new URL(location.href);
+    if(url.searchParams.get('xbin')){url.searchParams.delete('xbin');history.replaceState(null,'',url.pathname+(url.search?url.search:''));}
+  }catch(e){}
+}
+function xbinMatchesSearch(d,q){
+  if(!q)return true;
+  const s=q.toLowerCase();
+  return (d.title||'').toLowerCase().indexOf(s)>=0||(d.content||'').toLowerCase().indexOf(s)>=0||(d.authorName||'').toLowerCase().indexOf(s)>=0;
+}
+function renderXBinShell(){
+  const overlay=\$('xbin-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head xbin-head">'
+    +'<button type="button" class="set-mini-btn" id="xbin-close">← Retour</button>'
+    +'<h2>📋 XBin</h2>'
+    +'<div class="xbin-tabs">'
+      +'<button type="button" class="xbin-tab'+(xbinView==='feed'?' on':'')+'" data-xbin-tab="feed">🌐 Découvrir</button>'
+      +(me?'<button type="button" class="xbin-tab'+(xbinView==='mine'?' on':'')+'" data-xbin-tab="mine">🗂️ Mes pastes</button>':'')
+    +'</div>'
+    +'<button type="button" class="btn-main xbin-new-btn" id="xbin-new-btn">+ Nouveau</button>'
+  +'</div>'
+  +'<div class="discover-body xbin-body" id="xbin-body">'
+    +'<div class="xbin-search-row"><input type="text" id="xbin-search" class="field-input" placeholder="🔎 Titre, auteur ou contenu…" value="'+esc(xbinSearchQuery)+'"/></div>'
+    +'<div id="xbin-list" class="xbin-grid"><div class="xbin-loading"><span class="bs-ring"></span></div></div>'
+  +'</div>';
+  \$('xbin-close').onclick=closeXBin;
+  overlay.querySelectorAll('[data-xbin-tab]').forEach(function(btn){
+    btn.onclick=function(){
+      xbinView=btn.getAttribute('data-xbin-tab');
+      renderXBinShell();
+      if(xbinView==='feed')loadXBinFeed();else loadXBinMine();
+    };
+  });
+  \$('xbin-new-btn').onclick=function(){
+    if(!me){showToast('Connecte-toi pour créer un paste','error');return}
+    openXBinEditor();
+  };
+  const search=\$('xbin-search');
+  let searchTimer=null;
+  search.addEventListener('input',function(){
+    xbinSearchQuery=this.value;
+    clearTimeout(searchTimer);
+    searchTimer=setTimeout(function(){renderXBinList(xbinView==='feed'?xbinFeedCache:xbinMineCache);},250);
+  });
+}
+async function loadXBinFeed(){
+  const list=\$('xbin-list');
+  if(list)list.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  try{
+    const r=await db.listDocuments(DB,'xbin_pastes',[Appwrite.Query.equal('visibility','public'),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
+    xbinFeedCache=(r.documents||[]).filter(function(d){return !xbinIsExpired(d);});
+    renderXBinList(xbinFeedCache);
+  }catch(e){
+    if(list)list.innerHTML='<div class="empty-hint">Impossible de charger XBin pour le moment.</div>';
+  }
+}
+async function loadXBinMine(){
+  if(!me)return;
+  const list=\$('xbin-list');
+  if(list)list.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  try{
+    const r=await db.listDocuments(DB,'xbin_pastes',[Appwrite.Query.equal('authorId',me.\$id),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    xbinMineCache=r.documents||[];
+    renderXBinList(xbinMineCache);
+  }catch(e){
+    if(list)list.innerHTML='<div class="empty-hint">Impossible de charger tes pastes.</div>';
+  }
+}
+function renderXBinList(docs){
+  const list=\$('xbin-list');if(!list)return;
+  const filtered=docs.filter(function(d){return xbinMatchesSearch(d,xbinSearchQuery.trim());});
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-hint">'+(xbinView==='mine'?'Tu n\\'as encore rien publié sur XBin.':'Aucun résultat.')+'</div>';
+    return;
+  }
+  list.innerHTML=filtered.map(xbinCardHtml).join('');
+  list.querySelectorAll('[data-xbin-open]').forEach(function(card){
+    card.addEventListener('click',function(){openXBinPaste(card.getAttribute('data-xbin-open'));});
+  });
+}
+function xbinCardHtml(d){
+  const preview=esc((d.content||'').slice(0,220));
+  const isPrivate=d.visibility==='private',isUnlisted=d.visibility==='unlisted';
+  return '<div class="xbin-card" data-xbin-open="'+d.\$id+'">'
+    +'<div class="xbin-card-top">'
+      +'<span class="xbin-lang-chip">'+esc(xbinLangLabel(d.language))+'</span>'
+      +(isPrivate?'<span class="xbin-vis-chip xbin-vis-private">🔒 Privé</span>':(isUnlisted?'<span class="xbin-vis-chip xbin-vis-unlisted">🔗 Non listé</span>':''))
+    +'</div>'
+    +'<h3 class="xbin-card-title">'+esc(d.title||'Sans titre')+'</h3>'
+    +'<pre class="xbin-card-preview">'+preview+'</pre>'
+    +'<div class="xbin-card-foot">'
+      +'<span class="xbin-card-author">'+esc(d.authorName||'?')+'</span>'
+      +'<span class="xbin-card-meta">👁️ '+(d.views||0)+' · '+esc(xbinFmtExpiry(d))+'</span>'
+    +'</div>'
+  +'</div>';
+}
+function openXBinEditor(){
+  xbinView='editor';
+  const overlay=\$('xbin-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head xbin-head">'
+    +'<button type="button" class="set-mini-btn" id="xbin-editor-back">← Retour</button>'
+    +'<h2>📋 Nouveau paste</h2>'
+  +'</div>'
+  +'<div class="discover-body xbin-body">'
+    +'<div class="xbin-editor">'
+      +'<input type="text" id="xbin-title-input" class="field-input" placeholder="Titre (optionnel)" maxlength="200"/>'
+      +'<div class="xbin-editor-row">'
+        +'<select id="xbin-lang-select" class="field-input">'+XBIN_LANGS.map(function(l){return '<option value="'+l.id+'">'+esc(l.label)+'</option>';}).join('')+'</select>'
+        +'<select id="xbin-vis-select" class="field-input">'
+          +'<option value="public">🌐 Public</option>'
+          +'<option value="unlisted">🔗 Non listé (lien uniquement)</option>'
+          +'<option value="private">🔒 Privé</option>'
+        +'</select>'
+        +'<select id="xbin-exp-select" class="field-input">'+XBIN_EXPIRY_OPTS.map(function(o){return '<option value="'+o.id+'">'+esc(o.label)+'</option>';}).join('')+'</select>'
+      +'</div>'
+      +'<textarea id="xbin-content-input" class="xbin-textarea" placeholder="Colle ou écris ton texte ici…" spellcheck="false"></textarea>'
+      +'<div class="xbin-editor-foot">'
+        +'<span class="xbin-char-count" id="xbin-char-count">0 caractère</span>'
+        +'<button type="button" class="btn-main" id="xbin-publish-btn">🚀 Publier</button>'
+      +'</div>'
+      +'<div class="err" id="xbin-editor-err"></div>'
+    +'</div>'
+  +'</div>';
+  \$('xbin-editor-back').onclick=function(){xbinView='feed';renderXBinShell();loadXBinFeed();};
+  \$('xbin-content-input').addEventListener('input',function(){
+    \$('xbin-char-count').textContent=this.value.length.toLocaleString('fr-FR')+' caractère'+(this.value.length>1?'s':'');
+  });
+  \$('xbin-publish-btn').onclick=xbinPublish;
+}
+async function xbinPublish(){
+  const btn=\$('xbin-publish-btn');
+  const content=\$('xbin-content-input').value||'';
+  const title=(\$('xbin-title-input').value||'').trim();
+  const language=\$('xbin-lang-select').value;
+  const visibility=\$('xbin-vis-select').value;
+  const expOpt=XBIN_EXPIRY_OPTS.find(function(o){return o.id===\$('xbin-exp-select').value});
+  const err=\$('xbin-editor-err');
+  err.textContent='';
+  if(!content.trim()){err.textContent='Le contenu ne peut pas être vide.';return}
+  if(content.length>500000){err.textContent='500 000 caractères maximum.';return}
+  btn.disabled=true;btn.textContent='Publication…';
+  try{
+    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+    const perms=visibility==='private'
+      ?[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
+      :[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+    const data={authorId:me.\$id,authorName:name,title:title.slice(0,200),content:content.slice(0,500000),language:language,visibility:visibility,views:0};
+    if(expOpt&&expOpt.ms>0)data.expiresAt=new Date(Date.now()+expOpt.ms).toISOString();
+    const doc=await db.createDocument(DB,'xbin_pastes',Appwrite.ID.unique(),data,perms);
+    showToast('Paste publié ! 🎉');
+    openXBinPaste(doc.\$id,doc);
+  }catch(e){
+    err.textContent='Publication impossible, réessaie.';
+    btn.disabled=false;btn.textContent='🚀 Publier';
+  }
+}
+async function openXBinPaste(id,preloaded){
+  xbinView='detail';
+  let overlay=\$('xbin-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');overlay.id='xbin-overlay';overlay.className='discover-overlay xbin-overlay';document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  ensureHighlightJs();
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xbin-detail-back">← Retour</button><h2>📋 XBin</h2></div><div class="discover-body xbin-body" id="xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  \$('xbin-detail-back').onclick=function(){
+    xbinView='feed';
+    try{const url=new URL(location.href);url.searchParams.delete('xbin');history.replaceState(null,'',url.pathname+(url.search?url.search:''));}catch(e){}
+    renderXBinShell();loadXBinFeed();
+  };
+  try{
+    const url=new URL(location.href);
+    if(url.searchParams.get('xbin')!==id){url.searchParams.set('xbin',id);history.replaceState(null,'',url.pathname+'?'+url.searchParams.toString());}
+  }catch(e){}
+  let doc=preloaded;
+  if(!doc){
+    try{doc=await db.getDocument(DB,'xbin_pastes',id);}
+    catch(e){
+      \$('xbin-body').innerHTML='<div class="empty-hint">Ce paste est introuvable, privé, ou a été supprimé.</div>';
+      return;
+    }
+  }
+  if(xbinIsExpired(doc)){
+    \$('xbin-body').innerHTML='<div class="empty-hint">⏱️ Ce paste a expiré.</div>';
+    return;
+  }
+  xbinCurrentPaste=doc;
+  renderXBinDetail(doc);
+  if(!me||me.\$id!==doc.authorId)fetch('/api/xbin/view',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:doc.\$id})}).catch(function(){});
+}
+function renderXBinDetail(d){
+  const isOwner=!!(me&&me.\$id===d.authorId);
+  const body=\$('xbin-body');if(!body)return;
+  const lineCount=(d.content||'').split('\\n').length;
+  let lineNumsHtml='';
+  for(let i=1;i<=lineCount;i++)lineNumsHtml+='<span>'+i+'</span>';
+  body.innerHTML='<div class="xbin-detail">'
+    +'<div class="xbin-detail-head">'
+      +'<h1>'+esc(d.title||'Sans titre')+'</h1>'
+      +'<div class="xbin-detail-meta">'
+        +'<span>'+esc(d.authorName||'?')+'</span> · <span>'+esc(xbinLangLabel(d.language))+'</span> · '
+        +'<span>👁️ '+(d.views||0)+'</span> · <span>'+esc(xbinFmtExpiry(d))+'</span>'
+      +'</div>'
+    +'</div>'
+    +'<div class="xbin-detail-actions">'
+      +'<button type="button" class="xbin-act-btn" id="xbin-copy-btn">📋 Copier</button>'
+      +'<button type="button" class="xbin-act-btn" id="xbin-share-btn">🔗 Partager</button>'
+      +'<button type="button" class="xbin-act-btn" id="xbin-raw-btn">📄 Brut</button>'
+      +(isOwner?'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-delete-btn">🗑️ Supprimer</button>':'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-report-btn">🚩 Signaler</button>')
+    +'</div>'
+    +'<div class="xbin-code-wrap">'
+      +'<div class="xbin-linenums">'+lineNumsHtml+'</div>'
+      +'<pre class="xbin-code"><code'+(d.language&&d.language!=='auto'?' class="language-'+esc(d.language)+'"':'')+' id="xbin-code-el">'+esc(d.content||'')+'</code></pre>'
+    +'</div>'
+  +'</div>';
+  ensureHighlightJs().then(function(){
+    try{
+      if(!window.hljs)return;
+      const el=\$('xbin-code-el');if(!el)return;
+      if(d.language==='auto')window.hljs.highlightElement(el);
+      else if(d.language&&d.language!=='plaintext')window.hljs.highlightElement(el);
+    }catch(e){}
+  });
+  \$('xbin-copy-btn').onclick=function(){
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(d.content||''):Promise.reject())
+      .then(function(){showToast('Contenu copié !');})
+      .catch(function(){showToast('Copie impossible','error');});
+  };
+  \$('xbin-share-btn').onclick=function(){
+    const url=location.origin+'/?xbin='+encodeURIComponent(d.\$id);
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(url):Promise.reject())
+      .then(function(){showToast('Lien copié !');})
+      .catch(function(){showToast(url,'error');});
+  };
+  \$('xbin-raw-btn').onclick=function(){
+    const w=window.open('','_blank');
+    if(w){w.document.write('<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;padding:20px;background:#0d0814;color:#f2ebff">'+esc(d.content||'')+'</pre>');w.document.close();}
+  };
+  if(isOwner){
+    \$('xbin-delete-btn').onclick=async function(){
+      if(!confirm('Supprimer définitivement ce paste ?'))return;
+      try{
+        await db.deleteDocument(DB,'xbin_pastes',d.\$id);
+        showToast('Paste supprimé.');
+        xbinView='mine';
+        try{const url=new URL(location.href);url.searchParams.delete('xbin');history.replaceState(null,'',url.pathname+(url.search?url.search:''));}catch(e){}
+        renderXBinShell();loadXBinMine();
+      }catch(e){showToast('Suppression impossible','error');}
+    };
+  }else{
+    \$('xbin-report-btn').onclick=async function(){
+      if(!me){showToast('Connecte-toi pour signaler un paste','error');return}
+      try{
+        await authPost('/api/report',{targetUid:d.authorId,targetName:d.authorName,reason:'contenu_inapproprie',source:'xbin_paste',contextId:d.\$id,messageText:(d.title||'')+' — '+(d.content||'').slice(0,400)});
+        showToast('Paste signalé, merci.');
+      }catch(e){showToast('Signalement impossible','error');}
+    };
+  }
+}
+// Onglet XBin sur les profils (pastes PUBLICS de la personne) — voir
+// openProfileModal, qui appelle cette fonction comme loadAndRenderHighlights.
+async function loadAndRenderXBinTab(uid,container){
+  if(!container)return;
+  let docs=[];
+  try{
+    const r=await db.listDocuments(DB,'xbin_pastes',[Appwrite.Query.equal('authorId',uid),Appwrite.Query.equal('visibility','public'),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(12)]);
+    docs=(r.documents||[]).filter(function(d){return !xbinIsExpired(d);});
+  }catch(e){container.classList.add('hidden');return}
+  if(!docs.length){container.classList.add('hidden');return}
+  container.classList.remove('hidden');
+  container.innerHTML='<div class="pm-section-label">📋 XBin</div>'+docs.map(function(d){
+    return '<button type="button" class="xbin-profile-item" data-xbin-open="'+d.\$id+'">'
+      +'<span class="xbin-lang-chip">'+esc(xbinLangLabel(d.language))+'</span>'
+      +'<span class="xbin-profile-title">'+esc(d.title||'Sans titre')+'</span>'
+      +'<span class="xbin-profile-views">👁️ '+(d.views||0)+'</span>'
+    +'</button>';
+  }).join('');
+  container.querySelectorAll('[data-xbin-open]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const pm=\$('modal-profile');if(pm)pm.classList.add('hidden');
+      openXBin(btn.getAttribute('data-xbin-open'));
+    });
+  });
+}
 /* ===== Casino virtuel (jetons fictifs, duels PvP entre membres) ===== */
 let casinoChips=0,casinoOpenDuels=[],casinoDuelUnsub=null;
 const casinoShownResults=new Set();
@@ -18278,6 +18719,11 @@ if('serviceWorker' in navigator){
 // nouvel onglet/une PWA fermée) — un seul endroit qui sait interpréter
 // ?dm=/?call=/?ticket=/?admintab=/?server=&channel=/?profile=/?invite=.
 function routeToDeepLink(urlStr){
+  let p0;
+  try{p0=new URL(urlStr,location.origin).searchParams;}catch(e){p0=null}
+  // xbin=<id> avant le garde-fou de connexion : un paste public/non-listé doit
+  // s'ouvrir même sans connexion (voir handleXBinDeepLink, même logique).
+  if(p0&&p0.get('xbin')){openXBin(p0.get('xbin'));return true}
   if(!me)return false;
   let p;
   try{p=new URL(urlStr,location.origin).searchParams;}catch(e){return false}
@@ -24459,6 +24905,7 @@ function boot(){
     xlog('sdk_ready',{});
     await handleEmailVerificationLink();
     await handlePasswordRecoveryLink();
+    handleXBinDeepLink();
     const s=readSession();
     if(!s){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();xlog('boot_no_session',{});return}
     try{
@@ -27010,7 +27457,7 @@ async function handle(request, event) {
       // des autres raisons — voir plus bas : jamais visible par BAP, jamais
       // laissé en ligne, escalade directe et exclusive à Shaman avec IP.
       const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "contenu_sexuel_mineur", "autre"];
-      const validSources = ["user", "dm_message", "server_message", "chatroulette"];
+      const validSources = ["user", "dm_message", "server_message", "chatroulette", "xbin_paste"];
       const source = validSources.indexOf(body && body.source) >= 0 ? body.source : "user";
       const messageId = String((body && body.messageId) || "").slice(0, 64);
       const messageText = String((body && body.messageText) || "").slice(0, 500);
@@ -27082,6 +27529,37 @@ async function handle(request, event) {
       });
     }
   }
+  // ===== XBin (partage de texte façon pastebin) =====
+  // Création/lecture/suppression d'un paste : écriture DIRECTE côté client
+  // via le SDK Appwrite (comme suggestions/stories/xm_playlists…), avec des
+  // permissions posées à la création selon la visibilité choisie — jamais
+  // besoin du Worker pour ça, exactement le même modèle que le reste de
+  // l'appli. Seule exception : incrémenter "views" quand un INCONNU consulte
+  // un paste public/non-listé exige un droit d'écriture qu'on ne peut PAS
+  // donner à "any" sans lui laisser aussi le pouvoir de modifier tout le
+  // reste du contenu — d'où cette seule route, qui ne touche jamais que
+  // "views", jamais le contenu.
+  if (path === "/api/xbin/view" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const id = String((body && body.id) || "").slice(0, 64);
+      if (!id) throw new Error("id requis");
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/xbin_pastes/documents/" + id, { asAdmin: true });
+      if (doc.visibility === "private") {
+        const acc = await resolveSessionUser(request);
+        if (!acc || acc.$id !== doc.authorId) {
+          return new Response(JSON.stringify({ ok: false, error: "not_found" }), { status: 404, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+        }
+      }
+      bgTask(awFetch("/databases/" + AW_DB + "/collections/xbin_pastes/documents/" + id, {
+        method: "PATCH", asAdmin: true, body: { data: { views: (doc.views || 0) + 1 } }
+      }));
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // ===== Carte des amis (§ partage de position) =====
   // Instantané, pas un suivi GPS continu : chaque appareil renvoie sa
   // position au mieux toutes les ~5 minutes tant que l'app est ouverte et
