@@ -313,6 +313,18 @@ function serverBoostLevel(server) {
   for (let i = 0; i < SERVER_BOOST_THRESHOLDS.length; i++) { if (count >= SERVER_BOOST_THRESHOLDS[i]) level = i + 1; }
   return level;
 }
+// Nombre d'emplacements (emojis/stickers) débloqués pour CE serveur — même
+// double-déverrouillage déjà utilisé pour la qualité audio/vidéo X1+ :
+// le propriétaire a X1+ à titre personnel, OU le serveur a atteint le
+// palier de boost 2, quel que soit le plan du propriétaire.
+async function serverExpressionSlots(server, baseCap, plusCap) {
+  let ownerIsPlus = false;
+  try {
+    const ownerMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + server.ownerId, { asAdmin: true });
+    ownerIsPlus = isUserPlus(ownerMeta);
+  } catch (e) {}
+  return (ownerIsPlus || serverBoostLevel(server) >= 2) ? plusCap : baseCap;
+}
 // Shaman (compte plateforme, cf SHAMAN_UIDS) est traité comme le propriétaire
 // de N'IMPORTE QUEL serveur pour tout ce qui touche aux panels de paramètres
 // et à la modération — sans avoir besoin d'être membre. Volontairement PAS
@@ -1024,6 +1036,15 @@ async function syncPlusBadge(uid) {
 // Accorde X1+ à vie (carte ou X1 Coins) — factorisé pour rester cohérent avec
 // le chemin déjà existant (Bug Hunter palier 5, badge ÉLITE) : jamais de
 // billing récurrent dans cette appli, un seul champ plan="plus" permanent.
+// Vérifie un abonnement X1+ RÉELLEMENT actif — jamais sur la simple
+// présence d'un champ dérivé (ex. planStorageGb, qui a une valeur par
+// défaut non nulle pour tout le monde côté schéma Appwrite). Petit helper
+// partagé pour remplacer les multiples vérifications inline
+// "meta.plan==='plus'" déjà dispersées dans ce fichier (quota X1 Drive,
+// qualité audio/vidéo, limite de bots…) au fil des évolutions successives.
+function isUserPlus(meta) {
+  return !!(meta && meta.plan === "plus");
+}
 async function grantPlus(uid, assignedBy) {
   const data = { plan: "plus", planAssignedBy: assignedBy, planAssignedAt: new Date().toISOString() };
   try {
@@ -5815,8 +5836,8 @@ if(\$('rp-av-wrap'))\$('rp-av-wrap').addEventListener('click',function(){if(\$('
 if(\$('reg-file-av'))\$('reg-file-av').addEventListener('change',function(){
   const file=this.files&&this.files[0];this.value='';
   if(!file)return;
-  if(file.size>8*1024*1024){showErrTxt('Avatar max 8 Mo');return}
-  if(file.type.indexOf('image/')!==0){showErrTxt('Choisis une image');return}
+  if(file.size>10*1024*1024){showErrTxt('Avatar max 10 Mo');return}
+  if(!isSafeImageFile(file)){showErrTxt('Format non supporté (PNG, JPG, WebP, AVIF ou GIF)');return}
   regAvatarFile=file;
   const r=new FileReader();
   r.onload=function(){regAvatarUrl=r.result;updateRegPreview()};
@@ -5826,8 +5847,8 @@ if(\$('rp-banner'))\$('rp-banner').addEventListener('click',function(){if(\$('re
 if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',function(){
   const file=this.files&&this.files[0];this.value='';
   if(!file)return;
-  if(file.size>8*1024*1024){showErrTxt('Bannière max 8 Mo');return}
-  if(file.type.indexOf('image/')!==0){showErrTxt('Choisis une image');return}
+  if(file.size>10*1024*1024){showErrTxt('Bannière max 10 Mo');return}
+  if(!isSafeImageFile(file)){showErrTxt('Format non supporté (PNG, JPG, WebP, AVIF ou GIF)');return}
   openBannerCropModal(file,function(blob){
     if(!blob)return;
     regBannerFile=new File([blob],'banner.jpg',{type:'image/jpeg'});
@@ -6055,7 +6076,7 @@ async function fetchMe(){
   return j.account;
 }
 
-let me=null, meProfile=null;
+let me=null, meProfile=null, meIsPlus=false;
 let e2eBackupPromptDismissed=false;
 
 /* ===== Chiffrement de bout en bout (E2E) — ECDH P-256 + AES-256-GCM ===== */
@@ -6519,6 +6540,7 @@ async function enterApp(e2ePassword){
   (async function(){
     try{
       const meta=await db.getDocument(DB,'user_meta',acc.\$id);
+      meIsPlus=!!(meta&&meta.plan==='plus');
       const extra=parseProfileExtra(meta&&meta.profileExtraJson);
       if(extra.disabled){
         extra.disabled=false;
@@ -7288,6 +7310,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.28',category:'feature',date:'2 septembre 2026',time:'23:10',title:'⭐ X1+ : plus d\\'espace de stockage, plus d\\'emojis, plus de bots',
+    body:'Le forfait X1+ devient beaucoup plus avantageux : ton espace X1 Drive passe de 1 Go à 256 Go, tes pièces jointes en message peuvent aller jusqu\\'à 30 Mo (contre 10 Mo en compte basique), et tes avatars/bannières jusqu\\'à 10 Mo avec des formats plus larges. Pour les propriétaires de serveur : le nombre d\\'emojis personnalisés passe de 50 à 150 dès que TOI, propriétaire, es en X1+ (même chose déjà en place avec le palier 2 de boosts serveur — les deux se cumulent), et la limite de bots installables sur un serveur passe de 25 à 50. Comme d\\'habitude, rien à faire de ton côté si tu es déjà en X1+, ces nouveaux plafonds s\\'appliquent automatiquement.'},
   {version:'4.55.27',category:'security',date:'2 septembre 2026',time:'22:20',title:'🛡️ Failles corrigées : réactions aux messages et bannière de profil',
     body:'Suite de la revue de sécurité : deux failles réelles ont été trouvées et corrigées. La première touchait les réactions (emoji) sur les messages privés — un contenu spécialement conçu à la place d\\'un emoji aurait pu s\\'exécuter chez les autres participants d\\'une conversation. La seconde touchait l\\'image de bannière des profils — une URL spécialement conçue aurait pu, elle aussi, exécuter du code chez qui consultait ce profil. Les deux sont corrigées, ainsi que quelques points renforcés par précaution ailleurs sur le site (serveurs, découverte). Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.26',category:'security',date:'2 septembre 2026',time:'22:10',title:'🛡️ Renforcement général de la sécurité du site',
@@ -12957,7 +12981,10 @@ function wirePeInputs(){
     this.value='';
   });
   if(\$('pe-avatar-file'))\$('pe-avatar-file').addEventListener('change',async function(){
-    const f=this.files&&this.files[0];if(!f)return;
+    const f=this.files&&this.files[0];this.value='';if(!f)return;
+    \$('pe-err').textContent='';
+    if(!isSafeImageFile(f)){\$('pe-err').textContent='Format non supporté (PNG, JPG, WebP, AVIF ou GIF)';return}
+    if(f.size>maxAvatarBannerBytes()){\$('pe-err').textContent='Avatar trop lourd : '+fmtSize(maxAvatarBannerBytes())+' max'+(meIsPlus?'':' (30 Mo avec X1+)');return}
     try{
       const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),f,[Appwrite.Permission.read(Appwrite.Role.any())]);
       peDraft.avatar=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
@@ -12966,6 +12993,9 @@ function wirePeInputs(){
   });
   if(\$('pe-banner-file'))\$('pe-banner-file').addEventListener('change',function(){
     const f=this.files&&this.files[0];this.value='';if(!f)return;
+    \$('pe-err').textContent='';
+    if(!isSafeImageFile(f)){\$('pe-err').textContent='Format non supporté (PNG, JPG, WebP, AVIF ou GIF)';return}
+    if(f.size>maxAvatarBannerBytes()){\$('pe-err').textContent='Bannière trop lourde : '+fmtSize(maxAvatarBannerBytes())+' max'+(meIsPlus?'':' (30 Mo avec X1+)');return}
     openBannerCropModal(f,async function(blob){
       if(!blob)return;
       try{
@@ -15388,7 +15418,17 @@ document.querySelectorAll('#attach-menu [data-attach]').forEach(function(btn){
     else if(kind==='location')shareLocation();
   });
 });
-const MAX_ATTACH_BYTES=25*1024*1024;
+function maxAttachBytes(){return meIsPlus?500*1024*1024:10*1024*1024;}
+// SVG explicitement exclu (jamais un simple oubli) : un SVG peut embarquer
+// du JavaScript, un vecteur XSS classique — voir l'audit de sécurité de
+// cette session. AVIF ajouté (léger, largement supporté) en plus des
+// formats déjà acceptés.
+function isSafeImageFile(file){
+  const type=(file&&file.type||'').toLowerCase();
+  if(type==='image/svg+xml')return false;
+  return type.indexOf('image/')===0;
+}
+function maxAvatarBannerBytes(){return meIsPlus?30*1024*1024:10*1024*1024;}
 const UPLOAD_CHUNK_SIZE=5*1024*1024;
 function uploadFileWithProgress(file,onProgress){
   // Au-delà de 5 Mo on garde le découpage par blocs du SDK Appwrite lui-même
@@ -15450,7 +15490,7 @@ function updateUploadProgressRow(row,loaded,total){
 }
 async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot,caption){
   if(!file||!activeDm)return;
-  if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
+  if(file.size>maxAttachBytes()){alert('Fichier trop volumineux ('+fmtSize(maxAttachBytes())+' max'+(meIsPlus?'':', 500 Mo avec X1+')+').');return}
   let type=kindHint;
   if(kindHint==='auto'){
     if(file.type.indexOf('image/')===0)type='image';
@@ -15490,7 +15530,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot
 }
 async function handleChannelFileAttach(file,kindHint){
   if(!file||!activeChannel)return;
-  if(file.size>MAX_ATTACH_BYTES){alert('Fichier trop volumineux (25 Mo max).');return}
+  if(file.size>maxAttachBytes()){alert('Fichier trop volumineux ('+fmtSize(maxAttachBytes())+' max'+(meIsPlus?'':', 500 Mo avec X1+')+').');return}
   let type=kindHint;
   if(kindHint==='auto'){
     if(file.type.indexOf('image/')===0)type='image';
@@ -27274,7 +27314,7 @@ async function renderServerSettingsTab(){
     \$('srv-emoji-err').textContent='';
     if(!/^[a-z0-9_]{2,32}\$/.test(name)){\$('srv-emoji-err').textContent='Nom invalide : 2 à 32 caractères, lettres/chiffres/underscore';return}
     if(!file){\$('srv-emoji-err').textContent='Choisis une image';return}
-    if(file.size>512*1024){\$('srv-emoji-err').textContent='Image trop lourde : 512 Ko max';return}
+    if(file.size>256*1024){\$('srv-emoji-err').textContent='Image trop lourde : 256 Ko max';return}
     this.disabled=true;this.textContent='Ajout…';
     try{
       const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
@@ -27302,7 +27342,7 @@ async function renderServerSettingsTab(){
     \$('srv-sticker-err').textContent='';
     if(name.length<2){\$('srv-sticker-err').textContent='Nom trop court : 2 caractères minimum';return}
     if(!file){\$('srv-sticker-err').textContent='Choisis une image';return}
-    if(file.size>1024*1024){\$('srv-sticker-err').textContent='Image trop lourde : 1 Mo max';return}
+    if(file.size>512*1024){\$('srv-sticker-err').textContent='Image trop lourde : 500 Ko max';return}
     this.disabled=true;this.textContent='Ajout…';
     try{
       const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())]);
@@ -29015,6 +29055,16 @@ async function handle(request, event) {
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "botAppId", values: [bot.$id] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
       if ((existingQ.documents || []).length) throw new Error("Ce bot est déjà sur ce serveur");
+      // Limite de bots installés SUR CE SERVEUR (distincte de la limite de
+      // bots CRÉÉS par un compte développeur, déjà existante ailleurs) :
+      // 25 par défaut, 50 si le propriétaire du serveur a X1+.
+      const allMembersQ = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+      const installedBotCount = (allMembersQ.documents || []).filter(function (m) { return !!m.botAppId; }).length;
+      const ownerMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + gate.server.ownerId, { asAdmin: true }).catch(function () { return null; });
+      const botInstallLimit = isUserPlus(ownerMeta) ? 50 : 25;
+      if (installedBotCount >= botInstallLimit) throw new Error("Limite de " + botInstallLimit + " bots installés atteinte pour ce serveur");
       // Le bot ne reçoit jamais plus que ce que l'installateur détient
       // lui-même, et jamais "administrator" (même si l'installateur l'a) —
       // un bot compromis reste borné aux permissions de modération
@@ -34016,7 +34066,8 @@ async function handle(request, event) {
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
       const list = existing.documents || [];
       if (list.some(function (e) { return e.name.toLowerCase() === name; })) throw new Error("Un emoji porte déjà ce nom sur ce serveur");
-      if (list.length >= 50) throw new Error("Limite de 50 emojis personnalisés atteinte pour ce serveur");
+      const emojiCap = await serverExpressionSlots(gate.server, 50, 150);
+      if (list.length >= emojiCap) throw new Error("Limite de " + emojiCap + " emojis personnalisés atteinte pour ce serveur" + (emojiCap === 50 ? " (150 avec X1+ du propriétaire ou palier de boost 2)" : ""));
       const emoji = await awFetch("/databases/" + AW_DB + "/collections/server_emojis/documents", {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: { serverId: serverId, name: name, imageUrl: imageUrl, creatorUid: String(acc.$id) } }
