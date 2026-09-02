@@ -2053,6 +2053,22 @@ html.xultra-restoring #stage{visibility:hidden}
 .xd-quota-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:99px;transition:width .4s ease}
 .xd-quota-fill.xd-quota-warn{background:linear-gradient(90deg,#f59e0b,#ef4444)}
 .xd-quota-txt{font-size:.7rem;color:var(--muted)}
+.xd-quota-detail-btn{width:100%;margin-top:10px;padding:7px 8px;border-radius:9px;border:1px solid rgba(167,139,250,.25);background:rgba(124,58,237,.1);color:#e9d5ff;font-size:.68rem;font-weight:700;cursor:pointer}
+.xd-quota-detail-btn:hover{background:rgba(124,58,237,.2)}
+.xd-dash-donut{width:180px;height:180px;border-radius:50%;margin:0 auto 20px;position:relative;flex-shrink:0}
+.xd-dash-donut::after{content:'';position:absolute;inset:22px;border-radius:50%;background:#160c26}
+.xd-dash-donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1}
+.xd-dash-donut-center b{font-size:1.15rem;color:#f2ebff}
+.xd-dash-donut-center span{font-size:.65rem;color:var(--muted)}
+.xd-dash-legend{display:flex;flex-direction:column;gap:10px;flex:1;min-width:200px}
+.xd-dash-legend-row{display:flex;align-items:center;gap:10px;font-size:.82rem}
+.xd-dash-legend-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0}
+.xd-dash-legend-name{flex:1;color:#f2ebff;font-weight:600}
+.xd-dash-legend-val{color:var(--muted);font-size:.75rem}
+.xd-dash-top-row{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.05);font-size:.8rem}
+.xd-dash-top-row:last-child{border-bottom:0}
+.xd-dash-top-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f2ebff}
+.xd-dash-top-size{color:var(--muted);font-size:.72rem;flex-shrink:0}
 .xd-main{flex:1;min-width:0;display:flex;flex-direction:column}
 .xd-toolbar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .xd-breadcrumb{display:flex;align-items:center;gap:4px;flex:1;min-width:120px;font-size:.85rem;font-weight:700;overflow-x:auto;white-space:nowrap}
@@ -7060,6 +7076,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.20',category:'feature',date:'2 septembre 2026',time:'02:20',title:'⌨️ X1 Drive : raccourcis clavier et tableau de bord de stockage',
+    body:'X1 Drive se comporte un peu plus comme un vrai gestionnaire de fichiers : Suppr pour mettre à la corbeille, Ctrl/Cmd+A pour tout sélectionner, Entrée pour ouvrir, F2 pour renommer, Échap pour désélectionner ou fermer. Et un nouveau bouton "📊 Détails du stockage" dans la barre latérale affiche la répartition de ton espace par type de fichier (photos, vidéos, documents…) avec un petit graphique, plus la liste de tes plus gros fichiers.'},
   {version:'4.55.19',category:'design',date:'2 septembre 2026',time:'01:45',title:'🖼️ X1 Drive : vraies miniatures et aperçus plus soignés',
     body:'Tes images affichent maintenant de vraies petites miniatures dans la grille et la liste (déchiffrées directement dans ton navigateur au fur et à mesure que tu fais défiler, jamais générées par nos serveurs — le zero-knowledge reste entier). L\\'aperçu audio a aussi une nouvelle carte plus jolie, et l\\'aperçu PDF a maintenant un bouton pour l\\'ouvrir dans un nouvel onglet.'},
   {version:'4.55.18',category:'fix',date:'2 septembre 2026',time:'01:10',title:'🔗 X1 Drive : corrigé, les liens de partage ne fonctionnaient plus',
@@ -17700,6 +17718,36 @@ function xdListHtml(docs){
 function xdItemById(id){
   return xdCurrentListing.find(function(d){return d.\$id===id;});
 }
+function xdOpenItem(item){
+  if(!item)return;
+  if(item.type==='folder'&&xdSection==='teamshared'){
+    xdSection='drive';
+    xdSearchQuery='';const si0=\$('xd-search');if(si0)si0.value='';
+    const ov=\$('xdrive-overlay');
+    if(ov)ov.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-xd-section')==='drive');});
+    xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||item.\$id}];
+    xdCurrentFolder=item.\$id;
+    xdCurrentSharedFolderId=item.sharedFolderId||item.\$id;
+    xdRenderCurrentView();
+  }else if(item.type==='folder'&&xdSection==='drive'){
+    // Un résultat de recherche globale n'a pas de chaîne d'ancêtres
+    // fiable (juste le dossier lui-même) : le fil d'Ariane repart de ce
+    // dossier plutôt que de s'empiler sur un fil qui ne correspond à
+    // rien de réel.
+    if(xdSearchQuery.trim()){
+      xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''}];
+      xdSearchQuery='';const si=\$('xd-search');if(si)si.value='';
+    }else{
+      xdBreadcrumb.push({id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''});
+    }
+    xdCurrentFolder=item.\$id;
+    xdCurrentSharedFolderId=item.sharedFolderId||'';
+    xdRenderCurrentView();
+  }else if(item.type==='file'){
+    if(xdIsPreviewable(item._mime))xdOpenPreview(item);
+    else xdDownloadItem(item);
+  }
+}
 function xdWireItemEvents(container){
   container.querySelectorAll('[data-xd-id]').forEach(function(el){
     el.addEventListener('click',function(e){
@@ -17707,34 +17755,7 @@ function xdWireItemEvents(container){
       if(xdSelectedIds.size>0){xdToggleSelect(el.getAttribute('data-xd-id'));return}
       const id=el.getAttribute('data-xd-id');
       const item=xdItemById(id);
-      if(!item)return;
-      if(item.type==='folder'&&xdSection==='teamshared'){
-        xdSection='drive';
-        xdSearchQuery='';const si0=\$('xd-search');if(si0)si0.value='';
-        const ov=\$('xdrive-overlay');
-        if(ov)ov.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-xd-section')==='drive');});
-        xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||item.\$id}];
-        xdCurrentFolder=item.\$id;
-        xdCurrentSharedFolderId=item.sharedFolderId||item.\$id;
-        xdRenderCurrentView();
-      }else if(item.type==='folder'&&xdSection==='drive'){
-        // Un résultat de recherche globale n'a pas de chaîne d'ancêtres
-        // fiable (juste le dossier lui-même) : le fil d'Ariane repart de ce
-        // dossier plutôt que de s'empiler sur un fil qui ne correspond à
-        // rien de réel.
-        if(xdSearchQuery.trim()){
-          xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''}];
-          xdSearchQuery='';const si=\$('xd-search');if(si)si.value='';
-        }else{
-          xdBreadcrumb.push({id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''});
-        }
-        xdCurrentFolder=item.\$id;
-        xdCurrentSharedFolderId=item.sharedFolderId||'';
-        xdRenderCurrentView();
-      }else if(item.type==='file'){
-        if(xdIsPreviewable(item._mime))xdOpenPreview(item);
-        else xdDownloadItem(item);
-      }
+      xdOpenItem(item);
     });
     el.addEventListener('contextmenu',function(e){
       e.preventDefault();
@@ -17821,6 +17842,53 @@ async function xdBulkDelete(){
   }
   xdClearSelection();
 }
+/* ===== Raccourcis clavier — un vrai gestionnaire de fichiers de bureau
+   plutôt qu'une simple grille cliquable : Échap, Suppr, Ctrl/Cmd+A, Entrée,
+   F2. Un seul écouteur global posé une fois pour toutes (jamais réattaché
+   à chaque ouverture de X1 Drive, ce qui aurait fini par en empiler
+   plusieurs au fil des sessions) — il ne fait quoi que ce soit que quand
+   la fenêtre X1 Drive est réellement affichée, qu'aucune autre fenêtre/
+   menu contextuel n'est ouvert par-dessus, et qu'on n'est pas en train de
+   taper dans un champ texte. */
+function xdKeydownGuardBusy(){
+  if(document.querySelector('.overlay:not(.hidden)'))return true;
+  if(document.querySelector('.xd-ctx-menu'))return true;
+  return false;
+}
+document.addEventListener('keydown',function(e){
+  const overlay=\$('xdrive-overlay');
+  if(!overlay||!overlay.classList.contains('show'))return;
+  const tag=(e.target&&e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='textarea'||tag==='select'||(e.target&&e.target.isContentEditable))return;
+  if(xdKeydownGuardBusy())return;
+  if(e.key==='Escape'){
+    if(xdSelectedIds.size){xdClearSelection();return}
+    closeXDrive();
+    return;
+  }
+  if((e.key==='Delete'||e.key==='Backspace')&&xdSelectedIds.size&&xdSection==='drive'){
+    e.preventDefault();xdBulkDelete();return;
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'&&xdCurrentListing.length){
+    e.preventDefault();
+    xdCurrentListing.forEach(function(d){xdSelectedIds.add(d.\$id);});
+    xdRenderSelectionBar();xdRenderCurrentView();
+    return;
+  }
+  if(e.key==='Enter'&&xdSelectedIds.size===1){
+    e.preventDefault();
+    const item=xdItemById(Array.from(xdSelectedIds)[0]);
+    xdClearSelection();
+    xdOpenItem(item);
+    return;
+  }
+  if(e.key==='F2'&&xdSelectedIds.size===1&&xdSection==='drive'){
+    e.preventDefault();
+    const item=xdItemById(Array.from(xdSelectedIds)[0]);
+    if(item)xdRenameItem(item);
+    return;
+  }
+});
 async function xdBulkMove(){
   const ids=Array.from(xdSelectedIds).filter(function(id){const it=xdItemById(id);return !it||!it.sharedFolderId;});
   if(!ids.length){showToast('Déplacement pas encore disponible pour des éléments d\\'un dossier partagé','error');return}
@@ -18102,13 +18170,94 @@ async function xdToggleVisibility(item){
 }
 
 /* ===== Barre de quota ===== */
+/* ===== Tableau de bord de stockage : répartition par type de fichier.
+   Calculé entièrement côté navigateur (comme la recherche globale — les
+   noms/types sont chiffrés, impossible de faire cette agrégation côté
+   serveur sans casser le zero-knowledge) à partir de tous les fichiers
+   possédés (dossiers personnels + dossiers partagés qu'on possède ; pas
+   les fichiers d'un dossier partagé dont on est simple membre, ni la
+   corbeille). Plafonné à 1000 fichiers, comme la recherche globale. */
+const XD_DASH_CATEGORIES=[
+  {key:'image',label:'Images',color:'#a855f7',test:function(m){return m.indexOf('image/')===0;}},
+  {key:'video',label:'Vidéos',color:'#ec4899',test:function(m){return m.indexOf('video/')===0;}},
+  {key:'audio',label:'Audio',color:'#f59e0b',test:function(m){return m.indexOf('audio/')===0;}},
+  {key:'doc',label:'Documents',color:'#22c55e',test:function(m){return m==='application/pdf'||m.indexOf('word')>=0||m.indexOf('document')>=0||m.indexOf('sheet')>=0||m.indexOf('excel')>=0||m.indexOf('presentation')>=0||m.indexOf('powerpoint')>=0||m.indexOf('text/')===0||m==='application/json';}},
+  {key:'archive',label:'Archives',color:'#38bdf8',test:function(m){return m.indexOf('zip')>=0||m.indexOf('rar')>=0||m.indexOf('7z')>=0||m.indexOf('tar')>=0||m.indexOf('gzip')>=0;}},
+  {key:'other',label:'Autres',color:'#6b7280',test:function(){return true;}}
+];
+function xdCategorize(mime){
+  const m=(mime||'').toLowerCase();
+  for(let i=0;i<XD_DASH_CATEGORIES.length;i++){if(XD_DASH_CATEGORIES[i].test(m))return XD_DASH_CATEGORIES[i];}
+  return XD_DASH_CATEGORIES[XD_DASH_CATEGORIES.length-1];
+}
+async function xdComputeStorageBreakdown(){
+  const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('type','file'),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(1000)]);
+  const docs=r.documents||[];
+  await Promise.all(docs.map(xdDecryptItemMeta));
+  const totals={};
+  XD_DASH_CATEGORIES.forEach(function(c){totals[c.key]={bytes:0,count:0};});
+  docs.forEach(function(d){
+    const cat=xdCategorize(d._mime);
+    totals[cat.key].bytes+=(d.size||0);
+    totals[cat.key].count++;
+  });
+  const top=docs.slice().sort(function(a,b){return (b.size||0)-(a.size||0);}).slice(0,10);
+  const totalBytes=docs.reduce(function(s,d){return s+(d.size||0);},0);
+  return {totals:totals,top:top,totalBytes:totalBytes,count:docs.length};
+}
+function xdBuildDonutGradient(totals,totalBytes){
+  if(!totalBytes)return 'conic-gradient(#2a1f3d 0% 100%)';
+  let acc=0;
+  const stops=[];
+  XD_DASH_CATEGORIES.forEach(function(c){
+    const pct=totals[c.key].bytes/totalBytes*100;
+    if(pct<=0)return;
+    stops.push(c.color+' '+acc+'% '+(acc+pct)+'%');
+    acc+=pct;
+  });
+  if(!stops.length)return 'conic-gradient(#2a1f3d 0% 100%)';
+  return 'conic-gradient('+stops.join(',')+')';
+}
+async function xdShowStorageDashboard(){
+  const box=document.createElement('div');
+  box.className='overlay';
+  box.style.cssText='position:fixed;inset:0;z-index:4000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6)';
+  box.innerHTML='<div class="modal-box" style="max-width:600px"><h3>📊 Détails du stockage</h3><div id="xd-dash-body" style="margin-top:14px"><div class="xbin-loading"><span class="bs-ring"></span></div></div><button type="button" class="set-mini-btn" id="xd-dash-close" style="width:100%;margin-top:16px">Fermer</button></div>';
+  document.body.appendChild(box);
+  box.querySelector('#xd-dash-close').onclick=function(){box.remove();};
+  const bodyEl=box.querySelector('#xd-dash-body');
+  try{
+    const data=await xdComputeStorageBreakdown();
+    const gradient=xdBuildDonutGradient(data.totals,data.totalBytes);
+    const legendHtml=XD_DASH_CATEGORIES.map(function(c){
+      const t=data.totals[c.key];
+      const pct=data.totalBytes?Math.round(t.bytes/data.totalBytes*100):0;
+      return '<div class="xd-dash-legend-row"><span class="xd-dash-legend-dot" style="background:'+c.color+'"></span><span class="xd-dash-legend-name">'+c.label+'</span><span class="xd-dash-legend-val">'+xdFmtBytes(t.bytes)+' · '+t.count+' · '+pct+'%</span></div>';
+    }).join('');
+    const topHtml=data.top.length?data.top.map(function(d){
+      const icon=xdFileIcon(d._mime,d.type);
+      return '<div class="xd-dash-top-row"><span>'+icon+'</span><span class="xd-dash-top-name">'+esc(d._name)+'</span><span class="xd-dash-top-size">'+xdFmtBytes(d.size)+'</span></div>';
+    }).join(''):'<div class="empty-hint">Aucun fichier pour l\\'instant.</div>';
+    bodyEl.innerHTML='<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center;justify-content:center">'
+      +'<div class="xd-dash-donut" style="background:'+gradient+'"><div class="xd-dash-donut-center"><b>'+data.count+'</b><span>fichier'+(data.count>1?'s':'')+'</span></div></div>'
+      +'<div class="xd-dash-legend">'+legendHtml+'</div>'
+      +'</div>'
+      +'<div class="set-section-label" style="margin-top:22px">📦 Les plus gros fichiers</div>'
+      +topHtml;
+  }catch(e){
+    bodyEl.innerHTML='<div class="empty-hint">Impossible de calculer la répartition pour l\\'instant.</div>';
+  }
+}
 function xdRenderQuotaBox(){
   const box=\$('xd-quota-box');if(!box||!xdDriveMeta)return;
   const used=xdDriveMeta.used||0,quota=xdDriveMeta.quota||1073741824;
   const pct=Math.min(100,Math.round(used/quota*100));
   box.innerHTML='<div class="xd-quota-txt">'+xdFmtBytes(used)+' / '+xdFmtBytes(quota)+'</div>'
     +'<div class="xd-quota-bar"><div class="xd-quota-fill'+(pct>=90?' xd-quota-warn':'')+'" style="width:'+pct+'%"></div></div>'
-    +'<div class="xd-quota-txt">'+pct+'% utilisé'+(pct>=90?' — presque plein !':'')+'</div>';
+    +'<div class="xd-quota-txt">'+pct+'% utilisé'+(pct>=90?' — presque plein !':'')+'</div>'
+    +'<button type="button" class="xd-quota-detail-btn" id="xd-quota-detail-btn">📊 Détails du stockage</button>';
+  const detailBtn=\$('xd-quota-detail-btn');
+  if(detailBtn)detailBtn.onclick=xdShowStorageDashboard;
 }
 
 /* ===== Partage =====
