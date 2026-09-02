@@ -18594,29 +18594,34 @@ async function xdRestoreItem(item){
 async function xdPermanentDelete(item){
   if(!confirm('Supprimer définitivement "'+item._name+'" ? Cette action est irréversible.'))return;
   try{
-    let versionsFreed=0;
+    let versions=[];
     if(item.type==='file'){
       // Les anciennes versions archivées (📜 Historique) ont leur PROPRE
       // fichier Storage, jamais nettoyé par la suppression du seul document
       // "xdrive_items" — sans ce ménage, elles resteraient orphelines pour
       // toujours (facturées sur le quota, plus jamais accessibles ni
       // supprimables une fois l'élément parent disparu).
-      let versions=[];
       try{
         const r=await db.listDocuments(DB,'xdrive_versions',[Appwrite.Query.equal('itemId',item.\$id),Appwrite.Query.limit(200)]);
         versions=r.documents||[];
       }catch(e){}
-      for(const v of versions){
-        if(v.fileId)await storage.deleteFile('xultra_drive',v.fileId).catch(function(){});
-        await db.deleteDocument(DB,'xdrive_versions',v.\$id).catch(function(){});
-        versionsFreed+=v.size||0;
-      }
-      if(item.fileId){
-        await storage.deleteFile('xultra_drive',item.fileId).catch(function(){});
-      }
     }
-    const totalFreed=(item.size||0)+versionsFreed;
-    if(totalFreed>0){try{await authPost('/api/xdrive/commit-delete',{size:totalFreed});}catch(e){}}
+    // commit-delete AVANT toute suppression de document : le serveur y lit
+    // lui-même les tailles réelles (item + versions), jamais une taille
+    // annoncée par le client — sinon rien n'empêchait de déclarer une taille
+    // arbitraire après avoir supprimé un fichier minuscule.
+    let totalFreed=0;
+    try{
+      const r=await authPost('/api/xdrive/commit-delete',{itemIds:[item.\$id],versionIds:versions.map(function(v){return v.\$id;})});
+      totalFreed=r.freed||0;
+    }catch(e){}
+    for(const v of versions){
+      if(v.fileId)await storage.deleteFile('xultra_drive',v.fileId).catch(function(){});
+      await db.deleteDocument(DB,'xdrive_versions',v.\$id).catch(function(){});
+    }
+    if(item.type==='file'&&item.fileId){
+      await storage.deleteFile('xultra_drive',item.fileId).catch(function(){});
+    }
     await db.deleteDocument(DB,'xdrive_items',item.\$id);
     showToast('Supprimé définitivement.');
     if(xdDriveMeta&&totalFreed)xdDriveMeta.used=Math.max(0,xdDriveMeta.used-totalFreed);
@@ -19244,9 +19249,12 @@ async function xdShowVersionHistory(item){
       const v=versions.find(function(x){return x.\$id===vid;});
       if(!v)return;
       try{
+        // commit-delete AVANT la suppression du document : le serveur y lit
+        // lui-même la taille réelle de la version, jamais une taille annoncée
+        // par le client.
+        try{await authPost('/api/xdrive/commit-delete',{versionIds:[vid]});}catch(e){}
         if(v.fileId)await storage.deleteFile('xultra_drive',v.fileId).catch(function(){});
         await db.deleteDocument(DB,'xdrive_versions',vid);
-        try{await authPost('/api/xdrive/commit-delete',{size:v.size||0});}catch(e){}
         showToast('Version supprimée.');
         btn.closest('.xd-row').remove();
       }catch(e){showToast('Suppression impossible','error');}
@@ -30618,11 +30626,33 @@ async function handle(request, event) {
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const body = await request.json();
-      const size = Math.max(0, parseInt((body && body.size) || 0, 10) || 0);
+      // La taille libérée est dérivée ICI, jamais du "size" fourni par le
+      // client (l'ancien comportement) : rien ne l'empêchait de déclarer une
+      // taille arbitraire après avoir supprimé un fichier minuscule, gonflant
+      // à volonté son quota disponible. On exige donc les IDs des éléments/
+      // versions supprimés — appelée AVANT la suppression des documents
+      // correspondants (voir les appelants), pour pouvoir encore lire leur
+      // "size" réel, et on vérifie au passage que chacun appartient bien à
+      // l'appelant.
+      const itemIds = Array.isArray(body && body.itemIds) ? body.itemIds.slice(0, 50).map(String) : [];
+      const versionIds = Array.isArray(body && body.versionIds) ? body.versionIds.slice(0, 200).map(String) : [];
+      let size = 0;
+      for (const id of itemIds) {
+        try {
+          const doc = await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + id, { asAdmin: true });
+          if (doc && String(doc.ownerId) === String(acc.$id)) size += doc.size || 0;
+        } catch (e) {}
+      }
+      for (const id of versionIds) {
+        try {
+          const doc = await awFetch("/databases/" + AW_DB + "/collections/xdrive_versions/documents/" + id, { asAdmin: true });
+          if (doc && String(doc.ownerId) === String(acc.$id)) size += doc.size || 0;
+        } catch (e) {}
+      }
       const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
       const newUsed = Math.max(0, ((meta && meta.diskUsed) || 0) - size);
       await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { diskUsed: newUsed }, permissions: ["read(\"any\")"] } });
-      return new Response(JSON.stringify({ ok: true, used: newUsed }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, used: newUsed, freed: size }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -31469,11 +31499,30 @@ async function handle(request, event) {
       const body = await request.json();
       const reportId = String((body && body.reportId) || "");
       if (!reportId) throw new Error("reportId requis");
+      // Un upvote par compte et par rapport — même schéma que
+      // xm_tracks/xm_likes (collection de jointure uid+reportId), pas de
+      // simple incrémentation directe : sans ça, rien n'empêchait un même
+      // compte de rappeler cette route en boucle pour gonfler artificiellement
+      // le compteur d'un rapport.
+      const qs = "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "reportId", values: [reportId] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/bug_upvotes/documents?" + qs, { asAdmin: true });
       const report = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, { asAdmin: true });
+      let upvoted, upvotes;
+      if ((existing.documents || []).length) {
+        await awFetch("/databases/" + AW_DB + "/collections/bug_upvotes/documents/" + existing.documents[0].$id, { method: "DELETE", asAdmin: true });
+        upvoted = false;
+        upvotes = Math.max(0, (Number(report.upvotes) || 0) - 1);
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/bug_upvotes/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, reportId: reportId }, permissions: ["read(\"any\")"] } });
+        upvoted = true;
+        upvotes = (Number(report.upvotes) || 0) + 1;
+      }
       const doc = await awFetch("/databases/" + AW_DB + "/collections/bug_reports/documents/" + reportId, {
-        method: "PATCH", asAdmin: true, body: { data: { upvotes: (Number(report.upvotes) || 0) + 1 } }
+        method: "PATCH", asAdmin: true, body: { data: { upvotes: upvotes } }
       });
-      return new Response(JSON.stringify({ ok: true, upvotes: doc.upvotes }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, upvoted: upvoted, upvotes: doc.upvotes }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
