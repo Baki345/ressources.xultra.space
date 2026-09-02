@@ -5162,7 +5162,11 @@ window.__awReady=false;
 </script>
 <script>
 function \$(id){return document.getElementById(id)}
-function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+// Échappe aussi l'apostrophe (&#39;) — pas seulement les guillemets doubles :
+// un audit de sécurité a montré que certains attributs HTML de ce fichier
+// sont délimités par des guillemets SIMPLES (style='...'), où esc() sans
+// cette dernière règle ne protégeait pas contre une évasion d'attribut.
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function ini(n){return String(n||'?').trim().charAt(0).toUpperCase()||'?'}
 function slugUsername(name){
   let s=String(name||'');
@@ -7284,6 +7288,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.27',category:'security',date:'2 septembre 2026',time:'22:20',title:'🛡️ Failles corrigées : réactions aux messages et bannière de profil',
+    body:'Suite de la revue de sécurité : deux failles réelles ont été trouvées et corrigées. La première touchait les réactions (emoji) sur les messages privés — un contenu spécialement conçu à la place d\\'un emoji aurait pu s\\'exécuter chez les autres participants d\\'une conversation. La seconde touchait l\\'image de bannière des profils — une URL spécialement conçue aurait pu, elle aussi, exécuter du code chez qui consultait ce profil. Les deux sont corrigées, ainsi que quelques points renforcés par précaution ailleurs sur le site (serveurs, découverte). Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.26',category:'security',date:'2 septembre 2026',time:'22:10',title:'🛡️ Renforcement général de la sécurité du site',
     body:'Passage en revue de la sécurité de X1 : la vérification anti-robot (Turnstile) à la connexion n\\'était affichée que côté visuel, sans être vérifiée par le serveur — corrigé, avec en plus une limite sur le nombre de tentatives par compte en cas d\\'échecs répétés. Une politique de sécurité du contenu (Content-Security-Policy) a aussi été ajoutée, une protection supplémentaire du navigateur contre l\\'injection de code malveillant. Aucune action requise de ton côté — ces changements sont invisibles au quotidien.'},
   {version:'4.55.25',category:'security',date:'2 septembre 2026',time:'17:45',title:'🔒 Portefeuille X1 Coins : correction d\\'une faille de sécurité',
@@ -12284,7 +12290,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const bgColor=p.bgColor||themeColor;
   const bannerImg=safeUrl(p.bg);
   let bannerStyle;
-  if(bgType==='image'&&bannerImg)bannerStyle='background-image:url(\\''+bannerImg.replace(/'/g,'%27')+'\\');background-size:cover;background-position:center';
+  if(bgType==='image'&&bannerImg)bannerStyle='background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\');background-size:cover;background-position:center';
   else if(bgType==='color')bannerStyle='background:'+esc(bgColor);
   else bannerStyle='background:linear-gradient(135deg,'+esc(bgColor)+',#0b0614)';
   const btnColor=p.btnColor||bgColor;
@@ -13987,7 +13993,7 @@ function msgReactionsHtml(reactionsJson,onToggleAttr){
   return '<div class="msg-reactions">'+keys.map(function(emo){
     const uids=(reactions[emo]||[]).map(String);
     const mine=me&&uids.indexOf(String(me.\$id))>=0;
-    return '<button type="button" class="reaction-pill'+(mine?' mine':'')+'" '+onToggleAttr+'="'+esc(emo)+'">'+emo+' <span>'+uids.length+'</span></button>';
+    return '<button type="button" class="reaction-pill'+(mine?' mine':'')+'" '+onToggleAttr+'="'+esc(emo)+'">'+esc(emo)+' <span>'+uids.length+'</span></button>';
   }).join('')+'</div>';
 }
 function msgReplyQuoteHtml(replyToId,findFn){
@@ -24763,7 +24769,7 @@ function renderDiscoverBrowse(all){
   html+=catKeys.map(function(cat,ci){
     const items=byCat[cat];
     return '<div class="discover-cat-section" style="animation-delay:'+(120+ci*70)+'ms">'
-      +'<div class="discover-cat-header"><span>'+(SERVER_CATEGORY_LABELS[cat]||cat)+'</span><span class="discover-cat-count">'+items.length+'</span></div>'
+      +'<div class="discover-cat-header"><span>'+esc(SERVER_CATEGORY_LABELS[cat]||cat)+'</span><span class="discover-cat-count">'+items.length+'</span></div>'
       +'<div class="discover-cat-row">'+items.map(function(s){
         return '<div class="discover-mini-card" data-discover-open="'+esc(s.\$id)+'">'
           +'<div class="discover-mini-icon">'+serverIconHtml(s)+'</div>'
@@ -26615,7 +26621,7 @@ function renderServerRolesTab(){
     const memberCount=activeServerMembers.filter(function(m){return (m.roleIds||[]).indexOf(r.\$id)>=0;}).length;
     return '<div class="set-card" data-srv-role-id="'+esc(r.\$id)+'">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';flex-shrink:0"></span><b>'+esc(r.name)+'</b>'+(r.mentionable?' <span class="scr-sub">📣</span>':'')+'</div>'
-      +'<div class="scr-sub" style="margin-bottom:10px">'+(perms.length?perms.map(function(p){const d=SERVER_PERM_DEFS.find(function(x){return x.key===p});return d?d.icon+' '+d.label:p;}).join(', '):'Aucune permission')+'</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">'+(perms.length?perms.map(function(p){const d=SERVER_PERM_DEFS.find(function(x){return x.key===p});return d?d.icon+' '+d.label:esc(p);}).join(', '):'Aucune permission')+'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="set-mini-btn" data-srv-role-members="'+esc(r.\$id)+'">👥 '+memberCount+' membre'+(memberCount!==1?'s':'')+'</button>'
       +'<button type="button" class="set-mini-btn" data-srv-role-edit="'+esc(r.\$id)+'">Modifier</button>'
       +'<button type="button" class="set-mini-btn" data-srv-role-up="'+esc(r.\$id)+'"'+(idx===0?' disabled':'')+' title="Monter">▲</button>'
@@ -26984,7 +26990,7 @@ async function renderServerSettingsTab(){
     +'<div class="set-row"><label>Nom</label><input type="text" id="srv-set-name" class="field-input" maxlength="100" value="'+esc(activeServer.name)+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="srv-set-desc" class="field-input" maxlength="500" rows="3">'+esc(activeServer.description||'')+'</textarea></div>'
     +'<div class="set-row"><label>Icône</label><div class="srv-item-icon" id="srv-set-icon-preview" style="cursor:pointer">'+serverIconHtml(activeServer)+'</div><input type="file" id="srv-set-icon-file" accept="image/*" class="hidden"></div>'
-    +'<div class="set-row"><label>Bannière</label><div class="srv-detail-banner" id="srv-set-banner-preview" style="height:70px;border-radius:10px;cursor:pointer'+(safeUrl(activeServer.banner)?';background-image:url('+JSON.stringify(safeUrl(activeServer.banner))+')':'')+'"></div><input type="file" id="srv-set-banner-file" accept="image/*" class="hidden"></div>'
+    +'<div class="set-row"><label>Bannière</label><div class="srv-detail-banner" id="srv-set-banner-preview" style="height:70px;border-radius:10px;cursor:pointer"></div><input type="file" id="srv-set-banner-file" accept="image/*" class="hidden"></div>'
     +'<button type="button" class="btn-main" id="srv-set-save">Enregistrer</button>'
     +'<div class="err" id="srv-set-err"></div>'
     +'</div>'
@@ -27117,6 +27123,11 @@ async function renderServerSettingsTab(){
     const r=new FileReader();r.onload=function(){iconPrev.innerHTML='<img src="'+r.result+'" alt="">';};r.readAsDataURL(f);
   });
   const bannerPrev=\$('srv-set-banner-preview'),bannerFile=\$('srv-set-banner-file');
+  // Posé via la CSSOM (jamais concaténé dans le HTML) : une URL de bannière
+  // avec un guillemet double casserait l'attribut style="..." si elle était
+  // insérée par concaténation de chaîne, même via JSON.stringify (qui
+  // échappe pour la syntaxe JS/JSON, pas pour un attribut HTML).
+  if(bannerPrev&&safeUrl(activeServer.banner))bannerPrev.style.backgroundImage='url('+JSON.stringify(safeUrl(activeServer.banner))+')';
   if(bannerPrev)bannerPrev.onclick=function(){bannerFile.click();};
   if(bannerFile)bannerFile.addEventListener('change',function(){
     const f=this.files&&this.files[0];this.value='';if(!f)return;
@@ -27484,7 +27495,7 @@ async function loadServerBotsTab(){
     if(!bots.length){box.innerHTML='<div class="scr-sub">Aucun bot installé sur ce serveur.</div>';return}
     const canVoice=serverHasPermission('manage_voice');
     box.innerHTML=bots.map(function(b){
-      const permsLabel=(b.permissions&&b.permissions.length)?b.permissions.map(function(k){const d=SERVER_PERM_DEFS.find(function(x){return x.key===k;});return d?d.icon:k;}).join(' '):'aucune permission de modération';
+      const permsLabel=(b.permissions&&b.permissions.length)?b.permissions.map(function(k){const d=SERVER_PERM_DEFS.find(function(x){return x.key===k;});return d?d.icon:esc(k);}).join(' '):'aucune permission de modération';
       return '<div class="set-card-row" style="flex-wrap:wrap"><div class="scr-info"><div class="scr-label">🤖 '+esc(b.name)+(b.online?' <span style="color:#4ade80">●</span>':' <span style="color:#6b7280">●</span>')+(b.voiceEnabled?' 🎙️':'')+'</div><div class="scr-sub">'+esc(b.description||'Sans description')+' · '+(b.commands.length?b.commands.length+' commande'+(b.commands.length!==1?'s':''):'aucune commande')+' · '+permsLabel+'</div></div>'
         +'<div style="display:flex;gap:6px"><button type="button" class="set-mini-btn" data-srv-bot-perms="'+esc(b.memberDocId)+'">🔧 Permissions</button><button type="button" class="set-mini-btn danger" data-srv-bot-remove="'+esc(b.memberDocId)+'">Retirer</button></div>'
         +'<div class="hidden" id="srv-bot-perms-editor-'+esc(b.memberDocId)+'" style="width:100%;margin-top:8px">'+BOT_GRANTABLE_PERM_KEYS.map(function(k){
