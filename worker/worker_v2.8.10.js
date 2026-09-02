@@ -1997,6 +1997,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .xbin-body{max-width:1080px;margin:0 auto;width:100%}
 .xbin-search-row{padding:14px 0}
 .xbin-search-row .field-input{width:100%}
+.xbin-filter-row{display:flex;gap:10px;padding-bottom:14px;flex-wrap:wrap}
+.xbin-filter-row .field-input{flex:1;min-width:160px}
 .xbin-loading{display:flex;justify-content:center;padding:60px 0}
 .xbin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding-bottom:20px}
 .xbin-card{background:linear-gradient(165deg,rgba(124,58,237,.1),rgba(20,12,32,.6));border:1px solid rgba(167,139,250,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
@@ -7105,6 +7107,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.23',category:'feature',date:'2 septembre 2026',time:'16:20',title:'✏️ XBin : modifier un paste existant, filtres et tri',
+    body:'Tu peux maintenant modifier un paste déjà publié (titre, contenu, langage, visibilité) via le nouveau bouton "✏️ Modifier" — sans perdre ses vues, ses commentaires ni son lien, contrairement à "Dupliquer" qui crée une copie séparée. Un nouveau filtre par langage et un tri "Plus vus / Plus récents" sont disponibles dans Découvrir et Mes pastes.'},
   {version:'4.55.22',category:'feature',date:'2 septembre 2026',time:'12:45',title:'📋 XBin : coloration en direct, commentaires, statistiques et plus',
     body:'XBin fait le plein de fonctionnalités : ton code se colore maintenant EN DIRECT pendant que tu l\\'écris ou le colles (comme dans un vrai éditeur), plus besoin d\\'attendre la publication pour voir le rendu. Chaque paste public ou non-listé a maintenant un fil de commentaires (l\\'auteur peut supprimer les commentaires indésirables sur ses propres pastes, et signaler reste possible). Deux nouveaux boutons : "🍴 Dupliquer" pour repartir d\\'un paste existant, et "⬇️ Télécharger" pour le récupérer en fichier avec la bonne extension. Et pour l\\'auteur d\\'un paste, un bouton "📊 Statistiques" affiche la répartition des vues (24h, 7 jours, 30 jours) — jamais qui a vu, juste des chiffres.'},
   {version:'4.55.21',category:'feature',date:'2 septembre 2026',time:'10:30',title:'👥 X1 Drive : mise à jour en direct, présence et accès sur-mesure',
@@ -16535,7 +16539,7 @@ function ensureHighlightJs(){
   });
   return xbinHlLoading;
 }
-let xbinView='feed',xbinCurrentPaste=null,xbinFeedCache=[],xbinMineCache=[],xbinSearchQuery='';
+let xbinView='feed',xbinCurrentPaste=null,xbinFeedCache=[],xbinMineCache=[],xbinSearchQuery='',xbinFilterLang='',xbinSortMode='recent',xbinEditingId=null;
 function xbinLangLabel(id){
   const l=XBIN_LANGS.find(function(x){return x.id===id});
   return l?l.label:(id||'Texte brut');
@@ -16597,6 +16601,16 @@ function renderXBinShell(){
   +'</div>'
   +'<div class="discover-body xbin-body" id="xbin-body">'
     +'<div class="xbin-search-row"><input type="text" id="xbin-search" class="field-input" placeholder="🔎 Titre, auteur ou contenu…" value="'+esc(xbinSearchQuery)+'"/></div>'
+    +'<div class="xbin-filter-row">'
+      +'<select id="xbin-filter-lang" class="field-input">'
+        +'<option value="">🗂️ Tous les langages</option>'
+        +XBIN_LANGS.map(function(l){return '<option value="'+l.id+'"'+(xbinFilterLang===l.id?' selected':'')+'>'+esc(l.label)+'</option>';}).join('')
+      +'</select>'
+      +'<select id="xbin-sort-select" class="field-input">'
+        +'<option value="recent"'+(xbinSortMode==='recent'?' selected':'')+'>🕒 Plus récents</option>'
+        +'<option value="views"'+(xbinSortMode==='views'?' selected':'')+'>👁️ Plus vus</option>'
+      +'</select>'
+    +'</div>'
     +'<div id="xbin-list" class="xbin-grid"><div class="xbin-loading"><span class="bs-ring"></span></div></div>'
   +'</div>';
   \$('xbin-close').onclick=closeXBin;
@@ -16617,6 +16631,14 @@ function renderXBinShell(){
     xbinSearchQuery=this.value;
     clearTimeout(searchTimer);
     searchTimer=setTimeout(function(){renderXBinList(xbinView==='feed'?xbinFeedCache:xbinMineCache);},250);
+  });
+  \$('xbin-filter-lang').addEventListener('change',function(){
+    xbinFilterLang=this.value;
+    renderXBinList(xbinView==='feed'?xbinFeedCache:xbinMineCache);
+  });
+  \$('xbin-sort-select').addEventListener('change',function(){
+    xbinSortMode=this.value;
+    renderXBinList(xbinView==='feed'?xbinFeedCache:xbinMineCache);
   });
 }
 async function loadXBinFeed(){
@@ -16644,7 +16666,8 @@ async function loadXBinMine(){
 }
 function renderXBinList(docs){
   const list=\$('xbin-list');if(!list)return;
-  const filtered=docs.filter(function(d){return xbinMatchesSearch(d,xbinSearchQuery.trim());});
+  let filtered=docs.filter(function(d){return xbinMatchesSearch(d,xbinSearchQuery.trim())&&(!xbinFilterLang||d.language===xbinFilterLang);});
+  if(xbinSortMode==='views')filtered=filtered.slice().sort(function(a,b){return (b.views||0)-(a.views||0);});
   if(!filtered.length){
     list.innerHTML='<div class="empty-hint">'+(xbinView==='mine'?'Tu n\\'as encore rien publié sur XBin.':'Aucun résultat.')+'</div>';
     return;
@@ -16694,11 +16717,12 @@ function xbinSyncEditorHighlight(){
 }
 function openXBinEditor(prefill){
   xbinView='editor';
+  xbinEditingId=(prefill&&prefill.editId)||null;
   const overlay=\$('xbin-overlay');if(!overlay)return;
   ensureHighlightJs();
   overlay.innerHTML='<div class="discover-head xbin-head">'
     +'<button type="button" class="set-mini-btn" id="xbin-editor-back">← Retour</button>'
-    +'<h2>📋 '+(prefill?'Dupliquer le paste':'Nouveau paste')+'</h2>'
+    +'<h2>📋 '+(xbinEditingId?'Modifier le paste':(prefill?'Dupliquer le paste':'Nouveau paste'))+'</h2>'
   +'</div>'
   +'<div class="discover-body xbin-body">'
     +'<div class="xbin-editor">'
@@ -16706,11 +16730,14 @@ function openXBinEditor(prefill){
       +'<div class="xbin-editor-row">'
         +'<select id="xbin-lang-select" class="field-input">'+XBIN_LANGS.map(function(l){return '<option value="'+l.id+'"'+((prefill&&prefill.language)===l.id?' selected':'')+'>'+esc(l.label)+'</option>';}).join('')+'</select>'
         +'<select id="xbin-vis-select" class="field-input">'
-          +'<option value="public">🌐 Public</option>'
-          +'<option value="unlisted">🔗 Non listé (lien uniquement)</option>'
-          +'<option value="private">🔒 Privé</option>'
+          +'<option value="public"'+((prefill&&prefill.visibility)==='public'?' selected':'')+'>🌐 Public</option>'
+          +'<option value="unlisted"'+((prefill&&prefill.visibility)==='unlisted'?' selected':'')+'>🔗 Non listé (lien uniquement)</option>'
+          +'<option value="private"'+((prefill&&prefill.visibility)==='private'?' selected':'')+'>🔒 Privé</option>'
         +'</select>'
-        +'<select id="xbin-exp-select" class="field-input">'+XBIN_EXPIRY_OPTS.map(function(o){return '<option value="'+o.id+'">'+esc(o.label)+'</option>';}).join('')+'</select>'
+        +'<select id="xbin-exp-select" class="field-input">'
+          +(xbinEditingId?'<option value="keep" selected>Ne pas changer l\\'expiration</option>':'')
+          +XBIN_EXPIRY_OPTS.map(function(o){return '<option value="'+o.id+'">'+esc(o.label)+'</option>';}).join('')
+        +'</select>'
       +'</div>'
       +'<div class="xbin-editor-code-wrap">'
         +'<pre class="xbin-editor-pre" aria-hidden="true"><code id="xbin-editor-hl"></code></pre>'
@@ -16718,12 +16745,15 @@ function openXBinEditor(prefill){
       +'</div>'
       +'<div class="xbin-editor-foot">'
         +'<span class="xbin-char-count" id="xbin-char-count">0 caractère</span>'
-        +'<button type="button" class="btn-main" id="xbin-publish-btn">🚀 Publier</button>'
+        +'<button type="button" class="btn-main" id="xbin-publish-btn">'+(xbinEditingId?'💾 Enregistrer':'🚀 Publier')+'</button>'
       +'</div>'
       +'<div class="err" id="xbin-editor-err"></div>'
     +'</div>'
   +'</div>';
-  \$('xbin-editor-back').onclick=function(){xbinView='feed';renderXBinShell();loadXBinFeed();};
+  \$('xbin-editor-back').onclick=function(){
+    if(xbinEditingId){const id=xbinEditingId;xbinEditingId=null;openXBinPaste(id);return}
+    xbinView='feed';renderXBinShell();loadXBinFeed();
+  };
   const ta=\$('xbin-content-input'),hl=\$('xbin-editor-hl');
   ta.addEventListener('input',function(){
     \$('xbin-char-count').textContent=this.value.length.toLocaleString('fr-FR')+' caractère'+(this.value.length>1?'s':'');
@@ -16747,25 +16777,36 @@ async function xbinPublish(){
   const title=(\$('xbin-title-input').value||'').trim();
   const language=\$('xbin-lang-select').value;
   const visibility=\$('xbin-vis-select').value;
-  const expOpt=XBIN_EXPIRY_OPTS.find(function(o){return o.id===\$('xbin-exp-select').value});
+  const expSelVal=\$('xbin-exp-select').value;
+  const expOpt=XBIN_EXPIRY_OPTS.find(function(o){return o.id===expSelVal});
   const err=\$('xbin-editor-err');
   err.textContent='';
   if(!content.trim()){err.textContent='Le contenu ne peut pas être vide.';return}
   if(content.length>500000){err.textContent='500 000 caractères maximum.';return}
-  btn.disabled=true;btn.textContent='Publication…';
+  const editingId=xbinEditingId;
+  btn.disabled=true;btn.textContent=editingId?'Enregistrement…':'Publication…';
   try{
-    const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
     const perms=visibility==='private'
       ?[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
       :[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
-    const data={authorId:me.\$id,authorName:name,title:title.slice(0,200),content:content.slice(0,500000),language:language,visibility:visibility,views:0};
-    if(expOpt&&expOpt.ms>0)data.expiresAt=new Date(Date.now()+expOpt.ms).toISOString();
-    const doc=await db.createDocument(DB,'xbin_pastes',Appwrite.ID.unique(),data,perms);
-    showToast('Paste publié ! 🎉');
-    openXBinPaste(doc.\$id,doc);
+    if(editingId){
+      const data={title:title.slice(0,200),content:content.slice(0,500000),language:language,visibility:visibility};
+      if(expSelVal!=='keep')data.expiresAt=(expOpt&&expOpt.ms>0)?new Date(Date.now()+expOpt.ms).toISOString():null;
+      const doc=await db.updateDocument(DB,'xbin_pastes',editingId,data,perms);
+      xbinEditingId=null;
+      showToast('Paste mis à jour !');
+      openXBinPaste(doc.\$id,doc);
+    }else{
+      const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+      const data={authorId:me.\$id,authorName:name,title:title.slice(0,200),content:content.slice(0,500000),language:language,visibility:visibility,views:0};
+      if(expOpt&&expOpt.ms>0)data.expiresAt=new Date(Date.now()+expOpt.ms).toISOString();
+      const doc=await db.createDocument(DB,'xbin_pastes',Appwrite.ID.unique(),data,perms);
+      showToast('Paste publié ! 🎉');
+      openXBinPaste(doc.\$id,doc);
+    }
   }catch(e){
-    err.textContent='Publication impossible, réessaie.';
-    btn.disabled=false;btn.textContent='🚀 Publier';
+    err.textContent=editingId?'Mise à jour impossible, réessaie.':'Publication impossible, réessaie.';
+    btn.disabled=false;btn.textContent=editingId?'💾 Enregistrer':'🚀 Publier';
   }
 }
 async function openXBinPaste(id,preloaded){
@@ -16822,6 +16863,7 @@ function renderXBinDetail(d){
       +'<button type="button" class="xbin-act-btn" id="xbin-raw-btn">📄 Brut</button>'
       +'<button type="button" class="xbin-act-btn" id="xbin-dl-btn">⬇️ Télécharger</button>'
       +(me?'<button type="button" class="xbin-act-btn" id="xbin-dup-btn">🍴 Dupliquer</button>':'')
+      +(isOwner?'<button type="button" class="xbin-act-btn" id="xbin-edit-btn">✏️ Modifier</button>':'')
       +(isOwner?'<button type="button" class="xbin-act-btn" id="xbin-stats-btn">📊 Statistiques</button>':'')
       +(isOwner?'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-delete-btn">🗑️ Supprimer</button>':'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-report-btn">🚩 Signaler</button>')
     +'</div>'
@@ -16867,10 +16909,13 @@ function renderXBinDetail(d){
   };
   if(me){
     \$('xbin-dup-btn').onclick=function(){
-      openXBinEditor({title:'Copie de '+(d.title||'paste'),content:d.content||'',language:d.language||'auto'});
+      openXBinEditor({title:'Copie de '+(d.title||'paste'),content:d.content||'',language:d.language||'auto',visibility:d.visibility||'public'});
     };
   }
   if(isOwner){
+    \$('xbin-edit-btn').onclick=function(){
+      openXBinEditor({editId:d.\$id,title:d.title||'',content:d.content||'',language:d.language||'auto',visibility:d.visibility||'public'});
+    };
     \$('xbin-stats-btn').onclick=async function(){
       const panel=\$('xbin-stats-panel');if(!panel)return;
       if(!panel.classList.contains('hidden')){panel.classList.add('hidden');return}
