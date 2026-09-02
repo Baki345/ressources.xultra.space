@@ -2042,7 +2042,8 @@ html.xultra-restoring #stage{visibility:hidden}
 /* ===== X1 Drive (stockage cloud chiffré de bout en bout) — inspiré de
    MEGA/Google Drive dans la structure (rail latéral, grille de fichiers,
    glisser-déposer), mais aux couleurs X1 ===== */
-.xd-shell{display:flex;height:100%;min-height:0}
+.xd-shell{display:flex;height:100%;min-height:0;position:relative}
+.xd-shell.xd-dragover::after{content:'⬇️ Dépose un ou plusieurs fichiers ici pour les envoyer';position:absolute;inset:14px;border:3px dashed #a855f7;border-radius:20px;background:rgba(124,58,237,.18);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;font-weight:800;color:#f2ebff;font-size:1.15rem;z-index:50;pointer-events:none;animation:xdTileIn .15s ease both}
 .xd-side{width:220px;flex-shrink:0;border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
 .xd-side-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:.85rem;font-weight:700;color:var(--muted);transition:all .15s ease}
 .xd-side-item:hover{background:rgba(255,255,255,.06);color:#fff}
@@ -7053,6 +7054,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.17',category:'feature',date:'2 septembre 2026',time:'00:20',title:'🔎 X1 Drive : glisser-déposer partout et recherche globale',
+    body:'Deux améliorations dans X1 Drive : tu peux maintenant glisser un fichier n\\'importe où dans la fenêtre pour l\\'envoyer (avant, il fallait viser précisément la liste de fichiers) ; et la recherche fouille désormais tout ton Drive d\\'un coup — ton dossier personnel entier et les dossiers partagés avec toi — plutôt que seulement le dossier actuellement ouvert, avec un petit rappel de l\\'endroit où se trouve chaque résultat. La corbeille et les liens de partage restent en dehors de cette recherche pour l\\'instant.'},
   {version:'4.55.16',category:'design',date:'1 septembre 2026',time:'23:50',title:'📊 X1 Drive : un vrai gestionnaire de transferts',
     body:'Le petit panneau d\\'envoi de X1 Drive devient un vrai gestionnaire de transferts : il suit maintenant aussi tes téléchargements et tes aperçus, pas juste tes envois. Chaque ligne affiche la taille du fichier et son état précis — 🔒 Chiffrement, ⬆️ Envoi (avec le %), ⬇️ Téléchargement (avec le %), 🔓 Déchiffrement, ✅ Terminé ou ❌ Échec — avec une barre animée. Le panneau reste visible même si tu fermes X1 Drive, et se nettoie tout seul une fois les transferts terminés (ou en un clic sur "Effacer terminés").'},
   {version:'4.55.15',category:'feature',date:'1 septembre 2026',time:'23:45',title:'👥 X1 Drive : dossiers partagés en équipe',
@@ -17452,12 +17455,61 @@ async function xdLoadTeamShared(){
   }
   return items;
 }
+// Recherche globale (tout le Drive, pas juste le dossier ouvert) — un
+// index plein texte côté serveur est structurellement impossible ici : les
+// noms sont chiffrés, le serveur ne peut littéralement pas les chercher.
+// Le prix du zero-knowledge, c'est donc de tout rapatrier (dans la limite
+// raisonnable ci-dessous) et de filtrer après déchiffrement, côté
+// navigateur. Couvre mon Drive personnel (dont les dossiers que je
+// possède et partage) ET les dossiers partagés dont je suis simple membre
+// — pas la corbeille, ni les partages par lien.
+async function xdGlobalSearch(query){
+  const q=query.trim().toLowerCase();
+  if(!q)return [];
+  const seen=new Set();
+  const results=[];
+  try{
+    const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(1000)]);
+    const docs=r.documents||[];
+    await Promise.all(docs.map(xdDecryptItemMeta));
+    docs.forEach(function(d){if(!seen.has(d.\$id)){seen.add(d.\$id);results.push(d);}});
+  }catch(e){}
+  try{
+    const mr=await db.listDocuments(DB,'xdrive_folder_members',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.equal('status','accepted'),Appwrite.Query.limit(200)]);
+    const sfIds=(mr.documents||[]).map(function(m){return m.sharedFolderId;});
+    for(const sfId of sfIds){
+      try{
+        const r2=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('sharedFolderId',sfId),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
+        const docs2=r2.documents||[];
+        await Promise.all(docs2.map(xdDecryptItemMeta));
+        docs2.forEach(function(d){if(!seen.has(d.\$id)){seen.add(d.\$id);results.push(d);}});
+      }catch(e){}
+    }
+  }catch(e){}
+  const matches=results.filter(function(d){return (d._name||'').toLowerCase().indexOf(q)>=0;});
+  // Petit indice de localisation par résultat : juste le NOM du dossier
+  // parent immédiat (pas le chemin complet — trop coûteux à reconstruire,
+  // chaque ancêtre étant lui-même chiffré) résolu en un second lot groupé.
+  const parentIds=Array.from(new Set(matches.map(function(d){return d.parentId||'';}).filter(Boolean)));
+  const parentNames={};
+  await Promise.all(parentIds.map(async function(pid){
+    try{
+      const p=await db.getDocument(DB,'xdrive_items',pid);
+      await xdDecryptItemMeta(p);
+      parentNames[pid]=p._name;
+    }catch(e){}
+  }));
+  matches.forEach(function(d){d._locationName=d.parentId?(parentNames[d.parentId]||'…'):'☁️ Mon Drive';});
+  return matches;
+}
 async function xdRenderCurrentView(){
   const bodyEl=\$('xd-body');if(!bodyEl)return;
   bodyEl.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
   let docs=[];
+  const searching=xdSection==='drive'&&xdSearchQuery.trim();
   try{
-    if(xdSection==='trash')docs=await xdLoadTrash();
+    if(searching)docs=await xdGlobalSearch(xdSearchQuery);
+    else if(xdSection==='trash')docs=await xdLoadTrash();
     else if(xdSection==='starred')docs=await xdLoadStarred();
     else if(xdSection==='shared')docs=await xdLoadShared();
     else if(xdSection==='teamshared')docs=await xdLoadTeamShared();
@@ -17466,7 +17518,7 @@ async function xdRenderCurrentView(){
     bodyEl.innerHTML='<div class="empty-hint">Impossible de charger tes fichiers pour le moment.</div>';
     return;
   }
-  if(xdSearchQuery.trim()){
+  if(!searching&&xdSearchQuery.trim()){
     const q=xdSearchQuery.trim().toLowerCase();
     docs=docs.filter(function(d){return (d._name||'').toLowerCase().indexOf(q)>=0;});
   }
@@ -17477,8 +17529,12 @@ async function xdRenderCurrentView(){
     return (a._name||'').localeCompare(b._name||'');
   });
   xdCurrentListing=docs;
-  xdRenderBreadcrumb();
+  xdRenderBreadcrumb(searching);
   if(!docs.length){
+    if(searching){
+      bodyEl.innerHTML='<div class="xd-empty"><div class="xd-empty-ico">🔎</div><div>Aucun résultat pour « '+esc(xdSearchQuery.trim())+' ».</div></div>';
+      return;
+    }
     const emptyMsgs={trash:['🗑️','Corbeille vide'],starred:['⭐','Aucun favori pour l\\'instant'],shared:['🔗','Aucun partage actif'],teamshared:['👥','Aucun dossier partagé avec toi pour l\\'instant'],drive:['☁️','Ce dossier est vide']};
     const em=emptyMsgs[xdSection]||emptyMsgs.drive;
     bodyEl.innerHTML='<div class="xd-empty"><div class="xd-empty-ico">'+em[0]+'</div><div>'+em[1]+'</div></div>';
@@ -17487,10 +17543,14 @@ async function xdRenderCurrentView(){
   bodyEl.innerHTML=xdViewMode==='grid'?xdGridHtml(docs):xdListHtml(docs);
   xdWireItemEvents(bodyEl);
 }
-function xdRenderBreadcrumb(){
+function xdRenderBreadcrumb(searching){
   const el=\$('xd-breadcrumb');if(!el)return;
+  if(searching){
+    el.innerHTML='<button type="button" class="xd-crumb-current">🔎 Résultats pour « '+esc(xdSearchQuery.trim())+' »</button>';
+    return;
+  }
   if(xdSection!=='drive'){
-    const labels={trash:'🗑️ Corbeille',starred:'⭐ Favoris',shared:'🔗 Partagés'};
+    const labels={trash:'🗑️ Corbeille',starred:'⭐ Favoris',shared:'🔗 Partagés',teamshared:'👥 Partagés avec moi'};
     el.innerHTML='<button type="button" class="xd-crumb-current">'+(labels[xdSection]||'')+'</button>';
     return;
   }
@@ -17506,6 +17566,7 @@ function xdRenderBreadcrumb(){
       xdCurrentFolder=id;
       xdCurrentSharedFolderId=id?((xdBreadcrumb[idx]&&xdBreadcrumb[idx].sharedFolderId)||''):'';
       xdBreadcrumb=id?xdBreadcrumb.slice(0,idx+1):[];
+      xdSearchQuery='';const si=\$('xd-search');if(si)si.value='';
       xdSelectedIds.clear();xdRenderSelectionBar();
       xdRenderCurrentView();
     };
@@ -17520,7 +17581,7 @@ function xdGridHtml(docs){
       +'<span class="xd-tile-star'+(d.starred?' on':'')+'" data-xd-star="'+d.\$id+'">'+(d.starred?'⭐':'☆')+'</span>'
       +'<div class="xd-tile-icon">'+icon+'</div>'
       +'<div class="xd-tile-name">'+esc(d._name)+'</div>'
-      +'<div class="xd-tile-meta">'+meta+'</div>'
+      +'<div class="xd-tile-meta">'+meta+(d._locationName?' · 📁 '+esc(d._locationName):'')+'</div>'
     +'</div>';
   }).join('')+'</div>';
 }
@@ -17532,6 +17593,7 @@ function xdListHtml(docs){
       +'<input type="checkbox" class="xd-row-check" data-xd-check="'+d.\$id+'"'+(xdSelectedIds.has(d.\$id)?' checked':'')+'/>'
       +'<span class="xd-row-icon">'+icon+'</span>'
       +'<span class="xd-row-name">'+esc(d._name)+(d.starred?' ⭐':'')+'</span>'
+      +(d._locationName?'<span class="xd-row-meta">📁 '+esc(d._locationName)+'</span>':'')
       +'<span class="xd-row-meta">'+meta+'</span>'
       +'<span class="xd-row-meta">'+fmtRelTime(d.\$createdAt)+'</span>'
     +'</div>';
@@ -17550,6 +17612,7 @@ function xdWireItemEvents(container){
       if(!item)return;
       if(item.type==='folder'&&xdSection==='teamshared'){
         xdSection='drive';
+        xdSearchQuery='';const si0=\$('xd-search');if(si0)si0.value='';
         const ov=\$('xdrive-overlay');
         if(ov)ov.querySelectorAll('[data-xd-section]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-xd-section')==='drive');});
         xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||item.\$id}];
@@ -17557,7 +17620,16 @@ function xdWireItemEvents(container){
         xdCurrentSharedFolderId=item.sharedFolderId||item.\$id;
         xdRenderCurrentView();
       }else if(item.type==='folder'&&xdSection==='drive'){
-        xdBreadcrumb.push({id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''});
+        // Un résultat de recherche globale n'a pas de chaîne d'ancêtres
+        // fiable (juste le dossier lui-même) : le fil d'Ariane repart de ce
+        // dossier plutôt que de s'empiler sur un fil qui ne correspond à
+        // rien de réel.
+        if(xdSearchQuery.trim()){
+          xdBreadcrumb=[{id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''}];
+          xdSearchQuery='';const si=\$('xd-search');if(si)si.value='';
+        }else{
+          xdBreadcrumb.push({id:item.\$id,name:item._name,sharedFolderId:item.sharedFolderId||''});
+        }
         xdCurrentFolder=item.\$id;
         xdCurrentSharedFolderId=item.sharedFolderId||'';
         xdRenderCurrentView();
@@ -18413,7 +18485,7 @@ function xdRenderShell(){
         +'<input type="file" id="xd-folder-input" webkitdirectory directory multiple class="hidden"/>'
         +'<div class="xd-view-toggle"><button type="button" data-xd-view="grid" class="on">▦</button><button type="button" data-xd-view="list">☰</button></div>'
       +'</div>'
-      +'<div class="xd-search-row" style="padding:0 16px"><input type="text" id="xd-search" class="field-input" placeholder="🔎 Rechercher dans ce dossier…"/></div>'
+      +'<div class="xd-search-row" style="padding:0 16px"><input type="text" id="xd-search" class="field-input" placeholder="🔎 Rechercher dans tout ton Drive…"/></div>'
       +'<div class="xd-body" id="xd-body"></div>'
     +'</div>'
   +'</div>';
@@ -18460,11 +18532,28 @@ function xdRenderShell(){
     clearTimeout(searchTimer);
     searchTimer=setTimeout(function(){xdRenderCurrentView();},250);
   });
-  const bodyEl=overlay.querySelector('#xd-body');
-  bodyEl.addEventListener('dragover',function(e){e.preventDefault();if(xdSection==='drive')bodyEl.classList.add('xd-dragover');});
-  bodyEl.addEventListener('dragleave',function(){bodyEl.classList.remove('xd-dragover');});
-  bodyEl.addEventListener('drop',function(e){
-    e.preventDefault();bodyEl.classList.remove('xd-dragover');
+  // Zone de dépôt étendue à TOUTE la fenêtre X1 Drive (pas seulement la
+  // grille de fichiers) : un compteur d'entrées/sorties évite le
+  // scintillement du repère visuel quand le pointeur traverse les éléments
+  // enfants (chaque enfant déclenche son propre dragenter/dragleave qui
+  // remonte), un enfant unique ne suffit jamais à retirer la classe tant
+  // que le compteur n'est pas revenu à zéro.
+  const shell=overlay.querySelector('.xd-shell');
+  let xdDragDepth=0;
+  shell.addEventListener('dragenter',function(e){
+    if(xdSection!=='drive')return;
+    e.preventDefault();
+    xdDragDepth++;
+    shell.classList.add('xd-dragover');
+  });
+  shell.addEventListener('dragover',function(e){if(xdSection==='drive')e.preventDefault();});
+  shell.addEventListener('dragleave',function(){
+    if(xdDragDepth>0)xdDragDepth--;
+    if(xdDragDepth===0)shell.classList.remove('xd-dragover');
+  });
+  shell.addEventListener('drop',function(e){
+    e.preventDefault();
+    xdDragDepth=0;shell.classList.remove('xd-dragover');
     if(xdSection==='drive'&&e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length)xdHandleFileUpload(Array.from(e.dataTransfer.files));
   });
   xdRenderQuotaBox();
