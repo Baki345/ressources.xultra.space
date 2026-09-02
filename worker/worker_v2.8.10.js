@@ -848,15 +848,97 @@ const COIN_PACKS = {
 };
 const XPLUS_PRICE_CAD_CENTS = 5499;
 const XPLUS_PRICE_COINS = 4500;
+// Verrou distribué par compte pour toute mutation de solde X1 Coins.
+// Un simple "lire le solde puis écrire solde-montant" (comme avant) n'est
+// PAS atomique : deux requêtes concurrentes (double-clic, retry client,
+// abus délibéré) peuvent lire le même solde de départ et écrire chacune
+// leur propre résultat, aucune ne voyant le travail de l'autre — vérifié en
+// conditions réelles : 4 envois concurrents de 100 X1 Coins depuis un solde
+// de 100 ont TOUS renvoyé "succès" au client, et deux entrées de journal de
+// transaction dupliquées ont été écrites par envoi accepté à tort. Ce
+// verrou s'appuie sur la SEULE garantie d'atomicité disponible ici (ni
+// transaction SQL, ni Durable Object) : Appwrite refuse de manière fiable
+// (409, vérifié sous 10 créations concurrentes strictes) la création d'un
+// document dont l'ID existe déjà — la présence du document EST le verrou.
+// "Périmé" après 10s pour ne jamais bloquer un compte si une requête plante
+// avant de le libérer.
+const X1COINS_LOCK_STALE_MS = 10000;
+async function acquireWalletLock(uid) {
+  const lockId = "wlock_" + String(uid).replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 50);
+  for (let attempt = 0; attempt < 25; attempt++) {
+    try {
+      // Appwrite refuse un payload "data" vide même sur une collection sans
+      // attribut obligatoire — d'où ce champ "tag" sans autre utilité que de
+      // satisfaire cette contrainte.
+      await awFetch("/databases/" + AW_DB + "/collections/x1coins_locks/documents", {
+        method: "POST", asAdmin: true, body: { documentId: lockId, data: { tag: "lock" } }
+      });
+      return lockId;
+    } catch (e) {
+      if (e && e.status === 409) {
+        try {
+          const existing = await awFetch("/databases/" + AW_DB + "/collections/x1coins_locks/documents/" + lockId, { asAdmin: true });
+          const age = Date.now() - new Date(existing.$createdAt).getTime();
+          if (age > X1COINS_LOCK_STALE_MS) {
+            await awFetch("/databases/" + AW_DB + "/collections/x1coins_locks/documents/" + lockId, { method: "DELETE", asAdmin: true }).catch(function () {});
+            continue;
+          }
+        } catch (e2) {}
+        await new Promise(function (r) { setTimeout(r, 80 + Math.random() * 150); });
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error("Une autre opération sur ce portefeuille est en cours, réessaie dans un instant.");
+}
+async function releaseWalletLock(lockId) {
+  await awFetch("/databases/" + AW_DB + "/collections/x1coins_locks/documents/" + lockId, { method: "DELETE", asAdmin: true }).catch(function () {});
+}
+// uids : un seul compte, ou plusieurs (transfert entre deux portefeuilles) —
+// toujours acquis dans un ORDRE trié déterministe, jamais l'ordre d'appel,
+// pour éviter un interblocage si deux transferts croisés (A→B et B→A)
+// s'exécutent en même temps.
+async function withWalletLock(uids, fn) {
+  const unique = Array.from(new Set((Array.isArray(uids) ? uids : [uids]).map(String))).sort();
+  const held = [];
+  try {
+    for (const uid of unique) held.push(await acquireWalletLock(uid));
+    return await fn();
+  } finally {
+    for (const lockId of held) await releaseWalletLock(lockId);
+  }
+}
 async function x1coinsGetOrCreateWallet(uid) {
   const q = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
     "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
   const existing = (q.documents || [])[0];
   if (existing) return existing;
-  return awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents", {
-    method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: String(uid), balance: 0 } }
-  });
+  // ID déterministe (jamais unique()) : constaté en conditions réelles, une
+  // requête juste après une écriture toute récente peut ne pas encore la
+  // voir (retard d'indexation), auquel cas ce create() suivrait à tort la
+  // branche "aucun portefeuille" et en créerait un second pour le même uid —
+  // deux comptes soldes distincts pour la même personne. Avec un ID
+  // déterministe, cette même situation retombe sur un 409 (déjà vérifié
+  // fiable même sous forte concurrence), qu'on résout en récupérant le
+  // document existant plutôt qu'en le dupliquer.
+  const walletId = "w_" + String(uid).replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 50);
+  try {
+    return await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents", {
+      method: "POST", asAdmin: true, body: { documentId: walletId, data: { uid: String(uid), balance: 0 } }
+    });
+  } catch (e) {
+    if (e && e.status === 409) {
+      const retry = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const found = (retry.documents || [])[0];
+      if (found) return found;
+      return await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + walletId, { asAdmin: true });
+    }
+    throw e;
+  }
 }
 async function x1coinsLogTx(uid, otherUid, otherName, direction, amount, kind, note) {
   return awFetch("/databases/" + AW_DB + "/collections/x1coins_tx/documents", {
@@ -7107,6 +7189,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.25',category:'security',date:'2 septembre 2026',time:'17:45',title:'🔒 Portefeuille X1 Coins : correction d\\'une faille de sécurité',
+    body:'Une faille a été trouvée et corrigée dans le portefeuille X1 Coins : en envoyant plusieurs opérations en même temps (ou en abusant délibérément du système), il était possible de dépenser ou d\\'envoyer plus de X1 Coins que le solde réellement disponible. Vérifié et corrigé : chaque opération sur un portefeuille (envoi, achat de X1+, crédit après paiement carte) est maintenant traitée une par une, jamais en parallèle sur le même compte, avec une nouvelle vérification du vrai solde à chaque fois. Aucun impact sur les soldes existants — cette faille n\\'affectait que des opérations envoyées volontairement en parallèle, jamais un usage normal du portefeuille.'},
   {version:'4.55.24',category:'fix',date:'2 septembre 2026',time:'16:35',title:'☁️ X1 Drive : correction sur l\\'historique des versions',
     body:'En vérifiant cette fonctionnalité, un bug a été trouvé et corrigé : restaurer une ancienne version d\\'un fichier ne conservait pas le contenu qu\\'elle remplaçait, ce qui pouvait — dans de rares cas — mener à la perte du fichier si on supprimait ensuite cette version dans l\\'historique. Corrigé : restaurer archive maintenant correctement le contenu actuel avant de basculer. Autre correction dans la foulée : supprimer définitivement un fichier ayant plusieurs versions libère maintenant bien tout l\\'espace de stockage utilisé par ses anciennes versions (avant, elles restaient invisibles mais comptaient toujours dans ton quota).'},
   {version:'4.55.23',category:'feature',date:'2 septembre 2026',time:'16:20',title:'✏️ XBin : modifier un paste existant, filtres et tri',
@@ -32799,14 +32883,18 @@ async function handle(request, event) {
       if (!Number.isFinite(amount) || amount <= 0) throw new Error("Montant invalide");
       const target = await resolveHandleToUser(String((body && body.handle) || ""));
       if (String(target.$id) === String(acc.$id)) throw new Error("Impossible de s'envoyer des X1 Coins à toi-même");
-      const senderWallet = await x1coinsGetOrCreateWallet(acc.$id);
-      if ((senderWallet.balance || 0) < amount) throw new Error("Solde insuffisant");
-      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + senderWallet.$id, {
-        method: "PATCH", asAdmin: true, body: { data: { balance: (senderWallet.balance || 0) - amount } }
-      });
-      const recipientWallet = await x1coinsGetOrCreateWallet(target.$id);
-      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + recipientWallet.$id, {
-        method: "PATCH", asAdmin: true, body: { data: { balance: (recipientWallet.balance || 0) + amount } }
+      let newSenderBalance;
+      await withWalletLock([acc.$id, target.$id], async function () {
+        const senderWallet = await x1coinsGetOrCreateWallet(acc.$id);
+        if ((senderWallet.balance || 0) < amount) throw new Error("Solde insuffisant");
+        newSenderBalance = (senderWallet.balance || 0) - amount;
+        await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + senderWallet.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { balance: newSenderBalance } }
+        });
+        const recipientWallet = await x1coinsGetOrCreateWallet(target.$id);
+        await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + recipientWallet.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { balance: (recipientWallet.balance || 0) + amount } }
+        });
       });
       let senderProfile = null;
       try { senderProfile = await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + acc.$id, { asAdmin: true }); } catch (e) {}
@@ -32814,7 +32902,7 @@ async function handle(request, event) {
       const recipientName = target.displayName || target.username || "Membre";
       await x1coinsLogTx(acc.$id, target.$id, recipientName, "out", amount, "transfer", note);
       await x1coinsLogTx(target.$id, acc.$id, senderName, "in", amount, "transfer", note);
-      return new Response(JSON.stringify({ ok: true, balance: (senderWallet.balance || 0) - amount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, balance: newSenderBalance }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -32823,15 +32911,17 @@ async function handle(request, event) {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
-      const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      if (meta && meta.plan === "plus") throw new Error("Tu as déjà X1+.");
-      const wallet = await x1coinsGetOrCreateWallet(acc.$id);
-      if ((wallet.balance || 0) < XPLUS_PRICE_COINS) throw new Error("Solde insuffisant (" + XPLUS_PRICE_COINS + " X1 Coins requis)");
-      await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
-        method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) - XPLUS_PRICE_COINS } }
+      await withWalletLock(acc.$id, async function () {
+        const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+        if (meta && meta.plan === "plus") throw new Error("Tu as déjà X1+.");
+        const wallet = await x1coinsGetOrCreateWallet(acc.$id);
+        if ((wallet.balance || 0) < XPLUS_PRICE_COINS) throw new Error("Solde insuffisant (" + XPLUS_PRICE_COINS + " X1 Coins requis)");
+        await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) - XPLUS_PRICE_COINS } }
+        });
+        await x1coinsLogTx(acc.$id, "", "X1+", "out", XPLUS_PRICE_COINS, "spend_xplus", "Achat de X1+ à vie avec des X1 Coins");
+        await grantPlus(acc.$id, "coins_purchase");
       });
-      await x1coinsLogTx(acc.$id, "", "X1+", "out", XPLUS_PRICE_COINS, "spend_xplus", "Achat de X1+ à vie avec des X1 Coins");
-      await grantPlus(acc.$id, "coins_purchase");
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -32956,9 +33046,11 @@ async function handle(request, event) {
           } else if (meta.kind === "coins") {
             const p = COIN_PACKS[meta.pack];
             if (p) {
-              const wallet = await x1coinsGetOrCreateWallet(uid);
-              await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
-                method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+              await withWalletLock(uid, async function () {
+                const wallet = await x1coinsGetOrCreateWallet(uid);
+                await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
+                  method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+                });
               });
               await x1coinsLogTx(uid, "", "Achat par carte", "in", p.coins, "purchase", p.label);
             }
