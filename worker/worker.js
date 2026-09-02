@@ -1,5 +1,33 @@
 addEventListener("fetch", e => e.respondWith(handle(e.request, e)));
 
+// Content-Security-Policy — l'app client entière est UN SEUL <script> inline
+// (la variable APP plus bas dans ce fichier), donc script-src doit accepter
+// 'unsafe-inline' (une réécriture vers un nonce/hash casserait tout sans un
+// chantier à part) ;
+// en échange, script-src reste strictement limité à 'self' + les deux SEULS
+// hôtes de script externes réellement chargés (cdn.jsdelivr.net pour les
+// librairies, challenges.cloudflare.com pour le widget Turnstile) — c'est la
+// directive qui compte le plus contre l'exécution de JS injecté, même sous
+// 'unsafe-inline', puisqu'elle empêche de charger un script DEPUIS un hôte
+// attaquant. object-src/base-uri/frame-ancestors sont strictement fermées
+// (aucun usage légitime trouvé). connect-src/img-src/media-src restent
+// volontairement larges (https:/wss:) : X1 relie de nombreux services tiers
+// (Spotify, GitHub, Steam, Deezer, météo, LiveKit en wss:...) qu'il serait
+// risqué d'énumérer un par un sans casser une intégration existante — le
+// vrai verrou anti-injection reste script-src, pas connect-src.
+const CSP_HEADER = "default-src 'self'; " +
+  "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://challenges.cloudflare.com; " +
+  "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+  "img-src 'self' data: blob: https:; " +
+  "media-src 'self' blob: https:; " +
+  "font-src 'self' data: https:; " +
+  "connect-src 'self' https: wss:; " +
+  "frame-src 'self' blob: https://challenges.cloudflare.com; " +
+  "object-src 'none'; " +
+  "base-uri 'self'; " +
+  "form-action 'self'; " +
+  "frame-ancestors 'none'";
+
 /* ===== Server brain (no VPS) — secrets stay on Worker only ===== */
 const AW_EP = "https://fra.cloud.appwrite.io/v1";
 const AW_PID = "6a73b975002f14dc6b91";
@@ -1041,6 +1069,50 @@ async function verifyStripeSignature(rawBody, sigHeader, secret) {
   const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(t + "." + rawBody));
   const expected = Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
   return constantTimeEqualHex(expected, v1);
+}
+
+// Vérifie un jeton Turnstile côté serveur — même appel que /api/turnstile/verify,
+// factorisé pour être réutilisé directement DANS les routes sensibles
+// (connexion...). Le widget Turnstile affiché au client ne protège RIEN à
+// lui seul tant que la route qu'il est censé protéger ne vérifie pas
+// elle-même le jeton avant d'agir — un script peut sinon appeler cette
+// route directement sans jamais passer par Turnstile.
+async function verifyTurnstileToken(token, ip) {
+  if (typeof TURNSTILE_SECRET_KEY === "undefined" || !TURNSTILE_SECRET_KEY) return true;
+  if (!token) return false;
+  try {
+    const form = new URLSearchParams();
+    form.set("secret", TURNSTILE_SECRET_KEY);
+    form.set("response", token);
+    if (ip) form.set("remoteip", ip);
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
+    const d = await r.json();
+    return !!d.success;
+  } catch (e) {
+    return false;
+  }
+}
+// Compteur de tentatives échouées basé sur KV (fenêtre glissante simple via
+// le TTL natif de Cloudflare KV) — pas une protection parfaite contre un
+// attaquant distribué sur des milliers d'IP/comptes jetables, mais ferme la
+// porte à un script qui boucle sur UN identifiant ou UNE IP donnée, en
+// complément de Turnstile (qui arrête déjà l'essentiel du bourrage
+// automatisé générique).
+async function rateLimitCheck(key, maxAttempts) {
+  if (typeof SITE_KV === "undefined" || !SITE_KV) return true;
+  const raw = await SITE_KV.get("ratelimit:" + key).catch(function () { return null; });
+  const count = raw ? (parseInt(raw, 10) || 0) : 0;
+  return count < maxAttempts;
+}
+async function rateLimitBump(key, windowSeconds) {
+  if (typeof SITE_KV === "undefined" || !SITE_KV) return;
+  const raw = await SITE_KV.get("ratelimit:" + key).catch(function () { return null; });
+  const count = (raw ? (parseInt(raw, 10) || 0) : 0) + 1;
+  await SITE_KV.put("ratelimit:" + key, String(count), { expirationTtl: windowSeconds }).catch(function () {});
+}
+async function rateLimitClear(key) {
+  if (typeof SITE_KV === "undefined" || !SITE_KV) return;
+  await SITE_KV.delete("ratelimit:" + key).catch(function () {});
 }
 
 function isShamanAccount(acc, profile) {
@@ -5760,8 +5832,16 @@ if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',functio
   });
 });
 
-async function serverLogin(identifier,pass){
-  const rr=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({identifier:identifier,password:pass})});
+async function serverLogin(identifier,pass,turnstileToken){
+  // Joint le JWT de la session ACTUELLE quand il y en a une (ex.
+  // e2eVerifyAndSync, qui reste connecté et fait juste re-saisir le mot de
+  // passe pour restaurer les clés E2E, sans widget Turnstile disponible sur
+  // cet écran) : /api/auth/login s'en sert pour dispenser de Turnstile
+  // UNIQUEMENT si ce JWT correspond bien au même compte que celui visé —
+  // jamais pour un identifiant différent.
+  const headers={'Content-Type':'application/json'};
+  try{if(me)headers['Authorization']='Bearer '+(await authJwt());}catch(e){}
+  const rr=await fetch('/api/auth/login',{method:'POST',headers:headers,body:JSON.stringify({identifier:identifier,password:pass,turnstileToken:turnstileToken||''})});
   const jj=await rr.json().catch(function(){return {}});
   if(rr.ok&&jj&&jj.ok&&(jj.secret||jj.mfaRequired))return jj;
   throw new Error((jj&&jj.error)||('Connexion refusée ('+rr.status+')'));
@@ -6733,17 +6813,19 @@ function startJwtRefreshLoop(){
   },8*60*1000);
 }
 
+// Récupère le jeton Turnstile du widget SANS le vérifier ici — un jeton
+// Turnstile est à USAGE UNIQUE côté Cloudflare (une deuxième vérification
+// avec le même jeton échoue systématiquement, "timeout-or-duplicate"), donc
+// vérifier une première fois ici puis une seconde fois dans la route
+// serveur protégée (/api/auth/login...) casserait TOUJOURS cette dernière.
+// La vérification réelle se fait donc une seule fois, côté serveur, au
+// moment où le jeton est effectivement utilisé.
 async function verifyTurnstile(which){
   if(!TURNSTILE_SITE_KEY)return true;
   const wid=turnstileWidgetIds[which];
   const tsToken=(typeof turnstile!=='undefined'&&wid!=null)?turnstile.getResponse(wid):'';
   if(!tsToken){showErrTxt('Merci de valider la vérification anti-robot');return false}
-  try{
-    const tv=await fetch('/api/turnstile/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:tsToken})});
-    const tvj=await tv.json().catch(function(){return {ok:false}});
-    if(!tv.ok||!tvj.ok){showErrTxt('Vérification anti-robot échouée, réessaie');if(typeof turnstile!=='undefined'&&wid!=null)turnstile.reset(wid);return false}
-    return true;
-  }catch(e){showErrTxt('Vérification anti-robot indisponible, réessaie');return false}
+  return tsToken;
 }
 /* ===== Mot de passe oublié (récupération par e-mail Appwrite) ===== */
 function openForgotPasswordModal(prefillEmail){
@@ -6853,10 +6935,11 @@ async function doLogin(){
   const pass=(\$('in-pass')&&\$('in-pass').value)||'';
   if(!identifier||!pass){showErrTxt('Email (ou pseudo#tag) et mot de passe requis');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
-  if(!(await verifyTurnstile('login')))return;
+  const tsResult=await verifyTurnstile('login');
+  if(!tsResult)return;
   \$('btn-login').disabled=true;\$('btn-login').textContent='Connexion…';
   try{
-    const jj=await serverLogin(identifier,pass);
+    const jj=await serverLogin(identifier,pass,typeof tsResult==='string'?tsResult:'');
     if(jj.mfaRequired){
       xlog('login_mfa_required',{});
       openMfaVerifyPanel(jj.mfaToken,pass);
@@ -6956,13 +7039,14 @@ async function doRegister(){
   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
   if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
-  if(!(await verifyTurnstile('register')))return;
+  const regTsResult=await verifyTurnstile('register');
+  if(!regTsResult)return;
   \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
   let accountCreated=false;
   try{
     await account.create(Appwrite.ID.unique(),email,pass,name);
     accountCreated=true;
-    const jj=await serverLogin(email,pass);
+    const jj=await serverLogin(email,pass,typeof regTsResult==='string'?regTsResult:'');
     applySession(jj.secret,jj.jwt);
     xlog('register_session_ok',{});
     account.createVerification(location.origin+'/').catch(function(e){xlog('verify_email_send_fail',{msg:(e&&e.message)||String(e)});});
@@ -7200,6 +7284,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.26',category:'security',date:'2 septembre 2026',time:'22:10',title:'🛡️ Renforcement général de la sécurité du site',
+    body:'Passage en revue de la sécurité de X1 : la vérification anti-robot (Turnstile) à la connexion n\\'était affichée que côté visuel, sans être vérifiée par le serveur — corrigé, avec en plus une limite sur le nombre de tentatives par compte en cas d\\'échecs répétés. Une politique de sécurité du contenu (Content-Security-Policy) a aussi été ajoutée, une protection supplémentaire du navigateur contre l\\'injection de code malveillant. Aucune action requise de ton côté — ces changements sont invisibles au quotidien.'},
   {version:'4.55.25',category:'security',date:'2 septembre 2026',time:'17:45',title:'🔒 Portefeuille X1 Coins : correction d\\'une faille de sécurité',
     body:'Une faille a été trouvée et corrigée dans le portefeuille X1 Coins : en envoyant plusieurs opérations en même temps (ou en abusant délibérément du système), il était possible de dépenser ou d\\'envoyer plus de X1 Coins que le solde réellement disponible. Vérifié et corrigé : chaque opération sur un portefeuille (envoi, achat de X1+, crédit après paiement carte) est maintenant traitée une par une, jamais en parallèle sur le même compte, avec une nouvelle vérification du vrai solde à chaque fois. Aucun impact sur les soldes existants — cette faille n\\'affectait que des opérations envoyées volontairement en parallèle, jamais un usage normal du portefeuille.'},
   {version:'4.55.24',category:'fix',date:'2 septembre 2026',time:'16:35',title:'☁️ X1 Drive : correction sur l\\'historique des versions',
@@ -35708,19 +35794,13 @@ async function handle(request, event) {
   }
   if (path === "/api/turnstile/verify" && request.method === "POST") {
     try {
-      const secretKey = typeof TURNSTILE_SECRET_KEY !== "undefined" ? TURNSTILE_SECRET_KEY : null;
-      if (!secretKey) throw new Error("Turnstile non configuré");
+      if (typeof TURNSTILE_SECRET_KEY === "undefined" || !TURNSTILE_SECRET_KEY) throw new Error("Turnstile non configuré");
       const body = await request.json();
       const token = String((body && body.token) || "");
       if (!token) throw new Error("token requis");
       const ip = request.headers.get("CF-Connecting-IP") || "";
-      const form = new URLSearchParams();
-      form.set("secret", secretKey);
-      form.set("response", token);
-      if (ip) form.set("remoteip", ip);
-      const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", { method: "POST", body: form });
-      const d = await r.json();
-      return new Response(JSON.stringify({ ok: !!d.success }), {
+      const ok = await verifyTurnstileToken(token, ip);
+      return new Response(JSON.stringify({ ok: ok }), {
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     } catch (e) {
@@ -36052,21 +36132,60 @@ async function handle(request, event) {
       const body = await request.json();
       const identifier = String((body && (body.identifier || body.email)) || "").trim();
       const password = String((body && body.password) || "");
+      const turnstileToken = String((body && body.turnstileToken) || "");
       if (!identifier || !password) {
         return new Response(JSON.stringify({ ok: false, error: "Identifiant et mot de passe requis" }), {
           status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
         });
       }
+      // Anti bourrage (brute force / credential stuffing) : le widget
+      // Turnstile affiché côté client ne protégeait jusqu'ici RIEN — cette
+      // route ne vérifiait jamais elle-même le jeton, donc un script pouvait
+      // l'appeler directement en boucle sans jamais résoudre le défi. Un
+      // compteur KV vient s'ajouter par-dessus, par IDENTIFIANT ciblé : les
+      // véritables tentatives de mot de passe se font ici avec la CLÉ ADMIN
+      // (asAdmin), donc Appwrite ne voit jamais l'IP réelle de l'appelant —
+      // toute protection par IP côté Appwrite serait sans effet contre un
+      // bourrage visant un compte précis.
+      const rlKey = "login:" + identifier.toLowerCase();
+      if (!(await rateLimitCheck(rlKey, 10))) {
+        return new Response(JSON.stringify({ ok: false, error: "Trop de tentatives sur ce compte, réessaie dans 15 minutes." }), {
+          status: 429, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+        });
+      }
       const email = await resolveLoginEmail(identifier);
+      // Cas particulier : un utilisateur DÉJÀ connecté qui re-saisit son
+      // propre mot de passe (vérification/restauration des clés de
+      // chiffrement E2E, écran sans widget Turnstile) — dispense de
+      // Turnstile UNIQUEMENT quand la session déjà présentée correspond
+      // exactement au compte visé, jamais pour un identifiant différent : un
+      // jeton de session volé ne permet donc pas de bourrer le mot de passe
+      // D'UN AUTRE compte sans Turnstile. Le compteur ci-dessus reste actif
+      // dans les deux cas.
+      let selfReauth = false;
+      try {
+        const callerAcc = await resolveSessionUser(request);
+        if (callerAcc && String(callerAcc.email || "").toLowerCase() === email.toLowerCase()) selfReauth = true;
+      } catch (e) {}
+      if (!selfReauth) {
+        const ip = request.headers.get("CF-Connecting-IP") || "";
+        if (!(await verifyTurnstileToken(turnstileToken, ip))) {
+          await rateLimitBump(rlKey, 900);
+          return new Response(JSON.stringify({ ok: false, error: "Vérification anti-robot échouée, réessaie." }), {
+            status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+          });
+        }
+      }
       const data = await awFetch("/account/sessions/email", {
         method: "POST",
         body: { email: email, password: password },
         asAdmin: true
-      });
+      }).catch(async function (e) { await rateLimitBump(rlKey, 900); throw e; });
       const secret = data.secret || null;
       const sessionId = data.$id || null;
       const userId = data.userId || null;
-      if (!secret) throw new Error("Identifiants invalides");
+      if (!secret) { await rateLimitBump(rlKey, 900); throw new Error("Identifiants invalides"); }
+      await rateLimitClear(rlKey); // mot de passe correct — plus la peine de continuer à limiter cet identifiant
       let jwt = null;
       let mfaErr = null;
       // Create JWT bound to this session for client use
@@ -36207,6 +36326,13 @@ async function handle(request, event) {
       const useRecoveryCode = !!(body && body.useRecoveryCode);
       if (!mfaToken || !otp) throw new Error("Code requis");
       if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      // Un code TOTP à 6 chiffres n'a qu'un million de combinaisons — même si
+      // mfaToken lui-même est un secret déjà inconnu d'un attaquant sans mot
+      // de passe valide, ce compteur ferme la porte à un bourrage du code
+      // une fois ce jeton obtenu (le jeton reste valable 10 min et n'est
+      // jamais supprimé après un échec, seulement au succès).
+      const mfaRlKey = "mfa:" + mfaToken;
+      if (!(await rateLimitCheck(mfaRlKey, 8))) throw new Error("Trop de tentatives, redemande une connexion.");
       const raw = await SITE_KV.get("mfa_pending:" + mfaToken);
       if (!raw) throw new Error("Session expirée, reconnecte-toi.");
       const pending = JSON.parse(raw);
@@ -36219,7 +36345,7 @@ async function handle(request, event) {
         method: "PUT",
         body: { challengeId: challenge.$id, otp: otp },
         headers: { "X-Appwrite-Session": pending.secret }
-      });
+      }).catch(async function (e) { await rateLimitBump(mfaRlKey, 600); throw e; });
       const jwtRes = await awFetch("/account/jwts", {
         method: "POST",
         body: {},
@@ -36662,6 +36788,7 @@ async function handle(request, event) {
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       "X-DNS-Prefetch-Control": "off",
       "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload",
+      "Content-Security-Policy": CSP_HEADER,
       "X-Xultra-Version": "β2.8.10"
     }
   });
