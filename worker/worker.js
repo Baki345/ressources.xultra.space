@@ -30312,6 +30312,18 @@ async function handle(request, event) {
       if (!targetUid) throw new Error("targetUid requis");
       if (validReasons.indexOf(reason) === -1) throw new Error("raison invalide");
       if (targetUid === acc.$id) throw new Error("Impossible de se signaler soi-même");
+      // Anti-spam de la file de modération — jamais appliqué à
+      // "contenu_sexuel_mineur" (signalement critique, ne doit jamais
+      // pouvoir être bloqué, même par erreur).
+      if (reason !== "contenu_sexuel_mineur") {
+        const reportRlKey = "report:" + acc.$id;
+        if (!(await rateLimitCheck(reportRlKey, 10))) {
+          return new Response(JSON.stringify({ ok: false, error: "Trop de signalements envoyés récemment, réessaie plus tard." }), {
+            status: 429, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+          });
+        }
+        await rateLimitBump(reportRlKey, 600);
+      }
       const profile = await resolveProfile(acc.$id);
       const reporterName = (profile && (profile.displayName || profile.username)) || acc.name || "Anonyme";
       const isUrgent = reason === "contenu_sexuel_mineur";
