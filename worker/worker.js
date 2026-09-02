@@ -7107,6 +7107,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.24',category:'fix',date:'2 septembre 2026',time:'16:35',title:'☁️ X1 Drive : correction sur l\\'historique des versions',
+    body:'En vérifiant cette fonctionnalité, un bug a été trouvé et corrigé : restaurer une ancienne version d\\'un fichier ne conservait pas le contenu qu\\'elle remplaçait, ce qui pouvait — dans de rares cas — mener à la perte du fichier si on supprimait ensuite cette version dans l\\'historique. Corrigé : restaurer archive maintenant correctement le contenu actuel avant de basculer. Autre correction dans la foulée : supprimer définitivement un fichier ayant plusieurs versions libère maintenant bien tout l\\'espace de stockage utilisé par ses anciennes versions (avant, elles restaient invisibles mais comptaient toujours dans ton quota).'},
   {version:'4.55.23',category:'feature',date:'2 septembre 2026',time:'16:20',title:'✏️ XBin : modifier un paste existant, filtres et tri',
     body:'Tu peux maintenant modifier un paste déjà publié (titre, contenu, langage, visibilité) via le nouveau bouton "✏️ Modifier" — sans perdre ses vues, ses commentaires ni son lien, contrairement à "Dupliquer" qui crée une copie séparée. Un nouveau filtre par langage et un tri "Plus vus / Plus récents" sont disponibles dans Découvrir et Mes pastes.'},
   {version:'4.55.22',category:'feature',date:'2 septembre 2026',time:'12:45',title:'📋 XBin : coloration en direct, commentaires, statistiques et plus',
@@ -18405,13 +18407,32 @@ async function xdRestoreItem(item){
 async function xdPermanentDelete(item){
   if(!confirm('Supprimer définitivement "'+item._name+'" ? Cette action est irréversible.'))return;
   try{
-    if(item.type==='file'&&item.fileId){
-      await storage.deleteFile('xultra_drive',item.fileId).catch(function(){});
-      try{await authPost('/api/xdrive/commit-delete',{size:item.size||0});}catch(e){}
+    let versionsFreed=0;
+    if(item.type==='file'){
+      // Les anciennes versions archivées (📜 Historique) ont leur PROPRE
+      // fichier Storage, jamais nettoyé par la suppression du seul document
+      // "xdrive_items" — sans ce ménage, elles resteraient orphelines pour
+      // toujours (facturées sur le quota, plus jamais accessibles ni
+      // supprimables une fois l'élément parent disparu).
+      let versions=[];
+      try{
+        const r=await db.listDocuments(DB,'xdrive_versions',[Appwrite.Query.equal('itemId',item.\$id),Appwrite.Query.limit(200)]);
+        versions=r.documents||[];
+      }catch(e){}
+      for(const v of versions){
+        if(v.fileId)await storage.deleteFile('xultra_drive',v.fileId).catch(function(){});
+        await db.deleteDocument(DB,'xdrive_versions',v.\$id).catch(function(){});
+        versionsFreed+=v.size||0;
+      }
+      if(item.fileId){
+        await storage.deleteFile('xultra_drive',item.fileId).catch(function(){});
+      }
     }
+    const totalFreed=(item.size||0)+versionsFreed;
+    if(totalFreed>0){try{await authPost('/api/xdrive/commit-delete',{size:totalFreed});}catch(e){}}
     await db.deleteDocument(DB,'xdrive_items',item.\$id);
     showToast('Supprimé définitivement.');
-    if(xdDriveMeta&&item.size)xdDriveMeta.used=Math.max(0,xdDriveMeta.used-item.size);
+    if(xdDriveMeta&&totalFreed)xdDriveMeta.used=Math.max(0,xdDriveMeta.used-totalFreed);
     xdRenderQuotaBox();
     xdRenderCurrentView();
   }catch(e){showToast('Suppression impossible','error');}
@@ -19006,7 +19027,24 @@ async function xdShowVersionHistory(item){
       const v=versions.find(function(x){return x.\$id===vid;});
       if(!v)return;
       try{
+        // Le contenu ACTUEL doit être archivé avant d'être remplacé — comme
+        // lors d'un nouvel envoi qui écrase un fichier existant (voir plus
+        // haut). Sans ça, son fichier Storage devient orphelin : toujours
+        // facturé sur le quota, mais plus jamais récupérable ni supprimable
+        // depuis l'appli. Puis on retire l'entrée qu'on vient de restaurer :
+        // elle devient le contenu actif de l'élément, ce n'est plus "une
+        // ancienne version" — la garder exposerait à supprimer par erreur,
+        // plus tard, le fichier maintenant en cours d'utilisation.
+        if(item.fileId){
+          try{
+            await db.createDocument(DB,'xdrive_versions',Appwrite.ID.unique(),{
+              itemId:item.\$id,ownerId:me.\$id,fileId:item.fileId,keyWrapped:item.keyWrapped||'',keyIv:item.keyIv||'',size:item.size||0
+            },[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+          }catch(e){}
+        }
         await db.updateDocument(DB,'xdrive_items',item.\$id,{fileId:v.fileId,keyWrapped:v.keyWrapped,keyIv:v.keyIv,size:v.size});
+        await db.deleteDocument(DB,'xdrive_versions',vid).catch(function(){});
+        item.fileId=v.fileId;item.keyWrapped=v.keyWrapped;item.keyIv=v.keyIv;item.size=v.size;
         showToast('Version restaurée.');
         box.remove();
         xdRenderCurrentView();
