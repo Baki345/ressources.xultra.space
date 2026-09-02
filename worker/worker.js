@@ -1060,6 +1060,36 @@ async function grantPlus(uid, assignedBy) {
   }
   await syncPlusBadge(uid);
 }
+// ===== Boutique de décorations de profil (cadres d'avatar créés par des
+// créateurs, vendus en X1 Coins) =====
+// Choix délibéré de scope pour la V1 : parametrique, pas d'upload de
+// fichier. Un créateur ne fournit JAMAIS d'image/SVG/HTML — seulement des
+// couleurs (hex validées) + un preset d'animation + une vitesse, rejoué par
+// le MÊME moteur CSS déjà utilisé pour les cadres gratuits existants
+// (fire/frost/gold/rainbow/neon, voir frameSpin/framePulse et
+// .pc-av-frame::before plus haut dans les styles). Ça ferme d'emblée toute
+// la surface d'attaque qu'ouvrirait un upload arbitraire (XSS via SVG,
+// modération de contenu choquant, coût de stockage) tout en laissant une
+// vraie liberté créative (n'importe quelle palette de couleurs, 3 ambiances
+// d'animation, vitesse, flou). Un cadre acheté est un cadre ordinaire pour
+// le rendu : buildProfileCardHtml n'a besoin de connaître QUE la recette
+// validée, jamais l'identité de son créateur.
+const SHOP_PRICE_MIN = 50;
+const SHOP_PRICE_MAX = 5000;
+const SHOP_ROYALTY_PCT = 0.7; // 70% créateur / 30% X1 — décidé avec l'utilisateur
+const SHOP_ANIM_PRESETS = ["spin", "pulse", "spinpulse"];
+function validateShopFrameRecipe(input) {
+  const HEX = /^#[0-9a-fA-F]{6}$/;
+  const colorsIn = Array.isArray(input && input.colors) ? input.colors : [];
+  const colors = colorsIn.filter(function (c) { return typeof c === "string" && HEX.test(c); }).slice(0, 6);
+  if (colors.length < 2) throw new Error("Il faut entre 2 et 6 couleurs valides (format #rrggbb)");
+  const anim = SHOP_ANIM_PRESETS.indexOf(input && input.anim) >= 0 ? input.anim : "spin";
+  let speedSec = Number(input && input.speedSec);
+  if (!Number.isFinite(speedSec)) speedSec = 3;
+  speedSec = Math.round(Math.min(6, Math.max(1.5, speedSec)) * 10) / 10;
+  const blur = !!(input && input.blur);
+  return { colors: colors, anim: anim, speedSec: speedSec, blur: blur };
+}
 // Vérifie la signature d'un webhook Stripe (en-tête Stripe-Signature :
 // "t=<timestamp>,v1=<hmac-hex>") sur le corps BRUT de la requête — jamais le
 // JSON re-sérialisé, qui ne matcherait pas octet pour octet. Tolérance de
@@ -1175,7 +1205,7 @@ function resolveStaffRole(acc, profile) {
   if (profile && profile.isMod) return "mod";
   return "member";
 }
-const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view"];
+const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate"];
 async function requireStaff(request, capability) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
@@ -2190,6 +2220,21 @@ html.xultra-restoring #stage{visibility:hidden}
 .xbin-card{background:linear-gradient(165deg,rgba(124,58,237,.1),rgba(20,12,32,.6));border:1px solid rgba(167,139,250,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
 @keyframes xbinCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .xbin-card:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5);box-shadow:0 12px 30px rgba(124,58,237,.25)}
+/* ===== Boutique de décorations de profil ===== */
+.shop-card{align-items:center;text-align:center;cursor:default}
+.shop-card:hover{transform:none;border-color:rgba(167,139,250,.18);box-shadow:none}
+.shop-card-preview{margin:0 auto 2px;position:relative}
+.shop-card-preview .pc-av{width:100%;height:100%;border-radius:50%;background:#15101f}
+.shop-card-name{font-weight:800;font-size:.9rem}
+.shop-card-creator{font-size:.72rem;color:var(--muted)}
+.shop-card-price{font-size:.9rem;font-weight:800;color:#facc15}
+.shop-card-tag{font-size:.74rem;font-weight:700;color:var(--muted);padding:4px 0}
+.shop-card-tag.on{color:#86efac}
+.shop-card-tag.pending{color:#facc15}
+.shop-card-tag.rejected{color:#f87171}
+.shop-buy-btn{width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7)}
+.shop-mod-actions{display:flex;gap:8px;width:100%}
+.shop-mod-actions button{flex:1}
 .xbin-card-top{display:flex;justify-content:space-between;align-items:center;gap:6px}
 .xbin-lang-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(167,139,250,.16);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;font-size:.68rem;font-weight:800;letter-spacing:.02em;white-space:nowrap}
 .xbin-vis-chip{font-size:.68rem;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap}
@@ -3226,7 +3271,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pe-hint{font-size:.72rem;color:var(--muted);margin-bottom:2px;line-height:1.4}
 .pc-card.pc-centered .pc-banner{height:112px}
 .pc-card.pc-centered .pc-av-frame{width:86px;height:86px;margin-top:-50px}
-.pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before,.pc-av-frame.frame-xplus::before{
+.pc-av-frame.frame-fire::before,.pc-av-frame.frame-frost::before,.pc-av-frame.frame-gold::before,.pc-av-frame.frame-rainbow::before,.pc-av-frame.frame-neon::before,.pc-av-frame.frame-xplus::before,.pc-av-frame.frame-shop::before{
   /* Bug remonté par Yani Neco ("cadres photo ne sont pas affichés") : cet
      anneau est en z-index:-1 (derrière la photo, exprès — c'est un disque
      plein, pas un anneau creux, donc le mettre devant masquerait toute la
@@ -3241,6 +3286,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-av-frame.frame-rainbow::before{background:conic-gradient(from 0deg,#ef4444,#f59e0b,#eab308,#22c55e,#38bdf8,#7c3aed,#ec4899,#ef4444);animation:frameSpin 2.5s linear infinite}
 .pc-av-frame.frame-neon::before{background:radial-gradient(circle,transparent 60%,#a78bfa 90%);animation:framePulse 1.6s ease-in-out infinite}
 .pc-av-frame.frame-xplus::before{background:conic-gradient(from 0deg,#fbbf24,#7c3aed,#fbbf24,#f0abfc,#fbbf24);animation:frameSpin 3s linear infinite,framePulse 2.4s ease-in-out infinite}
+.pc-av-frame.frame-shop::before{background:var(--shop-bg,none);animation:var(--shop-anim,none);filter:var(--shop-filter,none)}
 .pe-frame-swatch.frame-locked{opacity:.45;cursor:not-allowed;position:relative}
 .pe-frame-swatch.frame-locked::after{content:'⭐';position:absolute;bottom:-2px;right:-2px;font-size:.7rem}
 @keyframes frameSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
@@ -4177,6 +4223,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-shop" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
@@ -4192,6 +4239,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive-mobile" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-shop-mobile" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
@@ -6388,6 +6436,7 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
   {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'X1 Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
+  {desktopSel:'#nav-shop',mobileSel:'#nav-shop-mobile',placement:'right',icon:'🛍️',title:'Boutique',text:'Achète des cadres d\\'avatar créés par la communauté, avec des X1 Coins.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -7301,6 +7350,8 @@ if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){ope
 if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
 if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();});
 if(\$('nav-xbin-mobile'))\$('nav-xbin-mobile').addEventListener('click',function(){openXBin();});
+if(\$('nav-shop'))\$('nav-shop').addEventListener('click',function(){openShop();});
+if(\$('nav-shop-mobile'))\$('nav-shop-mobile').addEventListener('click',function(){openShop();});
 if(\$('nav-xdrive'))\$('nav-xdrive').addEventListener('click',function(){openXDrive();});
 if(\$('nav-xdrive-mobile'))\$('nav-xdrive-mobile').addEventListener('click',function(){openXDrive();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
@@ -7310,6 +7361,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.29',category:'feature',date:'2 septembre 2026',time:'23:35',title:'🛍️ Nouveau : la Boutique, des cadres d\\'avatar créés par la communauté',
+    body:'Nouvelle section accessible depuis la barre latérale : achète des cadres d\\'avatar originaux, créés par d\\'autres membres, avec des X1 Coins. Si tu as le badge 🎬 Créateur, tu peux en publier toi-même — choisis tes couleurs, une animation (rotation, pulsation, ou les deux), un effet flou en option, fixe ton prix (50 à 5000 X1 Coins), et soumets-le à la modération de l\\'équipe. Une fois approuvé, il apparaît dans la boutique pour tout le monde : à chaque vente, tu touches 70% en X1 Coins, directement dans ton portefeuille (X1 garde 30% pour financer le site). Une fois acheté, un cadre s\\'équipe comme les cadres gratuits classiques, depuis l\\'édition de ton profil.'},
   {version:'4.55.28',category:'feature',date:'2 septembre 2026',time:'23:10',title:'⭐ X1+ : plus d\\'espace de stockage, plus d\\'emojis, plus de bots',
     body:'Le forfait X1+ devient beaucoup plus avantageux : ton espace X1 Drive passe de 1 Go à 256 Go, tes pièces jointes en message peuvent aller jusqu\\'à 500 Mo (contre 10 Mo en compte basique), et tes avatars/bannières jusqu\\'à 30 Mo (contre 10 Mo aussi) avec des formats plus larges. Pour les propriétaires de serveur : le nombre d\\'emojis personnalisés passe de 50 à 150 dès que TOI, propriétaire, es en X1+ (même chose déjà en place avec le palier 2 de boosts serveur — les deux se cumulent), et la limite de bots installables sur un serveur passe de 25 à 50. Comme d\\'habitude, rien à faire de ton côté si tu es déjà en X1+, ces nouveaux plafonds s\\'appliquent automatiquement.'},
   {version:'4.55.27',category:'security',date:'2 septembre 2026',time:'22:20',title:'🛡️ Failles corrigées : réactions aux messages et bannière de profil',
@@ -12163,6 +12216,31 @@ function renderX1mojiSvg(cfgIn,opts){
     +'</svg>';
 }
 const AVATAR_FRAMES=['none','fire','frost','gold','rainbow','neon','xplus'];
+// Rendu d'un cadre acheté à la boutique : la recette vient de
+// profileExtraJson.avatarFrameRecipe, déjà revalidée et réécrite par le
+// serveur à chaque équipement (voir /api/account/update-meta) — mais on ne
+// fait jamais confiance à un JSON stocké pour autant (il a pu être écrit par
+// une version antérieure, ou par un autre chemin) : chaque champ est
+// revérifié ici aussi avant de finir dans un attribut style="".
+const SHOP_ANIM_CSS={spin:'frameSpin',pulse:'framePulse',spinpulse:'frameSpin,framePulse'};
+// Retourne des variables CSS (--shop-bg/--shop-anim/--shop-filter) à poser
+// en style="" sur .pc-av-frame.frame-shop — jamais du CSS qui ciblerait
+// directement ::before (impossible à faire depuis un attribut style="" sur
+// l'élément lui-même), voir la règle .frame-shop::before plus haut dans les
+// styles qui consomme ces variables via var().
+function shopFrameStyle(recipe){
+  const HEX=/^#[0-9a-fA-F]{6}$/;
+  const colors=(Array.isArray(recipe&&recipe.colors)?recipe.colors:[]).filter(function(c){return typeof c==='string'&&HEX.test(c);}).slice(0,6);
+  if(colors.length<2)return '';
+  const animKey=SHOP_ANIM_CSS[recipe.anim]?recipe.anim:'spin';
+  let speedSec=Number(recipe.speedSec);
+  if(!Number.isFinite(speedSec))speedSec=3;
+  speedSec=Math.min(6,Math.max(1.5,speedSec));
+  const names=SHOP_ANIM_CSS[animKey].split(',');
+  const animCss=names.map(function(n){return n+' '+speedSec+'s '+(n==='frameSpin'?'linear':'ease-in-out')+' infinite';}).join(',');
+  const grad='conic-gradient(from 0deg,'+colors.concat([colors[0]]).map(function(c){return esc(c);}).join(',')+')';
+  return '--shop-bg:'+grad+';--shop-anim:'+animCss+';--shop-filter:'+(recipe.blur?'blur(1px)':'none');
+}
 function parseProfileExtra(json){
   try{const o=JSON.parse(json||'{}');return (o&&typeof o==='object')?o:{};}catch(e){return {};}
 }
@@ -12340,7 +12418,9 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const name=p.displayName||p.username||'User';
   const fontFamily=FONT_STACKS[p.font]||FONT_STACKS.system;
   const presence=PRESENCE_DEFS[p.statusManual]||PRESENCE_DEFS.online;
-  const frame=AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none';
+  const isShopFrame=typeof extra.avatarFrame==='string'&&extra.avatarFrame.indexOf('shop_')===0;
+  const shopFrameCss=isShopFrame?shopFrameStyle(extra.avatarFrameRecipe):'';
+  const frame=isShopFrame&&shopFrameCss?'shop':(AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none');
   const gallery=(Array.isArray(extra.avatarGallery)?extra.avatarGallery:[]).map(safeUrl).filter(Boolean);
   const avatarUrls=gallery.length?gallery:(safeUrl(p.avatar)?[safeUrl(p.avatar)]:[]);
   const x1mojiPick=useX1mojiConfig(extra);
@@ -12376,7 +12456,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
       +geoBadgeHtml
     +'</div>'
-    +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"><div class="pc-av">'+avatarInner+'</div>'
+    +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"'+(frame==='shop'?' style="'+shopFrameCss+'"':'')+'><div class="pc-av">'+avatarInner+'</div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo" data-tip="Changer la photo">📷</button>':'')
       +(p.statusManual&&p.statusManual!=='invisible'?'<span class="pc-presence-dot" style="background:'+presence.dot+'" title="'+esc(presence.label)+'"></span>':'')
     +'</div></div>'
@@ -12653,7 +12733,14 @@ if(\$('ub-more-menu'))\$('ub-more-menu').addEventListener('click',function(e){
   if(e.target.closest('button'))closeUbPopovers();
 });
 
-let peDraft=null,peOriginalMeta=null;
+let peDraft=null,peOriginalMeta=null,ownedShopFrames=[];
+async function loadOwnedShopFrames(){
+  try{
+    const r=await authGet('/api/shop/decorations/owned');
+    ownedShopFrames=(r&&r.decorations)||[];
+  }catch(e){ownedShopFrames=[];}
+  renderFrameSwatches();
+}
 function openProfileEditPanel(p,meta){
   const theme=p.theme||'violet';
   peOriginalMeta=meta||{};
@@ -12686,7 +12773,8 @@ function openProfileEditPanel(p,meta){
     customStatusExpiresAt:extra.customStatusExpiresAt||'',
     x1moji:Object.assign(defaultX1mojiConfig(),resolveX1mojiConfig(extra)||{}),
     useX1moji:!!(extra.useX1moji||extra.useBitmoji),
-    avatarFrame:AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0?extra.avatarFrame:'none',
+    avatarFrame:(AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0||(typeof extra.avatarFrame==='string'&&extra.avatarFrame.indexOf('shop_')===0))?extra.avatarFrame:'none',
+    avatarFrameRecipe:extra.avatarFrameRecipe||null,
     avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
     cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none'
   };
@@ -12720,6 +12808,7 @@ function openProfileEditPanel(p,meta){
   \$('pe-err').textContent='';
   renderThemeSwatches();
   renderFrameSwatches();
+  loadOwnedShopFrames();
   renderPresenceRow();
   renderGalleryThumbs();
   renderX1mojiBuilder();
@@ -12839,11 +12928,21 @@ function renderFrameSwatches(){
     const locked=k==='xplus'&&!isPlus;
     return '<button type="button" class="pe-frame-swatch pc-av-frame frame-'+k+(locked?' frame-locked':'')+'" data-frame="'+k+'" title="'+esc(FRAME_LABELS[k])+(locked?' — nécessite X1+':'')+'" data-tip="'+esc(FRAME_LABELS[k])+'">'
       +'<span class="pe-frame-inner'+(peDraft.avatarFrame===k?' on':'')+'"></span></button>';
+  }).join('')
+  +ownedShopFrames.map(function(d){
+    let recipe=null;try{recipe=JSON.parse(d.recipeJson);}catch(e){}
+    const css=shopFrameStyle(recipe);
+    const key='shop_'+d.\$id;
+    return '<button type="button" class="pe-frame-swatch pc-av-frame frame-shop" data-frame="'+esc(key)+'" data-recipe=\\''+esc(JSON.stringify(recipe))+'\\' style="'+css+'" title="'+esc(d.name)+'" data-tip="'+esc(d.name)+'">'
+      +'<span class="pe-frame-inner'+(peDraft.avatarFrame===key?' on':'')+'"></span></button>';
   }).join('');
   wrap.querySelectorAll('[data-frame]').forEach(function(b){
     b.addEventListener('click',function(){
       const k=b.getAttribute('data-frame');
       if(k==='xplus'&&!isPlus){showToast('Ce cadre est exclusif à X1+ — Paramètres → ⭐ Abonnement','error');return}
+      if(k.indexOf('shop_')===0){
+        try{peDraft.avatarFrameRecipe=JSON.parse(b.getAttribute('data-recipe')||'null');}catch(e){peDraft.avatarFrameRecipe=null;}
+      }
       peDraft.avatarFrame=k;
       renderFrameSwatches();updatePePreview();
     });
@@ -12879,7 +12978,7 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji})
   });
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
@@ -13064,7 +13163,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
        par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
        qu'aucune erreur ne soit jamais visible. */
     let extraSaveFailed=false;
-    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji});
+    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji});
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
@@ -21193,6 +21292,215 @@ function crtOpenPublishForm(){
       showToast('Publié ! 🎉');
       openCreators(null,'');
     }catch(e){\$('crt-pub-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
+  };
+}
+
+/* ===== Boutique de décorations de profil — cadres d'avatar créés par des
+   créateurs badgés 🎬, achetés en X1 Coins (70% créateur / 30% X1, voir
+   /api/shop/decorations/* et SHOP_ROYALTY_PCT côté serveur). Rendu
+   entièrement paramétrique (couleurs + animation), jamais de fichier
+   uploadé — voir shopFrameStyle() et validateShopFrameRecipe côté serveur
+   plus haut dans ce fichier. ===== */
+let shopView='browse',shopBrowseCache=[],shopMineCache=[],shopModCache=[],shopOwnedIds=[],shopIsCreator=false,shopDraftColors=['#7c3aed','#ec4899'];
+async function openShop(){
+  let overlay=\$('shop-overlay');
+  if(!overlay){overlay=document.createElement('div');overlay.id='shop-overlay';overlay.className='discover-overlay shop-overlay';document.body.appendChild(overlay);}
+  overlay.classList.add('show');
+  try{shopIsCreator=((await getMyBadges())||[]).indexOf('creator')>=0;}catch(e){shopIsCreator=false;}
+  shopView='browse';renderShopShell();loadShopBrowse();
+}
+function closeShop(){const o=\$('shop-overlay');if(o)o.classList.remove('show');}
+function shopPreviewCircleHtml(recipe,size){
+  const css=shopFrameStyle(recipe);
+  return '<div class="pc-av-frame frame-shop shop-card-preview" style="width:'+size+'px;height:'+size+'px;'+css+'"><div class="pc-av"></div></div>';
+}
+const SHOP_STATUS_LABELS={pending:'⏳ En attente',approved:'✅ Approuvé',rejected:'❌ Refusé'};
+function shopCardHtml(d,mode){
+  let recipe=null;try{recipe=JSON.parse(d.recipeJson);}catch(e){}
+  const owned=shopOwnedIds.indexOf(d.\$id)>=0;
+  const mine=me&&String(d.creatorUid)===String(me.\$id);
+  let footer;
+  if(mode==='mine'){
+    footer='<div class="shop-card-tag'+(d.status==='approved'?' on':(d.status==='rejected'?' rejected':' pending'))+'">'+SHOP_STATUS_LABELS[d.status]+'</div>'
+      +'<div class="shop-card-creator">'+(d.salesCount||0)+' vente(s) · 🪙 '+(d.earnedCoins||0)+' gagnés</div>'
+      +(d.status==='rejected'&&d.rejectReason?'<div class="shop-card-creator" style="color:#f87171">'+esc(d.rejectReason)+'</div>':'');
+  }else if(mode==='mod'){
+    footer='<div class="shop-card-creator">par '+esc(d.creatorName||'Créateur')+' · 🪙 '+d.priceCoins+'</div>'
+      +'<div class="shop-mod-actions"><button type="button" class="btn-main" data-approve="'+esc(d.\$id)+'" style="background:#16a34a">✅ Approuver</button>'
+      +'<button type="button" class="set-mini-btn" data-reject="'+esc(d.\$id)+'" style="color:#f87171">❌ Refuser</button></div>';
+  }else{
+    footer='<div class="shop-card-creator">par '+esc(d.creatorName||'Créateur')+'</div>'
+      +'<div class="shop-card-price">🪙 '+d.priceCoins+'</div>'
+      +(mine?'<div class="shop-card-tag on">Ta création</div>':(owned?'<div class="shop-card-tag on">✓ Possédé</div>':'<button type="button" class="btn-main shop-buy-btn" data-buy="'+esc(d.\$id)+'">Acheter</button>'));
+  }
+  return '<div class="xbin-card shop-card">'+shopPreviewCircleHtml(recipe,64)+'<div class="shop-card-name">'+esc(d.name)+'</div>'+footer+'</div>';
+}
+function renderShopShell(){
+  const overlay=\$('shop-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head shop-head">'
+    +'<button type="button" class="set-mini-btn" id="shop-close">← Retour</button>'
+    +'<h2>🛍️ Boutique</h2>'
+    +'<div class="xbin-tabs">'
+      +'<button type="button" class="xbin-tab'+(shopView==='browse'?' on':'')+'" data-shop-tab="browse">🌐 Parcourir</button>'
+      +(shopIsCreator?'<button type="button" class="xbin-tab'+(shopView==='mine'?' on':'')+'" data-shop-tab="mine">🎨 Mes créations</button>':'')
+      +(isAdmin?'<button type="button" class="xbin-tab'+(shopView==='mod'?' on':'')+'" data-shop-tab="mod">🛡️ Modération</button>':'')
+    +'</div>'
+    +(shopIsCreator&&shopView!=='mod'?'<button type="button" class="btn-main xbin-new-btn" id="shop-new-btn">+ Créer un cadre</button>':'')
+  +'</div>'
+  +'<div class="discover-body shop-body" id="shop-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  \$('shop-close').onclick=closeShop;
+  overlay.querySelectorAll('[data-shop-tab]').forEach(function(btn){
+    btn.onclick=function(){
+      shopView=btn.getAttribute('data-shop-tab');
+      renderShopShell();
+      if(shopView==='browse')loadShopBrowse();
+      else if(shopView==='mine')loadShopMine();
+      else loadShopModeration();
+    };
+  });
+  const newBtn=\$('shop-new-btn');if(newBtn)newBtn.onclick=openShopCreateForm;
+}
+async function loadShopBrowse(){
+  const body=\$('shop-body');if(body)body.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  try{
+    const listRes=await authGet('/api/shop/decorations/list');
+    const ownedRes=await authGet('/api/shop/decorations/owned');
+    shopBrowseCache=(listRes&&listRes.decorations)||[];
+    shopOwnedIds=((ownedRes&&ownedRes.decorations)||[]).map(function(d){return d.\$id;});
+    renderShopBrowse();
+  }catch(e){
+    if(body)body.innerHTML='<div class="empty-hint">Impossible de charger la boutique pour le moment.</div>';
+  }
+}
+function renderShopBrowse(){
+  const body=\$('shop-body');if(!body)return;
+  if(!shopBrowseCache.length){body.innerHTML='<div class="scr-sub">Aucune décoration disponible pour l\\'instant.'+(shopIsCreator?' Sois le premier à en publier une !':'')+'</div>';return}
+  body.innerHTML='<div class="xbin-grid">'+shopBrowseCache.map(function(d){return shopCardHtml(d,'browse');}).join('')+'</div>';
+  body.querySelectorAll('[data-buy]').forEach(function(btn){
+    btn.onclick=function(){shopBuy(btn.getAttribute('data-buy'),btn);};
+  });
+}
+async function shopBuy(decorationId,btn){
+  const d=shopBrowseCache.find(function(x){return x.\$id===decorationId;});
+  if(!d)return;
+  if(!confirm('Acheter "'+d.name+'" pour '+d.priceCoins+' X1 Coins ?'))return;
+  btn.disabled=true;btn.textContent='...';
+  try{
+    await authPost('/api/shop/decorations/buy',{decorationId:decorationId});
+    showToast('Décoration achetée ! 🎉 Équipe-la depuis l\\'édition de ton profil.');
+    shopOwnedIds.push(decorationId);
+    renderShopBrowse();
+  }catch(e){
+    showToast((e&&e.message)||'Achat impossible','error');
+    btn.disabled=false;btn.textContent='Acheter';
+  }
+}
+async function loadShopMine(){
+  const body=\$('shop-body');if(body)body.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  try{
+    const r=await authGet('/api/shop/decorations/mine');
+    shopMineCache=(r&&r.decorations)||[];
+    renderShopMine();
+  }catch(e){
+    if(body)body.innerHTML='<div class="empty-hint">Impossible de charger tes créations.</div>';
+  }
+}
+function renderShopMine(){
+  const body=\$('shop-body');if(!body)return;
+  if(!shopMineCache.length){body.innerHTML='<div class="scr-sub">Tu n\\'as encore rien créé — clique sur "+ Créer un cadre" pour te lancer !</div>';return}
+  body.innerHTML='<div class="xbin-grid">'+shopMineCache.map(function(d){return shopCardHtml(d,'mine');}).join('')+'</div>';
+}
+async function loadShopModeration(){
+  const body=\$('shop-body');if(body)body.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+  try{
+    const r=await authGet('/api/shop/decorations/pending');
+    shopModCache=(r&&r.decorations)||[];
+    renderShopModeration();
+  }catch(e){
+    if(body)body.innerHTML='<div class="empty-hint">Impossible de charger la file de modération.</div>';
+  }
+}
+function renderShopModeration(){
+  const body=\$('shop-body');if(!body)return;
+  if(!shopModCache.length){body.innerHTML='<div class="scr-sub">Aucune décoration en attente de modération.</div>';return}
+  body.innerHTML='<div class="xbin-grid">'+shopModCache.map(function(d){return shopCardHtml(d,'mod');}).join('')+'</div>';
+  body.querySelectorAll('[data-approve]').forEach(function(btn){
+    btn.onclick=async function(){
+      btn.disabled=true;
+      try{await authPost('/api/shop/decorations/moderate',{decorationId:btn.getAttribute('data-approve'),action:'approve'});showToast('Décoration approuvée');loadShopModeration();}
+      catch(e){showToast((e&&e.message)||'Erreur','error');btn.disabled=false;}
+    };
+  });
+  body.querySelectorAll('[data-reject]').forEach(function(btn){
+    btn.onclick=async function(){
+      const reason=prompt('Raison du refus (optionnel, visible par le créateur) :')||'';
+      btn.disabled=true;
+      try{await authPost('/api/shop/decorations/moderate',{decorationId:btn.getAttribute('data-reject'),action:'reject',reason:reason});showToast('Décoration refusée');loadShopModeration();}
+      catch(e){showToast((e&&e.message)||'Erreur','error');btn.disabled=false;}
+    };
+  });
+}
+function openShopCreateForm(){
+  if(\$('shop-create-overlay'))return;
+  shopDraftColors=['#7c3aed','#ec4899'];
+  const overlay=document.createElement('div');
+  overlay.id='shop-create-overlay';
+  overlay.style.cssText='position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:16px';
+  overlay.innerHTML='<div style="position:relative;width:100%;max-width:420px;background:#150f22;border-radius:18px;padding:22px;max-height:90vh;overflow-y:auto">'
+    +'<button type="button" class="modal-close" id="shop-create-close">✕</button>'
+    +'<h3 style="margin:0 0 14px">🎨 Créer un cadre d\\'avatar</h3>'
+    +'<div id="shop-create-preview" style="display:flex;justify-content:center;margin-bottom:16px"></div>'
+    +'<div class="pe-field"><span>Nom</span><input type="text" id="shop-c-name" class="field-input" maxlength="40" placeholder="Ex. Aurore boréale"/></div>'
+    +'<div class="pe-field"><span>Couleurs (2 à 6)</span><div id="shop-c-colors" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"></div></div>'
+    +'<div class="pe-field"><span>Animation</span><select id="shop-c-anim" class="field-input">'
+      +'<option value="spin">🔄 Rotation</option><option value="pulse">💓 Pulsation</option><option value="spinpulse">✨ Les deux</option>'
+    +'</select></div>'
+    +'<div class="pe-field"><span>Vitesse</span><input type="range" id="shop-c-speed" min="1.5" max="6" step="0.5" value="3"/></div>'
+    +'<div class="pe-field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="shop-c-blur"/> Effet flou (façon flamme)</label></div>'
+    +'<div class="pe-field"><span>Prix (X1 Coins, 50 à 5000)</span><input type="number" id="shop-c-price" class="field-input" min="50" max="5000" value="150"/></div>'
+    +'<div id="shop-c-err" style="color:#f87171;font-size:.8rem;margin:6px 0"></div>'
+    +'<button type="button" class="btn-main" id="shop-c-submit" style="width:100%">Soumettre à la modération</button>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  \$('shop-create-close').onclick=function(){overlay.remove();};
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  function currentRecipe(){
+    return {colors:shopDraftColors,anim:\$('shop-c-anim').value,speedSec:parseFloat(\$('shop-c-speed').value),blur:\$('shop-c-blur').checked};
+  }
+  function updateShopPreview(){
+    \$('shop-create-preview').innerHTML=shopPreviewCircleHtml(currentRecipe(),80);
+  }
+  function renderColorPickers(){
+    const wrap=\$('shop-c-colors');
+    wrap.innerHTML=shopDraftColors.map(function(c,i){
+      return '<input type="color" value="'+c+'" data-color-idx="'+i+'" style="width:34px;height:34px;border:0;border-radius:8px;cursor:pointer;background:none">';
+    }).join('')
+    +(shopDraftColors.length<6?'<button type="button" id="shop-c-addcolor" class="set-mini-btn">+ Couleur</button>':'')
+    +(shopDraftColors.length>2?'<button type="button" id="shop-c-rmcolor" class="set-mini-btn">- Couleur</button>':'');
+    wrap.querySelectorAll('[data-color-idx]').forEach(function(inp){
+      inp.oninput=function(){shopDraftColors[parseInt(this.getAttribute('data-color-idx'),10)]=this.value;updateShopPreview();};
+    });
+    const add=\$('shop-c-addcolor');if(add)add.onclick=function(){shopDraftColors.push('#ffffff');renderColorPickers();updateShopPreview();};
+    const rm=\$('shop-c-rmcolor');if(rm)rm.onclick=function(){shopDraftColors.pop();renderColorPickers();updateShopPreview();};
+  }
+  renderColorPickers();updateShopPreview();
+  \$('shop-c-anim').addEventListener('change',updateShopPreview);
+  \$('shop-c-speed').addEventListener('input',updateShopPreview);
+  \$('shop-c-blur').addEventListener('change',updateShopPreview);
+  \$('shop-c-submit').onclick=async function(){
+    const name=(\$('shop-c-name').value||'').trim();
+    if(name.length<2){\$('shop-c-err').textContent='Le nom doit faire au moins 2 caractères';return}
+    const priceCoins=Math.round(Number(\$('shop-c-price').value)||150);
+    this.disabled=true;this.textContent='Envoi…';\$('shop-c-err').textContent='';
+    try{
+      await authPost('/api/shop/decorations/submit',{name:name,recipe:currentRecipe(),priceCoins:priceCoins});
+      overlay.remove();
+      showToast('Envoyé pour modération ! Tu seras averti une fois approuvé.');
+      if(shopView==='mine')loadShopMine();
+    }catch(e){
+      \$('shop-c-err').textContent=(e&&e.message)||'Erreur';
+      this.disabled=false;this.textContent='Soumettre à la modération';
+    }
   };
 }
 
@@ -32245,6 +32553,31 @@ async function handle(request, event) {
             const ownMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
             if (!ownMeta || ownMeta.plan !== "plus") throw new Error("Le cadre de profil X1+ est réservé aux membres X1+.");
           }
+          // Cadre de la boutique de décorations (id "shop_<decorationId>") :
+          // avatarFrameRecipe ne doit JAMAIS venir du client tel quel (ce
+          // serait un moyen d'afficher n'importe quelle recette forgée sans
+          // rien avoir acheté) — on la remplace systématiquement par la
+          // recette authentique stockée côté serveur, après avoir vérifié
+          // que ce compte possède bien cette décoration et qu'elle est
+          // toujours approuvée.
+          if (extraCheck && typeof extraCheck.avatarFrame === "string" && extraCheck.avatarFrame.indexOf("shop_") === 0) {
+            const decorationId = extraCheck.avatarFrame.slice(5);
+            const purchaseId = "sp_" + await sha256HexShort(String(acc.$id) + ":" + decorationId, 32);
+            let owns = false;
+            try { await awFetch("/databases/" + AW_DB + "/collections/shop_purchases/documents/" + purchaseId, { asAdmin: true }); owns = true; } catch (e2) { if (!(e2 && e2.status === 404)) throw e2; }
+            if (!owns) throw new Error("Tu ne possèdes pas cette décoration.");
+            const deco = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents/" + decorationId, { asAdmin: true }).catch(function () { return null; });
+            if (!deco || deco.status !== "approved") throw new Error("Cette décoration n'est plus disponible.");
+            let recipe = null;
+            try { recipe = JSON.parse(deco.recipeJson); } catch (e3) {}
+            extraCheck.avatarFrameRecipe = recipe;
+            data.profileExtraJson = JSON.stringify(extraCheck);
+          } else if (extraCheck && "avatarFrameRecipe" in extraCheck) {
+            // Pas un cadre boutique : jamais de recette qui traînerait,
+            // forgée ou périmée.
+            delete extraCheck.avatarFrameRecipe;
+            data.profileExtraJson = JSON.stringify(extraCheck);
+          }
         } catch (e) {
           if (e instanceof SyntaxError) { /* JSON invalide : laissé tel quel, pas notre rôle de valider tout le schéma ici */ }
           else throw e;
@@ -33146,6 +33479,172 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
+
+  // ===== Boutique de décorations de profil =====
+  // Réservé aux comptes badgés 🎬 créateur (même badge déjà utilisé pour
+  // /api/creators/posts/create) — évite d'ouvrir la file de modération à
+  // n'importe qui, cohérent avec l'infrastructure "créateur" déjà existante.
+  if (path === "/api/shop/decorations/submit" && request.method === "POST") {
+    const gate = await requireCreatorBadge(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      if (!(await rateLimitCheck("shopsubmit_" + gate.acc.$id, 10))) throw new Error("Trop de soumissions récentes, réessaie plus tard.");
+      const body = await request.json();
+      const name = String((body && body.name) || "").trim().slice(0, 40);
+      if (name.length < 2) throw new Error("Le nom doit faire au moins 2 caractères");
+      const recipe = validateShopFrameRecipe(body && body.recipe);
+      let priceCoins = Math.floor(Number(body && body.priceCoins));
+      if (!Number.isFinite(priceCoins)) priceCoins = SHOP_PRICE_MIN;
+      priceCoins = Math.min(SHOP_PRICE_MAX, Math.max(SHOP_PRICE_MIN, priceCoins));
+      const creatorProfile = await resolveProfile(gate.acc.$id).catch(function () { return null; });
+      const creatorName = (creatorProfile && (creatorProfile.displayName || creatorProfile.username)) || gate.acc.name || "Créateur";
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { creatorUid: String(gate.acc.$id), creatorName: String(creatorName).slice(0, 60), name: name, kind: "avatar_frame", recipeJson: JSON.stringify(recipe), priceCoins: priceCoins, status: "pending", rejectReason: "", salesCount: 0 } }
+      });
+      await rateLimitBump("shopsubmit_" + gate.acc.$id, 86400);
+      return new Response(JSON.stringify({ ok: true, decoration: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Vitrine publique : uniquement les décorations approuvées, n'importe quel
+  // compte connecté peut parcourir (pas besoin du badge créateur pour ACHETER,
+  // seulement pour VENDRE).
+  if (path === "/api/shop/decorations/list" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const list = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["approved"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "salesCount" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, decorations: list.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Les créations du compte connecté, tous statuts confondus (pending/
+  // approved/rejected), avec gains cumulés — le prix ne change jamais après
+  // publication (v1 volontairement simple), donc gains = salesCount ×
+  // part créateur, pas besoin de ressommer shop_purchases à chaque appel.
+  if (path === "/api/shop/decorations/mine" && request.method === "GET") {
+    const gate = await requireCreatorBadge(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const list = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "creatorUid", values: [String(gate.acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const decorations = (list.documents || []).map(function (d) {
+        return Object.assign({}, d, { earnedCoins: (Number(d.salesCount) || 0) * Math.floor(d.priceCoins * SHOP_ROYALTY_PCT) });
+      });
+      return new Response(JSON.stringify({ ok: true, decorations: decorations }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Les décorations possédées par le compte connecté (achetées), pour le
+  // sélecteur de cadre dans l'édition de profil.
+  if (path === "/api/shop/decorations/owned" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const purchases = await awFetch("/databases/" + AW_DB + "/collections/shop_purchases/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const ids = (purchases.documents || []).map(function (p) { return p.decorationId; });
+      if (!ids.length) return new Response(JSON.stringify({ ok: true, decorations: [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const decos = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "$id", values: ids })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, decorations: decos.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/shop/decorations/buy" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const decorationId = String((body && body.decorationId) || "");
+      const deco = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents/" + decorationId, { asAdmin: true });
+      if (!deco || deco.status !== "approved") throw new Error("Décoration indisponible");
+      const creatorUid = String(deco.creatorUid);
+      if (creatorUid === String(acc.$id)) throw new Error("Tu ne peux pas acheter ta propre création");
+      const purchaseId = "sp_" + await sha256HexShort(String(acc.$id) + ":" + decorationId, 32);
+      const priceCoins = deco.priceCoins;
+      const creatorShare = Math.floor(priceCoins * SHOP_ROYALTY_PCT);
+      await withWalletLock([acc.$id, creatorUid], async function () {
+        // Revérifié SOUS le verrou (seule garantie fiable contre un double-achat
+        // envoyé en parallèle par le même compte) — la simple présence du
+        // document d'achat suffit, pas besoin de vérifier son contenu.
+        try {
+          await awFetch("/databases/" + AW_DB + "/collections/shop_purchases/documents/" + purchaseId, { asAdmin: true });
+          throw new Error("Tu possèdes déjà cette décoration");
+        } catch (e) {
+          if (!(e && e.status === 404)) throw e;
+        }
+        const buyerWallet = await x1coinsGetOrCreateWallet(acc.$id);
+        if ((buyerWallet.balance || 0) < priceCoins) throw new Error("Solde insuffisant (" + priceCoins + " X1 Coins requis)");
+        await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + buyerWallet.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { balance: (buyerWallet.balance || 0) - priceCoins } }
+        });
+        const creatorWallet = await x1coinsGetOrCreateWallet(creatorUid);
+        await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + creatorWallet.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { balance: (creatorWallet.balance || 0) + creatorShare } }
+        });
+        await awFetch("/databases/" + AW_DB + "/collections/shop_purchases/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: purchaseId, data: { uid: String(acc.$id), decorationId: decorationId, creatorUid: creatorUid, priceCoins: priceCoins, creatorEarnedCoins: creatorShare } }
+        });
+        await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents/" + decorationId, {
+          method: "PATCH", asAdmin: true, body: { data: { salesCount: (Number(deco.salesCount) || 0) + 1 } }
+        }).catch(function () {});
+      });
+      await x1coinsLogTx(acc.$id, creatorUid, deco.name, "out", priceCoins, "shop_buy", "Achat décoration : " + deco.name);
+      await x1coinsLogTx(creatorUid, acc.$id, "", "in", creatorShare, "shop_sale", "Vente décoration : " + deco.name);
+      return new Response(JSON.stringify({ ok: true, decorationId: decorationId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/shop/decorations/moderate" && request.method === "POST") {
+    const gate = await requireStaff(request, "shop_moderate");
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const decorationId = String((body && body.decorationId) || "");
+      const action = String((body && body.action) || "");
+      if (["approve", "reject"].indexOf(action) < 0) throw new Error("Action invalide");
+      const deco = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents/" + decorationId, { asAdmin: true });
+      if (deco.status !== "pending") throw new Error("Cette décoration a déjà été traitée");
+      const reason = String((body && body.reason) || "").trim().slice(0, 300);
+      await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents/" + decorationId, {
+        method: "PATCH", asAdmin: true, body: { data: { status: action === "approve" ? "approved" : "rejected", rejectReason: action === "reject" ? reason : "" } }
+      });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // File d'attente de modération (pending uniquement) — même rôle staff que
+  // le reste de la modération (requireStaff avec capability shop_moderate).
+  if (path === "/api/shop/decorations/pending" && request.method === "GET") {
+    const gate = await requireStaff(request, "shop_moderate");
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const list = await awFetch("/databases/" + AW_DB + "/collections/shop_decorations/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["pending"] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      return new Response(JSON.stringify({ ok: true, decorations: list.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/wallet/crypto/address" && request.method === "POST") {
     // Non-custodial : X1 ne stocke QUE l'adresse publique (annuaire pseudo→adresse),
     // jamais de clé privée ni de fonds. Envoyer de la crypto à ce membre = une vraie
