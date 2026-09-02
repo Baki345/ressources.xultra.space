@@ -7361,6 +7361,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.30',category:'feature',date:'2 septembre 2026',time:'23:40',title:'⬇️ Une section Téléchargement dans les Paramètres',
+    body:'L\\'application de bureau/mobile est maintenant aussi accessible depuis Paramètres → Télécharger l\\'application, sans avoir à te déconnecter pour retrouver le bouton de téléchargement de l\\'écran de connexion. Ton système est détecté automatiquement, les autres plateformes restent disponibles juste en dessous, et l\\'empreinte SHA-256 de chaque fichier (avec son scan VirusTotal) reste vérifiable en un clic pour qui veut s\\'assurer que le fichier téléchargé n\\'a pas été altéré.'},
   {version:'4.55.29',category:'feature',date:'2 septembre 2026',time:'23:35',title:'🛍️ Nouveau : la Boutique, des cadres d\\'avatar créés par la communauté',
     body:'Nouvelle section accessible depuis la barre latérale : achète des cadres d\\'avatar originaux, créés par d\\'autres membres, avec des X1 Coins. Si tu as le badge 🎬 Créateur, tu peux en publier toi-même — choisis tes couleurs, une animation (rotation, pulsation, ou les deux), un effet flou en option, fixe ton prix (50 à 5000 X1 Coins), et soumets-le à la modération de l\\'équipe. Une fois approuvé, il apparaît dans la boutique pour tout le monde : à chaque vente, tu touches 70% en X1 Coins, directement dans ton portefeuille (X1 garde 30% pour financer le site). Une fois acheté, un cadre s\\'équipe comme les cadres gratuits classiques, depuis l\\'édition de ton profil.'},
   {version:'4.55.28',category:'feature',date:'2 septembre 2026',time:'23:10',title:'⭐ X1+ : plus d\\'espace de stockage, plus d\\'emojis, plus de bots',
@@ -8311,6 +8313,73 @@ function renderSetLegal(box){
     +'<div class="set-card"><div class="scr-sub">Ces règles complètent la charte X1 acceptée à l\\'inscription et peuvent évoluer ; toute mise à jour importante est annoncée dans les Notes de version.</div></div>';
   const btn=\$('legal-contact-btn');if(btn)btn.onclick=function(){settingsActiveKey='helpdesk';renderSettingsSidebar();renderSettingsSection('helpdesk');setTimeout(openTicketNewModal,50);};
 }
+// Réutilise APP_PLATFORMS/APP_VT/APP_CHECKSUMS/appDlUrl/triggerAppPlatform/
+// detectAppPlatformKey — la même logique que le widget de téléchargement de
+// l'écran de connexion (avant authentification), avec des id="" distincts
+// pour ne jamais entrer en collision avec lui si les deux existent dans le
+// DOM en même temps.
+function isXultraDesktopAlready(){
+  try{
+    if(window.xultraDesktop&&window.xultraDesktop.isDesktop)return true;
+    if(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)return true;
+    if(navigator.standalone)return true;
+  }catch(e){}
+  return false;
+}
+function renderSetDownload(box){
+  const primary=APP_PLATFORMS.find(function(p){return p.key===detectAppPlatformKey();})||APP_PLATFORMS[0];
+  const already=isXultraDesktopAlready();
+  box.innerHTML='<h2>⬇️ Télécharger l\\'application</h2><div class="sc-desc">X1 sur ton bureau ou ton téléphone : notifications natives, lancement plus rapide, toujours à jour.</div>'
+    +(already?'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Déjà installée</div><div class="scr-sub">Tu utilises actuellement X1 depuis l\\'application installée sur cet appareil.</div></div></div></div>':'')
+    +'<div class="set-card" style="text-align:center;padding:22px 16px">'
+      +'<button type="button" class="btn-main" id="set-dl-btn" style="width:100%;font-size:.95rem;padding:14px">💻 Télécharger pour <span id="set-dl-os">ordinateur</span></button>'
+      +'<a class="dl-vt-badge hidden" id="set-dl-vt-badge" target="_blank" rel="noopener"></a>'
+      +'<div class="desktop-dl-others" id="set-dl-others" style="margin-top:14px"></div>'
+    +'</div>'
+    +'<div class="set-card">'
+      +'<button type="button" class="set-mini-btn" id="set-dl-verify-toggle">🔒 Vérifier l\\'empreinte du fichier (SHA-256)</button>'
+      +'<div class="dl-verify-box hidden" id="set-dl-verify-box" style="margin-top:10px"></div>'
+    +'</div>';
+  \$('set-dl-btn').onclick=function(){triggerAppPlatform(primary);};
+  \$('set-dl-os').textContent=primary.label;
+  const vtBadge=\$('set-dl-vt-badge'),vt=APP_VT[primary.key];
+  if(vtBadge&&vt){
+    vtBadge.href=vt.url;
+    vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
+    vtBadge.classList.remove('hidden');
+  }
+  const othersBox=\$('set-dl-others');
+  othersBox.innerHTML='<div class="scr-label" style="margin-bottom:8px">Autres plateformes</div>'
+    +APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
+      return '<a href="#" data-set-dl-key="'+p.key+'">'+p.icon+' '+p.label+'</a>';
+    }).join('<span class="dl-sep">·</span>');
+  othersBox.querySelectorAll('[data-set-dl-key]').forEach(function(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      const p=APP_PLATFORMS.find(function(x){return x.key===a.getAttribute('data-set-dl-key');});
+      if(p)triggerAppPlatform(p);
+    });
+  });
+  const verifyToggle=\$('set-dl-verify-toggle'),verifyBox=\$('set-dl-verify-box');
+  verifyToggle.onclick=function(){
+    if(verifyBox.classList.contains('hidden')){
+      if(!verifyBox.dataset.filled){
+        verifyBox.innerHTML=APP_PLATFORMS.filter(function(p){return APP_CHECKSUMS[p.key];}).map(function(p){
+          const vtP=APP_VT[p.key];
+          return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-set-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
+        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>';
+        verifyBox.dataset.filled='1';
+        verifyBox.querySelectorAll('[data-set-copy-hash]').forEach(function(b){
+          b.onclick=function(){
+            const h=b.getAttribute('data-set-copy-hash');
+            (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(h):Promise.reject()).then(function(){showToast('Empreinte copiée !');}).catch(function(){});
+          };
+        });
+      }
+      verifyBox.classList.remove('hidden');
+    }else verifyBox.classList.add('hidden');
+  };
+}
 async function renderSetHelpdesk(box){
   box.innerHTML='<div class="set-card"><div class="set-section-label">🎧 Aide & Support</div>'
     +'<div class="scr-sub" style="margin-bottom:12px">Une question, un souci de compte ou de paiement ? L\\'équipe support te répond directement en chat.</div>'
@@ -8935,6 +9004,7 @@ const SETTINGS_GROUPS=[
     {key:'family',icon:'🛡️',title:'Coffre-fort / Family Center'}
   ]},
   {label:'Application',items:[
+    {key:'download',icon:'⬇️',title:'Télécharger l\\'application'},
     {key:'appearance',icon:'🎭',title:'Apparence'},
     {key:'accessibility',icon:'♿',title:'Accessibilité'},
     {key:'voice',icon:'🎙️',title:'Voix et vidéo'},
@@ -9001,7 +9071,7 @@ function renderSettingsSection(key){
     agecheck:renderSetAgeVerify,
     blocked:renderSetBlocked,
     devices:renderSetDevices,connections:renderSetConnections,apps:renderSetApps,
-    family:renderSetFamily,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
+    family:renderSetFamily,download:renderSetDownload,appearance:renderSetAppearance,accessibility:renderSetAccessibility,
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
     myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet,
