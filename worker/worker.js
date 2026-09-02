@@ -2075,6 +2075,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .xd-tile.xd-selected{border-color:#a855f7;background:rgba(124,58,237,.14)}
 .xd-tile-icon{font-size:2.1rem;margin-bottom:8px}
 .xd-tile-thumb{width:100%;height:74px;object-fit:cover;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,.05)}
+.xd-tile-icon.xd-thumb-loading{position:relative;background:linear-gradient(90deg,rgba(167,139,250,.08),rgba(167,139,250,.18),rgba(167,139,250,.08));background-size:200% 100%;animation:xdFillShimmer 1.4s linear infinite;border-radius:10px;height:74px;width:100%;margin-bottom:8px;font-size:1.6rem;display:flex;align-items:center;justify-content:center;opacity:.6}
+.xd-row-icon.xd-row-thumb{width:26px;height:26px;object-fit:cover;border-radius:6px}
 .xd-tile-name{font-size:.78rem;font-weight:700;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xd-tile-meta{font-size:.68rem;color:var(--muted);margin-top:2px}
 .xd-tile-star{position:absolute;top:8px;right:8px;font-size:.85rem;opacity:0;transition:opacity .15s ease}
@@ -2126,6 +2128,10 @@ html.xultra-restoring #stage{visibility:hidden}
 .xd-recovery-box{max-width:480px;margin:40px auto;background:rgba(124,58,237,.1);border:1px solid rgba(167,139,250,.3);border-radius:16px;padding:24px;text-align:center}
 .xd-recovery-key{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#0d0814;border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:14px;margin:14px 0;word-break:break-all;font-size:.82rem;color:#a78bfa;user-select:all}
 .xd-preview-wrap{display:flex;align-items:center;justify-content:center;height:100%;padding:20px}
+.xd-audio-card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:36px 28px;border-radius:20px;background:linear-gradient(160deg,rgba(124,58,237,.16),rgba(236,72,153,.08));border:1px solid rgba(167,139,250,.25);max-width:460px;width:100%}
+.xd-audio-art{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#a855f7,#ec4899);display:flex;align-items:center;justify-content:center;font-size:2.4rem;box-shadow:0 12px 30px rgba(124,58,237,.4);animation:xdTileIn .3s ease both}
+.xd-audio-name{font-weight:800;color:#f2ebff;margin-top:18px;font-size:.95rem;word-break:break-word}
+.xd-audio-meta{font-size:.75rem;color:var(--muted);margin-top:4px}
 .xd-preview-wrap img,.xd-preview-wrap video{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 .xd-preview-text{width:100%;height:100%;overflow:auto;background:#0d0814;border-radius:12px;padding:20px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;white-space:pre-wrap;word-break:break-word}
 @media (max-width:760px){
@@ -7054,6 +7060,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.19',category:'design',date:'2 septembre 2026',time:'01:45',title:'🖼️ X1 Drive : vraies miniatures et aperçus plus soignés',
+    body:'Tes images affichent maintenant de vraies petites miniatures dans la grille et la liste (déchiffrées directement dans ton navigateur au fur et à mesure que tu fais défiler, jamais générées par nos serveurs — le zero-knowledge reste entier). L\\'aperçu audio a aussi une nouvelle carte plus jolie, et l\\'aperçu PDF a maintenant un bouton pour l\\'ouvrir dans un nouvel onglet.'},
   {version:'4.55.18',category:'fix',date:'2 septembre 2026',time:'01:10',title:'🔗 X1 Drive : corrigé, les liens de partage ne fonctionnaient plus',
     body:'Un bug empêchait le fichier partagé de devenir réellement accessible par lien — corrigé. Les liens créés depuis maintenant fonctionnent normalement ; si tu avais un lien créé avant ce correctif et qu\\'il ne s\\'ouvrait pas, recrée-le.'},
   {version:'4.55.17',category:'feature',date:'2 septembre 2026',time:'00:20',title:'🔎 X1 Drive : glisser-déposer partout et recherche globale',
@@ -17384,9 +17392,17 @@ async function xdOpenPreview(item){
     }else if(m.indexOf('video/')===0){
       body.innerHTML='<video src="'+url+'" controls autoplay style="max-width:100%;max-height:100%;border-radius:12px"></video>';
     }else if(m.indexOf('audio/')===0){
-      body.innerHTML='<audio src="'+url+'" controls autoplay style="width:100%;max-width:500px"></audio>';
+      body.innerHTML='<div class="xd-audio-card">'
+        +'<div class="xd-audio-art">🎵</div>'
+        +'<div class="xd-audio-name">'+esc(item._name)+'</div>'
+        +'<div class="xd-audio-meta">'+xdFmtBytes(item.size||blob.size)+'</div>'
+        +'<audio src="'+url+'" controls autoplay style="width:100%;max-width:440px;margin-top:16px"></audio>'
+      +'</div>';
     }else if(m==='application/pdf'){
-      body.innerHTML='<iframe src="'+url+'" style="width:100%;height:100%;border:0;border-radius:12px;background:#fff"></iframe>';
+      body.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;gap:8px">'
+        +'<div style="text-align:right"><a href="'+url+'" target="_blank" rel="noopener" class="set-mini-btn" style="display:inline-block;text-decoration:none">↗️ Ouvrir dans un nouvel onglet</a></div>'
+        +'<iframe src="'+url+'" style="width:100%;flex:1;min-height:0;border:0;border-radius:12px;background:#fff"></iframe>'
+      +'</div>';
     }else if(m.indexOf('text/')===0||m==='application/json'){
       const text=await blob.text();
       body.innerHTML='<div class="xd-preview-text"></div>';
@@ -17544,6 +17560,7 @@ async function xdRenderCurrentView(){
   }
   bodyEl.innerHTML=xdViewMode==='grid'?xdGridHtml(docs):xdListHtml(docs);
   xdWireItemEvents(bodyEl);
+  xdWireThumbnails(bodyEl);
 }
 function xdRenderBreadcrumb(searching){
   const el=\$('xd-breadcrumb');if(!el)return;
@@ -17574,14 +17591,88 @@ function xdRenderBreadcrumb(searching){
     };
   });
 }
+/* ===== Miniatures d'images (grille/liste) : générées côté navigateur
+   UNIQUEMENT (le serveur ne verrait de toute façon que du texte chiffré,
+   même s'il essayait) — jamais de miniature générée côté serveur, cohérent
+   avec le reste du design zero-knowledge de X1 Drive. Chargées
+   paresseusement (IntersectionObserver, seulement les tuiles réellement
+   visibles à l'écran) pour ne pas déchiffrer des dizaines d'images d'un
+   coup au premier rendu, avec un cache borné (les plus anciennes miniatures
+   sont libérées) pour ne jamais faire grossir la mémoire indéfiniment sur
+   une longue session. */
+const xdThumbCache=new Map();
+const XD_THUMB_CACHE_MAX=60;
+function xdThumbEvict(){
+  while(xdThumbCache.size>XD_THUMB_CACHE_MAX){
+    const oldestId=xdThumbCache.keys().next().value;
+    const entry=xdThumbCache.get(oldestId);
+    if(entry&&entry.url)try{URL.revokeObjectURL(entry.url);}catch(e){}
+    xdThumbCache.delete(oldestId);
+  }
+}
+function xdIsThumbnailable(item){
+  return item.type==='file'&&(item._mime||'').toLowerCase().indexOf('image/')===0&&(item.size||0)<26214400;
+}
+function xdApplyThumbToEl(el,url){
+  if(!el||!el.isConnected)return;
+  const img=document.createElement('img');
+  img.alt='';img.src=url;
+  img.className=el.classList.contains('xd-row-icon')?'xd-row-icon xd-row-thumb':'xd-tile-thumb';
+  el.replaceWith(img);
+}
+async function xdLoadThumbFor(item,el){
+  const id=item.\$id;
+  const cached=xdThumbCache.get(id);
+  if(cached&&cached.state==='ready'){xdApplyThumbToEl(el,cached.url);return}
+  if(cached&&cached.state==='loading')return;
+  xdThumbCache.set(id,{url:null,state:'loading'});
+  if(el&&el.classList.contains('xd-tile-icon'))el.classList.add('xd-thumb-loading');
+  try{
+    let url;
+    if(item.visibility==='public'){
+      url=xdFileUrl(item.fileId);
+    }else{
+      const buf=await xdDecryptItemContent(item);
+      const blob=new Blob([buf],{type:item._mime||'image/*'});
+      url=URL.createObjectURL(blob);
+    }
+    xdThumbCache.set(id,{url:url,state:'ready'});
+    xdThumbEvict();
+    xdApplyThumbToEl(el,url);
+  }catch(e){
+    xdThumbCache.set(id,{url:null,state:'error'});
+    if(el)el.classList.remove('xd-thumb-loading');
+  }
+}
+let xdThumbObserver=null;
+function xdWireThumbnails(container){
+  if(!('IntersectionObserver' in window))return;
+  if(xdThumbObserver)xdThumbObserver.disconnect();
+  xdThumbObserver=new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(!entry.isIntersecting)return;
+      const el=entry.target;
+      xdThumbObserver.unobserve(el);
+      const id=el.getAttribute('data-xd-thumb');
+      const item=xdItemById(id);
+      if(item)xdLoadThumbFor(item,el);
+    });
+  },{root:container,rootMargin:'200px'});
+  container.querySelectorAll('[data-xd-thumb]').forEach(function(el){xdThumbObserver.observe(el);});
+}
 function xdGridHtml(docs){
   return '<div class="xd-grid">'+docs.map(function(d){
     const icon=xdFileIcon(d._mime,d.type);
     const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
+    const thumbable=xdIsThumbnailable(d);
+    const cached=thumbable?xdThumbCache.get(d.\$id):null;
+    const iconHtml=(cached&&cached.state==='ready')
+      ?'<img class="xd-tile-thumb" alt="" src="'+esc(cached.url)+'"/>'
+      :'<div class="xd-tile-icon"'+(thumbable?' data-xd-thumb="'+d.\$id+'"':'')+'>'+icon+'</div>';
     return '<div class="xd-tile'+(xdSelectedIds.has(d.\$id)?' xd-selected':'')+'" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
       +'<input type="checkbox" class="xd-tile-check" data-xd-check="'+d.\$id+'"'+(xdSelectedIds.has(d.\$id)?' checked':'')+'/>'
       +'<span class="xd-tile-star'+(d.starred?' on':'')+'" data-xd-star="'+d.\$id+'">'+(d.starred?'⭐':'☆')+'</span>'
-      +'<div class="xd-tile-icon">'+icon+'</div>'
+      +iconHtml
       +'<div class="xd-tile-name">'+esc(d._name)+'</div>'
       +'<div class="xd-tile-meta">'+meta+(d._locationName?' · 📁 '+esc(d._locationName):'')+'</div>'
     +'</div>';
@@ -17591,9 +17682,14 @@ function xdListHtml(docs){
   return '<div class="xd-list">'+docs.map(function(d){
     const icon=xdFileIcon(d._mime,d.type);
     const meta=d.type==='folder'?'Dossier':xdFmtBytes(d.size);
+    const thumbable=xdIsThumbnailable(d);
+    const cached=thumbable?xdThumbCache.get(d.\$id):null;
+    const iconHtml=(cached&&cached.state==='ready')
+      ?'<img class="xd-row-icon xd-row-thumb" alt="" src="'+esc(cached.url)+'"/>'
+      :'<span class="xd-row-icon"'+(thumbable?' data-xd-thumb="'+d.\$id+'"':'')+'>'+icon+'</span>';
     return '<div class="xd-row'+(xdSelectedIds.has(d.\$id)?' xd-selected':'')+'" data-xd-id="'+d.\$id+'" data-xd-type="'+d.type+'">'
       +'<input type="checkbox" class="xd-row-check" data-xd-check="'+d.\$id+'"'+(xdSelectedIds.has(d.\$id)?' checked':'')+'/>'
-      +'<span class="xd-row-icon">'+icon+'</span>'
+      +iconHtml
       +'<span class="xd-row-name">'+esc(d._name)+(d.starred?' ⭐':'')+'</span>'
       +(d._locationName?'<span class="xd-row-meta">📁 '+esc(d._locationName)+'</span>':'')
       +'<span class="xd-row-meta">'+meta+'</span>'
