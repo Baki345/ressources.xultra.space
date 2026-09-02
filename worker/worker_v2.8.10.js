@@ -2034,10 +2034,35 @@ html.xultra-restoring #stage{visibility:hidden}
 .xbin-profile-item:hover{background:rgba(167,139,250,.12)}
 .xbin-profile-title{flex:1;font-size:.85rem;font-weight:700;color:#f2ebff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .xbin-profile-views{font-size:.72rem;color:var(--muted)}
+.xbin-editor-code-wrap{position:relative;width:100%;height:400px;border-radius:14px;border:1px solid rgba(167,139,250,.25);background:#0d0814;overflow:hidden;transition:border-color .15s ease}
+.xbin-editor-code-wrap:focus-within{border-color:#a78bfa;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
+.xbin-editor-pre,.xbin-editor-ta{position:absolute;inset:0;margin:0;padding:16px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.85rem;line-height:1.6;white-space:pre-wrap;word-break:break-word;overflow:auto;box-sizing:border-box}
+.xbin-editor-pre{pointer-events:none;color:#f2ebff}
+.xbin-editor-pre code{background:transparent!important;font:inherit!important;white-space:inherit!important;padding:0!important}
+.xbin-editor-ta{background:transparent;color:transparent;caret-color:#f2ebff;border:0;outline:0;resize:none;z-index:1}
+.xbin-stats-panel{margin:0 0 16px;padding:14px;border-radius:14px;background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.18)}
+.xbin-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px}
+.xbin-stat-tile{text-align:center;padding:10px;border-radius:10px;background:rgba(255,255,255,.04)}
+.xbin-stat-tile b{display:block;font-size:1.3rem;color:#f2ebff}
+.xbin-stat-tile span{font-size:.68rem;color:var(--muted)}
+.xbin-comments{margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,.08)}
+.xbin-comments-head{font-size:.95rem;font-weight:800;color:#f2ebff;margin-bottom:12px}
+.xbin-comment-compose{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.xbin-comment-ta{min-height:70px;resize:vertical}
+.xbin-comments-list{display:flex;flex-direction:column;gap:10px}
+.xbin-comment-row{padding:12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(167,139,250,.1)}
+.xbin-comment-top{display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px}
+.xbin-comment-top b{color:#c4b5fd}
+.xbin-comment-time{color:var(--muted)}
+.xbin-comment-text{font-size:.85rem;color:#f2ebff;white-space:pre-wrap;word-break:break-word;line-height:1.5}
+.xbin-comment-del,.xbin-comment-report{margin-top:8px;font-size:.7rem;color:var(--muted);font-weight:700}
+.xbin-comment-del:hover{color:#fca5a5}
+.xbin-comment-report:hover{color:#fcd34d}
 @media (max-width:640px){
   .xbin-editor-row{grid-template-columns:1fr}
   .xbin-grid{grid-template-columns:1fr}
   .xbin-linenums{padding:14px 6px;font-size:.74rem}
+  .xbin-editor-code-wrap{height:320px}
 }
 /* ===== X1 Drive (stockage cloud chiffré de bout en bout) — inspiré de
    MEGA/Google Drive dans la structure (rail latéral, grille de fichiers,
@@ -7080,6 +7105,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.22',category:'feature',date:'2 septembre 2026',time:'12:45',title:'📋 XBin : coloration en direct, commentaires, statistiques et plus',
+    body:'XBin fait le plein de fonctionnalités : ton code se colore maintenant EN DIRECT pendant que tu l\\'écris ou le colles (comme dans un vrai éditeur), plus besoin d\\'attendre la publication pour voir le rendu. Chaque paste public ou non-listé a maintenant un fil de commentaires (l\\'auteur peut supprimer les commentaires indésirables sur ses propres pastes, et signaler reste possible). Deux nouveaux boutons : "🍴 Dupliquer" pour repartir d\\'un paste existant, et "⬇️ Télécharger" pour le récupérer en fichier avec la bonne extension. Et pour l\\'auteur d\\'un paste, un bouton "📊 Statistiques" affiche la répartition des vues (24h, 7 jours, 30 jours) — jamais qui a vu, juste des chiffres.'},
   {version:'4.55.21',category:'feature',date:'2 septembre 2026',time:'10:30',title:'👥 X1 Drive : mise à jour en direct, présence et accès sur-mesure',
     body:'Plusieurs améliorations pour les dossiers partagés en équipe : le contenu se met maintenant à jour tout seul quand quelqu\\'un ajoute ou modifie un fichier (plus besoin de rafraîchir) ; un petit indicateur montre qui d\\'autre regarde le dossier en ce moment ; le propriétaire d\\'un dossier peut personnaliser l\\'accès fichier par fichier (donner ou retirer un accès à une personne précise sans changer son rôle sur tout le dossier) ; et l\\'équipe X1 dispose maintenant d\\'outils dédiés pour surveiller et modérer X1 Drive (toujours sans jamais pouvoir lire le contenu de tes fichiers privés, chiffrement de bout en bout oblige).'},
   {version:'4.55.20',category:'feature',date:'2 septembre 2026',time:'02:20',title:'⌨️ X1 Drive : raccourcis clavier et tableau de bord de stockage',
@@ -10884,7 +10911,7 @@ async function sendFriendRequest(targetUid,targetName){
 }
 
 const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵',
-  support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞',xdrive_folder_invite:'📁',xdrive_file_removed:'🚩',xdrive_suspended:'⛔'};
+  support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞',xdrive_folder_invite:'📁',xdrive_file_removed:'🚩',xdrive_suspended:'⛔',xbin_comment:'💬'};
 let notifCache=[];
 async function loadNotifications(){
   if(!me)return [];
@@ -11018,6 +11045,8 @@ function renderNotifications(){
         if(refId)showBadgeInfo(refId);
       } else if(kind==='xdrive_folder_invite'){
         if(refId)xdShowFolderInviteDialog(refId);
+      } else if(kind==='xbin_comment'){
+        if(refId)openXBin(refId);
       } else if(uid){openProfileModal(uid);}
     });
   });
@@ -16478,6 +16507,12 @@ const XBIN_EXPIRY_OPTS=[
   {id:'never',label:'Jamais',ms:0},{id:'10m',label:'10 minutes',ms:10*60*1000},{id:'1h',label:'1 heure',ms:60*60*1000},
   {id:'1d',label:'1 jour',ms:24*60*60*1000},{id:'1w',label:'1 semaine',ms:7*24*60*60*1000},{id:'1mo',label:'1 mois',ms:30*24*60*60*1000}
 ];
+const XBIN_LANG_EXT={javascript:'js',typescript:'ts',python:'py',java:'java',c:'c',cpp:'cpp',csharp:'cs',php:'php',ruby:'rb',go:'go',rust:'rs',kotlin:'kt',swift:'swift',lua:'lua',perl:'pl',sql:'sql',xml:'html',css:'css',json:'json',yaml:'yml',markdown:'md',bash:'sh',powershell:'ps1',dos:'bat',dockerfile:'txt',ini:'ini',x86asm:'asm',diff:'diff'};
+function xbinDownloadFilename(d){
+  const ext=XBIN_LANG_EXT[d.language]||'txt';
+  const base=(d.title||'paste').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9\\-_]+/g,'-').replace(/^-+|-+\$/g,'').slice(0,60)||'paste';
+  return base+'.'+ext;
+}
 let xbinHlLoaded=false,xbinHlLoading=null;
 function ensureHighlightJs(){
   if(xbinHlLoaded)return Promise.resolve();
@@ -16635,18 +16670,41 @@ function xbinCardHtml(d){
     +'</div>'
   +'</div>';
 }
-function openXBinEditor(){
+// Coloration syntaxique EN DIRECT dans l'éditeur (pas seulement à la
+// lecture) : deux calques superposés dans .xbin-editor-code-wrap — un
+// <textarea> transparent (texte invisible, seul le curseur reste visible)
+// au-dessus d'un <pre><code> qui affiche le HTML coloré par highlight.js en
+// dessous, synchronisés au pixel près (même police/padding/line-height) et
+// re-synchronisés au défilement. Évite d'ajouter un vrai éditeur de code
+// (CodeMirror/Monaco) juste pour ce besoin.
+let xbinEditorHlTimer=null;
+function xbinSyncEditorHighlight(){
+  const ta=\$('xbin-content-input'),hl=\$('xbin-editor-hl'),langSel=\$('xbin-lang-select');
+  if(!ta||!hl)return;
+  hl.textContent=ta.value;
+  const lang=langSel?langSel.value:'auto';
+  hl.className=(lang&&lang!=='auto'&&lang!=='plaintext')?'language-'+lang:'';
+  ensureHighlightJs().then(function(){
+    try{
+      if(!window.hljs)return;
+      delete hl.dataset.highlighted;
+      if(lang!=='plaintext')window.hljs.highlightElement(hl);
+    }catch(e){}
+  });
+}
+function openXBinEditor(prefill){
   xbinView='editor';
   const overlay=\$('xbin-overlay');if(!overlay)return;
+  ensureHighlightJs();
   overlay.innerHTML='<div class="discover-head xbin-head">'
     +'<button type="button" class="set-mini-btn" id="xbin-editor-back">← Retour</button>'
-    +'<h2>📋 Nouveau paste</h2>'
+    +'<h2>📋 '+(prefill?'Dupliquer le paste':'Nouveau paste')+'</h2>'
   +'</div>'
   +'<div class="discover-body xbin-body">'
     +'<div class="xbin-editor">'
-      +'<input type="text" id="xbin-title-input" class="field-input" placeholder="Titre (optionnel)" maxlength="200"/>'
+      +'<input type="text" id="xbin-title-input" class="field-input" placeholder="Titre (optionnel)" maxlength="200" value="'+esc((prefill&&prefill.title)||'')+'"/>'
       +'<div class="xbin-editor-row">'
-        +'<select id="xbin-lang-select" class="field-input">'+XBIN_LANGS.map(function(l){return '<option value="'+l.id+'">'+esc(l.label)+'</option>';}).join('')+'</select>'
+        +'<select id="xbin-lang-select" class="field-input">'+XBIN_LANGS.map(function(l){return '<option value="'+l.id+'"'+((prefill&&prefill.language)===l.id?' selected':'')+'>'+esc(l.label)+'</option>';}).join('')+'</select>'
         +'<select id="xbin-vis-select" class="field-input">'
           +'<option value="public">🌐 Public</option>'
           +'<option value="unlisted">🔗 Non listé (lien uniquement)</option>'
@@ -16654,7 +16712,10 @@ function openXBinEditor(){
         +'</select>'
         +'<select id="xbin-exp-select" class="field-input">'+XBIN_EXPIRY_OPTS.map(function(o){return '<option value="'+o.id+'">'+esc(o.label)+'</option>';}).join('')+'</select>'
       +'</div>'
-      +'<textarea id="xbin-content-input" class="xbin-textarea" placeholder="Colle ou écris ton texte ici…" spellcheck="false"></textarea>'
+      +'<div class="xbin-editor-code-wrap">'
+        +'<pre class="xbin-editor-pre" aria-hidden="true"><code id="xbin-editor-hl"></code></pre>'
+        +'<textarea id="xbin-content-input" class="xbin-editor-ta" placeholder="Colle ou écris ton texte ici…" spellcheck="false">'+esc((prefill&&prefill.content)||'')+'</textarea>'
+      +'</div>'
       +'<div class="xbin-editor-foot">'
         +'<span class="xbin-char-count" id="xbin-char-count">0 caractère</span>'
         +'<button type="button" class="btn-main" id="xbin-publish-btn">🚀 Publier</button>'
@@ -16663,9 +16724,21 @@ function openXBinEditor(){
     +'</div>'
   +'</div>';
   \$('xbin-editor-back').onclick=function(){xbinView='feed';renderXBinShell();loadXBinFeed();};
-  \$('xbin-content-input').addEventListener('input',function(){
+  const ta=\$('xbin-content-input'),hl=\$('xbin-editor-hl');
+  ta.addEventListener('input',function(){
     \$('xbin-char-count').textContent=this.value.length.toLocaleString('fr-FR')+' caractère'+(this.value.length>1?'s':'');
+    clearTimeout(xbinEditorHlTimer);
+    xbinEditorHlTimer=setTimeout(xbinSyncEditorHighlight,80);
   });
+  ta.addEventListener('scroll',function(){
+    const pre=hl.parentElement;
+    pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft;
+  });
+  \$('xbin-lang-select').addEventListener('change',xbinSyncEditorHighlight);
+  if(prefill&&prefill.content){
+    \$('xbin-char-count').textContent=prefill.content.length.toLocaleString('fr-FR')+' caractère'+(prefill.content.length>1?'s':'');
+    xbinSyncEditorHighlight();
+  }
   \$('xbin-publish-btn').onclick=xbinPublish;
 }
 async function xbinPublish(){
@@ -16747,12 +16820,17 @@ function renderXBinDetail(d){
       +'<button type="button" class="xbin-act-btn" id="xbin-copy-btn">📋 Copier</button>'
       +'<button type="button" class="xbin-act-btn" id="xbin-share-btn">🔗 Partager</button>'
       +'<button type="button" class="xbin-act-btn" id="xbin-raw-btn">📄 Brut</button>'
+      +'<button type="button" class="xbin-act-btn" id="xbin-dl-btn">⬇️ Télécharger</button>'
+      +(me?'<button type="button" class="xbin-act-btn" id="xbin-dup-btn">🍴 Dupliquer</button>':'')
+      +(isOwner?'<button type="button" class="xbin-act-btn" id="xbin-stats-btn">📊 Statistiques</button>':'')
       +(isOwner?'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-delete-btn">🗑️ Supprimer</button>':'<button type="button" class="xbin-act-btn xbin-act-danger" id="xbin-report-btn">🚩 Signaler</button>')
     +'</div>'
+    +(isOwner?'<div class="xbin-stats-panel hidden" id="xbin-stats-panel"></div>':'')
     +'<div class="xbin-code-wrap">'
       +'<div class="xbin-linenums">'+lineNumsHtml+'</div>'
       +'<pre class="xbin-code"><code'+(d.language&&d.language!=='auto'?' class="language-'+esc(d.language)+'"':'')+' id="xbin-code-el">'+esc(d.content||'')+'</code></pre>'
     +'</div>'
+    +(d.visibility!=='private'?xbinCommentsSectionHtml():'')
   +'</div>';
   ensureHighlightJs().then(function(){
     try{
@@ -16777,7 +16855,37 @@ function renderXBinDetail(d){
     const w=window.open('','_blank');
     if(w){w.document.write('<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;padding:20px;background:#0d0814;color:#f2ebff">'+esc(d.content||'')+'</pre>');w.document.close();}
   };
+  \$('xbin-dl-btn').onclick=function(){
+    try{
+      const blob=new Blob([d.content||''],{type:'text/plain;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;a.download=xbinDownloadFilename(d);
+      document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(url);a.remove();},1000);
+    }catch(e){showToast('Téléchargement impossible','error');}
+  };
+  if(me){
+    \$('xbin-dup-btn').onclick=function(){
+      openXBinEditor({title:'Copie de '+(d.title||'paste'),content:d.content||'',language:d.language||'auto'});
+    };
+  }
   if(isOwner){
+    \$('xbin-stats-btn').onclick=async function(){
+      const panel=\$('xbin-stats-panel');if(!panel)return;
+      if(!panel.classList.contains('hidden')){panel.classList.add('hidden');return}
+      panel.classList.remove('hidden');
+      panel.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+      try{
+        const r=await authGet('/api/xbin/view-stats?id='+encodeURIComponent(d.\$id));
+        panel.innerHTML='<div class="xbin-stats-grid">'
+          +'<div class="xbin-stat-tile"><b>'+(r.total||0)+'</b><span>Vues totales</span></div>'
+          +'<div class="xbin-stat-tile"><b>'+(r.last24h||0)+'</b><span>Dernières 24h</span></div>'
+          +'<div class="xbin-stat-tile"><b>'+(r.last7d||0)+'</b><span>7 derniers jours</span></div>'
+          +'<div class="xbin-stat-tile"><b>'+(r.last30d||0)+'</b><span>30 derniers jours</span></div>'
+        +'</div>';
+      }catch(e){panel.innerHTML='<div class="empty-hint">Statistiques indisponibles.</div>';}
+    };
     \$('xbin-delete-btn').onclick=async function(){
       if(!confirm('Supprimer définitivement ce paste ?'))return;
       try{
@@ -16797,6 +16905,92 @@ function renderXBinDetail(d){
       }catch(e){showToast('Signalement impossible','error');}
     };
   }
+  if(d.visibility!=='private')xbinWireComments(d);
+}
+function xbinCommentsSectionHtml(){
+  return '<div class="xbin-comments" id="xbin-comments-section">'
+    +'<div class="xbin-comments-head">💬 Commentaires <span id="xbin-comments-count"></span></div>'
+    +(me?'<div class="xbin-comment-compose"><textarea id="xbin-comment-input" class="field-input xbin-comment-ta" maxlength="2000" placeholder="Ajouter un commentaire…"></textarea><button type="button" class="btn-main" id="xbin-comment-send">Envoyer</button></div>'
+      :'<div class="empty-hint" style="padding:10px 0">Connecte-toi pour commenter.</div>')
+    +'<div id="xbin-comments-list" class="xbin-comments-list"><div class="xbin-loading"><span class="bs-ring"></span></div></div>'
+  +'</div>';
+}
+async function xbinLoadComments(pasteId){
+  try{
+    const r=await db.listDocuments(DB,'xbin_comments',[Appwrite.Query.equal('pasteId',pasteId),Appwrite.Query.orderAsc('\$createdAt'),Appwrite.Query.limit(200)]);
+    return r.documents||[];
+  }catch(e){return [];}
+}
+async function xbinRefreshComments(d){
+  const list=\$('xbin-comments-list');if(!list)return;
+  const comments=await xbinLoadComments(d.\$id);
+  const countEl=\$('xbin-comments-count');if(countEl)countEl.textContent=comments.length?'('+comments.length+')':'';
+  if(!comments.length){list.innerHTML='<div class="empty-hint" style="padding:14px 0">Aucun commentaire pour l\\'instant.</div>';return}
+  const isOwner=!!(me&&me.\$id===d.authorId);
+  list.innerHTML=comments.map(function(c){
+    const canDelete=!!(me&&(me.\$id===c.authorId||isOwner));
+    return '<div class="xbin-comment-row">'
+      +'<div class="xbin-comment-top"><b>'+esc(c.authorName||'?')+'</b><span class="xbin-comment-time">'+esc(fmtRelTime(c.\$createdAt))+'</span></div>'
+      +'<div class="xbin-comment-text">'+esc(c.content||'')+'</div>'
+      +(canDelete?'<button type="button" class="xbin-comment-del" data-c-del="'+esc(c.\$id)+'">🗑️ Supprimer</button>':(me?'<button type="button" class="xbin-comment-report" data-c-report="'+esc(c.\$id)+'">🚩 Signaler</button>':''))
+    +'</div>';
+  }).join('');
+  list.querySelectorAll('[data-c-del]').forEach(function(btn){
+    btn.onclick=async function(){
+      if(!confirm('Supprimer ce commentaire ?'))return;
+      const cid=btn.getAttribute('data-c-del');
+      const c=comments.find(function(x){return x.\$id===cid});
+      try{
+        // Un commentaire n'a de permission de suppression QUE pour son propre
+        // auteur (Appwrite refuse qu'un simple utilisateur JWT accorde un
+        // droit à quelqu'un d'autre à la création — même restriction déjà
+        // rencontrée sur les demandes d'ami). La modération par le
+        // propriétaire du paste passe donc par une route Worker dédiée
+        // (clé admin), jamais par un accès direct au SDK.
+        if(c&&c.authorId===me.\$id)await db.deleteDocument(DB,'xbin_comments',cid);
+        else await authPost('/api/xbin/delete-comment',{commentId:cid});
+        await xbinRefreshComments(d);
+      }catch(e){showToast('Suppression impossible','error');}
+    };
+  });
+  list.querySelectorAll('[data-c-report]').forEach(function(btn){
+    btn.onclick=async function(){
+      const id=btn.getAttribute('data-c-report');
+      const c=comments.find(function(x){return x.\$id===id});
+      if(!c)return;
+      try{
+        await authPost('/api/report',{targetUid:c.authorId,targetName:c.authorName,reason:'contenu_inapproprie',source:'xbin_comment',contextId:c.\$id,messageText:(c.content||'').slice(0,400)});
+        showToast('Commentaire signalé, merci.');
+      }catch(e){showToast('Signalement impossible','error');}
+    };
+  });
+}
+function xbinWireComments(d){
+  xbinRefreshComments(d);
+  if(!me)return;
+  const sendBtn=\$('xbin-comment-send');if(!sendBtn)return;
+  sendBtn.onclick=async function(){
+    const ta=\$('xbin-comment-input');
+    const text=(ta.value||'').trim();
+    if(!text)return;
+    if(text.length>2000){showToast('2000 caractères max','error');return}
+    sendBtn.disabled=true;
+    try{
+      const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+      // Appwrite interdit à un utilisateur JWT d'accorder une permission à
+      // quelqu'un d'autre que lui-même à la création — seules "any"/"users"
+      // et son propre rôle sont acceptés. La suppression par le propriétaire
+      // du paste passe donc par /api/xbin/delete-comment (voir plus bas),
+      // jamais par une permission posée ici.
+      const perms=[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
+      await db.createDocument(DB,'xbin_comments',Appwrite.ID.unique(),{pasteId:d.\$id,authorId:me.\$id,authorName:name,content:text},perms);
+      ta.value='';
+      if(d.authorId!==me.\$id)sendNotification(d.authorId,'xbin_comment',me.\$id,name,name+' a commenté ton paste « '+(d.title||'Sans titre')+' »',d.\$id);
+      await xbinRefreshComments(d);
+      showToast('Commentaire publié.');
+    }catch(e){showToast('Publication impossible','error');}
+    finally{sendBtn.disabled=false;}
+  };
 }
 // Onglet XBin sur les profils (pastes PUBLICS de la personne) — voir
 // openProfileModal, qui appelle cette fonction comme loadAndRenderHighlights.
@@ -29835,7 +30029,7 @@ async function handle(request, event) {
       // des autres raisons — voir plus bas : jamais visible par BAP, jamais
       // laissé en ligne, escalade directe et exclusive à Shaman avec IP.
       const validReasons = ["harcelement", "contenu_inapproprie", "spam", "usurpation", "contenu_sexuel_mineur", "autre"];
-      const validSources = ["user", "dm_message", "server_message", "chatroulette", "xbin_paste", "xdrive_public_file"];
+      const validSources = ["user", "dm_message", "server_message", "chatroulette", "xbin_paste", "xbin_comment", "xdrive_public_file"];
       const source = validSources.indexOf(body && body.source) >= 0 ? body.source : "user";
       const messageId = String((body && body.messageId) || "").slice(0, 64);
       const messageText = String((body && body.messageText) || "").slice(0, 500);
@@ -29916,7 +30110,11 @@ async function handle(request, event) {
   // un paste public/non-listé exige un droit d'écriture qu'on ne peut PAS
   // donner à "any" sans lui laisser aussi le pouvoir de modifier tout le
   // reste du contenu — d'où cette seule route, qui ne touche jamais que
-  // "views", jamais le contenu.
+  // "views", jamais le contenu. Elle journalise aussi un horodatage dans
+  // xbin_views (collection admin-only, sans permission "any" du tout) pour
+  // permettre à l'auteur de voir une répartition 24h/7j/30j de ses vues —
+  // xbin_views n'est accessible qu'en lecture via /api/xbin/view-stats
+  // ci-dessous (jamais en direct par le client).
   if (path === "/api/xbin/view" && request.method === "POST") {
     try {
       const body = await request.json();
@@ -29932,6 +30130,73 @@ async function handle(request, event) {
       bgTask(awFetch("/databases/" + AW_DB + "/collections/xbin_pastes/documents/" + id, {
         method: "PATCH", asAdmin: true, body: { data: { views: (doc.views || 0) + 1 } }
       }));
+      bgTask(awFetch("/databases/" + AW_DB + "/collections/xbin_views/documents", {
+        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { pasteId: id } }
+      }));
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/xbin/view-stats" && request.method === "GET") {
+    try {
+      const url = new URL(request.url);
+      const id = String(url.searchParams.get("id") || "").slice(0, 64);
+      if (!id) throw new Error("id requis");
+      const acc = await resolveSessionUser(request);
+      if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/xbin_pastes/documents/" + id, { asAdmin: true });
+      let allowed = acc.$id === doc.authorId;
+      if (!allowed) {
+        const profile = await resolveProfile(acc.$id).catch(() => null);
+        allowed = resolveStaffRole(acc, profile) !== "member";
+      }
+      if (!allowed) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const now = Date.now();
+      async function countSince(ms) {
+        const cutoff = new Date(now - ms).toISOString();
+        const q = "/databases/" + AW_DB + "/collections/xbin_views/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "pasteId", values: [id] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "$createdAt", values: [cutoff] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+        const r = await awFetch(q, { asAdmin: true });
+        return r.total || 0;
+      }
+      const [last24h, last7d, last30d] = await Promise.all([countSince(86400000), countSince(7 * 86400000), countSince(30 * 86400000)]);
+      return new Response(JSON.stringify({ ok: true, total: doc.views || 0, last24h: last24h, last7d: last7d, last30d: last30d }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Suppression d'un commentaire XBin PAR LE PROPRIÉTAIRE DU PASTE (modération)
+  // ou par le staff, quand ce n'est pas l'auteur du commentaire lui-même —
+  // celui-ci peut déjà se supprimer en direct via le SDK (permission
+  // delete() posée sur son propre commentaire à la création). Appwrite
+  // refuse qu'un utilisateur JWT accorde à la création une permission à
+  // quelqu'un d'autre que lui-même, donc le propriétaire du paste ne peut
+  // PAS avoir reçu de droit de suppression sur les commentaires des autres
+  // — cette route, avec la clé admin, est le seul moyen de modérer.
+  if (path === "/api/xbin/delete-comment" && request.method === "POST") {
+    try {
+      const acc = await resolveSessionUser(request);
+      if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const body = await request.json();
+      const commentId = String((body && body.commentId) || "").slice(0, 64);
+      if (!commentId) throw new Error("commentId requis");
+      const comment = await awFetch("/databases/" + AW_DB + "/collections/xbin_comments/documents/" + commentId, { asAdmin: true });
+      if (comment.authorId === acc.$id) {
+        return new Response(JSON.stringify({ ok: false, error: "use_direct_delete" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const paste = await awFetch("/databases/" + AW_DB + "/collections/xbin_pastes/documents/" + comment.pasteId, { asAdmin: true }).catch(() => null);
+      let allowed = !!(paste && paste.authorId === acc.$id);
+      if (!allowed) {
+        const profile = await resolveProfile(acc.$id).catch(() => null);
+        allowed = resolveStaffRole(acc, profile) !== "member";
+      }
+      if (!allowed) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      await awFetch("/databases/" + AW_DB + "/collections/xbin_comments/documents/" + commentId, { method: "DELETE", asAdmin: true });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
