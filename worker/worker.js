@@ -2052,7 +2052,13 @@ html.xultra-restoring #stage{visibility:hidden}
 .desktop-dl-others{margin-top:8px;font-size:.72rem;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
 .desktop-dl-others a{color:var(--muted);text-decoration:none}
 .desktop-dl-others a:hover{color:#e9d5ff;text-decoration:underline}
-.desktop-dl-others .dl-sep{color:var(--line)}
+.desktop-dl-others .dl-sep,.auth-legal-links .dl-sep{color:var(--line)}
+.auth-beta-notice{color:#facc15;font-size:.72rem;max-width:340px;margin:4px auto 0;text-align:center;line-height:1.4}
+.auth-legal-links{margin-top:6px;font-size:.7rem;color:var(--muted);display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.auth-legal-links button{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.7rem;padding:0;text-decoration:underline}
+.auth-legal-links button:hover{color:#e9d5ff}
+.beta-pill{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:rgba(250,204,21,.16);border:1px solid rgba(250,204,21,.4);color:#facc15;font-size:.62rem;font-weight:800;letter-spacing:.03em;cursor:pointer;vertical-align:middle}
+.beta-pill:hover{background:rgba(250,204,21,.28)}
 .dl-vt-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:.7rem;font-weight:700;color:#86efac;text-decoration:none}
 .dl-vt-badge:hover{text-decoration:underline}
 .dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
@@ -4166,6 +4172,11 @@ a.bug-att-item{display:block}
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
+    <p class="hint auth-beta-notice">🧪 X1 est en version bêta : certaines fonctionnalités peuvent encore contenir des bugs ou des incohérences. Signale-les nous depuis 🐞 une fois connecté(e), merci de ta patience !</p>
+    <div class="auth-legal-links">
+      <button type="button" data-legal="legal">⚖️ Mentions légales</button><span class="dl-sep">·</span>
+      <button type="button" data-legal="privacy">🔐 Confidentialité (RGPD)</button>
+    </div>
     <div class="desktop-dl" id="desktop-dl">
       <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
       <a class="dl-vt-badge hidden" id="dl-vt-badge" target="_blank" rel="noopener"></a>
@@ -4246,7 +4257,7 @@ a.bug-att-item{display:block}
   <aside class="list-col">
     <div class="list-head">
       <h1 id="list-title">Messages</h1>
-      <div class="list-sub" id="list-sub"><span class="dot"></span><span id="list-sub-txt">X1</span></div>
+      <div class="list-sub" id="list-sub"><span class="dot"></span><span id="list-sub-txt">X1</span><span class="beta-pill" id="beta-pill" title="X1 est en version bêta : des bugs ou incohérences sont possibles. Signale-les depuis 🐞 Signaler un bug.">BÊTA</span></div>
       <div class="search-row">
         <div class="search-wrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -5646,6 +5657,9 @@ function detectAppPlatformKey(){
     }else verifyBox.classList.add('hidden');
   };
 })();
+document.querySelectorAll('.auth-legal-links [data-legal]').forEach(function(b){
+  b.addEventListener('click',function(){openLegalDocsModal(b.getAttribute('data-legal'));});
+});
 (function initInstallBanner(){
   const bar=\$('install-banner');if(!bar)return;
   function isAlreadyInstalled(){
@@ -7352,6 +7366,7 @@ if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();
 if(\$('nav-xbin-mobile'))\$('nav-xbin-mobile').addEventListener('click',function(){openXBin();});
 if(\$('nav-shop'))\$('nav-shop').addEventListener('click',function(){openShop();});
 if(\$('nav-shop-mobile'))\$('nav-shop-mobile').addEventListener('click',function(){openShop();});
+if(\$('beta-pill'))\$('beta-pill').addEventListener('click',function(){openBugModal(null);});
 if(\$('nav-xdrive'))\$('nav-xdrive').addEventListener('click',function(){openXDrive();});
 if(\$('nav-xdrive-mobile'))\$('nav-xdrive-mobile').addEventListener('click',function(){openXDrive();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
@@ -7361,6 +7376,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.31',category:'feature',date:'2 septembre 2026',time:'23:50',title:'⚖️ Mentions légales, RGPD, et retour au français',
+    body:'Deux nouvelles pages dans Paramètres (et accessibles avant même de créer un compte, depuis l\\'écran de connexion) : Mentions légales et Politique de confidentialité — ce qu\\'on collecte, pourquoi, avec qui c\\'est partagé (jamais vendu), et comment exercer tes droits RGPD (accès, suppression, réclamation à la CNIL…). Le support multilingue est aussi mis en pause le temps de stabiliser la traduction automatique (plusieurs incohérences avaient été remontées) : X1 repasse entièrement en français pour tout le monde, quelle que soit la langue précédemment choisie — le sélecteur reviendra une fois la traduction fiabilisée. Enfin, un petit badge "BÊTA" apparaît maintenant en permanence à côté du nom X1 dans l\\'app : pour rappel, on est encore en bêta, et un bug ou une incohérence peuvent survenir — n\\'hésite pas à les signaler d\\'un clic sur le badge.'},
   {version:'4.55.30',category:'feature',date:'2 septembre 2026',time:'23:40',title:'⬇️ Une section Téléchargement dans les Paramètres',
     body:'L\\'application de bureau/mobile est maintenant aussi accessible depuis Paramètres → Télécharger l\\'application, sans avoir à te déconnecter pour retrouver le bouton de téléchargement de l\\'écran de connexion. Ton système est détecté automatiquement, les autres plateformes restent disponibles juste en dessous, et l\\'empreinte SHA-256 de chaque fichier (avec son scan VirusTotal) reste vérifiable en un clic pour qui veut s\\'assurer que le fichier téléchargé n\\'a pas été altéré.'},
   {version:'4.55.29',category:'feature',date:'2 septembre 2026',time:'23:35',title:'🛍️ Nouveau : la Boutique, des cadres d\\'avatar créés par la communauté',
@@ -8313,6 +8330,92 @@ function renderSetLegal(box){
     +'<div class="set-card"><div class="scr-sub">Ces règles complètent la charte X1 acceptée à l\\'inscription et peuvent évoluer ; toute mise à jour importante est annoncée dans les Notes de version.</div></div>';
   const btn=\$('legal-contact-btn');if(btn)btn.onclick=function(){settingsActiveKey='helpdesk';renderSettingsSidebar();renderSettingsSection('helpdesk');setTimeout(openTicketNewModal,50);};
 }
+// Contenu pur (fonctions qui retournent du HTML, sans dépendre de \$()) pour
+// pouvoir être affiché à la fois dans Paramètres (compte connecté) ET depuis
+// l'écran de connexion (voir openLegalDocsModal) — le RGPD exige que ces
+// informations soient consultables AVANT la création d'un compte, pas
+// seulement une fois connecté.
+function legalNoticeHtml(){
+  return '<h2>⚖️ Mentions légales</h2><div class="sc-desc">X1 est un projet en bêta — ces informations seront complétées au fur et à mesure que son statut juridique se précise.</div>'
+    +'<div class="set-card"><div class="set-section-label">📝 Éditeur du site</div>'
+      +'<div class="scr-sub">X1 (xultra.space) est édité par <b>CISCOSH</b>. Le site fonctionne actuellement comme un projet personnel en bêta, sans structure juridique déclarée à ce jour — cette section sera mise à jour dès que son statut sera clarifié. Contact : <a href="mailto:contact@xultra.space">contact@xultra.space</a>.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">📢 Directeur de la publication</div>'
+      +'<div class="scr-sub">CISCOSH.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🖥️ Hébergement</div>'
+      +'<div class="scr-sub">X1 s\\'appuie sur deux hébergeurs :<br><br>'
+      +'<b>Cloudflare, Inc.</b> — infrastructure applicative (Cloudflare Workers), réseau et protection anti-DDoS.<br>101 Townsend St, San Francisco, CA 94107, États-Unis — <a href="https://www.cloudflare.com" target="_blank" rel="noopener">cloudflare.com</a><br><br>'
+      +'<b>Appwrite</b> — base de données, authentification et stockage de fichiers, hébergés dans la région Francfort (Allemagne, Union européenne).<br><a href="https://appwrite.io" target="_blank" rel="noopener">appwrite.io</a></div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">© Propriété intellectuelle</div>'
+      +'<div class="scr-sub">Détail complet dans Paramètres → Copyright & propriété intellectuelle.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🚩 Signaler un contenu illicite</div>'
+      +'<div class="scr-sub">Utilise le bouton 🚩 Signaler présent sur les profils, messages et publications, ou écris à <a href="mailto:contact@xultra.space">contact@xultra.space</a>.</div>'
+    +'</div>';
+}
+function privacyPolicyHtml(){
+  return '<h2>🔐 Politique de confidentialité (RGPD)</h2><div class="sc-desc">Ce qu\\'on collecte, pourquoi, et comment reprendre le contrôle — en clair, pas en jargon juridique.</div>'
+    +'<div class="set-card"><div class="set-section-label">👤 Qui est responsable de tes données ?</div>'
+      +'<div class="scr-sub"><b>CISCOSH</b>, éditeur de X1 — <a href="mailto:contact@xultra.space">contact@xultra.space</a>.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">📋 Ce qu\\'on collecte, et pourquoi</div><div class="scr-sub">'
+      +'<b>Email et mot de passe</b> — créer et sécuriser ton compte. Le mot de passe est haché : personne chez nous ne peut le lire en clair.<br><br>'
+      +'<b>Pseudo, tag, avatar, bannière, bio</b> (facultatifs) — ton profil public.<br><br>'
+      +'<b>Adresse IP, au moment de la connexion</b> — sécurité (limite du nombre de tentatives, détection d\\'abus), estimation du pays affichée en drapeau sur ton profil, détection si ta connexion ressemble à un VPN/hébergeur. Jamais revendue, jamais utilisée à des fins publicitaires.<br><br>'
+      +'<b>Messages privés et fichiers X1 Drive</b> — chiffrés de bout en bout <i>sur ton appareil</i>, avant même d\\'être envoyés. Nos serveurs ne voient jamais que du texte chiffré et illisible : on ne peut techniquement pas lire le contenu de tes échanges privés, même si on le voulait.<br><br>'
+      +'<b>Photo de vérification d\\'âge</b> (si tu utilises cette fonctionnalité) — analysée en mémoire par une IA pour une estimation d\\'âge, puis immédiatement supprimée. Jamais stockée, jamais transmise à un tiers.<br><br>'
+      +'<b>Moyens de paiement</b> (X1+, X1 Coins) — intégralement gérés par Stripe. X1 ne voit et ne stocke jamais ton numéro de carte.<br><br>'
+      +'<b>Journal de sécurité</b> (connexions, appareils) — détection de fraude et alerte en cas de connexion suspecte.'
+    +'</div></div>'
+    +'<div class="set-card"><div class="set-section-label">⚖️ Sur quelle base légale ?</div>'
+      +'<div class="scr-sub">Exécution du contrat qui te lie à X1 (fournir le service que tu utilises), intérêt légitime (sécurité, lutte anti-abus, anti-spam), et ton consentement explicite quand il est demandé (notifications push, partage optionnel de statistiques d\\'usage — désactivé par défaut).</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🤝 Qui peut voir tes données ?</div>'
+      +'<div class="scr-sub">Quelques sous-traitants techniques, jamais des acheteurs de données — X1 ne vend rien à personne :<br><br>'
+      +'<b>Appwrite</b> (hébergement base de données/authentification/stockage, Union européenne) · <b>Cloudflare</b> (infrastructure réseau, États-Unis — encadré par des clauses contractuelles types pour le transfert hors UE) · <b>Stripe</b> (paiement, uniquement si tu payes quelque chose) · <b>Cloudflare Turnstile</b> (anti-robot à la connexion, ne suit pas ta navigation ailleurs) · <b>Cloudflare Workers AI</b> (estimation d\\'âge, traitement en mémoire uniquement, rien de stocké).</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🗑️ Combien de temps on les garde</div>'
+      +'<div class="scr-sub">Tant que ton compte existe. Le supprimer (Paramètres → Mon compte) supprime tes données personnelles, sauf ce qu\\'une obligation légale nous impose de conserver (ex. facturation).</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">✋ Tes droits</div>'
+      +'<div class="scr-sub">Accès, rectification, effacement, limitation, portabilité, opposition — exerçables directement dans Paramètres (modifier ton profil, supprimer ton compte) ou par email à <a href="mailto:contact@xultra.space">contact@xultra.space</a>. Tu peux aussi déposer une réclamation auprès de la <a href="https://www.cnil.fr" target="_blank" rel="noopener">CNIL</a> si tu estimes que tes droits ne sont pas respectés.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🍪 Cookies et stockage local</div>'
+      +'<div class="scr-sub">Aucun cookie publicitaire, aucun traceur tiers à but commercial. X1 utilise le stockage local de ton navigateur uniquement pour retenir tes préférences (langue, thème, taille du texte…) et un jeton de connexion pour te garder connecté — rien de tout ça n\\'est partagé avec des annonceurs.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="set-section-label">🔒 Sécurité</div>'
+      +'<div class="scr-sub">Chiffrement de bout en bout (messages, X1 Drive), connexion HTTPS partout, mots de passe hachés, authentification à deux facteurs et clés de sécurité/passkeys disponibles.</div>'
+    +'</div>'
+    +'<div class="set-card"><div class="scr-sub">Ce texte peut évoluer ; toute mise à jour importante est annoncée dans les Notes de version.</div></div>';
+}
+function renderSetLegalNotice(box){box.innerHTML=legalNoticeHtml();}
+function renderSetPrivacyPolicy(box){box.innerHTML=privacyPolicyHtml();}
+function openLegalDocsModal(which){
+  let overlay=\$('modal-legal-docs');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='modal-legal-docs';
+    overlay.className='overlay';
+    overlay.innerHTML='<div class="modal-box tos-modal"><button type="button" class="modal-close" id="legal-docs-close">✕</button>'
+      +'<div class="tos-body" id="legal-docs-body"></div>'
+      +'<div class="tos-foot" style="justify-content:center"><button type="button" class="set-mini-btn" id="legal-docs-switch"></button></div>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    \$('legal-docs-close').onclick=function(){overlay.classList.add('hidden');};
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.add('hidden');});
+  }
+  function show(w){
+    \$('legal-docs-body').innerHTML=w==='privacy'?privacyPolicyHtml():legalNoticeHtml();
+    \$('legal-docs-body').scrollTop=0;
+    const switchBtn=\$('legal-docs-switch');
+    switchBtn.textContent=w==='privacy'?'⚖️ Voir les mentions légales':'🔐 Voir la politique de confidentialité';
+    switchBtn.onclick=function(){show(w==='privacy'?'legal':'privacy');};
+  }
+  show(which||'legal');
+  overlay.classList.remove('hidden');
+}
 // Réutilise APP_PLATFORMS/APP_VT/APP_CHECKSUMS/appDlUrl/triggerAppPlatform/
 // detectAppPlatformKey — la même logique que le widget de téléchargement de
 // l'écran de connexion (avant authentification), avec des id="" distincts
@@ -8430,12 +8533,20 @@ function renderAdminSupportTickets(list){
 }
 
 /* ===== Paramètres de l’application ===== */
+// Support multilingue mis en pause (retour au tout-français le temps de
+// stabiliser la traduction automatique — plusieurs bugs de fond remontés
+// dessus par le passé, voir les Notes de version). Un seul indicateur :
+// remettre à false suffit à tout réactiver (sélecteur de langue,
+// auto-traduction, détection de langue par IP) sans rien supprimer —
+// la préférence de langue de chacun reste stockée telle quelle en local,
+// juste ignorée tant que c'est en pause.
+const MULTILANG_PAUSED=true;
 let appPrefsLanguageWasSet=false;
 function loadAppPrefs(){
   let p={};
   try{p=JSON.parse(localStorage.getItem('xultra_app_prefs')||'{}')||{};}catch(e){p={};}
   appPrefsLanguageWasSet=('language' in p);
-  return Object.assign({
+  const merged=Object.assign({
     displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
     animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
@@ -8443,6 +8554,8 @@ function loadAppPrefs(){
     dndScheduleEnabled:false,dndStart:'22:00',dndEnd:'08:00',language:'fr',
     analyticsShare:false,adsPersonalization:false,linkPreview:true,ttsEnabled:false,ttsRate:1,theme:'dark',shortcuts:{},_prevStatus:null,chatKbdZoom:false
   },p);
+  if(MULTILANG_PAUSED)merged.language='fr';
+  return merged;
 }
 let appPrefs=loadAppPrefs();
 function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
@@ -8726,6 +8839,10 @@ function atScan(root,lang){
   }
 }
 function initAutoTranslate(){
+  if(MULTILANG_PAUSED){
+    if(autoTranslateObserver){autoTranslateObserver.disconnect();autoTranslateObserver=null;}
+    return;
+  }
   const lang=(appPrefs&&appPrefs.language)||'fr';
   // 'fr' est la langue SOURCE de toutes les chaînes codées en dur — jamais
   // rien à traduire dans ce cas, contrairement aux 5 autres langues du
@@ -8839,6 +8956,7 @@ const COUNTRY_TO_LANG={
   HT:'ht',WS:'sm',TO:'to',FJ:'fj'
 };
 (function detectLanguageFromIp(){
+  if(MULTILANG_PAUSED)return;
   if(appPrefsLanguageWasSet)return;
   fetch('/api/ip').then(function(r){return r.json();}).then(function(j){
     if(appPrefsLanguageWasSet)return;
@@ -9022,6 +9140,8 @@ const SETTINGS_GROUPS=[
   {label:'',items:[
     {key:'sysstatus',icon:'📡',title:'État du système'},
     {key:'changelog',icon:'📋',title:'Notes de version'},
+    {key:'legalnotice',icon:'⚖️',title:'Mentions légales'},
+    {key:'privacypolicy',icon:'🔐',title:'Politique de confidentialité (RGPD)'},
     {key:'legal',icon:'©️',title:'Copyright & propriété intellectuelle'},
     {key:'helpdesk',icon:'🎧',title:'Aide & Support'},
     {key:'support',icon:'🐞',title:'Signaler un bug'},
@@ -9075,7 +9195,7 @@ function renderSettingsSection(key){
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
     myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet,
-    helpdesk:renderSetHelpdesk,legal:renderSetLegal
+    helpdesk:renderSetHelpdesk,legal:renderSetLegal,legalnotice:renderSetLegalNotice,privacypolicy:renderSetPrivacyPolicy
   };
   (renderers[key]||renderSetAccount)(box);
 }
@@ -10419,6 +10539,13 @@ function wireSetShortcuts(box){
 }
 let setLangQuery='';
 function renderSetLanguage(box){
+  if(MULTILANG_PAUSED){
+    box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">X1 est actuellement en français uniquement.</div>'
+      +'<div class="set-card"><div class="set-section-label">⏸️ Support multilingue en pause</div>'
+        +'<div class="scr-sub">Le temps de stabiliser la traduction automatique (des incohérences avaient été remontées), X1 reste temporairement en français pour tout le monde. Le sélecteur de langue reviendra dès que ce sera résolu — annoncé dans les Notes de version.</div>'
+      +'</div>';
+    return;
+  }
   const cur=(appPrefs&&appPrefs.language)||'fr';
   const curEntry=I18N_LANGS.find(function(l){return l.code===cur;});
   const q=setLangQuery.trim().toLowerCase();
