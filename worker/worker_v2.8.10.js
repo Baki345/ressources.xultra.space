@@ -7054,6 +7054,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.18',category:'fix',date:'2 septembre 2026',time:'01:10',title:'🔗 X1 Drive : corrigé, les liens de partage ne fonctionnaient plus',
+    body:'Un bug empêchait le fichier partagé de devenir réellement accessible par lien — corrigé. Les liens créés depuis maintenant fonctionnent normalement ; si tu avais un lien créé avant ce correctif et qu\\'il ne s\\'ouvrait pas, recrée-le.'},
   {version:'4.55.17',category:'feature',date:'2 septembre 2026',time:'00:20',title:'🔎 X1 Drive : glisser-déposer partout et recherche globale',
     body:'Deux améliorations dans X1 Drive : tu peux maintenant glisser un fichier n\\'importe où dans la fenêtre pour l\\'envoyer (avant, il fallait viser précisément la liste de fichiers) ; et la recherche fouille désormais tout ton Drive d\\'un coup — ton dossier personnel entier et les dossiers partagés avec toi — plutôt que seulement le dossier actuellement ouvert, avec un petit rappel de l\\'endroit où se trouve chaque résultat. La corbeille et les liens de partage restent en dehors de cette recherche pour l\\'instant.'},
   {version:'4.55.16',category:'design',date:'1 septembre 2026',time:'23:50',title:'📊 X1 Drive : un vrai gestionnaire de transferts',
@@ -17942,8 +17944,8 @@ async function xdShowContextMenu(item,x,y){
       ['✏️ Renommer',function(){xdRenameItem(item);}],
       !item.sharedFolderId?['📂 Déplacer',function(){xdShowMoveDialog(item);}]:null,
       [item.starred?'☆ Retirer des favoris':'⭐ Ajouter aux favoris',function(){xdToggleStar(item.\$id);}],
-      (item.type==='file'&&!item.sharedFolderId)?['🔗 Partager',function(){xdShowShareDialog(item);}]:null,
-      (item.type==='file'&&!item.sharedFolderId)?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
+      (item.type==='file'&&item.visibility!=='public')?['🔗 Partager',function(){xdShowShareDialog(item);}]:null,
+      (item.type==='file'&&item.visibility!=='public')?['💬 Partager en message',function(){xdShareToDm(item);}]:null,
       item.type==='file'?['📜 Historique des versions',function(){xdShowVersionHistory(item);}]:null,
       (item.type==='file'&&!item.sharedFolderId)?[item.visibility==='public'?'🔒 Rendre privé':'🌐 Rendre public',function(){xdToggleVisibility(item);}]:null,
       (item.type==='folder'&&!item.sharedFolderId&&String(item.ownerId)===String(me.\$id))?['👥 Partager avec des membres',function(){xdShowFolderShareDialog(item);}]:null,
@@ -18021,7 +18023,18 @@ function xdRenderQuotaBox(){
    du mot de passe et stockée chiffrée sur le document de partage —
    déverrouillable uniquement en tapant le mot de passe côté destinataire. */
 async function xdCreateShare(item,password,expMs){
-  const fileKeyRaw=await xdDecryptBuf(xdMasterKey,xdB64ToBuf(item.keyWrapped),new Uint8Array(xdB64ToBuf(item.keyIv)));
+  // Un fichier déjà rendu public (xdToggleVisibility) est ré-uploadé EN
+  // CLAIR et perd son keyWrapped/keyIv — il n'y a alors plus aucune clé à
+  // envelopper ici. Sans ce garde-fou explicite, xdDecryptBuf recevait un
+  // buffer vide et échouait avec une erreur AES-GCM opaque, faisant échouer
+  // silencieusement TOUTE la création du lien (aucun document xdrive_shares
+  // n'était même créé) — remonté par un utilisateur comme "le lien ne se
+  // génère pas".
+  if(item.visibility==='public')throw new Error('Ce fichier est déjà public : utilise directement son lien depuis l\\'onglet Fichiers de ton profil plutôt qu\\'un partage chiffré.');
+  if(!item.keyWrapped||!item.keyIv)throw new Error('Ce fichier n\\'a pas de clé de chiffrement valide, impossible de créer un lien.');
+  const itemKey=await xdResolveItemKey(item);
+  if(!itemKey)throw new Error('Clé indisponible');
+  const fileKeyRaw=await xdDecryptBuf(itemKey,xdB64ToBuf(item.keyWrapped),new Uint8Array(xdB64ToBuf(item.keyIv)));
   const fileKey=await xdImportKeyRaw(fileKeyRaw);
   // Nom/type re-chiffrés avec la clé du FICHIER (pas la clé maîtresse,
   // jamais transmise) et copiés sur le document de partage lui-même : un
@@ -18044,13 +18057,24 @@ async function xdCreateShare(item,password,expMs){
     fragmentKeyPart=xdBufToB64(fileKeyRaw);
   }
   const perms=[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
-  await db.createDocument(DB,'xdrive_shares',Appwrite.ID.unique(),shareData,perms);
+  const shareDoc=await db.createDocument(DB,'xdrive_shares',Appwrite.ID.unique(),shareData,perms);
   // Le blob chiffré doit devenir accessible à un visiteur non connecté — le
   // rendre public via Storage ne compromet rien tant que la clé, elle, ne
   // l'est jamais (voyage à part, dans le fragment ou derrière un mot de
   // passe, jamais dans le corps d'une requête HTTP que le serveur voit).
+  // updateFile(bucketId, fileId, name, permissions) : le 3e paramètre est
+  // le NOM du fichier, pas les permissions — les permissions sont le 4e.
+  // Les inverser (comme c'était le cas ici) fait que le SDK envoie le
+  // tableau de permissions à la place du nom, qu'Appwrite rejette (400,
+  // "name" doit être une chaîne) ; le fichier ne devenait donc JAMAIS
+  // public, même si le lien lui-même semblait se créer normalement.
   if(item.fileId){
-    await storage.updateFile('xultra_drive',item.fileId,[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]).catch(function(){});
+    try{
+      await storage.updateFile('xultra_drive',item.fileId,undefined,[Appwrite.Permission.read(Appwrite.Role.any()),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]);
+    }catch(e){
+      await db.deleteDocument(DB,'xdrive_shares',shareDoc.\$id).catch(function(){});
+      throw new Error('Le fichier n\\'a pas pu être rendu accessible par lien');
+    }
   }
   return location.origin+'/?dshare='+token+(fragmentKeyPart?('#k='+fragmentKeyPart):'');
 }
@@ -18086,7 +18110,7 @@ function xdShowShareDialog(item){
       goBtn.remove();
       box.querySelector('#xd-share-cancel').textContent='Fermer';
     }catch(e){
-      showToast('Création du lien impossible','error');
+      showToast((e&&e.message)||'Création du lien impossible','error');
       goBtn.disabled=false;goBtn.textContent='Créer le lien';
     }
   };
@@ -18291,7 +18315,7 @@ async function xdShareToDm(item){
         const input=\$('msg-input');
         if(input){input.value='📎 '+item._name+' — '+url;}
         await sendMessage();
-      }catch(e){showToast('Partage impossible','error');}
+      }catch(e){showToast((e&&e.message)||'Partage impossible','error');}
     };
   });
 }
