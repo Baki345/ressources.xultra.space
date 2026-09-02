@@ -1017,6 +1017,17 @@ async function grantPlus(uid, assignedBy) {
 // 5 minutes sur l'horodatage pour limiter le rejeu. STRIPE_WEBHOOK_SECRET est
 // un secret Cloudflare (jamais dans ce fichier ni dans git), même schéma que
 // CF_AI_TOKEN plus haut.
+// Comparaison en temps constant (jamais "===" sur un secret/HMAC) : une
+// comparaison de chaînes classique s'arrête au premier octet différent,
+// offrant en théorie un canal de mesure de temps exploitable pour deviner
+// la signature attendue octet par octet — c'est pourquoi les bibliothèques
+// officielles Stripe utilisent systématiquement une comparaison de ce type.
+function constantTimeEqualHex(a, b) {
+  if (typeof a !== "string" || typeof b !== "string" || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
 async function verifyStripeSignature(rawBody, sigHeader, secret) {
   if (!sigHeader || !secret) return false;
   const parts = String(sigHeader).split(",").reduce(function (acc, kv) {
@@ -1029,7 +1040,7 @@ async function verifyStripeSignature(rawBody, sigHeader, secret) {
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(t + "." + rawBody));
   const expected = Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
-  return expected === v1;
+  return constantTimeEqualHex(expected, v1);
 }
 
 function isShamanAccount(acc, profile) {
@@ -33028,33 +33039,69 @@ async function handle(request, event) {
       if (event.type === "checkout.session.completed") {
         const session = event.data.object;
         const eventDocId = "se_" + await sha256HexShort(String(session.id), 32);
+        const meta = session.metadata || {};
+        // Marqueur en DEUX temps ("pending" → "done"), pas une simple
+        // création bloquante : si ce Worker plante APRÈS avoir créé le
+        // marqueur mais AVANT d'avoir fini de créditer (erreur Appwrite
+        // transitoire, limite de temps CPU…), l'ancienne version aurait
+        // laissé le marqueur "déjà traité" pour toujours SANS jamais avoir
+        // livré l'achat payé — Stripe aurait alors cessé de réessayer,
+        // pensant le webhook géré avec succès. Ici, une tentative encore
+        // "pending" après 20s (largement au-delà du temps normal de
+        // traitement) est considérée abandonnée et reprise ; en dessous de
+        // 20s, une autre invocation est probablement en train de la
+        // terminer (Stripe envoie parfois le même événement deux fois
+        // presque simultanément) — on ne fait rien plutôt que de risquer un
+        // double crédit.
+        let shouldProcess = true;
         try {
           await awFetch("/databases/" + AW_DB + "/collections/stripe_events/documents", {
             method: "POST", asAdmin: true,
-            body: { documentId: eventDocId, data: { uid: (session.metadata && session.metadata.uid) || "", kind: (session.metadata && session.metadata.kind) || "" } }
+            body: { documentId: eventDocId, data: { uid: meta.uid || "", kind: meta.kind || "", status: "pending" } }
           });
         } catch (e) {
-          // Document déjà créé = webhook déjà traité une première fois (Stripe
-          // retente parfois le même événement) — on s'arrête là, sans re-créditer.
-          return new Response(JSON.stringify({ ok: true, alreadyProcessed: true }), { headers: { "Content-Type": "application/json" } });
+          if (e && e.status === 409) {
+            const existing = await awFetch("/databases/" + AW_DB + "/collections/stripe_events/documents/" + eventDocId, { asAdmin: true }).catch(function () { return null; });
+            if (existing && existing.status === "done") {
+              return new Response(JSON.stringify({ ok: true, alreadyProcessed: true }), { headers: { "Content-Type": "application/json" } });
+            }
+            const age = existing ? Date.now() - new Date(existing.$updatedAt || existing.$createdAt).getTime() : 0;
+            if (age < 20000) {
+              return new Response(JSON.stringify({ ok: true, inProgress: true }), { headers: { "Content-Type": "application/json" } });
+            }
+            shouldProcess = true; // marqueur abandonné (>20s toujours "pending") — on reprend le traitement
+          } else {
+            throw e;
+          }
         }
-        const meta = session.metadata || {};
-        const uid = meta.uid;
-        if (uid) {
-          if (meta.kind === "xplus") {
-            await grantPlus(uid, "stripe_purchase");
-          } else if (meta.kind === "coins") {
-            const p = COIN_PACKS[meta.pack];
-            if (p) {
-              await withWalletLock(uid, async function () {
-                const wallet = await x1coinsGetOrCreateWallet(uid);
-                await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
-                  method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+        if (shouldProcess) {
+          const uid = meta.uid;
+          if (uid) {
+            if (meta.kind === "xplus") {
+              await grantPlus(uid, "stripe_purchase");
+            } else if (meta.kind === "coins") {
+              const p = COIN_PACKS[meta.pack];
+              if (p) {
+                let alreadyDone = false;
+                await withWalletLock(uid, async function () {
+                  // Revérification sous verrou, au cas où une tentative
+                  // précédente aurait réellement crédité juste avant de
+                  // planter avant de marquer "done" — ne jamais créditer
+                  // deux fois le même paiement.
+                  const fresh = await awFetch("/databases/" + AW_DB + "/collections/stripe_events/documents/" + eventDocId, { asAdmin: true }).catch(function () { return null; });
+                  if (fresh && fresh.status === "done") { alreadyDone = true; return; }
+                  const wallet = await x1coinsGetOrCreateWallet(uid);
+                  await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
+                    method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+                  });
                 });
-              });
-              await x1coinsLogTx(uid, "", "Achat par carte", "in", p.coins, "purchase", p.label);
+                if (!alreadyDone) await x1coinsLogTx(uid, "", "Achat par carte", "in", p.coins, "purchase", p.label);
+              }
             }
           }
+          await awFetch("/databases/" + AW_DB + "/collections/stripe_events/documents/" + eventDocId, {
+            method: "PATCH", asAdmin: true, body: { data: { status: "done" } }
+          }).catch(function () {});
         }
       }
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
