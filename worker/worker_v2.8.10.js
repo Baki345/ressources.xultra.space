@@ -39,7 +39,13 @@ const AW_KEY = "standard_dbd86d5c813301a5cb4fb65415361244856cd53019bf52cdac23e40
 // avec Shaman lui-même (panneau admin en entier, ban/modération de
 // n'importe qui, gestion des plans X1+...) — voir isShamanAccount() et
 // resolveStaffRole() plus bas, seuls points où ce Set fait autorité.
-const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5"]);
+// 1leeway (6a98b09b003e78fa65d4, compte "1leeway#1502") ajouté le 2
+// septembre 2026 à la demande explicite de Shaman : même accès owner
+// complet que ci-dessus. Comme pour toute entrée de ce Set, il n'existe
+// aucune restriction technique intermédiaire entre "compte normal" et
+// "accès owner total" — ce niveau d'accès suppose une confiance totale
+// dans la personne, pas un bac à sable limité.
+const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5", "6a98b09b003e78fa65d4"]);
 const MAINT_GATE = "xu_gate_Z-5olSXEZ3Gw3rgQPqhR_Y-o";
 // Serveur TURN dédié (coturn sur VPS), remplace le relai gratuit openrelay.metered.ca
 // qui causait des appels sans son/vidéo (surchargé, non fiable). Le secret sert à
