@@ -2499,58 +2499,71 @@ html.xultra-restoring #stage{visibility:hidden}
    membres" ou en grille) : grande forme d'onde, avatars des commentaires
    horodatés flottant au-dessus, pochette + carte artiste en colonne. Rendu
    entièrement dans #music-body, même mécanique que renderMusicPlaylistDetail. */
-.music-track-page{padding-bottom:100px}
-.mtp-back{margin-bottom:16px}
+.music-track-page{padding-bottom:100px;padding-top:14px}
 .mtp-grid{display:grid;grid-template-columns:1fr;gap:28px}
 .mtp-content{min-width:0}
-.mtp-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
-.mtp-playbtn{flex-shrink:0;width:56px;height:56px;border-radius:50%;background:#fff;color:#1a0b2e;display:grid;place-items:center;font-size:1.3rem;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+/* Bloc "héros" (tête + forme d'onde + actions) : fond dégradé violet/rose
+   X1 en toile de fond façon pochette d'album lumineuse, pour que la page
+   d'un titre se distingue franchement d'une simple liste — jamais un fond
+   plat, toujours cette identité colorée. */
+.mtp-hero{background:radial-gradient(120% 180% at 15% -20%,rgba(236,72,153,.28),transparent 55%),radial-gradient(140% 160% at 100% 0%,rgba(124,58,237,.35),transparent 60%),linear-gradient(180deg,rgba(76,29,149,.16),rgba(0,0,0,0) 70%);border-radius:20px;padding:22px 20px 18px;margin-bottom:22px}
+.mtp-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.mtp-playbtn{flex-shrink:0;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#7c3aed);color:#fff;display:grid;place-items:center;font-size:1.35rem;box-shadow:0 12px 30px rgba(124,58,237,.55);transition:transform .15s ease}
+.mtp-playbtn:hover{transform:scale(1.06)}
 .mtp-title-block{min-width:0}
-.mtp-title{font-size:1.4rem;font-weight:800;line-height:1.25;overflow-wrap:break-word}
-.mtp-sub{font-size:.82rem;color:var(--muted);margin-top:4px}
-.mtp-artist-link{color:#c4b5fd;font-weight:700;cursor:pointer}
+.mtp-title{font-size:1.75rem;font-weight:900;line-height:1.2;overflow-wrap:break-word;letter-spacing:-.01em}
+.mtp-sub{font-size:.85rem;color:var(--muted);margin-top:6px}
+.mtp-artist-link{color:#e9d5ff;font-weight:800;cursor:pointer}
 .mtp-artist-link:hover{text-decoration:underline}
-.mtp-wave-wrap{margin-bottom:18px}
+.mtp-wave-wrap{margin-bottom:20px}
 .mtp-wave-big{position:relative;height:120px;margin-top:28px}
+.mtp-wave-big .music-wave-bars span{background:linear-gradient(180deg,rgba(233,213,255,.55),rgba(168,85,247,.4))}
 .mtp-wave-avatars{position:absolute;top:-26px;left:0;right:0;height:22px;pointer-events:none}
-.mtp-wave-avatar{position:absolute;top:0;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2px solid #0b0714;overflow:hidden;cursor:pointer;pointer-events:auto;background:#4c1d95;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.mtp-wave-avatar{position:absolute;top:0;transform:translateX(-50%);width:24px;height:24px;border-radius:50%;border:2px solid #180b2e;overflow:hidden;cursor:pointer;pointer-events:auto;background:linear-gradient(135deg,#f472b6,#7c3aed);box-shadow:0 2px 8px rgba(244,114,182,.5);transition:transform .12s ease}
+.mtp-wave-avatar:hover{transform:translateX(-50%) scale(1.25);z-index:2}
 .mtp-wave-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .mtp-wave-avatar-fallback{display:grid;place-items:center;width:100%;height:100%;font-size:.7rem}
-.mtp-wave-times{display:flex;justify-content:space-between;margin-top:6px;font-size:.72rem;color:var(--muted)}
+.mtp-wave-times{display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .mtp-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .mtp-comment-input{display:flex;gap:8px;flex:1;min-width:220px}
-.mtp-comment-input .field-input{flex:1}
-.mtp-icon-btn{flex-shrink:0;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);font-size:.82rem;font-weight:700}
-.mtp-icon-btn:hover{background:rgba(255,255,255,.12)}
-.mtp-icon-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
-.mtp-comments{margin-top:22px}
-.mtp-comments-head{font-size:.78rem;font-weight:800;color:var(--muted);letter-spacing:.03em;margin-bottom:10px}
-.mtp-comment{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mtp-comment-input .field-input{flex:1;border-radius:999px}
+.mtp-comment-input .set-mini-btn{border-radius:999px;background:linear-gradient(135deg,#f472b6,#7c3aed);color:#fff;font-weight:800;padding:9px 18px}
+.mtp-icon-btn{flex-shrink:0;height:40px;padding:0 16px;border-radius:999px;background:rgba(255,255,255,.07);color:#e5e0f5;font-size:.86rem;font-weight:700;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.06)}
+.mtp-icon-btn:hover{background:rgba(255,255,255,.14)}
+.mtp-icon-btn.on{background:rgba(244,114,182,.22);color:#f9a8d4;border-color:rgba(244,114,182,.4)}
+.mtp-comments{margin-top:6px}
+.mtp-comments-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.mtp-comments-count{font-size:.95rem;font-weight:800}
+.mtp-comments-sort{font-size:.72rem;color:var(--muted);font-weight:700}
+.mtp-comment{display:flex;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
 .mtp-comment:last-child{border-bottom:none}
-.mtp-comment-avatar{flex-shrink:0;width:36px;height:36px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1rem}
+.mtp-comment-avatar{flex-shrink:0;width:38px;height:38px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1rem}
 .mtp-comment-avatar img{width:100%;height:100%;object-fit:cover}
 .mtp-comment-body{min-width:0}
 .mtp-comment-top{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;font-size:.82rem}
 .mtp-comment-time{color:var(--muted);font-size:.72rem;margin-left:2px}
-.mtp-comment-text{font-size:.86rem;line-height:1.5;margin-top:2px;white-space:pre-wrap;overflow-wrap:break-word}
+.mtp-comment-text{font-size:.87rem;line-height:1.5;margin-top:3px;white-space:pre-wrap;overflow-wrap:break-word}
 .mtp-sidebar{display:flex;flex-direction:column;gap:16px}
-.mtp-cover{width:100%;aspect-ratio:1/1;max-width:260px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:3rem;box-shadow:0 16px 40px rgba(0,0,0,.4);margin:0 auto}
+.mtp-cover{width:100%;aspect-ratio:1/1;max-width:260px;border-radius:16px;overflow:hidden;background:linear-gradient(145deg,#4c1d95,#7c3aed,#ec4899);display:grid;place-items:center;font-size:3rem;box-shadow:0 18px 44px rgba(124,58,237,.4);margin:0 auto}
 .mtp-cover img{width:100%;height:100%;object-fit:cover}
-.mtp-artist-card{background:rgba(255,255,255,.03);border-radius:14px;padding:14px}
+.mtp-artist-card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:16px}
 .mtp-artist-top{display:flex;align-items:center;gap:10px;cursor:pointer}
-.mtp-artist-avatar{flex-shrink:0;width:44px;height:44px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center}
+.mtp-artist-avatar{flex-shrink:0;width:46px;height:46px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;box-shadow:0 4px 14px rgba(124,58,237,.4)}
 .mtp-artist-avatar img{width:100%;height:100%;object-fit:cover}
-.mtp-artist-name{font-weight:800;font-size:.9rem}
+.mtp-artist-name{font-weight:800;font-size:.92rem}
 .mtp-artist-meta{font-size:.74rem;color:var(--muted);margin-top:2px}
-.mtp-artist-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.mtp-artist-actions .set-mini-btn{width:100%;text-align:center}
+.mtp-artist-actions{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.mtp-artist-actions .set-mini-btn{width:100%;text-align:center;border-radius:999px}
+.mtp-artist-actions #mtp-follow-btn{background:linear-gradient(135deg,#f472b6,#7c3aed);color:#fff;font-weight:800;border:none}
+.mtp-artist-actions #mtp-follow-btn.on{background:rgba(255,255,255,.08);color:#e5e0f5}
 .mtp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.mtp-stat-tile{background:rgba(255,255,255,.03);border-radius:10px;padding:10px 6px;text-align:center}
-.mtp-stat-tile b{display:block;font-size:1rem;font-weight:800}
+.mtp-stat-tile{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px 6px;text-align:center}
+.mtp-stat-tile b{display:block;font-size:1.05rem;font-weight:900;background:linear-gradient(135deg,#e9d5ff,#f9a8d4);-webkit-background-clip:text;background-clip:text;color:transparent}
 .mtp-stat-tile span{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
 @media (min-width:860px){
-  .mtp-grid{grid-template-columns:1fr 260px}
+  .mtp-grid{grid-template-columns:1fr 280px}
   .mtp-sidebar{position:sticky;top:14px;align-self:start}
+  .mtp-hero{padding:30px 32px 24px}
 }
 .music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
 .music-pl-cover-banner{width:100%;aspect-ratio:3/1;border-radius:14px;overflow:hidden;margin:4px 0 12px}
@@ -20285,18 +20298,24 @@ function closeMusic(){
 function renderMusicShell(){
   const overlay=\$('music-overlay');if(!overlay)return;
   const isOtherProfile=!!(musicViewUid&&(!me||String(musicViewUid)!==String(me.\$id)));
+  // La page d'un titre (renderMusicTrackPage) a sa propre tête (grand titre,
+  // bouton lecture, "← Retour à la liste") — garder la barre d'onglets/
+  // recherche/genres du shell par-dessus casserait l'effet "vraie page
+  // dédiée" façon SoundCloud qu'elle vise ; on les masque comme pour la
+  // consultation du profil d'un autre artiste (musicViewUid).
+  const compact=!!musicViewUid||!!musicTrackPageId;
   overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
       +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
-      +(musicViewUid?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
-    +(musicViewUid?'':'<div class="seg-group music-tabs" id="music-tabs">'
+      +(compact?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
+    +(compact?'':'<div class="seg-group music-tabs" id="music-tabs">'
       +'<button type="button" class="seg-btn'+(musicFilter==='streaming'?' on':'')+'" data-music-tab="streaming">🎧 Streaming</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='members'?' on':'')+'" data-music-tab="members">🎤 Sons des membres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='mine'?' on':'')+'" data-music-tab="mine">Mes titres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='playlists'?' on':'')+'" data-music-tab="playlists">Mes playlists</button>'
     +'</div>')
-    +(musicViewUid||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
-    +(musicViewUid?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
-    +(musicViewUid?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
+    +(compact||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
+    +(compact?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
+    +(compact?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
     +'<div class="discover-body" id="music-body"></div>'
     +'<div class="music-player-bar hidden" id="music-player-bar">'
       +'<div class="mpb-cover" id="mpb-cover"></div>'
@@ -20309,7 +20328,10 @@ function renderMusicShell(){
       +'</div>'
       +'<div class="mpb-seek-wrap"><span class="mpb-time" id="mpb-time-cur">0:00</span><input type="range" id="mpb-seek" min="0" max="100" value="0" class="mpb-seek"><span class="mpb-time" id="mpb-time-dur">0:00</span></div>'
     +'</div>';
-  \$('music-close').onclick=closeMusic;
+  // Sur la page d'un titre, "← Retour" remonte d'un niveau (retour à la
+  // liste) plutôt que de fermer tout le panneau Musique — cohérent avec le
+  // reste de l'app, et évite d'avoir deux boutons "retour" empilés.
+  \$('music-close').onclick=musicTrackPageId?closeMusicTrackPage:closeMusic;
   if(\$('music-upload-btn'))\$('music-upload-btn').onclick=openMusicUploadForm;
   if(\$('music-follow-btn'))\$('music-follow-btn').onclick=function(){musicToggleFollow(musicViewUid);};
   updateMusicFollowBtn();
@@ -20989,6 +21011,12 @@ function openMusicTrackPage(trackId){
   musicTrackPageComments=[];
   musicTrackPageArtist=null;
   musicTrackPageLoading=true;
+  // renderMusicShell() (pas juste renderMusicBody()) : c'est elle qui décide
+  // de masquer les onglets/recherche/genres pour laisser la page du titre
+  // seule à l'écran (voir "compact" dans renderMusicShell) — elle reconstruit
+  // aussi #music-body et la mini-barre, d'où musicSyncMiniBar() juste après.
+  renderMusicShell();
+  musicSyncMiniBar();
   renderMusicBody();
   musicLoadTrackPageComments(trackId);
   musicLoadTrackPageArtist(t.uid);
@@ -20998,6 +21026,8 @@ function closeMusicTrackPage(){
   musicTrackPageComments=[];
   musicTrackPageArtist=null;
   musicTrackPageLoading=false;
+  renderMusicShell();
+  musicSyncMiniBar();
   renderMusicBody();
 }
 async function musicLoadTrackPageComments(trackId){
@@ -21046,6 +21076,10 @@ function renderMusicTrackPage(box){
   const isSelf=!!(me&&String(t.uid)===String(me.\$id));
   const following=musicMyFollowedIds.has(String(t.uid));
   const commentsCountLabel=musicTrackPageLoading?'Chargement…':(musicTrackPageComments.length+' COMMENTAIRE'+(musicTrackPageComments.length!==1?'S':''));
+  // "Le plus récent" décrit l'ordre RÉEL de la requête (orderDesc($createdAt),
+  // voir musicLoadTrackPageComments) — jamais un sélecteur de tri qui
+  // n'existe pas encore côté serveur.
+  const commentsSortLabel=(!musicTrackPageLoading&&musicTrackPageComments.length>1)?'Le plus récent':'';
   const commentsHtml=musicTrackPageLoading?''
     :(musicTrackPageComments.length?musicTrackPageComments.map(function(c){
       const cav=safeUrl(c.avatar);
@@ -21058,36 +21092,37 @@ function renderMusicTrackPage(box){
       +'</div>';
     }).join(''):'<div class="scr-sub" style="padding:6px 0">Aucun commentaire pour l\\'instant.</div>');
   box.innerHTML='<div class="music-track-page">'
-    +'<button type="button" class="set-mini-btn mtp-back" id="mtp-back">← Retour à la liste</button>'
     +'<div class="mtp-grid">'
       +'<div class="mtp-content">'
-        +'<div class="mtp-head">'
-          +'<button type="button" class="mtp-playbtn" id="mtp-play-big">'+(isPlaying?'⏸':'▶')+'</button>'
-          +'<div class="mtp-title-block">'
-            +'<div class="mtp-title">'+esc(t.title)+'</div>'
-            +'<div class="mtp-sub">par <span class="mtp-artist-link" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.\$createdAt?' · il y a '+fmtRelTime(t.\$createdAt):'')+'</div>'
+        +'<div class="mtp-hero">'
+          +'<div class="mtp-head">'
+            +'<button type="button" class="mtp-playbtn" id="mtp-play-big">'+(isPlaying?'⏸':'▶')+'</button>'
+            +'<div class="mtp-title-block">'
+              +'<div class="mtp-title">'+esc(t.title)+'</div>'
+              +'<div class="mtp-sub">par <span class="mtp-artist-link" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.\$createdAt?' · il y a '+fmtRelTime(t.\$createdAt):'')+'</div>'
+            +'</div>'
           +'</div>'
-        +'</div>'
-        +'<div class="mtp-wave-wrap">'
-          +'<div class="music-row-wave mtp-wave-big" data-music-wave="'+esc(t.\$id)+'">'
-            +'<div class="mtp-wave-avatars">'+avatarsHtml+'</div>'
-            +'<div class="music-wave-bars">'+barsHtml+'</div>'
-            +'<div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'
+          +'<div class="mtp-wave-wrap">'
+            +'<div class="music-row-wave mtp-wave-big" data-music-wave="'+esc(t.\$id)+'">'
+              +'<div class="mtp-wave-avatars">'+avatarsHtml+'</div>'
+              +'<div class="music-wave-bars">'+barsHtml+'</div>'
+              +'<div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'
+            +'</div>'
+            +'<div class="mtp-wave-times"><span id="mtp-time-cur">'+(isCurrent?musicFmtTime(musicAudioEl.currentTime):'0:00')+'</span><span id="mtp-time-dur">'+(t.durationSec?musicFmtTime(t.durationSec):'0:00')+'</span></div>'
           +'</div>'
-          +'<div class="mtp-wave-times"><span id="mtp-time-cur">'+(isCurrent?musicFmtTime(musicAudioEl.currentTime):'0:00')+'</span><span id="mtp-time-dur">'+(t.durationSec?musicFmtTime(t.durationSec):'0:00')+'</span></div>'
-        +'</div>'
-        +'<div class="mtp-actions">'
-          +'<div class="mtp-comment-input">'
-            +'<input type="text" id="mtp-comment-input" class="field-input" maxlength="500" placeholder="'+(isPlayingHere?'Commentez à '+esc(musicFmtTime(musicAudioEl.currentTime)):'Ajouter un commentaire…')+'">'
-            +'<button type="button" class="set-mini-btn" id="mtp-comment-send">Envoyer</button>'
+          +'<div class="mtp-actions">'
+            +'<div class="mtp-comment-input">'
+              +'<input type="text" id="mtp-comment-input" class="field-input" maxlength="500" placeholder="'+(isPlayingHere?'Commentez à '+esc(musicFmtTime(musicAudioEl.currentTime)):'Ajouter un commentaire…')+'">'
+              +'<button type="button" class="set-mini-btn" id="mtp-comment-send">Envoyer</button>'
+            +'</div>'
+            +'<button type="button" class="mtp-icon-btn'+(liked?' on':'')+'" id="mtp-like-btn" title="J\\'aime">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
+            +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
+            +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻 Radio</button>'
           +'</div>'
-          +'<button type="button" class="mtp-icon-btn'+(liked?' on':'')+'" id="mtp-like-btn" title="J\\'aime">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
-          +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
-          +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻</button>'
+          +(isPlayingHere?'<label class="srv-perm-check" style="margin:8px 0 0"><input type="checkbox" id="mtp-comment-at-time" checked> 📍 Positionner le commentaire sur la forme d\\'onde</label>':'')
         +'</div>'
-        +(isPlayingHere?'<label class="srv-perm-check" style="margin:8px 0 0"><input type="checkbox" id="mtp-comment-at-time" checked> 📍 Positionner le commentaire sur la forme d\\'onde</label>':'')
         +'<div class="mtp-comments">'
-          +'<div class="mtp-comments-head">'+commentsCountLabel+'</div>'
+          +'<div class="mtp-comments-head"><span class="mtp-comments-count">'+commentsCountLabel+'</span>'+(commentsSortLabel?'<span class="mtp-comments-sort">'+commentsSortLabel+'</span>':'')+'</div>'
           +'<div id="mtp-comments-list">'+commentsHtml+'</div>'
         +'</div>'
       +'</div>'
@@ -21111,7 +21146,6 @@ function renderMusicTrackPage(box){
       +'</div>'
     +'</div>'
   +'</div>';
-  \$('mtp-back').onclick=closeMusicTrackPage;
   \$('mtp-play-big').onclick=function(){musicPlayTrack(t.\$id);};
   box.querySelectorAll('[data-music-wave]').forEach(function(el){
     el.addEventListener('click',function(e){
