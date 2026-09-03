@@ -7400,6 +7400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.33',category:'security',date:'3 septembre 2026',time:'00:50',title:'🛡️ Limite de taille des pièces jointes désormais vérifiée aussi côté serveur',
+    body:'La limite de taille des pièces jointes en salon (10 Mo en compte basique, 500 Mo avec X1+) n\\'était vérifiée que dans l\\'application elle-même — un fichier envoyé en contournant cette vérification passait donc jusqu\\'ici sans problème. Corrigé : la taille réelle du fichier est désormais revérifiée par le serveur avant d\\'accepter le message, quel que soit le chemin emprunté pour l\\'envoyer. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.32',category:'security',date:'3 septembre 2026',time:'00:35',title:'🛡️ Faille corrigée : élévation de privilèges modérateur',
     body:'Une faille a été trouvée et corrigée : un compte technique aurait pu s\\'attribuer lui-même le statut de modérateur en modifiant directement une donnée normalement réservée à l\\'équipe. Vérifié en conditions réelles avant correction (compte de test jetable, personne n\\'en a profité), et vérifié après correction que l\\'accès modérateur ne peut plus s\\'obtenir que via l\\'équipe elle-même. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.31',category:'feature',date:'2 septembre 2026',time:'23:50',title:'⚖️ Mentions légales, RGPD, et retour au français',
@@ -36080,6 +36082,31 @@ async function handle(request, event) {
       const mediaType = CHAN_MEDIA_TYPES.indexOf(String((body && body.type) || "")) >= 0 ? String(body.type) : "";
       const mediaUrl = mediaType && mediaType !== "location" ? String((body && body.mediaUrl) || "").slice(0, 1000) : "";
       const mime = String((body && body.mime) || "").slice(0, 100);
+      // Plafond de taille de pièce jointe selon le palier (10 Mo / 500 Mo
+      // X1+) — jusqu'ici vérifié UNIQUEMENT côté client (maxAttachBytes()),
+      // contournable en modifiant le JS ou en appelant l'API Appwrite
+      // directement puisque le fichier est déjà téléversé avant cet appel.
+      // Le fichier existe déjà dans le bucket à ce stade (voir
+      // handleChannelFileAttach) donc on revérifie sa taille RÉELLE
+      // (sizeOriginal, jamais celle annoncée par le client) avant d'accepter
+      // le message qui le référence.
+      if (mediaUrl) {
+        const fileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(mediaUrl);
+        if (fileMatch) {
+          const fileMeta = await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { asAdmin: true }).catch(function () { return null; });
+          if (fileMeta) {
+            const senderMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+            const attachLimit = isUserPlus(senderMeta) ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
+            if ((fileMeta.sizeOriginal || 0) > attachLimit) {
+              // Le fichier a déjà été téléversé (avant cet appel) : on le
+              // supprime plutôt que de le laisser traîner sans jamais être
+              // référencé par un message.
+              await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+              throw new Error("Pièce jointe trop volumineuse pour ton palier (" + Math.round(attachLimit / 1024 / 1024) + " Mo max)");
+            }
+          }
+        }
+      }
       // Sondage intégré (§3, §27) : question + 2 à 10 options, choix unique ou
       // multiple, durée 1h à 7 jours. Le texte du message reprend la question
       // (aperçus, recherche, signalement continuent de fonctionner sans rien
