@@ -2888,6 +2888,19 @@ html.xultra-restoring #stage{visibility:hidden}
 .msg-dissolve-particles span{position:absolute;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#a855f7);animation:msgParticleFly .5s ease-out forwards}
 @keyframes msgParticleFly{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
 @media (prefers-reduced-motion:reduce){.msg-dissolving{transition:opacity .15s linear;transform:none}.msg-dissolve-particles{display:none}}
+.msg-spoiler-gate{position:relative;display:inline-block;min-width:170px;min-height:48px;max-width:100%;border-radius:12px;overflow:hidden;vertical-align:top}
+.msg-spoiler-gate .msg-spoiler-content{display:block;filter:blur(18px) saturate(.6);transform:scale(1.03);transition:filter .35s ease,transform .35s ease;pointer-events:none;user-select:none}
+.msg-spoiler-gate.revealed .msg-spoiler-content{filter:none;transform:none;pointer-events:auto;user-select:auto}
+.msg-spoiler-veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(10,6,20,.6);backdrop-filter:blur(2px);border:0;border-radius:12px;color:#f2ebff;cursor:pointer;text-align:center;padding:10px;opacity:1;visibility:visible;transition:opacity .25s ease,visibility 0s linear 0s}
+.msg-spoiler-gate.nsfw .msg-spoiler-veil{background:rgba(76,10,24,.65)}
+.msg-spoiler-gate.revealed .msg-spoiler-veil{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility 0s linear .25s}
+.msg-spoiler-ico{font-size:1.4rem;line-height:1}
+.msg-spoiler-label{font-weight:800;font-size:.82rem}
+.msg-spoiler-hint{font-size:.66rem;color:#c9bfe0}
+.msg-reveal-particles{position:absolute;inset:0;overflow:visible;pointer-events:none;z-index:2}
+.msg-reveal-particles span{position:absolute;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:linear-gradient(135deg,#facc15,#f472b6);animation:msgParticleReveal .6s ease-out forwards}
+@keyframes msgParticleReveal{0%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}45%{opacity:1;transform:translate(calc(var(--dx) * .3),calc(var(--dy) * .3)) scale(1)}100%{transform:translate(0,0) scale(0);opacity:0}}
+@media (prefers-reduced-motion:reduce){.msg-spoiler-gate .msg-spoiler-content{transition:none}.msg-spoiler-gate.revealed .msg-spoiler-veil{transition:opacity .01s linear}.msg-reveal-particles{display:none}}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
 .msg .bub{position:relative;background:var(--dm-bubble-theirs,var(--elev));color:var(--dm-text-color,inherit);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
@@ -2964,10 +2977,19 @@ body.theme-oled .pe-frame-inner{background:#050505}
    vérifier qu'il s'agit du bon fichier ni d'ajouter une légende. */
 .attach-preview{display:none;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line);background:rgba(139,92,246,.08)}
 .attach-preview.show{display:flex}
-.attach-preview .ap-thumb{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--elev);display:grid;place-items:center;font-size:1.2rem}
-.attach-preview .ap-thumb img,.attach-preview .ap-thumb video{width:100%;height:100%;object-fit:cover}
-.attach-preview .ap-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;color:var(--muted)}
+.attach-preview .ap-thumbs{display:flex;gap:6px;overflow-x:auto;flex-shrink:0;max-width:55%}
+.attach-preview .ap-thumb-item{position:relative;width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:var(--elev)}
+.attach-preview .ap-thumb-item img,.attach-preview .ap-thumb-item video{width:100%;height:100%;object-fit:cover}
+.attach-preview .ap-thumb-remove{position:absolute;top:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:rgba(0,0,0,.75);color:#fff;font-size:.55rem;line-height:1;display:grid;place-items:center}
+.attach-preview .ap-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.attach-preview .ap-info{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem;color:var(--muted)}
+.attach-preview .ap-quota-bar{height:4px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.attach-preview .ap-quota-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);transition:width .2s ease}
+.attach-preview .ap-quota-fill.full{background:linear-gradient(90deg,#ef4444,#f97316)}
+.attach-preview .ap-quota-label{font-size:.66rem;color:var(--muted);margin-top:2px}
 .attach-preview .ap-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
+.composer-spoiler-btn.on{background:rgba(124,58,237,.35);color:#e9d5ff}
+.composer-spoiler-btn.on.nsfw-on{background:rgba(239,68,68,.3);color:#fecaca}
 .emoji-picker-pop{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(280px,90vw);max-height:260px;overflow-y:auto;background:#15101f;border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:8px;box-shadow:0 12px 32px rgba(0,0,0,.5);z-index:9300;display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
 .emoji-picker-pop.hidden{display:none}
 .emoji-picker-pop button{font-size:1.25rem;padding:5px;border-radius:8px;line-height:1}
@@ -4461,12 +4483,13 @@ a.bug-att-item{display:block}
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
       <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
-      <div class="attach-preview" id="attach-preview"><div class="ap-thumb" id="ap-thumb"></div><span class="ap-info" id="ap-info"></span><button type="button" class="ap-close" id="attach-preview-close">✕</button></div>
+      <div class="attach-preview" id="attach-preview"><div class="ap-thumbs" id="ap-thumbs"></div><div class="ap-meta"><span class="ap-info" id="ap-info"></span><div class="ap-quota" id="ap-quota"></div></div><button type="button" class="ap-close" id="attach-preview-close">✕</button></div>
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
         <button type="button" class="composer-btn ai-fix-btn" id="btn-ai-fix" title="Corriger avec l'IA"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.4 4L17 8.4 13.4 9.8 12 14l-1.4-4.2L7 8.4l3.6-1.4L12 3z"/><path d="M19 14l.7 2 2 .8-2 .8-.7 2-.7-2-2-.8 2-.8z"/></svg></button>
         <button type="button" class="composer-btn" id="btn-emoji" title="Emoji"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8 14c1 1.6 2.5 2.5 4 2.5s3-.9 4-2.5"/></svg></button>
+        <button type="button" class="composer-btn composer-spoiler-btn" id="btn-spoiler-toggle" title="Marquer le prochain message comme spoiler ou 18+">🙈</button>
         <button type="button" class="composer-btn" id="btn-voice" title="Message vocal"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>
         <button type="button" class="send-btn hidden" id="btn-send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M3 11.5L20 4l-6.5 17-3-6.5L3 11.5z"/></svg></button>
         <div class="attach-menu hidden" id="attach-menu">
@@ -4483,7 +4506,7 @@ a.bug-att-item{display:block}
           <div class="vr-cancel-hint">◀ Glisser pour annuler</div>
         </div>
       </div>
-      <input type="file" id="file-image" class="hidden-input" accept="image/*,video/*"/>
+      <input type="file" id="file-image" class="hidden-input" accept="image/*,video/*" multiple/>
       <input type="file" id="file-generic" class="hidden-input"/>
     </div>
     <div class="chat-active hidden" id="admin-active">
@@ -7559,6 +7582,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.47',category:'feature',date:'4 septembre 2026',time:'02:15',title:'🙈 Messages spoiler et 18+, et envoi de plusieurs photos/vidéos à la fois en DM',
+    body:'Un nouveau bouton dans la barre de saisie (🙈, à côté d\\'Emoji) marque le prochain message — texte ou média — comme Spoiler ou 18+ (un clic de plus dessus pour choisir), en message privé comme dans un salon de serveur. Un message marqué apparaît flouté avec un bandeau "Cliquer pour révéler" ; le révéler joue une petite animation de particules. Pour le 18+, la révélation n\\'est possible que si TA vérification d\\'âge (Paramètres → 🔞 Vérification d\\'âge) est déjà validée — sinon un message l\\'explique. Et en message privé, sélectionner plusieurs photos/vidéos à la fois (glisser-déposer, copier-coller ou le sélecteur de fichiers) les prépare toutes ensemble avant l\\'envoi, avec une petite barre qui affiche combien de la limite de stockage de ton palier ce lot va utiliser — un fichier qui ferait dépasser cette limite est automatiquement écarté du lot.'},
   {version:'4.55.46',category:'feature',date:'4 septembre 2026',time:'01:00',title:'🧭 Le site retrouve où tu en étais en changeant d\\'onglet',
     body:'Ouvrir une conversation en Messages, puis aller voir les Serveurs, puis revenir sur Messages : la même conversation se rouvre automatiquement, plutôt que de repartir de la liste vide à chaque fois. Le même principe s\\'applique maintenant à X1 Music (la page du titre qu\\'on écoutait), XBin (le paste qu\\'on lisait), Créateurs (le profil ou la publication qu\\'on regardait) et la Boutique (l\\'onglet Parcourir/Mes créations/Modération) — et fonctionnait déjà pour Serveurs. Cliquer sur "← Retour" à l\\'intérieur d\\'une section efface bien cette mémoire, comme attendu.'},
   {version:'4.55.45',category:'fix',date:'4 septembre 2026',time:'00:15',title:'🩹 Le fil de messages privés redescend enfin de façon fiable, et nouveaux boutons "Ami+"/"Groupe+"',
@@ -10919,6 +10944,11 @@ function renderSetAgeVerify(box){
       if(r.granted){
         showToast('🔞 Badge 18+ VÉRIFIÉ obtenu !');
         settingsMeta=await db.getDocument(DB,'user_meta',me.\$id).catch(function(){return settingsMeta;});
+        // getMyBadges() (utilisé pour révéler un contenu 18+ en message) lit
+        // ce cache — sans le rafraîchir ici aussi, le badge tout juste obtenu
+        // resterait invisible pour une révélation tentée dans la foulée,
+        // avant tout autre appel qui l'aurait repeuplé.
+        if(me)memberMetaByUid[me.\$id]=settingsMeta;
         renderSetAgeVerify(box);
       }else{
         \$('agecheck-err').textContent=r.reason||'L\\'IA n\\'a pas pu confirmer ton âge à partir de cette photo. Réessaie avec une photo de face, bien éclairée.';
@@ -14296,6 +14326,68 @@ function renderMsgBody(m,text,mediaUrl){
   if(!firstLink)return linkedText;
   return linkedText+'<div class="link-preview-card" data-lp-url="'+esc(firstLink)+'"></div>';
 }
+// Spoiler (flouté, révélable par n'importe qui d'un clic) / 18+ (flouté,
+// révélable seulement si le badge adult18 — vérification d'âge par IA,
+// voir renderSetAgeVerify — est déjà obtenu par la personne qui REGARDE le
+// message, jamais celle qui l'a envoyé). Enveloppe le HTML déjà généré
+// (texte ou média) plutôt que de dupliquer son rendu : appelé au point
+// d'assemblage de chaque type de message (DM et salon), jamais depuis
+// renderMsgBody lui-même pour rester valable aussi pour le texte des
+// salons, qui ne passe pas par cette fonction.
+function applySpoilerGate(m,innerHtml){
+  if(!m||(m.contentFlag!=='spoiler'&&m.contentFlag!=='nsfw'))return innerHtml;
+  if(m.mediaMode==='ephemeral')return innerHtml;
+  const isNsfw=m.contentFlag==='nsfw';
+  const label=isNsfw?'Contenu 18+':'Contenu spoiler';
+  return '<div class="msg-spoiler-gate'+(isNsfw?' nsfw':'')+'" data-spoiler-mid="'+esc(m.\$id||'')+'">'
+    +'<div class="msg-spoiler-content">'+innerHtml+'</div>'
+    +'<button type="button" class="msg-spoiler-veil" data-spoiler-reveal="1" data-spoiler-kind="'+(isNsfw?'nsfw':'spoiler')+'"><span class="msg-spoiler-ico">'+(isNsfw?'🔞':'🙈')+'</span><span class="msg-spoiler-label">'+esc(label)+'</span><span class="msg-spoiler-hint">Cliquer pour révéler</span></button>'
+  +'</div>';
+}
+function playRevealParticles(gate){
+  if(!gate)return;
+  const layer=document.createElement('div');
+  layer.className='msg-reveal-particles';
+  for(let i=0;i<16;i++){
+    const p=document.createElement('span');
+    const angle=Math.random()*Math.PI*2,dist=14+Math.random()*46;
+    p.style.setProperty('--dx',(Math.cos(angle)*dist).toFixed(1)+'px');
+    p.style.setProperty('--dy',(Math.sin(angle)*dist).toFixed(1)+'px');
+    p.style.left=(10+Math.random()*80)+'%';
+    p.style.top=(10+Math.random()*80)+'%';
+    p.style.animationDelay=Math.round(Math.random()*70)+'ms';
+    layer.appendChild(p);
+  }
+  gate.appendChild(layer);
+  setTimeout(function(){if(layer.parentNode)layer.parentNode.removeChild(layer);},650);
+}
+function revealSpoilerGate(gate){
+  if(!gate||gate.classList.contains('revealed'))return;
+  gate.classList.add('revealed');
+  playRevealParticles(gate);
+}
+async function revealNsfwGate(gate){
+  if(!gate||gate.classList.contains('revealed'))return;
+  let verified=false;
+  try{verified=(await getMyBadges()).indexOf('adult18')>=0;}catch(e){}
+  if(!verified){
+    showToast('🔞 Réservé aux comptes avec la vérification d\\'âge active (Paramètres → Vérification d\\'âge).','error');
+    return;
+  }
+  revealSpoilerGate(gate);
+}
+function wireSpoilerGates(container){
+  if(!container)return;
+  container.querySelectorAll('[data-spoiler-reveal]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const gate=el.closest('.msg-spoiler-gate');
+      if(!gate||gate.classList.contains('revealed'))return;
+      if(el.getAttribute('data-spoiler-kind')==='nsfw')revealNsfwGate(gate);
+      else revealSpoilerGate(gate);
+    });
+  });
+}
 function wireSnapPlaceholders(container){
   if(!container)return;
   container.querySelectorAll('[data-snap-view]').forEach(function(el){
@@ -14470,10 +14562,11 @@ async function hydrateEncryptedMessages(){
     // justement de changer) et on s'y tient.
     const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
     if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';if(stick)box.scrollTop=box.scrollHeight;continue}
-    wrap.innerHTML=renderMsgBody(m,result.text,result.mediaUrl);
+    wrap.innerHTML=applySpoilerGate(m,renderMsgBody(m,result.text,result.mediaUrl));
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     wireSnapPlaceholders(wrap);
+    wireSpoilerGates(wrap);
     mountLinkPreviews(wrap);
     mountGifFreeze(wrap);
     if(stick)box.scrollTop=box.scrollHeight;
@@ -14728,7 +14821,7 @@ function buildMsgsHtml(list,seenInfo,stagger){
     const mine=m.uid===(me&&me.\$id);
     const isBot=!!m.isBot;
     const name=m.displayName||'User';
-    const body=m.enc?renderEncPlaceholder(m):renderMsgBody(m,m.text,m.mediaUrl);
+    const body=m.enc?renderEncPlaceholder(m):applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl));
     const seenTag=(seenInfo&&mine&&seenInfo.seenLabel&&seenInfo.lastMineId===m.\$id)?'<div class="msg-seen">'+esc(seenInfo.seenLabel)+'</div>':'';
     const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
     const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
@@ -14780,6 +14873,7 @@ function wireMsgContainer(container){
     el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
   wireSnapPlaceholders(container);
+  wireSpoilerGates(container);
   hydrateReplyQuotes(container);
   container.querySelectorAll('[data-scroll-reply]').forEach(function(el){
     el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
@@ -15275,14 +15369,24 @@ async function postMessage(data,lastMessagePreview,keyCtx){
 async function sendMessage(){
   const input=\$('msg-input');
   const text=(input.value||'').trim();
-  if(pendingAttachFile){
+  // Capturé une seule fois ici (pas relu plus bas) puis remis à zéro tout
+  // de suite : le toggle spoiler/18+ s'applique au message qui part MAINTENANT,
+  // jamais au suivant, quel que soit le chemin d'envoi emprunté ci-dessous.
+  const flagForThisSend=composerContentFlag;
+  composerContentFlag='';updateComposerContentFlagBtn();
+  if(pendingAttachFiles.length){
     if(!activeDm||!me)return;
-    const file=pendingAttachFile;
+    const files=pendingAttachFiles.slice();
     clearAttachPreview();
     input.value='';
     \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
     try{
-      await handleFileAttach(file,'auto',false,0,false,text.slice(0,2000));
+      // Plusieurs fichiers sélectionnés ensemble = plusieurs messages
+      // envoyés à la suite, dans l'ordre (le schéma n'a qu'un seul mediaUrl
+      // par message) — la légende ne s'applique qu'au premier.
+      for(let i=0;i<files.length;i++){
+        await handleFileAttach(files[i].file,'auto',false,0,false,i===0?text.slice(0,2000):'',flagForThisSend);
+      }
       clearTypingState();
     }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
     const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
@@ -15322,7 +15426,7 @@ async function sendMessage(){
   \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
   try{
     const keyCtx=await e2eGetMessageKeyContext();
-    await postMessage({text:text.slice(0,2000),type:'text'},text,keyCtx);
+    await postMessage({text:text.slice(0,2000),type:'text',contentFlag:flagForThisSend},text,keyCtx);
     clearTypingState();
   }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});showToast((e&&e.message)||'Message non envoyé','error');input.value=text;}
   const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
@@ -15369,13 +15473,13 @@ if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
 if(\$('msg-input'))\$('msg-input').addEventListener('paste',function(e){
   if(!activeDm)return;
   const items=(e.clipboardData&&e.clipboardData.items)||[];
-  let file=null;
+  const files=[];
   for(let i=0;i<items.length;i++){
-    if(items[i].kind==='file'){file=items[i].getAsFile();break}
+    if(items[i].kind==='file'){const f=items[i].getAsFile();if(f)files.push(f);}
   }
-  if(!file)return;
+  if(!files.length)return;
   e.preventDefault();
-  showAttachPreview(file);
+  showAttachPreview(files);
 });
 // Bug remonté : glisser-déposer un fichier ne faisait rien (app, curseur
 // "interdit") ou faisait retélécharger le fichier par le navigateur (web) —
@@ -15405,7 +15509,7 @@ if(\$('chat-active')){
     chatDrop.classList.remove('chat-dragover');
     if(!activeDm)return;
     const files=(e.dataTransfer&&e.dataTransfer.files)||[];
-    if(files.length)showAttachPreview(files[0]);
+    if(files.length)showAttachPreview(files);
   });
 }
 if(\$('btn-chat-back'))\$('btn-chat-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');repositionCallPanel();dmViewingTick();});
@@ -15419,26 +15523,76 @@ document.addEventListener('click',function(e){
   if(chanMenu&&!chanMenu.classList.contains('hidden')&&!chanMenu.contains(e.target)&&e.target!==\$('srv-chan-attach'))chanMenu.classList.add('hidden');
 });
 let pendingSnapEphemeral=false,pendingSnapDuration=0,pendingSnapNoScreenshot=false;
-let pendingAttachFile=null,pendingAttachObjectUrl=null;
+// contentFlag du composeur : '', 'spoiler' ou 'nsfw' — s'applique au PROCHAIN
+// message envoyé (texte ou pièce jointe), remis à zéro après chaque envoi.
+let composerContentFlag='';
+function updateComposerContentFlagBtn(){
+  const btn=\$('btn-spoiler-toggle');if(!btn)return;
+  if(composerContentFlag==='spoiler'){btn.textContent='🙈';btn.classList.add('on');btn.classList.remove('nsfw-on');btn.title='Message marqué SPOILER — cliquer pour changer';}
+  else if(composerContentFlag==='nsfw'){btn.textContent='🔞';btn.classList.add('on','nsfw-on');btn.title='Message marqué 18+ — cliquer pour changer';}
+  else{btn.textContent='🙈';btn.classList.remove('on','nsfw-on');btn.title='Marquer le prochain message comme spoiler ou 18+';}
+}
+function cycleComposerContentFlag(){
+  composerContentFlag=composerContentFlag===''?'spoiler':(composerContentFlag==='spoiler'?'nsfw':'');
+  updateComposerContentFlagBtn();
+}
+if(\$('btn-spoiler-toggle'))\$('btn-spoiler-toggle').addEventListener('click',cycleComposerContentFlag);
+// Plusieurs photos/vidéos à la fois (demandé explicitement), en respectant
+// le quota total de pièces jointes du palier (voir maxAttachBytes()) —
+// jamais un tableau côté schéma (dms_messages n'a qu'un seul mediaUrl par
+// message) : chaque fichier stagé ici devient son propre message à
+// l'envoi (voir sendMessage), la légende ne s'appliquant qu'au premier.
+let pendingAttachFiles=[];
+function attachPreviewTotalBytes(){return pendingAttachFiles.reduce(function(s,x){return s+x.file.size;},0);}
 function clearAttachPreview(){
-  pendingAttachFile=null;
-  if(pendingAttachObjectUrl){try{URL.revokeObjectURL(pendingAttachObjectUrl);}catch(e){}pendingAttachObjectUrl=null;}
+  pendingAttachFiles.forEach(function(x){if(x.objectUrl){try{URL.revokeObjectURL(x.objectUrl);}catch(e){}}});
+  pendingAttachFiles=[];
   const bar=\$('attach-preview');if(bar)bar.classList.remove('show');
-  const thumb=\$('ap-thumb');if(thumb)thumb.innerHTML='';
+  const thumbs=\$('ap-thumbs');if(thumbs)thumbs.innerHTML='';
   const info=\$('ap-info');if(info)info.textContent='';
+  const quota=\$('ap-quota');if(quota)quota.innerHTML='';
   const input=\$('msg-input');
   const has=!!(input&&input.value.trim().length);
   if(\$('btn-send'))\$('btn-send').classList.toggle('hidden',!has);
   if(\$('btn-voice'))\$('btn-voice').classList.toggle('hidden',has);
 }
-function showAttachPreview(file){
-  pendingAttachFile=file;
-  const bar=\$('attach-preview'),thumb=\$('ap-thumb'),info=\$('ap-info');
-  if(!bar||!thumb||!info)return;
-  pendingAttachObjectUrl=URL.createObjectURL(file);
-  const isVideo=file.type.indexOf('video/')===0;
-  thumb.innerHTML=isVideo?('<video src="'+pendingAttachObjectUrl+'" muted></video>'):('<img src="'+pendingAttachObjectUrl+'" alt="">');
-  info.textContent='Légende facultative pour '+(isVideo?'ta vidéo':'ta photo')+' — écris-la ci-dessous puis envoie.';
+function renderAttachPreviewQuota(){
+  const quota=\$('ap-quota');if(!quota)return;
+  const used=attachPreviewTotalBytes(),max=maxAttachBytes();
+  const pct=Math.min(100,Math.round(used/max*100));
+  quota.innerHTML='<div class="ap-quota-bar"><div class="ap-quota-fill'+(pct>=100?' full':'')+'" style="width:'+pct+'%"></div></div><div class="ap-quota-label">'+esc(fmtSize(used))+' / '+esc(fmtSize(max))+'</div>';
+}
+function renderAttachPreviewThumbs(){
+  const thumbs=\$('ap-thumbs');if(!thumbs)return;
+  thumbs.innerHTML=pendingAttachFiles.map(function(x,i){
+    const isVideo=x.file.type.indexOf('video/')===0;
+    return '<div class="ap-thumb-item">'+(isVideo?('<video src="'+x.objectUrl+'" muted></video>'):('<img src="'+x.objectUrl+'" alt="">'))+'<button type="button" class="ap-thumb-remove" data-ap-remove="'+i+'" title="Retirer">✕</button></div>';
+  }).join('');
+  thumbs.querySelectorAll('[data-ap-remove]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      const idx=parseInt(btn.getAttribute('data-ap-remove'),10);
+      const removed=pendingAttachFiles.splice(idx,1)[0];
+      if(removed&&removed.objectUrl){try{URL.revokeObjectURL(removed.objectUrl);}catch(e){}}
+      if(!pendingAttachFiles.length){clearAttachPreview();return}
+      renderAttachPreviewThumbs();renderAttachPreviewQuota();
+    });
+  });
+}
+function showAttachPreview(files){
+  const list=Array.prototype.slice.call(files||[]);
+  if(!list.length)return;
+  const bar=\$('attach-preview'),info=\$('ap-info');
+  if(!bar)return;
+  let rejected=0;
+  list.forEach(function(file){
+    if(attachPreviewTotalBytes()+file.size>maxAttachBytes()){rejected++;return}
+    pendingAttachFiles.push({file:file,objectUrl:URL.createObjectURL(file)});
+  });
+  if(rejected)showToast(rejected+' fichier(s) ignoré(s) — quota de '+fmtSize(maxAttachBytes())+' par message dépassé.','error');
+  if(!pendingAttachFiles.length)return;
+  renderAttachPreviewThumbs();
+  renderAttachPreviewQuota();
+  if(info)info.textContent=pendingAttachFiles.length>1?('Légende facultative pour ces '+pendingAttachFiles.length+' fichiers (s\\'appliquera au premier) — écris-la ci-dessous puis envoie.'):('Légende facultative pour '+(pendingAttachFiles[0].file.type.indexOf('video/')===0?'ta vidéo':'ta photo')+' — écris-la ci-dessous puis envoie.');
   bar.classList.add('show');
   if(\$('btn-send'))\$('btn-send').classList.remove('hidden');
   if(\$('btn-voice'))\$('btn-voice').classList.add('hidden');
@@ -16155,7 +16309,7 @@ function updateUploadProgressRow(row,loaded,total){
   const fillEl=row.querySelector('.upload-progress-fill');if(fillEl)fillEl.style.width=pct+'%';
   const sizeEl=row.querySelector('.upload-progress-size');if(sizeEl)sizeEl.textContent=fmtSize(loaded)+' / '+fmtSize(total);
 }
-async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot,caption){
+async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot,caption,contentFlag){
   if(!file||!activeDm)return;
   if(file.size>maxAttachBytes()){alert('Fichier trop volumineux ('+fmtSize(maxAttachBytes())+' max'+(meIsPlus?'':', 500 Mo avec X1+')+').');return}
   let type=kindHint;
@@ -16177,6 +16331,7 @@ async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot
     const up=await uploadFileWithProgress(uploadBlob,function(loaded,total){updateUploadProgressRow(progressRow,loaded,total);});
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={type:type,mediaUrl:fileUrl,enc:enc,mime:file.type,mediaMode:ephemeral?'ephemeral':'permanent'};
+    if(!ephemeral&&contentFlag)data.contentFlag=contentFlag;
     if(ephemeral){data.snapDurationSec=durationSec||0;if(noScreenshot)data.noScreenshot=true;}
     let preview=ephemeral?'👻 Ephem':'📎 Pièce jointe';
     if(type==='image'&&!ephemeral){preview='📷 Photo';}
@@ -16211,6 +16366,7 @@ async function handleChannelFileAttach(file,kindHint){
     const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
     const data={serverId:activeServer.\$id,channelId:activeChannel.\$id,threadId:activeThread?activeThread.\$id:'',type:type,mediaUrl:fileUrl,mime:file.type};
     if(type==='file')data.text=JSON.stringify({name:file.name,size:file.size,mime:file.type});
+    if(chanComposerContentFlag){data.contentFlag=chanComposerContentFlag;chanComposerContentFlag='';updateChanComposerContentFlagBtn();}
     await authPost('/api/servers/channels/messages/send',data);
   }catch(e){
     if(progressRow)progressRow.remove();
@@ -16218,14 +16374,14 @@ async function handleChannelFileAttach(file,kindHint){
   }
 }
 if(\$('file-image'))\$('file-image').addEventListener('change',function(){
-  const file=this.files[0];
   if(pendingSnapEphemeral){
     // Un Ephem n'affiche jamais son contenu tant qu'il n'est pas ouvert par
     // le destinataire (voir renderMsgBody) : une légende ou un aperçu avant
-    // envoi n'a pas de sens ici, on garde l'envoi immédiat existant.
-    handleFileAttach(file,'auto',true,pendingSnapDuration,pendingSnapNoScreenshot);
-  }else if(file){
-    showAttachPreview(file);
+    // envoi n'a pas de sens ici, on garde l'envoi immédiat existant — un
+    // seul fichier même si plusieurs ont été sélectionnés par erreur.
+    handleFileAttach(this.files[0],'auto',true,pendingSnapDuration,pendingSnapNoScreenshot);
+  }else if(this.files&&this.files.length){
+    showAttachPreview(this.files);
   }
   pendingSnapEphemeral=false;pendingSnapDuration=0;pendingSnapNoScreenshot=false;
   this.value='';
@@ -26233,6 +26389,17 @@ function startVoiceChannelJoin(channel){
    restent propres aux DM. Un seul gabarit HTML pour les deux vues qui
    partagent la même barre de saisie (salon normal + fil) afin qu'elles ne
    dérivent jamais l'une de l'autre. ===== */
+let chanComposerContentFlag='';
+function updateChanComposerContentFlagBtn(){
+  const btn=\$('srv-chan-spoiler-toggle');if(!btn)return;
+  if(chanComposerContentFlag==='spoiler'){btn.textContent='🙈';btn.classList.add('on');btn.classList.remove('nsfw-on');btn.title='Message marqué SPOILER — cliquer pour changer';}
+  else if(chanComposerContentFlag==='nsfw'){btn.textContent='🔞';btn.classList.add('on','nsfw-on');btn.title='Message marqué 18+ — cliquer pour changer';}
+  else{btn.textContent='🙈';btn.classList.remove('on','nsfw-on');btn.title='Marquer le prochain message comme spoiler ou 18+';}
+}
+function cycleChanComposerContentFlag(){
+  chanComposerContentFlag=chanComposerContentFlag===''?'spoiler':(chanComposerContentFlag==='spoiler'?'nsfw':'');
+  updateChanComposerContentFlagBtn();
+}
 function srvChanComposerHtml(placeholder,disabled,includePoll){
   return '<div class="composer" id="srv-chan-composer">'
     +'<button type="button" class="composer-btn" id="srv-chan-attach" title="Joindre"'+(disabled?' disabled':'')+'><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>'
@@ -26240,6 +26407,7 @@ function srvChanComposerHtml(placeholder,disabled,includePoll){
     +(includePoll?('<button type="button" class="composer-btn" id="srv-chan-poll" title="Créer un sondage"'+(disabled?' disabled':'')+'>📊</button>'):'')
     +'<button type="button" class="composer-btn ai-fix-btn" id="srv-chan-ai" title="Corriger avec l\\'IA"'+(disabled?' disabled':'')+'>✨</button>'
     +'<button type="button" class="composer-btn" id="srv-chan-emoji" title="Emoji"'+(disabled?' disabled':'')+'>😊</button>'
+    +'<button type="button" class="composer-btn composer-spoiler-btn" id="srv-chan-spoiler-toggle" title="Marquer le prochain message comme spoiler ou 18+"'+(disabled?' disabled':'')+'>🙈</button>'
     +'<button type="button" class="composer-btn" id="srv-chan-voice" title="Message vocal"'+(disabled?' disabled':'')+'><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>'
     +'<button type="button" class="send-btn hidden" id="srv-chan-send"'+(disabled?' disabled':'')+'>➤</button>'
     +'<div class="attach-menu hidden" id="srv-attach-menu">'
@@ -26274,6 +26442,8 @@ function wireSrvChanComposerExtra(disabled){
   });
   if(\$('srv-file-image'))\$('srv-file-image').addEventListener('change',function(){handleChannelFileAttach(this.files[0],'auto');this.value='';});
   if(\$('srv-file-generic'))\$('srv-file-generic').addEventListener('change',function(){handleChannelFileAttach(this.files[0],'file');this.value='';});
+  if(\$('srv-chan-spoiler-toggle'))\$('srv-chan-spoiler-toggle').addEventListener('click',cycleChanComposerContentFlag);
+  updateChanComposerContentFlagBtn();
   const input=\$('srv-chan-input');
   if(input)input.addEventListener('input',function(){
     const has=this.value.trim().length>0;
@@ -26682,7 +26852,7 @@ function renderChannelMessages(stagger){
     const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
     const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
-    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?renderMsgBody(m,m.text,m.mediaUrl):replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))));
+    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel())))));
     const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
@@ -26696,6 +26866,7 @@ function renderChannelMessages(stagger){
     el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
   box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  wireSpoilerGates(box);
   mountLinkPreviews(box);
   box.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
@@ -26836,6 +27007,8 @@ async function sendServerChannelMessage(){
   const input=\$('srv-chan-input');if(!input||!activeChannel)return;
   const text=(input.value||'').trim();
   if(!text)return;
+  const flagForThisSend=chanComposerContentFlag;
+  chanComposerContentFlag='';updateChanComposerContentFlagBtn();
   // Commande /slash d'un bot installé sur ce serveur : détectée AVANT le
   // chemin d'envoi normal, jamais postée comme un message texte classique —
   // voir /api/bots/interact (payload envoyé au bot, réponse attendue).
@@ -26863,7 +27036,7 @@ async function sendServerChannelMessage(){
   if(\$('srv-chan-voice'))\$('srv-chan-voice').classList.remove('hidden');
   const replyToId=(replyTargetKind==='channel'&&replyTarget)?replyTarget.\$id:'';
   try{
-    await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId,threadId:activeThread?activeThread.\$id:''});
+    await authPost('/api/servers/channels/messages/send',{serverId:activeServer.\$id,channelId:activeChannel.\$id,text:text,replyToId:replyToId,threadId:activeThread?activeThread.\$id:'',contentFlag:flagForThisSend});
     if(replyToId)clearReplyTarget('channel');
   }
   catch(e){if(!handleRulesGateError(e))showToast((e&&e.message)||'Erreur d\\'envoi','error');input.value=text;}
@@ -36773,9 +36946,13 @@ async function handle(request, event) {
       const profile = await resolveProfile(acc.$id);
       const uname = await resolveServerMemberDisplayName(serverId, acc.$id, access, profile, acc.name);
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
+      // Spoiler (flouté, révélable par n'importe qui) / 18+ (flouté, la
+      // vérification d'âge — badge adult18 — est vérifiée côté client au
+      // moment de révéler).
+      const contentFlag = ["", "spoiler", "nsfw"].indexOf(body && body.contentFlag) >= 0 ? body.contentFlag : "";
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl, type: mediaType, mediaUrl: mediaUrl, mime: mime }, permissions: msgPerms }
+        body: { documentId: "unique()", data: { channelId: channelId, serverId: serverId, uid: String(acc.$id), username: uname, text: text, replyToId: replyToId, pollJson: pollJson, threadId: threadId, stickerUrl: stickerUrl, type: mediaType, mediaUrl: mediaUrl, mime: mime, contentFlag: contentFlag }, permissions: msgPerms }
       });
       // Un message posté par un humain (jamais un écho des propres messages
       // du bot, jamais bloquant — voir fireBotEvent) : seul événement assez
@@ -37479,7 +37656,13 @@ async function handle(request, event) {
         replyToId: String((body && body.replyToId) || "").slice(0, 64),
         mediaMode: ["ephemeral", "permanent", ""].indexOf(body && body.mediaMode) >= 0 ? body.mediaMode : "",
         snapDurationSec: Number.isFinite(Number(body && body.snapDurationSec)) ? Math.max(0, Math.min(60, Number(body.snapDurationSec))) : 0,
-        noScreenshot: !!(body && body.noScreenshot)
+        noScreenshot: !!(body && body.noScreenshot),
+        // Spoiler (flouté, révélable par n'importe qui) / 18+ (flouté, la
+        // vérification d'âge — badge adult18 — est vérifiée côté CLIENT au
+        // moment de révéler, jamais ici : impossible de gater le contenu
+        // côté serveur puisque les DM sont chiffrés de bout en bout, le
+        // Worker ne voit jamais le texte/média en clair).
+        contentFlag: ["", "spoiler", "nsfw"].indexOf(body && body.contentFlag) >= 0 ? body.contentFlag : ""
       };
       if (!data.text && !data.mediaUrl && data.type !== "location") throw new Error("Message vide");
       // Même vérification de taille de pièce jointe que côté salon (voir
