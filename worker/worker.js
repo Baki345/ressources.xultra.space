@@ -4078,7 +4078,9 @@ a.bug-att-item{display:block}
 .seg-btn{flex:1;height:34px;border-radius:8px;background:var(--elev);border:1px solid var(--line);color:var(--muted);font-size:.72rem;font-weight:700}
 .seg-btn.on{background:rgba(124,58,237,.35);border-color:rgba(167,139,250,.5);color:#e9d5ff}
 .settings-shell{width:min(920px,95vw);max-height:90dvh;display:flex;padding:0;overflow:hidden}
-.settings-sidebar{width:240px;flex-shrink:0;background:#0d0814;border-right:1px solid rgba(255,255,255,.06);overflow-y:auto;padding:16px 10px}
+.settings-sidebar-wrap{width:240px;flex-shrink:0;display:flex;flex-direction:column;min-height:0;background:#0d0814;border-right:1px solid rgba(255,255,255,.06)}
+.settings-search-input{margin:12px 12px 0;width:auto}
+.settings-sidebar{flex:1;min-height:0;overflow-y:auto;padding:12px 10px 16px}
 .settings-sidebar-group{margin-bottom:14px}
 .settings-sidebar-label{font-size:.66rem;font-weight:800;letter-spacing:.07em;color:var(--muted);text-transform:uppercase;padding:0 10px;margin-bottom:6px}
 .settings-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:8px;font-size:.82rem;font-weight:700;color:rgba(242,235,255,.72);text-align:left;margin-bottom:2px}
@@ -4153,12 +4155,21 @@ a.bug-att-item{display:block}
 .session-row .sr-meta{font-size:.7rem;color:var(--muted);margin-top:2px}
 .session-row .sr-current{font-size:.64rem;font-weight:800;color:#86efac;background:rgba(34,197,94,.12);padding:2px 8px;border-radius:999px;flex-shrink:0}
 @media (max-width:720px){
-  .settings-shell{flex-direction:column;width:min(480px,95vw);max-height:92dvh}
-  .settings-sidebar{width:auto;display:flex;overflow-x:auto;overflow-y:hidden;white-space:nowrap;border-right:0;border-bottom:1px solid rgba(255,255,255,.06);padding:10px}
-  .settings-sidebar-group{margin-bottom:0;display:flex;flex-shrink:0}
-  .settings-sidebar-label{display:none}
-  .settings-nav-btn{width:auto;white-space:nowrap}
-  .settings-content{padding:18px 16px}
+  /* Avant : bande horizontale tout en haut (icônes minuscules, tout le
+     monde à glisser pour voir les sections suivantes). Demandé
+     explicitement : garder la même disposition qu'sur PC — le rail de
+     navigation à GAUCHE, en colonne verticale scrollable — juste
+     rétréci pour tenir sur un écran de téléphone (icône au-dessus d'un
+     texte minuscule plutôt qu'icône + texte côte à côte). */
+  .settings-shell{width:min(480px,95vw);max-height:92dvh}
+  .settings-sidebar-wrap{width:84px}
+  .settings-search-input{margin:10px 6px 0;padding:8px 6px;font-size:.68rem}
+  .settings-sidebar{padding:8px 4px}
+  .settings-sidebar-group{margin-bottom:8px}
+  .settings-sidebar-label{font-size:.56rem;padding:0 4px;white-space:normal}
+  .settings-nav-btn{flex-direction:column;gap:3px;text-align:center;padding:8px 2px;font-size:.6rem;line-height:1.15;white-space:normal;word-break:break-word}
+  .settings-nav-btn .snb-ico{width:auto;font-size:1.05rem}
+  .settings-content{padding:18px 14px}
 }
 .tabbar{display:none}
 @media (max-width:640px){
@@ -5309,7 +5320,10 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-settings">
   <div class="modal-box settings-shell">
     <button type="button" class="modal-close settings-close" id="set-close">✕</button>
-    <nav class="settings-sidebar" id="settings-sidebar"></nav>
+    <div class="settings-sidebar-wrap">
+      <input type="text" id="settings-search" class="field-input settings-search-input" placeholder="🔍 Rechercher un réglage…">
+      <nav class="settings-sidebar" id="settings-sidebar"></nav>
+    </div>
     <div class="settings-content" id="settings-content"></div>
   </div>
 </div>
@@ -9256,7 +9270,45 @@ const SETTINGS_GROUPS=[
     {key:'logout',icon:'🚪',title:'Se déconnecter'}
   ]}
 ];
-let settingsActiveKey='account';
+// La recherche des paramètres (settings-search) ne doit pas se limiter aux
+// noms d'onglets ("Mon compte" ne contient pas "mot de passe") — quelques
+// synonymes/réglages clés par section pour retomber sur la bonne page,
+// sans aller jusqu'à indexer chaque champ de chaque section (trop de
+// pages très différentes pour que ça reste fiable à maintenir).
+const SETTINGS_SEARCH_KEYWORDS={
+  account:['mot de passe','email','pseudo','tag','2fa','authentification à deux facteurs','passkey','clé de sécurité','désactiver mon compte','supprimer mon compte'],
+  subscription:['x1+','plus','premium','abonnement'],
+  wallet:['coins','x1coins','pièces','solde'],
+  profiles:['thème','couleur','avatar','bannière','effets de nom'],
+  privacy:['confidentialité','vie privée','statut en ligne','qui peut me contacter'],
+  agecheck:['âge','kyc','vérification d\\'identité'],
+  blocked:['bloqués','bloquer'],
+  myreports:['signalement','signalé'],
+  devices:['sessions','appareils connectés'],
+  connections:['oauth','comptes liés','spotify','steam','github'],
+  apps:['oauth','autorisations'],
+  family:['parental','coffre-fort','famille'],
+  download:['app','application de bureau','desktop'],
+  appearance:['thème','couleur','fond d\\'écran','police'],
+  accessibility:['contraste','taille du texte','réduire les animations'],
+  voice:['micro','caméra','vidéo','appel'],
+  notifications:['push','sons','alertes'],
+  shortcuts:['clavier','touches'],
+  language:['langue','français','anglais'],
+  os:['système','plateforme'],
+  advanced:['expérimental','débogage','cache'],
+  activity:['jeux','statistiques de jeu'],
+  developers:['api','développeur','oauth'],
+  bots:['bot','automatisation','webhook'],
+  sysstatus:['statut','uptime','incident'],
+  changelog:['nouveautés','notes de version','mises à jour'],
+  legalnotice:['mentions légales','éditeur'],
+  privacypolicy:['rgpd','données personnelles'],
+  legal:['copyright','propriété intellectuelle'],
+  helpdesk:['support','ticket','aide'],
+  support:['bug','signaler un problème']
+};
+let settingsActiveKey='account',settingsSearchQuery='';
 let settingsMeta=null;
 async function openSettingsPanel(){
   if(!me)return;
@@ -9269,11 +9321,19 @@ function closeSettingsPanel(){\$('modal-settings').classList.add('hidden');}
 function renderSettingsSidebar(){
   const nav=\$('settings-sidebar');if(!nav)return;
   const SETTINGS_GROUP_LABEL_KEYS={'Compte':'setgrp_account','Application':'setgrp_application','Développeurs':'setgrp_developers'};
-  nav.innerHTML=SETTINGS_GROUPS.map(function(g){
+  const q=settingsSearchQuery.trim().toLowerCase();
+  const html=SETTINGS_GROUPS.map(function(g){
     // "Notes de version" (changelog) : réservé équipe (owner/mod/support/dev),
     // voir canSeeChangelog / checkAdmin() — un membre normal ne doit même pas
     // voir l'entrée dans le menu, pas seulement se la faire refuser au clic.
-    const items=g.items.filter(function(it){return it.key!=='changelog'||canSeeChangelog;});
+    const items=g.items.filter(function(it){
+      if(it.key==='changelog'&&!canSeeChangelog)return false;
+      if(!q)return true;
+      const label=t('set_'+it.key,it.title).toLowerCase();
+      if(label.indexOf(q)>=0||it.key.toLowerCase().indexOf(q)>=0)return true;
+      const kw=SETTINGS_SEARCH_KEYWORDS[it.key];
+      return !!(kw&&kw.some(function(k){return k.toLowerCase().indexOf(q)>=0;}));
+    });
     if(!items.length)return '';
     return '<div class="settings-sidebar-group">'
       +(g.label?'<div class="settings-sidebar-label">'+esc(t(SETTINGS_GROUP_LABEL_KEYS[g.label]||'',g.label))+'</div>':'')
@@ -9282,10 +9342,15 @@ function renderSettingsSidebar(){
       }).join('')
       +'</div>';
   }).join('');
+  nav.innerHTML=html||'<div class="empty-hint" style="padding:16px 8px;font-size:.72rem">Aucun réglage trouvé.</div>';
   nav.querySelectorAll('[data-set-key]').forEach(function(b){
     b.addEventListener('click',function(){handleSettingsNavClick(b.getAttribute('data-set-key'));});
   });
 }
+if(\$('settings-search'))\$('settings-search').addEventListener('input',function(){
+  settingsSearchQuery=this.value;
+  renderSettingsSidebar();
+});
 function handleSettingsNavClick(key){
   if(key==='sysstatus'){closeSettingsPanel();openStatusPanel();return}
   if(key==='changelog'){closeSettingsPanel();openChangelogPanel();return}
