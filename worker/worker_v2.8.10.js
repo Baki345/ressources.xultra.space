@@ -2972,6 +2972,9 @@ body.theme-oled .pe-frame-inner{background:#050505}
 .reply-preview .rp-info{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
 .reply-preview .rp-info b{color:#c4b5fd}
 .reply-preview .rp-close{width:22px;height:22px;border-radius:50%;background:var(--elev);color:var(--muted);flex-shrink:0;font-size:.8rem}
+.reply-preview.edit-preview{background:rgba(245,158,11,.1)}
+.reply-preview.edit-preview .rp-info{color:#fbbf24}
+.msg-edited-tag{color:var(--muted);font-size:.7rem;font-style:italic}
 /* Idée proposée par Yani Neco (Boîte à idées, "Aperçu avant envoi") : avant,
    choisir une photo/vidéo l'envoyait tout de suite, sans possibilité de
    vérifier qu'il s'agit du bon fichier ni d'ajouter une légende. */
@@ -4483,6 +4486,7 @@ a.bug-att-item{display:block}
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
       <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
+      <div class="reply-preview edit-preview" id="edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="edit-preview-close">✕</button></div>
       <div class="attach-preview" id="attach-preview"><div class="ap-thumbs" id="ap-thumbs"></div><div class="ap-meta"><span class="ap-info" id="ap-info"></span><div class="ap-quota" id="ap-quota"></div></div><button type="button" class="ap-close" id="attach-preview-close">✕</button></div>
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>
@@ -7582,6 +7586,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.48',category:'feature',date:'4 septembre 2026',time:'03:00',title:'✏️ Modifier un message envoyé dans les 24h, en DM comme en salon',
+    body:'Depuis les options d\\'un message (⋯, ou glisser/clic droit), un nouveau "✏️ Modifier" permet de corriger le texte (ou la légende d\\'une photo/vidéo) d\\'un message que TU as envoyé, tant qu\\'il a moins de 24h — en message privé comme dans un salon de serveur. Le champ de saisie se remplit avec le texte actuel, corrige-le puis valide comme un envoi normal ; le message modifié affiche discrètement "(modifié)". Non disponible pour les Ephem, stickers, sondages, fichiers/messages vocaux/positions (rien à réécrire) ni au-delà de 24h. En message privé chiffré de bout en bout, le nouveau texte est rechiffré avec la même clé que l\\'original avant d\\'être envoyé — le serveur ne voit jamais le contenu en clair.'},
   {version:'4.55.47',category:'feature',date:'4 septembre 2026',time:'02:15',title:'🙈 Messages spoiler et 18+, et envoi de plusieurs photos/vidéos à la fois en DM',
     body:'Un nouveau bouton dans la barre de saisie (🙈, à côté d\\'Emoji) marque le prochain message — texte ou média — comme Spoiler ou 18+ (un clic de plus dessus pour choisir), en message privé comme dans un salon de serveur. Un message marqué apparaît flouté avec un bandeau "Cliquer pour révéler" ; le révéler joue une petite animation de particules. Pour le 18+, la révélation n\\'est possible que si TA vérification d\\'âge (Paramètres → 🔞 Vérification d\\'âge) est déjà validée — sinon un message l\\'explique. Et en message privé, sélectionner plusieurs photos/vidéos à la fois (glisser-déposer, copier-coller ou le sélecteur de fichiers) les prépare toutes ensemble avant l\\'envoi, avec une petite barre qui affiche combien de la limite de stockage de ton palier ce lot va utiliser — un fichier qui ferait dépasser cette limite est automatiquement écarté du lot.'},
   {version:'4.55.46',category:'feature',date:'4 septembre 2026',time:'01:00',title:'🧭 Le site retrouve où tu en étais en changeant d\\'onglet',
@@ -14757,6 +14763,87 @@ function clearReplyTarget(kind){
   const bar=\$(kind==='dm'?'reply-preview':'srv-reply-preview');
   if(bar)bar.classList.remove('show');
 }
+// Modifier un message envoyé (demandé explicitement), dans les 24h suivant
+// l'envoi — réutilise la barre de saisie existante plutôt qu'une modale à
+// part : le texte (déchiffré au besoin) remplit le champ, un bandeau
+// "Modification du message" remplace visuellement celui de réponse, et
+// sendMessage()/sendServerChannelMessage() détournent l'envoi normal vers
+// saveMessageEdit()/saveChannelMessageEdit() tant qu'on est en édition.
+let editingDmMsgId=null,editingChanMsgId=null;
+async function startEditMessage(m,kind){
+  if(!isMessageEditable(m,kind))return;
+  clearReplyTarget(kind);
+  if(typeof clearAttachPreview==='function')clearAttachPreview();
+  let text=m.text||'';
+  if(kind==='dm'&&m.enc){
+    text=await attemptDecryptMessageText(m);
+    if(!text){showToast('Message impossible à déchiffrer sur cet appareil, modification impossible.','error');return}
+  }
+  if(kind==='dm'){
+    editingDmMsgId=m.\$id;
+    const bar=\$('edit-preview');if(bar)bar.classList.add('show');
+    const input=\$('msg-input');
+    if(input){input.value=text;input.dispatchEvent(new Event('input'));input.focus();}
+  }else{
+    editingChanMsgId=m.\$id;
+    const bar=\$('srv-edit-preview');if(bar)bar.classList.add('show');
+    const input=\$('srv-chan-input');
+    if(input){input.value=text;input.dispatchEvent(new Event('input'));input.focus();}
+  }
+}
+function cancelEditMessage(kind){
+  if(kind==='dm'){
+    editingDmMsgId=null;
+    const bar=\$('edit-preview');if(bar)bar.classList.remove('show');
+    const input=\$('msg-input');if(input){input.value='';input.dispatchEvent(new Event('input'));}
+  }else{
+    editingChanMsgId=null;
+    const bar=\$('srv-edit-preview');if(bar)bar.classList.remove('show');
+    const input=\$('srv-chan-input');if(input){input.value='';input.dispatchEvent(new Event('input'));}
+  }
+}
+// Réutilise EXACTEMENT le même mécanisme de chiffrement que l'envoi initial
+// (voir e2eResolveIncomingKey) : pour un DM 1:1, la clé AES est
+// déterministe (ECDH avec le même interlocuteur) donc toujours re-
+// dérivable ; pour un groupe, keysJson porte déjà la clé AES propre à CE
+// message, enveloppée pour chaque membre (soi-même inclus) — la
+// récupérer puis rechiffrer le nouveau texte avec ELLE garde keysJson
+// valable sans y retoucher.
+async function saveMessageEdit(){
+  const mid=editingDmMsgId;if(!mid)return;
+  const input=\$('msg-input');
+  const text=(input&&input.value||'').trim();
+  if(!text)return;
+  const m=msgsCache.find(function(x){return x.\$id===mid});
+  if(!m){cancelEditMessage('dm');return}
+  cancelEditMessage('dm');
+  try{
+    let payloadText=text,enc=false;
+    if(m.enc){
+      const key=await e2eResolveIncomingKey(m);
+      if(!key)throw new Error('Clé de chiffrement introuvable');
+      payloadText=await e2eEncryptTextWithKey(key,text);
+      enc=true;
+    }
+    const r=await authPost('/api/dms/messages/edit',{messageId:mid,text:payloadText,enc:enc});
+    const idx=msgsCache.findIndex(function(x){return x.\$id===mid});
+    if(idx>=0)msgsCache[idx]=r.message;
+    renderMessages();
+  }catch(e){showToast((e&&e.message)||'Modification impossible','error');}
+}
+async function saveChannelMessageEdit(){
+  const mid=editingChanMsgId;if(!mid)return;
+  const input=\$('srv-chan-input');
+  const text=(input&&input.value||'').trim();
+  if(!text)return;
+  cancelEditMessage('channel');
+  try{
+    const r=await authPost('/api/servers/channels/messages/edit',{messageId:mid,text:text});
+    const idx=activeChannelMessages.findIndex(function(x){return x.\$id===mid});
+    if(idx>=0)activeChannelMessages[idx]=r.message;
+    renderChannelMessages();
+  }catch(e){showToast((e&&e.message)||'Modification impossible','error');}
+}
 function scrollToMessage(mid){
   let box=null;
   try{box=document.querySelector('.msg[data-mid="'+CSS.escape(mid)+'"]');}catch(e){}
@@ -14831,7 +14918,7 @@ function buildMsgsHtml(list,seenInfo,stagger){
     const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
     const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
     return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
+      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
 }
 // Idée reçue dans la Boîte à idées : ouvrir les images/gifs dans un widget
@@ -15198,6 +15285,21 @@ function attachMsgSwipe(el,m,kind){
   el.addEventListener('pointerup',reset);
   el.addEventListener('pointercancel',reset);
 }
+// Modifier un message envoyé (demandé explicitement) : uniquement le sien,
+// dans les 24h suivant l'envoi, et seulement pour un contenu qui a un sens à
+// réécrire (texte, ou légende d'une image/vidéo) — jamais un Ephem (déjà
+// éphémère par nature), un sticker, un sondage ou un fichier/audio/position
+// (leur "text" est une méta JSON, pas une légende libre).
+function isMessageEditable(m,kind){
+  if(!m||!me||String(m.uid)!==String(me.\$id))return false;
+  if(m.mediaMode==='ephemeral')return false;
+  if(m.stickerUrl||m.pollJson)return false;
+  const t=m.type||'text';
+  if(['text','image','video'].indexOf(t)<0)return false;
+  const created=new Date(m.\$createdAt).getTime();
+  if(!created||isNaN(created))return false;
+  return (Date.now()-created)<=24*3600*1000;
+}
 // Construit la liste d'options communes aux deux présentations (sheet mobile
 // et menu desktop ci-dessous), pour ne jamais les faire diverger.
 function buildMessageActionItemsHtml(m,kind){
@@ -15206,6 +15308,7 @@ function buildMessageActionItemsHtml(m,kind){
   const name=esc(m.displayName||m.username||'cet utilisateur');
   let items='<button type="button" data-act="react">😊 Réagir</button>';
   items+='<button type="button" data-act="reply">↩️ Répondre</button>';
+  if(isMessageEditable(m,kind))items+='<button type="button" data-act="edit">✏️ Modifier</button>';
   if(kind==='dm'||canModerate)items+='<button type="button" data-act="pin">'+(m.pinned?'📌 Désépingler':'📌 Épingler')+'</button>';
   if(kind==='channel'&&!activeThread)items+='<button type="button" data-act="mkthread">🧵 Créer un fil</button>';
   if(kind==='dm')items+='<button type="button" data-act="delme">🗑 Supprimer pour moi</button>';
@@ -15225,6 +15328,7 @@ function runMessageAction(a,m,kind){
     },180);
   }
   else if(a==='reply')setReplyTarget(m,kind);
+  else if(a==='edit')startEditMessage(m,kind);
   else if(a==='pin'){
     if(kind==='dm')toggleDmPin(m);else toggleChannelPin(m);
   }
@@ -15367,6 +15471,7 @@ async function postMessage(data,lastMessagePreview,keyCtx){
   await loadDms();if(view==='dms')renderDms();
 }
 async function sendMessage(){
+  if(editingDmMsgId){await saveMessageEdit();return}
   const input=\$('msg-input');
   const text=(input.value||'').trim();
   // Capturé une seule fois ici (pas relu plus bas) puis remis à zéro tout
@@ -15461,11 +15566,12 @@ if(\$('msgs'))\$('msgs').addEventListener('scroll',function(){
 });
 if(\$('btn-ai-fix'))\$('btn-ai-fix').addEventListener('click',function(){aiFixText(\$('msg-input'),this);});
 if(\$('reply-preview-close'))\$('reply-preview-close').addEventListener('click',function(){clearReplyTarget('dm');});
+if(\$('edit-preview-close'))\$('edit-preview-close').addEventListener('click',function(){cancelEditMessage('dm');});
 if(\$('btn-send'))\$('btn-send').addEventListener('click',sendMessage);
 if(\$('msg-input'))wireMentionAutocomplete(\$('msg-input'),mentionCandidatesForDm);
 if(\$('msg-input'))\$('msg-input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}});
 if(\$('msg-input'))\$('msg-input').addEventListener('input',function(){
-  const has=this.value.trim().length>0||!!pendingAttachFile;
+  const has=this.value.trim().length>0||!!pendingAttachFiles.length;
   \$('btn-send').classList.toggle('hidden',!has);
   \$('btn-voice').classList.toggle('hidden',has);
   if(has)notifyTyping();else clearTypingState();
@@ -15581,6 +15687,10 @@ function renderAttachPreviewThumbs(){
 function showAttachPreview(files){
   const list=Array.prototype.slice.call(files||[]);
   if(!list.length)return;
+  // Joindre un fichier pendant qu'on modifiait un ancien message n'a pas de
+  // sens (l'édition ne porte que sur le texte) — sort proprement du mode
+  // édition plutôt que de laisser les deux états se mélanger.
+  if(editingDmMsgId)cancelEditMessage('dm');
   const bar=\$('attach-preview'),info=\$('ap-info');
   if(!bar)return;
   let rejected=0;
@@ -26552,6 +26662,7 @@ function renderServerChannelContent(){
   const composerPlaceholder=lockedForMe?'🔒 Ce salon est verrouillé':(Number(activeChannel.slowmodeSeconds)>0?'🐢 Mode lent actif — Écrire dans #'+esc(activeChannel.name):'Écrire dans #'+esc(activeChannel.name));
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
+    +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
     +srvChanComposerHtml(composerPlaceholder,lockedForMe,true);
   box.innerHTML=html;
   wireServerChannelBack();
@@ -26572,6 +26683,8 @@ function renderServerChannelContent(){
   if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
+  const editClose=\$('srv-edit-preview-close');
+  if(editClose)editClose.addEventListener('click',function(){cancelEditMessage('channel');});
   const pinnedBtn=\$('srv-chan-pinned');
   if(pinnedBtn)pinnedBtn.onclick=function(){openPinnedMessages('channel');};
   const searchBtn=\$('srv-chan-search');
@@ -26859,7 +26972,7 @@ function renderChannelMessages(stagger){
     const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
     return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
   box.scrollTop=box.scrollHeight;
   box.querySelectorAll('.msg-media img').forEach(function(el){
@@ -27004,6 +27117,7 @@ function confirmDeleteChannelMessage(m){
   });
 }
 async function sendServerChannelMessage(){
+  if(editingChanMsgId){await saveChannelMessageEdit();return}
   const input=\$('srv-chan-input');if(!input||!activeChannel)return;
   const text=(input.value||'').trim();
   if(!text)return;
@@ -27178,6 +27292,7 @@ function renderThreadContent(box){
   const archivedForMe=t.archived;
   html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
+    +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
     +srvChanComposerHtml(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…',archivedForMe,false);
   box.innerHTML=html;
   \$('srv-thread-back').onclick=function(){
@@ -27213,6 +27328,8 @@ function renderThreadContent(box){
   if(aiFixBtn)aiFixBtn.addEventListener('click',function(){if(!aiFixBtn.disabled)aiFixText(\$('srv-chan-input'),aiFixBtn);});
   const replyClose=\$('srv-reply-preview-close');
   if(replyClose)replyClose.addEventListener('click',function(){clearReplyTarget('channel');});
+  const editClose=\$('srv-edit-preview-close');
+  if(editClose)editClose.addEventListener('click',function(){cancelEditMessage('channel');});
   wireSrvChanComposerExtra(archivedForMe);
 }
 const POLL_DURATIONS=[[1,'1 heure'],[6,'6 heures'],[24,'24 heures'],[72,'3 jours'],[168,'7 jours']];
@@ -37007,6 +37124,37 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
+  // Modifier un message de salon envoyé (demandé explicitement), fenêtre de
+  // 24h après l'envoi — même contrat que /api/dms/messages/edit. Autorité
+  // serveur nécessaire pour la même raison : la permission update() sur un
+  // message de salon est déjà partagée avec la modération (réactions,
+  // épinglage) via computeChannelMessagePermissions, donc seule cette route
+  // vérifie que le TEXTE n'est modifié que par son propre auteur.
+  if (path === "/api/servers/channels/messages/edit" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const messageId = String((body && body.messageId) || "");
+      if (!messageId) throw new Error("messageId requis");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.uid) !== String(acc.$id)) throw new Error("Tu ne peux modifier que tes propres messages");
+      if (msg.stickerUrl || msg.pollJson) throw new Error("Ce message ne peut pas être modifié");
+      const editableTypes = ["", "text", "image", "video"];
+      if (editableTypes.indexOf(msg.type || "") < 0) throw new Error("Ce type de message ne peut pas être modifié");
+      const ageMs = Date.now() - new Date(msg.$createdAt).getTime();
+      if (ageMs > 24 * 3600 * 1000) throw new Error("Ce message a été envoyé il y a plus de 24h, il ne peut plus être modifié");
+      const text = String((body && body.text) || "").trim().slice(0, 4000);
+      if (!text) throw new Error("Message vide");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { text: text, edited: true } }
+      });
+      return new Response(JSON.stringify({ ok: true, message: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
 
   // Avis "capture d'écran" en salon — même principe que la version DM
   // ci-dessus (route serveur-autoritaire, throttle anti-spam serveur).
@@ -37692,6 +37840,45 @@ async function handle(request, event) {
         body: { documentId: "unique()", data: data, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: message }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Modifier un message envoyé (demandé explicitement) : jamais via un
+  // db.updateDocument() direct côté client — la permission update() sur un
+  // message DM est volontairement ouverte à tous les membres du fil (voir
+  // msgPerms plus haut : nécessaire pour "vu", réactions, épinglage par
+  // n'importe qui), donc rien n'empêcherait techniquement un AUTRE membre de
+  // réécrire le texte de quelqu'un d'autre en appelant l'API Appwrite en
+  // direct. Cette route est le seul endroit qui vérifie que le texte n'est
+  // modifié que par son propre auteur, et seulement dans les 24h suivant
+  // l'envoi.
+  if (path === "/api/dms/messages/edit" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const messageId = String((body && body.messageId) || "");
+      if (!messageId) throw new Error("messageId requis");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.uid) !== String(acc.$id)) throw new Error("Tu ne peux modifier que tes propres messages");
+      if (msg.mediaMode === "ephemeral") throw new Error("Un Ephem ne peut pas être modifié");
+      const editableTypes = ["text", "image", "video"];
+      if (editableTypes.indexOf(msg.type || "text") < 0) throw new Error("Ce type de message ne peut pas être modifié");
+      const ageMs = Date.now() - new Date(msg.$createdAt).getTime();
+      if (ageMs > 24 * 3600 * 1000) throw new Error("Ce message a été envoyé il y a plus de 24h, il ne peut plus être modifié");
+      // Le texte arrive déjà chiffré côté client (même AES-GCM que l'envoi
+      // initial, ré-utilisé — voir e2eResolveIncomingKey côté client) : le
+      // Worker ne voit ici que du texte en clair pour un message non chiffré,
+      // jamais le contenu réel d'un message E2E.
+      const text = String((body && body.text) || "").slice(0, 4000);
+      const enc = !!(body && body.enc);
+      if (!text) throw new Error("Message vide");
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents/" + messageId, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { text: text, enc: enc, edited: true } }
+      });
+      return new Response(JSON.stringify({ ok: true, message: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
