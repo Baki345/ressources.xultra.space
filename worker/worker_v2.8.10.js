@@ -2493,6 +2493,65 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-comment-ts{display:inline-block;margin:0 6px;padding:2px 8px;border-radius:999px;background:rgba(124,58,237,.18);color:#c4b5fd;font-size:.7rem;font-weight:700}
 .music-comment-ts:hover{background:rgba(124,58,237,.3)}
 .music-row-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
+.music-row-title,.music-card-title{cursor:pointer}
+.music-row-title:hover,.music-card-title:hover{text-decoration:underline}
+/* Page de titre façon SoundCloud (clic sur un titre en liste "Sons des
+   membres" ou en grille) : grande forme d'onde, avatars des commentaires
+   horodatés flottant au-dessus, pochette + carte artiste en colonne. Rendu
+   entièrement dans #music-body, même mécanique que renderMusicPlaylistDetail. */
+.music-track-page{padding-bottom:100px}
+.mtp-back{margin-bottom:16px}
+.mtp-grid{display:grid;grid-template-columns:1fr;gap:28px}
+.mtp-content{min-width:0}
+.mtp-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.mtp-playbtn{flex-shrink:0;width:56px;height:56px;border-radius:50%;background:#fff;color:#1a0b2e;display:grid;place-items:center;font-size:1.3rem;box-shadow:0 10px 26px rgba(0,0,0,.4)}
+.mtp-title-block{min-width:0}
+.mtp-title{font-size:1.4rem;font-weight:800;line-height:1.25;overflow-wrap:break-word}
+.mtp-sub{font-size:.82rem;color:var(--muted);margin-top:4px}
+.mtp-artist-link{color:#c4b5fd;font-weight:700;cursor:pointer}
+.mtp-artist-link:hover{text-decoration:underline}
+.mtp-wave-wrap{margin-bottom:18px}
+.mtp-wave-big{position:relative;height:120px;margin-top:28px}
+.mtp-wave-avatars{position:absolute;top:-26px;left:0;right:0;height:22px;pointer-events:none}
+.mtp-wave-avatar{position:absolute;top:0;transform:translateX(-50%);width:22px;height:22px;border-radius:50%;border:2px solid #0b0714;overflow:hidden;cursor:pointer;pointer-events:auto;background:#4c1d95;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.mtp-wave-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.mtp-wave-avatar-fallback{display:grid;place-items:center;width:100%;height:100%;font-size:.7rem}
+.mtp-wave-times{display:flex;justify-content:space-between;margin-top:6px;font-size:.72rem;color:var(--muted)}
+.mtp-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.mtp-comment-input{display:flex;gap:8px;flex:1;min-width:220px}
+.mtp-comment-input .field-input{flex:1}
+.mtp-icon-btn{flex-shrink:0;padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);font-size:.82rem;font-weight:700}
+.mtp-icon-btn:hover{background:rgba(255,255,255,.12)}
+.mtp-icon-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
+.mtp-comments{margin-top:22px}
+.mtp-comments-head{font-size:.78rem;font-weight:800;color:var(--muted);letter-spacing:.03em;margin-bottom:10px}
+.mtp-comment{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mtp-comment:last-child{border-bottom:none}
+.mtp-comment-avatar{flex-shrink:0;width:36px;height:36px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1rem}
+.mtp-comment-avatar img{width:100%;height:100%;object-fit:cover}
+.mtp-comment-body{min-width:0}
+.mtp-comment-top{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;font-size:.82rem}
+.mtp-comment-time{color:var(--muted);font-size:.72rem;margin-left:2px}
+.mtp-comment-text{font-size:.86rem;line-height:1.5;margin-top:2px;white-space:pre-wrap;overflow-wrap:break-word}
+.mtp-sidebar{display:flex;flex-direction:column;gap:16px}
+.mtp-cover{width:100%;aspect-ratio:1/1;max-width:260px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:3rem;box-shadow:0 16px 40px rgba(0,0,0,.4);margin:0 auto}
+.mtp-cover img{width:100%;height:100%;object-fit:cover}
+.mtp-artist-card{background:rgba(255,255,255,.03);border-radius:14px;padding:14px}
+.mtp-artist-top{display:flex;align-items:center;gap:10px;cursor:pointer}
+.mtp-artist-avatar{flex-shrink:0;width:44px;height:44px;border-radius:50%;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center}
+.mtp-artist-avatar img{width:100%;height:100%;object-fit:cover}
+.mtp-artist-name{font-weight:800;font-size:.9rem}
+.mtp-artist-meta{font-size:.74rem;color:var(--muted);margin-top:2px}
+.mtp-artist-actions{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.mtp-artist-actions .set-mini-btn{width:100%;text-align:center}
+.mtp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mtp-stat-tile{background:rgba(255,255,255,.03);border-radius:10px;padding:10px 6px;text-align:center}
+.mtp-stat-tile b{display:block;font-size:1rem;font-weight:800}
+.mtp-stat-tile span{font-size:.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+@media (min-width:860px){
+  .mtp-grid{grid-template-columns:1fr 260px}
+  .mtp-sidebar{position:sticky;top:14px;align-self:start}
+}
 .music-pl-list .set-card-row:hover{background:rgba(124,58,237,.08);border-radius:10px}
 .music-pl-cover-banner{width:100%;aspect-ratio:3/1;border-radius:14px;overflow:hidden;margin:4px 0 12px}
 .music-pl-cover-banner img{width:100%;height:100%;object-fit:cover}
@@ -20003,6 +20062,7 @@ async function loadAndRenderXDriveTab(uid,container,ownerName){
 let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMyFollowedIds=new Set();
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
+let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false;
 let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
@@ -20334,7 +20394,7 @@ function musicTrackCardHtml(t){
   const tagsHtml=tags.length?'<div class="music-card-tags">'+tags.slice(0,4).map(function(tag){return '<span class="music-tag-chip">#'+esc(tag)+'</span>';}).join('')+'</div>':'';
   return '<div class="music-card'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span>'+(t.durationSec?'<span class="music-card-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
-    +'<div class="music-card-title">'+esc(t.title)+'</div>'
+    +'<div class="music-card-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</div>'
     +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
     +tagsHtml
     +'<div class="music-card-actions">'
@@ -20375,7 +20435,7 @@ function musicMemberRowHtml(t){
   return '<div class="music-member-row'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
     +'<div class="music-row-body">'
-      +'<div class="music-row-top"><span class="music-row-title">'+esc(t.title)+'</span><span class="music-row-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
+      +'<div class="music-row-top"><span class="music-row-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</span><span class="music-row-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
       +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'+markersHtml+'</div>'
       +tagsHtml
       +'<div class="music-card-actions">'
@@ -20408,6 +20468,7 @@ function renderMusicBody(){
   // cliqué sur une playlist précise (musicActivePlaylist posé mais jamais
   // consulté ici) — impossible jusqu'ici de voir le contenu d'une playlist,
   // le clic ramenait systématiquement à la liste des playlists.
+  if(musicTrackPageId){renderMusicTrackPage(box);return}
   if(musicFilter==='playlists'&&musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
   const list=musicCurrentQueue();
@@ -20435,7 +20496,10 @@ function wireMusicCardEvents(box){
     el.addEventListener('click',function(e){e.stopPropagation();musicToggleLike(el.getAttribute('data-music-like'));});
   });
   box.querySelectorAll('[data-music-comments]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();openMusicComments(el.getAttribute('data-music-comments'));});
+    el.addEventListener('click',function(e){e.stopPropagation();openMusicTrackPage(el.getAttribute('data-music-comments'));});
+  });
+  box.querySelectorAll('[data-music-open]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();openMusicTrackPage(el.getAttribute('data-music-open'));});
   });
   box.querySelectorAll('[data-music-addlist]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();openMusicAddToPlaylist(el.getAttribute('data-music-addlist'));});
@@ -20540,6 +20604,15 @@ function musicUpdatePlayerBar(){
   if(mcur)mcur.textContent=musicFmtTime(audio.currentTime);
   if(mdur)mdur.textContent=musicFmtTime(audio.duration);
   if(mseek&&audio.duration&&!musicSeekingByUser)mseek.value=String((audio.currentTime/audio.duration)*1000);
+  // Page de titre (grande forme d'onde) : mêmes temps que la barre mini,
+  // seulement présents dans le DOM quand cette page est ouverte sur LE
+  // titre en cours (sinon 0:00/durée figés posés au rendu, voir
+  // renderMusicTrackPage).
+  if(musicCurrentTrack&&musicTrackPageId===musicCurrentTrack.\$id){
+    const tcur=\$('mtp-time-cur'),tdur=\$('mtp-time-dur');
+    if(tcur)tcur.textContent=musicFmtTime(audio.currentTime);
+    if(tdur)tdur.textContent=musicFmtTime(audio.duration);
+  }
   musicSyncLyricsTime();
   musicUpdateWaveProgress();
 }
@@ -20904,52 +20977,179 @@ function musicCommentTimestampBadge(c){
   if(c.atSec==null||c.atSec<0)return '';
   return '<button type="button" class="music-comment-ts" data-comment-seek="'+c.atSec+'">📍 '+esc(musicFmtTime(c.atSec))+'</button>';
 }
-async function openMusicComments(trackId){
-  const t=musicTracksCache.find(function(x){return x.\$id===trackId});if(!t)return;
-  const isPlayingHere=musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl&&isFinite(musicAudioEl.currentTime);
-  const overlay=document.createElement('div');
-  overlay.className='action-sheet-overlay show';
-  overlay.innerHTML='<div class="action-sheet-card" style="max-height:75vh;overflow-y:auto;text-align:left">'
-    +'<div class="set-section-label">💬 Commentaires — '+esc(t.title)+'</div>'
-    +'<div id="music-comments-list" class="scr-sub">Chargement…</div>'
-    +'<div style="display:flex;gap:8px;margin-top:10px"><input type="text" id="music-comment-input" class="field-input" maxlength="500" placeholder="Ajouter un commentaire…"><button type="button" class="set-mini-btn" id="music-comment-send">Envoyer</button></div>'
-    +(isPlayingHere?'<label class="srv-perm-check" style="margin:4px 0 0"><input type="checkbox" id="music-comment-at-time" checked> 📍 Positionner sur la forme d\\'onde, à <span id="music-comment-at-time-label">'+esc(musicFmtTime(musicAudioEl.currentTime))+'</span></label>':'')
-    +'<button type="button" class="as-cancel" id="music-comments-close">Fermer</button>'
-    +'</div>';
-  document.body.appendChild(overlay);
-  function close(){overlay.remove();}
-  \$('music-comments-close').onclick=close;
-  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
-  async function loadAndRender(){
-    const box=\$('music-comments-list');if(!box)return;
-    try{
-      const r=await db.listDocuments(DB,'xm_comments',[Appwrite.Query.equal('trackId',trackId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
-      const list=r.documents||[];
-      if(!list.length){box.innerHTML='Aucun commentaire pour l\\'instant.';return}
-      box.innerHTML=list.map(function(c){
-        return '<div class="msg-reply-quote" style="margin-bottom:8px"><b>'+esc(c.displayName||'Quelqu\\'un')+'</b>'+musicCommentTimestampBadge(c)+'<span class="rq-text" style="white-space:normal">'+esc(c.text)+'</span></div>';
-      }).join('');
-      box.querySelectorAll('[data-comment-seek]').forEach(function(el){
-        el.addEventListener('click',function(){
-          const sec=parseInt(el.getAttribute('data-comment-seek'),10)||0;
-          if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl){musicAudioEl.currentTime=sec;}
-          else{musicPlayTrack(trackId,false,sec);}
-        });
-      });
-    }catch(e){box.innerHTML='Erreur de chargement.';}
-  }
-  \$('music-comment-send').onclick=async function(){
+/* ===== Page de titre façon SoundCloud (clic sur un titre) =====
+   Remplace l'ancienne modale de commentaires (openMusicComments) : rendue
+   en plein dans #music-body comme renderMusicPlaylistDetail, avec grande
+   forme d'onde, avatars des commentaires horodatés flottant au-dessus,
+   pochette + carte artiste (abonnés, titres, Suivre, message) en colonne. */
+function openMusicTrackPage(trackId){
+  const t=musicTracksCache.find(function(x){return x.\$id===trackId});
+  if(!t){showToast('Titre introuvable.','error');return}
+  musicTrackPageId=trackId;
+  musicTrackPageComments=[];
+  musicTrackPageArtist=null;
+  musicTrackPageLoading=true;
+  renderMusicBody();
+  musicLoadTrackPageComments(trackId);
+  musicLoadTrackPageArtist(t.uid);
+}
+function closeMusicTrackPage(){
+  musicTrackPageId=null;
+  musicTrackPageComments=[];
+  musicTrackPageArtist=null;
+  musicTrackPageLoading=false;
+  renderMusicBody();
+}
+async function musicLoadTrackPageComments(trackId){
+  try{
+    const r=await db.listDocuments(DB,'xm_comments',[Appwrite.Query.equal('trackId',trackId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
+    musicTrackPageComments=r.documents||[];
+  }catch(e){musicTrackPageComments=[];}
+  musicTrackPageLoading=false;
+  if(musicTrackPageId===trackId)renderMusicBody();
+}
+async function musicLoadTrackPageArtist(uid){
+  let result=null;
+  try{
+    let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
+    if(!p&&me&&uid===me.\$id&&meProfile)p=meProfile;
+    if(!p){
+      const pr=await db.listDocuments(DB,'users',[Appwrite.Query.equal('authUserId',uid),Appwrite.Query.limit(1)]);
+      p=(pr.documents||[])[0]||null;
+    }
+    const followRes=await db.listDocuments(DB,'xm_follows',[Appwrite.Query.equal('artistUid',uid),Appwrite.Query.limit(1)]).catch(function(){return {total:0}});
+    const trackRes=await db.listDocuments(DB,'xm_tracks',[Appwrite.Query.equal('uid',uid),Appwrite.Query.limit(1)]).catch(function(){return {total:0}});
+    result={uid:uid,profile:p,followerCount:followRes.total||0,trackCount:trackRes.total||0};
+  }catch(e){result=null;}
+  musicTrackPageArtist=result;
+  if(musicTrackPageId)renderMusicBody();
+}
+function renderMusicTrackPage(box){
+  const t=musicTracksCache.find(function(x){return x.\$id===musicTrackPageId});
+  if(!t){closeMusicTrackPage();return}
+  const isCurrent=musicCurrentTrack&&musicCurrentTrack.\$id===t.\$id;
+  const isPlaying=isCurrent&&musicAudioEl&&!musicAudioEl.paused;
+  const isPlayingHere=isCurrent&&musicAudioEl&&isFinite(musicAudioEl.currentTime);
+  const cover=safeUrl(t.coverUrl);
+  const liked=musicMyLikedIds.has(t.\$id);
+  let peaks=[];try{peaks=JSON.parse(t.waveformJson||'[]');}catch(e){}
+  if(!peaks.length)peaks=musicFallbackWaveform(t.\$id);
+  const barsHtml=musicWaveBarsHtml(peaks);
+  const progressPct=(isCurrent&&musicAudioEl&&musicAudioEl.duration)?((musicAudioEl.currentTime/musicAudioEl.duration)*100):0;
+  const markerComments=musicTrackPageComments.filter(function(c){return c.atSec!=null&&c.atSec>=0}).slice(0,60);
+  const avatarsHtml=(t.durationSec&&markerComments.length)?markerComments.map(function(c){
+    const av=safeUrl(c.avatar);
+    return '<span class="mtp-wave-avatar" data-comment-seek="'+c.atSec+'" title="'+esc(c.displayName||'')+' · '+esc(musicFmtTime(c.atSec))+'" style="left:'+Math.min(99,(c.atSec/t.durationSec)*100)+'%">'+(av?'<img src="'+esc(av)+'" alt="">':'<span class="mtp-wave-avatar-fallback">🎵</span>')+'</span>';
+  }).join(''):'';
+  const artist=(musicTrackPageArtist&&musicTrackPageArtist.uid===t.uid)?musicTrackPageArtist:null;
+  const artistAvatar=(artist&&artist.profile)?safeUrl(artist.profile.avatar):'';
+  const isSelf=!!(me&&String(t.uid)===String(me.\$id));
+  const following=musicMyFollowedIds.has(String(t.uid));
+  const commentsCountLabel=musicTrackPageLoading?'Chargement…':(musicTrackPageComments.length+' COMMENTAIRE'+(musicTrackPageComments.length!==1?'S':''));
+  const commentsHtml=musicTrackPageLoading?''
+    :(musicTrackPageComments.length?musicTrackPageComments.map(function(c){
+      const cav=safeUrl(c.avatar);
+      return '<div class="mtp-comment">'
+        +'<div class="mtp-comment-avatar">'+(cav?'<img src="'+esc(cav)+'" alt="">':'<span>🎵</span>')+'</div>'
+        +'<div class="mtp-comment-body">'
+          +'<div class="mtp-comment-top"><b>'+esc(c.displayName||'Quelqu\\'un')+'</b>'+musicCommentTimestampBadge(c)+'<span class="mtp-comment-time">il y a '+fmtRelTime(c.\$createdAt)+'</span></div>'
+          +'<div class="mtp-comment-text">'+esc(c.text)+'</div>'
+        +'</div>'
+      +'</div>';
+    }).join(''):'<div class="scr-sub" style="padding:6px 0">Aucun commentaire pour l\\'instant.</div>');
+  box.innerHTML='<div class="music-track-page">'
+    +'<button type="button" class="set-mini-btn mtp-back" id="mtp-back">← Retour à la liste</button>'
+    +'<div class="mtp-grid">'
+      +'<div class="mtp-content">'
+        +'<div class="mtp-head">'
+          +'<button type="button" class="mtp-playbtn" id="mtp-play-big">'+(isPlaying?'⏸':'▶')+'</button>'
+          +'<div class="mtp-title-block">'
+            +'<div class="mtp-title">'+esc(t.title)+'</div>'
+            +'<div class="mtp-sub">par <span class="mtp-artist-link" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.\$createdAt?' · il y a '+fmtRelTime(t.\$createdAt):'')+'</div>'
+          +'</div>'
+        +'</div>'
+        +'<div class="mtp-wave-wrap">'
+          +'<div class="music-row-wave mtp-wave-big" data-music-wave="'+esc(t.\$id)+'">'
+            +'<div class="mtp-wave-avatars">'+avatarsHtml+'</div>'
+            +'<div class="music-wave-bars">'+barsHtml+'</div>'
+            +'<div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'
+          +'</div>'
+          +'<div class="mtp-wave-times"><span id="mtp-time-cur">'+(isCurrent?musicFmtTime(musicAudioEl.currentTime):'0:00')+'</span><span id="mtp-time-dur">'+(t.durationSec?musicFmtTime(t.durationSec):'0:00')+'</span></div>'
+        +'</div>'
+        +'<div class="mtp-actions">'
+          +'<div class="mtp-comment-input">'
+            +'<input type="text" id="mtp-comment-input" class="field-input" maxlength="500" placeholder="'+(isPlayingHere?'Commentez à '+esc(musicFmtTime(musicAudioEl.currentTime)):'Ajouter un commentaire…')+'">'
+            +'<button type="button" class="set-mini-btn" id="mtp-comment-send">Envoyer</button>'
+          +'</div>'
+          +'<button type="button" class="mtp-icon-btn'+(liked?' on':'')+'" id="mtp-like-btn" title="J\\'aime">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
+          +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
+          +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻</button>'
+        +'</div>'
+        +(isPlayingHere?'<label class="srv-perm-check" style="margin:8px 0 0"><input type="checkbox" id="mtp-comment-at-time" checked> 📍 Positionner le commentaire sur la forme d\\'onde</label>':'')
+        +'<div class="mtp-comments">'
+          +'<div class="mtp-comments-head">'+commentsCountLabel+'</div>'
+          +'<div id="mtp-comments-list">'+commentsHtml+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="mtp-sidebar">'
+        +'<div class="mtp-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="mtp-cover-fallback">🎵</span>')+'</div>'
+        +'<div class="mtp-artist-card">'
+          +'<div class="mtp-artist-top" data-music-artist="'+esc(t.uid)+'">'
+            +'<div class="mtp-artist-avatar">'+(artistAvatar?'<img src="'+esc(artistAvatar)+'" alt="">':'<span>👤</span>')+'</div>'
+            +'<div><div class="mtp-artist-name">'+esc(t.artistName)+'</div>'+(artist?'<div class="mtp-artist-meta">'+artist.followerCount+' abonné'+(artist.followerCount!==1?'s':'')+' · '+artist.trackCount+' titre'+(artist.trackCount!==1?'s':'')+'</div>':'')+'</div>'
+          +'</div>'
+          +(isSelf?'':'<div class="mtp-artist-actions">'
+            +'<button type="button" class="set-mini-btn'+(following?' on':'')+'" id="mtp-follow-btn">'+(following?'✓ Suivi(e)':'+ Suivre')+'</button>'
+            +'<button type="button" class="set-mini-btn" id="mtp-dm-btn">Envoyer un message</button>'
+          +'</div>')
+        +'</div>'
+        +'<div class="mtp-stats">'
+          +'<div class="mtp-stat-tile"><b>'+(t.playsCount||0)+'</b><span>Écoutes</span></div>'
+          +'<div class="mtp-stat-tile"><b>'+(t.likesCount||0)+'</b><span>Mentions j\\'aime</span></div>'
+          +'<div class="mtp-stat-tile"><b>'+(t.commentsCount||0)+'</b><span>Commentaires</span></div>'
+        +'</div>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+  \$('mtp-back').onclick=closeMusicTrackPage;
+  \$('mtp-play-big').onclick=function(){musicPlayTrack(t.\$id);};
+  box.querySelectorAll('[data-music-wave]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      if(e.target.closest('.mtp-wave-avatar'))return;
+      const rect=el.getBoundingClientRect();
+      const ratio=rect.width?Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)):0;
+      if(isCurrent&&musicAudioEl&&musicAudioEl.duration){musicAudioEl.currentTime=ratio*musicAudioEl.duration;}
+      else{musicPlayTrack(t.\$id);}
+    });
+  });
+  box.querySelectorAll('[data-comment-seek]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const sec=parseInt(el.getAttribute('data-comment-seek'),10)||0;
+      if(isCurrent&&musicAudioEl){musicAudioEl.currentTime=sec;musicAudioEl.play().catch(function(){});}
+      else{musicPlayTrack(t.\$id,false,sec);}
+    });
+  });
+  box.querySelectorAll('[data-music-artist]').forEach(function(el){
+    el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-music-artist'));});
+  });
+  \$('mtp-like-btn').onclick=function(){musicToggleLike(t.\$id);};
+  \$('mtp-playlist-btn').onclick=function(){openMusicAddToPlaylist(t.\$id);};
+  \$('mtp-radio-btn').onclick=function(){musicStartRadio(t);};
+  if(\$('mtp-follow-btn'))\$('mtp-follow-btn').onclick=async function(){await musicToggleFollow(t.uid);renderMusicBody();};
+  if(\$('mtp-dm-btn'))\$('mtp-dm-btn').onclick=function(){closeMusic();startDmWith(t.uid,t.artistName);};
+  async function sendComment(){
     if(!me){showToast('Connecte-toi pour commenter.','error');return}
-    const input=\$('music-comment-input');
+    const input=\$('mtp-comment-input');
     const text=(input.value||'').trim();if(!text)return;
-    const btn=this;btn.disabled=true;
-    const atTimeChk=\$('music-comment-at-time');
-    const atSec=(atTimeChk&&atTimeChk.checked&&musicCurrentTrack&&musicCurrentTrack.\$id===trackId&&musicAudioEl)?Math.floor(musicAudioEl.currentTime):-1;
+    const btn=\$('mtp-comment-send');btn.disabled=true;
+    const atTimeChk=\$('mtp-comment-at-time');
+    const atSec=(atTimeChk&&atTimeChk.checked&&isCurrent&&musicAudioEl)?Math.floor(musicAudioEl.currentTime):-1;
     try{
       // Passe par le serveur : xm_comments/xm_tracks n'accordent plus de
       // permission d'écriture directe au client (voir
       // /api/music/comments/send côté worker).
-      const r=await authPost('/api/music/comments/send',{trackId:trackId,text:text.slice(0,500),atSec:atSec});
+      const r=await authPost('/api/music/comments/send',{trackId:t.\$id,text:text.slice(0,500),atSec:atSec});
       input.value='';
       t.commentsCount=r.commentsCount;
       if(atSec>=0){
@@ -20957,13 +21157,12 @@ async function openMusicComments(trackId){
         markers.push(atSec);
         t.commentMarkersJson=JSON.stringify(markers);
       }
-      renderMusicBody();
-      await loadAndRender();
+      await musicLoadTrackPageComments(t.\$id);
     }catch(e){showToast('Envoi impossible','error');}
-    finally{btn.disabled=false;}
-  };
-  \$('music-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();\$('music-comment-send').click();}});
-  await loadAndRender();
+    finally{if(btn)btn.disabled=false;}
+  }
+  \$('mtp-comment-send').onclick=sendComment;
+  \$('mtp-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();sendComment();}});
 }
 async function openMusicAddToPlaylist(trackId){
   if(!me){showToast('Connecte-toi pour créer une playlist.','error');return}
