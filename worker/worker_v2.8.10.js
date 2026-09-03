@@ -2182,6 +2182,15 @@ html.xultra-restoring #stage{visibility:hidden}
 .search-box:focus{border-color:#7c3aed;background:#100a1a}
 .icon-btn{height:36px;width:36px;border-radius:999px;background:var(--elev);font-size:.9rem;flex-shrink:0}
 .icon-btn:hover{background:var(--hover)}
+.pill-action-btn{height:36px;padding:0 13px 0 10px;border-radius:999px;display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;flex-shrink:0;white-space:nowrap;color:#fff;border:1px solid transparent;transition:transform .15s ease}
+.pill-action-btn:hover{transform:translateY(-1px)}
+.pill-action-btn .pill-action-ico{font-size:.95rem;line-height:1}
+.pill-action-friend{background:linear-gradient(135deg,#22c55e,#15803d);animation:pillPulseGreen 2.6s ease-in-out infinite}
+.pill-action-group{background:linear-gradient(135deg,#991b1b,#7f1d1d);animation:pillPulseRed 2.6s ease-in-out infinite}
+@keyframes pillPulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}50%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
+@keyframes pillPulseRed{0%,100%{box-shadow:0 0 0 0 rgba(153,27,27,.55)}50%{box-shadow:0 0 0 7px rgba(153,27,27,0)}}
+@media (prefers-reduced-motion:reduce){.pill-action-friend,.pill-action-group{animation:none}}
+@media (max-width:480px){.pill-action-btn{padding:0 9px 0 8px;font-size:.7rem;gap:4px}}
 .stories-bar{display:flex;gap:12px;overflow-x:auto;padding:12px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
 .stories-bar.hidden{display:none}
 .story-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:60px;cursor:pointer;background:none;border:0}
@@ -4401,11 +4410,11 @@ a.bug-att-item{display:block}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
-        <button type="button" class="icon-btn hidden" id="btn-new-group" title="Créer un groupe">👥+</button>
+        <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico">👥</span>Groupe+</button>
         <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un serveur">🏘️+</button>
         <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un serveur">🔗</button>
         <button type="button" class="icon-btn hidden" id="btn-server-discover" title="Découvrir des serveurs">🧭</button>
-        <button type="button" class="icon-btn" id="btn-add-friend">👤+</button>
+        <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico">👤</span>Ami+</button>
       </div>
     </div>
     <div class="stories-bar hidden" id="stories-bar"></div>
@@ -7528,6 +7537,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.45',category:'fix',date:'4 septembre 2026',time:'00:15',title:'🩹 Le fil de messages privés redescend enfin de façon fiable, et nouveaux boutons "Ami+"/"Groupe+"',
+    body:'Le correctif précédent sur le défilement automatique n\\'était pas suffisant : la plupart des messages privés sont chiffrés de bout en bout, donc leur vrai contenu (surtout une image ou une vidéo) ne remplace le petit indicateur "Déchiffrement…" qu\\'un peu APRÈS l\\'affichage initial — ce qui pouvait laisser le fil légèrement remonté sans redescendre tout seul. Corrigé pour de bon : la position tout en bas est maintenant réappliquée à chaque fois qu\\'un message déchiffré change réellement de taille. Et les boutons "Créer un groupe" et "Ajouter un ami" (en haut à droite de Messages) ne sont plus deux petites icônes discrètes — ils s\\'affichent désormais en boutons colorés avec leur texte : "Ami+" en vert, "Groupe+" en rouge foncé, tous deux légèrement animés.'},
   {version:'4.55.44',category:'design',date:'3 septembre 2026',time:'23:45',title:'💨 Suppression d\\'un message : disparition en douceur avec particules',
     body:'Supprimer un message (en message privé comme dans un salon de serveur) n\\'efface plus le message d\\'un coup sec — il s\\'estompe et rétrécit doucement pendant qu\\'une petite volée de particules se disperse depuis la bulle, avant de disparaître complètement. Respecte le réglage "réduire les animations" de ton système si tu l\\'as activé (transition instantanée, sans particules, dans ce cas).'},
   {version:'4.55.43',category:'design',date:'3 septembre 2026',time:'23:10',title:'✨ Transitions entre sections, et les messages s\\'empilent à l\\'ouverture d\\'une conversation',
@@ -14423,13 +14434,26 @@ async function hydrateEncryptedMessages(){
     const box=\$('msgs');if(!box)return;
     const wrap=box.querySelector('.msg[data-mid="'+m.\$id+'"] .bub');
     if(!wrap)continue;
-    if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';continue}
+    // Quasi tous les messages DM sont chiffrés (🔒) : ce qui s'affiche au
+    // premier rendu n'est qu'un placeholder ("Déchiffrement…"), et le VRAI
+    // contenu (souvent plus grand — image, vidéo, fichier) ne remplace ce
+    // placeholder qu'ici, un message à la fois, une fois déchiffré — bien
+    // après que renderMessages() a déjà figé le scroll en bas. Sans ce
+    // repositionnement, la hauteur réelle du fil grandit sous le lecteur
+    // sans que la vue ne suive, exactement le bug remonté ("ça marche
+    // parfois mais pas toujours"). On capture "était-on en bas" juste
+    // AVANT ce remplacement précis (pas après, où le diff de hauteur vient
+    // justement de changer) et on s'y tient.
+    const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+    if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';if(stick)box.scrollTop=box.scrollHeight;continue}
     wrap.innerHTML=renderMsgBody(m,result.text,result.mediaUrl);
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     wireSnapPlaceholders(wrap);
     mountLinkPreviews(wrap);
     mountGifFreeze(wrap);
+    if(stick)box.scrollTop=box.scrollHeight;
+    if(stick)pinScrollBottomAfterImages(wrap);
   }
 }
 function initVoiceMsgPlayer(el){
@@ -14632,10 +14656,18 @@ function scrollToMessage(mid){
 // était encore tout en bas à cet instant précis (sinon ça l'interromprait
 // en train de relire d'anciens messages plus haut).
 function pinScrollBottomAfterImages(box){
+  // Le diff scrollHeight-scrollTop-clientHeight ne veut plus rien dire une
+  // fois qu'une image a fini de charger : sa propre hauteur vient de
+  // s'ajouter d'un coup au calcul, donc le re-vérifier APRÈS coup (comme
+  // avant) peut faire manquer le repositionnement pile pour l'image qui en
+  // a le plus besoin (une grande image qui fait dépasser le seuil de 80px
+  // à elle seule). On fige donc "était-on en bas" une seule fois, AVANT
+  // que la première image ne charge, et on s'y tient pour toutes.
+  const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
   box.querySelectorAll('img').forEach(function(img){
     if(img.complete)return;
     img.addEventListener('load',function(){
-      if(box.scrollHeight-box.scrollTop-box.clientHeight<80)box.scrollTop=box.scrollHeight;
+      if(stick)box.scrollTop=box.scrollHeight;
     });
   });
 }
