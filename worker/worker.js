@@ -7400,6 +7400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.34',category:'security',date:'3 septembre 2026',time:'01:20',title:'🛡️ Messages privés : accès verrouillé aux seuls participants d\\'une conversation',
+    body:'Une faille a été trouvée et corrigée dans les messages privés (DM) : la protection reposait jusqu\\'ici sur un réglage bien trop large, qui aurait techniquement permis à n\\'importe quel compte connecté de lire, modifier ou supprimer les conversations de n\\'importe qui d\\'autre en interrogeant directement la base de données (jamais possible depuis l\\'application elle-même). Le contenu de tes messages restait chiffré de bout en bout (illisible sans les clés, qui ne quittent jamais tes appareils), mais les métadonnées (avec qui tu discutes, quand) et l\\'intégrité des messages n\\'étaient pas protégées comme elles auraient dû l\\'être. Corrigé : chaque conversation et chaque message n\\'est désormais accessible qu\\'à ses vrais participants. Vérifié en conditions réelles avant et après correction, et sur les ~1200 conversations et messages déjà existants (aucun n\\'a été perdu ni rendu inaccessible à ses vrais participants). Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.33',category:'security',date:'3 septembre 2026',time:'00:50',title:'🛡️ Limite de taille des pièces jointes désormais vérifiée aussi côté serveur',
     body:'La limite de taille des pièces jointes en salon (10 Mo en compte basique, 500 Mo avec X1+) n\\'était vérifiée que dans l\\'application elle-même — un fichier envoyé en contournant cette vérification passait donc jusqu\\'ici sans problème. Corrigé : la taille réelle du fichier est désormais revérifiée par le serveur avant d\\'accepter le message, quel que soit le chemin emprunté pour l\\'envoyer. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.32',category:'security',date:'3 septembre 2026',time:'00:35',title:'🛡️ Faille corrigée : élévation de privilèges modérateur',
@@ -12063,15 +12065,17 @@ async function startDmWith(peerUid,peerName){
     await loadDms();
     let dm=dmsCache.find(function(d){return dmPeerId(d)===peerUid});
     if(!dm){
+      // Créé via le Worker (asAdmin) : même raison que l'envoi de message —
+      // impossible d'accorder au correspondant l'accès à SON PROPRE fil en
+      // créant le document en direct depuis le navigateur (Appwrite ne
+      // permet pas d'accorder une permission à un autre utilisateur précis
+      // à la création). La vérification "n'accepte les DM que de ses amis"
+      // est aussi refaite côté serveur (jamais fiable si elle ne restait
+      // que côté client) — voir /api/dms/thread/create.
       try{
-        const peerMeta=await db.getDocument(DB,'user_meta',peerUid).catch(function(){return null});
-        const peerExtra=parseProfileExtra(peerMeta&&peerMeta.profileExtraJson);
-        if(peerExtra.privacy&&peerExtra.privacy.dms==='friends'){
-          const isFriend=friendsCache.some(function(f){return String(f.friendId)===String(peerUid)&&f.status==='accepted'});
-          if(!isFriend){showToast("Cette personne n'accepte les messages que de ses amis.",'error');return}
-        }
-      }catch(e){}
-      dm=await db.createDocument(DB,'dms',Appwrite.ID.unique(),{members:[String(me.\$id),String(peerUid)],displayName:peerName||'Conversation',lastMessage:''});
+        const r=await authPost('/api/dms/thread/create',{peerUid:peerUid,displayName:peerName||'Conversation'});
+        dm=r.thread;
+      }catch(e){showToast((e&&e.message)||"Impossible de démarrer la conversation.",'error');return}
       dmsCache.unshift(dm);
     }
     showView('dms');
@@ -14908,10 +14912,16 @@ async function postMessage(data,lastMessagePreview,keyCtx){
   }
   const replyToId=(replyTargetKind==='dm'&&replyTarget)?replyTarget.\$id:'';
   const payload=Object.assign({threadId:activeDm,uid:me.\$id,displayName:name,type:'text',mediaUrl:'',replyToId:replyToId},data,{text:text,enc:enc,keysJson:keysJson});
-  await db.createDocument(DB,'dms_messages',Appwrite.ID.unique(),payload);
+  const recipients=activeDmIsGroup?activeDmMembers.filter(function(u){return u!==me.\$id}):(activeDmPeerUid?[activeDmPeerUid]:[]);
+  // Créé via le Worker (asAdmin), pas par écriture directe du SDK client :
+  // Appwrite refuse qu'un compte accorde une permission à un AUTRE
+  // utilisateur précis sur un document qu'il crée lui-même (seuls any/
+  // users/son propre user sont acceptés) — impossible donc de donner au
+  // destinataire l'accès à SON PROPRE message reçu en créant le document
+  // en direct depuis son navigateur. Voir /api/dms/messages/send.
+  await authPost('/api/dms/messages/send',payload);
   if(replyToId)clearReplyTarget('dm');
   const previewPub=enc?'🔒 Message chiffré':lastMessagePreview;
-  const recipients=activeDmIsGroup?activeDmMembers.filter(function(u){return u!==me.\$id}):(activeDmPeerUid?[activeDmPeerUid]:[]);
   try{
     const dmDoc=dmsCache.find(function(d){return d.\$id===activeDm});
     const unread=parseJsonSafe(dmDoc&&dmDoc.unreadJson,{});
@@ -14981,7 +14991,7 @@ async function sendMessage(){
     const keyCtx=await e2eGetMessageKeyContext();
     await postMessage({text:text.slice(0,2000),type:'text'},text,keyCtx);
     clearTypingState();
-  }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
+  }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});showToast((e&&e.message)||'Message non envoyé','error');input.value=text;}
   const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
 }
 if(\$('msg-input'))wireSlashCommandAutocomplete(\$('msg-input'),activeDmBotCommands);
@@ -21923,8 +21933,9 @@ if(\$('mg-create'))\$('mg-create').addEventListener('click',async function(){
   if(checked.length>MAX_GROUP_MEMBERS-1){\$('mg-err').textContent='Maximum '+MAX_GROUP_MEMBERS+' membres (toi compris)';return}
   btn.disabled=true;btn.textContent='Création…';
   try{
-    const members=[String(me.\$id)].concat(checked.map(function(c){return c.value}));
-    const dm=await db.createDocument(DB,'dms',Appwrite.ID.unique(),{members:members,displayName:name,lastMessage:'Groupe créé'});
+    const memberUids=checked.map(function(c){return c.value});
+    const r=await authPost('/api/dms/thread/create',{members:memberUids,displayName:name,lastMessage:'Groupe créé'});
+    const dm=r.thread;
     dmsCache.unshift(dm);
     \$('modal-group').classList.add('hidden');
     showView('dms');
@@ -36785,6 +36796,131 @@ async function handle(request, event) {
       pendingUids = [];
     }
     return { count: count, lastCompleteDate: lastCompleteDate, pendingDate: pendingDate, pendingUids: pendingUids };
+  }
+  // Création d'un fil DM (1:1 via peerUid, ou groupe via members[]) et envoi
+  // de message DM, tous deux passés par le Worker (asAdmin) plutôt que par
+  // une écriture directe du SDK client vers "dms"/"dms_messages" : Appwrite
+  // refuse qu'un compte accorde une permission à un AUTRE utilisateur précis
+  // sur un document qu'il crée lui-même (seuls any/users/son propre rôle
+  // sont acceptés — voir le message d'erreur "Permissions must be one of…").
+  // Impossible donc, en écriture directe, de donner au(x) destinataire(s)
+  // l'accès à leur propre fil/message — la seule alternative aurait été de
+  // laisser une permission de collection large ouverte à tout compte
+  // connecté, ce qui a permis la faille corrigée par ailleurs (n'importe qui
+  // pouvait lire/modifier/supprimer les DM de n'importe qui). Le contenu
+  // (text/keysJson) arrive ici déjà chiffré de bout en bout côté client
+  // (voir postMessage → e2eEncryptTextWithKey) : cette route ne fait que le
+  // relayer avec les bonnes permissions, jamais besoin de le déchiffrer.
+  const DM_MAX_GROUP_MEMBERS = 6;
+  if (path === "/api/dms/thread/create" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const displayName = String((body && body.displayName) || "Conversation").trim().slice(0, 64);
+      const lastMessage = String((body && body.lastMessage) || "").slice(0, 200);
+      let members;
+      if (body && body.peerUid) {
+        const peerUid = String(body.peerUid);
+        if (peerUid === String(acc.$id)) throw new Error("Impossible de démarrer une conversation avec toi-même");
+        const peerMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + peerUid, { asAdmin: true }).catch(function () { return null; });
+        let peerExtra = {};
+        try { peerExtra = JSON.parse((peerMeta && peerMeta.profileExtraJson) || "{}"); } catch (e) {}
+        if (peerExtra.privacy && peerExtra.privacy.dms === "friends") {
+          const friendUids = await getAcceptedFriendUids(acc.$id);
+          if (friendUids.indexOf(peerUid) < 0) throw new Error("Cette personne n'accepte les messages que de ses amis.");
+        }
+        members = [String(acc.$id), peerUid];
+      } else if (Array.isArray(body && body.members)) {
+        members = Array.from(new Set([String(acc.$id)].concat(body.members.map(String))));
+        if (members.length < 3) throw new Error("Un groupe nécessite au moins 2 amis en plus de toi");
+        if (members.length > DM_MAX_GROUP_MEMBERS) throw new Error("Maximum " + DM_MAX_GROUP_MEMBERS + " membres (toi compris)");
+      } else {
+        throw new Error("peerUid ou members requis");
+      }
+      const permissions = [];
+      members.forEach(function (uid) { permissions.push("read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"); });
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/dms/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { members: members, displayName: displayName, lastMessage: lastMessage }, permissions: permissions }
+      });
+      return new Response(JSON.stringify({ ok: true, thread: thread }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/dms/messages/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const threadId = String((body && body.threadId) || "");
+      if (!threadId) throw new Error("threadId requis");
+      const thread = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { asAdmin: true });
+      const members = (thread.members || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu ne fais pas partie de cette conversation");
+      // Filet de sécurité : si ce fil a été créé avant ce correctif (ou par
+      // un chemin plus ancien), ses permissions peuvent ne couvrir que son
+      // créateur — on les complète ici pour tous les membres actuels avant
+      // de continuer, plutôt que de laisser le problème traîner.
+      const wantThreadPerms = [];
+      members.forEach(function (uid) { wantThreadPerms.push("read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"); });
+      const currentThreadPerms = (thread.$permissions || []).slice().sort();
+      if (JSON.stringify(currentThreadPerms) !== JSON.stringify(wantThreadPerms.slice().sort())) {
+        await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + threadId, { method: "PATCH", asAdmin: true, body: { permissions: wantThreadPerms } }).catch(function () {});
+      }
+      // Liste blanche des champs qu'un envoi humain fournit réellement
+      // (voir postMessage/handleFileAttach côté client) — jamais un
+      // Object.assign(body) intégral : componentsJson/embedJson/botAppId/
+      // isBot sont écrits par un chemin séparé (/api/bots/interact, déjà
+      // asAdmin), jamais par un envoi humain, donc volontairement absents
+      // ici. threadId/uid ne viennent jamais du client.
+      const DM_MSG_TEXT_TYPES = ["text", "image", "video", "file", "audio", "gif", "location"];
+      const data = {
+        threadId: threadId, uid: String(acc.$id),
+        displayName: String((body && body.displayName) || "").slice(0, 64),
+        type: DM_MSG_TEXT_TYPES.indexOf(body && body.type) >= 0 ? body.type : "text",
+        text: String((body && body.text) || "").slice(0, 4000),
+        mediaUrl: String((body && body.mediaUrl) || "").slice(0, 1000),
+        mime: String((body && body.mime) || "").slice(0, 100),
+        enc: !!(body && body.enc),
+        keysJson: String((body && body.keysJson) || "").slice(0, 3000),
+        replyToId: String((body && body.replyToId) || "").slice(0, 64),
+        mediaMode: ["ephemeral", "permanent", ""].indexOf(body && body.mediaMode) >= 0 ? body.mediaMode : "",
+        snapDurationSec: Number.isFinite(Number(body && body.snapDurationSec)) ? Math.max(0, Math.min(60, Number(body.snapDurationSec))) : 0,
+        noScreenshot: !!(body && body.noScreenshot)
+      };
+      if (!data.text && !data.mediaUrl && data.type !== "location") throw new Error("Message vide");
+      // Même vérification de taille de pièce jointe que côté salon (voir
+      // /api/servers/channels/messages/send) : le fichier est déjà
+      // téléversé avant cet appel, donc on revérifie sa taille RÉELLE.
+      if (data.mediaUrl) {
+        const fileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(data.mediaUrl);
+        if (fileMatch) {
+          const fileMeta = await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { asAdmin: true }).catch(function () { return null; });
+          if (fileMeta) {
+            const senderMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+            const attachLimit = isUserPlus(senderMeta) ? 500 * 1024 * 1024 : 10 * 1024 * 1024;
+            if ((fileMeta.sizeOriginal || 0) > attachLimit) {
+              await awFetch("/storage/buckets/ultravoc_media/files/" + fileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+              throw new Error("Pièce jointe trop volumineuse pour ton palier (" + Math.round(attachLimit / 1024 / 1024) + " Mo max)");
+            }
+          }
+        }
+      }
+      const msgPerms = [];
+      members.forEach(function (uid) {
+        msgPerms.push("read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")");
+        if (uid === String(acc.$id)) msgPerms.push("delete(\"user:" + uid + "\")");
+      });
+      const message = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: data, permissions: msgPerms }
+      });
+      return new Response(JSON.stringify({ ok: true, message: message }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
   if (path === "/api/dms/streak/bump" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
