@@ -1206,9 +1206,27 @@ async function requireShaman(request) {
 
 // Rôles staff : "owner" (Shaman, toutes les capacités) et "mod" (isMod=true,
 // capacités limitées listées ci-dessous). Un membre normal n'a aucun rôle.
-function resolveStaffRole(acc, profile) {
+// isMod vit dans user_meta (écriture admin-only, voir /api/account/update-meta
+// dont la liste blanche de champs ne l'inclut jamais) — JAMAIS dans users.isMod
+// comme avant. Faille trouvée et corrigée le 3 septembre 2026 : la collection
+// "users" avait documentSecurity désactivé avec une permission de collection
+// update("users") beaucoup trop large, donc même une fois documentSecurity
+// réactivé et cette permission retirée, un compte gardait le droit
+// d'écriture sur SON PROPRE document — et Appwrite n'a aucune permission au
+// niveau d'un champ précis, seulement au niveau du document entier. N'importe
+// quel compte pouvait donc s'auto-promouvoir modérateur en modifiant
+// directement son propre users.isMod via le SDK Appwrite, sans jamais passer
+// par /api/admin/mod. Vérifié en conditions réelles avant correction (voir
+// session) : confirmé exploitable, aucun vrai compte n'en profitait. Le champ
+// users.isMod existe encore dans le schéma pour ne rien casser mais n'est
+// plus jamais lu ni écrit.
+async function resolveStaffRole(acc, profile) {
   if (isShamanAccount(acc, profile)) return "owner";
-  if (profile && profile.isMod) return "mod";
+  if (!acc) return "member";
+  try {
+    const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+    if (meta && meta.isMod) return "mod";
+  } catch (e) {}
   return "member";
 }
 const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate"];
@@ -1216,7 +1234,7 @@ async function requireStaff(request, capability) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
   const profile = await resolveProfile(acc.$id);
-  const role = resolveStaffRole(acc, profile);
+  const role = await resolveStaffRole(acc, profile);
   if (role === "member") return { ok: false, status: 403, error: "forbidden" };
   if (role === "mod" && MOD_CAPABILITIES.indexOf(capability) === -1) {
     return { ok: false, status: 403, error: "forbidden_role" };
@@ -7382,6 +7400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.32',category:'security',date:'3 septembre 2026',time:'00:35',title:'🛡️ Faille corrigée : élévation de privilèges modérateur',
+    body:'Une faille a été trouvée et corrigée : un compte technique aurait pu s\\'attribuer lui-même le statut de modérateur en modifiant directement une donnée normalement réservée à l\\'équipe. Vérifié en conditions réelles avant correction (compte de test jetable, personne n\\'en a profité), et vérifié après correction que l\\'accès modérateur ne peut plus s\\'obtenir que via l\\'équipe elle-même. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.31',category:'feature',date:'2 septembre 2026',time:'23:50',title:'⚖️ Mentions légales, RGPD, et retour au français',
     body:'Deux nouvelles pages dans Paramètres (et accessibles avant même de créer un compte, depuis l\\'écran de connexion) : Mentions légales et Politique de confidentialité — ce qu\\'on collecte, pourquoi, avec qui c\\'est partagé (jamais vendu), et comment exercer tes droits RGPD (accès, suppression, réclamation à la CNIL…). Le support multilingue est aussi mis en pause le temps de stabiliser la traduction automatique (plusieurs incohérences avaient été remontées) : X1 repasse entièrement en français pour tout le monde, quelle que soit la langue précédemment choisie — le sélecteur reviendra une fois la traduction fiabilisée. Enfin, un petit badge "BÊTA" apparaît maintenant en permanence à côté du nom X1 dans l\\'app : pour rappel, on est encore en bêta, et un bug ou une incohérence peuvent survenir — n\\'hésite pas à les signaler d\\'un clic sur le badge.'},
   {version:'4.55.30',category:'feature',date:'2 septembre 2026',time:'23:40',title:'⬇️ Une section Téléchargement dans les Paramètres',
@@ -22429,7 +22449,13 @@ function renderAdminMembers(list,focusSearch){
     const name=p.displayName||p.username||'User';
     const uid=p.authUserId||p.\$id;
     const self=uid===(me&&me.\$id);
-    const modTag=p.isMod?'<span class="tag-mod">MOD</span>':'';
+    // isMod vit dans user_meta (verrouillé en écriture admin-only), plus
+    // dans users.isMod — voir le commentaire sur resolveStaffRole côté
+    // Worker. memberMetaByUid est déjà indexé par uid (identifiant Auth),
+    // contrairement à p qui vient de la collection "users" (son propre id
+    // de document, différent).
+    const realIsMod=!!(memberMetaByUid[uid]&&memberMetaByUid[uid].isMod);
+    const modTag=realIsMod?'<span class="tag-mod">MOD</span>':'';
     const isOwner=staffRole==='owner';
     const badgesOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='badges';
     const permsOpen=adminMembersEditingUid===uid&&adminMembersEditingMode==='perms';
@@ -22445,7 +22471,7 @@ function renderAdminMembers(list,focusSearch){
       +(permsOpen?'<div style="width:100%;margin-top:8px">'+renderMemberPermsChecklistHtml(uid)+'</div>':'')
       +'</div>'
       +(self?'':'<div class="acts">'
-        +(isOwner?'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(p.isMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(p.isMod?'Retirer modo':'Rendre modo')+'</button>':'')
+        +(isOwner?'<button type="button" data-modtoggle="'+esc(p.\$id)+'" data-mod="'+(realIsMod?'1':'0')+'" data-name="'+esc(name)+'" class="ok">'+(realIsMod?'Retirer modo':'Rendre modo')+'</button>':'')
         +'<button type="button" data-tban="'+esc(uid)+'" data-name="'+esc(name)+'">Temp ban 24h</button>'
         +(isOwner?'<button type="button" data-ban="'+esc(uid)+'" data-name="'+esc(name)+'" class="danger">Ban</button>':'')
         +'</div>')
@@ -30619,9 +30645,21 @@ async function handle(request, event) {
       const isMod = !!(body && body.isMod);
       const targetName = String((body && body.targetName) || "");
       if (!profileId) throw new Error("profileId requis");
-      await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + profileId, {
-        method: "PATCH", asAdmin: true, body: { data: { isMod } }
-      });
+      const targetProfile = await awFetch("/databases/" + AW_DB + "/collections/users/documents/" + profileId, { asAdmin: true });
+      const targetAuthUid = String(targetProfile.authUserId || profileId);
+      // isMod vit dans user_meta (écriture admin-only), jamais dans
+      // users.isMod — voir le commentaire sur resolveStaffRole plus haut.
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + targetAuthUid, {
+          method: "PATCH", asAdmin: true, body: { data: { isMod: isMod }, permissions: ["read(\"any\")"] }
+        });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents", {
+            method: "POST", asAdmin: true, body: { documentId: targetAuthUid, data: { isMod: isMod }, permissions: ["read(\"any\")"] }
+          });
+        } else throw e;
+      }
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
         method: "POST", asAdmin: true,
@@ -31006,7 +31044,7 @@ async function handle(request, event) {
       let allowed = acc.$id === doc.authorId;
       if (!allowed) {
         const profile = await resolveProfile(acc.$id).catch(() => null);
-        allowed = resolveStaffRole(acc, profile) !== "member";
+        allowed = (await resolveStaffRole(acc, profile)) !== "member";
       }
       if (!allowed) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
       const now = Date.now();
@@ -31049,7 +31087,7 @@ async function handle(request, event) {
       let allowed = !!(paste && paste.authorId === acc.$id);
       if (!allowed) {
         const profile = await resolveProfile(acc.$id).catch(() => null);
-        allowed = resolveStaffRole(acc, profile) !== "member";
+        allowed = (await resolveStaffRole(acc, profile)) !== "member";
       }
       if (!allowed) return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
       await awFetch("/databases/" + AW_DB + "/collections/xbin_comments/documents/" + commentId, { method: "DELETE", asAdmin: true });
@@ -31877,7 +31915,7 @@ async function handle(request, event) {
       const ticket = await awFetch("/databases/" + AW_DB + "/collections/support_tickets/documents/" + ticketId, { asAdmin: true });
       if (ticket.uid !== acc.$id) {
         const profile = await resolveProfile(acc.$id);
-        const role = resolveStaffRole(acc, profile);
+        const role = await resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
         if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_view"))) throw new Error("forbidden");
       }
@@ -31905,7 +31943,7 @@ async function handle(request, event) {
       let senderRole = "member", senderName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const patch = { lastMessageAt: new Date().toISOString(), lastMessagePreview: message.slice(0, 200) };
       if (!isOpener) {
-        const role = resolveStaffRole(acc, profile);
+        const role = await resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
         if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, "support_reply"))) throw new Error("forbidden");
         if (ticket.status === "escalated" && role !== "owner") throw new Error("Ce ticket est escaladé — seule l'équipe fondatrice peut encore y répondre");
@@ -31946,7 +31984,7 @@ async function handle(request, event) {
       if (isOpener) {
         if (status !== "closed") throw new Error("forbidden");
       } else {
-        const role = resolveStaffRole(acc, profile);
+        const role = await resolveStaffRole(acc, profile);
         const staffAllowed = role === "owner" || (role === "mod" && MOD_CAPABILITIES.indexOf("support_tickets") >= 0);
         const neededPerm = status === "resolved" ? "support_resolve" : "support_close";
         if (!staffAllowed && !(await hasGlobalBadgePermission(acc, profile, neededPerm))) throw new Error("forbidden");
