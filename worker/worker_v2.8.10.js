@@ -7475,12 +7475,34 @@ function showView(v){
     return;
   }
   \$('server-active').classList.add('hidden');
-  if(v==='dms')renderEmptyState('💬','Sélectionne une conversation','Ou ouvre l\\'onglet Amis pour en démarrer une.');
-  else if(v==='friends')renderEmptyState('👥','Tes amis','Retrouve-les dans la liste à gauche, ou ajoutes-en de nouveaux.');
+  // Demandé explicitement : retrouver l'endroit exact où on était en
+  // revenant sur un onglet (comme c'était déjà le cas pour Serveurs
+  // au-dessus — #server-active n'est jamais détruit, juste masqué). Pour
+  // Messages : si une conversation était ouverte (activeDm), on se
+  // contente de ré-afficher #chat-active tel quel — rien n'est rechargé,
+  // le fil était déjà à jour (les événements temps réel continuent
+  // d'arriver même panneau masqué, tant qu'on n'a pas quitté la
+  // conversation elle-même).
+  if(v==='dms'){
+    if(activeDm){
+      \$('chat-empty').classList.add('hidden');
+      \$('chat-active').classList.remove('hidden');
+      app.classList.add('chat-open');
+    }else{
+      \$('chat-active').classList.add('hidden');
+      \$('chat-empty').classList.remove('hidden');
+      renderEmptyState('💬','Sélectionne une conversation','Ou ouvre l\\'onglet Amis pour en démarrer une.');
+      app.classList.remove('chat-open');
+    }
+    renderDms();
+    repositionCallPanel();
+    return;
+  }
+  \$('chat-active').classList.add('hidden');
+  if(v==='friends')renderEmptyState('👥','Tes amis','Retrouve-les dans la liste à gauche, ou ajoutes-en de nouveaux.');
   else renderEmptyState('👤','Tous les membres de X1','Clique sur un membre dans la liste pour voir son profil.');
   app.classList.remove('chat-open');
-  if(v==='dms')renderDms();
-  else if(v==='friends')renderFriends();
+  if(v==='friends')renderFriends();
   else{showSectionLoading();loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);}
   repositionCallPanel();
 }
@@ -7537,6 +7559,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.46',category:'feature',date:'4 septembre 2026',time:'01:00',title:'🧭 Le site retrouve où tu en étais en changeant d\\'onglet',
+    body:'Ouvrir une conversation en Messages, puis aller voir les Serveurs, puis revenir sur Messages : la même conversation se rouvre automatiquement, plutôt que de repartir de la liste vide à chaque fois. Le même principe s\\'applique maintenant à X1 Music (la page du titre qu\\'on écoutait), XBin (le paste qu\\'on lisait), Créateurs (le profil ou la publication qu\\'on regardait) et la Boutique (l\\'onglet Parcourir/Mes créations/Modération) — et fonctionnait déjà pour Serveurs. Cliquer sur "← Retour" à l\\'intérieur d\\'une section efface bien cette mémoire, comme attendu.'},
   {version:'4.55.45',category:'fix',date:'4 septembre 2026',time:'00:15',title:'🩹 Le fil de messages privés redescend enfin de façon fiable, et nouveaux boutons "Ami+"/"Groupe+"',
     body:'Le correctif précédent sur le défilement automatique n\\'était pas suffisant : la plupart des messages privés sont chiffrés de bout en bout, donc leur vrai contenu (surtout une image ou une vidéo) ne remplace le petit indicateur "Déchiffrement…" qu\\'un peu APRÈS l\\'affichage initial — ce qui pouvait laisser le fil légèrement remonté sans redescendre tout seul. Corrigé pour de bon : la position tout en bas est maintenant réappliquée à chaque fois qu\\'un message déchiffré change réellement de taille. Et les boutons "Créer un groupe" et "Ajouter un ami" (en haut à droite de Messages) ne sont plus deux petites icônes discrètes — ils s\\'affichent désormais en boutons colorés avec leur texte : "Ami+" en vert, "Groupe+" en rouge foncé, tous deux légèrement animés.'},
   {version:'4.55.44',category:'design',date:'3 septembre 2026',time:'23:45',title:'💨 Suppression d\\'un message : disparition en douceur avec particules',
@@ -17454,8 +17478,15 @@ async function openXBin(id){
   }
   overlay.classList.add('show');
   ensureHighlightJs();
-  if(id){openXBinPaste(id);}
-  else{xbinView='feed';renderXBinShell();loadXBinFeed();}
+  if(id){openXBinPaste(id);return}
+  // Rouvrir XBin depuis le bouton de nav (sans id précis) retrouve le
+  // paste qu'on regardait juste avant de fermer (closeXBin() nettoie
+  // l'URL ?xbin=... pour le bouton retour du navigateur, mais ne touche
+  // jamais xbinCurrentPaste) plutôt que de toujours repartir du flux
+  // général.
+  if(xbinView==='detail'&&xbinCurrentPaste){openXBinPaste(xbinCurrentPaste.\$id,xbinCurrentPaste);return}
+  if(xbinView==='mine'&&me){renderXBinShell();loadXBinMine();return}
+  xbinView='feed';renderXBinShell();loadXBinFeed();
 }
 function closeXBin(){
   const overlay=\$('xbin-overlay');
@@ -20494,11 +20525,17 @@ async function openMusic(uid,name){
     document.body.appendChild(overlay);
   }
   overlay.classList.add('show');
-  musicViewUid=uid||null;musicViewName=name||'';
-  musicFilter=uid?'user':'streaming';
-  musicActivePlaylist=null;
+  // Rouvrir X1 Music depuis le bouton de nav (sans uid précis) retrouve la
+  // page de titre qu'on regardait juste avant de fermer, plutôt que de
+  // toujours repartir de la liste — demandé explicitement, comme pour
+  // Messages. Un appel avec un uid explicite (ex: depuis un profil) garde
+  // la priorité et ouvre bien CE profil, pas l'ancien état.
+  const resumeTrackId=(!uid&&!name)?musicTrackPageId:null;
+  if(!uid&&!name&&!resumeTrackId){musicViewUid=null;musicViewName='';musicFilter='streaming';musicActivePlaylist=null;}
+  else if(uid||name){musicViewUid=uid||null;musicViewName=name||'';musicFilter=uid?'user':'streaming';musicActivePlaylist=null;musicTrackPageId=null;}
   renderMusicShell();
   await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows()]);
+  if(resumeTrackId){openMusicTrackPage(resumeTrackId);return}
   renderMusicBody();
   updateMusicFollowBtn();
 }
@@ -21788,9 +21825,17 @@ async function openCreators(uid,name){
     document.body.appendChild(overlay);
   }
   overlay.classList.add('show');
-  crtViewUid=uid||null;crtViewName=name||'';crtDetailPost=null;
+  // Rouvrir Créateurs depuis le bouton de nav (sans uid précis) retrouve
+  // la publication ou le profil de créateur qu'on regardait juste avant
+  // de fermer (crtViewUid/crtDetailPost restent en mémoire, jamais
+  // réinitialisés à la fermeture) plutôt que de toujours repartir du flux
+  // général de tous les créateurs. Un appel avec un uid explicite (depuis
+  // un profil) garde la priorité et ouvre bien CE créateur.
+  const resumeDetail=(!uid&&!name)?crtDetailPost:null;
+  if(uid||name){crtViewUid=uid||null;crtViewName=name||'';crtDetailPost=null;}
   crtMyBadges=await getMyBadges();
   renderCreatorsShell();
+  if(resumeDetail){crtRenderDetail();return}
   await crtLoadFeed(true);
 }
 function closeCreators(){
@@ -22022,7 +22067,16 @@ async function openShop(){
   if(!overlay){overlay=document.createElement('div');overlay.id='shop-overlay';overlay.className='discover-overlay shop-overlay';document.body.appendChild(overlay);}
   overlay.classList.add('show');
   try{shopIsCreator=((await getMyBadges())||[]).indexOf('creator')>=0;}catch(e){shopIsCreator=false;}
-  shopView='browse';renderShopShell();loadShopBrowse();
+  // Rouvrir la Boutique retrouve l'onglet où on était (Parcourir/Mes
+  // créations/Modération) plutôt que de toujours repartir de "Parcourir"
+  // — sauf si l'onglet mémorisé n'est plus accessible (badge créateur/
+  // admin perdu entre-temps).
+  if(shopView==='mine'&&!shopIsCreator)shopView='browse';
+  if(shopView==='mod'&&!isAdmin)shopView='browse';
+  renderShopShell();
+  if(shopView==='browse')loadShopBrowse();
+  else if(shopView==='mine')loadShopMine();
+  else loadShopModeration();
 }
 function closeShop(){const o=\$('shop-overlay');if(o)o.classList.remove('show');}
 function shopPreviewCircleHtml(recipe,size){
