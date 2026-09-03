@@ -2223,8 +2223,16 @@ html.xultra-restoring #stage{visibility:hidden}
 #story-reply-send{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-size:1rem;flex-shrink:0}
 .story-ring:not(.seen){animation:storyRingPulse 2.4s ease-in-out infinite}
 @keyframes storyRingPulse{0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,.45)}50%{box-shadow:0 0 0 4px rgba(124,58,237,0)}}
-.discover-overlay{position:fixed;inset:0;z-index:2500;background:#0b0714;display:none;flex-direction:column}
-.discover-overlay.show{display:flex}
+/* Ouverture/fermeture animée, partagée par tous les panneaux plein écran
+   qui réutilisent cette classe (Musique, X1 Drive, XBin, Créateurs,
+   Boutique, Découvrir, Chatroulette...) — un seul point de réglage pour
+   les rendre tous cohérents. display:flex reste posé en permanence (le
+   contenu n'est de toute façon construit qu'à l'ouverture par chaque
+   renderXxx()), la visibilité réelle passe par opacity/scale + visibility
+   retardée pour rester hors du flux d'interaction tant que masqué. */
+.discover-overlay{position:fixed;inset:0;z-index:2500;background:#0b0714;display:flex;flex-direction:column;opacity:0;visibility:hidden;pointer-events:none;transform:scale(.98);transition:opacity .22s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1),visibility 0s linear .22s}
+.discover-overlay.show{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition:opacity .22s cubic-bezier(.16,1,.3,1),transform .22s cubic-bezier(.16,1,.3,1),visibility 0s linear 0s}
+@media (prefers-reduced-motion:reduce){.discover-overlay{transition:opacity .12s linear,visibility 0s linear .12s;transform:none}.discover-overlay.show{transition:opacity .12s linear}}
 .discover-head{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
 .discover-head h2{flex:1;font-size:1.05rem;font-weight:800}
 .discover-tabs{display:flex;gap:8px;padding:10px 14px}
@@ -2748,6 +2756,13 @@ html.xultra-restoring #stage{visibility:hidden}
 .cr-textchat-head .spacer{flex:1}
 .cr-textchat-panel .msgs{flex:1;min-height:0;overflow-y:auto}
 .list-body{flex:1;min-height:0;overflow-y:auto;padding:6px}
+/* Transition de section (Messages/Amis/Membres/Serveurs) : rejoué à chaque
+   showView() sur #list-body via playSectionEnter() — opacity+transform
+   seulement (jamais de propriété qui déclenche un recalcul de mise en
+   page), pour rester fluide même sur une longue liste. */
+@keyframes sectionEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.section-enter{animation:sectionEnter .26s cubic-bezier(.16,1,.3,1) both}
+@media (prefers-reduced-motion:reduce){.section-enter{animation:none}}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
 .row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
 .row:hover,.row.active{background:rgba(167,139,250,.1)}
@@ -2848,6 +2863,14 @@ html.xultra-restoring #stage{visibility:hidden}
 .chat-back{display:none;flex-shrink:0}
 .msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:var(--msg-gap,10px)}
 .msg{display:flex;gap:10px;max-width:80%}
+/* Empilement à l'ouverture d'une conversation (voir buildMsgsHtml/
+   loadMessages) : chaque bulle "tombe" en place, décalée par
+   animation-delay posé en ligne par message — opacity+transform
+   uniquement (jamais de propriété qui redéclenche la mise en page), donc
+   ça reste fluide même avec 60 messages animés en même temps. */
+@keyframes msgStackIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.msg.stack-in,.msg-system-notice.stack-in{animation:msgStackIn .34s cubic-bezier(.2,.85,.25,1.15) both}
+@media (prefers-reduced-motion:reduce){.msg.stack-in,.msg-system-notice.stack-in{animation:none}}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
 .msg .bub{position:relative;background:var(--dm-bubble-theirs,var(--elev));color:var(--dm-text-color,inherit);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
@@ -7361,8 +7384,19 @@ function hideSectionLoading(){
   const ov=\$('section-loading-ov');
   if(ov)ov.classList.add('hidden');
 }
+// Rejoue une animation CSS déjà en cours en forçant un reflow entre le
+// retrait et la repose de la classe — sans ça, ré-ajouter la même classe
+// sur un élément qui l'a déjà ne redéclenche rien (deux clics de suite sur
+// le même onglet, ou deux changements de section très rapprochés).
+function playSectionEnter(el){
+  if(!el)return;
+  el.classList.remove('section-enter');
+  void el.offsetWidth;
+  el.classList.add('section-enter');
+}
 function showView(v){
   view=v;
+  playSectionEnter(\$('list-body'));
   // Annule tout écran de chargement en attente d'un changement de section
   // précédent (ex. clic sur Membres puis, avant la fin du chargement, clic
   // sur Messages) — sinon le minuteur de showSectionLoading() pouvait encore
@@ -7486,6 +7520,20 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.43',category:'design',date:'3 septembre 2026',time:'23:10',title:'✨ Transitions entre sections, et les messages s\\'empilent à l\\'ouverture d\\'une conversation',
+    body:'Changer de section (Messages, Amis, Musique, X1 Drive, XBin, Créateurs, Boutique…) est maintenant animé au lieu d\\'un changement brutal — fondu et léger mouvement, pensé pour rester rapide (pas de ralentissement, même sur une liste chargée). Et à l\\'ouverture d\\'une conversation ou d\\'un salon, les messages apparaissent l\\'un après l\\'autre en partant du plus récent (en bas) vers les plus anciens (en remontant), comme s\\'ils tombaient en place — l\\'animation reste plafonnée aux ~20 derniers messages pour qu\\'un long historique s\\'affiche toujours d\\'un coup, sans traîner. Respecte aussi le réglage "réduire les animations" de ton système si tu l\\'as activé.'},
+  {version:'4.55.42',category:'feature',date:'3 septembre 2026',time:'22:40',title:'🖱️ Clic droit (ou appui long sur mobile) pour les actions d\\'un message',
+    body:'Jusqu\\'ici, ouvrir les actions d\\'un message (réagir, répondre, épingler, supprimer, signaler…) passait uniquement par le petit bouton ⋯ — pas toujours facile à atteindre selon la plateforme. Un clic droit sur n\\'importe quel message (le tien ou celui de quelqu\\'un d\\'autre, en message privé comme dans un salon de serveur) ouvre maintenant directement le menu d\\'actions, positionné sous le curseur. Sur mobile/tablette, un appui long fait exactement la même chose, en plus du glisser latéral déjà existant.'},
+  {version:'4.55.41',category:'feature',date:'3 septembre 2026',time:'22:05',title:'🔍 Recherche dans les Paramètres, et disposition mobile revue',
+    body:'Une barre de recherche en haut du panneau Paramètres retrouve directement la bonne section, même en tapant un mot qui n\\'est pas dans le titre de l\\'onglet (ex : "mot de passe" retrouve "Mon compte", "rgpd" retrouve la politique de confidentialité). Et sur mobile, la liste des sections — auparavant une bande minuscule tout en haut qu\\'il fallait faire défiler horizontalement — s\\'affiche maintenant à gauche en colonne verticale, comme sur ordinateur.'},
+  {version:'4.55.40',category:'fix',date:'3 septembre 2026',time:'21:30',title:'🩹 Correctif : le fil de messages privés remontait tout seul',
+    body:'En message privé, la liste ne redescendait pas toujours automatiquement en bas à l\\'arrivée d\\'un nouveau message (le tien ou celui de la personne en face) — il fallait scroller manuellement à chaque fois. Corrigé : le fil descend maintenant systématiquement tout en bas dès qu\\'un nouveau message arrive dans la conversation ouverte.'},
+  {version:'4.55.39',category:'design',date:'3 septembre 2026',time:'20:50',title:'📍 Partage de position mis en pause, notes de version réservées à l\\'équipe',
+    body:'Le partage de position (dans les messages comme sur la carte de Découvrir) est temporairement désactivé le temps d\\'un futur retravail — reviendra plus tard. Les Notes de version (ce journal que tu lis) deviennent par ailleurs une page réservée à l\\'équipe X1.'},
+  {version:'4.55.38',category:'design',date:'3 septembre 2026',time:'20:10',title:'🎵 X1 Music : une vraie page pour chaque titre',
+    body:'Cliquer sur un titre dans "Sons des membres" (ou en grille) ouvre maintenant une page dédiée façon SoundCloud plutôt qu\\'une simple carte : grande forme d\\'onde cliquable avec les avatars des commentaires horodatés flottant au-dessus, pochette et carte artiste (abonnés, nombre de titres, bouton Suivre et Envoyer un message), statistiques (écoutes, mentions j\\'aime, commentaires), et les commentaires en pleine page en dessous.'},
+  {version:'4.55.37',category:'security',date:'3 septembre 2026',time:'15:20',title:'🛡️ Protections renforcées au niveau réseau (Cloudflare)',
+    body:'En plus des correctifs côté application des dernières versions, plusieurs protections ont été activées au niveau du réseau qui sert le site : HTTPS forcé pour toute connexion, TLS minimum relevé (fini les connexions chiffrées avec d\\'anciens protocoles affaiblis), en-tête de sécurité HSTS, détection automatique des robots connus, et blocage des tentatives de balayage de vulnérabilités et de sondage de fichiers sensibles avant même qu\\'elles n\\'atteignent le site. Aucune action de ta part n\\'est nécessaire, et aucun impact constaté sur l\\'usage normal du site.'},
   {version:'4.55.36',category:'security',date:'3 septembre 2026',time:'14:45',title:'🛡️ Qualité audio/vidéo de serveur et imports (musique, stories, posts créateur) : dernières vérifications côté serveur',
     body:'Suite du même audit sécurité : la qualité audio/vidéo réservée à X1+ sur un serveur pouvait être forcée en contournant l\\'application (jamais possible depuis l\\'app elle-même) — corrigé, chaque serveur n\\'a plus que les droits nécessaires. Et comme pour les pièces jointes de messages, la taille des fichiers importés en musique, story ou post créateur est désormais revérifiée par le serveur (et pas seulement dans l\\'application) avant d\\'être acceptée. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.35',category:'security',date:'3 septembre 2026',time:'01:45',title:'🛡️ Notifications verrouillées, et grand ménage sur d\\'anciennes collections',
@@ -14051,7 +14099,7 @@ async function loadMessages(threadId){
       return true;
     });
   }catch(e){xlog('load_msgs_fail',{msg:(e&&e.message)||String(e)});msgsCache=[];msgsHasMoreOlder=false;}
-  renderMessages(true);
+  renderMessages(true,true);
 }
 // Remonter tout en haut d'une conversation ne redemandait jamais l'historique
 // plus ancien — seuls les 60 derniers messages étaient chargés, point final.
@@ -14597,9 +14645,19 @@ function callHistoryHtml(m){
   const dir=mine?'Appel sortant':'Appel entrant';
   return '<div class="msg-system-notice msg-call-notice">'+icon+' '+esc(dir+' — '+label)+dur+time+'</div>';
 }
-function buildMsgsHtml(list,seenInfo){
-  return list.map(function(m){
-    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
+// stagger=true (ouverture fraîche d'une conversation, voir loadMessages) :
+// chaque bulle "tombe" en place l'une après l'autre en partant du BAS (le
+// message le plus récent, tout en bas, apparaît en premier) et en
+// remontant — l'empilement demandé explicitement. Délai plafonné aux ~20
+// derniers messages pour qu'un historique chargé (jusqu'à 60) reste rapide
+// à s'afficher en entier, jamais une cascade qui traîne en longueur.
+function buildMsgsHtml(list,seenInfo,stagger){
+  const n=list.length;
+  return list.map(function(m,i){
+    const distFromEnd=Math.min(n-1-i,20);
+    const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
+    const stackClass=stagger?' stack-in':'';
+    if(m.type==='sysshot')return '<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     if(m.type==='syscall')return callHistoryHtml(m);
     const mine=m.uid===(me&&me.\$id);
     const isBot=!!m.isBot;
@@ -14613,7 +14671,7 @@ function buildMsgsHtml(list,seenInfo){
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
     const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
     const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+    return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
 }
@@ -14719,12 +14777,12 @@ function pinScrollBottomDeferred(box){
     if(box.scrollHeight-box.scrollTop-box.clientHeight<200)box.scrollTop=box.scrollHeight;
   },350);
 }
-function renderMessages(forceBottom){
+function renderMessages(forceBottom,stagger){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Dis bonjour !</div>';return}
   const wasNearBottom=forceBottom||(box.scrollHeight-box.scrollTop-box.clientHeight<80);
   const seenInfo=computeSeenInfo();
-  box.innerHTML=buildMsgsHtml(msgsCache,seenInfo);
+  box.innerHTML=buildMsgsHtml(msgsCache,seenInfo,stagger);
   wireMsgContainer(box);
   hydrateEncryptedMessages();
   if(wasNearBottom){
@@ -26403,7 +26461,7 @@ async function loadChannelMessages(){
     activeChannelMessages=r.messages||[];
   }catch(e){activeChannelMessages=[];}
   if(!activeThread)await loadChannelThreads();
-  renderChannelMessages();
+  renderChannelMessages(true);
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   const forChannel=activeChannel.\$id;
   channelMsgUnsub=client.subscribe('databases.'+DB+'.collections.server_channel_messages.documents',function(res){
@@ -26470,11 +26528,15 @@ function renderBotComponentsHtml(componentsJson,messageId){
     return '<button type="button" class="msg-bot-btn msg-bot-btn-'+esc(c.s||'secondary')+'" data-bot-component="'+esc(c.id||'')+'" data-bot-mid="'+esc(messageId||'')+'">'+esc(c.l||'Bouton')+'</button>';
   }).join('')+'</div>';
 }
-function renderChannelMessages(){
+function renderChannelMessages(stagger){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
-  box.innerHTML=activeChannelMessages.map(function(m){
-    if(m.type==='sysshot')return '<div class="msg-system-notice">📸 '+esc(m.text||((m.username||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
+  const chanMsgCount=activeChannelMessages.length;
+  box.innerHTML=activeChannelMessages.map(function(m,mi){
+    const distFromEnd=Math.min(chanMsgCount-1-mi,20);
+    const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
+    const stackClass=stagger?' stack-in':'';
+    if(m.type==='sysshot')return '<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.username||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
     const mine=me&&String(m.uid)===String(me.\$id);
     const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
     const authorColor=authorMember?serverTopRoleColor(authorMember):null;
@@ -26494,7 +26556,7 @@ function renderChannelMessages(){
     const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
     const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
     const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
-    return '<div class="msg'+(mine?' mine':'')+'" data-mid="'+esc(m.\$id||'')+'"><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+    return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
       +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
       +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
   }).join('');
