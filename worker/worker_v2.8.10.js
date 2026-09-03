@@ -7400,6 +7400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.36',category:'security',date:'3 septembre 2026',time:'14:45',title:'🛡️ Qualité audio/vidéo de serveur et imports (musique, stories, posts créateur) : dernières vérifications côté serveur',
+    body:'Suite du même audit sécurité : la qualité audio/vidéo réservée à X1+ sur un serveur pouvait être forcée en contournant l\\'application (jamais possible depuis l\\'app elle-même) — corrigé, chaque serveur n\\'a plus que les droits nécessaires. Et comme pour les pièces jointes de messages, la taille des fichiers importés en musique, story ou post créateur est désormais revérifiée par le serveur (et pas seulement dans l\\'application) avant d\\'être acceptée. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.35',category:'security',date:'3 septembre 2026',time:'01:45',title:'🛡️ Notifications verrouillées, et grand ménage sur d\\'anciennes collections',
     body:'Suite de l\\'audit sécurité : le même type de réglage trop large que pour les messages privés touchait aussi tes notifications (like, demande d\\'ami…) — corrigé, chaque notification n\\'est désormais accessible qu\\'à son vrai destinataire. Au passage, une trentaine d\\'anciennes tables de données, restes d\\'une version antérieure du site et plus utilisées par aucune fonctionnalité actuelle (aucun impact pour toi), ont aussi été verrouillées par précaution. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.34',category:'security',date:'3 septembre 2026',time:'01:20',title:'🛡️ Messages privés : accès verrouillé aux seuls participants d\\'une conversation',
@@ -28901,6 +28903,17 @@ async function handle(request, event) {
       const artistName = String((body && body.artistName) || "").trim().slice(0, 100) || "Artiste inconnu";
       const audioUrl = String((body && body.audioUrl) || "");
       if (!title || !audioUrl) throw new Error("Titre et fichier audio requis");
+      // Plafond de 100 Mo (MUSIC_MAX_AUDIO_BYTES côté client) jusqu'ici
+      // vérifié UNIQUEMENT avant l'upload dans le navigateur — revérification
+      // serveur de la taille RÉELLE du fichier déjà téléversé.
+      const musicFileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(audioUrl);
+      if (musicFileMatch) {
+        const musicFileMeta = await awFetch("/storage/buckets/xultra_music/files/" + musicFileMatch[1], { asAdmin: true }).catch(function () { return null; });
+        if (musicFileMeta && (musicFileMeta.sizeOriginal || 0) > 100 * 1024 * 1024) {
+          await awFetch("/storage/buckets/xultra_music/files/" + musicFileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+          throw new Error("Fichier audio trop volumineux (100 Mo max)");
+        }
+      }
       const coverUrl = String((body && body.coverUrl) || "");
       const mime = String((body && body.mime) || "");
       const durationSec = Math.max(0, Math.round(Number((body && body.durationSec) || 0)));
@@ -32990,6 +33003,17 @@ async function handle(request, event) {
       const durationHours = [1, 6, 24, 48].indexOf(Number(body && body.durationHours)) >= 0 ? Number(body.durationHours) : 24;
       const hasCoords = body && typeof body.lat === "number" && typeof body.lng === "number" && isFinite(body.lat) && isFinite(body.lng);
       if (!mediaUrl) throw new Error("Média manquant");
+      // Plafond de 50 Mo (STORY_MAX_BYTES côté client) jusqu'ici vérifié
+      // UNIQUEMENT avant l'upload dans le navigateur — le fichier est déjà
+      // dans le bucket à ce stade, donc on revérifie sa taille RÉELLE.
+      const storyFileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(mediaUrl);
+      if (storyFileMatch) {
+        const storyFileMeta = await awFetch("/storage/buckets/ultravoc_media/files/" + storyFileMatch[1], { asAdmin: true }).catch(function () { return null; });
+        if (storyFileMeta && (storyFileMeta.sizeOriginal || 0) > 50 * 1024 * 1024) {
+          await awFetch("/storage/buckets/ultravoc_media/files/" + storyFileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+          throw new Error("Média trop volumineux (50 Mo max)");
+        }
+      }
       const profile = await resolveProfile(acc.$id);
       const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       // Visibilité "amis" (§ story) : mêmes lecteurs que la liste d'amis
@@ -33475,6 +33499,17 @@ async function handle(request, event) {
       const thumbnailUrl = String((body && body.thumbnailUrl) || "").trim().slice(0, 500);
       if (!title) throw new Error("Titre requis");
       if (!mediaUrl || !mediaType) throw new Error("Fichier requis");
+      // Plafond de 50 Mo côté client uniquement jusqu'ici — revérification
+      // serveur de la taille RÉELLE du fichier déjà téléversé (même schéma
+      // que /api/stories/create et les pièces jointes de messages).
+      const creatorFileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(mediaUrl);
+      if (creatorFileMatch) {
+        const creatorFileMeta = await awFetch("/storage/buckets/ultravoc_media/files/" + creatorFileMatch[1], { asAdmin: true }).catch(function () { return null; });
+        if (creatorFileMeta && (creatorFileMeta.sizeOriginal || 0) > 50 * 1024 * 1024) {
+          await awFetch("/storage/buckets/ultravoc_media/files/" + creatorFileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
+          throw new Error("Fichier trop volumineux (50 Mo max)");
+        }
+      }
       const profile = await resolveProfile(gate.acc.$id);
       const username = (profile && (profile.displayName || profile.username)) || gate.acc.name || "Créateur";
       const avatar = (profile && profile.avatar) || "";
@@ -34166,7 +34201,13 @@ async function handle(request, event) {
         body: {
           documentId: "unique()",
           data: { name: name, description: description, icon: "", banner: "", ownerId: String(acc.$id), inviteCode: inviteCode, audioQualityKey: "standard", screenQualityKey: "720p60", bannedUidsJson: "[]" },
-          permissions: ["read(\"any\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
+          // Pas de update() ici : TOUTES les modifications du document serveur
+          // passent par des routes /api/servers/* qui valident chacune leurs
+          // propres règles (permissions de rôle, X1+, paliers de boost...)
+          // avant d'écrire via asAdmin. Donner update() directement au owner
+          // permettrait de contourner ces vérifications par un PATCH Appwrite
+          // direct (ex : forcer audioQualityKey/screenQualityKey sans X1+).
+          permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"]
         }
       });
       const profile = await resolveProfile(acc.$id);
