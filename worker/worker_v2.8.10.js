@@ -7400,6 +7400,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.35',category:'security',date:'3 septembre 2026',time:'01:45',title:'🛡️ Notifications verrouillées, et grand ménage sur d\\'anciennes collections',
+    body:'Suite de l\\'audit sécurité : le même type de réglage trop large que pour les messages privés touchait aussi tes notifications (like, demande d\\'ami…) — corrigé, chaque notification n\\'est désormais accessible qu\\'à son vrai destinataire. Au passage, une trentaine d\\'anciennes tables de données, restes d\\'une version antérieure du site et plus utilisées par aucune fonctionnalité actuelle (aucun impact pour toi), ont aussi été verrouillées par précaution. Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.34',category:'security',date:'3 septembre 2026',time:'01:20',title:'🛡️ Messages privés : accès verrouillé aux seuls participants d\\'une conversation',
     body:'Une faille a été trouvée et corrigée dans les messages privés (DM) : la protection reposait jusqu\\'ici sur un réglage bien trop large, qui aurait techniquement permis à n\\'importe quel compte connecté de lire, modifier ou supprimer les conversations de n\\'importe qui d\\'autre en interrogeant directement la base de données (jamais possible depuis l\\'application elle-même). Le contenu de tes messages restait chiffré de bout en bout (illisible sans les clés, qui ne quittent jamais tes appareils), mais les métadonnées (avec qui tu discutes, quand) et l\\'intégrité des messages n\\'étaient pas protégées comme elles auraient dû l\\'être. Corrigé : chaque conversation et chaque message n\\'est désormais accessible qu\\'à ses vrais participants. Vérifié en conditions réelles avant et après correction, et sur les ~1200 conversations et messages déjà existants (aucun n\\'a été perdu ni rendu inaccessible à ses vrais participants). Aucune action de ta part n\\'est nécessaire.'},
   {version:'4.55.33',category:'security',date:'3 septembre 2026',time:'00:50',title:'🛡️ Limite de taille des pièces jointes désormais vérifiée aussi côté serveur',
@@ -12210,12 +12212,12 @@ function parseJsonSafe(str,fallback){
 }
 async function sendNotification(uid,type,fromUid,fromName,text,refId){
   if(!uid||!me)return;
-  try{
-    await db.createDocument(DB,'notifications',Appwrite.ID.unique(),{
-      uid:String(uid),type:type,fromUid:fromUid?String(fromUid):'',fromName:fromName||'',
-      text:(text||'').slice(0,200),refId:refId||'',read:false
-    });
-  }catch(e){}
+  // Passe par le Worker (asAdmin), pas par une écriture directe du SDK
+  // client : même raison que pour les DM — impossible d'accorder au
+  // DESTINATAIRE (un autre utilisateur que soi) l'accès à sa propre
+  // notification en la créant en direct depuis le navigateur. Voir
+  // /api/notifications/send.
+  try{await authPost('/api/notifications/send',{uid:String(uid),type:type,fromUid:fromUid?String(fromUid):'',fromName:fromName||'',text:(text||'').slice(0,200),refId:refId||''});}catch(e){}
 }
 function normalizeSocialUrl(def,val){
   val=String(val||'').trim();
@@ -36918,6 +36920,36 @@ async function handle(request, event) {
         body: { documentId: "unique()", data: data, permissions: msgPerms }
       });
       return new Response(JSON.stringify({ ok: true, message: message }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Même raison de passer par le Worker que /api/dms/thread/create et
+  // /api/dms/messages/send : le créateur d'une notification (celui qui
+  // "aime" un post, envoie une demande d'ami...) n'est jamais le
+  // destinataire, et Appwrite refuse qu'un compte accorde une permission à
+  // un AUTRE utilisateur précis sur un document qu'il crée lui-même.
+  if (path === "/api/notifications/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      if (!uid) throw new Error("uid requis");
+      const data = {
+        uid: uid,
+        type: String((body && body.type) || "").slice(0, 40),
+        fromUid: String((body && body.fromUid) || "").slice(0, 64),
+        fromName: String((body && body.fromName) || "").slice(0, 100),
+        text: String((body && body.text) || "").slice(0, 200),
+        refId: String((body && body.refId) || "").slice(0, 64),
+        read: false
+      };
+      const notif = await awFetch("/databases/" + AW_DB + "/collections/notifications/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: data, permissions: ["read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"] }
+      });
+      return new Response(JSON.stringify({ ok: true, notification: notif }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
