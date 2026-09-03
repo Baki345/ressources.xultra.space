@@ -14680,6 +14680,7 @@ function wireMsgContainer(container){
     const btn=el.querySelector('.msg-menu-btn');
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'dm',e.currentTarget);});
     attachMsgSwipe(el,m);
+    attachMsgContextMenu(el,m,'dm');
   });
   container.querySelectorAll('[data-bot-component]').forEach(function(btn){
     btn.addEventListener('click',function(e){
@@ -14892,6 +14893,25 @@ async function toggleChannelPin(m){
     showToast(m.pinned?'Message épinglé.':'Message désépinglé.');
     renderChannelMessages();
   }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+}
+// Clic droit (souris) ET appui long (tactile) : les deux déclenchent le même
+// événement DOM "contextmenu" nativement (Android/iOS/desktop), donc un seul
+// gestionnaire couvre les deux plateformes sans réinventer un minuteur
+// tactile — la souris utilise le curseur comme point d'ancrage (objet muni
+// d'un faux getBoundingClientRect, ce que openMessageActionDropdown attend
+// déjà), le tactile retombe sur le tiroir plein écran habituel via le même
+// test hover:hover)+pointer:fine que le bouton ⋯. Complète (ne remplace pas)
+// le glisser horizontal déjà en place — demandé explicitement : accès
+// uniforme aux options sur n'importe quel message, aussi bien le sien que
+// celui d'un⋅e destinataire, sur toutes les plateformes.
+function attachMsgContextMenu(el,m,kind){
+  el.addEventListener('contextmenu',function(e){
+    if(e.target.closest('a,button,.voice-msg,.msg-media img,.msg-snap-placeholder'))return;
+    e.preventDefault();
+    openMessageActionSheet(m,kind,{getBoundingClientRect:function(){
+      return {top:e.clientY,bottom:e.clientY,left:e.clientX,right:e.clientX,width:0,height:0};
+    }});
+  });
 }
 function attachMsgSwipe(el,m,kind){
   kind=kind||'dm';
@@ -26522,6 +26542,7 @@ function renderChannelMessages(){
     const btn=el.querySelector('[data-chan-menu]');
     if(btn)btn.addEventListener('click',function(e){e.stopPropagation();openMessageActionSheet(m,'channel',e.currentTarget);});
     attachMsgSwipe(el,m,'channel');
+    attachMsgContextMenu(el,m,'channel');
   });
   box.querySelectorAll('[data-bot-component]').forEach(function(btn){
     btn.addEventListener('click',function(e){
