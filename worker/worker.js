@@ -2871,6 +2871,14 @@ html.xultra-restoring #stage{visibility:hidden}
 @keyframes msgStackIn{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
 .msg.stack-in,.msg-system-notice.stack-in{animation:msgStackIn .34s cubic-bezier(.2,.85,.25,1.15) both}
 @media (prefers-reduced-motion:reduce){.msg.stack-in,.msg-system-notice.stack-in{animation:none}}
+/* Suppression d'un message (voir playMsgDissolve) : la bulle se dissout et
+   se rétracte légèrement pendant que de petites particules s'envolent dans
+   des directions aléatoires (--dx/--dy posés en ligne par particule). */
+.msg-dissolving{transition:opacity .4s ease,transform .4s ease;opacity:0;transform:scale(.92);pointer-events:none}
+.msg-dissolve-particles{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.msg-dissolve-particles span{position:absolute;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:linear-gradient(135deg,#f472b6,#a855f7);animation:msgParticleFly .5s ease-out forwards}
+@keyframes msgParticleFly{to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@media (prefers-reduced-motion:reduce){.msg-dissolving{transition:opacity .15s linear;transform:none}.msg-dissolve-particles{display:none}}
 .msg.mine{align-self:flex-end;flex-direction:row-reverse}
 .msg .av{width:30px;height:30px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.75rem;overflow:hidden}
 .msg .bub{position:relative;background:var(--dm-bubble-theirs,var(--elev));color:var(--dm-text-color,inherit);border-radius:12px;padding:8px 12px;font-size:var(--msg-font-size,.85rem);line-height:1.4;word-break:break-word;white-space:pre-wrap}
@@ -14962,6 +14970,35 @@ async function toggleChannelPin(m){
 // le glisser horizontal déjà en place — demandé explicitement : accès
 // uniforme aux options sur n'importe quel message, aussi bien le sien que
 // celui d'un⋅e destinataire, sur toutes les plateformes.
+// Animation de suppression (demandée explicitement) : la bulle se dissout
+// avec des particules qui s'envolent, plutôt que de disparaître d'un coup
+// sec au rechargement de la liste. cb() (la vraie suppression : appel
+// serveur déjà fait par l'appelant, puis retrait du cache + re-rendu) n'est
+// appelée QU'APRÈS la fin de l'animation — si le message n'est plus dans le
+// DOM (déjà scrollé hors champ, etc.), cb() s'exécute immédiatement.
+function playMsgDissolve(mid,cb){
+  const el=document.querySelector('.msg[data-mid="'+mid+'"]');
+  if(!el){cb();return}
+  const bub=el.querySelector('.bub');
+  if(bub){
+    if(!bub.style.position)bub.style.position='relative';
+    const layer=document.createElement('div');
+    layer.className='msg-dissolve-particles';
+    for(let i=0;i<14;i++){
+      const p=document.createElement('span');
+      const angle=Math.random()*Math.PI*2,dist=28+Math.random()*54;
+      p.style.setProperty('--dx',(Math.cos(angle)*dist).toFixed(1)+'px');
+      p.style.setProperty('--dy',(Math.sin(angle)*dist).toFixed(1)+'px');
+      p.style.left=(8+Math.random()*84)+'%';
+      p.style.top=(8+Math.random()*84)+'%';
+      p.style.animationDelay=Math.round(Math.random()*70)+'ms';
+      layer.appendChild(p);
+    }
+    bub.appendChild(layer);
+  }
+  el.classList.add('msg-dissolving');
+  setTimeout(cb,420);
+}
 function attachMsgContextMenu(el,m,kind){
   el.addEventListener('contextmenu',function(e){
     if(e.target.closest('a,button,.voice-msg,.msg-media img,.msg-snap-placeholder'))return;
@@ -15122,16 +15159,20 @@ async function deleteMessageForMe(m){
     const hidden=(m.hiddenFor||[]).map(String);
     if(hidden.indexOf(me.\$id)<0)hidden.push(me.\$id);
     await db.updateDocument(DB,'dms_messages',m.\$id,{hiddenFor:hidden});
-    msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
-    renderMessages();
+    playMsgDissolve(m.\$id,function(){
+      msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
+      renderMessages();
+    });
   }catch(e){showToast('Action impossible','error');}
 }
 function confirmDeleteMessageForAll(m){
   showSlideConfirm('Supprimer ce message pour tout le monde ? Action irréversible.',async function(){
     try{
       await db.deleteDocument(DB,'dms_messages',m.\$id);
-      msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
-      renderMessages();
+      playMsgDissolve(m.\$id,function(){
+        msgsCache=msgsCache.filter(function(x){return x.\$id!==m.\$id});
+        renderMessages();
+      });
     }catch(e){showToast('Suppression impossible','error');}
   });
 }
@@ -26472,8 +26513,10 @@ async function loadChannelMessages(){
       activeChannelMessages.push(payload);
       renderChannelMessages();
     }else if(eventIs(res.events,'.delete')){
-      activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==payload.\$id});
-      renderChannelMessages();
+      playMsgDissolve(payload.\$id,function(){
+        activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==payload.\$id});
+        renderChannelMessages();
+      });
     }else if(eventIs(res.events,'.update')){
       const idx=activeChannelMessages.findIndex(function(m){return m.\$id===payload.\$id});
       if(idx>=0){activeChannelMessages[idx]=payload;renderChannelMessages();}
@@ -26694,8 +26737,10 @@ function confirmDeleteChannelMessage(m){
   showSlideConfirm('Supprimer ce message pour tout le monde ? Action irréversible.',async function(){
     try{
       await authPost('/api/servers/channels/messages/delete',{serverId:activeServer.\$id,messageId:m.\$id});
-      activeChannelMessages=activeChannelMessages.filter(function(x){return x.\$id!==m.\$id});
-      renderChannelMessages();
+      playMsgDissolve(m.\$id,function(){
+        activeChannelMessages=activeChannelMessages.filter(function(x){return x.\$id!==m.\$id});
+        renderChannelMessages();
+      });
     }catch(e){showToast((e&&e.message)||'Erreur','error');}
   });
 }
