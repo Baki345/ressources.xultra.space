@@ -7586,6 +7586,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.49',category:'fix',date:'4 septembre 2026',time:'04:00',title:'🩹 Fini le scintillement des messages : réagir ou recevoir un message ne redéchiffre/reconstruit plus tout le fil',
+    body:'Cause trouvée du bug remonté à plusieurs reprises ("le chat remonte au lieu de descendre", "les messages se rafraîchissent et se redéchiffrent à chaque interaction") : réagir à UN message, ou en recevoir un nouveau, reconstruisait et redéchiffrait TOUT le fil affiché depuis zéro — plus il y avait de messages et de médias, plus long et plus visible c\\'était, avec un vrai risque que le repositionnement en bas se fasse au mauvais moment pendant cette reconstruction. Corrigé en profondeur : une réaction/un épinglage ne retouche plus que ce message précis (aucun redéchiffrement), un nouveau message s\\'ajoute simplement à la fin sans reconstruire les autres, et un message déjà déchiffré ne l\\'est plus jamais deux fois. Le fil descend toujours tout en bas à l\\'arrivée d\\'un nouveau message, cette fois sans concurrence avec une reconstruction complète en cours.'},
   {version:'4.55.48',category:'feature',date:'4 septembre 2026',time:'03:00',title:'✏️ Modifier un message envoyé dans les 24h, en DM comme en salon',
     body:'Depuis les options d\\'un message (⋯, ou glisser/clic droit), un nouveau "✏️ Modifier" permet de corriger le texte (ou la légende d\\'une photo/vidéo) d\\'un message que TU as envoyé, tant qu\\'il a moins de 24h — en message privé comme dans un salon de serveur. Le champ de saisie se remplit avec le texte actuel, corrige-le puis valide comme un envoi normal ; le message modifié affiche discrètement "(modifié)". Non disponible pour les Ephem, stickers, sondages, fichiers/messages vocaux/positions (rien à réécrire) ni au-delà de 24h. En message privé chiffré de bout en bout, le nouveau texte est rechiffré avec la même clé que l\\'original avant d\\'être envoyé — le serveur ne voit jamais le contenu en clair.'},
   {version:'4.55.47',category:'feature',date:'4 septembre 2026',time:'02:15',title:'🙈 Messages spoiler et 18+, et envoi de plusieurs photos/vidéos à la fois en DM',
@@ -12433,10 +12435,7 @@ function subscribeDmMessagesWatcher(){
         // agit voit l'effet tant de suite ; l'autre doit recharger la page
         // pour, par exemple, voir que son snap éphémère vient d'être ouvert.
         const p=res.payload;
-        if(p&&p.threadId===activeDm){
-          const idx=msgsCache.findIndex(function(x){return x.\$id===p.\$id;});
-          if(idx>=0){msgsCache[idx]=p;renderMessages();}
-        }
+        if(p&&p.threadId===activeDm)applyDmMessageUpdate(p);
         return;
       }
       if(!eventIs(res.events,'.create'))return;
@@ -14230,9 +14229,38 @@ async function loadOlderMessages(){
 // sur la conversation active — contrairement à loadMessages() (rechargement
 // complet), on fusionne juste les messages récents sans écraser tout
 // l'historique déjà remonté via loadOlderMessages() plus haut dans la liste.
+// Ajoute un lot de nouveaux messages DM SANS reconstruire tout #msgs — bug
+// remonté à plusieurs reprises ("quand je reçois un message le chat remonte
+// au lieu de descendre... on doit scroller manuellement", "quand on reçoit
+// un message c'est pas agréable au visuel") : la cause racine n'était pas
+// un simple oubli de repositionnement, mais renderMessages() qui
+// reconstruisait TOUT le fil (60 messages, tous leurs médias, TOUS les
+// messages chiffrés re-déchiffrés un par un) à chaque nouveau message —
+// plus il y avait de messages/médias, plus cette reconstruction prenait de
+// temps, pendant lequel d'autres événements (une autre reconstruction, une
+// image qui finit de charger...) pouvaient se chevaucher et désynchroniser
+// la position de défilement. Ici, seul le NOUVEAU message est créé et
+// ajouté à la fin — les 60 autres ne sont ni retouchés, ni redéchiffrés.
+function appendMessagesToDomIncremental(fresh){
+  const box=\$('msgs');if(!box)return;
+  if(!msgsCache.length||box.querySelector('.empty-hint')){renderMessages(true,true);return}
+  const seenInfo=computeSeenInfo();
+  const temp=document.createElement('div');
+  temp.innerHTML=buildMsgsHtml(fresh,seenInfo,false);
+  const nodes=Array.prototype.slice.call(temp.children);
+  wireMsgContainer(temp);
+  nodes.forEach(function(n){box.appendChild(n);});
+  hydrateEncryptedMessages();
+  // Demandé explicitement : le fil descend TOUJOURS tout en bas dès qu'un
+  // nouveau message arrive dans la conversation ouverte (envoyé par soi ou
+  // reçu en temps réel), jamais dépendant d'une heuristique "était-on déjà
+  // en bas".
+  box.scrollTop=box.scrollHeight;
+  pinScrollBottomAfterImages(box);
+  pinScrollBottomDeferred(box);
+}
 async function appendNewMessages(){
   if(!activeDm||!me)return;
-  let hasFresh=false;
   try{
     const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',activeDm),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(20)]);
     const raw=(r.documents||[]).slice().reverse();
@@ -14244,24 +14272,50 @@ async function appendNewMessages(){
       if(blockedUids.indexOf(String(m.uid))>=0)return false;
       return true;
     });
-    hasFresh=fresh.length>0;
-    if(hasFresh){
+    if(fresh.length){
       msgsCache=msgsCache.concat(fresh);
+      appendMessagesToDomIncremental(fresh);
     }else{
+      // Pas de nouveau message : juste un rafraîchissement silencieux du
+      // cache pour des messages déjà connus (les changements visuels —
+      // réaction, épinglage, "vu" — arrivent de toute façon en direct via
+      // le canal temps réel .update, voir applyDmMessageUpdate) — jamais
+      // besoin de reconstruire le fil ici.
       raw.forEach(function(m){
         const idx=msgsCache.findIndex(function(x){return x.\$id===m.\$id});
         if(idx>=0)msgsCache[idx]=m;
       });
     }
-  }catch(e){xlog('append_msgs_fail',{msg:(e&&e.message)||String(e)});return;}
-  // Demandé explicitement : le fil descend TOUJOURS tout en bas dès qu'un
-  // nouveau message arrive dans la conversation ouverte (envoyé par soi ou
-  // reçu en temps réel) — plus de dépendance à l'heuristique "était-on déjà
-  // en bas" (box.scrollHeight-scrollTop-clientHeight<80) qui pouvait laisser
-  // le fil remonter et obliger à redescendre à la main à chaque message.
-  // Un simple rafraîchissement de messages déjà connus (réaction, "vu"...,
-  // sans nouveau message) garde lui le comportement précédent.
-  renderMessages(hasFresh?true:undefined);
+  }catch(e){xlog('append_msgs_fail',{msg:(e&&e.message)||String(e)});}
+}
+// Propage en direct (via le canal temps réel .update, voir
+// subscribeDmMessagesWatcher) une réaction/un épinglage/un snap marqué "vu"
+// posé par l'AUTRE participant — sans reconstruire tout le fil. Un vrai
+// changement de contenu (édition, snap qui vient d'être ouvert côté
+// expéditeur, changement de "vu" qui peut déplacer l'étiquette d'un message
+// à l'autre) reste rare et repasse par le rendu complet existant, plus
+// simple à garder correct que de tenter de le patcher précisément.
+function applyDmMessageUpdate(newM){
+  const box=\$('msgs');if(!box)return;
+  const idx=msgsCache.findIndex(function(x){return x.\$id===newM.\$id;});
+  if(idx<0)return;
+  const oldM=msgsCache[idx];
+  msgsCache[idx]=newM;
+  const el=box.querySelector('.msg[data-mid="'+newM.\$id+'"]');
+  if(!el)return;
+  const bodyChanged=oldM.text!==newM.text||oldM.mediaUrl!==newM.mediaUrl||oldM.enc!==newM.enc||oldM.type!==newM.type||oldM.contentFlag!==newM.contentFlag||oldM.mediaMode!==newM.mediaMode||oldM.viewedByJson!==newM.viewedByJson||oldM.viewedAt!==newM.viewedAt;
+  // "Vu" peut déplacer l'étiquette d'un message à un autre (computeSeenInfo
+  // dépend de l'ensemble du fil, pas juste de CE message) — repli sur le
+  // rendu complet existant pour ce cas précis seulement, plus simple que de
+  // tenter un patch multi-messages, et bien plus rare qu'une réaction.
+  const seenChanged=oldM.seenAt!==newM.seenAt||JSON.stringify(oldM.seenBy||[])!==JSON.stringify(newM.seenBy||[]);
+  if(seenChanged){renderMessages();return}
+  if(bodyChanged){
+    if(newM.enc)delete decryptedMsgCache[newM.\$id];
+    rebuildSingleDmMessageDom(newM);
+    return;
+  }
+  patchMessageMetaInPlace(el,newM,'dm');
 }
 function safeUrl(u){
   u=String(u||'');
@@ -14535,40 +14589,62 @@ async function attemptDecryptMessageText(m){
     return await e2eDecryptTextWithKey(key,m.text);
   }catch(e){return '';}
 }
+// mid -> {ciphertext, result:{ok,text,mediaUrl}} — un message déjà déchiffré
+// pour CE contenu précis (ciphertext inchangé) n'a plus jamais besoin d'être
+// redéchiffré. Avant ce cache, hydrateEncryptedMessages() redéchiffrait
+// TOUT le fil depuis zéro à chaque appel — et elle est appelée à chaque
+// rendu complet — donc à chaque réaction, chaque nouveau message, etc.
+// C'était la cause principale du scintillement remonté ("les messages se
+// rafraîchissent... doivent se redéchiffrer à chaque interaction") : un
+// simple emoji de réaction déclenchait le redéchiffrement séquentiel de
+// dizaines de messages (dont des médias, coûteux à déchiffrer). Les blobs
+// déjà décodés (URL.createObjectURL) restent valables tant que l'onglet
+// est ouvert, donc les réutiliser est aussi correct que rapide.
+let decryptedMsgCache={};
 async function hydrateEncryptedMessages(){
   const forDm=activeDm;
   if(!forDm)return;
+  const box=\$('msgs');if(!box)return;
   const targets=msgsCache.filter(function(m){return m.enc});
   for(const m of targets){
     if(activeDm!==forDm)return;
-    let result=await attemptDecryptMessage(m);
-    if(!result.ok){
-      // La clé mise en cache pour cet expéditeur peut être périmée — par
-      // exemple si SON appareil a régénéré/restauré sa clé pendant que cet
-      // onglet restait ouvert. On force une nouvelle lecture de sa clé
-      // publique et on retente une seule fois avant d'abandonner, plutôt que
-      // de laisser le message "illisible" jusqu'au prochain rechargement.
-      invalidateE2EPeerCache(m.uid);
-      invalidateE2EPeerCache(activeDmPeerUid);
-      result=await attemptDecryptMessage(m);
-    }
-    if(activeDm!==forDm)return;
-    const box=\$('msgs');if(!box)return;
     const wrap=box.querySelector('.msg[data-mid="'+m.\$id+'"] .bub');
     if(!wrap)continue;
+    // Ce wrap précis affiche-t-il déjà le bon contenu ? (dataset survit tant
+    // que l'élément DOM n'a pas été recréé par un rendu complet.)
+    if(wrap.dataset.hydratedFor===m.text)continue;
+    const cached=decryptedMsgCache[m.\$id];
+    let result;
+    if(cached&&cached.ciphertext===m.text){
+      result=cached.result;
+    }else{
+      result=await attemptDecryptMessage(m);
+      if(!result.ok){
+        // La clé mise en cache pour cet expéditeur peut être périmée — par
+        // exemple si SON appareil a régénéré/restauré sa clé pendant que cet
+        // onglet restait ouvert. On force une nouvelle lecture de sa clé
+        // publique et on retente une seule fois avant d'abandonner, plutôt
+        // que de laisser le message "illisible" jusqu'au prochain
+        // rechargement.
+        invalidateE2EPeerCache(m.uid);
+        invalidateE2EPeerCache(activeDmPeerUid);
+        result=await attemptDecryptMessage(m);
+      }
+      if(activeDm!==forDm)return;
+      decryptedMsgCache[m.\$id]={ciphertext:m.text,result:result};
+    }
     // Quasi tous les messages DM sont chiffrés (🔒) : ce qui s'affiche au
     // premier rendu n'est qu'un placeholder ("Déchiffrement…"), et le VRAI
     // contenu (souvent plus grand — image, vidéo, fichier) ne remplace ce
-    // placeholder qu'ici, un message à la fois, une fois déchiffré — bien
-    // après que renderMessages() a déjà figé le scroll en bas. Sans ce
-    // repositionnement, la hauteur réelle du fil grandit sous le lecteur
-    // sans que la vue ne suive, exactement le bug remonté ("ça marche
-    // parfois mais pas toujours"). On capture "était-on en bas" juste
-    // AVANT ce remplacement précis (pas après, où le diff de hauteur vient
-    // justement de changer) et on s'y tient.
+    // placeholder qu'ici — bien après que renderMessages() a déjà figé le
+    // scroll en bas. Sans ce repositionnement, la hauteur réelle du fil
+    // grandit sous le lecteur sans que la vue ne suive. On capture "était-on
+    // en bas" juste AVANT ce remplacement précis (pas après, où le diff de
+    // hauteur vient justement de changer) et on s'y tient.
     const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
-    if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';if(stick)box.scrollTop=box.scrollHeight;continue}
+    if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';wrap.dataset.hydratedFor=m.text;if(stick)box.scrollTop=box.scrollHeight;continue}
     wrap.innerHTML=applySpoilerGate(m,renderMsgBody(m,result.text,result.mediaUrl));
+    wrap.dataset.hydratedFor=m.text;
     wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     wireSnapPlaceholders(wrap);
@@ -14715,6 +14791,43 @@ function msgReactionsHtml(reactionsJson,onToggleAttr){
     return '<button type="button" class="reaction-pill'+(mine?' mine':'')+'" '+onToggleAttr+'="'+esc(emo)+'">'+esc(emo)+' <span>'+uids.length+'</span></button>';
   }).join('')+'</div>';
 }
+// Patch une réaction/un épinglage sur un message DÉJÀ affiché, sans toucher
+// ni au texte/média ni à aucun autre message — utilisé par
+// applyDmMessageUpdate/applyChannelMessageUpdate pour les changements qui
+// ne modifient jamais le contenu réel du message (donc jamais besoin de le
+// redéchiffrer ni de le reconstruire).
+function patchMessageMetaInPlace(el,newM,kind){
+  const bub=el.querySelector('.bub');if(!bub)return;
+  const toggleAttr=kind==='dm'?'data-react-toggle':'data-chan-react-toggle';
+  const newReactHtml=msgReactionsHtml(newM.reactionsJson,toggleAttr);
+  const existingReactEl=el.querySelector('.msg-reactions');
+  if(newReactHtml){
+    if(existingReactEl)existingReactEl.outerHTML=newReactHtml;
+    else bub.insertAdjacentHTML('afterend',newReactHtml);
+  }else if(existingReactEl){
+    existingReactEl.remove();
+  }
+  const freshReactEl=el.querySelector('.msg-reactions');
+  if(freshReactEl){
+    freshReactEl.querySelectorAll('['+toggleAttr+']').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        const mid=el.getAttribute('data-mid');
+        const list=kind==='dm'?msgsCache:activeChannelMessages;
+        const m=list.find(function(x){return x.\$id===mid});
+        if(!m)return;
+        if(kind==='dm')toggleDmReaction(m,btn.getAttribute(toggleAttr));
+        else toggleChannelReaction(m,btn.getAttribute(toggleAttr));
+      });
+    });
+  }
+  const metaEl=el.querySelector('.meta');
+  if(metaEl){
+    const hasPinIcon=metaEl.innerHTML.indexOf('📌')>=0;
+    if(newM.pinned&&!hasPinIcon)metaEl.insertAdjacentHTML('beforeend',' 📌');
+    else if(!newM.pinned&&hasPinIcon)metaEl.innerHTML=metaEl.innerHTML.replace(/\s*📌/,'');
+  }
+}
 function msgReplyQuoteHtml(replyToId,findFn){
   if(!replyToId)return '';
   const orig=findFn(replyToId);
@@ -14828,8 +14941,25 @@ async function saveMessageEdit(){
     const r=await authPost('/api/dms/messages/edit',{messageId:mid,text:payloadText,enc:enc});
     const idx=msgsCache.findIndex(function(x){return x.\$id===mid});
     if(idx>=0)msgsCache[idx]=r.message;
-    renderMessages();
+    delete decryptedMsgCache[mid];
+    rebuildSingleDmMessageDom(r.message);
   }catch(e){showToast((e&&e.message)||'Modification impossible','error');}
+}
+// Reconstruit UN SEUL message DM déjà affiché (édition, snap qui vient
+// d'être ouvert…) sans reconstruire ni redéchiffrer le reste du fil — même
+// principe que rebuildSingleChannelMessageDom côté salon.
+function rebuildSingleDmMessageDom(m){
+  const box=\$('msgs');if(!box)return;
+  const el=box.querySelector('.msg[data-mid="'+m.\$id+'"]');
+  if(!el)return;
+  const seenInfo=computeSeenInfo();
+  const temp=document.createElement('div');
+  temp.innerHTML=buildMsgsHtml([m],seenInfo,false);
+  const newEl=temp.firstElementChild;
+  if(!newEl)return;
+  wireMsgContainer(temp);
+  el.replaceWith(newEl);
+  if(m.enc)hydrateEncryptedMessages();
 }
 async function saveChannelMessageEdit(){
   const mid=editingChanMsgId;if(!mid)return;
@@ -15052,7 +15182,11 @@ async function toggleDmReaction(m,emoji){
     m.reactionsJson=reactionsJson;
     const cached=msgsCache.find(function(x){return x.\$id===m.\$id});
     if(cached)cached.reactionsJson=reactionsJson;
-    renderMessages();
+    // Patch ciblé (voir patchMessageMetaInPlace) plutôt qu'un renderMessages()
+    // complet : réagir à un message ne change ni son texte ni son média,
+    // aucune raison de reconstruire/redéchiffrer tout le fil pour ça.
+    const el=document.querySelector('.msg[data-mid="'+m.\$id+'"]');
+    if(el)patchMessageMetaInPlace(el,cached||m,'dm');
   }catch(e){showToast('Action impossible','error');}
 }
 async function toggleDmPin(m){
@@ -15067,7 +15201,8 @@ async function toggleDmPin(m){
     const cached=msgsCache.find(function(x){return x.\$id===m.\$id});
     if(cached)cached.pinned=newPinned;
     showToast(newPinned?'Message épinglé.':'Message désépinglé.');
-    renderMessages();
+    const el=document.querySelector('.msg[data-mid="'+m.\$id+'"]');
+    if(el)patchMessageMetaInPlace(el,cached||m,'dm');
   }catch(e){showToast('Action impossible','error');}
 }
 async function openPinnedMessages(kind){
@@ -15196,7 +15331,8 @@ async function toggleChannelPin(m){
     const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
     if(cached)cached.pinned=m.pinned;
     showToast(m.pinned?'Message épinglé.':'Message désépinglé.');
-    renderChannelMessages();
+    const el=document.querySelector('.msg[data-mid="'+m.\$id+'"]');
+    if(el)patchMessageMetaInPlace(el,cached||m,'channel');
   }catch(e){showToast((e&&e.message)||'Action impossible','error');}
 }
 // Clic droit (souris) ET appui long (tactile) : les deux déclenchent le même
@@ -26882,15 +27018,14 @@ async function loadChannelMessages(){
     if(String(payload.threadId||'')!==String(forThread))return;
     if(eventIs(res.events,'.create')){
       activeChannelMessages.push(payload);
-      renderChannelMessages();
+      appendChannelMessagesIncremental([payload]);
     }else if(eventIs(res.events,'.delete')){
       playMsgDissolve(payload.\$id,function(){
         activeChannelMessages=activeChannelMessages.filter(function(m){return m.\$id!==payload.\$id});
         renderChannelMessages();
       });
     }else if(eventIs(res.events,'.update')){
-      const idx=activeChannelMessages.findIndex(function(m){return m.\$id===payload.\$id});
-      if(idx>=0){activeChannelMessages[idx]=payload;renderChannelMessages();}
+      applyChannelMessageUpdate(payload);
     }
   });
 }
@@ -26942,53 +27077,52 @@ function renderBotComponentsHtml(componentsJson,messageId){
     return '<button type="button" class="msg-bot-btn msg-bot-btn-'+esc(c.s||'secondary')+'" data-bot-component="'+esc(c.id||'')+'" data-bot-mid="'+esc(messageId||'')+'">'+esc(c.l||'Bouton')+'</button>';
   }).join('')+'</div>';
 }
-function renderChannelMessages(stagger){
-  const box=\$('srv-chan-msgs');if(!box)return;
-  if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
-  const chanMsgCount=activeChannelMessages.length;
-  box.innerHTML=activeChannelMessages.map(function(m,mi){
-    const distFromEnd=Math.min(chanMsgCount-1-mi,20);
-    const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
-    const stackClass=stagger?' stack-in':'';
-    if(m.type==='sysshot')return '<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.username||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
-    const mine=me&&String(m.uid)===String(me.\$id);
-    const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
-    const authorColor=authorMember?serverTopRoleColor(authorMember):null;
-    const isWebhook=typeof m.uid==='string'&&m.uid.indexOf('webhook:')===0;
-    const isCrosspost=typeof m.uid==='string'&&m.uid.indexOf('crosspost:')===0;
-    const isBot=!!m.isBot;
-    const isSynthetic=isWebhook||isCrosspost||isBot;
-    const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
-    const authorAv=safeUrl(m.avatarUrl)||safeUrl(authorProfile&&authorProfile.avatar);
-    const name=m.username||'Membre';
-    const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
-    const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
-    const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
-    const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
-    const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel())))));
-    const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
-    const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
-    const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
-    const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
-    return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
-      +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
-  }).join('');
-  box.scrollTop=box.scrollHeight;
-  box.querySelectorAll('.msg-media img').forEach(function(el){
+function buildChannelMsgHtml(m,stackClass,stackStyle){
+  if(m.type==='sysshot')return '<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.username||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
+  const mine=me&&String(m.uid)===String(me.\$id);
+  const authorMember=activeServerMembers.find(function(x){return String(x.uid)===String(m.uid)});
+  const authorColor=authorMember?serverTopRoleColor(authorMember):null;
+  const isWebhook=typeof m.uid==='string'&&m.uid.indexOf('webhook:')===0;
+  const isCrosspost=typeof m.uid==='string'&&m.uid.indexOf('crosspost:')===0;
+  const isBot=!!m.isBot;
+  const isSynthetic=isWebhook||isCrosspost||isBot;
+  const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(m.uid);});
+  const authorAv=safeUrl(m.avatarUrl)||safeUrl(authorProfile&&authorProfile.avatar);
+  const name=m.username||'Membre';
+  const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc(ini(name));
+  const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
+  const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
+  const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
+  const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel())))));
+  const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
+  const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
+  const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
+  const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
+  return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+    +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+    +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
+}
+// Câblage des interactions d'un lot de messages de salon déjà dans le DOM —
+// factorisé pour être appelé aussi bien sur tout #srv-chan-msgs (rendu
+// complet) que sur un conteneur temporaire ne contenant qu'un seul message
+// tout juste ajouté/mis à jour (voir appendChannelMessagesIncremental /
+// applyChannelMessageUpdate ci-dessous), sans jamais retoucher les messages
+// déjà affichés.
+function wireChannelMsgContainer(container){
+  container.querySelectorAll('.msg-media img').forEach(function(el){
     el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
-  box.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
-  wireSpoilerGates(box);
-  mountLinkPreviews(box);
-  box.querySelectorAll('[data-profile]').forEach(function(el){
+  container.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
+  wireSpoilerGates(container);
+  mountLinkPreviews(container);
+  container.querySelectorAll('[data-profile]').forEach(function(el){
     el.style.cursor='pointer';
     el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-profile'));});
   });
-  box.querySelectorAll('[data-scroll-reply]').forEach(function(el){
+  container.querySelectorAll('[data-scroll-reply]').forEach(function(el){
     el.addEventListener('click',function(){scrollToMessage(el.getAttribute('data-scroll-reply'));});
   });
-  box.querySelectorAll('[data-open-thread]').forEach(function(el){
+  container.querySelectorAll('[data-open-thread]').forEach(function(el){
     el.addEventListener('click',function(e){
       e.stopPropagation();
       const tid=el.getAttribute('data-open-thread');
@@ -26996,7 +27130,7 @@ function renderChannelMessages(stagger){
       if(t)openThread(t);
     });
   });
-  box.querySelectorAll('[data-chan-react-toggle]').forEach(function(el){
+  container.querySelectorAll('[data-chan-react-toggle]').forEach(function(el){
     el.addEventListener('click',function(e){
       e.stopPropagation();
       const mid=el.closest('.msg').getAttribute('data-mid');
@@ -27004,7 +27138,7 @@ function renderChannelMessages(stagger){
       if(m)toggleChannelReaction(m,el.getAttribute('data-chan-react-toggle'));
     });
   });
-  box.querySelectorAll('[data-poll-vote]').forEach(function(el){
+  container.querySelectorAll('[data-poll-vote]').forEach(function(el){
     if(el.classList.contains('ended'))return;
     el.addEventListener('click',function(e){
       e.stopPropagation();
@@ -27013,7 +27147,7 @@ function renderChannelMessages(stagger){
       if(m)toggleChannelVote(m,parseInt(el.getAttribute('data-poll-vote'),10));
     });
   });
-  box.querySelectorAll('.msg[data-mid]').forEach(function(el){
+  container.querySelectorAll('.msg[data-mid]').forEach(function(el){
     const m=activeChannelMessages.find(function(x){return x.\$id===el.getAttribute('data-mid')});
     if(!m)return;
     const btn=el.querySelector('[data-chan-menu]');
@@ -27021,13 +27155,59 @@ function renderChannelMessages(stagger){
     attachMsgSwipe(el,m,'channel');
     attachMsgContextMenu(el,m,'channel');
   });
-  box.querySelectorAll('[data-bot-component]').forEach(function(btn){
+  container.querySelectorAll('[data-bot-component]').forEach(function(btn){
     btn.addEventListener('click',function(e){
       e.stopPropagation();
       triggerBotComponent(btn.getAttribute('data-bot-mid'),btn.getAttribute('data-bot-component'),btn);
     });
   });
+}
+function renderChannelMessages(stagger){
+  const box=\$('srv-chan-msgs');if(!box)return;
+  if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
+  const chanMsgCount=activeChannelMessages.length;
+  box.innerHTML=activeChannelMessages.map(function(m,mi){
+    const distFromEnd=Math.min(chanMsgCount-1-mi,20);
+    const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
+    const stackClass=stagger?' stack-in':'';
+    return buildChannelMsgHtml(m,stackClass,stackStyle);
+  }).join('');
+  box.scrollTop=box.scrollHeight;
+  wireChannelMsgContainer(box);
   pinScrollBottomAfterImages(box);
+}
+// Ajoute un lot de nouveaux messages de salon SANS reconstruire tout
+// #srv-chan-msgs (voir appendMessagesToDomIncremental côté DM, même
+// principe) — évite le rechargement visuel de tous les médias déjà
+// affichés à chaque nouveau message reçu en temps réel.
+function appendChannelMessagesIncremental(fresh){
+  const box=\$('srv-chan-msgs');if(!box)return;
+  if(!activeChannelMessages.length||box.querySelector('.empty-hint')){renderChannelMessages();return}
+  const wasNearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  const temp=document.createElement('div');
+  temp.innerHTML=fresh.map(function(m){return buildChannelMsgHtml(m,'','');}).join('');
+  const nodes=Array.prototype.slice.call(temp.children);
+  wireChannelMsgContainer(temp);
+  nodes.forEach(function(n){box.appendChild(n);});
+  if(wasNearBottom){box.scrollTop=box.scrollHeight;pinScrollBottomAfterImages(box);}
+}
+// Met à jour UN SEUL message de salon déjà affiché (réaction, épinglage,
+// vote de sondage, édition…) sans reconstruire ni retoucher les autres —
+// corrige le scintillement remonté ("les messages se rafraîchissent à
+// chaque interaction") : avant, la moindre réaction déclenchait un
+// renderChannelMessages() complet (tous les messages, tous les médias
+// rechargés visuellement) pour un seul emoji qui change.
+function applyChannelMessageUpdate(newM){
+  const box=\$('srv-chan-msgs');if(!box)return;
+  const idx=activeChannelMessages.findIndex(function(x){return x.\$id===newM.\$id;});
+  if(idx<0)return;
+  const oldM=activeChannelMessages[idx];
+  activeChannelMessages[idx]=newM;
+  const el=box.querySelector('.msg[data-mid="'+newM.\$id+'"]');
+  if(!el)return;
+  const bodyChanged=oldM.text!==newM.text||oldM.mediaUrl!==newM.mediaUrl||oldM.type!==newM.type||oldM.contentFlag!==newM.contentFlag||oldM.pollJson!==newM.pollJson;
+  if(bodyChanged){rebuildSingleChannelMessageDom(newM);return}
+  patchMessageMetaInPlace(el,newM,'channel');
 }
 async function triggerBotComponent(messageId,customId,btnEl){
   const m=activeChannelMessages.find(function(x){return x.\$id===messageId});
@@ -27093,8 +27273,22 @@ async function toggleChannelReaction(m,emoji){
     m.reactionsJson=r.reactionsJson||'{}';
     const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
     if(cached)cached.reactionsJson=m.reactionsJson;
-    renderChannelMessages();
+    const el=document.querySelector('.msg[data-mid="'+m.\$id+'"]');
+    if(el)patchMessageMetaInPlace(el,cached||m,'channel');
   }catch(e){showToast((e&&e.message)||'Action impossible','error');}
+}
+// Un vote change réellement le contenu affiché (compteurs, barre de
+// progression) — seul CE message est reconstruit (voir buildChannelMsgHtml/
+// wireChannelMsgContainer), jamais tout le salon.
+function rebuildSingleChannelMessageDom(m){
+  const el=document.querySelector('.msg[data-mid="'+m.\$id+'"]');
+  if(!el)return;
+  const temp=document.createElement('div');
+  temp.innerHTML=buildChannelMsgHtml(m,'','');
+  const newEl=temp.firstElementChild;
+  if(!newEl)return;
+  wireChannelMsgContainer(temp);
+  el.replaceWith(newEl);
 }
 async function toggleChannelVote(m,optionIndex){
   try{
@@ -27102,7 +27296,7 @@ async function toggleChannelVote(m,optionIndex){
     m.pollJson=r.message.pollJson;
     const cached=activeChannelMessages.find(function(x){return x.\$id===m.\$id});
     if(cached)cached.pollJson=m.pollJson;
-    renderChannelMessages();
+    rebuildSingleChannelMessageDom(cached||m);
   }catch(e){showToast((e&&e.message)||'Vote impossible','error');}
 }
 function confirmDeleteChannelMessage(m){
