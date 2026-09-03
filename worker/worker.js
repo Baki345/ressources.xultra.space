@@ -4333,7 +4333,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-shop" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
+    <button type="button" class="rail-btn changelog-staff-only hidden" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
     <button type="button" class="rail-btn" id="nav-suggestions" data-i18n-title="nav_suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-team" data-i18n-title="nav_team" title="Équipe & Badges"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M9 13.3L7 21l5-2.6L17 21l-2-7.7"/></svg></button>
   </nav>
@@ -4379,7 +4379,7 @@ a.bug-att-item{display:block}
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
         <button type="button" id="ub-status-mobile" class="mobile-only-menu-item">🖥️ État du système</button>
-        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item">📋 Nouveautés<span class="mobile-menu-dot hidden" id="ub-changelog-mobile-dot"></span></button>
+        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item changelog-staff-only hidden">📋 Nouveautés<span class="mobile-menu-dot hidden" id="ub-changelog-mobile-dot"></span></button>
         <button type="button" id="ub-suggestions-mobile" class="mobile-only-menu-item">💡 Boîte à idées</button>
         <button type="button" id="ub-team-mobile" class="mobile-only-menu-item">🏅 Équipe & Badges</button>
         <button type="button" id="ub-push">🔕 Activer les notifications</button>
@@ -4423,7 +4423,7 @@ a.bug-att-item{display:block}
           <button type="button" data-attach="snap">👻<span>Ephem (vu une fois)</span></button>
           <button type="button" data-attach="file">📄<span>Fichier</span></button>
           <button type="button" data-attach="gif">🎞️<span>GIF</span></button>
-          <button type="button" data-attach="location">📍<span>Position</span></button>
+          <button type="button" data-attach="location" class="location-share-paused hidden">📍<span>Position</span></button>
         </div>
         <div class="voice-record" id="voice-record">
           <span class="vr-mic">🎤</span>
@@ -7993,6 +7993,7 @@ function updateChangelogBadge(){
   const mobileDot=\$('ub-changelog-mobile-dot');if(mobileDot)mobileDot.classList.toggle('hidden',!isNew);
 }
 function openChangelogPanel(){
+  if(!canSeeChangelog)return;
   \$('modal-changelog').classList.remove('hidden');
   renderChangelog();
   try{localStorage.setItem('xultra_last_seen_changelog',(CHANGELOG[0]&&CHANGELOG[0].version)||'');}catch(e){}
@@ -9269,9 +9270,14 @@ function renderSettingsSidebar(){
   const nav=\$('settings-sidebar');if(!nav)return;
   const SETTINGS_GROUP_LABEL_KEYS={'Compte':'setgrp_account','Application':'setgrp_application','Développeurs':'setgrp_developers'};
   nav.innerHTML=SETTINGS_GROUPS.map(function(g){
+    // "Notes de version" (changelog) : réservé équipe (owner/mod/support/dev),
+    // voir canSeeChangelog / checkAdmin() — un membre normal ne doit même pas
+    // voir l'entrée dans le menu, pas seulement se la faire refuser au clic.
+    const items=g.items.filter(function(it){return it.key!=='changelog'||canSeeChangelog;});
+    if(!items.length)return '';
     return '<div class="settings-sidebar-group">'
       +(g.label?'<div class="settings-sidebar-label">'+esc(t(SETTINGS_GROUP_LABEL_KEYS[g.label]||'',g.label))+'</div>':'')
-      +g.items.map(function(it){
+      +items.map(function(it){
         return '<button type="button" class="settings-nav-btn'+(it.key===settingsActiveKey?' on':'')+'" data-set-key="'+it.key+'"><span class="snb-ico">'+it.icon+'</span>'+esc(t('set_'+it.key,it.title))+'</button>';
       }).join('')
       +'</div>';
@@ -14032,6 +14038,7 @@ async function loadOlderMessages(){
 // l'historique déjà remonté via loadOlderMessages() plus haut dans la liste.
 async function appendNewMessages(){
   if(!activeDm||!me)return;
+  let hasFresh=false;
   try{
     const r=await db.listDocuments(DB,'dms_messages',[Appwrite.Query.equal('threadId',activeDm),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(20)]);
     const raw=(r.documents||[]).slice().reverse();
@@ -14043,7 +14050,8 @@ async function appendNewMessages(){
       if(blockedUids.indexOf(String(m.uid))>=0)return false;
       return true;
     });
-    if(fresh.length){
+    hasFresh=fresh.length>0;
+    if(hasFresh){
       msgsCache=msgsCache.concat(fresh);
     }else{
       raw.forEach(function(m){
@@ -14052,7 +14060,14 @@ async function appendNewMessages(){
       });
     }
   }catch(e){xlog('append_msgs_fail',{msg:(e&&e.message)||String(e)});return;}
-  renderMessages();
+  // Demandé explicitement : le fil descend TOUJOURS tout en bas dès qu'un
+  // nouveau message arrive dans la conversation ouverte (envoyé par soi ou
+  // reçu en temps réel) — plus de dépendance à l'heuristique "était-on déjà
+  // en bas" (box.scrollHeight-scrollTop-clientHeight<80) qui pouvait laisser
+  // le fil remonter et obliger à redescendre à la main à chaque message.
+  // Un simple rafraîchissement de messages déjà connus (réaction, "vu"...,
+  // sans nouveau message) garde lui le comportement précédent.
+  renderMessages(hasFresh?true:undefined);
 }
 function safeUrl(u){
   u=String(u||'');
@@ -16013,6 +16028,7 @@ async function sendGif(gifUrl){
 }
 
 function shareLocation(){
+  if(LOCATION_SHARING_PAUSED){showToast('Le partage de position est temporairement désactivé.','error');return}
   if(!activeDm&&!(activeServer&&activeChannel)){alert('Ouvre une conversation ou un salon.');return}
   if(!navigator.geolocation){alert('Géolocalisation non supportée sur cet appareil.');return}
   navigator.geolocation.getCurrentPosition(async function(pos){
@@ -16655,7 +16671,7 @@ function mapFriendAvatarIcon(friend){
 async function renderDiscoverMap(){
   const box=\$('discover-body');if(!box)return;
   box.innerHTML='<div id="discover-map" style="height:calc(100dvh - 190px);position:relative"></div>'
-    +'<button type="button" class="set-mini-btn" id="discover-map-share-btn" style="position:absolute;top:12px;right:12px;z-index:1000"></button>';
+    +'<button type="button" class="set-mini-btn location-share-paused hidden" id="discover-map-share-btn" style="position:absolute;top:12px;right:12px;z-index:1000"></button>';
   updateLocationShareBtnLabel();
   \$('discover-map-share-btn').addEventListener('click',openLocationShareSheet);
   try{await ensureLeafletLoaded();}
@@ -16711,8 +16727,16 @@ function updateLocationShareBtnLabel(){
   btn.textContent=myLocationSharingOn?'📍 Je partage ma position':'📍 Partager ma position';
   btn.classList.toggle('on',myLocationSharingOn);
 }
+// Partage de position — EN PAUSE (demande explicite) : toute la logique
+// reste intacte ci-dessous pour une réactivation facile plus tard (il suffit
+// de repasser ce flag à false), seuls les points d'entrée UI et la reprise
+// automatique au démarrage sont coupés. Ne touche pas aux préférences déjà
+// enregistrées (location_shares.sharing) : un membre qui avait activé le
+// partage avant la pause le retrouvera tel quel si la fonctionnalité revient.
+const LOCATION_SHARING_PAUSED=true;
 let myLocationSharingOn=false,myLocationRefreshTimer=null;
 async function resumeMyLocationSharingIfEnabled(){
+  if(LOCATION_SHARING_PAUSED)return;
   try{
     const r=await authGet('/api/location/my-settings');
     if(r&&r.sharing){myLocationSharingOn=true;startMyLocationRefreshLoop();}
@@ -16747,6 +16771,7 @@ function sendMyLocationOnce(){
   });
 }
 async function openLocationShareSheet(){
+  if(LOCATION_SHARING_PAUSED){showToast('Le partage de position est temporairement désactivé.','error');return}
   let settings={sharing:false,visibleTo:[]};
   try{settings=await authGet('/api/location/my-settings');}catch(e){}
   const accepted=friendsCache.filter(function(f){return f.status==='accepted';});
@@ -22261,7 +22286,7 @@ if(\$('fq'))\$('fq').addEventListener('input',async function(){
   }catch(e){xlog('friend_search_fail',{msg:(e&&e.message)||String(e)});}
 });
 
-let isAdmin=false, staffRole='member', adminTab='dashboard';
+let isAdmin=false, staffRole='member', adminTab='dashboard', canSeeChangelog=false;
 // Un JWT Appwrite est valide ~15min, mais authJwt() était appelé sans cache à
 // CHAQUE authGet/authPost : chaque appel à /api/... coûtait donc 2 aller-retours
 // réseau (création du JWT auprès d'Appwrite, PUIS la requête elle-même) au lieu
@@ -22483,6 +22508,15 @@ async function checkAdmin(){
   });
   if(badgeRoleTab)adminTab=badgeRoleTab;
   xlog('admin_check',{isAdmin:isAdmin,role:staffRole});
+  // Nouveautés (changelog) : réservé à l'équipe (owner/mod/support via
+  // staffRole, + le badge 🧑‍💻 dev) — plus un contenu public. Le contenu du
+  // changelog reste dans le bundle JS (pas de vraie donnée sensible, juste
+  // du texte), donc ceci masque l'accès plutôt que de le protéger comme un
+  // vrai secret — voir aussi le garde-fou dans openChangelogPanel().
+  let devBadge=false;
+  try{devBadge=(await getMyBadges()).indexOf('dev')>=0;}catch(e){}
+  canSeeChangelog=staffRole==='owner'||staffRole==='mod'||staffRole==='support'||devBadge;
+  document.querySelectorAll('.changelog-staff-only').forEach(function(b){b.classList.toggle('hidden',!canSeeChangelog)});
 }
 if(\$('btn-admin-back'))\$('btn-admin-back').addEventListener('click',function(){document.getElementById('app').classList.remove('chat-open');});
 document.querySelectorAll('.admin-subtab').forEach(function(b){
@@ -25940,7 +25974,7 @@ function srvChanComposerHtml(placeholder,disabled,includePoll){
       +'<button type="button" data-chan-attach="image">🖼️<span>Photo / Vidéo</span></button>'
       +'<button type="button" data-chan-attach="file">📄<span>Fichier</span></button>'
       +'<button type="button" data-chan-attach="gif">🎞️<span>GIF</span></button>'
-      +'<button type="button" data-chan-attach="location">📍<span>Position</span></button>'
+      +'<button type="button" data-chan-attach="location" class="location-share-paused hidden">📍<span>Position</span></button>'
     +'</div>'
     +'<div class="voice-record" id="srv-voice-record">'
       +'<span class="vr-mic">🎤</span>'
