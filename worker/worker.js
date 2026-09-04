@@ -4209,6 +4209,22 @@ a.bug-att-item{display:block}
 .settings-account-head .sah-tag{font-size:.78rem;color:var(--muted)}
 .settings-danger{border-color:rgba(239,68,68,.25)!important}
 .settings-danger .set-section-label{color:#fca5a5}
+.srv-settings-header{margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.07)}
+.srv-settings-header .ssh-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#a78bfa}
+.srv-settings-header h2{font-size:1.5rem;font-weight:900;margin:4px 0 6px;background:linear-gradient(135deg,#f2ebff,#c4b5fd,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.01em}
+.srv-settings-header .ssh-sub{font-size:.82rem;color:var(--muted);max-width:560px;line-height:1.5}
+.srv-settings-header .ssh-badge{display:inline-flex;align-items:center;gap:7px;margin-top:14px;padding:5px 13px;border-radius:999px;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.35);color:#86efac;font-size:.66rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.srv-settings-header .ssh-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:srvSettingsPulse 1.8s ease-in-out infinite}
+@keyframes srvSettingsPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.55)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+.srv-settings-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;align-items:start}
+.srv-settings-cat.wide{grid-column:1/-1}
+.srv-settings-cat-label{font-size:.68rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#c4b5fd;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.srv-settings-cat-grid{display:flex;flex-direction:column;gap:16px}
+.srv-settings-cat .set-card{margin-bottom:0;background:linear-gradient(165deg,rgba(124,58,237,.07),rgba(255,255,255,.025));border-color:rgba(167,139,250,.14);transition:border-color .15s ease}
+.srv-settings-cat .set-card:hover{border-color:rgba(167,139,250,.28)}
+.srv-settings-cat .set-card.settings-danger{background:linear-gradient(165deg,rgba(239,68,68,.08),rgba(255,255,255,.02))}
+@media (max-width:760px){.srv-settings-grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.srv-settings-header .ssh-dot{animation:none}}
 .conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
 .conn-item{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);flex-wrap:wrap}
 .conn-item.unavailable{opacity:.5}
@@ -7590,6 +7606,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.51',category:'design',date:'4 septembre 2026',time:'06:00',title:'⚙️ Paramètres du serveur : refonte en tableau de bord par catégorie',
+    body:'La page Paramètres d\\'un serveur (pour les propriétaires/rôles concernés) passe d\\'une longue liste verticale à un vrai tableau de bord : en-tête avec le nom du serveur, puis toutes tes fonctionnalités déjà existantes (Général, Modération, Communauté & Accueil, Personnalisation, Identité, Intégrations, Croissance, Qualité X1+, Zone dangereuse) triées par catégorie et affichées en grille sur deux colonnes, dans les couleurs violettes/roses de X1. Aucune fonctionnalité déplacée ou modifiée — seulement mieux organisée et plus agréable à parcourir.'},
   {version:'4.55.50',category:'feature',date:'4 septembre 2026',time:'05:00',title:'🖼️ Plusieurs médias envoyés ensemble = un seul message groupé en grille',
     body:'Envoyer plusieurs photos/vidéos sélectionnées ensemble en DM ne crée plus une suite de messages séparés : elles arrivent en UN SEUL message, affiché en grille dans un cadre — chaque média reste cliquable individuellement (une photo ouvre son propre aperçu en grand, une vidéo garde ses propres contrôles). Jusqu\\'à 6 médias par message groupé.'},
   {version:'4.55.49',category:'fix',date:'4 septembre 2026',time:'04:00',title:'🩹 Fini le scintillement des messages : réagir ou recevoir un message ne redéchiffre/reconstruit plus tout le fil',
@@ -28708,6 +28726,53 @@ function automodWordsHtml(json){
   }).join('');
 }
 let srvWebhooksCache=[],srvChannelFollowsCache=[],srvGuildPageCache=null;
+// Refonte demandée explicitement (référence fournie) : les ~17 cartes de
+// réglages serveur (déjà là, chacune avec son propre id/logique intacts —
+// voir data-cat posé sur chacune plus bas) sont triées par catégorie et
+// affichées en grille 2 colonnes façon tableau de bord, plutôt qu'en simple
+// pile verticale. Purement une réorganisation du DOM après coup (jamais une
+// réécriture du HTML de chaque carte) : zéro risque sur le câblage
+// (event listeners, ids) qui suit déjà chaque carte plus bas dans cette
+// fonction.
+const SRV_SETTINGS_CATEGORIES=[
+  {key:'general',label:'⚙️ Général',wide:true},
+  {key:'moderation',label:'🛡️ Modération'},
+  {key:'community',label:'🏛️ Communauté & Accueil'},
+  {key:'customize',label:'🎨 Personnalisation'},
+  {key:'identity',label:'🏷️ Identité'},
+  {key:'integrations',label:'🔌 Intégrations'},
+  {key:'growth',label:'🚀 Croissance'},
+  {key:'quality',label:'⭐ Qualité X1+'},
+  {key:'danger',label:'⚠️ Zone dangereuse',wide:true}
+];
+function groupServerSettingsCards(box){
+  const cards=Array.prototype.slice.call(box.querySelectorAll('.set-card[data-cat]'));
+  if(!cards.length)return;
+  const byCat={};
+  cards.forEach(function(el){const k=el.getAttribute('data-cat');(byCat[k]=byCat[k]||[]).push(el);});
+  const headerHtml='<div class="srv-settings-header"><div class="ssh-eyebrow">Configuration centrale</div><h2>Paramètres du serveur</h2>'
+    +'<div class="ssh-sub">Configure les messages, la sécurité et les modules communautaires de '+esc(activeServer.name)+'.</div>'
+    +'<div class="ssh-badge"><span class="ssh-dot"></span>Synchronisation instantanée</div></div>';
+  const gridWrap=document.createElement('div');
+  gridWrap.className='srv-settings-grid';
+  SRV_SETTINGS_CATEGORIES.forEach(function(cat){
+    const list=byCat[cat.key];
+    if(!list||!list.length)return;
+    const section=document.createElement('div');
+    section.className='srv-settings-cat'+(cat.wide?' wide':'');
+    const label=document.createElement('div');
+    label.className='srv-settings-cat-label';
+    label.textContent=cat.label;
+    section.appendChild(label);
+    const grid=document.createElement('div');
+    grid.className='srv-settings-cat-grid';
+    list.forEach(function(el){grid.appendChild(el);});
+    section.appendChild(grid);
+    gridWrap.appendChild(section);
+  });
+  box.innerHTML=headerHtml;
+  box.appendChild(gridWrap);
+}
 async function renderServerSettingsTab(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   srvIconFile=null;srvBannerFile=null;
@@ -28738,7 +28803,7 @@ async function renderServerSettingsTab(){
     try{const ownerMeta=await db.getDocument(DB,'user_meta',me.\$id);isPlus=!!(ownerMeta&&ownerMeta.plan==='plus');}catch(e){}
   }
   const upsell='<div class="srv-upsell">⭐ Nécessite X1+ (propriétaire) ou le palier de boost 2 — voir Paramètres → Abonnement, ou la section 🚀 Boosts ci-dessous</div>';
-  box.innerHTML='<div class="set-card">'
+  box.innerHTML='<div class="set-card" data-cat="general">'
     +'<div class="set-row"><label>Nom</label><input type="text" id="srv-set-name" class="field-input" maxlength="100" value="'+esc(activeServer.name)+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="srv-set-desc" class="field-input" maxlength="500" rows="3">'+esc(activeServer.description||'')+'</textarea></div>'
     +'<div class="set-row"><label>Icône</label><div class="srv-item-icon" id="srv-set-icon-preview" style="cursor:pointer">'+serverIconHtml(activeServer)+'</div><input type="file" id="srv-set-icon-file" accept="image/*" class="hidden"></div>'
@@ -28746,12 +28811,12 @@ async function renderServerSettingsTab(){
     +'<button type="button" class="btn-main" id="srv-set-save">Enregistrer</button>'
     +'<div class="err" id="srv-set-err"></div>'
     +'</div>'
-    +'<div class="set-card"><div class="set-section-label">🤖 AutoMod — mots interdits</div>'
+    +'<div class="set-card" data-cat="moderation"><div class="set-section-label">🤖 AutoMod — mots interdits</div>'
     +'<div class="scr-sub" style="margin-bottom:8px">Un message contenant l\\'un de ces mots (insensible à la casse) est bloqué automatiquement avant publication, pour tout le monde sauf la modération.</div>'
     +'<div id="srv-automod-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'+automodWordsHtml(activeServer.autoModWordsJson)+'</div>'
     +'<div style="display:flex;gap:8px"><input type="text" id="srv-automod-input" class="field-input" maxlength="40" placeholder="Ajouter un mot…"><button type="button" class="set-mini-btn" id="srv-automod-add">Ajouter</button></div>'
     +'</div>'
-    +(canWebhooks?('<div class="set-card"><div class="set-section-label">🔌 Webhooks</div>'
+    +(canWebhooks?('<div class="set-card" data-cat="integrations"><div class="set-section-label">🔌 Webhooks</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Un webhook laisse un service externe (GitHub, un script, une app…) poster des messages dans un salon texte via une simple requête, sans compte X1.</div>'
       +(srvWebhooksCache.length?srvWebhooksCache.map(function(w){
         const chan=activeServerChannels.find(function(c){return c.\$id===w.channelId;});
@@ -28761,7 +28826,7 @@ async function renderServerSettingsTab(){
       }).join(''):'<div class="scr-sub">Aucun webhook pour l\\'instant.</div>')
       +'<button type="button" class="btn-main" id="srv-wh-create-btn" style="width:100%;margin-top:8px">+ Créer un webhook</button>'
     +'</div>'):'')
-    +(canWebhooks?('<div class="set-card"><div class="set-section-label">📢 Salons d\\'annonces suivis</div>'
+    +(canWebhooks?('<div class="set-card" data-cat="integrations"><div class="set-section-label">📢 Salons d\\'annonces suivis</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Les salons 📢 Annonces d\\'autres serveurs que ce serveur suit — chaque nouveau message y est recopié automatiquement. Pour suivre un salon, ouvre-le sur son serveur d\\'origine et clique 🔗 Suivre.</div>'
       +(srvChannelFollowsCache.length?srvChannelFollowsCache.map(function(f){
         const chan=activeServerChannels.find(function(c){return c.\$id===f.targetChannelId;});
@@ -28769,12 +28834,12 @@ async function renderServerSettingsTab(){
           +'<button type="button" class="set-mini-btn danger" data-srv-follow-del="'+esc(f.\$id)+'">Désabonner</button></div>';
       }).join(''):'<div class="scr-sub">Aucun salon suivi pour l\\'instant.</div>')
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧭 Découverte</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card" data-cat="community"><div class="set-section-label">🧭 Découverte</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Rends ce serveur visible dans Découvrir des serveurs pour que n\\'importe qui puisse le trouver et le rejoindre en un clic, sans code d\\'invitation.</div>'
       +'<div class="set-toggle-row"><span>Serveur découvrable</span><div class="set-switch'+(activeServer.discoverable?' on':'')+'" id="srv-discoverable-toggle" data-on="'+(activeServer.discoverable?'1':'0')+'"></div></div>'
       +'<div class="set-row"><label>Catégorie</label><select id="srv-discoverable-category" class="field-input">'+SERVER_DISCOVERY_CATEGORIES.map(function(c){return '<option value="'+c+'"'+(activeServer.category===c?' selected':'')+'>'+SERVER_CATEGORY_LABELS[c]+'</option>';}).join('')+'</select></div>'
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🏛️ Mode Communauté</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card" data-cat="community"><div class="set-section-label">🏛️ Mode Communauté</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Oblige les nouveaux membres à lire et accepter les règles du serveur avant de pouvoir écrire (les propriétaires et la modération avec Gérer le serveur ne sont jamais bloqués).</div>'
       +'<div class="set-toggle-row"><span>Mode communauté activé</span><div class="set-switch'+(activeServer.communityMode?' on':'')+'" id="srv-community-toggle" data-on="'+(activeServer.communityMode?'1':'0')+'"></div></div>'
       +'<div class="set-row"><label>Message de bienvenue (optionnel)</label><textarea id="srv-community-welcome" class="field-input" maxlength="500" rows="2" placeholder="Bienvenue sur '+esc(activeServer.name)+' !">'+esc(activeServer.welcomeMessage||'')+'</textarea></div>'
@@ -28782,7 +28847,7 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-community-save" style="width:100%">Enregistrer</button>'
       +'<div class="err" id="srv-community-err"></div>'
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_expressions'))?('<div class="set-card"><div class="set-section-label">😀 Emojis personnalisés ('+activeServerEmojis.length+'/50)</div>'
+    +((isOwner||serverHasPermission('manage_expressions'))?('<div class="set-card" data-cat="customize"><div class="set-section-label">😀 Emojis personnalisés ('+activeServerEmojis.length+'/50)</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Ajoute des emojis propres à ce serveur, utilisables par tous les membres en tapant <code>:nom:</code> dans un salon.</div>'
       +(activeServerEmojis.length?('<div class="srv-emoji-grid">'+activeServerEmojis.map(function(em){
         return '<div class="srv-emoji-tile"><button type="button" class="srv-emoji-del" data-srv-emoji-del="'+esc(em.\$id)+'" title="Supprimer">✕</button><img src="'+esc(em.imageUrl)+'" alt=""><div class="srv-emoji-name">:'+esc(em.name)+':</div></div>';
@@ -28792,7 +28857,7 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-emoji-add" style="width:100%">+ Ajouter l\\'emoji</button>'
       +'<div class="err" id="srv-emoji-err"></div>'
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_expressions'))?('<div class="set-card"><div class="set-section-label">🖼️ Stickers ('+activeServerStickers.length+'/20)</div>'
+    +((isOwner||serverHasPermission('manage_expressions'))?('<div class="set-card" data-cat="customize"><div class="set-section-label">🖼️ Stickers ('+activeServerStickers.length+'/20)</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Des images plus grandes, postées comme un message à part entière depuis le sélecteur d\\'emoji habituel — parfait pour réagir sans un mot.</div>'
       +(activeServerStickers.length?('<div class="srv-sticker-grid">'+activeServerStickers.map(function(s){
         return '<div class="srv-sticker-tile"><button type="button" class="srv-sticker-del" data-srv-sticker-del="'+esc(s.\$id)+'" title="Supprimer">✕</button><img src="'+esc(s.imageUrl)+'" alt=""><div class="srv-sticker-name">'+esc(s.name)+'</div></div>';
@@ -28802,7 +28867,7 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="btn-main" id="srv-sticker-add" style="width:100%">+ Ajouter le sticker</button>'
       +'<div class="err" id="srv-sticker-err"></div>'
     +'</div>'):'')
-    +(isOwner?('<div class="set-card"><div class="set-section-label">🏷️ Tag du serveur</div>'
+    +(isOwner?('<div class="set-card" data-cat="identity"><div class="set-section-label">🏷️ Tag du serveur</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Un court label 100% personnalisable (2 à 10 caractères) que tes membres pourront choisir d\\'afficher à côté de leur pseudo, partout sur X1.</div>'
       +(activeServer.tagText?('<div style="margin-bottom:10px">Aperçu : '+serverTagBadgeHtml({displayedServerTag:{text:activeServer.tagText,color:activeServer.tagColor}})+'</div>'):'')
       +'<div class="set-row"><label>Texte du tag</label><input type="text" id="srv-tag-text" class="field-input" maxlength="10" value="'+esc(activeServer.tagText||'')+'" placeholder="X1"></div>'
@@ -28810,7 +28875,7 @@ async function renderServerSettingsTab(){
       +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="srv-tag-save" style="flex:1">Enregistrer</button>'+(activeServer.tagText?'<button type="button" class="set-mini-btn danger" id="srv-tag-remove">Retirer</button>':'')+'</div>'
       +'<div class="err" id="srv-tag-err"></div>'
     +'</div>'):'')
-    +((isOwner&&activeServer.tagText&&srvGuildPageCache)?('<div class="set-card"><div class="set-section-label">🎨 Page du tag</div>'
+    +((isOwner&&activeServer.tagText&&srvGuildPageCache)?('<div class="set-card" data-cat="identity"><div class="set-section-label">🎨 Page du tag</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">La petite page qui s\\'ouvre quand quelqu\\'un clique sur le tag de ce serveur — comme un badge. Décris ta guilde, choisis un thème animé ou code ton propre CSS.</div>'
       +'<div class="set-row"><label>Description</label><textarea id="gp-desc" class="field-input" maxlength="2000" rows="3">'+esc(srvGuildPageCache.description||'')+'</textarea></div>'
       +'<div class="set-row"><label>Thème</label><div class="gp-theme-grid" id="gp-theme-grid">'+GUILD_PAGE_THEMES.map(function(t){
@@ -28823,19 +28888,19 @@ async function renderServerSettingsTab(){
       +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="gp-save" style="flex:1">Enregistrer</button><button type="button" class="set-mini-btn" id="gp-preview">👁️ Aperçu</button></div>'
       +'<div class="err" id="gp-err"></div>'
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">👋 Écran d\\'accueil</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card" data-cat="community"><div class="set-section-label">👋 Écran d\\'accueil</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Mets en avant jusqu\\'à 5 salons avec un emoji et une courte description, montrés aux membres à leur arrivée pour les orienter.</div>'
       +'<div id="srv-welcome-rows"></div>'
       +'<button type="button" class="set-mini-btn" id="srv-welcome-add-row" style="margin-bottom:10px">+ Ajouter un salon</button>'
       +'<button type="button" class="btn-main" id="srv-welcome-save" style="width:100%">Enregistrer</button>'
       +'<div class="err" id="srv-welcome-err"></div>'
     +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🧩 Widget</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card" data-cat="integrations"><div class="set-section-label">🧩 Widget</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Un petit embed public à afficher sur un site externe : nom, icône, nombre de membres et lien d\\'invitation. Jamais la liste des membres — leur présence ne sera jamais diffusée publiquement.</div>'
       +'<div class="set-toggle-row"><span>Widget activé</span><div class="set-switch'+(activeServer.widgetEnabled?' on':'')+'" id="srv-widget-toggle" data-on="'+(activeServer.widgetEnabled?'1':'0')+'"></div></div>'
       +(activeServer.widgetEnabled?('<div class="set-row"><label>URL du widget (JSON)</label><input type="text" id="srv-widget-url" class="field-input" readonly value="'+esc(location.origin+'/api/servers/widget/'+activeServer.\$id+'.json')+'"></div><button type="button" class="set-mini-btn" id="srv-widget-copy">Copier l\\'URL</button>'):'')
     +'</div>'):'')
-    +'<div class="set-card"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
+    +'<div class="set-card" data-cat="growth"><div class="set-section-label">🚀 Boosts — palier '+boostLevel+'/3 ('+boostCount+' boost'+(boostCount!==1?'s':'')+')</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Un geste gratuit et symbolique : chaque membre peut booster ce serveur. Plus de boosts actifs débloquent des avantages pour TOUT le serveur, indépendamment de qui le possède.</div>'
     +'<button type="button" class="btn-main'+(boostedByMe?' danger':'')+'" id="srv-boost-toggle" style="width:100%;margin-bottom:12px">'+(boostedByMe?'🚀 Retirer mon boost':'🚀 Booster ce serveur')+'</button>'
     +SERVER_BOOST_THRESHOLDS.map(function(threshold,i){
@@ -28844,10 +28909,10 @@ async function renderServerSettingsTab(){
       return '<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+(unlocked?'✅':'🔒')+' Palier '+lvl+' — '+threshold+' boosts</div><div class="scr-sub">'+esc(perk)+'</div></div></div>';
     }).join('')
     +'</div>'
-    +((isOwner||serverHasPermission('manage_invites'))?('<div class="set-card"><div class="set-section-label">🔗 Lien d\\'invitation personnalisé</div>'
+    +((isOwner||serverHasPermission('manage_invites'))?('<div class="set-card" data-cat="growth"><div class="set-section-label">🔗 Lien d\\'invitation personnalisé</div>'
       +'<div class="set-row"><label>Lien personnalisé (3-20 caractères, lettres/chiffres/tirets)</label><input type="text" id="srv-vanity-input" class="field-input" maxlength="20" value="'+esc(activeServer.inviteCode||'')+'"></div><button type="button" class="set-mini-btn" id="srv-vanity-save">Enregistrer</button><div class="err" id="srv-vanity-err"></div>'
       +'</div>'):'')
-    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card"><div class="set-section-label">🤖 Bots</div>'
+    +((isOwner||serverHasPermission('manage_server'))?('<div class="set-card" data-cat="integrations"><div class="set-section-label">🤖 Bots</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">Ajoute un bot créé par toi ou quelqu\\'un d\\'autre via le Portail développeur de bots (Paramètres → Développeurs → Mes bots). Colle son identifiant public ci-dessous.</div>'
       +'<div id="srv-bots-list"><div class="scr-sub">Chargement…</div></div>'
       +'<div style="margin-top:10px"><input type="text" id="srv-bot-install-id" class="field-input" placeholder="Identifiant public du bot"></div>'
@@ -28861,11 +28926,12 @@ async function renderServerSettingsTab(){
       +'<button type="button" class="set-mini-btn" id="srv-bot-install-btn" style="margin-top:10px">+ Installer</button>'
       +'<div class="err" id="srv-bot-install-err"></div>'
     +'</div>'):'')
-    +(isOwner?('<div class="set-card"><div class="set-section-label">⭐ Qualité X1+</div>'
+    +(isOwner?('<div class="set-card" data-cat="quality"><div class="set-section-label">⭐ Qualité X1+</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité audio du salon vocal</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.audioQualityKey||'standard')==='standard'?' on':'')+'" data-srv-quality-audio="standard">Standard</button><button type="button" class="seg-btn'+(activeServer.audioQualityKey==='high'?' on':'')+'" data-srv-quality-audio="high"'+(isPlus?'':' disabled')+'>Haute fidélité</button></div>'+(isPlus?'':upsell)+'</div>'
       +'<div class="set-row'+(isPlus?'':' srv-quality-locked')+'"><label>Qualité du partage d\\'écran</label><div class="seg-group"><button type="button" class="seg-btn'+((activeServer.screenQualityKey||'720p60')==='720p60'?' on':'')+'" data-srv-quality-screen="720p60">720p60</button><button type="button" class="seg-btn'+(activeServer.screenQualityKey==='1080p60'?' on':'')+'" data-srv-quality-screen="1080p60"'+(isPlus?'':' disabled')+'>1080p60</button></div>'+(isPlus?'':upsell)+'</div>'
       +'</div>'
-      +'<div class="set-card settings-danger"><div class="set-section-label">Zone dangereuse</div><button type="button" class="set-mini-btn danger" id="srv-delete-btn">Supprimer le serveur</button></div>'):'');
+      +'<div class="set-card settings-danger" data-cat="danger"><div class="set-section-label">Zone dangereuse</div><button type="button" class="set-mini-btn danger" id="srv-delete-btn">Supprimer le serveur</button></div>'):'');
+  groupServerSettingsCards(box);
   const iconPrev=\$('srv-set-icon-preview'),iconFile=\$('srv-set-icon-file');
   if(iconPrev)iconPrev.onclick=function(){iconFile.click();};
   if(iconFile)iconFile.addEventListener('change',function(){
