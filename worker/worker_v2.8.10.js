@@ -2642,6 +2642,37 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-recent-cover img{width:100%;height:100%;object-fit:cover}
 .music-recent-title{font-weight:700;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-recent-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.music-subtabs{padding:0 14px 10px}
+.music-lib-subtabs{padding:0 14px 12px}
+.music-lib-subtabs .seg-btn{font-size:.68rem}
+.music-feed-heading{padding:4px 14px 10px;font-size:.95rem;font-weight:800}
+.music-lib-section{margin-bottom:8px}
+.music-lib-section-head{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.music-lib-section-head .music-feed-heading{padding:4px 0 10px}
+.music-lib-seeall{background:none;border:none;color:#c4b5fd;font-size:.76rem;font-weight:700;cursor:pointer;padding:4px 0}
+.music-lib-seeall:hover{color:#e9d5ff;text-decoration:underline}
+.music-feed-empty{text-align:center;padding:56px 24px;color:var(--muted)}
+.mfe-icon{font-size:2.4rem;margin-bottom:12px}
+.mfe-title{font-weight:800;font-size:1rem;color:#f2ebff;margin-bottom:6px}
+.mfe-sub{font-size:.82rem;line-height:1.5;max-width:340px;margin:0 auto 16px}
+.music-feed-layout{display:flex;gap:20px;align-items:flex-start;padding:0 14px 100px}
+.music-feed-main{flex:1;min-width:0}
+.music-feed-main .music-feed-heading{padding:4px 0 12px}
+.music-feed-main .music-feed-empty{padding:40px 10px}
+.music-feed-side{width:280px;flex:none}
+.mfs-card{background:var(--elev);border:1px solid var(--line);border-radius:14px;padding:14px}
+.mfs-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;margin-bottom:10px}
+.mfs-artist-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mfs-artist-row:last-child{border-bottom:none;padding-bottom:0}
+.mfs-artist-row:first-child{padding-top:0}
+.mfs-artist-av{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);font-weight:800;font-size:.85rem;color:#fff}
+.mfs-artist-av img{width:100%;height:100%;object-fit:cover}
+.mfs-artist-info{flex:1;min-width:0;cursor:pointer}
+.mfs-artist-name{font-weight:700;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mfs-artist-sub{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mfs-follow-btn{flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#db2777);color:#fff;border:none;border-radius:999px;padding:6px 13px;font-size:.7rem;font-weight:800;cursor:pointer}
+.mfs-follow-btn.on{background:var(--hover);color:var(--muted);border:1px solid var(--line)}
+@media (max-width:760px){.music-feed-layout{flex-direction:column}.music-feed-side{width:100%}}
 .music-genre-row::-webkit-scrollbar{display:none}
 .music-genre-chip{flex-shrink:0;padding:8px 14px;border-radius:999px;font-size:.78rem;font-weight:700;color:#fff;opacity:.55;transition:opacity .15s ease,transform .15s ease;white-space:nowrap}
 .music-genre-chip.on{opacity:1;transform:scale(1.04);box-shadow:0 4px 14px rgba(124,58,237,.35)}
@@ -7617,6 +7648,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.53',category:'feature',date:'4 septembre 2026',time:'08:00',title:'📰 Fil d\\'actu et 📚 Bibliothèque dans Sons des membres',
+    body:'L\\'onglet "Sons des membres" se découpe maintenant en trois, façon SoundCloud : 🏠 Accueil (la liste existante, avec le tri Récent/Populaire), 📰 Fil d\\'actu (uniquement les nouveaux titres des artistes que tu suis, avec des suggestions d\\'artistes à découvrir dans une colonne à côté) et 📚 Bibliothèque (Aperçu, Likes, Playlists, Abonnements et Historique d\\'écoute, chacun dans son propre onglet). Tout est basé sur tes vrais likes/abonnements/playlists/historique déjà existants — rien à reconfigurer.'},
   {version:'4.55.52',category:'design',date:'4 septembre 2026',time:'07:00',title:'🎧 Sons des membres : ambiance SoundCloud',
     body:'La liste "Sons des membres" se rapproche du style SoundCloud : chaque son affiche l\\'avatar de son créateur, depuis quand il a été publié ("il y a 2h", "il y a 5j"...) et son nombre d\\'écoutes, la forme d\\'onde est plus grande et le son en cours de lecture est marqué par une barre colorée sur le côté. Nouveau tri "🕒 Récent / 🔥 Populaire" en haut de la liste pour retrouver soit les dernières publications, soit les sons les plus écoutés par la communauté.'},
   {version:'4.55.51',category:'design',date:'4 septembre 2026',time:'06:00',title:'⚙️ Paramètres du serveur : refonte en tableau de bord par catégorie',
@@ -20906,6 +20939,11 @@ let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
 // "populaire" trie sur playsCount, la statistique la plus emblématique de
 // SoundCloud, jamais exposée en tri jusqu'ici.
 let musicSortMode='recent';
+// Sous-navigation façon SoundCloud (Accueil/Fil d'actu/Bibliothèque) à
+// l'intérieur de l'onglet "Sons des membres" uniquement — les autres onglets
+// (Streaming/Mes titres/Mes playlists) restent inchangés.
+let musicMembersView='home'; // 'home' | 'feed' | 'library'
+let musicLibraryTab='overview'; // 'overview' | 'likes' | 'playlists' | 'following' | 'history'
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
 let musicSleepTimerId=null,musicSleepTimerEndsAt=0;
@@ -21042,7 +21080,8 @@ function musicStartRadio(track){
 }
 let musicQueueCache=null,musicQueueCacheKey='';
 function musicQueueKey(){
-  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',musicFilter==='members'?musicSortMode:'',musicTracksCache.length].join('|');
+  const sub=musicFilter==='members'?(musicMembersView+'|'+(musicMembersView==='library'?musicLibraryTab:'')+'|'+musicSortMode):'';
+  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',sub,musicMyFollowedIds.size,musicMyLikedIds.size,musicRecentIds().join(','),musicTracksCache.length].join('|');
 }
 // Le tirage aléatoire est mis en cache tant que le contexte ne change pas —
 // sinon, appeler musicCurrentQueue() (utilisé aussi bien pour l'affichage que
@@ -21060,18 +21099,33 @@ function musicCurrentQueue(){
     list=musicTracksCache.filter(function(t){return String(t.uid)===String(me.\$id);});
   }else if(musicFilter==='streaming'){
     list=musicTracksCache.filter(function(t){return t.channel==='streaming';});
+  }else if(musicFilter==='members'&&musicMembersView==='feed'){
+    // Fil d'actu : uniquement les titres des artistes suivis, toujours du
+    // plus récent au plus ancien (jamais le tri Populaire, réservé à Accueil).
+    list=musicTracksCache.filter(function(t){return t.channel!=='streaming'&&musicMyFollowedIds.has(String(t.uid));}).slice().sort(function(a,b){return new Date(b.\$createdAt)-new Date(a.\$createdAt);});
+  }else if(musicFilter==='members'&&musicMembersView==='library'&&musicLibraryTab==='likes'){
+    list=musicTracksCache.filter(function(t){return musicMyLikedIds.has(t.\$id);});
+  }else if(musicFilter==='members'&&musicMembersView==='library'&&musicLibraryTab==='history'){
+    const ids=musicRecentIds();
+    list=ids.map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean);
   }else if(musicFilter==='members'){
     list=musicTracksCache.filter(function(t){return t.channel!=='streaming';});
   }else{
     list=musicTracksCache;
   }
-  if(musicSearchQuery)list=list.filter(function(t){return musicMatchesSearch(t,musicSearchQuery);});
-  if(musicGenreFilter)list=list.filter(function(t){return t.genre===musicGenreFilter;});
-  // Tri Récent/Populaire (Sons des membres uniquement) : list arrive déjà
-  // triée par $createdAt desc depuis loadMusicTracks() (orderDesc côté
-  // requête), donc "Récent" n'a rien à faire — seul "Populaire" retrie
+  // La recherche/le filtre de genre ne s'appliquent qu'à Accueil (leurs
+  // champs sont masqués partout ailleurs) — sans cette garde, une recherche
+  // tapée dans Accueil resterait posée en mémoire et filtrerait
+  // silencieusement le Fil d'actu ou la Bibliothèque après un changement
+  // d'onglet, sans aucun champ visible pour comprendre pourquoi.
+  const searchApplies=!(musicFilter==='members'&&musicMembersView!=='home');
+  if(searchApplies&&musicSearchQuery)list=list.filter(function(t){return musicMatchesSearch(t,musicSearchQuery);});
+  if(searchApplies&&musicGenreFilter)list=list.filter(function(t){return t.genre===musicGenreFilter;});
+  // Tri Récent/Populaire (Accueil de Sons des membres uniquement) : list
+  // arrive déjà triée par $createdAt desc depuis loadMusicTracks() (orderDesc
+  // côté requête), donc "Récent" n'a rien à faire — seul "Populaire" retrie
   // explicitement sur playsCount.
-  if(musicFilter==='members'&&musicSortMode==='popular')list=list.slice().sort(function(a,b){return (b.playsCount||0)-(a.playsCount||0);});
+  if(musicFilter==='members'&&musicMembersView==='home'&&musicSortMode==='popular')list=list.slice().sort(function(a,b){return (b.playsCount||0)-(a.playsCount||0);});
   if(musicShuffleOn)list=musicShuffleArray(list);
   musicQueueCache=list;musicQueueCacheKey=key;
   return list;
@@ -21094,7 +21148,11 @@ async function openMusic(uid,name){
   if(!uid&&!name&&!resumeTrackId){musicViewUid=null;musicViewName='';musicFilter='streaming';musicActivePlaylist=null;}
   else if(uid||name){musicViewUid=uid||null;musicViewName=name||'';musicFilter=uid?'user':'streaming';musicActivePlaylist=null;musicTrackPageId=null;}
   renderMusicShell();
-  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows()]);
+  // loadMusicPlaylists() était jusqu'ici chargé paresseusement seulement en
+  // ouvrant l'onglet "Mes playlists" — désormais nécessaire dès l'ouverture
+  // pour l'Aperçu de la Bibliothèque (rail "Tes playlists"), donc chargé ici
+  // avec le reste plutôt que de dupliquer un appel réseau plus tard.
+  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows(),loadMusicPlaylists()]);
   if(resumeTrackId){openMusicTrackPage(resumeTrackId);return}
   renderMusicBody();
   updateMusicFollowBtn();
@@ -21153,10 +21211,22 @@ function renderMusicShell(){
       +'<button type="button" class="seg-btn'+(musicFilter==='mine'?' on':'')+'" data-music-tab="mine">Mes titres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='playlists'?' on':'')+'" data-music-tab="playlists">Mes playlists</button>'
     +'</div>')
+    +(compact||musicFilter!=='members'?'':'<div class="seg-group music-subtabs" id="music-subtabs">'
+      +'<button type="button" class="seg-btn'+(musicMembersView==='home'?' on':'')+'" data-music-subview="home">🏠 Accueil</button>'
+      +'<button type="button" class="seg-btn'+(musicMembersView==='feed'?' on':'')+'" data-music-subview="feed">📰 Fil d\\'actu</button>'
+      +'<button type="button" class="seg-btn'+(musicMembersView==='library'?' on':'')+'" data-music-subview="library">📚 Bibliothèque</button>'
+    +'</div>')
+    +(compact||musicFilter!=='members'||musicMembersView!=='library'?'':'<div class="seg-group music-lib-subtabs" id="music-lib-subtabs">'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='overview'?' on':'')+'" data-music-libtab="overview">Aperçu</button>'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='likes'?' on':'')+'" data-music-libtab="likes">Likes</button>'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='playlists'?' on':'')+'" data-music-libtab="playlists">Playlists</button>'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='following'?' on':'')+'" data-music-libtab="following">Abonnements</button>'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='history'?' on':'')+'" data-music-libtab="history">Historique</button>'
+    +'</div>')
     +(compact||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
-    +(compact?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
-    +(compact?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
-    +(compact||musicFilter!=='members'?'':'<div class="music-sort-row"><span class="music-sort-label">Trier</span><div class="seg-group music-sort-toggle" id="music-sort-toggle"><button type="button" class="seg-btn'+(musicSortMode==='recent'?' on':'')+'" data-music-sort="recent">🕒 Récent</button><button type="button" class="seg-btn'+(musicSortMode==='popular'?' on':'')+'" data-music-sort="popular">🔥 Populaire</button></div></div>')
+    +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
+    +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
+    +(compact||musicFilter!=='members'||musicMembersView!=='home'?'':'<div class="music-sort-row"><span class="music-sort-label">Trier</span><div class="seg-group music-sort-toggle" id="music-sort-toggle"><button type="button" class="seg-btn'+(musicSortMode==='recent'?' on':'')+'" data-music-sort="recent">🕒 Récent</button><button type="button" class="seg-btn'+(musicSortMode==='popular'?' on':'')+'" data-music-sort="popular">🔥 Populaire</button></div></div>')
     +'<div class="discover-body" id="music-body"></div>'
     +'<div class="music-player-bar hidden" id="music-player-bar">'
       +'<div class="mpb-cover" id="mpb-cover"></div>'
@@ -21194,6 +21264,30 @@ function renderMusicShell(){
     b.addEventListener('click',function(){
       musicSortMode=b.getAttribute('data-music-sort');
       \$('music-sort-toggle').querySelectorAll('[data-music-sort]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-music-sort')===musicSortMode);});
+      renderMusicBody();
+    });
+  });
+  if(\$('music-subtabs'))\$('music-subtabs').querySelectorAll('[data-music-subview]').forEach(function(b){
+    b.addEventListener('click',function(){
+      musicMembersView=b.getAttribute('data-music-subview');
+      if(musicMembersView==='library')musicLibraryTab='overview';
+      musicActivePlaylist=null;
+      musicRadioQueue=null;
+      // Reconstruit tout le haut du panneau : la barre de recherche/genres/tri
+      // et la rangée de sous-onglets Bibliothèque n'apparaissent que sur
+      // certaines sous-vues, pas seulement la liste en dessous.
+      renderMusicShell();
+      musicSyncMiniBar();
+      renderMusicBody();
+    });
+  });
+  if(\$('music-lib-subtabs'))\$('music-lib-subtabs').querySelectorAll('[data-music-libtab]').forEach(function(b){
+    b.addEventListener('click',function(){
+      musicLibraryTab=b.getAttribute('data-music-libtab');
+      musicActivePlaylist=null;
+      musicRadioQueue=null;
+      renderMusicShell();
+      musicSyncMiniBar();
       renderMusicBody();
     });
   });
@@ -21331,20 +21425,24 @@ function musicMemberRowHtml(t){
     +'</div>'
   +'</div>';
 }
+// Extrait pour être réutilisable tel quel dans les rangées de prévisualisation
+// de la Bibliothèque (Aperçu > Écoutés récemment/Playlists), pas seulement
+// dans le rail "Reprendre l'écoute" ci-dessous.
+function musicRecentCardHtml(t){
+  const cover=safeUrl(t.coverUrl);
+  return '<div class="music-recent-card" data-music-play="'+esc(t.\$id)+'">'
+    +'<div class="music-recent-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>🎵</span>')+'</div>'
+    +'<div class="music-recent-title">'+esc(t.title)+'</div>'
+    +'<div class="music-recent-artist">'+esc(t.artistName)+'</div>'
+  +'</div>';
+}
 function musicRecentRailHtml(){
   if(musicSearchQuery||musicGenreFilter||musicRadioQueue)return '';
   if(musicFilter!=='streaming'&&musicFilter!=='members')return '';
   const tracks=musicRecentIds().map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean).slice(0,10);
   if(!tracks.length)return '';
   return '<div class="music-recent-heading">▶ Reprendre l\\'écoute</div>'
-    +'<div class="music-recent-rail">'+tracks.map(function(t){
-      const cover=safeUrl(t.coverUrl);
-      return '<div class="music-recent-card" data-music-play="'+esc(t.\$id)+'">'
-        +'<div class="music-recent-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>🎵</span>')+'</div>'
-        +'<div class="music-recent-title">'+esc(t.title)+'</div>'
-        +'<div class="music-recent-artist">'+esc(t.artistName)+'</div>'
-      +'</div>';
-    }).join('')+'</div>';
+    +'<div class="music-recent-rail">'+tracks.map(musicRecentCardHtml).join('')+'</div>';
 }
 function renderMusicBody(){
   const box=\$('music-body');if(!box)return;
@@ -21353,8 +21451,14 @@ function renderMusicBody(){
   // consulté ici) — impossible jusqu'ici de voir le contenu d'une playlist,
   // le clic ramenait systématiquement à la liste des playlists.
   if(musicTrackPageId){renderMusicTrackPage(box);return}
-  if(musicFilter==='playlists'&&musicActivePlaylist){renderMusicPlaylistDetail(box);return}
+  // La vue détail d'une playlist (ouverte depuis "Mes playlists" OU depuis
+  // Bibliothèque > Playlists, qui réutilise les mêmes fonctions) doit
+  // s'afficher quel que soit l'onglet d'où on vient — musicActivePlaylist
+  // n'est jamais posé ailleurs que juste avant un appel à renderMusicBody().
+  if(musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
+  if(musicFilter==='members'&&musicMembersView==='feed'){renderMusicFeedTab(box);return}
+  if(musicFilter==='members'&&musicMembersView==='library'){renderMusicLibraryTab(box);return}
   const list=musicCurrentQueue();
   if(!list.length){
     let hint='.';
@@ -21411,6 +21515,181 @@ function wireMusicCardEvents(box){
       }
     });
   });
+}
+// ===== Sons des membres : Fil d'actu + Bibliothèque façon SoundCloud =====
+// Rangée réutilisable "avatar + nom + bouton suivre/suivi(e)" — sert à la
+// fois pour les suggestions du Fil d'actu et pour la liste des abonnements
+// de la Bibliothèque ; le bouton bascule dans les deux sens via
+// musicToggleFollow (voir wireMusicArtistRows).
+function musicArtistRowHtml(uid,artistName,meta,following){
+  const prof=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(uid);});
+  const av=safeUrl(prof&&prof.avatar);
+  return '<div class="mfs-artist-row">'
+    +'<span class="mfs-artist-av" data-music-artist="'+esc(uid)+'">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(artistName||'?')))+'</span>'
+    +'<div class="mfs-artist-info" data-music-artist="'+esc(uid)+'"><div class="mfs-artist-name">'+esc(artistName)+'</div>'+(meta?'<div class="mfs-artist-sub">'+esc(meta)+'</div>':'')+'</div>'
+    +'<button type="button" class="mfs-follow-btn'+(following?' on':'')+'" data-music-toggle-follow="'+esc(uid)+'">'+(following?'✓ Suivi(e)':'+ Suivre')+'</button>'
+  +'</div>';
+}
+function wireMusicArtistRows(box){
+  box.querySelectorAll('[data-music-toggle-follow]').forEach(function(btn){
+    btn.addEventListener('click',async function(e){
+      e.stopPropagation();
+      btn.disabled=true;
+      await musicToggleFollow(btn.getAttribute('data-music-toggle-follow'));
+      renderMusicBody();
+    });
+  });
+}
+// Artistes non suivis les plus actifs (nombre d'écoutes cumulé sur leurs
+// titres) — approximation raisonnable de "à découvrir" sans infrastructure
+// de recommandation dédiée.
+function musicSuggestedArtists(){
+  const byUid={};
+  musicTracksCache.forEach(function(t){
+    if(t.channel==='streaming')return;
+    const uid=String(t.uid);
+    if(me&&uid===String(me.\$id))return;
+    if(musicMyFollowedIds.has(uid))return;
+    if(!byUid[uid])byUid[uid]={uid:uid,artistName:t.artistName,trackCount:0,totalPlays:0};
+    byUid[uid].trackCount++;
+    byUid[uid].totalPlays+=(t.playsCount||0);
+  });
+  return Object.keys(byUid).map(function(k){return byUid[k];}).sort(function(a,b){return b.totalPlays-a.totalPlays;}).slice(0,5);
+}
+// Liste des artistes suivis avec leurs stats connues (titres/écoutes) quand
+// disponibles dans le cache déjà chargé — un artiste suivi n'ayant publié
+// aucun titre visible ici reste quand même affiché (via membersCache), pour
+// ne jamais faire disparaître un abonnement de la liste.
+function musicLibraryFollowedList(){
+  const byUid={};
+  musicMyFollowedIds.forEach(function(uid){byUid[uid]={uid:uid,artistName:'',trackCount:0,totalPlays:0};});
+  musicTracksCache.forEach(function(t){
+    const uid=String(t.uid);
+    if(!byUid[uid])return;
+    byUid[uid].artistName=t.artistName;
+    byUid[uid].trackCount++;
+    byUid[uid].totalPlays+=(t.playsCount||0);
+  });
+  Object.keys(byUid).forEach(function(uid){
+    if(byUid[uid].artistName)return;
+    const prof=membersCache.find(function(p){return String(p.authUserId||p.\$id)===uid;});
+    byUid[uid].artistName=(prof&&(prof.displayName||prof.username))||'Artiste';
+  });
+  return Object.keys(byUid).map(function(k){return byUid[k];});
+}
+function renderMusicFeedTab(box){
+  const followedTracks=musicCurrentQueue();
+  const suggestions=musicSuggestedArtists();
+  let mainHtml;
+  if(!musicMyFollowedIds.size){
+    mainHtml='<div class="music-feed-empty"><div class="mfe-icon">📰</div><div class="mfe-title">Ton fil d\\'actu est vide</div><div class="mfe-sub">Suis des artistes depuis Accueil pour voir leurs nouveaux sons apparaître ici, dès leur publication.</div><button type="button" class="btn-main" id="music-feed-goto-home" style="width:auto;padding:8px 18px">🏠 Découvrir des artistes</button></div>';
+  }else if(!followedTracks.length){
+    mainHtml='<div class="music-feed-empty"><div class="mfe-icon">🌙</div><div class="mfe-title">Rien de neuf pour l\\'instant</div><div class="mfe-sub">Les artistes que tu suis n\\'ont encore rien publié. Reviens plus tard !</div></div>';
+  }else{
+    mainHtml='<div class="music-feed-heading">🎶 Les derniers sons de tes abonnements</div><div class="music-row-list">'+followedTracks.map(musicMemberRowHtml).join('')+'</div>';
+  }
+  const sideHtml=suggestions.length?('<div class="music-feed-side"><div class="mfs-card"><div class="mfs-label">Artistes à suivre</div>'
+    +suggestions.map(function(a){return musicArtistRowHtml(a.uid,a.artistName,crtFmtCount(a.trackCount)+' titre'+(a.trackCount>1?'s':'')+' · '+crtFmtCount(a.totalPlays)+' écoutes',false);}).join('')
+    +'</div></div>'):'';
+  box.innerHTML='<div class="music-feed-layout"><div class="music-feed-main">'+mainHtml+'</div>'+sideHtml+'</div>';
+  wireMusicCardEvents(box);
+  wireMusicArtistRows(box);
+  if(\$('music-feed-goto-home'))\$('music-feed-goto-home').onclick=function(){
+    musicMembersView='home';
+    renderMusicShell();
+    musicSyncMiniBar();
+    renderMusicBody();
+  };
+}
+function musicLibRailHtml(title,itemsHtml,seeAllTab){
+  return '<div class="music-lib-section"><div class="music-lib-section-head"><span class="music-feed-heading">'+esc(title)+'</span><button type="button" class="music-lib-seeall" data-music-lib-seeall="'+esc(seeAllTab)+'">Voir tout →</button></div><div class="music-recent-rail">'+itemsHtml+'</div></div>';
+}
+function musicLibPlaylistRailHtml(playlists){
+  const itemsHtml=playlists.map(function(p){
+    let ids=[];try{ids=JSON.parse(p.trackIdsJson||'[]');}catch(e){}
+    const cover=safeUrl(p.coverUrl);
+    return '<div class="music-recent-card" data-music-pl-open="'+esc(p.\$id)+'">'
+      +'<div class="music-recent-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>🎶</span>')+'</div>'
+      +'<div class="music-recent-title">'+esc(p.name)+'</div>'
+      +'<div class="music-recent-artist">'+ids.length+' titre'+(ids.length!==1?'s':'')+'</div>'
+    +'</div>';
+  }).join('');
+  return musicLibRailHtml('🎶 Tes playlists',itemsHtml,'playlists');
+}
+function musicLibArtistRailHtml(list){
+  const itemsHtml=list.map(function(a){
+    const prof=membersCache.find(function(p){return String(p.authUserId||p.\$id)===a.uid;});
+    const av=safeUrl(prof&&prof.avatar);
+    return '<div class="music-recent-card" data-music-artist="'+esc(a.uid)+'">'
+      +'<div class="music-recent-cover" style="border-radius:50%">'+(av?'<img src="'+esc(av)+'" alt="">':'<span>'+esc(ini(a.artistName||'?'))+'</span>')+'</div>'
+      +'<div class="music-recent-title">'+esc(a.artistName)+'</div>'
+    +'</div>';
+  }).join('');
+  return musicLibRailHtml('👥 Abonnements',itemsHtml,'following');
+}
+function renderMusicLibraryOverviewTab(box){
+  const recentTracks=musicRecentIds().map(function(id){return musicTracksCache.find(function(t){return t.\$id===id});}).filter(Boolean).slice(0,6);
+  const likedTracks=musicTracksCache.filter(function(t){return musicMyLikedIds.has(t.\$id);}).slice(0,6);
+  const playlists=musicPlaylistsCache.slice(0,6);
+  const followedArtists=musicLibraryFollowedList().slice(0,6);
+  const sections=[];
+  if(recentTracks.length)sections.push(musicLibRailHtml('▶ Écoutés récemment',recentTracks.map(musicRecentCardHtml).join(''),'history'));
+  if(likedTracks.length)sections.push(musicLibRailHtml('🤍 Tes likes',likedTracks.map(musicRecentCardHtml).join(''),'likes'));
+  if(playlists.length)sections.push(musicLibPlaylistRailHtml(playlists));
+  if(followedArtists.length)sections.push(musicLibArtistRailHtml(followedArtists));
+  if(!sections.length){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">📚</div><div class="mfe-title">Ta bibliothèque est vide</div><div class="mfe-sub">Aime des titres, crée des playlists et suis des artistes depuis Accueil — tout apparaîtra ici.</div></div>';
+    return;
+  }
+  box.innerHTML=sections.join('');
+  wireMusicCardEvents(box);
+  wireMusicArtistRows(box);
+  box.querySelectorAll('[data-music-lib-seeall]').forEach(function(el){
+    el.addEventListener('click',function(){
+      musicLibraryTab=el.getAttribute('data-music-lib-seeall');
+      renderMusicShell();
+      musicSyncMiniBar();
+      renderMusicBody();
+    });
+  });
+  box.querySelectorAll('[data-music-pl-open]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const p=musicPlaylistsCache.find(function(x){return x.\$id===el.getAttribute('data-music-pl-open')});
+      if(!p)return;
+      musicActivePlaylist=p;
+      musicRadioQueue=null;
+      renderMusicBody();
+    });
+  });
+}
+function renderMusicLibraryLikesTab(box){
+  const tracks=musicCurrentQueue();
+  if(!tracks.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun titre aimé pour l\\'instant — le cœur 🤍 sous un titre l\\'ajoute ici.</div>';return}
+  box.innerHTML='<div class="music-row-list">'+tracks.map(musicMemberRowHtml).join('')+'</div>';
+  wireMusicCardEvents(box);
+}
+function renderMusicLibraryFollowingTab(box){
+  const list=musicLibraryFollowedList();
+  if(!list.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Tu ne suis encore aucun artiste — découvre des sons depuis Accueil.</div>';return}
+  box.innerHTML='<div class="music-feed-side" style="width:100%"><div class="mfs-card">'+list.map(function(a){
+    const meta=a.trackCount?(crtFmtCount(a.trackCount)+' titre'+(a.trackCount>1?'s':'')+' · '+crtFmtCount(a.totalPlays)+' écoutes'):'';
+    return musicArtistRowHtml(a.uid,a.artistName,meta,true);
+  }).join('')+'</div></div>';
+  wireMusicCardEvents(box);
+  wireMusicArtistRows(box);
+}
+function renderMusicLibraryHistoryTab(box){
+  const tracks=musicCurrentQueue();
+  if(!tracks.length){box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Aucun historique d\\'écoute pour l\\'instant.</div>';return}
+  box.innerHTML='<div class="music-row-list">'+tracks.map(musicMemberRowHtml).join('')+'</div>';
+  wireMusicCardEvents(box);
+}
+function renderMusicLibraryTab(box){
+  if(musicLibraryTab==='likes'){renderMusicLibraryLikesTab(box);return}
+  if(musicLibraryTab==='playlists'){renderMusicPlaylistsTab(box);return}
+  if(musicLibraryTab==='following'){renderMusicLibraryFollowingTab(box);return}
+  if(musicLibraryTab==='history'){renderMusicLibraryHistoryTab(box);return}
+  renderMusicLibraryOverviewTab(box);
 }
 async function musicPlayTrack(trackId,keepRadio,startAtSec){
   const t=musicTracksCache.find(function(x){return x.\$id===trackId});
