@@ -2244,6 +2244,27 @@ html.xultra-restoring #stage{visibility:hidden}
 @media (prefers-reduced-motion:reduce){.discover-overlay{transition:opacity .12s linear,visibility 0s linear .12s;transform:none}.discover-overlay.show{transition:opacity .12s linear}}
 .discover-head{display:flex;align-items:center;gap:10px;padding:14px;border-bottom:1px solid var(--line)}
 .discover-head h2{flex:1;font-size:1.05rem;font-weight:800}
+/* Fond animé "lofi" mauve/rose demandé explicitement pour toute la section
+   Musique (X1 Music = SoundCloud communautaire + fonctions maison) : un
+   dégradé conique flouté qui tourne très lentement derrière le contenu, pour
+   une ambiance immersive sans jamais gêner la lecture. isolation:isolate
+   crée un nouveau contexte d'empilement propre à #music-overlay, pour que le
+   z-index du calque de fond et celui de ses enfants ne dépendent jamais de
+   ce qui l'entoure ailleurs dans l'app. */
+/* Pas de position:relative ici : .discover-overlay pose déjà position:fixed
+   sur cet élément (nécessaire à inset:0 pour couvrir tout l'écran) — une
+   règle #music-overlay{position:relative} l'écraserait (spécificité d'un
+   sélecteur d'ID > sélecteur de classe) et casserait l'affichage plein
+   écran. position:fixed suffit déjà à servir de bloc conteneur au calque de
+   fond ::before ci-dessous. */
+#music-overlay{overflow:hidden;isolation:isolate}
+#music-overlay::before{content:'';position:absolute;top:50%;left:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;background:conic-gradient(from 0deg,#7c3aed,#db2777,#4c1d95,#a855f7,#7c3aed);opacity:.16;filter:blur(90px);animation:musicBgSpin 70s linear infinite;z-index:0;pointer-events:none}
+#music-overlay>*{position:relative;z-index:1}
+@keyframes musicBgSpin{to{transform:rotate(360deg)}}
+@media (max-width:640px){#music-overlay::before{filter:blur(50px);animation-duration:100s}}
+@media (prefers-reduced-motion:reduce){#music-overlay::before{animation:none}}
+#music-overlay .discover-head{background:linear-gradient(90deg,rgba(124,58,237,.16),rgba(219,39,119,.1));backdrop-filter:blur(6px)}
+#music-overlay .discover-head h2{background:linear-gradient(135deg,#e9d5ff,#c4b5fd,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .discover-tabs{display:flex;gap:8px;padding:10px 14px}
 .discover-tabs button{flex:1;padding:8px;border-radius:10px;background:var(--elev);font-size:.82rem;font-weight:700}
 .discover-tabs button.on{background:#7c3aed;color:#fff}
@@ -2638,7 +2659,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-recent-rail{display:flex;gap:12px;overflow-x:auto;padding:0 14px 18px;scrollbar-width:none}
 .music-recent-rail::-webkit-scrollbar{display:none}
 .music-recent-card{flex:0 0 120px;cursor:pointer}
-.music-recent-cover{width:120px;height:120px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.8rem;margin-bottom:6px}
+.music-recent-cover{width:120px;height:120px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.8rem;margin-bottom:6px;transition:transform .18s ease,box-shadow .18s ease}
+.music-recent-card:hover .music-recent-cover{transform:translateY(-3px);box-shadow:0 10px 22px rgba(124,58,237,.35)}
 .music-recent-cover img{width:100%;height:100%;object-fit:cover}
 .music-recent-title{font-weight:700;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-recent-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -7648,6 +7670,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.54',category:'design',date:'4 septembre 2026',time:'09:00',title:'🎨 Musique : ambiance visuelle repensée, Streaming en pause',
+    body:'L\\'onglet 🎧 Streaming est mis en pause pour l\\'instant — X1 Music se concentre pleinement sur "Sons des membres", un vrai SoundCloud communautaire avec des fonctions en plus. Toute la section Musique a aussi un nouveau fond animé : un dégradé mauve/rose façon lofi qui tourne lentement en arrière-plan, avec un titre en dégradé et de petites animations au survol des pochettes pour une interface plus moderne et agréable à utiliser.'},
   {version:'4.55.53',category:'feature',date:'4 septembre 2026',time:'08:00',title:'📰 Fil d\\'actu et 📚 Bibliothèque dans Sons des membres',
     body:'L\\'onglet "Sons des membres" se découpe maintenant en trois, façon SoundCloud : 🏠 Accueil (la liste existante, avec le tri Récent/Populaire), 📰 Fil d\\'actu (uniquement les nouveaux titres des artistes que tu suis, avec des suggestions d\\'artistes à découvrir dans une colonne à côté) et 📚 Bibliothèque (Aperçu, Likes, Playlists, Abonnements et Historique d\\'écoute, chacun dans son propre onglet). Tout est basé sur tes vrais likes/abonnements/playlists/historique déjà existants — rien à reconfigurer.'},
   {version:'4.55.52',category:'design',date:'4 septembre 2026',time:'07:00',title:'🎧 Sons des membres : ambiance SoundCloud',
@@ -21145,8 +21169,13 @@ async function openMusic(uid,name){
   // Messages. Un appel avec un uid explicite (ex: depuis un profil) garde
   // la priorité et ouvre bien CE profil, pas l'ancien état.
   const resumeTrackId=(!uid&&!name)?musicTrackPageId:null;
-  if(!uid&&!name&&!resumeTrackId){musicViewUid=null;musicViewName='';musicFilter='streaming';musicActivePlaylist=null;}
-  else if(uid||name){musicViewUid=uid||null;musicViewName=name||'';musicFilter=uid?'user':'streaming';musicActivePlaylist=null;musicTrackPageId=null;}
+  // Onglet Streaming mis en pause (demandé explicitement) : X1 Music devient
+  // pour l'instant un pur SoundCloud communautaire, "Sons des membres" est
+  // donc le point d'entrée par défaut à la place. Le code de l'onglet
+  // Streaming lui-même reste intact plus bas (queue/rendu) pour pouvoir le
+  // rebrancher facilement — seul son bouton d'accès a été retiré du shell.
+  if(!uid&&!name&&!resumeTrackId){musicViewUid=null;musicViewName='';musicFilter='members';musicActivePlaylist=null;}
+  else if(uid||name){musicViewUid=uid||null;musicViewName=name||'';musicFilter=uid?'user':'members';musicActivePlaylist=null;musicTrackPageId=null;}
   renderMusicShell();
   // loadMusicPlaylists() était jusqu'ici chargé paresseusement seulement en
   // ouvrant l'onglet "Mes playlists" — désormais nécessaire dès l'ouverture
@@ -21206,7 +21235,6 @@ function renderMusicShell(){
       +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
       +(compact?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
     +(compact?'':'<div class="seg-group music-tabs" id="music-tabs">'
-      +'<button type="button" class="seg-btn'+(musicFilter==='streaming'?' on':'')+'" data-music-tab="streaming">🎧 Streaming</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='members'?' on':'')+'" data-music-tab="members">🎤 Sons des membres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='mine'?' on':'')+'" data-music-tab="mine">Mes titres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='playlists'?' on':'')+'" data-music-tab="playlists">Mes playlists</button>'
