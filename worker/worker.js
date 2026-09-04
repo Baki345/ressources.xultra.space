@@ -3025,6 +3025,10 @@ body.theme-oled .pe-frame-inner{background:#050505}
 .vr-timer{font-size:.8rem;font-weight:800;color:#fca5a5;flex-shrink:0;font-variant-numeric:tabular-nums}
 .vr-mic{font-size:1.15rem;flex-shrink:0;animation:cbPulse 1s ease-in-out infinite}
 .msg-media img,.msg-media video{max-width:220px;max-height:260px;border-radius:10px;display:block;cursor:pointer;object-fit:cover}
+.msg-media-grid{display:grid;gap:3px;max-width:280px;border-radius:12px;overflow:hidden}
+.msg-media-grid .mmg-cell{position:relative;aspect-ratio:1/1;overflow:hidden;background:var(--elev)}
+.msg-media-grid .mmg-cell img,.msg-media-grid .mmg-cell video{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer}
+.msg-media-grid .mmg-cell.mmg-broken{display:grid;place-items:center;font-size:1.3rem;color:var(--muted)}
 .msg-snap-placeholder{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:12px;background:linear-gradient(120deg,#4c1d95,#7c3aed,#4c1d95);background-size:200% 200%;animation:bugHeroShift 6s ease infinite;font-weight:800;font-size:.85rem;color:#fff}
 .msg-snap-placeholder.viewed{background:rgba(255,255,255,.06);animation:none;color:var(--muted);font-weight:700}
 .msg-snap-placeholder.tappable{cursor:pointer}
@@ -7586,6 +7590,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.50',category:'feature',date:'4 septembre 2026',time:'05:00',title:'🖼️ Plusieurs médias envoyés ensemble = un seul message groupé en grille',
+    body:'Envoyer plusieurs photos/vidéos sélectionnées ensemble en DM ne crée plus une suite de messages séparés : elles arrivent en UN SEUL message, affiché en grille dans un cadre — chaque média reste cliquable individuellement (une photo ouvre son propre aperçu en grand, une vidéo garde ses propres contrôles). Jusqu\\'à 6 médias par message groupé.'},
   {version:'4.55.49',category:'fix',date:'4 septembre 2026',time:'04:00',title:'🩹 Fini le scintillement des messages : réagir ou recevoir un message ne redéchiffre/reconstruit plus tout le fil',
     body:'Cause trouvée du bug remonté à plusieurs reprises ("le chat remonte au lieu de descendre", "les messages se rafraîchissent et se redéchiffrent à chaque interaction") : réagir à UN message, ou en recevoir un nouveau, reconstruisait et redéchiffrait TOUT le fil affiché depuis zéro — plus il y avait de messages et de médias, plus long et plus visible c\\'était, avec un vrai risque que le repositionnement en bas se fasse au mauvais moment pendant cette reconstruction. Corrigé en profondeur : une réaction/un épinglage ne retouche plus que ce message précis (aucun redéchiffrement), un nouveau message s\\'ajoute simplement à la fin sans reconstruire les autres, et un message déjà déchiffré ne l\\'est plus jamais deux fois. Le fil descend toujours tout en bas à l\\'arrivée d\\'un nouveau message, cette fois sans concurrence avec une reconstruction complète en cours.'},
   {version:'4.55.48',category:'feature',date:'4 septembre 2026',time:'03:00',title:'✏️ Modifier un message envoyé dans les 24h, en DM comme en salon',
@@ -14340,7 +14346,34 @@ function fmtDur(sec){
   sec=Math.max(0,Math.round(Number(sec)||0));
   return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
 }
-function renderMsgBody(m,text,mediaUrl){
+// Plusieurs médias envoyés ensemble (demandé explicitement) : regroupés en
+// UN SEUL message plutôt que N messages séparés, affiché en grille — chaque
+// cellule reste individuellement interactive (clic sur une image = lightbox
+// pour CETTE image, une vidéo garde ses propres contrôles), exactement comme
+// le reste des médias déjà affichés (voir le sélecteur partagé
+// '.msg-media img,.msg-media-grid img'). Aucun nouvel attribut de collection
+// (la limite d'attributs de dms_messages/server_channel_messages était déjà
+// atteinte) : type='mediagroup' + la liste réelle des médias encodée dans le
+// champ text existant, JSON.stringify({items:[{type,mime,url}...],
+// caption}) — chiffré comme n'importe quel texte pour un message DM (voir
+// postMessage), en clair pour un message de salon.
+function parseMediaGroupPlain(text){
+  if(!text)return null;
+  let parsed=null;try{parsed=JSON.parse(text);}catch(e){return null}
+  if(!parsed||!Array.isArray(parsed.items)||!parsed.items.length)return null;
+  return {items:parsed.items.map(function(it){return {type:(it&&it.type)||'image',mime:(it&&it.mime)||'',url:safeUrl(it&&it.url)};}),caption:parsed.caption||''};
+}
+function renderMediaGridHtml(items,caption){
+  const n=Math.min(items.length,9);
+  const cols=n>=3?3:(n===2?2:1);
+  const cells=items.slice(0,n).map(function(it){
+    if(!it.url)return '<div class="mmg-cell mmg-broken">⚠️</div>';
+    if(it.type==='video')return '<div class="mmg-cell"><video src="'+esc(it.url)+'" controls playsinline></video></div>';
+    return '<div class="mmg-cell"><img src="'+esc(it.url)+'" loading="lazy"/></div>';
+  }).join('');
+  return '<div class="msg-media-grid" style="grid-template-columns:repeat('+cols+',1fr)">'+cells+'</div>'+(caption?'<div class="msg-caption">'+linkify(esc(caption))+'</div>':'');
+}
+function renderMsgBody(m,text,mediaUrl,mediaItems){
   const t=m.type||'text';
   const url=safeUrl(mediaUrl);
   if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
@@ -14361,6 +14394,12 @@ function renderMsgBody(m,text,mediaUrl){
       return '<div class="msg-snap-placeholder viewed">👻 <span>Ephem vu</span>'+noShotTag+'</div>';
     }
     return '<div class="msg-snap-placeholder tappable" data-snap-view="'+esc(m.\$id||'')+'" data-snap-url="'+esc(url||'')+'" data-snap-type="'+esc(t)+'" data-snap-dur="'+esc(String(m.snapDurationSec||0))+'" data-snap-noshot="'+(m.noScreenshot?'1':'0')+'">👻 <span>Appuie pour voir l\\'Ephem'+(m.snapDurationSec?' ('+m.snapDurationSec+'s)':'')+'</span>'+noShotTag+'</div>';
+  }
+  if(t==='mediagroup'){
+    if(mediaItems)return renderMediaGridHtml(mediaItems,text);
+    const parsed=parseMediaGroupPlain(text);
+    if(parsed)return renderMediaGridHtml(parsed.items,parsed.caption);
+    return '<span class="enc-loading">📎 Médias indisponibles</span>';
   }
   if(t==='image'&&url)return '<div class="msg-media"><img src="'+esc(url)+'" loading="lazy"/></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
   if(t==='video'&&url)return '<div class="msg-media"><video src="'+esc(url)+'" controls playsinline></video></div>'+(text?'<div class="msg-caption">'+linkify(esc(text))+'</div>':'');
@@ -14574,7 +14613,33 @@ async function attemptDecryptMessage(m){
       mediaUrl=URL.createObjectURL(blob);
     }catch(e){xlog('e2e_media_decrypt_fail',{mid:m.\$id,type:m.type,mediaMode:m.mediaMode,mime:m.mime,msg:(e&&e.message)||String(e)});return {ok:false};}
   }
-  return {ok:true,text:text,mediaUrl:mediaUrl};
+  // Plusieurs médias envoyés ensemble (un seul message, type='mediagroup') :
+  // text, déjà déchiffré ci-dessus (chiffré comme n'importe quel texte à
+  // l'envoi), contient en clair {items:[{type,mime,url}...],caption} — les
+  // url pointent chacune vers un fichier chiffré SÉPARÉMENT à l'envoi (voir
+  // sendMediaGroupMessage), donc chacune se déchiffre séparément ici : une
+  // pièce corrompue/illisible n'empêche pas d'afficher les autres (⚠️ à sa
+  // place, voir renderMediaGridHtml). Le texte final renvoyé devient la
+  // légende (caption), pas le JSON brut.
+  let mediaItems=null;
+  if(m.type==='mediagroup'&&text){
+    const parsed=parseMediaGroupPlain(text);
+    if(parsed){
+      mediaItems=[];
+      for(const it of parsed.items){
+        if(!it.url){mediaItems.push({type:it.type,mime:it.mime,url:''});continue}
+        try{
+          const blob=await e2eDecryptBlobWithKey(key,it.url,it.mime||'application/octet-stream');
+          mediaItems.push({type:it.type,mime:it.mime,url:URL.createObjectURL(blob)});
+        }catch(e){
+          xlog('e2e_media_group_decrypt_fail',{mid:m.\$id,msg:(e&&e.message)||String(e)});
+          mediaItems.push({type:it.type,mime:it.mime,url:''});
+        }
+      }
+      text=parsed.caption;
+    }
+  }
+  return {ok:true,text:text,mediaUrl:mediaUrl,mediaItems:mediaItems};
 }
 // Version allégée d'attemptDecryptMessage qui ne déchiffre QUE le texte,
 // jamais le média joint — utilisée par la recherche (runSearch) qui n'a
@@ -14643,9 +14708,9 @@ async function hydrateEncryptedMessages(){
     // hauteur vient justement de changer) et on s'y tient.
     const stick=box.scrollHeight-box.scrollTop-box.clientHeight<80;
     if(!result.ok){wrap.innerHTML='<span class="enc-loading">🔒 Message illisible sur cet appareil</span>';wrap.dataset.hydratedFor=m.text;if(stick)box.scrollTop=box.scrollHeight;continue}
-    wrap.innerHTML=applySpoilerGate(m,renderMsgBody(m,result.text,result.mediaUrl));
+    wrap.innerHTML=applySpoilerGate(m,renderMsgBody(m,result.text,result.mediaUrl,result.mediaItems));
     wrap.dataset.hydratedFor=m.text;
-    wrap.querySelectorAll('.msg-media img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
+    wrap.querySelectorAll('.msg-media img,.msg-media-grid img').forEach(function(el){el.addEventListener('click',function(){openMediaLightbox(el.src)})});
     wrap.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
     wireSnapPlaceholders(wrap);
     wireSpoilerGates(wrap);
@@ -15086,7 +15151,7 @@ function wireMsgContainer(container){
     el.style.cursor='pointer';
     el.onclick=function(e){e.stopPropagation();openProfileModal(el.getAttribute('data-profile'))};
   });
-  container.querySelectorAll('.msg-media img').forEach(function(el){
+  container.querySelectorAll('.msg-media img,.msg-media-grid img').forEach(function(el){
     el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
   wireSnapPlaceholders(container);
@@ -15622,12 +15687,13 @@ async function sendMessage(){
     input.value='';
     \$('btn-send').classList.add('hidden');\$('btn-voice').classList.remove('hidden');
     try{
-      // Plusieurs fichiers sélectionnés ensemble = plusieurs messages
-      // envoyés à la suite, dans l'ordre (le schéma n'a qu'un seul mediaUrl
-      // par message) — la légende ne s'applique qu'au premier.
-      for(let i=0;i<files.length;i++){
-        await handleFileAttach(files[i].file,'auto',false,0,false,i===0?text.slice(0,2000):'',flagForThisSend);
-      }
+      // Demandé explicitement : plusieurs médias sélectionnés ensemble
+      // partent en UN SEUL message groupé (affiché en grille, chaque
+      // média restant cliquable individuellement — voir renderMediaGridHtml)
+      // plutôt qu'en plusieurs messages séparés. Un seul fichier garde le
+      // chemin simple existant.
+      if(files.length>1)await sendMediaGroupMessage(files,text.slice(0,2000),flagForThisSend);
+      else await handleFileAttach(files[0].file,'auto',false,0,false,text.slice(0,2000),flagForThisSend);
       clearTypingState();
     }catch(e){xlog('send_msg_fail',{msg:(e&&e.message)||String(e)});}
     const freshInput=\$('msg-input');if(freshInput)freshInput.focus();
@@ -15781,10 +15847,16 @@ function cycleComposerContentFlag(){
 if(\$('btn-spoiler-toggle'))\$('btn-spoiler-toggle').addEventListener('click',cycleComposerContentFlag);
 // Plusieurs photos/vidéos à la fois (demandé explicitement), en respectant
 // le quota total de pièces jointes du palier (voir maxAttachBytes()) —
-// jamais un tableau côté schéma (dms_messages n'a qu'un seul mediaUrl par
-// message) : chaque fichier stagé ici devient son propre message à
-// l'envoi (voir sendMessage), la légende ne s'appliquant qu'au premier.
+// stagées ici puis envoyées comme UN SEUL message groupé (type='mediagroup',
+// voir sendMediaGroupMessage/renderMediaGridHtml) si plusieurs fichiers sont
+// sélectionnés ensemble.
 let pendingAttachFiles=[];
+// La liste des médias groupés est encodée dans le champ text existant
+// (JSON), plafonné à 4000 caractères par le schéma — encore plus
+// contraignant en DM une fois chiffré (AES-GCM+base64 grossit le texte).
+// Marge large : même avec des mime-types longs, quelques items tiennent
+// très confortablement en dessous de cette limite.
+const MAX_MEDIA_GROUP_ITEMS=6;
 function attachPreviewTotalBytes(){return pendingAttachFiles.reduce(function(s,x){return s+x.file.size;},0);}
 function clearAttachPreview(){
   pendingAttachFiles.forEach(function(x){if(x.objectUrl){try{URL.revokeObjectURL(x.objectUrl);}catch(e){}}});
@@ -15829,12 +15901,20 @@ function showAttachPreview(files){
   if(editingDmMsgId)cancelEditMessage('dm');
   const bar=\$('attach-preview'),info=\$('ap-info');
   if(!bar)return;
-  let rejected=0;
+  let rejected=0,rejectedForCount=0;
   list.forEach(function(file){
+    // Plusieurs fichiers = un seul message groupé, dont le texte (la liste
+    // des médias en JSON) reste soumis à la même limite de 4000 caractères
+    // qu'un texte normal (encore plus contraignante une fois chiffré en DM,
+    // le chiffrement AES-GCM+base64 grossissant le texte d'environ un
+    // tiers) — MAX_MEDIA_GROUP_ITEMS reste large de marge pour ne jamais
+    // s'en approcher.
+    if(pendingAttachFiles.length>=MAX_MEDIA_GROUP_ITEMS){rejectedForCount++;return}
     if(attachPreviewTotalBytes()+file.size>maxAttachBytes()){rejected++;return}
     pendingAttachFiles.push({file:file,objectUrl:URL.createObjectURL(file)});
   });
   if(rejected)showToast(rejected+' fichier(s) ignoré(s) — quota de '+fmtSize(maxAttachBytes())+' par message dépassé.','error');
+  if(rejectedForCount)showToast(rejectedForCount+' fichier(s) ignoré(s) — '+MAX_MEDIA_GROUP_ITEMS+' médias maximum par message groupé.','error');
   if(!pendingAttachFiles.length)return;
   renderAttachPreviewThumbs();
   renderAttachPreviewQuota();
@@ -16554,6 +16634,44 @@ function updateUploadProgressRow(row,loaded,total){
   const pctEl=row.querySelector('.upload-progress-pct');if(pctEl)pctEl.textContent=pct+'%';
   const fillEl=row.querySelector('.upload-progress-fill');if(fillEl)fillEl.style.width=pct+'%';
   const sizeEl=row.querySelector('.upload-progress-size');if(sizeEl)sizeEl.textContent=fmtSize(loaded)+' / '+fmtSize(total);
+}
+// Plusieurs médias envoyés ensemble en UN SEUL message (demandé
+// explicitement) : chaque fichier est téléversé (et chiffré séparément côté
+// DM, comme n'importe quelle pièce jointe) puis référencé dans un unique
+// message type='mediagroup' — voir renderMediaGridHtml/attemptDecryptMessage
+// pour le rendu et le déchiffrement. keyCtx n'est résolu qu'UNE fois et sert
+// à chiffrer aussi bien chaque fichier que le texte final (même clé que
+// n'importe quel autre message de ce fil, y compris pour un groupe où elle
+// est spécifique à CE message).
+async function sendMediaGroupMessage(pendingFiles,caption,contentFlag){
+  if(!pendingFiles||!pendingFiles.length||!activeDm)return;
+  const keyCtx=await e2eGetMessageKeyContext();
+  const totalBytes=pendingFiles.reduce(function(s,x){return s+x.file.size;},0);
+  const progressRow=createUploadProgressRow({name:pendingFiles.length+' fichiers',size:totalBytes});
+  let loadedSoFar=0;
+  const items=[];
+  try{
+    for(let i=0;i<pendingFiles.length;i++){
+      const file=pendingFiles[i].file;
+      let uploadBlob=file;
+      if(keyCtx&&keyCtx.aesKey){
+        const encBlob=await e2eEncryptBlobWithKey(keyCtx.aesKey,file);
+        uploadBlob=new File([encBlob],file.name,{type:'application/octet-stream'});
+      }
+      const baseLoaded=loadedSoFar;
+      const up=await uploadFileWithProgress(uploadBlob,function(loaded,total){updateUploadProgressRow(progressRow,baseLoaded+loaded,totalBytes);});
+      loadedSoFar+=file.size;
+      const fileUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      items.push({type:file.type.indexOf('video/')===0?'video':'image',mime:file.type,url:fileUrl});
+    }
+    if(progressRow)progressRow.remove();
+    const data={type:'mediagroup',text:JSON.stringify({items:items,caption:caption||''})};
+    if(contentFlag)data.contentFlag=contentFlag;
+    await postMessage(data,'📎 '+pendingFiles.length+' médias',keyCtx);
+  }catch(e){
+    if(progressRow)progressRow.remove();
+    alert('Envoi impossible : '+((e&&e.message)||e));xlog('media_group_attach_fail',{msg:(e&&e.message)||String(e)});
+  }
 }
 async function handleFileAttach(file,kindHint,ephemeral,durationSec,noScreenshot,caption,contentFlag){
   if(!file||!activeDm)return;
@@ -27109,7 +27227,7 @@ function buildChannelMsgHtml(m,stackClass,stackStyle){
 // applyChannelMessageUpdate ci-dessous), sans jamais retoucher les messages
 // déjà affichés.
 function wireChannelMsgContainer(container){
-  container.querySelectorAll('.msg-media img').forEach(function(el){
+  container.querySelectorAll('.msg-media img,.msg-media-grid img').forEach(function(el){
     el.addEventListener('click',function(){openMediaLightbox(el.src)});
   });
   container.querySelectorAll('.voice-msg').forEach(initVoiceMsgPlayer);
@@ -37985,7 +38103,7 @@ async function handle(request, event) {
       // isBot sont écrits par un chemin séparé (/api/bots/interact, déjà
       // asAdmin), jamais par un envoi humain, donc volontairement absents
       // ici. threadId/uid ne viennent jamais du client.
-      const DM_MSG_TEXT_TYPES = ["text", "image", "video", "file", "audio", "gif", "location"];
+      const DM_MSG_TEXT_TYPES = ["text", "image", "video", "file", "audio", "gif", "location", "mediagroup"];
       const data = {
         threadId: threadId, uid: String(acc.$id),
         displayName: String((body && body.displayName) || "").slice(0, 64),
