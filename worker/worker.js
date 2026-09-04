@@ -2487,31 +2487,38 @@ html.xultra-restoring #stage{visibility:hidden}
 /* Sons des membres (liste, esprit SoundCloud) : une rangée par titre avec
    forme d'onde cliquable, dégradé violet/rose X1 pour la progression au
    lieu de l'orange d'origine. */
-.music-row-list{display:flex;flex-direction:column;gap:4px;padding-bottom:100px}
-.music-member-row{display:flex;gap:12px;padding:12px 10px;border-radius:12px;transition:background .15s ease}
-.music-member-row:hover{background:rgba(255,255,255,.03)}
-.music-member-row.on{background:rgba(124,58,237,.1)}
-.music-row-cover{position:relative;width:72px;height:72px;flex-shrink:0;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer}
+.music-row-list{display:flex;flex-direction:column;gap:2px;padding-bottom:100px}
+.music-member-row{position:relative;display:flex;gap:14px;padding:14px 12px 14px 16px;border-radius:12px;transition:background .15s ease;border-bottom:1px solid rgba(255,255,255,.045)}
+.music-row-list .music-member-row:last-child{border-bottom:0}
+.music-member-row:hover{background:rgba(255,255,255,.035)}
+.music-member-row.on{background:rgba(124,58,237,.12)}
+.music-member-row.on::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:2px;background:linear-gradient(180deg,#f472b6,#7c3aed);box-shadow:0 0 8px rgba(244,114,182,.5)}
+.music-row-cover{position:relative;width:76px;height:76px;flex-shrink:0;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.25)}
 .music-row-cover img{width:100%;height:100%;object-fit:cover}
 .music-row-playbtn{position:absolute;inset:0;display:grid;place-items:center;font-size:1.3rem;color:#fff;background:rgba(0,0,0,0);opacity:0;transition:opacity .15s ease,background .15s ease}
 .music-row-cover:hover .music-row-playbtn{opacity:1;background:rgba(0,0,0,.4)}
 .music-row-body{flex:1;min-width:0}
-.music-row-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.music-row-title{font-weight:800;font-size:.9rem}
-.music-row-artist{font-size:.76rem;color:var(--muted);cursor:pointer}
-.music-row-artist:hover{color:#c4b5fd;text-decoration:underline}
-.music-row-dur{margin-left:auto;font-size:.72rem;color:var(--muted);flex-shrink:0}
-.music-row-wave{position:relative;height:34px;cursor:pointer;margin:6px 0}
+.music-row-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.music-row-title{font-weight:800;font-size:.92rem;letter-spacing:-.005em}
+.music-row-artist-wrap{display:inline-flex;align-items:center;gap:5px;cursor:pointer}
+.music-row-artist-wrap:hover .music-row-artist{color:#c4b5fd;text-decoration:underline}
+.music-row-artist-av{width:18px;height:18px;border-radius:50%;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:.55rem;font-weight:800;color:#fff}
+.music-row-artist-av img{width:100%;height:100%;object-fit:cover}
+.music-row-artist{font-size:.76rem;color:var(--muted)}
+.music-row-ago{font-size:.72rem;color:var(--muted)}
+.music-row-dur{margin-left:auto;font-size:.72rem;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
+.music-row-wave{position:relative;height:42px;cursor:pointer;margin:8px 0}
 .music-row-wave .music-wave-bars{display:flex;align-items:center;gap:2px;height:100%;width:100%}
-.music-row-wave .music-wave-bars span{flex:1;min-width:2px;background:rgba(255,255,255,.16);border-radius:2px}
+.music-row-wave .music-wave-bars span{flex:1;min-width:2px;background:rgba(255,255,255,.14);border-radius:2px}
 .music-wave-progress{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#e9d5ff,#a855f7)}
+.music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#f0abfc,#a855f7)}
 .music-wave-marker{position:absolute;top:-2px;bottom:-2px;width:2px;background:#f472b6;border-radius:1px;pointer-events:none;box-shadow:0 0 4px rgba(244,114,182,.7)}
 .music-comment-ts{display:inline-block;margin:0 6px;padding:2px 8px;border-radius:999px;background:rgba(124,58,237,.18);color:#c4b5fd;font-size:.7rem;font-weight:700}
 .music-comment-ts:hover{background:rgba(124,58,237,.3)}
 .music-row-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px}
 .music-row-title,.music-card-title{cursor:pointer}
 .music-row-title:hover,.music-card-title:hover{text-decoration:underline}
+.music-row-plays{font-size:.72rem;color:var(--muted);font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:5px 6px}
 /* Page de titre façon SoundCloud (clic sur un titre en liste "Sons des
    membres" ou en grille) : grande forme d'onde, avatars des commentaires
    horodatés flottant au-dessus, pochette + carte artiste en colonne. Rendu
@@ -2622,6 +2629,10 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-follow-btn.on{background:rgba(124,58,237,.25);border-color:rgba(167,139,250,.5);color:#e9d5ff}
 .music-search{margin:0 14px 10px;width:calc(100% - 28px)}
 .music-genre-row{display:flex;gap:8px;overflow-x:auto;padding:0 14px 12px;scrollbar-width:none}
+.music-sort-row{display:flex;align-items:center;gap:10px;padding:0 14px 12px}
+.music-sort-label{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.music-sort-toggle{width:auto}
+.music-sort-toggle .seg-btn{flex:none;padding:0 14px}
 .music-streaming-note{padding:0 14px 10px}
 .music-recent-heading{padding:4px 14px 10px;font-size:.95rem;font-weight:800}
 .music-recent-rail{display:flex;gap:12px;overflow-x:auto;padding:0 14px 18px;scrollbar-width:none}
@@ -7606,6 +7617,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.52',category:'design',date:'4 septembre 2026',time:'07:00',title:'🎧 Sons des membres : ambiance SoundCloud',
+    body:'La liste "Sons des membres" se rapproche du style SoundCloud : chaque son affiche l\\'avatar de son créateur, depuis quand il a été publié ("il y a 2h", "il y a 5j"...) et son nombre d\\'écoutes, la forme d\\'onde est plus grande et le son en cours de lecture est marqué par une barre colorée sur le côté. Nouveau tri "🕒 Récent / 🔥 Populaire" en haut de la liste pour retrouver soit les dernières publications, soit les sons les plus écoutés par la communauté.'},
   {version:'4.55.51',category:'design',date:'4 septembre 2026',time:'06:00',title:'⚙️ Paramètres du serveur : refonte en tableau de bord par catégorie',
     body:'La page Paramètres d\\'un serveur (pour les propriétaires/rôles concernés) passe d\\'une longue liste verticale à un vrai tableau de bord : en-tête avec le nom du serveur, puis toutes tes fonctionnalités déjà existantes (Général, Modération, Communauté & Accueil, Personnalisation, Identité, Intégrations, Croissance, Qualité X1+, Zone dangereuse) triées par catégorie et affichées en grille sur deux colonnes, dans les couleurs violettes/roses de X1. Aucune fonctionnalité déplacée ou modifiée — seulement mieux organisée et plus agréable à parcourir.'},
   {version:'4.55.50',category:'feature',date:'4 septembre 2026',time:'05:00',title:'🖼️ Plusieurs médias envoyés ensemble = un seul message groupé en grille',
@@ -20889,6 +20902,10 @@ let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
 let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false;
 let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
+// Tri façon SoundCloud (Récent/Populaire) pour Sons des membres uniquement —
+// "populaire" trie sur playsCount, la statistique la plus emblématique de
+// SoundCloud, jamais exposée en tri jusqu'ici.
+let musicSortMode='recent';
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
 let musicSleepTimerId=null,musicSleepTimerEndsAt=0;
@@ -21025,7 +21042,7 @@ function musicStartRadio(track){
 }
 let musicQueueCache=null,musicQueueCacheKey='';
 function musicQueueKey(){
-  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',musicTracksCache.length].join('|');
+  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',musicFilter==='members'?musicSortMode:'',musicTracksCache.length].join('|');
 }
 // Le tirage aléatoire est mis en cache tant que le contexte ne change pas —
 // sinon, appeler musicCurrentQueue() (utilisé aussi bien pour l'affichage que
@@ -21050,6 +21067,11 @@ function musicCurrentQueue(){
   }
   if(musicSearchQuery)list=list.filter(function(t){return musicMatchesSearch(t,musicSearchQuery);});
   if(musicGenreFilter)list=list.filter(function(t){return t.genre===musicGenreFilter;});
+  // Tri Récent/Populaire (Sons des membres uniquement) : list arrive déjà
+  // triée par $createdAt desc depuis loadMusicTracks() (orderDesc côté
+  // requête), donc "Récent" n'a rien à faire — seul "Populaire" retrie
+  // explicitement sur playsCount.
+  if(musicFilter==='members'&&musicSortMode==='popular')list=list.slice().sort(function(a,b){return (b.playsCount||0)-(a.playsCount||0);});
   if(musicShuffleOn)list=musicShuffleArray(list);
   musicQueueCache=list;musicQueueCacheKey=key;
   return list;
@@ -21134,6 +21156,7 @@ function renderMusicShell(){
     +(compact||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
     +(compact?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
     +(compact?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
+    +(compact||musicFilter!=='members'?'':'<div class="music-sort-row"><span class="music-sort-label">Trier</span><div class="seg-group music-sort-toggle" id="music-sort-toggle"><button type="button" class="seg-btn'+(musicSortMode==='recent'?' on':'')+'" data-music-sort="recent">🕒 Récent</button><button type="button" class="seg-btn'+(musicSortMode==='popular'?' on':'')+'" data-music-sort="popular">🔥 Populaire</button></div></div>')
     +'<div class="discover-body" id="music-body"></div>'
     +'<div class="music-player-bar hidden" id="music-player-bar">'
       +'<div class="mpb-cover" id="mpb-cover"></div>'
@@ -21164,6 +21187,13 @@ function renderMusicShell(){
       musicGenreFilter=(musicGenreFilter===g)?'':g;
       musicRadioQueue=null;
       \$('music-genre-row').querySelectorAll('[data-genre]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-genre')===musicGenreFilter);});
+      renderMusicBody();
+    });
+  });
+  if(\$('music-sort-toggle'))\$('music-sort-toggle').querySelectorAll('[data-music-sort]').forEach(function(b){
+    b.addEventListener('click',function(){
+      musicSortMode=b.getAttribute('data-music-sort');
+      \$('music-sort-toggle').querySelectorAll('[data-music-sort]').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-music-sort')===musicSortMode);});
       renderMusicBody();
     });
   });
@@ -21272,15 +21302,29 @@ function musicMemberRowHtml(t){
   const markersHtml=(t.durationSec&&markers.length)?markers.map(function(sec){
     return '<span class="music-wave-marker" style="left:'+Math.min(99,(sec/t.durationSec)*100)+'%" title="Commentaire à '+esc(musicFmtTime(sec))+'"></span>';
   }).join(''):'';
+  // Raffinement façon SoundCloud (demandé explicitement) : petit avatar de
+  // l'artiste à côté de son nom (comme sur un vrai fil SoundCloud, où
+  // chaque ligne du flux montre qui a publié), horodatage relatif ("il y a
+  // Xj", même formateur que la page de titre) et nombre d'écoutes affiché —
+  // la statistique la plus emblématique de SoundCloud, absente jusqu'ici de
+  // cette liste alors qu'elle existe déjà côté serveur (t.playsCount).
+  const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(t.uid);});
+  const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
+  const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="">':esc(ini(t.artistName||'?'));
+  const agoHtml=t.\$createdAt?'<span class="music-row-ago">· il y a '+esc(fmtRelTime(t.\$createdAt))+'</span>':'';
   return '<div class="music-member-row'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
     +'<div class="music-row-body">'
-      +'<div class="music-row-top"><span class="music-row-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</span><span class="music-row-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
+      +'<div class="music-row-top"><span class="music-row-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</span>'
+        +'<span class="music-row-artist-wrap" data-music-artist="'+esc(t.uid)+'"><span class="music-row-artist-av">'+avInner+'</span><span class="music-row-artist">'+esc(t.artistName)+'</span></span>'
+        +agoHtml
+        +(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
       +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'+markersHtml+'</div>'
       +tagsHtml
       +'<div class="music-card-actions">'
-        +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
-        +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
+        +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+crtFmtCount(t.likesCount||0)+'</button>'
+        +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+crtFmtCount(t.commentsCount||0)+'</button>'
+        +'<span class="music-row-plays" title="Écoutes">▶ '+crtFmtCount(t.playsCount||0)+'</span>'
         +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
         +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
       +'</div>'
