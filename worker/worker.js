@@ -3397,6 +3397,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 }
 .badge-chip:hover{transform:scale(1.18)}
 .badge-chip.sm{width:20px;height:20px;font-size:.7rem}
+.pe-badge-pin{opacity:.4;cursor:pointer}
+.pe-badge-pin.on{opacity:1;box-shadow:0 0 0 2px #0b0714,0 0 0 4px #a78bfa,0 0 12px rgba(167,139,250,.6)}
 .badge-base{background-image:linear-gradient(125deg,#6d28d9,#a78bfa,#7c3aed,#c084fc,#6d28d9);color:#fff;border-color:rgba(167,139,250,.5);box-shadow:0 0 10px rgba(124,58,237,.45)}
 .badge-dev{background-image:linear-gradient(125deg,#7f1d1d,#ef4444,#991b1b,#f87171,#7f1d1d);color:#fff;border-color:rgba(239,68,68,.55);box-shadow:0 0 10px rgba(220,38,38,.5)}
 .badge-hunter1{background-image:linear-gradient(125deg,#475569,#94a3b8,#64748b,#cbd5e1,#475569);color:#0f172a;border-color:rgba(148,163,184,.55);box-shadow:0 0 8px rgba(148,163,184,.4)}
@@ -4855,6 +4857,7 @@ a.bug-att-item{display:block}
             <option value="today">Aujourd'hui</option>
             <option value="week">Cette semaine</option>
           </select></label>
+          <div class="pe-field"><span>Badges épinglés (max 4, affichés en priorité dans la liste des membres)</span><div class="pe-swatches" id="pe-badges-picker"></div><div class="pe-hint" style="margin-top:4px">Tous tes badges restent visibles en entier sur ta fiche de profil — ceci choisit juste lesquels ressortent dans la liste des membres.</div></div>
           <label class="pe-field"><span>Bio</span><textarea id="pe-bio" maxlength="500" class="field-input" style="height:80px;padding-top:9px;resize:vertical"></textarea></label>
           <label class="pe-field"><span>Alignement de la bio</span>
             <select id="pe-bio-pos" class="field-input"><option value="center">Centré</option><option value="left">Gauche</option></select>
@@ -7670,6 +7673,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.55',category:'feature',date:'4 septembre 2026',time:'10:00',title:'🏅 Badges épinglés : 4 max dans la liste des membres',
+    body:'La liste des membres n\\'affiche plus systématiquement TOUS les badges de chacun — seulement 4, pour rester lisible. Par défaut ce sont les 4 les plus prestigieux, mais tu peux choisir toi-même lesquels mettre en avant depuis Personnalisation du profil → Général → "Badges épinglés". Rien ne change ailleurs : cliquer sur quelqu\\'un affiche toujours la totalité de ses badges sur sa fiche de profil complète.'},
   {version:'4.55.54',category:'design',date:'4 septembre 2026',time:'09:00',title:'🎨 Musique : ambiance visuelle repensée, Streaming en pause',
     body:'L\\'onglet 🎧 Streaming est mis en pause pour l\\'instant — X1 Music se concentre pleinement sur "Sons des membres", un vrai SoundCloud communautaire avec des fonctions en plus. Toute la section Musique a aussi un nouveau fond animé : un dégradé mauve/rose façon lofi qui tourne lentement en arrière-plan, avec un titre en dégradé et de petites animations au survol des pochettes pour une interface plus moderne et agréable à utiliser.'},
   {version:'4.55.53',category:'feature',date:'4 septembre 2026',time:'08:00',title:'📰 Fil d\\'actu et 📚 Bibliothèque dans Sons des membres',
@@ -11373,6 +11378,26 @@ function primaryBadge(badges){
   for(var i=0;i<order.length;i++){if(badges.indexOf(order[i])>=0)return order[i]}
   return 'base';
 }
+// Ordre d'importance des badges, identique à celui utilisé par primaryBadge()
+// (élite/staff/... avant base) — réutilisé ici pour choisir automatiquement
+// les 4 badges "les plus importants" tant qu'un membre n'a rien épinglé lui-
+// même dans Personnalisation du profil.
+function defaultDisplayBadges(badges){
+  const order=BADGE_GROUP_ORDER.slice(0,-1).concat(Object.keys(CUSTOM_BADGES)).concat(['base']);
+  return badges.slice().sort(function(a,b){return order.indexOf(a)-order.indexOf(b);}).slice(0,4);
+}
+// Demandé explicitement : la liste des membres n'affiche plus TOUS les
+// badges d'un membre (ça pouvait vite devenir une rangée illisible), mais
+// seulement 4 — celles qu'il a choisi d'épingler (profileExtraJson.
+// pinnedBadges, voir renderBadgePicker), ou par défaut les 4 les plus
+// importantes si rien n'a été choisi. Le profil complet (openProfileModal)
+// continue lui d'afficher la totalité des badges, inchangé.
+function memberDisplayBadges(uid,badges){
+  const meta=memberMetaByUid[uid];
+  const extra=parseProfileExtra(meta&&meta.profileExtraJson);
+  const pinned=Array.isArray(extra.pinnedBadges)?extra.pinnedBadges.filter(function(b){return badges.indexOf(b)>=0;}):[];
+  return pinned.length?pinned.slice(0,4):defaultDisplayBadges(badges);
+}
 function badgeChipsHtml(badges,size){
   const cls=size==='sm'?'badge-chip sm':'badge-chip';
   return badges.map(function(b){
@@ -11542,7 +11567,7 @@ function renderMembers(){
       return '<div class="row member-row" data-open-profile="'+esc(entry.uid)+'" data-name="'+esc(name)+'">'
         +rowAvatar(p,name,entry.uid)
         +'<div class="info"><div class="n">'+esc(name)+userTagBadgeForUid(entry.uid)+' <span class="p" style="font-weight:400">@'+esc(p.username||'')+(p.tag?('#'+esc(p.tag)):'')+'</span></div>'
-        +'<div class="member-badges">'+badgeChipsHtml(entry.badges,'sm')+'</div></div>'
+        +'<div class="member-badges">'+badgeChipsHtml(memberDisplayBadges(entry.uid,entry.badges),'sm')+'</div></div>'
         +'</div>';
     }).join('');
   });
@@ -13331,7 +13356,7 @@ if(\$('ub-more-menu'))\$('ub-more-menu').addEventListener('click',function(e){
   if(e.target.closest('button'))closeUbPopovers();
 });
 
-let peDraft=null,peOriginalMeta=null,ownedShopFrames=[];
+let peDraft=null,peOriginalMeta=null,ownedShopFrames=[],peEarnedBadges=[];
 async function loadOwnedShopFrames(){
   try{
     const r=await authGet('/api/shop/decorations/owned');
@@ -13343,6 +13368,12 @@ function openProfileEditPanel(p,meta){
   const theme=p.theme||'violet';
   peOriginalMeta=meta||{};
   const extra=parseProfileExtra(meta&&meta.profileExtraJson);
+  // Badges réellement obtenus (meta.badgesJson, via parseBadges) : la seule
+  // source valable pour proposer un choix d'épinglage — jamais la liste
+  // pinnedBadges elle-même, qui pourrait contenir un badge perdu depuis
+  // (rétrogradation BAP/Support, etc.) et qu'il ne faut pas proposer à
+  // nouveau ni laisser cocher.
+  peEarnedBadges=parseBadges(meta);
   peDraft={
     displayName:p.displayName||p.username||'',
     tag:p.tag||String(Math.floor(1000+Math.random()*9000)),
@@ -13374,7 +13405,11 @@ function openProfileEditPanel(p,meta){
     avatarFrame:(AVATAR_FRAMES.indexOf(extra.avatarFrame)>=0||(typeof extra.avatarFrame==='string'&&extra.avatarFrame.indexOf('shop_')===0))?extra.avatarFrame:'none',
     avatarFrameRecipe:extra.avatarFrameRecipe||null,
     avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
-    cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none'
+    cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none',
+    // Ne garde que des badges réellement possédés (un badge perdu depuis le
+    // dernier enregistrement disparaît silencieusement de la sélection,
+    // plutôt que de rester coché sur un badge qu'on ne peut plus proposer).
+    pinnedBadges:Array.isArray(extra.pinnedBadges)?extra.pinnedBadges.filter(function(b){return peEarnedBadges.indexOf(b)>=0;}).slice(0,4):[]
   };
   \$('pe-name').value=peDraft.displayName;
   \$('pe-tag').value=peDraft.tag;
@@ -13410,6 +13445,7 @@ function openProfileEditPanel(p,meta){
   renderPresenceRow();
   renderGalleryThumbs();
   renderX1mojiBuilder();
+  renderBadgePicker();
   updatePePreview();
   document.querySelectorAll('.pe-tab').forEach(function(b,i){b.classList.toggle('on',i===0)});
   document.querySelectorAll('.pe-pane').forEach(function(p2,i){p2.classList.toggle('hidden',i!==0)});
@@ -13560,6 +13596,34 @@ function renderPresenceRow(){
     });
   });
 }
+// Choix des badges épinglés (max 4) : la liste des membres n'en affiche
+// désormais que 4 par défaut au lieu de tous, sur demande explicite — cette
+// grille propose uniquement les badges réellement possédés (peEarnedBadges,
+// calculé depuis meta.badgesJson dans openProfileEditPanel), jamais une
+// liste figée qui laisserait cocher un badge non obtenu.
+function renderBadgePicker(){
+  const wrap=\$('pe-badges-picker');if(!wrap||!peDraft)return;
+  if(!peEarnedBadges.length){wrap.innerHTML='<div class="pe-hint">Aucun badge à épingler pour l\\'instant.</div>';return}
+  wrap.innerHTML=peEarnedBadges.map(function(b){
+    const d=getBadgeDef(b);if(!d)return '';
+    const on=peDraft.pinnedBadges.indexOf(b)>=0;
+    const isCustom=!BADGE_DEFS[b];
+    const style=isCustom?' style="background-image:linear-gradient(125deg,'+esc(d.color)+',rgba(255,255,255,.3),'+esc(d.color)+')"':'';
+    return '<button type="button" class="badge-chip pe-badge-pin'+(on?' on':'')+(isCustom?' badge-custom':' badge-'+b)+'" data-pin-badge="'+b+'" title="'+esc(d.label)+'"'+style+'>'+d.icon+'</button>';
+  }).join('');
+  wrap.querySelectorAll('[data-pin-badge]').forEach(function(el){
+    el.addEventListener('click',function(){
+      const b=el.getAttribute('data-pin-badge');
+      const idx=peDraft.pinnedBadges.indexOf(b);
+      if(idx>=0){peDraft.pinnedBadges.splice(idx,1);}
+      else{
+        if(peDraft.pinnedBadges.length>=4){showToast('Maximum 4 badges épinglés — désélectionne-en un d\\'abord.','error');return}
+        peDraft.pinnedBadges.push(b);
+      }
+      renderBadgePicker();
+    });
+  });
+}
 function renderGalleryThumbs(){
   const wrap=\$('pe-gallery');if(!wrap||!peDraft)return;
   wrap.innerHTML=peDraft.avatarGallery.map(function(url,i){
@@ -13576,7 +13640,7 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges})
   });
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
@@ -13761,7 +13825,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
        par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
        qu'aucune erreur ne soit jamais visible. */
     let extraSaveFailed=false;
-    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji});
+    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges});
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
@@ -34385,9 +34449,25 @@ async function handle(request, event) {
       if (typeof data.profileExtraJson === "string") {
         try {
           const extraCheck = JSON.parse(data.profileExtraJson);
+          // Un seul awFetch pour user_meta, réutilisé par les deux vérifs
+          // ci-dessous (cadre X1+ ET badges épinglés) plutôt qu'un appel par
+          // champ modifié — les deux arrivent souvent dans la même sauvegarde
+          // de profil (formulaire unique côté client).
+          const needsOwnMeta = extraCheck && (extraCheck.avatarFrame === "xplus" || Array.isArray(extraCheck.pinnedBadges));
+          const ownMeta = needsOwnMeta ? await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; }) : null;
           if (extraCheck && extraCheck.avatarFrame === "xplus") {
-            const ownMeta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
             if (!ownMeta || ownMeta.plan !== "plus") throw new Error("Le cadre de profil X1+ est réservé aux membres X1+.");
+          }
+          // Badges épinglés (max 4, mis en avant dans la liste des membres) :
+          // ne jamais faire confiance à la liste envoyée telle quelle — un
+          // appel forgé pourrait sinon "épingler" (donc afficher en priorité
+          // partout) un badge que ce compte ne possède pas réellement.
+          if (extraCheck && Array.isArray(extraCheck.pinnedBadges)) {
+            let owned = [];
+            try { owned = JSON.parse((ownMeta && ownMeta.badgesJson) || "[]"); } catch (e4) { owned = []; }
+            if (!Array.isArray(owned)) owned = [];
+            extraCheck.pinnedBadges = extraCheck.pinnedBadges.filter(function (b) { return typeof b === "string" && owned.indexOf(b) >= 0; }).slice(0, 4);
+            data.profileExtraJson = JSON.stringify(extraCheck);
           }
           // Cadre de la boutique de décorations (id "shop_<decorationId>") :
           // avatarFrameRecipe ne doit JAMAIS venir du client tel quel (ce
