@@ -2744,6 +2744,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-trending-row .music-member-row{flex:1;min-width:0}
 .music-rank-badge{width:26px;flex-shrink:0;text-align:center;font-weight:800;font-size:.85rem;color:var(--muted)}
 .music-rank-badge.top3{color:#fbbf24;font-size:1.05rem}
+.music-stats-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(108px,1fr));gap:8px;padding:0 14px 18px}
+.music-stats-row-numbers{padding:0 0 10px 106px;margin-top:-8px;font-size:.72rem;color:var(--muted)}
 .music-lib-section{margin-bottom:8px}
 .music-lib-section-head{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
 .music-lib-section-head .music-feed-heading{padding:4px 0 10px}
@@ -7839,6 +7841,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.72',category:'feature',date:'6 septembre 2026',time:'00:00',title:'📊 Statistiques : tableau de bord pour tes titres',
+    body:'Nouveau sous-onglet "📊 Statistiques" dans Mes titres : écoutes, mentions j\\'aime, commentaires, reposts et abonnés cumulés sur tous tes titres en un coup d\\'œil, plus "⭐ Ton titre du moment" (celui qui cartonne EN CE MOMENT, pas juste celui aux écoutes cumulées les plus hautes) et le classement complet de tous tes titres par performance actuelle. Rien de nouveau à faire : entièrement calculé à partir des compteurs déjà existants sur chacun de tes titres.'},
   {version:'4.55.71',category:'feature',date:'5 septembre 2026',time:'23:00',title:'🔥 Tendances : le classement du moment dans X1 Music',
     body:'Nouvel onglet "🔥 Tendances" dans Sons des membres, entre Accueil et Découvrir : un vrai classement (titres et artistes) calculé sur les likes/commentaires/reposts récents, pas juste le nombre brut d\\'écoutes — un ancien titre très écouté ne trône plus indéfiniment en tête, place aux titres qui bougent vraiment en ce moment. Contrairement à Découvrir (personnalisé), Tendances est le même classement pour tout le monde et inclut aussi le contenu officiel. Le classement des artistes regroupe correctement les titres d\\'un même artiste officiel sous sa fiche, jamais sous les comptes de celles et ceux qui les ont mis en ligne.'},
   {version:'4.55.70',category:'feature',date:'5 septembre 2026',time:'22:00',title:'🧭 Découvrir : une sélection personnalisée dans X1 Music',
@@ -21246,6 +21250,7 @@ let musicSortMode='recent';
 // l'intérieur de l'onglet "Sons des membres" uniquement — les autres onglets
 // (Streaming/Mes titres/Mes playlists) restent inchangés.
 let musicMembersView='home'; // 'home' | 'trending' | 'discover' | 'feed' | 'library'
+let musicMineView='tracks'; // 'tracks' | 'stats'
 let musicLibraryTab='overview'; // 'overview' | 'likes' | 'playlists' | 'following' | 'history'
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
@@ -22052,9 +22057,13 @@ function renderMusicShell(){
       +'<button type="button" class="seg-btn'+(musicLibraryTab==='history'?' on':'')+'" data-music-libtab="history">Historique</button>'
       +'<button type="button" class="seg-btn'+(musicLibraryTab==='offline'?' on':'')+'" data-music-libtab="offline">📥 Hors-ligne</button>'
     +'</div>')
+    +(compact||musicFilter!=='mine'?'':'<div class="seg-group music-subtabs" id="music-mine-subtabs">'
+      +'<button type="button" class="seg-btn'+(musicMineView==='tracks'?' on':'')+'" data-music-mineview="tracks">🎵 Mes titres</button>'
+      +'<button type="button" class="seg-btn'+(musicMineView==='stats'?' on':'')+'" data-music-mineview="stats">📊 Statistiques</button>'
+    +'</div>')
     +(compact||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
-    +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
-    +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
+    +(compact||(musicFilter==='members'&&musicMembersView!=='home')||(musicFilter==='mine'&&musicMineView==='stats')?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
+    +(compact||(musicFilter==='members'&&musicMembersView!=='home')||(musicFilter==='mine'&&musicMineView==='stats')?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
     +(compact||musicFilter!=='members'||musicMembersView!=='home'?'':'<div class="music-sort-row"><span class="music-sort-label">Trier</span><div class="seg-group music-sort-toggle" id="music-sort-toggle"><button type="button" class="seg-btn'+(musicSortMode==='recent'?' on':'')+'" data-music-sort="recent">🕒 Récent</button><button type="button" class="seg-btn'+(musicSortMode==='popular'?' on':'')+'" data-music-sort="popular">🔥 Populaire</button></div></div>')
     +'<div class="discover-body" id="music-body"></div>';
   // Sur la page d'un titre, "← Retour" remonte d'un niveau (retour à la
@@ -22086,6 +22095,14 @@ function renderMusicShell(){
       renderMusicBody();
     });
   });
+  if(\$('music-mine-subtabs'))\$('music-mine-subtabs').querySelectorAll('[data-music-mineview]').forEach(function(b){
+    b.addEventListener('click',function(){
+      musicMineView=b.getAttribute('data-music-mineview');
+      renderMusicShell();
+      musicSyncMiniBar();
+      renderMusicBody();
+    });
+  });
   if(\$('music-subtabs'))\$('music-subtabs').querySelectorAll('[data-music-subview]').forEach(function(b){
     b.addEventListener('click',function(){
       musicMembersView=b.getAttribute('data-music-subview');
@@ -22114,6 +22131,7 @@ function renderMusicShell(){
   if(\$('music-tabs'))\$('music-tabs').querySelectorAll('[data-music-tab]').forEach(function(b){
     b.addEventListener('click',function(){
       musicFilter=b.getAttribute('data-music-tab');
+      musicMineView='tracks';
       musicActivePlaylist=null;
       musicRadioQueue=null;
       // Reconstruit tout le haut du panneau (pas juste la liste) : la note
@@ -22287,6 +22305,7 @@ function renderMusicBody(){
   // n'est jamais posé ailleurs que juste avant un appel à renderMusicBody().
   if(musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
+  if(musicFilter==='mine'&&musicMineView==='stats'){renderMusicStatsTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='trending'){renderMusicTrendingTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='discover'){renderMusicDiscoverTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='feed'){renderMusicFeedTab(box);return}
@@ -22440,6 +22459,59 @@ function musicLibraryFollowedList(){
 // quelqu'un d'autre également suivi, seul l'évènement le plus RÉCENT des
 // deux ressort (avec son étiquette "Reposté par" le cas échéant), pour ne
 // jamais afficher deux fois la même ligne dans le fil.
+/* ===== 📊 Statistiques : tableau de bord créateur =====
+   Sous-onglet de "Mes titres" — jamais accessible sur le profil d'un autre
+   artiste (musicFilter==='user'), uniquement sur SES PROPRES titres. Aucune
+   nouvelle donnée serveur : uniquement les compteurs déjà présents sur
+   chaque titre (playsCount/likesCount/commentsCount/repostsCount, déjà
+   affichés un par un sur chaque carte) agrégés et classés ici en un seul
+   endroit — plus le nombre d'abonnés, seule donnée qui nécessite une petite
+   requête (voir musicLoadMyStatsFollowerCount, comme musicLoadTrackPageArtist
+   pour la page d'un titre). Le classement par titre réutilise musicTrendingScore
+   (même logique que l'onglet Tendances) pour distinguer "quel titre cartonne
+   EN CE MOMENT", pas juste celui qui a le plus d'écoutes cumulées depuis
+   toujours. */
+let musicMyStatsFollowerCount=null;
+async function musicLoadMyStatsFollowerCount(){
+  if(!me)return;
+  try{
+    const r=await db.listDocuments(DB,'xm_follows',[Appwrite.Query.equal('artistUid',me.\$id),Appwrite.Query.limit(1)]);
+    musicMyStatsFollowerCount=r.total||0;
+  }catch(e){musicMyStatsFollowerCount=0;}
+  if(musicFilter==='mine'&&musicMineView==='stats')renderMusicBody();
+}
+function musicMyStatsRowHtml(t,rank){
+  return '<div class="music-trending-row"><span class="music-rank-badge'+(rank<=3?' top3':'')+'">#'+rank+'</span><div style="flex:1;min-width:0">'
+    +musicMemberRowHtml(t)
+    +'<div class="music-stats-row-numbers">▶ '+crtFmtCount(t.playsCount||0)+' · 🤍 '+crtFmtCount(t.likesCount||0)+' · 💬 '+crtFmtCount(t.commentsCount||0)+' · 🔁 '+crtFmtCount(t.repostsCount||0)+'</div>'
+  +'</div></div>';
+}
+function renderMusicStatsTab(box){
+  const myTracks=musicTracksCache.filter(function(t){return me&&String(t.uid)===String(me.\$id);});
+  if(!myTracks.length){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">📊</div><div class="mfe-title">Aucune statistique pour l\\'instant</div><div class="mfe-sub">Publie un titre depuis "+ Ajouter un titre" pour voir ses performances apparaître ici.</div></div>';
+    return;
+  }
+  if(musicMyStatsFollowerCount===null)musicLoadMyStatsFollowerCount();
+  const totals=myTracks.reduce(function(acc,t){
+    acc.plays+=(t.playsCount||0);acc.likes+=(t.likesCount||0);acc.comments+=(t.commentsCount||0);acc.reposts+=(t.repostsCount||0);
+    return acc;
+  },{plays:0,likes:0,comments:0,reposts:0});
+  const ranked=myTracks.map(function(t){return {track:t,score:musicTrendingScore(t)};}).sort(function(a,b){return b.score-a.score;});
+  const best=ranked[0].track;
+  const tilesHtml='<div class="music-stats-tiles">'
+    +'<div class="mtp-stat-tile"><b>'+crtFmtCount(totals.plays)+'</b><span>Écoutes</span></div>'
+    +'<div class="mtp-stat-tile"><b>'+crtFmtCount(totals.likes)+'</b><span>Mentions j\\'aime</span></div>'
+    +'<div class="mtp-stat-tile"><b>'+crtFmtCount(totals.comments)+'</b><span>Commentaires</span></div>'
+    +'<div class="mtp-stat-tile"><b>'+crtFmtCount(totals.reposts)+'</b><span>Reposts</span></div>'
+    +'<div class="mtp-stat-tile"><b>'+(musicMyStatsFollowerCount===null?'…':crtFmtCount(musicMyStatsFollowerCount))+'</b><span>Abonnés</span></div>'
+    +'<div class="mtp-stat-tile"><b>'+myTracks.length+'</b><span>Titre'+(myTracks.length!==1?'s':'')+' publié'+(myTracks.length!==1?'s':'')+'</span></div>'
+  +'</div>';
+  const bestHtml='<div class="music-feed-heading">⭐ Ton titre du moment</div><div class="music-row-list">'+musicMemberRowHtml(best)+'</div>';
+  const listHtml='<div class="music-feed-heading">📊 Tous tes titres, classés par performance actuelle</div><div class="music-row-list">'+ranked.map(function(e,i){return musicMyStatsRowHtml(e.track,i+1);}).join('')+'</div>';
+  box.innerHTML=tilesHtml+bestHtml+listHtml;
+  wireMusicCardEvents(box);
+}
 function renderMusicTrendingTab(box){
   const tracks=musicTrendingTracks(15);
   if(!tracks.length){
