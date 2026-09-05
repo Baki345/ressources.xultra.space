@@ -2735,6 +2735,18 @@ html.xultra-restoring #stage{visibility:hidden}
 /* Lecteur plein écran + paroles synchronisées */
 .music-fullplayer{position:fixed;inset:0;z-index:6000;background:radial-gradient(circle at 50% 0%,rgba(var(--mfp-glow-rgb,124,58,237),.4),transparent 60%),linear-gradient(180deg,#1a0b2e 0%,#0a0614 45%,#07040f 100%);transition:background 1.2s ease;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
 .music-fullplayer.hidden{display:none}
+/* Cet overlay porte aussi la classe générique .overlay (pour rester détecté
+   par la logique commune "un overlay est ouvert", voir .overlay:not(.hidden)
+   plus bas) — mais .overlay définit SA PROPRE valeur pour z-index/background/
+   padding, déclarée plus loin dans la feuille de style : à spécificité égale
+   (une seule classe des deux côtés), c'est elle qui l'emportait en pratique,
+   changeant le beau fond en un simple voile noir translucide qui laisse
+   transparaître l'écran derrière (Messages, etc.) et abaissant le z-index
+   sous d'autres éléments — d'où le lecteur plein écran qui s'affichait "sans
+   fond, moche" en cliquant sur la mini-barre depuis n'importe quel écran.
+   Sélecteur à deux classes ci-dessous pour reprendre définitivement la main,
+   sans retirer .overlay (qui reste nécessaire ailleurs). */
+.overlay.music-fullplayer{z-index:6000;background:radial-gradient(circle at 50% 0%,rgba(var(--mfp-glow-rgb,124,58,237),.4),transparent 60%),linear-gradient(180deg,#1a0b2e 0%,#0a0614 45%,#07040f 100%);padding:calc(12px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
 .mfp-box{flex:1;display:flex;flex-direction:column;min-height:0}
 .mfp-head{display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .mfp-close{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);color:#fff;display:grid;place-items:center;font-size:1.1rem}
@@ -7735,6 +7747,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.63',category:'fix',date:'5 septembre 2026',time:'15:00',title:'🩹 Lecteur plein écran illisible depuis la mini-barre, et forme d\\'onde décalée',
+    body:'Cliquer sur la mini-barre persistante depuis un autre écran que Musique (Messages, un serveur…) pour agrandir le lecteur pouvait l\\'afficher sans son fond, façon voile transparent laissant deviner l\\'écran du dessous — un conflit entre deux styles internes qui se disputaient l\\'apparence de cette fenêtre. Corrigé : le lecteur plein écran retrouve son vrai fond dégradé partout, avec son bouton ▼ pour le réduire sans couper la musique. Corrige aussi la forme d\\'onde qui pouvait sembler "en avance" par rapport à la position réelle de lecture (surtout visible sur certains MP3) : elle se cale désormais sur la durée réelle du titre plutôt que sur celle, parfois erronée, que le lecteur audio du navigateur détecte en cours de route.'},
   {version:'4.55.62',category:'feature',date:'5 septembre 2026',time:'14:00',title:'🎧 Écouter ensemble en vocal',
     body:'En appel vocal (DM de groupe ou salon vocal de serveur), un nouveau bouton "🎧 Écouter ensemble" dans le lecteur plein écran de X1 Music lance une écoute synchronisée pour tout le monde présent dans le même vocal : la lecture, la pause et la position de l\\'hôte se retrouvent automatiquement chez les autres, avec une petite bannière d\\'invitation qui apparaît pour rejoindre en un clic dès que quelqu\\'un démarre une écoute dans ton salon. Seule la personne qui a lancé l\\'écoute peut la piloter ou l\\'arrêter — vérifié côté serveur à partir de ta présence réelle dans ce vocal, jamais fait confiance à ce que l\\'app envoie toute seule.'},
   {version:'4.55.61',category:'feature',date:'5 septembre 2026',time:'13:00',title:'📥 Écoute hors-ligne — exclusif ⭐ X1+',
@@ -21930,7 +21944,8 @@ function musicMemberRowHtml(t){
   let peaks=[];try{peaks=JSON.parse(t.waveformJson||'[]');}catch(e){}
   if(!peaks.length)peaks=musicFallbackWaveform(t.\$id);
   const barsHtml=musicWaveBarsHtml(peaks);
-  const progressPct=(isCurrent&&musicAudioEl&&musicAudioEl.duration)?((musicAudioEl.currentTime/musicAudioEl.duration)*100):0;
+  const waveDur=t.durationSec||(musicAudioEl&&musicAudioEl.duration);
+  const progressPct=(isCurrent&&musicAudioEl&&waveDur)?((musicAudioEl.currentTime/waveDur)*100):0;
   let tags=[];try{tags=JSON.parse(t.tagsJson||'[]');}catch(e){}
   const tagsHtml=tags.length?'<div class="music-row-tags">'+tags.slice(0,3).map(function(tag){return '<span class="music-tag-chip">#'+esc(tag)+'</span>';}).join('')+'</div>':'';
   // Repères façon SoundCloud : un petit trait par commentaire horodaté,
@@ -22416,7 +22431,15 @@ function musicUpdateWaveProgress(){
   let wave=null;
   try{wave=document.querySelector('[data-music-wave="'+musicCurrentTrack.\$id+'"] .music-wave-progress');}catch(e){}
   if(!wave)return;
-  const pct=musicAudioEl.duration?(musicAudioEl.currentTime/musicAudioEl.duration)*100:0;
+  // Préfère la durée connue côté serveur (musicCurrentTrack.durationSec, la
+  // même que celle déjà affichée en toutes lettres à côté de la forme
+  // d'onde) à audio.duration : certains MP3 VBR mal indexés font remonter au
+  // lecteur une durée erronée (bug de détection connu des navigateurs), ce
+  // qui décale toute la forme d'onde par rapport à la position réelle de
+  // lecture sans jamais se corriger tant que la vraie durée n'est pas
+  // redétectée en cours de lecture.
+  const dur=musicCurrentTrack.durationSec||musicAudioEl.duration;
+  const pct=dur?(musicAudioEl.currentTime/dur)*100:0;
   wave.style.width=pct+'%';
 }
 async function musicToggleLike(trackId){
@@ -22925,7 +22948,8 @@ function renderMusicTrackPage(box){
   let peaks=[];try{peaks=JSON.parse(t.waveformJson||'[]');}catch(e){}
   if(!peaks.length)peaks=musicFallbackWaveform(t.\$id);
   const barsHtml=musicWaveBarsHtml(peaks);
-  const progressPct=(isCurrent&&musicAudioEl&&musicAudioEl.duration)?((musicAudioEl.currentTime/musicAudioEl.duration)*100):0;
+  const waveDur=t.durationSec||(musicAudioEl&&musicAudioEl.duration);
+  const progressPct=(isCurrent&&musicAudioEl&&waveDur)?((musicAudioEl.currentTime/waveDur)*100):0;
   const markerComments=musicTrackPageComments.filter(function(c){return c.atSec!=null&&c.atSec>=0}).slice(0,60);
   const avatarsHtml=(t.durationSec&&markerComments.length)?markerComments.map(function(c){
     const av=safeUrl(c.avatar);
