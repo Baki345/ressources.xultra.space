@@ -2507,6 +2507,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-mini-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
 .music-repost-btn.on{background:rgba(74,222,128,.16);color:#86efac}
 .mtp-icon-btn.music-repost-btn.on{background:rgba(74,222,128,.22);color:#86efac;border-color:rgba(74,222,128,.4)}
+.music-offline-btn.on{background:rgba(124,58,237,.2);color:#c4b5fd}
+.mtp-icon-btn.music-offline-btn.on{background:rgba(124,58,237,.24);color:#c4b5fd;border-color:rgba(167,139,250,.4)}
+.music-offline-btn.locked{opacity:.55}
 .music-feed-repost-tag{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#4ade80;padding:0 12px;margin:10px 0 -6px}
 /* Sons des membres (liste, esprit SoundCloud) : une rangée par titre avec
    forme d'onde cliquable, dégradé violet/rose X1 pour la progression au
@@ -7721,6 +7724,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.61',category:'feature',date:'5 septembre 2026',time:'13:00',title:'📥 Écoute hors-ligne — exclusif ⭐ X1+',
+    body:'Nouveau bouton ⬇️ sur chaque titre (réservé aux membres X1+) pour le télécharger et l\\'écouter sans réseau : le fichier est chiffré avant d\\'être stocké uniquement sur cet appareil (pas de copie en clair), et déchiffré à la volée en mémoire pendant la lecture. Retrouve tous tes téléchargements dans Bibliothèque → 📥 Hors-ligne, avec suppression en un clic pour libérer de la place. Sans X1+, le bouton reste visible (verrouillé 🔒) avec une explication plutôt que de disparaître.'},
   {version:'4.55.60',category:'feature',date:'5 septembre 2026',time:'12:00',title:'🎵 La musique continue en arrière-plan, partout dans X1',
     body:'Quitter la section Musique (pour aller en DM, sur un serveur…) n\\'arrête plus la lecture — un mini-lecteur reste maintenant affiché tout en bas, sur n\\'importe quel écran de X1, avec ses contrôles (lecture/pause, précédent/suivant, aléatoire, avance). Un nouveau bouton ✕ dessus permet de le fermer et d\\'arrêter vraiment la musique quand tu en as fini. Le reste de l\\'interface (barre d\\'appel, notifications) s\\'ajuste automatiquement pour ne jamais être caché derrière.'},
   {version:'4.55.59',category:'fix',date:'5 septembre 2026',time:'11:00',title:'🩹 Mini-lecteur enfin cliquable, et 🔁 reposts dans le Fil d\\'actu',
@@ -21083,6 +21088,17 @@ let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMy
 // dédiée par artiste suivi ; musicMyRepostedIds n'en est qu'un sous-ensemble
 // (mes propres reposts), pour l'état "on" du bouton 🔁.
 let musicRepostsCache=[],musicMyRepostedIds=new Set();
+/* ===== Écoute hors-ligne (X1+) =====
+   Le fichier audio est chiffré (AES-GCM, clé aléatoire par titre) avant
+   d'être stocké dans IndexedDB — ce n'est PAS une vraie protection DRM
+   (impossible à garantir entièrement côté client : quelqu'un de suffisamment
+   technique peut toujours retrouver la clé dans IndexedDB), seulement un
+   frein sérieux contre l'extraction "au clic droit" ou via le cache du
+   navigateur : sans déchiffrement, les octets stockés ne sont pas un fichier
+   audio lisible. La lecture hors-ligne elle-même décode à la volée en
+   mémoire (URL.createObjectURL), jamais en écrivant un fichier en clair sur
+   le disque. */
+let musicOfflineIds=new Set(),musicOfflineDB=null,musicOfflineObjectUrl=null;
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
 let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false;
@@ -21311,7 +21327,7 @@ async function openMusic(uid,name){
   // ouvrant l'onglet "Mes playlists" — désormais nécessaire dès l'ouverture
   // pour l'Aperçu de la Bibliothèque (rail "Tes playlists"), donc chargé ici
   // avec le reste plutôt que de dupliquer un appel réseau plus tard.
-  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows(),loadMusicPlaylists(),loadMusicReposts()]);
+  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows(),loadMusicPlaylists(),loadMusicReposts(),musicOfflineLoadIds()]);
   if(resumeTrackId){openMusicTrackPage(resumeTrackId);return}
   renderMusicBody();
   updateMusicFollowBtn();
@@ -21368,6 +21384,106 @@ async function musicToggleRepost(trackId){
     showToast(r.reposted?'🔁 Repartagé sur ton fil.':'Repost retiré.');
     renderMusicBody();
   }catch(e){showToast('Action impossible','error');}
+}
+/* ===== Écoute hors-ligne (X1+) — IndexedDB, voir la note plus haut sur
+   musicOfflineIds pour ce que "chiffré" couvre et ne couvre pas. */
+function musicOfflineOpenDB(){
+  if(musicOfflineDB)return Promise.resolve(musicOfflineDB);
+  if(typeof indexedDB==='undefined')return Promise.reject(new Error('IndexedDB indisponible'));
+  return new Promise(function(resolve,reject){
+    const req=indexedDB.open('xultra_music_offline',1);
+    req.onupgradeneeded=function(){
+      if(!req.result.objectStoreNames.contains('tracks'))req.result.createObjectStore('tracks',{keyPath:'trackId'});
+    };
+    req.onsuccess=function(){musicOfflineDB=req.result;resolve(musicOfflineDB);};
+    req.onerror=function(){reject(req.error||new Error('IndexedDB open failed'));};
+  });
+}
+async function musicOfflineLoadIds(){
+  musicOfflineIds=new Set();
+  try{
+    const db=await musicOfflineOpenDB();
+    const keys=await new Promise(function(resolve,reject){
+      const tx=db.transaction('tracks','readonly');
+      const req=tx.objectStore('tracks').getAllKeys();
+      req.onsuccess=function(){resolve(req.result||[]);};
+      req.onerror=function(){reject(req.error);};
+    });
+    keys.forEach(function(k){musicOfflineIds.add(String(k));});
+  }catch(e){}
+}
+function musicOfflineGetRecord(trackId){
+  return musicOfflineOpenDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      const tx=db.transaction('tracks','readonly');
+      const req=tx.objectStore('tracks').get(trackId);
+      req.onsuccess=function(){resolve(req.result||null);};
+      req.onerror=function(){reject(req.error);};
+    });
+  });
+}
+function musicOfflineGetAllRecords(){
+  return musicOfflineOpenDB().then(function(db){
+    return new Promise(function(resolve,reject){
+      const tx=db.transaction('tracks','readonly');
+      const req=tx.objectStore('tracks').getAll();
+      req.onsuccess=function(){resolve(req.result||[]);};
+      req.onerror=function(){reject(req.error);};
+    });
+  });
+}
+async function musicOfflineGetPlayableUrl(trackId){
+  const rec=await musicOfflineGetRecord(trackId);
+  if(!rec)return null;
+  const key=await crypto.subtle.importKey('raw',rec.keyRaw,{name:'AES-GCM'},false,['decrypt']);
+  const plainBuf=await crypto.subtle.decrypt({name:'AES-GCM',iv:rec.iv},key,rec.cipher);
+  return URL.createObjectURL(new Blob([plainBuf],{type:rec.mime||'audio/mpeg'}));
+}
+let musicOfflineDownloadingIds=new Set();
+async function musicDownloadOffline(trackId){
+  if(!me){showToast('Connecte-toi pour télécharger un titre.','error');return}
+  if(!meIsPlus){showToast('Téléchargement hors-ligne exclusif à X1+ — Paramètres → ⭐ Abonnement','error');return}
+  if(musicOfflineIds.has(trackId)){showToast('Déjà téléchargé.');return}
+  if(musicOfflineDownloadingIds.has(trackId))return;
+  const t=musicTracksCache.find(function(x){return x.\$id===trackId});
+  if(!t||!safeUrl(t.audioUrl)){showToast('Fichier audio indisponible.','error');return}
+  musicOfflineDownloadingIds.add(trackId);
+  renderMusicBody();
+  try{
+    const res=await fetch(safeUrl(t.audioUrl));
+    if(!res.ok)throw new Error('Téléchargement du fichier échoué');
+    const plainBuf=await res.arrayBuffer();
+    const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt','decrypt']);
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plainBuf);
+    const keyRaw=await crypto.subtle.exportKey('raw',key);
+    const db=await musicOfflineOpenDB();
+    await new Promise(function(resolve,reject){
+      const tx=db.transaction('tracks','readwrite');
+      tx.objectStore('tracks').put({
+        trackId:t.\$id,title:t.title,artistName:t.artistName,coverUrl:t.coverUrl||'',
+        durationSec:t.durationSec||0,mime:t.mime||'audio/mpeg',
+        iv:iv,cipher:cipher,keyRaw:keyRaw,downloadedAt:new Date().toISOString()
+      });
+      tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};
+    });
+    musicOfflineIds.add(trackId);
+    showToast('📥 "'+t.title+'" est maintenant disponible hors-ligne.');
+  }catch(e){showToast('Téléchargement impossible.','error');}
+  finally{musicOfflineDownloadingIds.delete(trackId);renderMusicBody();}
+}
+async function musicRemoveOfflineDownload(trackId){
+  try{
+    const db=await musicOfflineOpenDB();
+    await new Promise(function(resolve,reject){
+      const tx=db.transaction('tracks','readwrite');
+      tx.objectStore('tracks').delete(trackId);
+      tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};
+    });
+    musicOfflineIds.delete(trackId);
+    showToast('Téléchargement supprimé.');
+    renderMusicBody();
+  }catch(e){showToast('Suppression impossible.','error');}
 }
 function updateMusicFollowBtn(){
   const btn=\$('music-follow-btn');if(!btn)return;
@@ -21475,6 +21591,7 @@ function renderMusicShell(){
       +'<button type="button" class="seg-btn'+(musicLibraryTab==='playlists'?' on':'')+'" data-music-libtab="playlists">Playlists</button>'
       +'<button type="button" class="seg-btn'+(musicLibraryTab==='following'?' on':'')+'" data-music-libtab="following">Abonnements</button>'
       +'<button type="button" class="seg-btn'+(musicLibraryTab==='history'?' on':'')+'" data-music-libtab="history">Historique</button>'
+      +'<button type="button" class="seg-btn'+(musicLibraryTab==='offline'?' on':'')+'" data-music-libtab="offline">📥 Hors-ligne</button>'
     +'</div>')
     +(compact||musicFilter!=='streaming'?'':'<div class="scr-sub music-streaming-note">🎧 Contenu officiel sélectionné par l\\'équipe X1 — pas un catalogue de labels sous licence, juste les titres mis en avant.</div>')
     +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
@@ -21570,6 +21687,20 @@ async function loadMusicPlaylists(){
     musicPlaylistsCache=r.documents||[];
   }catch(e){musicPlaylistsCache=[];}
 }
+// Bouton téléchargement hors-ligne (exclusif X1+) — trois états : verrouillé
+// (🔒⬇️, non-X1+), disponible (⬇️), en cours (⏳), déjà téléchargé (✅, clic
+// pour supprimer). Un membre non-X1+ voit quand même le bouton (verrouillé)
+// plutôt que rien du tout — cohérent avec la façon dont les autres
+// fonctionnalités X1+ de l'app (cadre de profil, qualité audio serveur…)
+// restent visibles mais grisées/expliquées plutôt que masquées.
+function musicOfflineButtonHtml(t){
+  const downloaded=musicOfflineIds.has(t.\$id);
+  const downloading=musicOfflineDownloadingIds.has(t.\$id);
+  const locked=!meIsPlus;
+  const icon=downloading?'⏳':(downloaded?'✅':(locked?'🔒⬇️':'⬇️'));
+  const title=downloading?'Téléchargement en cours…':(downloaded?'Téléchargé pour l\\'écoute hors-ligne — clique pour supprimer':(locked?'Écoute hors-ligne exclusive à X1+':'Télécharger pour l\\'écoute hors-ligne'));
+  return '<button type="button" class="music-mini-btn music-offline-btn'+(downloaded?' on':'')+(locked?' locked':'')+'" data-music-offline="'+esc(t.\$id)+'" title="'+esc(title)+'">'+icon+'</button>';
+}
 function musicTrackCardHtml(t){
   const cover=safeUrl(t.coverUrl);
   const liked=musicMyLikedIds.has(t.\$id);
@@ -21586,6 +21717,7 @@ function musicTrackCardHtml(t){
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" data-music-repost="'+esc(t.\$id)+'" title="Repartager sur ton fil">🔁 '+(t.repostsCount||0)+'</button>'
+      +musicOfflineButtonHtml(t)
       +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
       +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
     +'</div></div>';
@@ -21641,6 +21773,7 @@ function musicMemberRowHtml(t){
         +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+crtFmtCount(t.likesCount||0)+'</button>'
         +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+crtFmtCount(t.commentsCount||0)+'</button>'
         +'<button type="button" class="music-mini-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" data-music-repost="'+esc(t.\$id)+'" title="Repartager sur ton fil">🔁 '+crtFmtCount(t.repostsCount||0)+'</button>'
+        +musicOfflineButtonHtml(t)
         +'<span class="music-row-plays" title="Écoutes">▶ '+crtFmtCount(t.playsCount||0)+'</span>'
         +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
         +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
@@ -21708,6 +21841,14 @@ function wireMusicCardEvents(box){
   });
   box.querySelectorAll('[data-music-repost]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();musicToggleRepost(el.getAttribute('data-music-repost'));});
+  });
+  box.querySelectorAll('[data-music-offline]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const trackId=el.getAttribute('data-music-offline');
+      if(musicOfflineIds.has(trackId))showSlideConfirm('Supprimer ce téléchargement hors-ligne ?',function(){musicRemoveOfflineDownload(trackId);});
+      else musicDownloadOffline(trackId);
+    });
   });
   box.querySelectorAll('[data-music-comments]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();openMusicTrackPage(el.getAttribute('data-music-comments'));});
@@ -21937,16 +22078,51 @@ function renderMusicLibraryHistoryTab(box){
   box.innerHTML='<div class="music-row-list">'+tracks.map(musicMemberRowHtml).join('')+'</div>';
   wireMusicCardEvents(box);
 }
+// Bibliothèque > Hors-ligne (X1+) : contrairement aux autres onglets de la
+// Bibliothèque, ne dépend PAS de musicTracksCache — reconstruit chaque ligne
+// directement à partir des métadonnées stockées avec le fichier chiffré dans
+// IndexedDB (voir musicOfflineGetAllRecords), pour que cette liste reste
+// exacte même si le titre a disparu du catalogue en ligne depuis.
+async function renderMusicLibraryOfflineTab(box){
+  box.innerHTML='<div class="scr-sub" style="padding:20px;text-align:center">Chargement…</div>';
+  if(!meIsPlus){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">📥</div><div class="mfe-title">Écoute hors-ligne — exclusif X1+</div><div class="mfe-sub">Télécharge tes titres favoris (chiffrés, stockés uniquement sur cet appareil) pour les écouter sans réseau. Passe à X1+ depuis Paramètres → ⭐ Abonnement pour débloquer cette fonctionnalité.</div></div>';
+    return;
+  }
+  let records=[];
+  try{records=await musicOfflineGetAllRecords();}catch(e){records=[];}
+  if(musicLibraryTab!=='offline'||musicMembersView!=='library')return;
+  if(!records.length){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">📥</div><div class="mfe-title">Aucun titre téléchargé</div><div class="mfe-sub">Le bouton ⬇️ sur un titre le télécharge, chiffré, pour l\\'écouter sans réseau.</div></div>';
+    return;
+  }
+  records.sort(function(a,b){return new Date(b.downloadedAt)-new Date(a.downloadedAt);});
+  const tracks=records.map(function(r){
+    return {\$id:r.trackId,title:r.title,artistName:r.artistName,coverUrl:r.coverUrl||'',durationSec:r.durationSec||0,\$createdAt:r.downloadedAt,uid:'',waveformJson:'[]',playsCount:0,likesCount:0,commentsCount:0,repostsCount:0,channel:'member'};
+  });
+  box.innerHTML='<div class="music-feed-heading">📥 Téléchargé pour l\\'écoute hors-ligne</div><div class="music-row-list">'+tracks.map(musicMemberRowHtml).join('')+'</div>';
+  wireMusicCardEvents(box);
+}
 function renderMusicLibraryTab(box){
   if(musicLibraryTab==='likes'){renderMusicLibraryLikesTab(box);return}
   if(musicLibraryTab==='playlists'){renderMusicPlaylistsTab(box);return}
   if(musicLibraryTab==='following'){renderMusicLibraryFollowingTab(box);return}
   if(musicLibraryTab==='history'){renderMusicLibraryHistoryTab(box);return}
+  if(musicLibraryTab==='offline'){renderMusicLibraryOfflineTab(box);return}
   renderMusicLibraryOverviewTab(box);
 }
 async function musicPlayTrack(trackId,keepRadio,startAtSec){
-  const t=musicTracksCache.find(function(x){return x.\$id===trackId});
-  if(!t||!safeUrl(t.audioUrl)){showToast('Fichier audio indisponible.','error');return}
+  let t=musicTracksCache.find(function(x){return x.\$id===trackId});
+  // Titre absent du cache en ligne (serveur injoignable, ou supprimé depuis)
+  // mais téléchargé pour l'écoute hors-ligne : reconstruit un objet minimal
+  // à partir des métadonnées sauvegardées avec le fichier chiffré, pour que
+  // la lecture hors-ligne reste possible même sans jamais avoir rechargé
+  // musicTracksCache cette session.
+  if(!t&&musicOfflineIds.has(trackId)){
+    const rec=await musicOfflineGetRecord(trackId).catch(function(){return null});
+    if(rec)t={\$id:trackId,title:rec.title,artistName:rec.artistName,coverUrl:rec.coverUrl||'',durationSec:rec.durationSec||0,mime:rec.mime||'audio/mpeg',uid:'',waveformJson:'[]',playsCount:0,likesCount:0,commentsCount:0,repostsCount:0,channel:'member'};
+  }
+  if(!t||(!musicOfflineIds.has(trackId)&&!safeUrl(t.audioUrl))){showToast('Fichier audio indisponible.','error');return}
   const audio=musicEnsureAudio();
   if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId){
     musicTogglePlay();
@@ -21955,7 +22131,14 @@ async function musicPlayTrack(trackId,keepRadio,startAtSec){
   if(!keepRadio)musicRadioQueue=null;
   musicCurrentTrack=t;
   musicPushRecent(trackId);
-  audio.src=safeUrl(t.audioUrl);
+  // Copie téléchargée (chiffrée) disponible : la déchiffre en mémoire et
+  // joue depuis un blob local plutôt que de refaire un aller-retour réseau —
+  // fonctionne aussi bien pour économiser de la bande passante en ligne que
+  // pour une vraie écoute hors-ligne.
+  if(musicOfflineObjectUrl){URL.revokeObjectURL(musicOfflineObjectUrl);musicOfflineObjectUrl=null;}
+  const offlineUrl=musicOfflineIds.has(trackId)?await musicOfflineGetPlayableUrl(trackId).catch(function(){return null}):null;
+  if(offlineUrl)musicOfflineObjectUrl=offlineUrl;
+  audio.src=offlineUrl||safeUrl(t.audioUrl);
   // Bug remonté par Yani Neco ("Commentaire avec pin") : cliquer sur le repère
   // d'un commentaire horodaté quand le titre n'était pas déjà celui en cours
   // relançait toujours depuis le début — startAtSec était juste ignoré ici.
@@ -22597,6 +22780,7 @@ function renderMusicTrackPage(box){
             +'</div>'
             +'<button type="button" class="mtp-icon-btn'+(liked?' on':'')+'" id="mtp-like-btn" title="J\\'aime">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
             +'<button type="button" class="mtp-icon-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" id="mtp-repost-btn" title="Repartager sur ton fil">🔁 '+(t.repostsCount||0)+'</button>'
+            +'<button type="button" class="mtp-icon-btn music-offline-btn'+(musicOfflineIds.has(t.\$id)?' on':'')+(meIsPlus?'':' locked')+'" id="mtp-offline-btn" title="'+(musicOfflineIds.has(t.\$id)?'Téléchargé — clique pour supprimer':(meIsPlus?'Télécharger pour l\\'écoute hors-ligne':'Écoute hors-ligne exclusive à X1+'))+'">'+(musicOfflineDownloadingIds.has(t.\$id)?'⏳':(musicOfflineIds.has(t.\$id)?'✅':(meIsPlus?'⬇️':'🔒⬇️')))+' Hors-ligne</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻 Radio</button>'
           +'</div>'
@@ -22650,6 +22834,10 @@ function renderMusicTrackPage(box){
   });
   \$('mtp-like-btn').onclick=function(){musicToggleLike(t.\$id);};
   \$('mtp-repost-btn').onclick=function(){musicToggleRepost(t.\$id);};
+  \$('mtp-offline-btn').onclick=function(){
+    if(musicOfflineIds.has(t.\$id))showSlideConfirm('Supprimer ce téléchargement hors-ligne ?',function(){musicRemoveOfflineDownload(t.\$id);});
+    else musicDownloadOffline(t.\$id);
+  };
   \$('mtp-playlist-btn').onclick=function(){openMusicAddToPlaylist(t.\$id);};
   \$('mtp-radio-btn').onclick=function(){musicStartRadio(t);};
   if(\$('mtp-follow-btn'))\$('mtp-follow-btn').onclick=async function(){await musicToggleFollow(t.uid);renderMusicBody();};
