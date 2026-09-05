@@ -3876,6 +3876,17 @@ a.bug-att-item{display:block}
 .cvs-ctrl-btn.danger:hover{background:#dc2626}
 .cvs-ctrl-btn.stage-listener{opacity:.35;cursor:not-allowed}
 .e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+/* Invitation à une écoute synchronisée démarrée par quelqu'un d'autre dans le
+   même salon vocal (voir musicShowListenInviteBanner) — même famille visuelle
+   que .e2e-backup-banner, positionnée juste en dessous pour ne jamais se
+   superposer si les deux sont visibles en même temps. */
+.music-listen-invite{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));z-index:3100;max-width:480px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px}
+.music-listen-invite.hidden{display:none}
+.mli-icon{font-size:1.3rem;flex-shrink:0}
+.mli-text{flex:1;min-width:0;font-size:.82rem;line-height:1.4}
+.mli-dismiss{flex-shrink:0;width:26px;height:26px;border-radius:50%;color:var(--muted);display:grid;place-items:center;font-size:.85rem}
+.mli-dismiss:hover{background:rgba(255,255,255,.08);color:#fff}
+#mfp-listen-together.on{background:rgba(124,58,237,.35);color:#e9d5ff}
 .e2e-bb-row{display:flex;align-items:center;gap:8px}
 .e2e-bb-row.hidden{display:none}
 .e2e-bb-text{flex:1;font-size:.78rem;color:#e9d5ff;line-height:1.3}
@@ -7724,6 +7735,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.62',category:'feature',date:'5 septembre 2026',time:'14:00',title:'🎧 Écouter ensemble en vocal',
+    body:'En appel vocal (DM de groupe ou salon vocal de serveur), un nouveau bouton "🎧 Écouter ensemble" dans le lecteur plein écran de X1 Music lance une écoute synchronisée pour tout le monde présent dans le même vocal : la lecture, la pause et la position de l\\'hôte se retrouvent automatiquement chez les autres, avec une petite bannière d\\'invitation qui apparaît pour rejoindre en un clic dès que quelqu\\'un démarre une écoute dans ton salon. Seule la personne qui a lancé l\\'écoute peut la piloter ou l\\'arrêter — vérifié côté serveur à partir de ta présence réelle dans ce vocal, jamais fait confiance à ce que l\\'app envoie toute seule.'},
   {version:'4.55.61',category:'feature',date:'5 septembre 2026',time:'13:00',title:'📥 Écoute hors-ligne — exclusif ⭐ X1+',
     body:'Nouveau bouton ⬇️ sur chaque titre (réservé aux membres X1+) pour le télécharger et l\\'écouter sans réseau : le fichier est chiffré avant d\\'être stocké uniquement sur cet appareil (pas de copie en clair), et déchiffré à la volée en mémoire pendant la lecture. Retrouve tous tes téléchargements dans Bibliothèque → 📥 Hors-ligne, avec suppression en un clic pour libérer de la place. Sans X1+, le bouton reste visible (verrouillé 🔒) avec une explication plutôt que de disparaître.'},
   {version:'4.55.60',category:'feature',date:'5 septembre 2026',time:'12:00',title:'🎵 La musique continue en arrière-plan, partout dans X1',
@@ -21485,6 +21498,183 @@ async function musicRemoveOfflineDownload(trackId){
     renderMusicBody();
   }catch(e){showToast('Suppression impossible.','error');}
 }
+/* ===== Écoute synchronisée en vocal ("Écouter ensemble") =====
+   Un seul document par salon vocal (id déterministe côté serveur, voir
+   /api/music/listen/start) : l'hôte pousse ses changements de lecture
+   (titre/position/pause), tout le monde présent dans le MÊME salon vocal —
+   DM de groupe (group_call_presence) ou salon vocal de serveur
+   (server_voice_presence), vérifié côté serveur avant de laisser quiconque
+   devenir hôte — peut rejoindre en lecture synchronisée via l'abonnement
+   temps réel Appwrite ci-dessous. */
+let musicListenSessionId=null,musicListenIsHost=false,musicListenFollowing=false;
+let musicListenUnsub=null,musicListenDiscoveryUnsub=null,musicListenHeartbeatId=null;
+let musicListenBannerDismissedId=null;
+// Le contexte d'un salon vocal actif est déjà suivi ailleurs (groupRoom/
+// groupCallContextType/groupCallContextId, voir joinVoiceRoom) — jamais
+// dupliqué ici, seulement lu.
+function musicListenContextKey(){
+  if(!groupRoom)return null;
+  if(groupCallContextType==='dm'||groupCallContextType==='channel')return {contextType:groupCallContextType,contextId:groupCallContextId};
+  return null;
+}
+async function musicStartListenTogether(){
+  const ctx=musicListenContextKey();
+  if(!ctx){showToast('Rejoins un salon vocal pour écouter de la musique ensemble.','error');return}
+  if(!musicCurrentTrack){showToast('Lance un titre avant de démarrer une écoute synchronisée.','error');return}
+  try{
+    const r=await authPost('/api/music/listen/start',{contextType:ctx.contextType,contextId:ctx.contextId,trackId:musicCurrentTrack.\$id,positionSec:musicAudioEl?musicAudioEl.currentTime:0});
+    musicListenSessionId=r.sessionId;
+    musicListenIsHost=true;
+    musicListenFollowing=false;
+    musicSubscribeListenSession();
+    musicStartListenHeartbeat();
+    showToast('🎧 Écoute synchronisée démarrée — tout le monde dans ce salon peut te rejoindre.');
+    musicSyncListenUi();
+  }catch(e){showToast((e&&e.message)||'Impossible de démarrer l\\'écoute synchronisée.','error');}
+}
+function musicStartListenHeartbeat(){
+  musicStopListenHeartbeat();
+  // Toutes les 5s pendant que je suis hôte : garde la position à jour pour
+  // quiconque rejoint en cours de titre, et signale que la session est
+  // toujours vivante (une session dont le document ne bouge plus reste
+  // néanmoins affichable — pas de nettoyage automatique pour l'instant,
+  // le prochain "Écouter ensemble" du même hôte la remplace de toute façon).
+  musicListenHeartbeatId=setInterval(musicListenPushUpdate,5000);
+}
+function musicStopListenHeartbeat(){
+  if(musicListenHeartbeatId){clearInterval(musicListenHeartbeatId);musicListenHeartbeatId=null;}
+}
+function musicListenPushUpdate(){
+  if(!musicListenIsHost||!musicListenSessionId||!musicCurrentTrack)return;
+  authPost('/api/music/listen/update',{sessionId:musicListenSessionId,trackId:musicCurrentTrack.\$id,positionSec:musicAudioEl?musicAudioEl.currentTime:0,isPlaying:!!(musicAudioEl&&!musicAudioEl.paused)}).catch(function(){});
+}
+async function musicStopListenTogether(){
+  if(!musicListenSessionId)return;
+  const sid=musicListenSessionId;
+  musicListenIsHost=false;
+  musicListenSessionId=null;
+  musicStopListenHeartbeat();
+  musicUnsubscribeListenSession();
+  try{await authPost('/api/music/listen/stop',{sessionId:sid});}catch(e){}
+  showToast('Écoute synchronisée arrêtée.');
+  musicSyncListenUi();
+}
+// Départ du salon vocal (raccrocher, fermeture d'onglet, navigation) : arrête
+// vraiment la session si j'étais l'hôte (sinon elle survivrait sans plus
+// personne pour la faire avancer), ou me détache juste si je suivais
+// quelqu'un d'autre.
+function musicLeaveOrStopListenSession(){
+  if(musicListenIsHost)musicStopListenTogether();
+  else if(musicListenFollowing)musicLeaveListenSession();
+}
+function musicLeaveListenSession(){
+  musicListenFollowing=false;
+  musicListenSessionId=null;
+  musicUnsubscribeListenSession();
+  musicSyncListenUi();
+}
+async function musicJoinListenSession(session){
+  musicListenSessionId=session.\$id;
+  musicListenFollowing=true;
+  musicListenIsHost=false;
+  musicSubscribeListenSession();
+  await musicApplyListenSessionState(session);
+  showToast('🎧 Écoute synchronisée rejointe.');
+  musicSyncListenUi();
+}
+async function musicApplyListenSessionState(session){
+  if(musicListenIsHost)return;
+  if(!musicCurrentTrack||musicCurrentTrack.\$id!==session.trackId){
+    await musicPlayTrack(session.trackId,true,session.positionSec);
+  }
+  const audio=musicEnsureAudio();
+  if(audio.duration&&Math.abs(audio.currentTime-(session.positionSec||0))>2.5){
+    audio.currentTime=session.positionSec||0;
+  }
+  if(session.isPlaying&&audio.paused)audio.play().catch(function(){});
+  else if(!session.isPlaying&&!audio.paused)audio.pause();
+}
+function musicSubscribeListenSession(){
+  musicUnsubscribeListenSession();
+  if(!musicListenSessionId||typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
+  try{
+    musicListenUnsub=client.subscribe('databases.'+DB+'.collections.xm_listen_sessions.documents.'+musicListenSessionId,function(res){
+      if(!res)return;
+      if(eventIs(res.events,'.delete')){
+        if(musicListenFollowing){showToast('L\\'écoute synchronisée est terminée.');musicLeaveListenSession();}
+        return;
+      }
+      if(res.payload)musicApplyListenSessionState(res.payload);
+    });
+  }catch(e){}
+}
+function musicUnsubscribeListenSession(){
+  if(musicListenUnsub){try{musicListenUnsub();}catch(e){}musicListenUnsub=null;}
+}
+// Découverte : tant qu'un salon vocal est actif, reste à l'écoute de TOUTE
+// nouvelle écoute synchronisée qui y démarrerait (quelqu'un d'autre clique
+// "Écouter ensemble" après que j'ai déjà rejoint l'appel) — filtré côté
+// client sur le contexte, la lecture de la collection entière étant
+// publique (read("any")) comme les autres collections musique.
+function musicSubscribeListenDiscovery(){
+  musicUnsubscribeListenDiscovery();
+  if(typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
+  try{
+    musicListenDiscoveryUnsub=client.subscribe('databases.'+DB+'.collections.xm_listen_sessions.documents',function(res){
+      if(!res||!res.payload||eventIs(res.events,'.delete'))return;
+      musicMaybeShowListenInvite(res.payload);
+    });
+  }catch(e){}
+}
+function musicUnsubscribeListenDiscovery(){
+  if(musicListenDiscoveryUnsub){try{musicListenDiscoveryUnsub();}catch(e){}musicListenDiscoveryUnsub=null;}
+}
+async function musicCheckListenSessionForCurrentCall(){
+  const ctx=musicListenContextKey();if(!ctx)return;
+  try{
+    const r=await db.listDocuments(DB,'xm_listen_sessions',[Appwrite.Query.equal('contextType',ctx.contextType),Appwrite.Query.equal('contextId',ctx.contextId),Appwrite.Query.limit(1)]);
+    const doc=(r.documents||[])[0];
+    if(doc)musicMaybeShowListenInvite(doc);
+  }catch(e){}
+}
+function musicMaybeShowListenInvite(session){
+  const ctx=musicListenContextKey();
+  if(!ctx||musicListenIsHost||musicListenFollowing)return;
+  if(String(session.contextType)!==ctx.contextType||String(session.contextId)!==ctx.contextId)return;
+  if(me&&String(session.hostUid)===String(me.\$id))return;
+  if(session.\$id===musicListenBannerDismissedId)return;
+  musicShowListenInviteBanner(session);
+}
+function musicShowListenInviteBanner(session){
+  let bar=\$('music-listen-invite');
+  if(!bar){
+    bar=document.createElement('div');
+    bar.id='music-listen-invite';
+    bar.className='music-listen-invite';
+    document.body.appendChild(bar);
+  }
+  const track=musicTracksCache.find(function(t){return t.\$id===session.trackId});
+  const hostProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(session.hostUid);});
+  const hostName=(hostProfile&&(hostProfile.displayName||hostProfile.username))||'Quelqu\\'un';
+  bar.innerHTML='<span class="mli-icon">🎧</span><div class="mli-text"><b>'+esc(hostName)+'</b> écoute'+(track?' « '+esc(track.title)+' »':' de la musique')+' en vocal</div>'
+    +'<button type="button" class="set-mini-btn" id="mli-join">Rejoindre</button>'
+    +'<button type="button" class="mli-dismiss" id="mli-dismiss" title="Ignorer">✕</button>';
+  bar.classList.remove('hidden');
+  \$('mli-join').onclick=function(){bar.classList.add('hidden');musicJoinListenSession(session);};
+  \$('mli-dismiss').onclick=function(){bar.classList.add('hidden');musicListenBannerDismissedId=session.\$id;};
+}
+// État du bouton "Écouter ensemble" dans le lecteur plein écran — visible
+// uniquement en salon vocal (musicListenContextKey() non nul), à trois états
+// (démarrer/en cours d'hébergement/en train de suivre quelqu'un).
+function musicSyncListenUi(){
+  const btn=\$('mfp-listen-together');if(!btn)return;
+  const ctx=musicListenContextKey();
+  btn.classList.toggle('hidden',!ctx);
+  if(!ctx)return;
+  if(musicListenIsHost){btn.textContent='🎧 Écoute synchronisée en cours';btn.classList.add('on');}
+  else if(musicListenFollowing){btn.textContent='🎧 Quitter l\\'écoute synchronisée';btn.classList.add('on');}
+  else{btn.textContent='🎧 Écouter ensemble';btn.classList.remove('on');}
+}
 function updateMusicFollowBtn(){
   const btn=\$('music-follow-btn');if(!btn)return;
   const following=musicMyFollowedIds.has(String(musicViewUid));
@@ -21541,6 +21731,7 @@ function wireGlobalMusicBar(){
     if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
     musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
     audio.currentTime=(this.value/100)*audio.duration;
+    musicListenPushUpdate();
   });
   \$('mpb-close').onclick=function(e){
     e.stopPropagation();
@@ -22161,6 +22352,7 @@ async function musicPlayTrack(trackId,keepRadio,startAtSec){
   // côté worker) — c'est aussi ce qui corrige le compteur qui ne bougeait
   // jamais réellement quand quelqu'un d'autre que l'auteur du titre écoutait.
   if(me)authPost('/api/music/tracks/play',{trackId:trackId}).catch(function(){});
+  musicListenPushUpdate();
 }
 function musicTogglePlay(){
   const audio=musicEnsureAudio();
@@ -22170,6 +22362,7 @@ function musicTogglePlay(){
     return;
   }
   if(audio.paused)audio.play().catch(function(){});else audio.pause();
+  musicListenPushUpdate();
 }
 function musicStepTrack(delta){
   const list=musicCurrentQueue();
@@ -22439,6 +22632,7 @@ function openMusicFullPlayer(){
         +'<button type="button" id="mfp-speed" title="Vitesse">'+musicPlaybackRate+'x</button>'
         +'<button type="button" id="mfp-sleep" title="Minuterie de sommeil">⏱️</button>'
         +'<button type="button" id="mfp-queue" title="File d\\'attente">📋</button>'
+        +'<button type="button" class="hidden" id="mfp-listen-together" title="Écouter en même temps que les autres personnes dans ce salon vocal">🎧 Écouter ensemble</button>'
       +'</div>'
     +'</div>';
     document.body.appendChild(overlay);
@@ -22449,6 +22643,11 @@ function openMusicFullPlayer(){
     \$('mfp-like').onclick=function(){if(musicCurrentTrack)musicToggleLike(musicCurrentTrack.\$id);};
     \$('mfp-radio').onclick=function(){if(musicCurrentTrack)musicStartRadio(musicCurrentTrack);};
     \$('mfp-queue').onclick=openMusicQueueView;
+    \$('mfp-listen-together').onclick=function(){
+      if(musicListenIsHost)musicStopListenTogether();
+      else if(musicListenFollowing)musicLeaveListenSession();
+      else musicStartListenTogether();
+    };
     \$('mfp-more').onclick=openMusicMoreMenu;
     \$('mfp-shuffle').onclick=function(){
       musicShuffleOn=!musicShuffleOn;
@@ -22471,6 +22670,7 @@ function openMusicFullPlayer(){
       if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
       musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
       audio.currentTime=(this.value/1000)*audio.duration;
+      musicListenPushUpdate();
     });
     overlay.querySelectorAll('[data-mfp-tab]').forEach(function(b){
       b.addEventListener('click',function(){
@@ -22484,6 +22684,7 @@ function openMusicFullPlayer(){
   overlay.classList.remove('hidden');
   musicSyncFullPlayerMeta();
   renderMusicPlayIcons();
+  musicSyncListenUi();
 }
 function closeMusicFullPlayer(){
   const overlay=\$('music-fullplayer');
@@ -26728,6 +26929,11 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
     repositionCallPanel();
     xlog('group_call_joined',{contextType:contextType,contextId:contextId});
     if(contextType==='channel'&&activeChannel&&activeChannel.\$id===contextId)renderServerChannelContent();
+    // Écoute synchronisée : vérifie tout de suite si ce salon vocal a déjà
+    // une écoute en cours (quelqu'un l'a lancée avant que je rejoigne), et
+    // reste à l'écoute des prochaines pendant toute la durée de l'appel.
+    musicCheckListenSessionForCurrentCall();
+    musicSubscribeListenDiscovery();
   }catch(e){
     showToast('Impossible de rejoindre le salon vocal','error');
     xlog('group_call_join_fail',{msg:(e&&e.message)||String(e)});
@@ -27015,6 +27221,12 @@ function cleanupGroupCall(){
   if(cvsCinemaMode)exitChannelCinema();
   if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
   stopGroupHeartbeat();
+  // Quitter le salon vocal (n'importe comment : raccrocher, fermer l'onglet,
+  // navigation) doit toujours couper l'écoute synchronisée qui lui était
+  // liée — hôte ou simple auditeur — plutôt que de la laisser tourner dans
+  // le vide ou continuer de suivre un salon qu'on a quitté.
+  musicLeaveOrStopListenSession();
+  musicUnsubscribeListenDiscovery();
   document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){if(el.parentElement)el.parentElement.removeChild(el);});
   const wasChannelId=groupCallContextType==='channel'?groupCallContextId:null;
   if(groupPresenceDocId){
@@ -31089,6 +31301,82 @@ async function handle(request, event) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { repostsCount: repostsCount } } });
       return new Response(JSON.stringify({ ok: true, reposted: reposted, repostsCount: repostsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/listen/start" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const contextType = String((body && body.contextType) || "");
+      const contextId = String((body && body.contextId) || "");
+      const trackId = String((body && body.trackId) || "");
+      const positionSec = Math.max(0, Number((body && body.positionSec) || 0));
+      if ((contextType !== "dm" && contextType !== "channel") || !contextId || !trackId) throw new Error("Paramètres invalides");
+      // Vérifie une présence RÉELLE dans ce salon vocal (mêmes collections de
+      // présence que le reste du système d'appel — group_call_presence pour
+      // un appel de groupe en DM, server_voice_presence pour un salon de
+      // serveur) avant de laisser ce compte devenir hôte d'une écoute
+      // synchronisée pour tout le monde présent : jamais fait confiance au
+      // contexte envoyé tel quel par le client.
+      const presenceCollection = contextType === "dm" ? "group_call_presence" : "server_voice_presence";
+      const presenceField = contextType === "dm" ? "dmId" : "channelId";
+      const pqs = "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: presenceField, values: [contextId] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const presence = await awFetch("/databases/" + AW_DB + "/collections/" + presenceCollection + "/documents?" + pqs, { asAdmin: true });
+      if (!(presence.documents || []).length) throw new Error("Tu dois être dans ce salon vocal pour lancer une écoute synchronisée.");
+      // Un seul document par salon vocal (id déterministe) : relancer une
+      // écoute dans le même salon met juste à jour la session existante au
+      // lieu d'en créer une deuxième en double.
+      const sessionId = "ls_" + await sha256HexShort(contextType + ":" + contextId, 24);
+      const data = { hostUid: acc.$id, contextType: contextType, contextId: contextId, trackId: trackId, positionSec: positionSec, isPlaying: true };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } catch (e2) {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents", { method: "POST", asAdmin: true, body: { documentId: sessionId, data: data } });
+      }
+      return new Response(JSON.stringify({ ok: true, sessionId: sessionId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/listen/update" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      if (!sessionId) throw new Error("sessionId requis");
+      // Seul l'hôte EN COURS (jamais un ancien hôte, ni personne d'autre dans
+      // le salon) peut pousser une mise à jour — sinon n'importe qui présent
+      // pourrait détourner la lecture de tout le monde.
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { asAdmin: true });
+      if (existing.hostUid !== acc.$id) throw new Error("Seul l'hôte peut mettre à jour cette écoute synchronisée.");
+      const data = {};
+      if (typeof body.trackId === "string" && body.trackId) data.trackId = body.trackId.slice(0, 64);
+      if (typeof body.positionSec === "number" && isFinite(body.positionSec)) data.positionSec = Math.max(0, body.positionSec);
+      if (typeof body.isPlaying === "boolean") data.isPlaying = body.isPlaying;
+      if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
+      await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/listen/stop" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const sessionId = String((body && body.sessionId) || "");
+      if (!sessionId) throw new Error("sessionId requis");
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { asAdmin: true }).catch(function () { return null; });
+      if (existing && existing.hostUid !== acc.$id) throw new Error("Seul l'hôte peut arrêter cette écoute synchronisée.");
+      if (existing) await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
