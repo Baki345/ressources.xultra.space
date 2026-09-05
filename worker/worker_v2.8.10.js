@@ -7841,6 +7841,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.73',category:'feature',date:'6 septembre 2026',time:'01:00',title:'🎉 Notifications de palier pour tes titres',
+    body:'X1 te notifie désormais automatiquement quand un de tes titres franchit un palier d\\'écoutes (100, 500, 1 000, 5 000…) ou de mentions j\\'aime (10, 50, 100, 500…) — clique sur la notification pour aller directement voir le titre concerné. Chaque palier n\\'est notifié qu\\'une seule fois, rien à faire de ton côté.'},
   {version:'4.55.72',category:'feature',date:'6 septembre 2026',time:'00:00',title:'📊 Statistiques : tableau de bord pour tes titres',
     body:'Nouveau sous-onglet "📊 Statistiques" dans Mes titres : écoutes, mentions j\\'aime, commentaires, reposts et abonnés cumulés sur tous tes titres en un coup d\\'œil, plus "⭐ Ton titre du moment" (celui qui cartonne EN CE MOMENT, pas juste celui aux écoutes cumulées les plus hautes) et le classement complet de tous tes titres par performance actuelle. Rien de nouveau à faire : entièrement calculé à partir des compteurs déjà existants sur chacun de tes titres.'},
   {version:'4.55.71',category:'feature',date:'5 septembre 2026',time:'23:00',title:'🔥 Tendances : le classement du moment dans X1 Music',
@@ -12006,7 +12008,7 @@ async function sendFriendRequest(targetUid,targetName){
   }catch(e){xlog('friend_request_fail',{msg:(e&&e.message)||String(e)});throw e}
 }
 
-const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵',
+const NOTIF_ICONS={friend_request:'👋',friend_accepted:'✅',friend_removed:'💔',announcement:'📢',message:'💬',dm:'💬',music_new_track:'🎵',music_milestone:'🎉',
   support_ticket_reply:'🎧',support_ticket_escalated:'🚨',report_resolved:'🚩',team_application_status:'📨',badge_granted:'🏅',bug_status_changed:'🐞',xdrive_folder_invite:'📁',xdrive_file_removed:'🚩',xdrive_suspended:'⛔',xbin_comment:'💬'};
 let notifCache=[];
 async function loadNotifications(){
@@ -12103,6 +12105,12 @@ function renderNotifications(){
     } else if(e.kind==='dm'){
       clickable=true;
       body='<div class="ntf-text">'+e.count+' nouveau'+(e.count>1?'x':'')+' message'+(e.count>1?'s':'')+' de <b>'+esc(e.title)+'</b></div>';
+    } else if(e.kind==='music_milestone'){
+      // Pas de "fromUid" (ce n'est pas une action d'une autre personne, un
+      // simple palier d'écoutes/likes atteint) — cliquable quand même, vers
+      // le titre concerné (refId), pas un profil.
+      body='<div class="ntf-text">'+esc(e.text||'')+'</div>';
+      clickable=!!e.refId;
     } else {
       body='<div class="ntf-text">'+esc(e.text||'')+'</div>';
       clickable=!!e.fromUid;
@@ -12126,7 +12134,7 @@ function renderNotifications(){
   }).join('');
   list.querySelectorAll('[data-notif-wrap]').forEach(function(wrap){attachRowSwipe(wrap);});
   list.querySelectorAll('.notif-row.clickable').forEach(function(el){
-    el.addEventListener('click',function(){
+    el.addEventListener('click',async function(){
       const dmId=el.getAttribute('data-notif-dm');
       const uid=el.getAttribute('data-notif-uid');
       \$('modal-notifications').classList.add('hidden');
@@ -12143,6 +12151,8 @@ function renderNotifications(){
         if(refId)xdShowFolderInviteDialog(refId);
       } else if(kind==='xbin_comment'){
         if(refId)openXBin(refId);
+      } else if(kind==='music_milestone'){
+        if(refId){await openMusic();openMusicTrackPage(refId);}
       } else if(uid){openProfileModal(uid);}
     });
   });
@@ -32408,6 +32418,29 @@ async function handle(request, event) {
       return JSON.parse((meta && meta.badgesJson) || "[]");
     } catch (e) { return []; }
   }
+  // Notifie l'artiste au premier franchissement d'un palier d'écoutes/likes
+  // sur un de ses titres — jamais deux fois le même palier (milestonesJson
+  // sur le titre garde la trace de ceux déjà notifiés). Best-effort : ne
+  // doit jamais faire échouer l'écoute/le like eux-mêmes en cas de souci.
+  const MUSIC_PLAY_MILESTONES = [100, 500, 1000, 5000, 10000, 50000, 100000, 500000, 1000000];
+  const MUSIC_LIKE_MILESTONES = [10, 50, 100, 500, 1000, 5000, 10000];
+  async function musicCheckMilestone(track, trackId, kind, newCount) {
+    try {
+      const thresholds = kind === "plays" ? MUSIC_PLAY_MILESTONES : MUSIC_LIKE_MILESTONES;
+      let already = [];
+      try { already = JSON.parse(track.milestonesJson || "[]"); } catch (e) {}
+      const hit = thresholds.find(function (m) { return newCount >= m && already.indexOf(kind + ":" + m) < 0; });
+      if (!hit) return;
+      already.push(kind + ":" + hit);
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { milestonesJson: JSON.stringify(already) } } });
+      const label = kind === "plays" ? "écoutes" : "mentions j'aime";
+      const text = "🎉 \"" + track.title + "\" vient de dépasser " + hit + " " + label + " !";
+      await awFetch("/databases/" + AW_DB + "/collections/notifications/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { uid: track.uid, type: "music_milestone", fromUid: "", fromName: "X1 Music", text: text, refId: trackId, read: false }, permissions: ["read(\"user:" + track.uid + "\")", "update(\"user:" + track.uid + "\")", "delete(\"user:" + track.uid + "\")"] }
+      });
+    } catch (e) {}
+  }
   // Casse/accents/ponctuation ignorés — pour comparer deux titres ou deux
   // noms d'artiste malgré une saisie légèrement différente ("Björk" vs
   // "Bjork", "Sous la pluie" vs "sous-la-pluie", etc.).
@@ -32661,6 +32694,7 @@ async function handle(request, event) {
       const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
       const playsCount = (track.playsCount || 0) + 1;
       await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { playsCount: playsCount } } });
+      await musicCheckMilestone(track, trackId, "plays", playsCount);
       return new Response(JSON.stringify({ ok: true, playsCount: playsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -32689,6 +32723,7 @@ async function handle(request, event) {
         likesCount = (track.likesCount || 0) + 1;
       }
       await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { likesCount: likesCount } } });
+      if (liked) await musicCheckMilestone(track, trackId, "likes", likesCount);
       return new Response(JSON.stringify({ ok: true, liked: liked, likesCount: likesCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
