@@ -2141,7 +2141,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .dash .btn-out{width:100%;height:42px;border-radius:12px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f2ebff;margin-top:18px}
 
 /* Phase 2: app shell */
-:root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px}
+:root{--rail-w:64px;--list-w:280px;--elev:#1a1226;--hover:#231a32;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px;--music-bar-h:0px}
 /* Barres de défilement aux couleurs de X1 (dégradé violet du bouton
    principal) partout sur le site, au lieu de la barre native du
    navigateur — une seule règle globale (pas de sélecteur devant
@@ -2156,7 +2156,7 @@ html.xultra-restoring #stage{visibility:hidden}
 ::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#8b5cf6,#7c3aed);border-radius:999px}
 ::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#a78bfa,#8b5cf6)}
 ::-webkit-scrollbar-corner{background:transparent}
-#app{display:none;height:calc((var(--app-vh, 100dvh) - var(--banner-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
+#app{display:none;height:calc((var(--app-vh, 100dvh) - var(--banner-h,0px) - var(--music-bar-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
 .rail{width:var(--rail-w);background:#0a0610;display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-shrink:0}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
@@ -2260,16 +2260,6 @@ html.xultra-restoring #stage{visibility:hidden}
 #music-overlay{overflow:hidden;isolation:isolate}
 #music-overlay::before{content:'';position:absolute;top:50%;left:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;background:conic-gradient(from 0deg,#7c3aed,#db2777,#4c1d95,#a855f7,#7c3aed);opacity:.16;filter:blur(90px);animation:musicBgSpin 70s linear infinite;z-index:0;pointer-events:none}
 #music-overlay>*{position:relative;z-index:1}
-/* Régression corrigée (mini-lecteur plus cliquable pour ouvrir le lecteur
-   plein écran, paroles qui ne "s'agrandissaient" plus au clic) : la règle
-   générique ci-dessus force position:relative sur TOUS les enfants directs
-   pour les faire passer au-dessus du calque de fond animé — mais
-   .music-player-bar a besoin de rester position:absolute (bottom:0) pour se
-   fixer en bas de l'écran ; sans cette redéfinition plus spécifique
-   (#music-overlay + classe > #music-overlay + universel), il se retrouvait
-   simplement poussé dans le flux normal du document, plus du tout ancré en
-   bas ni cliquable là où l'utilisateur s'y attend.*/
-#music-overlay .music-player-bar{position:absolute}
 @keyframes musicBgSpin{to{transform:rotate(360deg)}}
 @media (max-width:640px){#music-overlay::before{filter:blur(50px);animation-duration:100s}}
 @media (prefers-reduced-motion:reduce){#music-overlay::before{animation:none}}
@@ -2655,8 +2645,19 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-pl-track-dur{font-size:.72rem;color:var(--muted);flex-shrink:0}
 .music-pl-track-remove{width:28px;height:28px;border-radius:50%;color:var(--muted);flex-shrink:0;font-size:.85rem}
 .music-pl-track-remove:hover{background:rgba(239,68,68,.16);color:#fca5a5}
-.music-player-bar{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:12px;padding:10px 16px;background:linear-gradient(180deg,rgba(21,16,31,.92),rgba(11,7,20,.98));backdrop-filter:blur(14px);border-top:1px solid rgba(167,139,250,.2)}
+/* Barre persistante : élément unique créé une seule fois (ensureGlobalMusicBar),
+   enfant direct de <body> (comme les autres overlays de l'app — voir la note
+   sur autoTranslate/atScan) plutôt que reconstruit à chaque renderMusicShell()
+   comme avant — demandé explicitement : la musique doit continuer et rester
+   visible/contrôlable en quittant la section Musique (DM, serveur, n'importe
+   où), jusqu'à ce que l'utilisateur la ferme lui-même (bouton ✕, voir
+   #mpb-close) qui coupe alors vraiment la lecture. position:fixed (plus
+   absolute, qui dépendait de #music-overlay comme bloc conteneur) + un
+   z-index au-dessus du panneau Musique (2500) mais sous les vraies modales
+   (5000+), comme .call-bar juste à côté dans l'échelle des z-index. */
+.music-player-bar{position:fixed;left:0;right:0;bottom:0;z-index:3050;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(180deg,rgba(21,16,31,.92),rgba(11,7,20,.98));backdrop-filter:blur(14px);border-top:1px solid rgba(167,139,250,.2)}
 .music-player-bar.hidden{display:none}
+.mpb-close{flex-shrink:0}
 .mpb-cover{width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#4c1d95,#7c3aed);display:grid;place-items:center;font-size:1.1rem}
 .mpb-cover img{width:100%;height:100%;object-fit:cover}
 .mpb-info{min-width:0;width:140px;flex-shrink:0}
@@ -3243,7 +3244,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .lp-desc{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .voice-msg{display:flex;align-items:center;gap:8px;min-width:180px}
 .voice-msg-loading{display:flex;align-items:center;gap:8px;min-width:180px}
-.toast-wrap{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
+/* + var(--music-bar-h,0px) : la barre de lecture persistante (voir plus haut)
+   peut être visible n'importe où maintenant — sans ce décalage, elle
+   recouvrirait les toasts posés tout en bas de l'écran. */
+.toast-wrap{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom) + var(--music-bar-h,0px));left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:100%;padding:0 16px}
 .toast{background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#f2ebff;padding:11px 18px;border-radius:12px;font-size:.85rem;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:min(380px,100%);text-align:center}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast-error{border-color:rgba(239,68,68,.5);background:#2a1015}
@@ -3787,7 +3791,10 @@ a.bug-att-item{display:block}
 .call-act{width:52px;height:52px;border-radius:50%;font-size:1.2rem;display:grid;place-items:center}
 .call-act.accept{background:#22c55e;color:#052e16}
 .call-act.decline{background:#ef4444;color:#450a0a}
-.call-bar{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom));z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
+/* + var(--music-bar-h,0px) : évite que la barre de lecture persistante (voir
+   plus haut) ne chevauche cette pastille d'appel quand les deux sont actives
+   en même temps (typiquement en écoute synchronisée pendant un appel). */
+.call-bar{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom) + var(--music-bar-h,0px));z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
 .call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(124,58,237,.85),rgba(76,29,149,.95),rgba(15,9,25,.98));animation:moodShift 7s ease infinite;border-color:rgba(167,139,250,.4)}
 .call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(76,29,149,.9),rgba(15,9,25,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
@@ -7714,6 +7721,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.60',category:'feature',date:'5 septembre 2026',time:'12:00',title:'🎵 La musique continue en arrière-plan, partout dans X1',
+    body:'Quitter la section Musique (pour aller en DM, sur un serveur…) n\\'arrête plus la lecture — un mini-lecteur reste maintenant affiché tout en bas, sur n\\'importe quel écran de X1, avec ses contrôles (lecture/pause, précédent/suivant, aléatoire, avance). Un nouveau bouton ✕ dessus permet de le fermer et d\\'arrêter vraiment la musique quand tu en as fini. Le reste de l\\'interface (barre d\\'appel, notifications) s\\'ajuste automatiquement pour ne jamais être caché derrière.'},
   {version:'4.55.59',category:'fix',date:'5 septembre 2026',time:'11:00',title:'🩹 Mini-lecteur enfin cliquable, et 🔁 reposts dans le Fil d\\'actu',
     body:'Corrige une régression apparue avec le fond animé de la section Musique : la mini-barre de lecture (en bas) n\\'était plus cliquable pour ouvrir le lecteur en grand — les paroles ne s\\'y "agrandissaient" donc plus au clic. Ajoute aussi les reposts façon SoundCloud : un bouton 🔁 sur chaque titre permet de le repartager sur ton fil, et le Fil d\\'actu affiche maintenant aussi bien les nouveaux titres de tes abonnements que ceux qu\\'ils repartagent (avec l\\'étiquette "Reposté par…"), même d\\'un artiste que tu ne suis pas encore.'},
   {version:'4.55.58',category:'design',date:'5 septembre 2026',time:'10:00',title:'🎤 Paroles dans la mini-barre, forme d\\'onde plus moderne',
@@ -21282,6 +21291,7 @@ async function openMusic(uid,name){
     overlay.className='discover-overlay';
     document.body.appendChild(overlay);
   }
+  ensureGlobalMusicBar();
   overlay.classList.add('show');
   // Rouvrir X1 Music depuis le bouton de nav (sans uid précis) retrouve la
   // page de titre qu'on regardait juste avant de fermer, plutôt que de
@@ -21366,10 +21376,76 @@ function updateMusicFollowBtn(){
   btn.classList.toggle('on',following);
 }
 function closeMusic(){
+  // Ne met plus la lecture en pause (demandé explicitement) : quitter la
+  // section Musique referme juste ce panneau — la musique continue en tâche
+  // de fond, contrôlable depuis la barre persistante (voir
+  // ensureGlobalMusicBar) jusqu'à ce qu'elle soit explicitement fermée
+  // (#mpb-close), seul geste qui arrête vraiment la lecture.
   const overlay=\$('music-overlay');
   if(overlay)overlay.classList.remove('show');
-  if(musicAudioEl)musicAudioEl.pause();
   closeMusicFullPlayer();
+}
+// Barre de lecture persistante : créée UNE SEULE FOIS (enfant direct de
+// <body>, jamais reconstruite par renderMusicShell()) pour rester visible et
+// utilisable partout dans l'app tant qu'un titre est chargé — jusqu'à ce que
+// l'utilisateur la ferme lui-même (#mpb-close), qui coupe alors vraiment la
+// lecture. Voir musicSyncMiniBar() pour l'affichage/masquage et --music-bar-h
+// pour la réservation d'espace (même mécanisme que --banner-h).
+function ensureGlobalMusicBar(){
+  if(\$('music-player-bar'))return;
+  const bar=document.createElement('div');
+  bar.id='music-player-bar';
+  bar.className='music-player-bar hidden';
+  bar.innerHTML='<div class="mpb-cover" id="mpb-cover"></div>'
+    +'<div class="mpb-info"><div class="mpb-title" id="mpb-title"></div><div class="mpb-artist" id="mpb-artist"></div></div>'
+    +'<div class="mpb-controls">'
+      +'<button type="button" class="mpb-btn" id="mpb-shuffle" title="Aléatoire"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>'
+      +'<button type="button" class="mpb-btn" id="mpb-prev" title="Précédent"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M6 5h2v14H6zM19 5v14l-10-7z"/></svg></button>'
+      +'<button type="button" class="mpb-btn mpb-play" id="mpb-play" title="Lecture"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg></button>'
+      +'<button type="button" class="mpb-btn" id="mpb-next" title="Suivant"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>'
+    +'</div>'
+    +'<div class="mpb-seek-wrap"><span class="mpb-time" id="mpb-time-cur">0:00</span><input type="range" id="mpb-seek" min="0" max="100" value="0" class="mpb-seek"><span class="mpb-time" id="mpb-time-dur">0:00</span></div>'
+    +'<button type="button" class="mpb-btn mpb-close" id="mpb-close" title="Fermer et arrêter la musique">✕</button>';
+  document.body.appendChild(bar);
+  wireGlobalMusicBar();
+}
+function wireGlobalMusicBar(){
+  \$('mpb-play').onclick=musicTogglePlay;
+  \$('mpb-prev').onclick=musicPrev;
+  \$('mpb-next').onclick=musicNext;
+  \$('mpb-shuffle').onclick=function(){
+    musicShuffleOn=!musicShuffleOn;
+    this.classList.toggle('on',musicShuffleOn);
+    showToast(musicShuffleOn?'Lecture aléatoire activée.':'Lecture aléatoire désactivée.');
+  };
+  \$('mpb-seek').addEventListener('input',function(){
+    const audio=musicEnsureAudio();
+    if(!audio.duration)return;
+    musicSeekingByUser=true;
+    if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
+    musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
+    audio.currentTime=(this.value/100)*audio.duration;
+  });
+  \$('mpb-close').onclick=function(e){
+    e.stopPropagation();
+    musicStopAndHideGlobalBar();
+  };
+  \$('music-player-bar').addEventListener('click',function(e){
+    if(e.target.closest('.mpb-controls')||e.target.closest('.mpb-seek-wrap'))return;
+    if(musicCurrentTrack)openMusicFullPlayer();
+  });
+}
+// Fermeture explicite (bouton ✕) : seul geste qui arrête vraiment toute
+// lecture, contrairement à fermer le panneau Musique ou naviguer ailleurs
+// dans l'app (voir closeMusic()).
+function musicStopAndHideGlobalBar(){
+  if(musicAudioEl){musicAudioEl.pause();musicAudioEl.src='';}
+  musicCurrentTrack=null;
+  musicRadioQueue=null;
+  closeMusicFullPlayer();
+  const bar=\$('music-player-bar');
+  if(bar)bar.classList.add('hidden');
+  document.documentElement.style.setProperty('--music-bar-h','0px');
 }
 function renderMusicShell(){
   const overlay=\$('music-overlay');if(!overlay)return;
@@ -21404,18 +21480,7 @@ function renderMusicShell(){
     +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<input type="text" id="music-search" class="field-input music-search" value="'+esc(musicSearchQuery)+'" placeholder="🔍 Rechercher un titre, un artiste, un tag…">')
     +(compact||(musicFilter==='members'&&musicMembersView!=='home')?'':'<div class="music-genre-row" id="music-genre-row">'+MUSIC_GENRES.map(function(g){return '<button type="button" class="music-genre-chip'+(musicGenreFilter===g.id?' on':'')+'" data-genre="'+g.id+'" style="background:'+g.c+'">'+esc(g.name)+'</button>';}).join('')+'</div>')
     +(compact||musicFilter!=='members'||musicMembersView!=='home'?'':'<div class="music-sort-row"><span class="music-sort-label">Trier</span><div class="seg-group music-sort-toggle" id="music-sort-toggle"><button type="button" class="seg-btn'+(musicSortMode==='recent'?' on':'')+'" data-music-sort="recent">🕒 Récent</button><button type="button" class="seg-btn'+(musicSortMode==='popular'?' on':'')+'" data-music-sort="popular">🔥 Populaire</button></div></div>')
-    +'<div class="discover-body" id="music-body"></div>'
-    +'<div class="music-player-bar hidden" id="music-player-bar">'
-      +'<div class="mpb-cover" id="mpb-cover"></div>'
-      +'<div class="mpb-info"><div class="mpb-title" id="mpb-title"></div><div class="mpb-artist" id="mpb-artist"></div></div>'
-      +'<div class="mpb-controls">'
-        +'<button type="button" class="mpb-btn" id="mpb-shuffle" title="Aléatoire"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>'
-        +'<button type="button" class="mpb-btn" id="mpb-prev" title="Précédent"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M6 5h2v14H6zM19 5v14l-10-7z"/></svg></button>'
-        +'<button type="button" class="mpb-btn mpb-play" id="mpb-play" title="Lecture"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg></button>'
-        +'<button type="button" class="mpb-btn" id="mpb-next" title="Suivant"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>'
-      +'</div>'
-      +'<div class="mpb-seek-wrap"><span class="mpb-time" id="mpb-time-cur">0:00</span><input type="range" id="mpb-seek" min="0" max="100" value="0" class="mpb-seek"><span class="mpb-time" id="mpb-time-dur">0:00</span></div>'
-    +'</div>';
+    +'<div class="discover-body" id="music-body"></div>';
   // Sur la page d'un titre, "← Retour" remonte d'un niveau (retour à la
   // liste) plutôt que de fermer tout le panneau Musique — cohérent avec le
   // reste de l'app, et évite d'avoir deux boutons "retour" empilés.
@@ -21480,27 +21545,6 @@ function renderMusicShell(){
       musicSyncMiniBar();
       renderMusicBody();
     });
-  });
-  \$('mpb-play').onclick=musicTogglePlay;
-  \$('mpb-prev').onclick=musicPrev;
-  \$('mpb-next').onclick=musicNext;
-  \$('mpb-shuffle').classList.toggle('on',musicShuffleOn);
-  \$('mpb-shuffle').onclick=function(){
-    musicShuffleOn=!musicShuffleOn;
-    this.classList.toggle('on',musicShuffleOn);
-    showToast(musicShuffleOn?'Lecture aléatoire activée.':'Lecture aléatoire désactivée.');
-  };
-  \$('mpb-seek').addEventListener('input',function(){
-    const audio=musicEnsureAudio();
-    if(!audio.duration)return;
-    musicSeekingByUser=true;
-    if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
-    musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
-    audio.currentTime=(this.value/100)*audio.duration;
-  });
-  \$('music-player-bar').addEventListener('click',function(e){
-    if(e.target.closest('.mpb-controls')||e.target.closest('.mpb-seek-wrap'))return;
-    if(musicCurrentTrack)openMusicFullPlayer();
   });
 }
 async function loadMusicTracks(){
@@ -22028,7 +22072,13 @@ async function musicToggleLike(trackId){
 function musicSyncMiniBar(){
   const t=musicCurrentTrack;if(!t)return;
   const bar=\$('music-player-bar');if(!bar)return;
+  const wasHidden=bar.classList.contains('hidden');
   bar.classList.remove('hidden');
+  // Réserve l'espace de la barre (--music-bar-h, même mécanisme que
+  // --banner-h) seulement au moment où elle apparaît réellement — mesurer
+  // offsetHeight demande un rendu, d'où le requestAnimationFrame, exactement
+  // comme le bandeau d'installation PWA plus haut dans ce fichier.
+  if(wasHidden)requestAnimationFrame(function(){document.documentElement.style.setProperty('--music-bar-h',bar.offsetHeight+'px');});
   \$('mpb-title').textContent=t.title;
   // Repart toujours de l'artiste ici (avant même que la recherche de paroles
   // du nouveau titre ait pu répondre) : sans ce reset explicite, la ligne de
