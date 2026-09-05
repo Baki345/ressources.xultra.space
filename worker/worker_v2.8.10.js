@@ -2740,6 +2740,10 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-lib-subtabs .seg-btn{font-size:.68rem}
 .music-feed-heading{padding:4px 14px 10px;font-size:.95rem;font-weight:800}
 .music-discover-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.music-trending-row{display:flex;align-items:center;gap:8px}
+.music-trending-row .music-member-row{flex:1;min-width:0}
+.music-rank-badge{width:26px;flex-shrink:0;text-align:center;font-weight:800;font-size:.85rem;color:var(--muted)}
+.music-rank-badge.top3{color:#fbbf24;font-size:1.05rem}
 .music-lib-section{margin-bottom:8px}
 .music-lib-section-head{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
 .music-lib-section-head .music-feed-heading{padding:4px 0 10px}
@@ -7835,6 +7839,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.71',category:'feature',date:'5 septembre 2026',time:'23:00',title:'🔥 Tendances : le classement du moment dans X1 Music',
+    body:'Nouvel onglet "🔥 Tendances" dans Sons des membres, entre Accueil et Découvrir : un vrai classement (titres et artistes) calculé sur les likes/commentaires/reposts récents, pas juste le nombre brut d\\'écoutes — un ancien titre très écouté ne trône plus indéfiniment en tête, place aux titres qui bougent vraiment en ce moment. Contrairement à Découvrir (personnalisé), Tendances est le même classement pour tout le monde et inclut aussi le contenu officiel. Le classement des artistes regroupe correctement les titres d\\'un même artiste officiel sous sa fiche, jamais sous les comptes de celles et ceux qui les ont mis en ligne.'},
   {version:'4.55.70',category:'feature',date:'5 septembre 2026',time:'22:00',title:'🧭 Découvrir : une sélection personnalisée dans X1 Music',
     body:'Nouvel onglet "🧭 Découvrir" dans Sons des membres, entre Accueil et Fil d\\'actu : une file de titres choisie pour toi à partir de tes goûts déjà connus (genres et artistes que tu as aimés ou écoutés), jamais tes propres titres ni ceux déjà aimés. Contrairement au Fil d\\'actu (uniquement tes abonnements), Découvrir privilégie plutôt du neuf — les artistes que tu suis déjà y apparaissent un peu moins souvent. Bouton "🔀 Nouvelle sélection" pour retirer une sélection différente à tout moment.'},
   {version:'4.55.69',category:'fix',date:'5 septembre 2026',time:'21:00',title:'🏅 Fiche artiste officielle automatique, et attribution corrigée',
@@ -21239,7 +21245,7 @@ let musicSortMode='recent';
 // Sous-navigation façon SoundCloud (Accueil/Fil d'actu/Bibliothèque) à
 // l'intérieur de l'onglet "Sons des membres" uniquement — les autres onglets
 // (Streaming/Mes titres/Mes playlists) restent inchangés.
-let musicMembersView='home'; // 'home' | 'discover' | 'feed' | 'library'
+let musicMembersView='home'; // 'home' | 'trending' | 'discover' | 'feed' | 'library'
 let musicLibraryTab='overview'; // 'overview' | 'likes' | 'playlists' | 'following' | 'history'
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
@@ -21434,6 +21440,64 @@ function musicDiscoverQueue(){
 function musicRefreshDiscover(){
   musicDiscoverCache=musicDiscoverQueue();
 }
+/* ===== 🔥 Tendances : classement, le même pour tout le monde =====
+   Contrairement à Découvrir (personnalisé à partir de MES goûts), Tendances
+   est un vrai classement global — inclut aussi bien le contenu indépendant
+   qu'officiel/Streaming, pour refléter ce qui bouge vraiment sur X1 dans son
+   ensemble. Score inspiré des classements façon Hacker News : pondère
+   likes/commentaires/reposts (des signaux actifs, plus significatifs qu'une
+   simple écoute passive) puis atténue avec l'âge du titre — un ancien titre
+   très écouté ne doit pas trôner indéfiniment en tête, sans quoi ce serait
+   juste "Populaire" (déjà disponible sur Accueil) sous un autre nom. Purement
+   dérivé de musicTracksCache déjà en mémoire, aucune requête ni compteur
+   serveur supplémentaire. */
+function musicTrendingScore(t){
+  const ageHours=Math.max(0,(Date.now()-new Date(t.\$createdAt).getTime())/3600000);
+  return ((t.likesCount||0)*3+(t.commentsCount||0)*2+(t.repostsCount||0)*2+(t.playsCount||0))/Math.pow(ageHours+2,1.2);
+}
+function musicTrendingTracks(limit){
+  return musicTracksCache.map(function(t){return {track:t,score:musicTrendingScore(t)};})
+    .sort(function(a,b){return b.score-a.score;})
+    .slice(0,limit||10)
+    .map(function(e){return e.track;});
+}
+// Classement par artiste : identifié par sa fiche officielle (officialArtistId)
+// quand il en a une, sinon par son compte X1 — jamais mélangé (voir le bug
+// corrigé en v4.55.69, la même confusion serait absurde ici). Le score
+// d'un artiste est la somme du score de ses 5 meilleurs titres seulement,
+// pour représenter "cet artiste a des titres qui cartonnent en ce moment"
+// plutôt que "cet artiste a publié beaucoup de titres".
+function musicTrendingArtists(limit){
+  const groups={};
+  musicTracksCache.forEach(function(t){
+    const isOfficial=t.contentType==='official'&&!!t.officialArtistId;
+    const id=isOfficial?t.officialArtistId:String(t.uid);
+    const key=(isOfficial?'o:':'u:')+id;
+    if(!groups[key])groups[key]={id:id,isOfficial:isOfficial,artistName:t.artistName,photoUrl:isOfficial?(t.officialArtistPhoto||''):'',trackCount:0,totalPlays:0,scores:[]};
+    groups[key].trackCount++;
+    groups[key].totalPlays+=(t.playsCount||0);
+    groups[key].scores.push(musicTrendingScore(t));
+    if(!isOfficial&&!groups[key].photoUrl){
+      const prof=membersCache.find(function(p){return String(p.authUserId||p.\$id)===id;});
+      if(prof&&prof.avatar)groups[key].photoUrl=prof.avatar;
+    }
+  });
+  return Object.keys(groups).map(function(k){
+    const g=groups[k];
+    const top=g.scores.slice().sort(function(a,b){return b-a;}).slice(0,5);
+    g.score=top.reduce(function(s,x){return s+x;},0);
+    return g;
+  }).sort(function(a,b){return b.score-a.score;}).slice(0,limit||5);
+}
+function musicTrendingArtistRowHtml(entry,rank){
+  const av=safeUrl(entry.photoUrl);
+  const linkAttr=entry.isOfficial?'data-music-official-artist="'+esc(entry.id)+'"':'data-music-artist="'+esc(entry.id)+'"';
+  return '<div class="mfs-artist-row music-trending-artist-row">'
+    +'<span class="music-rank-badge'+(rank<=3?' top3':'')+'">#'+rank+'</span>'
+    +'<span class="mfs-artist-av" '+linkAttr+'>'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(entry.artistName||'?')))+'</span>'
+    +'<div class="mfs-artist-info" '+linkAttr+'><div class="mfs-artist-name">'+esc(entry.artistName)+(entry.isOfficial?' <span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+'</div><div class="mfs-artist-sub">'+crtFmtCount(entry.trackCount)+' titre'+(entry.trackCount!==1?'s':'')+' · '+crtFmtCount(entry.totalPlays)+' écoutes</div></div>'
+  +'</div>';
+}
 // Radio à partir d'un titre : file éphémère (même genre, ou même artiste à
 // défaut de genre), mélangée, avec le titre de départ en tête — prioritaire
 // sur les onglets/recherche/genre tant qu'elle est active (voir
@@ -21468,6 +21532,10 @@ function musicCurrentQueue(){
   // sélection, jamais recalculée à chaque re-rendu (un like changerait
   // l'ordre sous les pieds de la personne qui parcourt la liste).
   if(musicFilter==='members'&&musicMembersView==='discover')return musicDiscoverCache||[];
+  // Tendances est un classement strict (jamais un tirage aléatoire comme
+  // Découvrir) : pas besoin de le figer dans un cache dédié, un re-calcul à
+  // chaque lecture reste stable tant que les compteurs ne changent pas.
+  if(musicFilter==='members'&&musicMembersView==='trending')return musicTrendingTracks(50);
   const key=musicQueueKey();
   if(musicQueueCache&&musicQueueCacheKey===key)return musicQueueCache;
   let list;
@@ -21971,6 +22039,7 @@ function renderMusicShell(){
     +'</div>')
     +(compact||musicFilter!=='members'?'':'<div class="seg-group music-subtabs" id="music-subtabs">'
       +'<button type="button" class="seg-btn'+(musicMembersView==='home'?' on':'')+'" data-music-subview="home">🏠 Accueil</button>'
+      +'<button type="button" class="seg-btn'+(musicMembersView==='trending'?' on':'')+'" data-music-subview="trending">🔥 Tendances</button>'
       +'<button type="button" class="seg-btn'+(musicMembersView==='discover'?' on':'')+'" data-music-subview="discover">🧭 Découvrir</button>'
       +'<button type="button" class="seg-btn'+(musicMembersView==='feed'?' on':'')+'" data-music-subview="feed">📰 Fil d\\'actu</button>'
       +'<button type="button" class="seg-btn'+(musicMembersView==='library'?' on':'')+'" data-music-subview="library">📚 Bibliothèque</button>'
@@ -22218,6 +22287,7 @@ function renderMusicBody(){
   // n'est jamais posé ailleurs que juste avant un appel à renderMusicBody().
   if(musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
+  if(musicFilter==='members'&&musicMembersView==='trending'){renderMusicTrendingTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='discover'){renderMusicDiscoverTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='feed'){renderMusicFeedTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='library'){renderMusicLibraryTab(box);return}
@@ -22370,6 +22440,22 @@ function musicLibraryFollowedList(){
 // quelqu'un d'autre également suivi, seul l'évènement le plus RÉCENT des
 // deux ressort (avec son étiquette "Reposté par" le cas échéant), pour ne
 // jamais afficher deux fois la même ligne dans le fil.
+function renderMusicTrendingTab(box){
+  const tracks=musicTrendingTracks(15);
+  if(!tracks.length){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">🔥</div><div class="mfe-title">Rien à classer pour l\\'instant</div><div class="mfe-sub">Dès que des titres seront publiés et écoutés, le classement apparaîtra ici.</div></div>';
+    return;
+  }
+  const artists=musicTrendingArtists(5);
+  const mainHtml='<div class="music-feed-heading">🔥 Titres tendance</div><div class="music-row-list">'+tracks.map(function(t,i){
+    return '<div class="music-trending-row"><span class="music-rank-badge'+(i<3?' top3':'')+'">#'+(i+1)+'</span>'+musicMemberRowHtml(t)+'</div>';
+  }).join('')+'</div>';
+  const sideHtml=artists.length?('<div class="music-feed-side"><div class="mfs-card"><div class="mfs-label">🔥 Artistes tendance</div>'
+    +artists.map(function(a,i){return musicTrendingArtistRowHtml(a,i+1);}).join('')
+    +'</div></div>'):'';
+  box.innerHTML='<div class="music-feed-layout"><div class="music-feed-main">'+mainHtml+'</div>'+sideHtml+'</div>';
+  wireMusicCardEvents(box);
+}
 function renderMusicDiscoverTab(box){
   const tracks=musicDiscoverCache||[];
   if(!tracks.length){
