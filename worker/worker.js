@@ -7747,6 +7747,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.64',category:'fix',date:'5 septembre 2026',time:'16:00',title:'🩹 Paroles qui ne s\\'affichaient plus dans le lecteur plein écran',
+    body:'Depuis que la musique continue en arrière-plan (mini-barre persistante), démarrer un titre depuis une liste puis ouvrir le lecteur plein écran PLUS TARD (au lieu de l\\'avoir déjà ouvert) laissait l\\'onglet Paroles définitivement vide, même quand des paroles existaient bel et bien pour ce titre : la recherche s\\'était déjà terminée avant que l\\'espace pour les afficher n\\'existe, et rien ne le repeignait ensuite. Corrigé : ouvrir le lecteur plein écran réaffiche maintenant directement les paroles déjà trouvées, quel que soit le moment où il est ouvert par rapport au démarrage de la lecture.'},
   {version:'4.55.63',category:'fix',date:'5 septembre 2026',time:'15:00',title:'🩹 Lecteur plein écran illisible depuis la mini-barre, et forme d\\'onde décalée',
     body:'Cliquer sur la mini-barre persistante depuis un autre écran que Musique (Messages, un serveur…) pour agrandir le lecteur pouvait l\\'afficher sans son fond, façon voile transparent laissant deviner l\\'écran du dessous — un conflit entre deux styles internes qui se disputaient l\\'apparence de cette fenêtre. Corrigé : le lecteur plein écran retrouve son vrai fond dégradé partout, avec son bouton ▼ pour le réduire sans couper la musique. Corrige aussi la forme d\\'onde qui pouvait sembler "en avance" par rapport à la position réelle de lecture (surtout visible sur certains MP3) : elle se cale désormais sur la durée réelle du titre plutôt que sur celle, parfois erronée, que le lecteur audio du navigateur détecte en cours de route.'},
   {version:'4.55.62',category:'feature',date:'5 septembre 2026',time:'14:00',title:'🎧 Écouter ensemble en vocal',
@@ -22708,6 +22710,20 @@ function openMusicFullPlayer(){
   musicSyncFullPlayerMeta();
   renderMusicPlayIcons();
   musicSyncListenUi();
+  // Repeint depuis l'état déjà connu (musicLyricsState) plutôt que de
+  // compter sur un nouveau fetch : musicLoadLyricsFor() est lancé depuis
+  // musicPlayTrack(), qui peut très bien tourner AVANT que #mfp-lyrics
+  // n'existe (lecture démarrée depuis une rangée de la liste, ou depuis la
+  // mini-barre persistante, sans jamais ouvrir le lecteur plein écran) —
+  // #mfp-lyrics est alors créé vide ci-dessus, et sans ce repeint restait
+  // vide pour de bon puisque la recherche sur lrclib.net ne se relance pas
+  // à chaque ouverture. Si la recherche est encore en cours, ce repeint est
+  // un no-op sans effet : musicLoadLyricsFor() la peuplera lui-même dès
+  // qu'elle aboutit, en retrouvant #mfp-lyrics au passage.
+  if(musicLyricsState.lines.length){
+    musicRenderLyricsLines();
+    if(musicLyricsState.timed&&musicLyricsState.activeIdx>=0)musicSetActiveLyricLine(musicLyricsState.activeIdx);
+  }
 }
 function closeMusicFullPlayer(){
   const overlay=\$('music-fullplayer');
