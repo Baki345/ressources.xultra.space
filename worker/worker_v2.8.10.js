@@ -2535,6 +2535,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-upload-row-sub{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:4px}
 .music-upload-status-txt.music-up-st-done{color:#4ade80}
 .music-upload-status-txt.music-up-st-error{color:#f87171}
+.music-upload-row-err{font-size:11px;color:#f87171;margin-top:2px;line-height:1.35}
+.music-official-badge{font-size:11px;margin-left:3px;vertical-align:middle}
 .music-upload-status-txt.music-up-st-busy{color:#86efac}
 .music-upload-clear-btn{background:none;border:0;color:var(--muted);font-size:.7rem;cursor:pointer;text-decoration:underline;padding:0}
 .music-album-shelf{margin-bottom:22px}
@@ -7827,6 +7829,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.68',category:'feature',date:'5 septembre 2026',time:'20:00',title:'🔍 Anti-doublons automatique, et badge 🏅 Officiel',
+    body:'Publier un titre déjà présent sur X1 (même fichier audio, ou même titre/artiste/durée qu\\'un morceau existant) est désormais bloqué à l\\'envoi avec un message clair expliquant pourquoi — que ce soit avec "+ Ajouter un titre" ou "📀 Ajouter un album", rien n\\'est jamais supprimé après coup, juste refusé avant publication pour ne jamais risquer d\\'effacer un vrai titre par erreur. Chaque titre affiche aussi désormais automatiquement un badge 🏅 Officiel quand il correspond à une vraie sortie commerciale (recherchée sur le même catalogue public que la pochette/le genre), pour distinguer d\\'un coup d\\'œil une reprise/un réupload officiel d\\'une création originale d\\'un membre X1.'},
   {version:'4.55.67',category:'feature',date:'5 septembre 2026',time:'19:00',title:'📀 Ajoute un album entier d\\'un coup, avec reconnaissance automatique',
     body:'Nouveau bouton "📀 Ajouter un album" à côté de "+ Ajouter un titre" dans X1 Music : sélectionne tous les fichiers audio d\\'un album en une fois, et le titre, l\\'artiste et le numéro de piste de chacun sont devinés depuis le nom des fichiers ("01 - Artiste - Titre.mp3" et variantes courantes) — vérifie et corrige si besoin dans l\\'aperçu avant de publier. Pochette, genre et nom d\\'album sont recherchés automatiquement comme pour un titre seul. Un nouveau panneau d\\'envoi (vert, coin bas-droit) affiche la progression en % de chaque fichier en direct. Les titres partageant un même album se retrouvent ensuite automatiquement regroupés en "étagère" sur le profil de l\\'artiste et dans Mes titres, au lieu d\\'être mélangés à plat.'},
   {version:'4.55.66',category:'feature',date:'5 septembre 2026',time:'18:00',title:'🏨 X1 Hotel — nouveau Lobby social rétro pixel-art',
@@ -22005,7 +22009,7 @@ function musicTrackCardHtml(t){
   return '<div class="music-card'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span>'+(t.durationSec?'<span class="music-card-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
     +'<div class="music-card-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</div>'
-    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
+    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+(t.contentType==='official'?' <span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
     +tagsHtml
     +'<div class="music-card-actions">'
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
@@ -22059,7 +22063,7 @@ function musicMemberRowHtml(t){
     +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
     +'<div class="music-row-body">'
       +'<div class="music-row-top"><span class="music-row-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</span>'
-        +'<span class="music-row-artist-wrap" data-music-artist="'+esc(t.uid)+'"><span class="music-row-artist-av">'+avInner+'</span><span class="music-row-artist">'+esc(t.artistName)+'</span></span>'
+        +'<span class="music-row-artist-wrap" data-music-artist="'+esc(t.uid)+'"><span class="music-row-artist-av">'+avInner+'</span><span class="music-row-artist">'+esc(t.artistName)+'</span>'+(t.contentType==='official'?'<span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+'</span>'
         +agoHtml
         +(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
       +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'+markersHtml+'</div>'
@@ -23505,6 +23509,7 @@ async function openMusicUploadForm(){
       try{durationSec=await musicProbeDuration(audioFile);}catch(e){}
       btn.textContent='Calcul de la forme d\\'onde…';
       const waveform=await musicComputeWaveform(audioFile);
+      const audioHash=await musicHashAudioFile(audioFile);
       let genre=(\$('music-up-genre').value||'').trim();
       const tags=(\$('music-up-tags').value||'').split(',').map(function(s){return s.trim();}).filter(Boolean).slice(0,15);
       let lyricsLrc=(\$('music-up-lyrics').value||'').slice(0,20000);
@@ -23543,7 +23548,7 @@ async function openMusicUploadForm(){
       // aussi openMusicBulkUploadForm, qui fait le même enrichissement pour
       // un album entier envoyé en une fois).
       await authPost('/api/music/tracks/create',{
-        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming,waveform:waveform,album:album,year:year
+        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming,waveform:waveform,album:album,year:year,audioHash:audioHash
       });
       showToast('Titre publié !');
       close();
@@ -23595,6 +23600,21 @@ async function musicComputeWaveform(file){
     try{ctx.close();}catch(e){}
     return peaks.map(function(p){return Math.max(.06,Math.round((p/max)*100)/100);});
   }catch(e){return [];}
+}
+// Empreinte SHA-256 du fichier audio brut, calculée dans le navigateur avant
+// l'envoi — sert uniquement à /api/music/tracks/create pour détecter un
+// même fichier déjà en ligne (voir musicNormalizeForCompare côté serveur
+// pour le second niveau, par titre/artiste/durée). Jamais utilisée pour
+// autre chose qu'une comparaison d'égalité exacte.
+async function musicHashAudioFile(file){
+  try{
+    const buf=await file.arrayBuffer();
+    const digest=await crypto.subtle.digest('SHA-256',buf);
+    const bytes=new Uint8Array(digest);
+    let hex='';
+    for(let i=0;i<bytes.length;i++)hex+=bytes[i].toString(16).padStart(2,'0');
+    return hex;
+  }catch(e){return '';}
 }
 // Repli pour les titres publiés avant l'ajout de cette fonctionnalité (pas
 // de waveformJson stocké) : forme déterministe (même titre = même dessin à
@@ -23736,6 +23756,7 @@ function musicRenderUploadPanel(){
         +'<div class="music-upload-row-top"><span class="music-upload-row-name">'+(u.trackNumber?'<b>'+u.trackNumber+'.</b> ':'')+esc(u.title)+'</span></div>'
         +'<div class="music-upload-bar"><div class="music-upload-fill'+fillCls+'" style="width:'+fillWidth+'%"></div></div>'
         +'<div class="music-upload-row-sub"><span>'+(showPct?pct+'%':'')+'</span><span class="music-upload-status-txt '+st.cls+'">'+st.txt+'</span></div>'
+        +(u.status==='error'&&u.errMsg?'<div class="music-upload-row-err">'+esc(u.errMsg)+'</div>':'')
       +'</div>';
     }).join('')+'</div>';
   const closeBtn=panel.querySelector('#music-upload-panel-close');
@@ -23832,6 +23853,7 @@ function openMusicBulkUploadForm(){
         musicActiveUploads[uploadId].status='metadata';musicRenderUploadPanel();
         let durationSec=0;try{durationSec=await musicProbeDuration(pf.file);}catch(e){}
         const waveform=await musicComputeWaveform(pf.file);
+        const audioHash=await musicHashAudioFile(pf.file);
         let coverUrl=sharedCoverUrl,genre=sharedGenre,albumName=album,year='';
         try{
           const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName});
@@ -23846,12 +23868,12 @@ function openMusicBulkUploadForm(){
         try{lyricsLrc=(await musicSearchLrclib(title,artistName)).slice(0,20000);}catch(e){}
         musicActiveUploads[uploadId].status='publishing';musicRenderUploadPanel();
         await authPost('/api/music/tracks/create',{
-          title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:pf.file.type||'',durationSec:durationSec,genre:genre,tags:[],lyricsLrc:lyricsLrc,wantStreaming:false,waveform:waveform,album:albumName,year:year,trackNumber:pf.trackNumber
+          title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:pf.file.type||'',durationSec:durationSec,genre:genre,tags:[],lyricsLrc:lyricsLrc,wantStreaming:false,waveform:waveform,album:albumName,year:year,trackNumber:pf.trackNumber,audioHash:audioHash
         });
         musicActiveUploads[uploadId].status='done';musicRenderUploadPanel();
         publishedCount++;
       }catch(e){
-        musicActiveUploads[uploadId].status='error';musicRenderUploadPanel();
+        musicActiveUploads[uploadId].status='error';musicActiveUploads[uploadId].errMsg=(e&&e.message)||'';musicRenderUploadPanel();
         failedCount++;
       }
     }
@@ -32024,6 +32046,45 @@ async function handle(request, event) {
       return JSON.parse((meta && meta.badgesJson) || "[]");
     } catch (e) { return []; }
   }
+  // Casse/accents/ponctuation ignorés — pour comparer deux titres ou deux
+  // noms d'artiste malgré une saisie légèrement différente ("Björk" vs
+  // "Bjork", "Sous la pluie" vs "sous-la-pluie", etc.).
+  function musicNormalizeForCompare(s) {
+    return String(s || "").toLowerCase().normalize("NFD").replace(new RegExp("[\\u0300-\\u036f]", "g"), "").replace(/[^a-z0-9]/g, "");
+  }
+  function musicArtistNamesLikelyMatch(a, b) {
+    const na = musicNormalizeForCompare(a), nb = musicNormalizeForCompare(b);
+    if (!na || !nb) return false;
+    return na === nb || na.indexOf(nb) >= 0 || nb.indexOf(na) >= 0;
+  }
+  // Recherche légère sur le même catalogue public que l'enrichissement
+  // pochette/genre (voir /api/music/tracks/auto-metadata, dupliqué ici en
+  // plus léger — juste "un match existe-t-il, et pour quel artiste" —
+  // plutôt que refactorisé en commun, pour ne jamais risquer de régresser
+  // cette route déjà en place en la modifiant) : sert uniquement à
+  // distinguer contenu "officiel" (reprise/réupload d'un titre du commerce)
+  // d'une création originale d'un membre X1, jamais à remplacer quoi que ce
+  // soit que la personne a saisi elle-même.
+  async function musicLookupCommercialMatch(title, artistName) {
+    const q = encodeURIComponent((title + " " + artistName).trim());
+    try {
+      const dzRes = await fetch("https://api.deezer.com/search?q=" + q + "&limit=1");
+      if (dzRes.ok) {
+        const dzJson = await dzRes.json();
+        const dzHit = (dzJson.data || [])[0];
+        if (dzHit && dzHit.album) return { found: true, matchedArtist: (dzHit.artist && dzHit.artist.name) || "" };
+      }
+    } catch (e) {}
+    try {
+      const searchRes = await fetch("https://itunes.apple.com/search?term=" + q + "&media=music&entity=song&limit=1");
+      if (searchRes.ok) {
+        const searchJson = await searchRes.json();
+        const hit = (searchJson.results || [])[0];
+        if (hit) return { found: true, matchedArtist: hit.artistName || "" };
+      }
+    } catch (e) {}
+    return { found: false, matchedArtist: "" };
+  }
   if (path === "/api/music/tracks/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -32057,10 +32118,57 @@ async function handle(request, event) {
       const trackNumber = Math.max(0, Math.round(Number((body && body.trackNumber) || 0))) || null;
       let waveform = [];
       try { waveform = (Array.isArray(body && body.waveform) ? body.waveform : []).map(function (p) { return Math.max(0, Math.min(1, Number(p) || 0)); }).slice(0, 80); } catch (e) {}
+      // ===== Anti-doublon : deux niveaux, jamais une suppression après coup
+      // (une suppression basée sur une heuristique pourrait effacer un vrai
+      // titre par erreur) — l'envoi est bloqué AVANT création, rien n'existe
+      // encore à supprimer. =====
+      // 1) Fichier strictement identique (même empreinte SHA-256, calculée
+      // côté client sur les octets bruts) déjà présent, peu importe qui l'a
+      // envoyé — le but est d'éviter la duplication de contenu sur le site
+      // en général, pas seulement d'empêcher un compte de se répéter.
+      const audioHashRaw = String((body && body.audioHash) || "").trim().toLowerCase().slice(0, 64);
+      const audioHash = /^[0-9a-f]{64}$/.test(audioHashRaw) ? audioHashRaw : "";
+      if (audioHash) {
+        const hashQ = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "audioHash", values: [audioHash] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        const hashDup = (hashQ.documents || [])[0];
+        if (hashDup) throw new Error("Ce fichier audio est déjà en ligne sur X1 : \"" + hashDup.title + "\" (par " + hashDup.artistName + ").");
+      }
+      // 2) Même (titre, artiste) normalisés (casse/accents/ponctuation
+      // ignorés) ET durée quasi identique (± 3s) — repère un même morceau
+      // réenregistré/réencodé sous un fichier différent, sans vrai
+      // fingerprinting audio (hors de portée d'un Worker Cloudflare).
+      // Heuristique volontairement double condition (jamais le titre seul,
+      // trop de faux positifs sur des titres génériques) pour rester fiable.
+      const dedupKey = musicNormalizeForCompare(title) + "::" + musicNormalizeForCompare(artistName);
+      if (dedupKey !== "::" && durationSec > 0) {
+        const dedupQ = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "dedupKey", values: [dedupKey] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] })), { asAdmin: true });
+        const nearDup = (dedupQ.documents || []).find(function (d) { return Math.abs((d.durationSec || 0) - durationSec) <= 3; });
+        if (nearDup) throw new Error("Un titre très similaire existe déjà : \"" + nearDup.title + "\" (par " + nearDup.artistName + ", " + Math.floor((nearDup.durationSec || 0) / 60) + ":" + String((nearDup.durationSec || 0) % 60).padStart(2, "0") + ").");
+      }
       const badges = await musicUserBadges(acc.$id);
       const eligible = MUSIC_STREAMING_BADGES.some(function (b) { return badges.indexOf(b) >= 0; });
       const channel = (wantStreaming && eligible) ? "streaming" : "member";
-      const data = { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year };
+      // ===== Officiel vs indépendant : jamais déclaré par le client, TOUJOURS
+      // déterminé ici — soit déjà "officiel" par le mécanisme existant
+      // (Streaming, réservé au staff/créateurs), soit par une recherche sur
+      // le même catalogue public (Deezer/iTunes) que l'enrichissement
+      // pochette/genre, avec vérification que l'artiste retrouvé correspond
+      // VRAIMENT à celui saisi (jamais juste un titre qui matche par hasard
+      // une chanson connue d'un autre artiste). =====
+      let contentType = "independent";
+      if (channel === "streaming") {
+        contentType = "official";
+      } else {
+        try {
+          const match = await musicLookupCommercialMatch(title, artistName);
+          if (match.found && musicArtistNamesLikelyMatch(artistName, match.matchedArtist)) contentType = "official";
+        } catch (e) {}
+      }
+      const data = { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year, audioHash: audioHash, dedupKey: dedupKey, contentType: contentType };
       if (trackNumber) data.trackNumber = trackNumber;
       const doc = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents", {
         method: "POST", asAdmin: true,
