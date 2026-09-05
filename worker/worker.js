@@ -2182,15 +2182,15 @@ html.xultra-restoring #stage{visibility:hidden}
 .search-box:focus{border-color:#7c3aed;background:#100a1a}
 .icon-btn{height:36px;width:36px;border-radius:999px;background:var(--elev);font-size:.9rem;flex-shrink:0}
 .icon-btn:hover{background:var(--hover)}
-.pill-action-btn{height:36px;padding:0 13px 0 10px;border-radius:999px;display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;flex-shrink:0;white-space:nowrap;color:#fff;border:1px solid transparent;transition:transform .15s ease}
+.pill-action-btn{height:34px;padding:0 10px 0 8px;border-radius:999px;display:flex;align-items:center;gap:4px;font-size:.72rem;font-weight:700;flex-shrink:0;white-space:nowrap;color:#fff;border:1px solid transparent;transition:transform .15s ease}
 .pill-action-btn:hover{transform:translateY(-1px)}
-.pill-action-btn .pill-action-ico{font-size:.95rem;line-height:1}
+.pill-action-btn .pill-action-ico{font-size:.85rem;line-height:1}
 .pill-action-friend{background:linear-gradient(135deg,#22c55e,#15803d);animation:pillPulseGreen 2.6s ease-in-out infinite}
 .pill-action-group{background:linear-gradient(135deg,#991b1b,#7f1d1d);animation:pillPulseRed 2.6s ease-in-out infinite}
 @keyframes pillPulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}50%{box-shadow:0 0 0 7px rgba(34,197,94,0)}}
 @keyframes pillPulseRed{0%,100%{box-shadow:0 0 0 0 rgba(153,27,27,.55)}50%{box-shadow:0 0 0 7px rgba(153,27,27,0)}}
 @media (prefers-reduced-motion:reduce){.pill-action-friend,.pill-action-group{animation:none}}
-@media (max-width:480px){.pill-action-btn{padding:0 9px 0 8px;font-size:.7rem;gap:4px}}
+@media (max-width:480px){.pill-action-btn{padding:0 8px 0 7px;font-size:.66rem;gap:3px}}
 .stories-bar{display:flex;gap:12px;overflow-x:auto;padding:12px 14px;border-bottom:1px solid var(--line);flex-shrink:0}
 .stories-bar.hidden{display:none}
 .story-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;width:60px;cursor:pointer;background:none;border:0}
@@ -6060,14 +6060,20 @@ let regAvatarFile=null, regAvatarUrl='', regBannerFile=null, regBannerUrl='';
 /* ===== Turnstile anti-bot (connexion + inscription) ===== */
 const TURNSTILE_SITE_KEY='0x4AAAAAAEYe1BBAtdJkZkA0';
 const turnstileWidgetIds={login:null,register:null};
-function renderTurnstile(which){
-  const wrap=\$('turnstile-wrap-'+which);if(!wrap)return;
-  if(!TURNSTILE_SITE_KEY){wrap.classList.add('hidden');return}
-  wrap.classList.remove('hidden');
-  if(turnstileWidgetIds[which]!=null||typeof turnstile==='undefined')return;
-  try{turnstileWidgetIds[which]=turnstile.render(wrap,{sitekey:TURNSTILE_SITE_KEY,theme:'dark'});}catch(e){}
-}
-if(TURNSTILE_SITE_KEY){
+let turnstileScriptRequested=false;
+// Signalé ("une erreur JS est apparue sans raison") : ce script tiers se
+// chargeait et s'exécutait en tâche de fond pour TOUT le monde, y compris un
+// compte déjà connecté qui ne voit jamais l'écran de connexion/inscription —
+// un pépin purement côté Cloudflare (ex: TurnstileError 600010, lié à
+// l'environnement réseau/navigateur du visiteur, rien à voir avec le code
+// X1) déclenchait quand même la bannière rouge de debug pour un widget que
+// ce compte n'utilisait pas et n'utiliserait jamais. Chargé désormais
+// seulement si l'écran de connexion va effectivement s'afficher (voir plus
+// bas : pas de session stockée dès le départ, ou restauration de session
+// ratée dans boot()).
+function loadTurnstileScript(){
+  if(turnstileScriptRequested||!TURNSTILE_SITE_KEY)return;
+  turnstileScriptRequested=true;
   const tsScript=document.createElement('script');
   tsScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js';
   tsScript.crossOrigin='anonymous';
@@ -6075,6 +6081,15 @@ if(TURNSTILE_SITE_KEY){
   tsScript.onload=function(){renderTurnstile('login');};
   document.head.appendChild(tsScript);
 }
+function renderTurnstile(which){
+  const wrap=\$('turnstile-wrap-'+which);if(!wrap)return;
+  if(!TURNSTILE_SITE_KEY){wrap.classList.add('hidden');return}
+  wrap.classList.remove('hidden');
+  if(turnstileWidgetIds[which]!=null)return;
+  if(typeof turnstile==='undefined'){loadTurnstileScript();return}
+  try{turnstileWidgetIds[which]=turnstile.render(wrap,{sitekey:TURNSTILE_SITE_KEY,theme:'dark'});}catch(e){}
+}
+if(!readSession())loadTurnstileScript();
 
 /* ===== Jauge de robustesse du mot de passe ===== */
 function passwordStrength(pw){
@@ -7673,6 +7688,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.56',category:'fix',date:'5 septembre 2026',time:'08:00',title:'🩹 Barre de recherche trop étroite, et une bannière d\\'erreur qui apparaissait sans raison',
+    body:'Les boutons "Groupe+"/"Ami+" en haut de la liste des messages prenaient trop de place et écrasaient la barre de recherche — réduits pour lui laisser plus de largeur. Corrige aussi une bannière rouge d\\'erreur ("TurnstileError 600010") qui pouvait s\\'afficher sans raison apparente pour un compte déjà connecté : le script anti-robot Cloudflare (utile seulement à l\\'écran de connexion/inscription) se chargeait et tournait en tâche de fond pour TOUT LE MONDE, y compris les comptes déjà connectés qui ne le voient jamais — il ne se charge désormais que si l\\'écran de connexion va effectivement s\\'afficher.'},
   {version:'4.55.55',category:'feature',date:'4 septembre 2026',time:'10:00',title:'🏅 Badges épinglés : 4 max dans la liste des membres',
     body:'La liste des membres n\\'affiche plus systématiquement TOUS les badges de chacun — seulement 4, pour rester lisible. Par défaut ce sont les 4 les plus prestigieux, mais tu peux choisir toi-même lesquels mettre en avant depuis Personnalisation du profil → Général → "Badges épinglés". Rien ne change ailleurs : cliquer sur quelqu\\'un affiche toujours la totalité de ses badges sur sa fiche de profil complète.'},
   {version:'4.55.54',category:'design',date:'4 septembre 2026',time:'09:00',title:'🎨 Musique : ambiance visuelle repensée, Streaming en pause',
@@ -29987,13 +30004,17 @@ function boot(){
     handleXBinDeepLink();
     handleXDriveShareDeepLink();
     const s=readSession();
-    if(!s){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();xlog('boot_no_session',{});return}
+    if(!s){document.documentElement.classList.remove('xultra-restoring');hideBootSplash();xlog('boot_no_session',{});loadTurnstileScript();return}
     try{
       applySession(s,readStoredJwt());
       await enterApp();
       xlog('boot_restore_ok',{});
     }catch(e){
       xlog('boot_restore_fail',{msg:(e&&e.message)||String(e),authError:!!(e&&e.authError)});
+      // Restauration ratée dans les deux cas ci-dessous : l'écran de
+      // connexion va s'afficher, donc c'est maintenant qu'il faut charger
+      // Turnstile (pas avant — voir loadTurnstileScript()).
+      loadTurnstileScript();
       if(e&&e.authError){try{localStorage.removeItem('xultra_session');}catch(e2){}}
       else{try{\$('auth-err')&&(\$('auth-err').textContent='Connexion au serveur impossible, vérifie ta connexion et réessaie.');}catch(e3){}}
     }finally{
