@@ -2569,6 +2569,18 @@ html.xultra-restoring #stage{visibility:hidden}
 .mtp-wave-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .mtp-wave-avatar-fallback{display:grid;place-items:center;width:100%;height:100%;font-size:.7rem}
 .mtp-wave-times{display:flex;justify-content:space-between;margin-top:8px;font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.mtp-lyrics-panel{background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin-bottom:20px}
+.mtp-lyrics-head{display:flex;align-items:center;gap:7px;font-weight:800;font-size:.85rem;margin-bottom:10px;color:#f2ebff}
+.mtp-lyrics-live-dot{width:7px;height:7px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,.7);animation:mtpLiveDot 1.4s ease-in-out infinite;margin-left:4px}
+.mtp-lyrics-live-label{font-size:.68rem;font-weight:800;color:#fca5a5;letter-spacing:.04em}
+.mtp-lyrics-source{margin-left:auto;font-size:.68rem;font-weight:600;color:var(--muted)}
+@keyframes mtpLiveDot{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.mtp-lyrics-live-dot{animation:none}}
+.mtp-lyrics-body{max-height:280px;overflow-y:auto;text-align:left}
+.mtp-lyrics-body .mfp-ly-line{font-size:.9rem;line-height:1.65;margin:7px 0;padding:0;text-align:left;transform:none}
+.mtp-lyrics-body .mfp-ly-line.on{transform:none;text-shadow:none}
+.mtp-lyrics-body .mfp-ly-line.static{color:rgba(245,240,255,.72);cursor:default;font-weight:600}
+.mtp-lyrics-body .mfp-ly-empty{padding:10px 2px;text-align:left}
 .mtp-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .mtp-comment-input{display:flex;gap:8px;flex:1;min-width:220px}
 .mtp-comment-input .field-input{flex:1;border-radius:999px}
@@ -7688,6 +7700,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.57',category:'feature',date:'5 septembre 2026',time:'09:00',title:'🎤 Paroles en direct sur la page de chaque titre',
+    body:'La page d\\'un titre affiche désormais ses paroles, recherchées automatiquement en ligne (lrclib.net, base ouverte et gratuite) — exactement le même moteur que le lecteur plein écran, disponible depuis peu. Pour le titre RÉELLEMENT en cours de lecture, la ligne du moment se surligne en direct comme un karaoké, cliquable pour sauter à ce passage ; pour un autre titre juste consulté, ses paroles s\\'affichent en lecture simple. Repose entièrement sur la même recherche déjà en place — aucune nouvelle donnée à fournir, ça marche tout seul pour tous les titres déjà publiés.'},
   {version:'4.55.56',category:'fix',date:'5 septembre 2026',time:'08:00',title:'🩹 Barre de recherche trop étroite, et une bannière d\\'erreur qui apparaissait sans raison',
     body:'Les boutons "Groupe+"/"Ami+" en haut de la liste des messages prenaient trop de place et écrasaient la barre de recherche — réduits pour lui laisser plus de largeur. Corrige aussi une bannière rouge d\\'erreur ("TurnstileError 600010") qui pouvait s\\'afficher sans raison apparente pour un compte déjà connecté : le script anti-robot Cloudflare (utile seulement à l\\'écran de connexion/inscription) se chargeait et tournait en tâche de fond pour TOUT LE MONDE, y compris les comptes déjà connectés qui ne le voient jamais — il ne se charge désormais que si l\\'écran de connexion va effectivement s\\'afficher.'},
   {version:'4.55.55',category:'feature',date:'4 septembre 2026',time:'10:00',title:'🏅 Badges épinglés : 4 max dans la liste des membres',
@@ -22166,29 +22180,41 @@ function musicParseLRC(text){
   });
   return out;
 }
+// Deux affichages possibles pour les MÊMES paroles synchronisées du titre en
+// cours : le lecteur plein écran (#mfp-lyrics, existant) et désormais aussi
+// la page dédiée du titre (#mtp-lyrics, "EN DIRECT" uniquement quand ce
+// titre est celui réellement en lecture — voir musicEnsureTrackPageLyrics)
+// — les deux peuvent coexister à l'écran, donc chaque mise à jour de
+// musicLyricsState doit toucher tous les conteneurs présents, pas un seul.
+function musicLyricsTargets(){
+  return ['mfp-lyrics','mtp-lyrics'].map(function(id){return \$(id);}).filter(Boolean);
+}
 function musicRenderLyricsLines(){
-  const box=\$('mfp-lyrics');if(!box)return;
+  const targets=musicLyricsTargets();if(!targets.length)return;
   const lines=musicLyricsState.lines;
-  if(!lines.length){box.innerHTML='<div class="mfp-ly-empty">Paroles introuvables pour ce titre.</div>';return}
-  box.innerHTML=lines.map(function(l,i){return '<div class="mfp-ly-line" data-ly-i="'+i+'" data-ly-t="'+(l.t||0)+'">'+esc(l.text)+'</div>';}).join('');
-  if(musicLyricsState.timed){
-    box.querySelectorAll('[data-ly-i]').forEach(function(el){
-      el.addEventListener('click',function(){
-        const audio=musicEnsureAudio();
-        if(audio.duration)audio.currentTime=Number(el.getAttribute('data-ly-t'))||0;
+  const html=lines.length?lines.map(function(l,i){return '<div class="mfp-ly-line" data-ly-i="'+i+'" data-ly-t="'+(l.t||0)+'">'+esc(l.text)+'</div>';}).join(''):'<div class="mfp-ly-empty">Paroles introuvables pour ce titre.</div>';
+  targets.forEach(function(box){
+    box.innerHTML=html;
+    if(musicLyricsState.timed){
+      box.querySelectorAll('[data-ly-i]').forEach(function(el){
+        el.addEventListener('click',function(){
+          const audio=musicEnsureAudio();
+          if(audio.duration)audio.currentTime=Number(el.getAttribute('data-ly-t'))||0;
+        });
       });
-    });
-  }
+    }
+  });
 }
 function musicSetActiveLyricLine(i){
-  const box=\$('mfp-lyrics');if(!box)return;
-  box.querySelectorAll('.mfp-ly-line').forEach(function(n,idx){
-    n.classList.remove('on','near');
-    if(idx===i)n.classList.add('on');
-    else if(idx===i-1||idx===i+1)n.classList.add('near');
+  musicLyricsTargets().forEach(function(box){
+    box.querySelectorAll('.mfp-ly-line').forEach(function(n,idx){
+      n.classList.remove('on','near');
+      if(idx===i)n.classList.add('on');
+      else if(idx===i-1||idx===i+1)n.classList.add('near');
+    });
+    const on=box.querySelector('.mfp-ly-line.on');
+    if(on)try{on.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
   });
-  const on=box.querySelector('.mfp-ly-line.on');
-  if(on)try{on.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
 }
 function musicSyncLyricsTime(){
   if(!musicLyricsState.timed||!musicLyricsState.lines.length||!musicAudioEl)return;
@@ -22219,8 +22245,7 @@ async function musicSearchLrclib(title,artistName){
 async function musicLoadLyricsFor(track){
   const token=++musicLyricsLoadToken;
   musicLyricsState={lines:[],timed:false,activeIdx:-1};
-  const box=\$('mfp-lyrics');
-  if(box)box.innerHTML='<div class="mfp-ly-empty">Recherche des paroles…</div>';
+  musicLyricsTargets().forEach(function(box){box.innerHTML='<div class="mfp-ly-empty">Recherche des paroles…</div>';});
   if(track.lyricsLrc&&String(track.lyricsLrc).trim()){
     const raw=String(track.lyricsLrc);
     const timed=musicParseLRC(raw);
@@ -22244,6 +22269,53 @@ async function musicLoadLyricsFor(track){
     musicRenderLyricsLines();return;
   }
   if(token===musicLyricsLoadToken)musicRenderLyricsLines();
+}
+// Paroles sur la page dédiée d'un titre (#mtp-lyrics, voir renderMusicTrackPage) :
+// deux cas bien distincts.
+// - Le titre consulté est CELUI en cours de lecture (isCurrent) : musicPlayTrack()
+//   a déjà lancé musicLoadLyricsFor() pour lui, musicLyricsState est donc la
+//   bonne source — on se contente de (re)peindre son état actuel, en direct
+//   (la ligne active continue de suivre musicSyncLyricsTime() comme pour le
+//   lecteur plein écran).
+// - Le titre consulté n'est PAS en lecture : jamais toucher musicLyricsState
+//   (réservé au titre RÉELLEMENT en lecture, sous peine de désynchroniser le
+//   mini-lecteur si on navigue vers la page d'un autre titre pendant qu'un
+//   premier continue de jouer) — recherche ponctuelle à part, affichage
+//   statique (sans ligne surlignée) juste pour lire les paroles.
+let mtpLyricsPreviewToken=0,mtpLyricsPreviewTrackId=null,mtpLyricsPreviewHtml='',mtpLyricsPreviewLoadingId=null;
+async function musicLoadStaticLyricsPreview(t){
+  const box=\$('mtp-lyrics');if(!box)return;
+  // Déjà chargées pour ce titre précis lors d'un rendu précédent de la même
+  // page (renderMusicTrackPage est rappelée à chaque commentaire/artiste
+  // chargé, etc.) — réutilise le résultat en cache au lieu de rafraîchir
+  // lrclib.net à chaque re-rendu.
+  if(mtpLyricsPreviewTrackId===t.\$id){box.innerHTML=mtpLyricsPreviewHtml;return}
+  // Une recherche pour ce même titre est déjà en cours (openMusicTrackPage
+  // déclenche plusieurs renderMusicBody() en cascade — commentaires puis
+  // artiste chargés séparément — avant que la première recherche ait eu le
+  // temps de répondre) : ne pas en relancer une deuxième en double.
+  if(mtpLyricsPreviewLoadingId===t.\$id)return;
+  mtpLyricsPreviewLoadingId=t.\$id;
+  const token=++mtpLyricsPreviewToken;
+  box.innerHTML='<div class="mfp-ly-empty">Recherche des paroles…</div>';
+  let raw='';
+  try{
+    if(t.lyricsLrc&&String(t.lyricsLrc).trim())raw=String(t.lyricsLrc);
+    else raw=await musicSearchLrclib(t.title,t.artistName);
+  }finally{
+    if(mtpLyricsPreviewLoadingId===t.\$id)mtpLyricsPreviewLoadingId=null;
+  }
+  if(token!==mtpLyricsPreviewToken||musicTrackPageId!==t.\$id)return;
+  const timed=musicParseLRC(raw);
+  const lines=timed.length?timed:(raw?raw.split(/\\r?\\n/).map(function(x){return x.trim();}).filter(Boolean).map(function(x){return {t:0,text:x};}):[]);
+  mtpLyricsPreviewTrackId=t.\$id;
+  mtpLyricsPreviewHtml=lines.length?lines.map(function(l){return '<div class="mfp-ly-line static">'+esc(l.text)+'</div>';}).join(''):'<div class="mfp-ly-empty">Paroles introuvables pour ce titre.</div>';
+  const liveBox=\$('mtp-lyrics');if(liveBox)liveBox.innerHTML=mtpLyricsPreviewHtml;
+}
+function musicEnsureTrackPageLyrics(t,isCurrent){
+  if(!\$('mtp-lyrics'))return;
+  if(isCurrent){musicRenderLyricsLines();return}
+  musicLoadStaticLyricsPreview(t);
 }
 function musicCommentTimestampBadge(c){
   if(c.atSec==null||c.atSec<0)return '';
@@ -22360,6 +22432,10 @@ function renderMusicTrackPage(box){
             +'</div>'
             +'<div class="mtp-wave-times"><span id="mtp-time-cur">'+(isCurrent?musicFmtTime(musicAudioEl.currentTime):'0:00')+'</span><span id="mtp-time-dur">'+(t.durationSec?musicFmtTime(t.durationSec):'0:00')+'</span></div>'
           +'</div>'
+          +'<div class="mtp-lyrics-panel">'
+            +'<div class="mtp-lyrics-head">🎤 Paroles'+(isCurrent?'<span class="mtp-lyrics-live-dot"></span><span class="mtp-lyrics-live-label">EN DIRECT</span>':'')+'<span class="mtp-lyrics-source">via lrclib.net</span></div>'
+            +'<div class="mtp-lyrics-body" id="mtp-lyrics"><div class="mfp-ly-empty">Recherche des paroles…</div></div>'
+          +'</div>'
           +'<div class="mtp-actions">'
             +'<div class="mtp-comment-input">'
               +'<input type="text" id="mtp-comment-input" class="field-input" maxlength="500" placeholder="'+(isPlayingHere?'Commentez à '+esc(musicFmtTime(musicAudioEl.currentTime)):'Ajouter un commentaire…')+'">'
@@ -22447,6 +22523,7 @@ function renderMusicTrackPage(box){
   }
   \$('mtp-comment-send').onclick=sendComment;
   \$('mtp-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();sendComment();}});
+  musicEnsureTrackPageLyrics(t,isCurrent);
 }
 async function openMusicAddToPlaylist(trackId){
   if(!me){showToast('Connecte-toi pour créer une playlist.','error');return}
