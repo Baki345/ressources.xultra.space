@@ -2530,9 +2530,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-row-dur{margin-left:auto;font-size:.72rem;color:var(--muted);flex-shrink:0;font-variant-numeric:tabular-nums}
 .music-row-wave{position:relative;height:42px;cursor:pointer;margin:8px 0}
 .music-row-wave .music-wave-bars{display:flex;align-items:center;gap:2px;height:100%;width:100%}
-.music-row-wave .music-wave-bars span{flex:1;min-width:2px;background:rgba(255,255,255,.14);border-radius:2px}
-.music-wave-progress{position:absolute;inset:0;overflow:hidden;pointer-events:none}
-.music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#f0abfc,#a855f7)}
+.music-row-wave .music-wave-bars span{flex:1;min-width:3px;border-radius:3px;background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.07))}
+.music-wave-progress{position:absolute;inset:0;overflow:hidden;pointer-events:none;transition:width .12s linear}
+.music-wave-progress .music-wave-bars span{background:linear-gradient(180deg,#f5d0fe,#a855f7);box-shadow:0 0 5px rgba(168,85,247,.55)}
 .music-wave-marker{position:absolute;top:-2px;bottom:-2px;width:2px;background:#f472b6;border-radius:1px;pointer-events:none;box-shadow:0 0 4px rgba(244,114,182,.7)}
 .music-comment-ts{display:inline-block;margin:0 6px;padding:2px 8px;border-radius:999px;background:rgba(124,58,237,.18);color:#c4b5fd;font-size:.7rem;font-weight:700}
 .music-comment-ts:hover{background:rgba(124,58,237,.3)}
@@ -2648,7 +2648,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .mpb-cover img{width:100%;height:100%;object-fit:cover}
 .mpb-info{min-width:0;width:140px;flex-shrink:0}
 .mpb-title{font-weight:800;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mpb-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mpb-artist{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .2s ease}
+.mpb-artist.mpb-artist-lyric{color:#f0abfc;font-weight:700}
 .mpb-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .mpb-btn{width:32px;height:32px;border-radius:50%;background:var(--elev);color:#f2ebff;display:grid;place-items:center}
 .mpb-btn:hover{background:var(--hover)}
@@ -7700,6 +7701,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.58',category:'design',date:'5 septembre 2026',time:'10:00',title:'🎤 Paroles dans la mini-barre, forme d\\'onde plus moderne',
+    body:'La mini-barre de lecture (en bas, partout dans X1) affiche désormais la ligne de paroles du moment à la place du nom de l\\'artiste quand des paroles synchronisées sont disponibles — façon Spotify, cliquable pour ouvrir le lecteur complet. La forme d\\'onde (liste des sons, page d\\'un titre) a aussi été retravaillée : barres arrondies avec un léger dégradé de profondeur, halo lumineux sur la partie déjà écoutée, et un tracé de secours moins saccadé pour les titres publiés avant le calcul automatique de la forme d\\'onde réelle.'},
   {version:'4.55.57',category:'feature',date:'5 septembre 2026',time:'09:00',title:'🎤 Paroles en direct sur la page de chaque titre',
     body:'La page d\\'un titre affiche désormais ses paroles, recherchées automatiquement en ligne (lrclib.net, base ouverte et gratuite) — exactement le même moteur que le lecteur plein écran, disponible depuis peu. Pour le titre RÉELLEMENT en cours de lecture, la ligne du moment se surligne en direct comme un karaoké, cliquable pour sauter à ce passage ; pour un autre titre juste consulté, ses paroles s\\'affichent en lecture simple. Repose entièrement sur la même recherche déjà en place — aucune nouvelle donnée à fournir, ça marche tout seul pour tous les titres déjà publiés.'},
   {version:'4.55.56',category:'fix',date:'5 septembre 2026',time:'08:00',title:'🩹 Barre de recherche trop étroite, et une bannière d\\'erreur qui apparaissait sans raison',
@@ -21944,7 +21947,13 @@ function musicSyncMiniBar(){
   const bar=\$('music-player-bar');if(!bar)return;
   bar.classList.remove('hidden');
   \$('mpb-title').textContent=t.title;
+  // Repart toujours de l'artiste ici (avant même que la recherche de paroles
+  // du nouveau titre ait pu répondre) : sans ce reset explicite, la ligne de
+  // paroles du titre PRÉCÉDENT resterait affichée un instant à la place du
+  // nom d'artiste du nouveau titre — voir musicSetActiveLyricLine, qui la
+  // remplace en direct dès que des paroles synchronisées sont disponibles.
   \$('mpb-artist').textContent=t.artistName;
+  \$('mpb-artist').classList.remove('mpb-artist-lyric');
   const cov=safeUrl(t.coverUrl);
   \$('mpb-cover').innerHTML=cov?'<img src="'+esc(cov)+'" alt="">':'🎵';
   const shuffleBtn=\$('mpb-shuffle');
@@ -22215,6 +22224,18 @@ function musicSetActiveLyricLine(i){
     const on=box.querySelector('.mfp-ly-line.on');
     if(on)try{on.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}
   });
+  // Mini-barre de lecture (visible partout, pas seulement dans le lecteur
+  // plein écran ou la page du titre) : remplace temporairement le nom
+  // d'artiste par la ligne de paroles du moment, façon Spotify — jamais pour
+  // des paroles non horodatées (pas de notion de "ligne du moment" sans
+  // timestamps). musicSyncMiniBar() restaure le nom d'artiste dès qu'un
+  // nouveau titre démarre.
+  const mpbArtist=\$('mpb-artist');
+  const line=musicLyricsState.timed?musicLyricsState.lines[i]:null;
+  if(mpbArtist&&line){
+    mpbArtist.textContent='🎤 '+line.text;
+    mpbArtist.classList.add('mpb-artist-lyric');
+  }
 }
 function musicSyncLyricsTime(){
   if(!musicLyricsState.timed||!musicLyricsState.lines.length||!musicAudioEl)return;
@@ -22844,12 +22865,21 @@ async function musicComputeWaveform(file){
 // chaque affichage) purement décorative, jamais recalculée depuis l'audio.
 function musicFallbackWaveform(trackId){
   let seed=0;for(let i=0;i<trackId.length;i++)seed=(seed*31+trackId.charCodeAt(i))>>>0;
-  const peaks=[];
+  const raw=[];
   for(let i=0;i<MUSIC_WAVEFORM_BARS;i++){
     seed=(seed*1103515245+12345)>>>0;
-    peaks.push(.15+(seed%100)/100*.7);
+    raw.push(.15+(seed%100)/100*.7);
   }
-  return peaks;
+  // Lissage (moyenne glissante pondérée sur 3 barres) demandé explicitement
+  // ("moins glitchy") : un bruit aléatoire pur, barre par barre, saccadait
+  // sans rapport avec l'enveloppe naturellement lisse d'un vrai signal audio
+  // (voir musicComputeWaveform, qui moyenne déjà des blocs entiers). Reste
+  // 100% déterministe — même titre = même dessin à chaque affichage.
+  return raw.map(function(v,i){
+    const prev=i>0?raw[i-1]:v;
+    const next=i<raw.length-1?raw[i+1]:v;
+    return Math.max(.12,Math.min(.92,(prev+v*2+next)/4));
+  });
 }
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
