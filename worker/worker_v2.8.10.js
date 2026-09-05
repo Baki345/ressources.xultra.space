@@ -2767,14 +2767,22 @@ html.xultra-restoring #stage{visibility:hidden}
 .mfp-meta{text-align:center;flex-shrink:0}
 .mfp-meta h1{font-size:1.3rem;font-weight:800}
 .mfp-artist{color:var(--muted);margin-top:4px;font-size:.86rem}
-.mfp-seek{margin:16px 0 4px;flex-shrink:0}
-.mfp-seek input[type=range]{width:100%;accent-color:#a855f7}
-.mfp-times{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
-.mfp-ctrls{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:6px;flex-shrink:0}
-.mfp-ctrls button{width:44px;height:44px;border-radius:50%;color:#fff;display:grid;place-items:center;font-size:1.2rem}
-.mfp-ctrls #mfp-shuffle.on,.mfp-ctrls #mfp-repeat.on{color:#a855f7}
-.mfp-main{width:66px;height:66px;background:#fff;color:#1a0b2e;font-size:1.5rem}
-.mfp-vol-row{display:flex;align-items:center;gap:8px;margin-top:6px;flex-shrink:0;font-size:.9rem}
+/* Forme d'onde du lecteur plein écran (remplace l'ancien <input type=range>
+   nu) : même composant que la page d'un titre (.music-row-wave, voir plus
+   haut) — barres + calque de progression + avatars des commentaires
+   horodatés flottant au-dessus (voir musicRenderMfpWave) — pour un clic pour
+   avancer/reculer cohérent avec le reste du site plutôt qu'un curseur natif
+   qui détonnait visuellement. */
+.mfp-wave-wrap{margin:18px 0 4px;flex-shrink:0}
+.mfp-wave-big{height:64px;margin-top:22px}
+.mfp-times{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:6px}
+.mfp-ctrls{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px;flex-shrink:0}
+.mfp-ctrls button{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.06);color:#fff;display:grid;place-items:center}
+.mfp-ctrls button:hover{background:rgba(255,255,255,.12)}
+.mfp-ctrls #mfp-shuffle.on,.mfp-ctrls #mfp-repeat.on{color:#c084fc;background:rgba(168,85,247,.18)}
+.mfp-main{width:66px;height:66px;background:#fff;color:#1a0b2e}
+.mfp-main:hover{background:#fff}
+.mfp-vol-row{display:flex;align-items:center;gap:10px;margin-top:6px;flex-shrink:0;color:var(--muted)}
 .mfp-vol-row input[type=range]{flex:1;accent-color:#a855f7}
 .mfp-ctrls2{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:10px;flex-shrink:0;flex-wrap:wrap}
 .mfp-ctrls2 button{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px}
@@ -7747,6 +7755,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.65',category:'design',date:'5 septembre 2026',time:'17:00',title:'🎨 Lecteur plein écran : forme d\\'onde interactive et icônes redessinées',
+    body:'La barre de lecture nue du lecteur plein écran laisse place à une vraie forme d\\'onde cliquable, comme sur la page d\\'un titre — avec les avatars des personnes ayant commenté à un moment précis qui flottent au-dessus, cliquables pour sauter directement à leur commentaire. Les boutons aléatoire/précédent/lecture/suivant/répétition et le volume passent en icônes vectorielles nettes, cohérentes avec celles déjà utilisées dans la mini-barre en bas, à la place des symboles texte d\\'avant.'},
   {version:'4.55.64',category:'fix',date:'5 septembre 2026',time:'16:00',title:'🩹 Paroles qui ne s\\'affichaient plus dans le lecteur plein écran',
     body:'Depuis que la musique continue en arrière-plan (mini-barre persistante), démarrer un titre depuis une liste puis ouvrir le lecteur plein écran PLUS TARD (au lieu de l\\'avoir déjà ouvert) laissait l\\'onglet Paroles définitivement vide, même quand des paroles existaient bel et bien pour ce titre : la recherche s\\'était déjà terminée avant que l\\'espace pour les afficher n\\'existe, et rien ne le repeignait ensuite. Corrigé : ouvrir le lecteur plein écran réaffiche maintenant directement les paroles déjà trouvées, quel que soit le moment où il est ouvert par rapport au démarrage de la lecture.'},
   {version:'4.55.63',category:'fix',date:'5 septembre 2026',time:'15:00',title:'🩹 Lecteur plein écran illisible depuis la mini-barre, et forme d\\'onde décalée',
@@ -22362,6 +22372,8 @@ async function musicPlayTrack(trackId,keepRadio,startAtSec){
   musicSyncFullPlayerMeta();
   musicSyncMediaSessionMeta(t);
   musicLoadLyricsFor(t);
+  musicRenderMfpWave();
+  musicLoadMfpComments(trackId);
   const newPlays=(t.playsCount||0)+1;
   t.playsCount=newPlays;
   // Passe par le serveur (clé admin) : le document xm_tracks n'accorde plus
@@ -22396,8 +22408,8 @@ function renderMusicPlayIcons(){
   const playing=musicAudioEl&&!musicAudioEl.paused;
   btn.parentElement.innerHTML=playing?'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none" id="mpb-play-icon"><path d="M8 5l12 7-12 7z"/></svg>';
   renderMusicBody();
-  const mfpBtn=\$('mfp-play');
-  if(mfpBtn)mfpBtn.textContent=playing?'⏸':'▶';
+  const mfpIcon=\$('mfp-play-icon');
+  if(mfpIcon)mfpIcon.outerHTML=playing?'<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none" id="mfp-play-icon"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none" id="mfp-play-icon"><path d="M8 5l12 7-12 7z"/></svg>';
 }
 function musicFmtTime(sec){
   sec=Math.max(0,Math.floor(sec||0));
@@ -22409,10 +22421,9 @@ function musicUpdatePlayerBar(){
   if(cur)cur.textContent=musicFmtTime(audio.currentTime);
   if(dur)dur.textContent=musicFmtTime(audio.duration);
   if(seek&&audio.duration&&!musicSeekingByUser)seek.value=String((audio.currentTime/audio.duration)*100);
-  const mcur=\$('mfp-t-cur'),mdur=\$('mfp-t-dur'),mseek=\$('mfp-seek');
+  const mcur=\$('mfp-t-cur'),mdur=\$('mfp-t-dur');
   if(mcur)mcur.textContent=musicFmtTime(audio.currentTime);
   if(mdur)mdur.textContent=musicFmtTime(audio.duration);
-  if(mseek&&audio.duration&&!musicSeekingByUser)mseek.value=String((audio.currentTime/audio.duration)*1000);
   // Page de titre (grande forme d'onde) : mêmes temps que la barre mini,
   // seulement présents dans le DOM quand cette page est ouverte sur LE
   // titre en cours (sinon 0:00/durée figés posés au rendu, voir
@@ -22430,9 +22441,14 @@ function musicUpdatePlayerBar(){
 // frame, juste sa largeur.
 function musicUpdateWaveProgress(){
   if(!musicCurrentTrack||!musicAudioEl)return;
-  let wave=null;
-  try{wave=document.querySelector('[data-music-wave="'+musicCurrentTrack.\$id+'"] .music-wave-progress');}catch(e){}
-  if(!wave)return;
+  // querySelectorAll, pas juste le premier match : le même titre peut
+  // désormais afficher sa forme d'onde à plusieurs endroits en même temps
+  // (une rangée de liste ET la page du titre ET le lecteur plein écran),
+  // tous à mettre à jour ensemble plutôt que de n'en rafraîchir qu'un seul
+  // au hasard de l'ordre du DOM.
+  let waves=null;
+  try{waves=document.querySelectorAll('[data-music-wave="'+musicCurrentTrack.\$id+'"] .music-wave-progress');}catch(e){}
+  if(!waves||!waves.length)return;
   // Préfère la durée connue côté serveur (musicCurrentTrack.durationSec, la
   // même que celle déjà affichée en toutes lettres à côté de la forme
   // d'onde) à audio.duration : certains MP3 VBR mal indexés font remonter au
@@ -22442,7 +22458,68 @@ function musicUpdateWaveProgress(){
   // redétectée en cours de lecture.
   const dur=musicCurrentTrack.durationSec||musicAudioEl.duration;
   const pct=dur?(musicAudioEl.currentTime/dur)*100:0;
-  wave.style.width=pct+'%';
+  waves.forEach(function(wave){wave.style.width=pct+'%';});
+}
+// Commentaires horodatés du titre en cours, pour les avatars flottant
+// au-dessus de la forme d'onde du lecteur plein écran (voir
+// musicRenderMfpWave) — état séparé de musicTrackPageComments : la page
+// dédiée d'un titre peut afficher un titre DIFFÉRENT de celui en cours de
+// lecture dans le lecteur plein écran, les deux ne doivent jamais se mélanger.
+let musicMfpComments=[],musicMfpCommentsTrackId=null;
+async function musicLoadMfpComments(trackId){
+  musicMfpComments=[];musicMfpCommentsTrackId=null;
+  try{
+    const r=await db.listDocuments(DB,'xm_comments',[Appwrite.Query.equal('trackId',trackId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(60)]);
+    musicMfpComments=r.documents||[];
+  }catch(e){musicMfpComments=[];}
+  musicMfpCommentsTrackId=trackId;
+  if(musicCurrentTrack&&musicCurrentTrack.\$id===trackId)musicRenderMfpWave();
+}
+// Peint la forme d'onde du lecteur plein écran (barres + calque de
+// progression + avatars des commentaires les plus récents horodatés sur la
+// forme d'onde, même traitement que musicMfpComments/renderMusicTrackPage) —
+// appelée à chaque changement de titre ET à chaque ouverture du lecteur
+// plein écran (voir openMusicFullPlayer, même repeint-depuis-l'état-connu
+// que pour les paroles : la recherche de commentaires a pu se terminer AVANT
+// que ce conteneur n'existe).
+function musicRenderMfpWave(){
+  const wrap=\$('mfp-wave-wrap');if(!wrap)return;
+  const t=musicCurrentTrack;
+  if(!t){wrap.innerHTML='';return}
+  let peaks=[];try{peaks=JSON.parse(t.waveformJson||'[]');}catch(e){}
+  if(!peaks.length)peaks=musicFallbackWaveform(t.\$id);
+  const barsHtml=musicWaveBarsHtml(peaks);
+  const waveDur=t.durationSec||(musicAudioEl&&musicAudioEl.duration);
+  const progressPct=(musicAudioEl&&waveDur)?((musicAudioEl.currentTime/waveDur)*100):0;
+  const markerComments=(musicMfpCommentsTrackId===t.\$id?musicMfpComments:[]).filter(function(c){return c.atSec!=null&&c.atSec>=0}).slice(0,60);
+  const avatarsHtml=(t.durationSec&&markerComments.length)?markerComments.map(function(c){
+    const av=safeUrl(c.avatar);
+    return '<span class="mtp-wave-avatar" data-comment-seek="'+c.atSec+'" title="'+esc(c.displayName||'')+' · '+esc(musicFmtTime(c.atSec))+'" style="left:'+Math.min(99,(c.atSec/t.durationSec)*100)+'%">'+(av?'<img src="'+esc(av)+'" alt="">':'<span class="mtp-wave-avatar-fallback">🎵</span>')+'</span>';
+  }).join(''):'';
+  wrap.innerHTML='<div class="music-row-wave mfp-wave-big" data-music-wave="'+esc(t.\$id)+'">'
+      +'<div class="mtp-wave-avatars">'+avatarsHtml+'</div>'
+      +'<div class="music-wave-bars">'+barsHtml+'</div>'
+      +'<div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'
+    +'</div>'
+    +'<div class="mfp-times"><span id="mfp-t-cur">'+musicFmtTime(musicAudioEl?musicAudioEl.currentTime:0)+'</span><span id="mfp-t-dur">'+(t.durationSec?musicFmtTime(t.durationSec):(musicAudioEl?musicFmtTime(musicAudioEl.duration):'0:00'))+'</span></div>';
+  const waveEl=wrap.querySelector('[data-music-wave]');
+  if(waveEl)waveEl.addEventListener('click',function(e){
+    if(e.target.closest('.mtp-wave-avatar'))return;
+    const rect=waveEl.getBoundingClientRect();
+    const ratio=rect.width?Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)):0;
+    const audio=musicEnsureAudio();
+    const dur=waveDur||audio.duration;
+    if(dur){audio.currentTime=ratio*dur;musicListenPushUpdate();}
+  });
+  wrap.querySelectorAll('[data-comment-seek]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const sec=parseInt(el.getAttribute('data-comment-seek'),10)||0;
+      const audio=musicEnsureAudio();
+      audio.currentTime=sec;audio.play().catch(function(){});
+      musicListenPushUpdate();
+    });
+  });
 }
 async function musicToggleLike(trackId){
   if(!me){showToast('Connecte-toi pour aimer un titre.','error');return}
@@ -22539,7 +22616,8 @@ function musicApplyFullPlayerGlow(coverUrl){
 function musicSyncRepeatBtn(){
   const btn=\$('mfp-repeat');if(!btn)return;
   btn.classList.toggle('on',musicRepeatMode!=='off');
-  btn.textContent=musicRepeatMode==='one'?'🔂':'🔁';
+  const one=musicRepeatMode==='one';
+  btn.innerHTML='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="mfp-repeat-icon"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>'+(one?'<text x="12" y="15.5" font-size="9" font-weight="700" text-anchor="middle" stroke="none" fill="currentColor">1</text>':'')+'</svg>';
 }
 function musicCycleRepeatMode(){
   musicRepeatMode=musicRepeatMode==='off'?'all':(musicRepeatMode==='all'?'one':'off');
@@ -22642,14 +22720,18 @@ function openMusicFullPlayer(){
       +'<div class="mfp-lyrics" id="mfp-lyrics"></div>'
       +'<div class="mfp-tabs"><button type="button" class="on" data-mfp-tab="cover">Pochette</button><button type="button" data-mfp-tab="lyrics">Paroles</button></div>'
       +'<div class="mfp-meta"><h1 id="mfp-title">—</h1><div class="mfp-artist" id="mfp-artist">—</div></div>'
-      +'<div class="mfp-seek"><input type="range" id="mfp-seek" min="0" max="1000" value="0"><div class="mfp-times"><span id="mfp-t-cur">0:00</span><span id="mfp-t-dur">0:00</span></div></div>'
-      +'<div class="mfp-vol-row"><span>🔉</span><input type="range" id="mfp-volume" min="0" max="100" value="'+Math.round(musicVolume*100)+'"><span>🔊</span></div>'
+      +'<div class="mfp-wave-wrap" id="mfp-wave-wrap"></div>'
+      +'<div class="mfp-vol-row">'
+        +'<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" stroke="none"><path d="M4 9v6h4l5 5V4L8 9H4z"/></svg>'
+        +'<input type="range" id="mfp-volume" min="0" max="100" value="'+Math.round(musicVolume*100)+'">'
+        +'<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor"><path d="M4 9v6h4l5 5V4L8 9H4z" stroke="none"/><path d="M16.3 8a5 5 0 0 1 0 8M18.8 5.3a9 9 0 0 1 0 13.4" fill="none" stroke-width="2" stroke-linecap="round"/></svg>'
+      +'</div>'
       +'<div class="mfp-ctrls">'
-        +'<button type="button" id="mfp-shuffle" title="Aléatoire">⇄</button>'
-        +'<button type="button" id="mfp-prev" title="Précédent">⏮</button>'
-        +'<button type="button" class="mfp-main" id="mfp-play" title="Lecture">▶</button>'
-        +'<button type="button" id="mfp-next" title="Suivant">⏭</button>'
-        +'<button type="button" id="mfp-repeat" title="Répétition">🔁</button>'
+        +'<button type="button" id="mfp-shuffle" title="Aléatoire"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>'
+        +'<button type="button" id="mfp-prev" title="Précédent"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" stroke="none"><path d="M6 5h2v14H6zM19 5v14l-10-7z"/></svg></button>'
+        +'<button type="button" class="mfp-main" id="mfp-play" title="Lecture"><svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" stroke="none" id="mfp-play-icon"><path d="M8 5l12 7-12 7z"/></svg></button>'
+        +'<button type="button" id="mfp-next" title="Suivant"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" stroke="none"><path d="M16 5h2v14h-2zM5 5v14l10-7z"/></svg></button>'
+        +'<button type="button" id="mfp-repeat" title="Répétition"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" id="mfp-repeat-icon"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></button>'
       +'</div>'
       +'<div class="mfp-ctrls2">'
         +'<button type="button" id="mfp-like" title="Aimer">♡</button>'
@@ -22688,15 +22770,6 @@ function openMusicFullPlayer(){
       audio.volume=musicVolume;
       saveMusicPlayerPrefs();
     });
-    \$('mfp-seek').addEventListener('input',function(){
-      const audio=musicEnsureAudio();
-      if(!audio.duration)return;
-      musicSeekingByUser=true;
-      if(musicSeekingTimeout)clearTimeout(musicSeekingTimeout);
-      musicSeekingTimeout=setTimeout(function(){musicSeekingByUser=false;},2000);
-      audio.currentTime=(this.value/1000)*audio.duration;
-      musicListenPushUpdate();
-    });
     overlay.querySelectorAll('[data-mfp-tab]').forEach(function(b){
       b.addEventListener('click',function(){
         overlay.querySelectorAll('[data-mfp-tab]').forEach(function(x){x.classList.toggle('on',x===b);});
@@ -22724,6 +22797,11 @@ function openMusicFullPlayer(){
     musicRenderLyricsLines();
     if(musicLyricsState.timed&&musicLyricsState.activeIdx>=0)musicSetActiveLyricLine(musicLyricsState.activeIdx);
   }
+  // Même repeint-depuis-l'état-déjà-connu que pour les paroles ci-dessus :
+  // #mfp-wave-wrap vient d'être créé vide juste au-dessus si c'est la
+  // première ouverture, et musicLoadMfpComments() (lancé depuis
+  // musicPlayTrack) a pu terminer AVANT que ce conteneur n'existe.
+  musicRenderMfpWave();
 }
 function closeMusicFullPlayer(){
   const overlay=\$('music-fullplayer');
