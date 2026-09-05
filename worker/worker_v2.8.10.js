@@ -2739,6 +2739,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-lib-subtabs{padding:0 14px 12px}
 .music-lib-subtabs .seg-btn{font-size:.68rem}
 .music-feed-heading{padding:4px 14px 10px;font-size:.95rem;font-weight:800}
+.music-discover-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .music-lib-section{margin-bottom:8px}
 .music-lib-section-head{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
 .music-lib-section-head .music-feed-heading{padding:4px 0 10px}
@@ -7834,6 +7835,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.70',category:'feature',date:'5 septembre 2026',time:'22:00',title:'🧭 Découvrir : une sélection personnalisée dans X1 Music',
+    body:'Nouvel onglet "🧭 Découvrir" dans Sons des membres, entre Accueil et Fil d\\'actu : une file de titres choisie pour toi à partir de tes goûts déjà connus (genres et artistes que tu as aimés ou écoutés), jamais tes propres titres ni ceux déjà aimés. Contrairement au Fil d\\'actu (uniquement tes abonnements), Découvrir privilégie plutôt du neuf — les artistes que tu suis déjà y apparaissent un peu moins souvent. Bouton "🔀 Nouvelle sélection" pour retirer une sélection différente à tout moment.'},
   {version:'4.55.69',category:'fix',date:'5 septembre 2026',time:'21:00',title:'🏅 Fiche artiste officielle automatique, et attribution corrigée',
     body:'Corrige un vrai souci remonté : un album officiel dont les fichiers audio n\\'indiquaient pas l\\'artiste dans leur nom (ex : "01 Titre.mp3" au lieu de "01 - Artiste - Titre.mp3") se retrouvait attribué par erreur à la personne qui l\\'avait envoyé sur X1, au lieu du vrai artiste. Chaque artiste officiel reconnu (Deezer/iTunes) a maintenant sa propre fiche minimale auto-générée avec sa vraie photo — cliquer sur son nom (badge 🏅) ouvre cette fiche et ses titres, plus jamais le profil de la personne ayant fait l\\'upload. Le nom d\\'artiste saisi/deviné à l\\'envoi n\\'est corrigé QUE s\\'il n\\'a jamais été un vrai choix (jamais si quelqu\\'un l\\'a tapé ou deviné lui-même depuis un nom de fichier).'},
   {version:'4.55.68',category:'feature',date:'5 septembre 2026',time:'20:00',title:'🔍 Anti-doublons automatique, et badge 🏅 Officiel',
@@ -21236,7 +21239,7 @@ let musicSortMode='recent';
 // Sous-navigation façon SoundCloud (Accueil/Fil d'actu/Bibliothèque) à
 // l'intérieur de l'onglet "Sons des membres" uniquement — les autres onglets
 // (Streaming/Mes titres/Mes playlists) restent inchangés.
-let musicMembersView='home'; // 'home' | 'feed' | 'library'
+let musicMembersView='home'; // 'home' | 'discover' | 'feed' | 'library'
 let musicLibraryTab='overview'; // 'overview' | 'likes' | 'playlists' | 'following' | 'history'
 let musicRepeatMode='off'; // 'off' | 'all' | 'one'
 let musicPlaybackRate=1,musicVolume=1;
@@ -21355,6 +21358,82 @@ function musicShuffleArray(arr){
   }
   return a;
 }
+/* ===== 🧭 Découvrir : file personnalisée, façon "Discover Weekly" =====
+   Contrairement à Accueil (chronologique/populaire, pareil pour tout le
+   monde) et au Fil d'actu (uniquement les abonnements), Découvrir construit
+   une sélection personnelle à partir de trois signaux qu'on a déjà en
+   mémoire (aucune nouvelle requête serveur) :
+     - genres des titres aimés/écoutés récemment (le plus fort : x2 aimé,
+       x1 écouté) ;
+     - autres titres du même artiste qu'un titre déjà aimé/écouté (encore
+       plus fort : x3/x1.5) — capte une vraie affinité, pas juste un genre ;
+     - popularité générale, en influence légère (jamais dominante, sinon
+       Découvrir ressemblerait juste à "Populaire").
+   Jamais mes propres titres, ni ceux déjà aimés (déjà connus). Les artistes
+   déjà suivis sont légèrement désavantagés : le Fil d'actu couvre déjà leurs
+   nouveautés, Découvrir vise plutôt du neuf. Un tirage pondéré (pas un tri
+   strict) fait qu'un titre mieux noté a plus de chances d'apparaître tôt
+   SANS que l'ordre soit identique à chaque visite — recalculée à chaque
+   ouverture de l'onglet ou clic sur "Nouvelle sélection", jamais à chaque
+   re-rendu (un like en cours de route ne doit pas rebattre les cartes sous
+   les pieds de la personne qui parcourt la liste). */
+let musicDiscoverCache=null;
+function musicDiscoverAffinity(){
+  const genreScore={},artistScore={};
+  musicTracksCache.forEach(function(t){
+    if(musicMyLikedIds.has(t.\$id)){
+      if(t.genre)genreScore[t.genre]=(genreScore[t.genre]||0)+2;
+      artistScore[t.artistName]=(artistScore[t.artistName]||0)+3;
+    }
+  });
+  musicRecentIds().forEach(function(id){
+    const t=musicTracksCache.find(function(x){return x.\$id===id;});
+    if(!t)return;
+    if(t.genre)genreScore[t.genre]=(genreScore[t.genre]||0)+1;
+    artistScore[t.artistName]=(artistScore[t.artistName]||0)+1.5;
+  });
+  return {genreScore:genreScore,artistScore:artistScore};
+}
+// Tirage sans remise, pondéré par score (les scores plus élevés ont plus de
+// chances de sortir tôt, mais rien n'est jamais garanti ni figé) — un +0.15
+// plancher évite qu'un titre à score nul n'ait aucune chance d'apparaître.
+function musicWeightedShuffle(scoredItems){
+  const pool=scoredItems.slice();
+  const result=[];
+  while(pool.length){
+    const total=pool.reduce(function(s,x){return s+x.score+0.15;},0);
+    let r=Math.random()*total;
+    let idx=pool.length-1;
+    for(let i=0;i<pool.length;i++){
+      r-=pool[i].score+0.15;
+      if(r<=0){idx=i;break;}
+    }
+    result.push(pool[idx].track);
+    pool.splice(idx,1);
+  }
+  return result;
+}
+function musicDiscoverQueue(){
+  const aff=musicDiscoverAffinity();
+  const candidates=musicTracksCache.filter(function(t){
+    if(t.channel==='streaming')return false;
+    if(me&&String(t.uid)===String(me.\$id))return false;
+    if(musicMyLikedIds.has(t.\$id))return false;
+    return true;
+  });
+  const scored=candidates.map(function(t){
+    let score=0.5;
+    if(t.genre&&aff.genreScore[t.genre])score+=aff.genreScore[t.genre]*2;
+    if(aff.artistScore[t.artistName])score+=aff.artistScore[t.artistName]*3;
+    score+=Math.log((t.playsCount||0)+1)*0.5;
+    if(musicMyFollowedIds.has(String(t.uid)))score*=0.6;
+    return {track:t,score:score};
+  });
+  return musicWeightedShuffle(scored);
+}
+function musicRefreshDiscover(){
+  musicDiscoverCache=musicDiscoverQueue();
+}
 // Radio à partir d'un titre : file éphémère (même genre, ou même artiste à
 // défaut de genre), mélangée, avec le titre de départ en tête — prioritaire
 // sur les onglets/recherche/genre tant qu'elle est active (voir
@@ -21383,6 +21462,12 @@ function musicQueueKey(){
 // rendant la navigation dans la file incohérente au clic sur ⏭/⏮.
 function musicCurrentQueue(){
   if(musicRadioQueue)return musicRadioQueue;
+  // Découvrir n'utilise jamais le cache générique par clé ci-dessous : sa
+  // sélection est volontairement figée (musicRefreshDiscover) tant qu'on ne
+  // change pas d'onglet ou ne demande pas explicitement une nouvelle
+  // sélection, jamais recalculée à chaque re-rendu (un like changerait
+  // l'ordre sous les pieds de la personne qui parcourt la liste).
+  if(musicFilter==='members'&&musicMembersView==='discover')return musicDiscoverCache||[];
   const key=musicQueueKey();
   if(musicQueueCache&&musicQueueCacheKey===key)return musicQueueCache;
   let list;
@@ -21886,6 +21971,7 @@ function renderMusicShell(){
     +'</div>')
     +(compact||musicFilter!=='members'?'':'<div class="seg-group music-subtabs" id="music-subtabs">'
       +'<button type="button" class="seg-btn'+(musicMembersView==='home'?' on':'')+'" data-music-subview="home">🏠 Accueil</button>'
+      +'<button type="button" class="seg-btn'+(musicMembersView==='discover'?' on':'')+'" data-music-subview="discover">🧭 Découvrir</button>'
       +'<button type="button" class="seg-btn'+(musicMembersView==='feed'?' on':'')+'" data-music-subview="feed">📰 Fil d\\'actu</button>'
       +'<button type="button" class="seg-btn'+(musicMembersView==='library'?' on':'')+'" data-music-subview="library">📚 Bibliothèque</button>'
     +'</div>')
@@ -21935,6 +22021,7 @@ function renderMusicShell(){
     b.addEventListener('click',function(){
       musicMembersView=b.getAttribute('data-music-subview');
       if(musicMembersView==='library')musicLibraryTab='overview';
+      if(musicMembersView==='discover')musicRefreshDiscover();
       musicActivePlaylist=null;
       musicRadioQueue=null;
       // Reconstruit tout le haut du panneau : la barre de recherche/genres/tri
@@ -22131,6 +22218,7 @@ function renderMusicBody(){
   // n'est jamais posé ailleurs que juste avant un appel à renderMusicBody().
   if(musicActivePlaylist){renderMusicPlaylistDetail(box);return}
   if(musicFilter==='playlists'){renderMusicPlaylistsTab(box);return}
+  if(musicFilter==='members'&&musicMembersView==='discover'){renderMusicDiscoverTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='feed'){renderMusicFeedTab(box);return}
   if(musicFilter==='members'&&musicMembersView==='library'){renderMusicLibraryTab(box);return}
   const list=musicCurrentQueue();
@@ -22282,6 +22370,25 @@ function musicLibraryFollowedList(){
 // quelqu'un d'autre également suivi, seul l'évènement le plus RÉCENT des
 // deux ressort (avec son étiquette "Reposté par" le cas échéant), pour ne
 // jamais afficher deux fois la même ligne dans le fil.
+function renderMusicDiscoverTab(box){
+  const tracks=musicDiscoverCache||[];
+  if(!tracks.length){
+    box.innerHTML='<div class="music-feed-empty"><div class="mfe-icon">🧭</div><div class="mfe-title">Rien à découvrir pour l\\'instant</div><div class="mfe-sub">Aime quelques titres depuis Accueil pour que Découvrir apprenne tes goûts — en attendant, reviens quand d\\'autres membres auront publié.</div></div>';
+    return;
+  }
+  const hasSignals=musicTracksCache.some(function(t){return musicMyLikedIds.has(t.\$id);})||musicRecentIds().length>0;
+  box.innerHTML='<div class="music-feed-heading music-discover-heading">'
+      +'<span>'+(hasSignals?'🧭 Basé sur tes goûts (genres, artistes aimés ou écoutés)':'🧭 Pendant que tu explores — les sons qui montent sur X1')+'</span>'
+      +'<button type="button" class="music-lib-seeall" id="music-discover-refresh">🔀 Nouvelle sélection</button>'
+    +'</div>'
+    +'<div class="music-row-list">'+tracks.map(musicMemberRowHtml).join('')+'</div>';
+  wireMusicCardEvents(box);
+  \$('music-discover-refresh').onclick=function(){
+    musicRefreshDiscover();
+    musicRadioQueue=null;
+    renderMusicBody();
+  };
+}
 function musicFeedItems(){
   const byTrack={};
   musicTracksCache.forEach(function(t){
