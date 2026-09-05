@@ -2260,6 +2260,16 @@ html.xultra-restoring #stage{visibility:hidden}
 #music-overlay{overflow:hidden;isolation:isolate}
 #music-overlay::before{content:'';position:absolute;top:50%;left:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;background:conic-gradient(from 0deg,#7c3aed,#db2777,#4c1d95,#a855f7,#7c3aed);opacity:.16;filter:blur(90px);animation:musicBgSpin 70s linear infinite;z-index:0;pointer-events:none}
 #music-overlay>*{position:relative;z-index:1}
+/* Régression corrigée (mini-lecteur plus cliquable pour ouvrir le lecteur
+   plein écran, paroles qui ne "s'agrandissaient" plus au clic) : la règle
+   générique ci-dessus force position:relative sur TOUS les enfants directs
+   pour les faire passer au-dessus du calque de fond animé — mais
+   .music-player-bar a besoin de rester position:absolute (bottom:0) pour se
+   fixer en bas de l'écran ; sans cette redéfinition plus spécifique
+   (#music-overlay + classe > #music-overlay + universel), il se retrouvait
+   simplement poussé dans le flux normal du document, plus du tout ancré en
+   bas ni cliquable là où l'utilisateur s'y attend.*/
+#music-overlay .music-player-bar{position:absolute}
 @keyframes musicBgSpin{to{transform:rotate(360deg)}}
 @media (max-width:640px){#music-overlay::before{filter:blur(50px);animation-duration:100s}}
 @media (prefers-reduced-motion:reduce){#music-overlay::before{animation:none}}
@@ -2505,6 +2515,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-mini-btn{padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.05);color:var(--muted);font-size:.7rem;font-weight:700}
 .music-mini-btn:hover{background:rgba(255,255,255,.1)}
 .music-mini-btn.on{background:rgba(239,68,68,.16);color:#fca5a5}
+.music-repost-btn.on{background:rgba(74,222,128,.16);color:#86efac}
+.mtp-icon-btn.music-repost-btn.on{background:rgba(74,222,128,.22);color:#86efac;border-color:rgba(74,222,128,.4)}
+.music-feed-repost-tag{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#4ade80;padding:0 12px;margin:10px 0 -6px}
 /* Sons des membres (liste, esprit SoundCloud) : une rangée par titre avec
    forme d'onde cliquable, dégradé violet/rose X1 pour la progression au
    lieu de l'orange d'origine. */
@@ -7701,6 +7714,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.59',category:'fix',date:'5 septembre 2026',time:'11:00',title:'🩹 Mini-lecteur enfin cliquable, et 🔁 reposts dans le Fil d\\'actu',
+    body:'Corrige une régression apparue avec le fond animé de la section Musique : la mini-barre de lecture (en bas) n\\'était plus cliquable pour ouvrir le lecteur en grand — les paroles ne s\\'y "agrandissaient" donc plus au clic. Ajoute aussi les reposts façon SoundCloud : un bouton 🔁 sur chaque titre permet de le repartager sur ton fil, et le Fil d\\'actu affiche maintenant aussi bien les nouveaux titres de tes abonnements que ceux qu\\'ils repartagent (avec l\\'étiquette "Reposté par…"), même d\\'un artiste que tu ne suis pas encore.'},
   {version:'4.55.58',category:'design',date:'5 septembre 2026',time:'10:00',title:'🎤 Paroles dans la mini-barre, forme d\\'onde plus moderne',
     body:'La mini-barre de lecture (en bas, partout dans X1) affiche désormais la ligne de paroles du moment à la place du nom de l\\'artiste quand des paroles synchronisées sont disponibles — façon Spotify, cliquable pour ouvrir le lecteur complet. La forme d\\'onde (liste des sons, page d\\'un titre) a aussi été retravaillée : barres arrondies avec un léger dégradé de profondeur, halo lumineux sur la partie déjà écoutée, et un tracé de secours moins saccadé pour les titres publiés avant le calcul automatique de la forme d\\'onde réelle.'},
   {version:'4.55.57',category:'feature',date:'5 septembre 2026',time:'09:00',title:'🎤 Paroles en direct sur la page de chaque titre',
@@ -21053,6 +21068,12 @@ async function loadAndRenderXDriveTab(uid,container,ownerName){
    suppose des contrats, des processeurs de paiement et des intégrations
    externes qu'aucune ligne de code ne peut faire apparaître toute seule. */
 let musicTracksCache=[],musicPlaylistsCache=[],musicMyLikedIds=new Set(),musicMyFollowedIds=new Set();
+// Reposts façon SoundCloud : musicRepostsCache garde les reposts RÉCENTS de
+// toute la plateforme (200 max, comme les autres caches musique) pour
+// pouvoir construire le Fil d'actu (voir musicFeedItems) sans une requête
+// dédiée par artiste suivi ; musicMyRepostedIds n'en est qu'un sous-ensemble
+// (mes propres reposts), pour l'état "on" du bouton 🔁.
+let musicRepostsCache=[],musicMyRepostedIds=new Set();
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
 let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false;
@@ -21203,7 +21224,7 @@ function musicStartRadio(track){
 let musicQueueCache=null,musicQueueCacheKey='';
 function musicQueueKey(){
   const sub=musicFilter==='members'?(musicMembersView+'|'+(musicMembersView==='library'?musicLibraryTab:'')+'|'+musicSortMode):'';
-  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',sub,musicMyFollowedIds.size,musicMyLikedIds.size,musicRecentIds().join(','),musicTracksCache.length].join('|');
+  return [musicFilter,musicActivePlaylist?musicActivePlaylist.\$id:'',musicSearchQuery,musicGenreFilter,musicShuffleOn?'shuffle':'order',sub,musicMyFollowedIds.size,musicMyLikedIds.size,musicRecentIds().join(','),musicRepostsCache.length,musicTracksCache.length].join('|');
 }
 // Le tirage aléatoire est mis en cache tant que le contexte ne change pas —
 // sinon, appeler musicCurrentQueue() (utilisé aussi bien pour l'affichage que
@@ -21222,9 +21243,10 @@ function musicCurrentQueue(){
   }else if(musicFilter==='streaming'){
     list=musicTracksCache.filter(function(t){return t.channel==='streaming';});
   }else if(musicFilter==='members'&&musicMembersView==='feed'){
-    // Fil d'actu : uniquement les titres des artistes suivis, toujours du
-    // plus récent au plus ancien (jamais le tri Populaire, réservé à Accueil).
-    list=musicTracksCache.filter(function(t){return t.channel!=='streaming'&&musicMyFollowedIds.has(String(t.uid));}).slice().sort(function(a,b){return new Date(b.\$createdAt)-new Date(a.\$createdAt);});
+    // Fil d'actu : titres des artistes suivis ET titres repartagés par des
+    // membres suivis (voir musicFeedItems), toujours du plus récent au plus
+    // ancien (jamais le tri Populaire, réservé à Accueil).
+    list=musicFeedItems().map(function(item){return item.track;});
   }else if(musicFilter==='members'&&musicMembersView==='library'&&musicLibraryTab==='likes'){
     list=musicTracksCache.filter(function(t){return musicMyLikedIds.has(t.\$id);});
   }else if(musicFilter==='members'&&musicMembersView==='library'&&musicLibraryTab==='history'){
@@ -21279,7 +21301,7 @@ async function openMusic(uid,name){
   // ouvrant l'onglet "Mes playlists" — désormais nécessaire dès l'ouverture
   // pour l'Aperçu de la Bibliothèque (rail "Tes playlists"), donc chargé ici
   // avec le reste plutôt que de dupliquer un appel réseau plus tard.
-  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows(),loadMusicPlaylists()]);
+  await Promise.all([loadMusicTracks(),loadMyMusicLikes(),loadMyMusicFollows(),loadMusicPlaylists(),loadMusicReposts()]);
   if(resumeTrackId){openMusicTrackPage(resumeTrackId);return}
   renderMusicBody();
   updateMusicFollowBtn();
@@ -21307,6 +21329,35 @@ async function musicToggleFollow(artistUid){
     }
     updateMusicFollowBtn();
   }catch(e){showToast((e&&e.message)||'Erreur','error');}
+}
+async function loadMusicReposts(){
+  musicMyRepostedIds=new Set();
+  try{
+    const r=await db.listDocuments(DB,'xm_reposts',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(200)]);
+    musicRepostsCache=r.documents||[];
+    if(me)musicRepostsCache.forEach(function(d){if(String(d.uid)===String(me.\$id))musicMyRepostedIds.add(String(d.trackId));});
+  }catch(e){musicRepostsCache=[];}
+}
+async function musicToggleRepost(trackId){
+  if(!me){showToast('Connecte-toi pour repartager un titre.','error');return}
+  try{
+    // Passe par le serveur (comme like/follow) : xm_reposts/xm_tracks
+    // n'accordent plus de permission d'écriture directe au client (voir
+    // /api/music/tracks/repost côté worker).
+    const r=await authPost('/api/music/tracks/repost',{trackId:trackId});
+    const t=musicTracksCache.find(function(x){return x.\$id===trackId});
+    if(t)t.repostsCount=r.repostsCount;
+    if(r.reposted){
+      musicMyRepostedIds.add(trackId);
+      musicRepostsCache.unshift({uid:me.\$id,trackId:trackId,\$createdAt:new Date().toISOString()});
+    }else{
+      musicMyRepostedIds.delete(trackId);
+      const idx=musicRepostsCache.findIndex(function(d){return String(d.uid)===String(me.\$id)&&String(d.trackId)===String(trackId);});
+      if(idx>=0)musicRepostsCache.splice(idx,1);
+    }
+    showToast(r.reposted?'🔁 Repartagé sur ton fil.':'Repost retiré.');
+    renderMusicBody();
+  }catch(e){showToast('Action impossible','error');}
 }
 function updateMusicFollowBtn(){
   const btn=\$('music-follow-btn');if(!btn)return;
@@ -21490,6 +21541,7 @@ function musicTrackCardHtml(t){
     +'<div class="music-card-actions">'
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+(t.commentsCount||0)+'</button>'
+      +'<button type="button" class="music-mini-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" data-music-repost="'+esc(t.\$id)+'" title="Repartager sur ton fil">🔁 '+(t.repostsCount||0)+'</button>'
       +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
       +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
     +'</div></div>';
@@ -21544,6 +21596,7 @@ function musicMemberRowHtml(t){
       +'<div class="music-card-actions">'
         +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+crtFmtCount(t.likesCount||0)+'</button>'
         +'<button type="button" class="music-mini-btn" data-music-comments="'+esc(t.\$id)+'">💬 '+crtFmtCount(t.commentsCount||0)+'</button>'
+        +'<button type="button" class="music-mini-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" data-music-repost="'+esc(t.\$id)+'" title="Repartager sur ton fil">🔁 '+crtFmtCount(t.repostsCount||0)+'</button>'
         +'<span class="music-row-plays" title="Écoutes">▶ '+crtFmtCount(t.playsCount||0)+'</span>'
         +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
         +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
@@ -21608,6 +21661,9 @@ function wireMusicCardEvents(box){
   });
   box.querySelectorAll('[data-music-like]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();musicToggleLike(el.getAttribute('data-music-like'));});
+  });
+  box.querySelectorAll('[data-music-repost]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();musicToggleRepost(el.getAttribute('data-music-repost'));});
   });
   box.querySelectorAll('[data-music-comments]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();openMusicTrackPage(el.getAttribute('data-music-comments'));});
@@ -21703,16 +21759,43 @@ function musicLibraryFollowedList(){
   });
   return Object.keys(byUid).map(function(k){return byUid[k];});
 }
+// Fil d'actu = titres postés par un artiste suivi OU repartagés (🔁) par un
+// membre suivi, façon SoundCloud — dédoublonné par titre : si un même titre
+// est à la fois posté par son auteur suivi ET repartagé plus tard par
+// quelqu'un d'autre également suivi, seul l'évènement le plus RÉCENT des
+// deux ressort (avec son étiquette "Reposté par" le cas échéant), pour ne
+// jamais afficher deux fois la même ligne dans le fil.
+function musicFeedItems(){
+  const byTrack={};
+  musicTracksCache.forEach(function(t){
+    if(t.channel==='streaming')return;
+    if(!musicMyFollowedIds.has(String(t.uid)))return;
+    byTrack[t.\$id]={track:t,at:t.\$createdAt,repostBy:null};
+  });
+  musicRepostsCache.forEach(function(r){
+    if(!musicMyFollowedIds.has(String(r.uid)))return;
+    const t=musicTracksCache.find(function(x){return x.\$id===r.trackId});
+    if(!t||t.channel==='streaming')return;
+    const existing=byTrack[t.\$id];
+    if(existing&&new Date(existing.at)>=new Date(r.\$createdAt))return;
+    const reposterProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(r.uid);});
+    byTrack[t.\$id]={track:t,at:r.\$createdAt,repostBy:(reposterProfile&&(reposterProfile.displayName||reposterProfile.username))||'Quelqu\\'un'};
+  });
+  return Object.keys(byTrack).map(function(k){return byTrack[k];}).sort(function(a,b){return new Date(b.at)-new Date(a.at);});
+}
 function renderMusicFeedTab(box){
-  const followedTracks=musicCurrentQueue();
+  const items=musicFeedItems();
   const suggestions=musicSuggestedArtists();
   let mainHtml;
   if(!musicMyFollowedIds.size){
     mainHtml='<div class="music-feed-empty"><div class="mfe-icon">📰</div><div class="mfe-title">Ton fil d\\'actu est vide</div><div class="mfe-sub">Suis des artistes depuis Accueil pour voir leurs nouveaux sons apparaître ici, dès leur publication.</div><button type="button" class="btn-main" id="music-feed-goto-home" style="width:auto;padding:8px 18px">🏠 Découvrir des artistes</button></div>';
-  }else if(!followedTracks.length){
-    mainHtml='<div class="music-feed-empty"><div class="mfe-icon">🌙</div><div class="mfe-title">Rien de neuf pour l\\'instant</div><div class="mfe-sub">Les artistes que tu suis n\\'ont encore rien publié. Reviens plus tard !</div></div>';
+  }else if(!items.length){
+    mainHtml='<div class="music-feed-empty"><div class="mfe-icon">🌙</div><div class="mfe-title">Rien de neuf pour l\\'instant</div><div class="mfe-sub">Les artistes que tu suis n\\'ont encore rien publié (ni repartagé). Reviens plus tard !</div></div>';
   }else{
-    mainHtml='<div class="music-feed-heading">🎶 Les derniers sons de tes abonnements</div><div class="music-row-list">'+followedTracks.map(musicMemberRowHtml).join('')+'</div>';
+    mainHtml='<div class="music-feed-heading">🎶 Les derniers sons de tes abonnements</div><div class="music-row-list">'+items.map(function(item){
+      const rowHtml=musicMemberRowHtml(item.track);
+      return item.repostBy?('<div class="music-feed-repost-tag">🔁 Reposté par <b>'+esc(item.repostBy)+'</b></div>'+rowHtml):rowHtml;
+    }).join('')+'</div>';
   }
   const sideHtml=suggestions.length?('<div class="music-feed-side"><div class="mfs-card"><div class="mfs-label">Artistes à suivre</div>'
     +suggestions.map(function(a){return musicArtistRowHtml(a.uid,a.artistName,crtFmtCount(a.trackCount)+' titre'+(a.trackCount>1?'s':'')+' · '+crtFmtCount(a.totalPlays)+' écoutes',false);}).join('')
@@ -22463,6 +22546,7 @@ function renderMusicTrackPage(box){
               +'<button type="button" class="set-mini-btn" id="mtp-comment-send">Envoyer</button>'
             +'</div>'
             +'<button type="button" class="mtp-icon-btn'+(liked?' on':'')+'" id="mtp-like-btn" title="J\\'aime">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
+            +'<button type="button" class="mtp-icon-btn music-repost-btn'+(musicMyRepostedIds.has(t.\$id)?' on':'')+'" id="mtp-repost-btn" title="Repartager sur ton fil">🔁 '+(t.repostsCount||0)+'</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻 Radio</button>'
           +'</div>'
@@ -22515,6 +22599,7 @@ function renderMusicTrackPage(box){
     el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-music-artist'));});
   });
   \$('mtp-like-btn').onclick=function(){musicToggleLike(t.\$id);};
+  \$('mtp-repost-btn').onclick=function(){musicToggleRepost(t.\$id);};
   \$('mtp-playlist-btn').onclick=function(){openMusicAddToPlaylist(t.\$id);};
   \$('mtp-radio-btn').onclick=function(){musicStartRadio(t);};
   if(\$('mtp-follow-btn'))\$('mtp-follow-btn').onclick=async function(){await musicToggleFollow(t.uid);renderMusicBody();};
@@ -30738,6 +30823,34 @@ async function handle(request, event) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { likesCount: likesCount } } });
       return new Response(JSON.stringify({ ok: true, liked: liked, likesCount: likesCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/music/tracks/repost" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const trackId = String((body && body.trackId) || "");
+      if (!trackId) throw new Error("trackId requis");
+      const qs = "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "trackId", values: [trackId] }))
+        + "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/xm_reposts/documents?" + qs, { asAdmin: true });
+      const track = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { asAdmin: true });
+      let reposted, repostsCount;
+      if ((existing.documents || []).length) {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_reposts/documents/" + existing.documents[0].$id, { method: "DELETE", asAdmin: true });
+        reposted = false;
+        repostsCount = Math.max(0, (track.repostsCount || 0) - 1);
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/xm_reposts/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, trackId: trackId }, permissions: ["read(\"any\")"] } });
+        reposted = true;
+        repostsCount = (track.repostsCount || 0) + 1;
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents/" + trackId, { method: "PATCH", asAdmin: true, body: { data: { repostsCount: repostsCount } } });
+      return new Response(JSON.stringify({ ok: true, reposted: reposted, repostsCount: repostsCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
