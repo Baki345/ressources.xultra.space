@@ -2788,6 +2788,39 @@ html.xultra-restoring #stage{visibility:hidden}
 .mfp-ctrls2 button{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px}
 .mfp-ctrls2 #mfp-like{font-size:1rem;padding:6px 14px}
 .music-queue-row.on{background:rgba(124,58,237,.14)}
+/* ===== X1 Hotel — lobby social rétro pixel-art, inspiré de l'ambiance
+   "hôtel virtuel" mais graphismes et nom 100% originaux X1 (aucun asset ni
+   marque tiers) : le mobilier/sol vient d'un pack Kenney.nl sous licence
+   CC0 (domaine public, kenney.nl/assets/furniture-kit), hébergé dans notre
+   propre bucket Appwrite hotel_assets. Rendu isométrique en pur CSS/SVG,
+   pas de moteur 3D/canvas — voir hotelProject()/renderHotelRoom() côté JS
+   pour la formule de projection, calibrée visuellement (Playwright) sur les
+   dimensions réelles des sprites. */
+.hotel-credits{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.12);padding:6px 12px;border-radius:999px;font-size:.85rem;flex-shrink:0}
+.hotel-layout{flex:1;display:flex;min-height:0;overflow:hidden}
+.hotel-stage{flex:1;position:relative;overflow:auto;background:radial-gradient(circle at 50% 20%,#241238,#0b0714 70%)}
+.hotel-room-canvas{position:relative;margin:40px auto}
+.hotel-tile-img{position:absolute;pointer-events:none;user-select:none}
+.hotel-floor-hit{position:absolute;cursor:pointer}
+.hotel-avatar{position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .35s ease,top .35s ease}
+.hotel-avatar-body{width:26px;height:34px;border-radius:13px 13px 8px 8px;box-shadow:0 4px 10px rgba(0,0,0,.4);position:relative;background:var(--hotel-body,#7c3aed)}
+.hotel-avatar-body::before{content:'';position:absolute;left:50%;top:-11px;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--hotel-skin,#f2c9a0);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.hotel-avatar-body::after{content:'';position:absolute;left:50%;top:-15px;transform:translateX(-50%);width:20px;height:11px;border-radius:10px 10px 0 0;background:var(--hotel-hair,#3a2317)}
+.hotel-avatar-name{margin-top:4px;font-size:.65rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;white-space:nowrap}
+.hotel-avatar-name.me{background:rgba(124,58,237,.85)}
+.hotel-bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;background:#fff;color:#1a0b2e;padding:6px 10px;border-radius:12px;font-size:.72rem;font-weight:600;max-width:160px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);animation:hotelBubbleIn .18s ease;z-index:99}
+.hotel-bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
+@keyframes hotelBubbleIn{from{opacity:0;transform:translateX(-50%) translateY(4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.hotel-chat-panel{width:280px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02)}
+.hotel-chat-head{padding:10px 14px;font-weight:700;font-size:.72rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)}
+.hotel-chat-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.hotel-chat-msg{font-size:.78rem;line-height:1.4}
+.hotel-chat-msg b{color:#c4b5fd}
+.hotel-chat-input-row{display:flex;gap:6px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
+.hotel-chat-input-row input{flex:1}
+.hotel-avatar-edit-btn{margin:10px 10px 0}
+@media (max-width:860px){.hotel-chat-panel{width:220px}}
+@media (max-width:680px){.hotel-layout{flex-direction:column}.hotel-chat-panel{width:100%;height:180px;border-left:none;border-top:1px solid rgba(255,255,255,.08)}}
 .discover-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
@@ -4560,6 +4593,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-hotel" data-i18n-skip title="X1 Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn changelog-staff-only hidden" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
@@ -4576,6 +4610,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive-mobile" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop-mobile" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-hotel-mobile" data-i18n-skip title="X1 Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
@@ -6797,6 +6832,7 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
   {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'X1 Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
   {desktopSel:'#nav-shop',mobileSel:'#nav-shop-mobile',placement:'right',icon:'🛍️',title:'Boutique',text:'Achète des cadres d\\'avatar créés par la communauté, avec des X1 Coins.'},
+  {desktopSel:'#nav-hotel',mobileSel:'#nav-hotel-mobile',placement:'right',icon:'🏨',title:'X1 Hotel',text:'Un lobby rétro façon pixel-art : ton avatar se balade et discute en direct avec les autres membres présents.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -7748,6 +7784,8 @@ if(\$('nav-shop-mobile'))\$('nav-shop-mobile').addEventListener('click',function
 if(\$('beta-pill'))\$('beta-pill').addEventListener('click',function(){openBugModal(null);});
 if(\$('nav-xdrive'))\$('nav-xdrive').addEventListener('click',function(){openXDrive();});
 if(\$('nav-xdrive-mobile'))\$('nav-xdrive-mobile').addEventListener('click',function(){openXDrive();});
+if(\$('nav-hotel'))\$('nav-hotel').addEventListener('click',function(){openHotel();});
+if(\$('nav-hotel-mobile'))\$('nav-hotel-mobile').addEventListener('click',function(){openHotel();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -7755,6 +7793,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.66',category:'feature',date:'5 septembre 2026',time:'18:00',title:'🏨 X1 Hotel — nouveau Lobby social rétro pixel-art',
+    body:'Nouvelle icône dans la barre de gauche : X1 Hotel, un lobby isométrique où ton avatar se balade au clic et discute en direct avec tout le monde présent, en vrai temps réel. Personnalise les couleurs de ton avatar depuis 🎨 Personnaliser mon avatar. Mobilier et sol : vrais visuels sous licence libre (CC0), salle unique pour l\\'instant — plusieurs salles, chambres personnelles et un vrai catalogue de mobilier achetable arriveront dans une prochaine mise à jour.'},
   {version:'4.55.65',category:'design',date:'5 septembre 2026',time:'17:00',title:'🎨 Lecteur plein écran : forme d\\'onde interactive et icônes redessinées',
     body:'La barre de lecture nue du lecteur plein écran laisse place à une vraie forme d\\'onde cliquable, comme sur la page d\\'un titre — avec les avatars des personnes ayant commenté à un moment précis qui flottent au-dessus, cliquables pour sauter directement à leur commentaire. Les boutons aléatoire/précédent/lecture/suivant/répétition et le volume passent en icônes vectorielles nettes, cohérentes avec celles déjà utilisées dans la mini-barre en bas, à la place des symboles texte d\\'avant.'},
   {version:'4.55.64',category:'fix',date:'5 septembre 2026',time:'16:00',title:'🩹 Paroles qui ne s\\'affichaient plus dans le lecteur plein écran',
@@ -23526,6 +23566,356 @@ function musicFallbackWaveform(trackId){
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
 
+/* ===== X1 Hotel — lobby social rétro pixel-art =====
+   Salle isométrique partagée : avatar qui se déplace au clic, chat en
+   direct, présence temps réel via Appwrite Realtime — même mécanisme que
+   les appels vocaux/l'écoute synchronisée (voir plus haut dans ce fichier).
+   Mobilier/sol : pack "Furniture Kit" de Kenney.nl, licence CC0 (domaine
+   public, kenney.nl/assets/furniture-kit), hébergé dans notre propre bucket
+   Appwrite hotel_assets — aucun asset ni nom de marque tiers. L'avatar est
+   pour l'instant une silhouette simple personnalisable (couleurs), en
+   attendant un jeu de sprites de personnage sous licence compatible.
+   Catalogue de mobilier achetable/déplaçable, plusieurs salles et chambres
+   personnelles : prévus pour une prochaine itération, pas dans cette v1. */
+const HOTEL_ASSETS={
+  floorFull:{id:'hotel_floorfull_sw',w:207,h:152},
+  wall:{id:'hotel_wall_sw',w:109,h:212},
+  wallCorner:{id:'hotel_wallcorner_sw',w:114,h:172},
+  wallWindow:{id:'hotel_wallwindow_sw',w:109,h:212},
+  wallDoorway:{id:'hotel_walldoorway_sw',w:109,h:212},
+  pottedPlant:{id:'hotel_pottedplant_sw',w:28,h:84},
+  loungeSofa:{id:'hotel_loungesofa_sw',w:142,h:142},
+  loungeSofaCorner:{id:'hotel_loungesofacorner_sw',w:142,h:186},
+  tableCoffee:{id:'hotel_tablecoffee_sw',w:110,h:102},
+  tableCoffeeGlass:{id:'hotel_tablecoffeeglass_sw',w:110,h:102},
+  rugRectangle:{id:'hotel_rugrectangle_sw',w:258,h:184},
+  rugRound:{id:'hotel_ruground_sw',w:135,h:98},
+  lampRoundFloor:{id:'hotel_lamproundfloor_sw',w:25,h:105},
+  lampSquareFloor:{id:'hotel_lampsquarefloor_sw',w:25,h:108},
+  bookcaseOpen:{id:'hotel_bookcaseopen_sw',w:67,h:140},
+  bookcaseClosed:{id:'hotel_bookcaseclosed_sw',w:67,h:137},
+  chair:{id:'hotel_chair_sw',w:41,h:79},
+  chairCushion:{id:'hotel_chaircushion_sw',w:41,h:78},
+  table:{id:'hotel_table_sw',w:134,h:130},
+  tableRound:{id:'hotel_tableround_sw',w:113,h:95},
+  bedSingle:{id:'hotel_bedsingle_sw',w:176,h:162},
+  bedDouble:{id:'hotel_beddouble_sw',w:216,h:190},
+  kitchenFridge:{id:'hotel_kitchenfridge_sw',w:72,h:146},
+  kitchenCabinet:{id:'hotel_kitchencabinet_sw',w:91,h:110},
+  kitchenStove:{id:'hotel_kitchenstove_sw',w:91,h:110},
+  televisionModern:{id:'hotel_televisionmodern_sw',w:74,h:94},
+  cabinetTelevision:{id:'hotel_cabinettelevision_sw',w:109,h:110},
+  sideTable:{id:'hotel_sidetable_sw',w:78,h:95},
+  stoolBar:{id:'hotel_stoolbar_sw',w:37,h:68},
+  benchCushion:{id:'hotel_benchcushion_sw',w:62,h:92},
+  pillow:{id:'hotel_pillow_sw',w:29,h:41},
+  cardboardBoxClosed:{id:'hotel_cardboardboxclosed_sw',w:44,h:54},
+  trashcan:{id:'hotel_trashcan_sw',w:33,h:64},
+  coatRackStanding:{id:'hotel_coatrackstanding_sw',w:32,h:100},
+  radio:{id:'hotel_radio_sw',w:41,h:51},
+  speaker:{id:'hotel_speaker_sw',w:31,h:89},
+  desk:{id:'hotel_desk_sw',w:117,h:121},
+  chairDesk:{id:'hotel_chairdesk_sw',w:60,h:97},
+  computerScreen:{id:'hotel_computerscreen_sw',w:47,h:59},
+  doorway:{id:'hotel_doorway_sw',w:60,h:148},
+  stairsOpen:{id:'hotel_stairsopen_sw',w:272,h:86}
+};
+function hotelAssetUrl(key){
+  const a=HOTEL_ASSETS[key];if(!a)return '';
+  return PROXY_EP+'/storage/buckets/hotel_assets/files/'+a.id+'/view?project='+PID;
+}
+// Décor fixe du Lobby (v1) : objets posés une fois pour toutes pour donner
+// vie à la salle avec de vrais assets — pas encore un mobilier
+// déplaçable/achetable (catalogue + inventaire prévus pour la suite).
+const HOTEL_LOBBY_DECOR=[
+  {key:'pottedPlant',tx:0,ty:0},
+  {key:'loungeSofa',tx:3,ty:1},
+  {key:'tableCoffee',tx:3,ty:2},
+  {key:'bookcaseOpen',tx:0,ty:3},
+  {key:'rugRound',tx:2,ty:2},
+  {key:'lampRoundFloor',tx:4,ty:0},
+  {key:'sideTable',tx:1,ty:4}
+];
+// Dimensions réelles des sprites (voir Isometric/floorFull_SW.png du pack) —
+// stepX/stepY calibrés visuellement (capture d'écran Playwright) pour un
+// carrelage sans trou ni chevauchement ; wallH choisi pour une hauteur de
+// mur cohérente avec le mobilier.
+const HOTEL_TILE_W=207,HOTEL_TILE_H=152,HOTEL_STEP_X=HOTEL_TILE_W/2,HOTEL_STEP_Y=HOTEL_TILE_H/4,HOTEL_WALL_H=180;
+function hotelProject(tx,ty,originX,originY){
+  return [originX+(tx-ty)*HOTEL_STEP_X, originY+(tx+ty)*HOTEL_STEP_Y];
+}
+let hotelRoomId=null,hotelRoom=null,hotelPresenceMap={},hotelChatMessages=[],hotelMyLook=null;
+let hotelPresenceUnsub=null,hotelChatUnsub=null,hotelHeartbeatId=null,hotelMoveThrottle=null,hotelPendingMove=null;
+function hotelDefaultLook(){
+  const palette=['#7c3aed','#0ea5e9','#ef4444','#22c55e','#f59e0b','#ec4899'];
+  return {body:palette[Math.floor(Math.random()*palette.length)],skin:'#f2c9a0',hair:'#3a2317'};
+}
+async function hotelLoadMyLook(){
+  if(!me){hotelMyLook=hotelDefaultLook();return}
+  try{
+    const doc=await db.getDocument(DB,'hotel_avatars',me.\$id);
+    hotelMyLook=JSON.parse(doc.lookJson||'{}');
+    if(!hotelMyLook.body)hotelMyLook=hotelDefaultLook();
+  }catch(e){hotelMyLook=hotelDefaultLook();}
+}
+async function openHotel(){
+  if(!me){showToast('Connecte-toi pour accéder à X1 Hotel.','error');return}
+  let overlay=\$('hotel-overlay');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='hotel-overlay';
+    overlay.className='discover-overlay';
+    document.body.appendChild(overlay);
+  }
+  overlay.classList.add('show');
+  if(!hotelMyLook)await hotelLoadMyLook();
+  renderHotelShell();
+  try{
+    hotelRoom=await db.getDocument(DB,'hotel_rooms','lobby');
+  }catch(e){hotelRoom={\$id:'lobby',name:'Lobby',widthTiles:5,heightTiles:5};}
+  hotelRoomId=hotelRoom.\$id;
+  try{
+    const r=await authPost('/api/hotel/room/join',{roomId:hotelRoomId});
+    hotelPresenceMap[me.\$id]={uid:me.\$id,roomId:hotelRoomId,x:r.x,y:r.y,facing:'s',displayName:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Moi',avatarLookJson:JSON.stringify(hotelMyLook),\$updatedAt:new Date().toISOString()};
+  }catch(e){showToast('Impossible de rejoindre le Lobby.','error');}
+  await hotelLoadPresence();
+  await hotelLoadChat();
+  hotelSubscribePresence();
+  hotelSubscribeChat();
+  hotelStartHeartbeat();
+  renderHotelRoom();
+}
+function closeHotel(){
+  const overlay=\$('hotel-overlay');
+  if(overlay)overlay.classList.remove('show');
+  hotelStopHeartbeat();
+  hotelUnsubscribePresence();
+  hotelUnsubscribeChat();
+  if(hotelRoomId)authPost('/api/hotel/room/leave',{roomId:hotelRoomId}).catch(function(){});
+  hotelRoomId=null;hotelRoom=null;hotelPresenceMap={};hotelChatMessages=[];
+}
+function renderHotelShell(){
+  const overlay=\$('hotel-overlay');if(!overlay)return;
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="hotel-close">← Retour</button><h2>🏨 X1 Hotel</h2>'
+    +'<div class="hotel-credits" id="hotel-credits">🪙 —</div></div>'
+    +'<div class="hotel-layout">'
+      +'<div class="hotel-stage" id="hotel-stage"><div class="hotel-room-canvas" id="hotel-room-canvas"></div></div>'
+      +'<div class="hotel-chat-panel">'
+        +'<div class="hotel-chat-head">💬 Lobby</div>'
+        +'<div class="hotel-chat-log" id="hotel-chat-log"></div>'
+        +'<div class="hotel-chat-input-row"><input type="text" id="hotel-chat-input" class="field-input" maxlength="150" placeholder="Écrire un message…"><button type="button" class="set-mini-btn" id="hotel-chat-send">Envoyer</button></div>'
+        +'<button type="button" class="set-mini-btn hotel-avatar-edit-btn" id="hotel-edit-avatar">🎨 Personnaliser mon avatar</button>'
+      +'</div>'
+    +'</div>';
+  \$('hotel-close').onclick=closeHotel;
+  \$('hotel-chat-send').onclick=hotelSendChat;
+  \$('hotel-chat-input').addEventListener('keydown',function(e){if(e.key==='Enter')hotelSendChat();});
+  \$('hotel-edit-avatar').onclick=openHotelAvatarEditor;
+  db.getDocument(DB,'hotel_avatars',me.\$id).then(function(doc){
+    const c=\$('hotel-credits');if(c)c.textContent='🪙 '+(doc.credits||0);
+  }).catch(function(){
+    const c=\$('hotel-credits');if(c)c.textContent='🪙 1000';
+  });
+}
+async function hotelLoadPresence(){
+  try{
+    const r=await db.listDocuments(DB,'hotel_room_presence',[Appwrite.Query.equal('roomId',hotelRoomId),Appwrite.Query.limit(100)]);
+    (r.documents||[]).forEach(function(d){hotelPresenceMap[d.uid]=d;});
+  }catch(e){}
+}
+async function hotelLoadChat(){
+  try{
+    const r=await db.listDocuments(DB,'hotel_room_chat',[Appwrite.Query.equal('roomId',hotelRoomId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(30)]);
+    hotelChatMessages=(r.documents||[]).slice().reverse();
+    hotelRenderChatLog();
+  }catch(e){}
+}
+function hotelRenderChatLog(){
+  const log=\$('hotel-chat-log');if(!log)return;
+  log.innerHTML=hotelChatMessages.map(function(m){
+    return '<div class="hotel-chat-msg"><b>'+esc(m.displayName||'?')+'</b> '+esc(m.text)+'</div>';
+  }).join('')||'<div class="scr-sub">Personne n\\'a encore parlé ici.</div>';
+  log.scrollTop=log.scrollHeight;
+}
+function hotelSubscribePresence(){
+  hotelUnsubscribePresence();
+  if(typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
+  try{
+    hotelPresenceUnsub=client.subscribe('databases.'+DB+'.collections.hotel_room_presence.documents',function(res){
+      if(!res||!res.payload)return;
+      if(String(res.payload.roomId)!==String(hotelRoomId))return;
+      if(eventIs(res.events,'.delete')){delete hotelPresenceMap[res.payload.uid];}
+      else{hotelPresenceMap[res.payload.uid]=res.payload;}
+      hotelRenderAvatars();
+    });
+  }catch(e){}
+}
+function hotelUnsubscribePresence(){
+  if(hotelPresenceUnsub){try{hotelPresenceUnsub();}catch(e){}hotelPresenceUnsub=null;}
+}
+function hotelSubscribeChat(){
+  hotelUnsubscribeChat();
+  if(typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
+  try{
+    hotelChatUnsub=client.subscribe('databases.'+DB+'.collections.hotel_room_chat.documents',function(res){
+      if(!res||!res.payload||eventIs(res.events,'.delete'))return;
+      if(String(res.payload.roomId)!==String(hotelRoomId))return;
+      hotelChatMessages.push(res.payload);
+      if(hotelChatMessages.length>60)hotelChatMessages.shift();
+      hotelRenderChatLog();
+      hotelShowBubble(res.payload.uid,res.payload.text);
+    });
+  }catch(e){}
+}
+function hotelUnsubscribeChat(){
+  if(hotelChatUnsub){try{hotelChatUnsub();}catch(e){}hotelChatUnsub=null;}
+}
+function hotelStartHeartbeat(){
+  hotelStopHeartbeat();
+  // Rafraîchit périodiquement mon propre document de présence (même
+  // position) pour que \$updatedAt reste récent : les autres clients
+  // ignorent une présence trop ancienne (voir hotelRenderAvatars) — seul
+  // filet de sécurité contre un onglet fermé sans déclencher /room/leave.
+  hotelHeartbeatId=setInterval(function(){
+    const mine=hotelPresenceMap[me.\$id];if(!mine)return;
+    authPost('/api/hotel/room/move',{roomId:hotelRoomId,x:mine.x,y:mine.y,facing:mine.facing||'s'}).catch(function(){});
+  },20000);
+}
+function hotelStopHeartbeat(){
+  if(hotelHeartbeatId){clearInterval(hotelHeartbeatId);hotelHeartbeatId=null;}
+}
+function renderHotelRoom(){
+  const canvas=\$('hotel-room-canvas');if(!canvas||!hotelRoom)return;
+  const N=hotelRoom.widthTiles||5, M=hotelRoom.heightTiles||5;
+  const originX=Math.max(N,M)*HOTEL_STEP_X+40, originY=HOTEL_WALL_H+20;
+  const totalW=originX+N*HOTEL_STEP_X+40;
+  const totalH=originY+(N+M)*HOTEL_STEP_Y+60;
+  canvas.style.width=totalW+'px';
+  canvas.style.height=totalH+'px';
+  let html='';
+  // Murs (deux polygones SVG pleins) — dessinés en premier (z le plus bas),
+  // aucune image de mur à faire coïncider bord à bord (les sprites de mur du
+  // pack ont un profil en biais qui rend le carrelage bord-à-bord peu
+  // fiable ; un polygone plein reprenant exactement les mêmes coordonnées
+  // de projection que le sol est net et sans trou).
+  const back=hotelProject(-0.5,-0.5,originX,originY);
+  const right=hotelProject(N-0.5,-0.5,originX,originY);
+  const left=hotelProject(-0.5,M-0.5,originX,originY);
+  function wallPts(a,b){return [a,b,[b[0],b[1]+HOTEL_WALL_H],[a[0],a[1]+HOTEL_WALL_H]].map(function(p){return p.join(',');}).join(' ');}
+  html+='<svg width="'+totalW+'" height="'+totalH+'" style="position:absolute;left:0;top:0;z-index:0">'
+    +'<polygon points="'+wallPts(back,right)+'" fill="#efe6d8" stroke="rgba(0,0,0,.15)"></polygon>'
+    +'<polygon points="'+wallPts(back,left)+'" fill="#ded2bd" stroke="rgba(0,0,0,.15)"></polygon>'
+    +'</svg>';
+  // Sol
+  for(let tx=0;tx<N;tx++){
+    for(let ty=0;ty<M;ty++){
+      const xy=hotelProject(tx,ty,originX,originY);
+      html+='<div class="hotel-floor-hit" data-tx="'+tx+'" data-ty="'+ty+'" style="left:'+(xy[0]-HOTEL_TILE_W/2)+'px;top:'+xy[1]+'px;width:'+HOTEL_TILE_W+'px;height:'+HOTEL_TILE_H+'px;z-index:'+((tx+ty)*10+1)+'">'
+        +'<img class="hotel-tile-img" src="'+hotelAssetUrl('floorFull')+'" style="left:0;top:0;width:'+HOTEL_TILE_W+'px;height:'+HOTEL_TILE_H+'px" draggable="false">'
+      +'</div>';
+    }
+  }
+  // Décor fixe
+  HOTEL_LOBBY_DECOR.forEach(function(d){
+    const a=HOTEL_ASSETS[d.key];if(!a)return;
+    const xy=hotelProject(d.tx,d.ty,originX,originY);
+    const yOff=a.h-HOTEL_TILE_H/2+10;
+    html+='<img class="hotel-tile-img" src="'+hotelAssetUrl(d.key)+'" style="left:'+(xy[0]-a.w/2)+'px;top:'+(xy[1]-yOff)+'px;width:'+a.w+'px;height:'+a.h+'px;z-index:'+((d.tx+d.ty)*10+2)+'" draggable="false">';
+  });
+  canvas.innerHTML=html;
+  canvas.querySelectorAll('.hotel-floor-hit').forEach(function(el){
+    el.addEventListener('click',function(){
+      hotelMoveTo(parseInt(el.getAttribute('data-tx'),10),parseInt(el.getAttribute('data-ty'),10));
+    });
+  });
+  canvas.dataset.originX=originX;canvas.dataset.originY=originY;
+  hotelRenderAvatars();
+}
+function hotelRenderAvatars(){
+  const canvas=\$('hotel-room-canvas');if(!canvas||!hotelRoom)return;
+  canvas.querySelectorAll('.hotel-avatar').forEach(function(el){el.remove();});
+  const originX=parseFloat(canvas.dataset.originX||0), originY=parseFloat(canvas.dataset.originY||0);
+  const now=Date.now();
+  Object.keys(hotelPresenceMap).forEach(function(uid){
+    const p=hotelPresenceMap[uid];
+    // Présence considérée périmée après 45s sans rafraîchissement (onglet
+    // fermé sans /room/leave, voir hotelStartHeartbeat) : mieux vaut un
+    // avatar qui disparaît un peu tard qu'un fantôme permanent.
+    if(p.\$updatedAt&&(now-new Date(p.\$updatedAt).getTime())>45000)return;
+    let look={};try{look=JSON.parse(p.avatarLookJson||'{}');}catch(e){}
+    const xy=hotelProject(p.x||0,p.y||0,originX,originY);
+    const el=document.createElement('div');
+    el.className='hotel-avatar';
+    el.id='hotel-av-'+uid;
+    el.style.left=(xy[0]-16)+'px';
+    el.style.top=(xy[1]-46)+'px';
+    el.style.zIndex=Math.round((p.x||0)+(p.y||0))*10+5;
+    el.innerHTML='<div class="hotel-avatar-body" style="--hotel-body:'+esc(look.body||'#7c3aed')+';--hotel-skin:'+esc(look.skin||'#f2c9a0')+';--hotel-hair:'+esc(look.hair||'#3a2317')+'"></div>'
+      +'<div class="hotel-avatar-name'+(uid===me.\$id?' me':'')+'">'+esc(p.displayName||'?')+'</div>';
+    canvas.appendChild(el);
+  });
+}
+function hotelShowBubble(uid,text){
+  const av=\$('hotel-av-'+uid);if(!av)return;
+  const old=av.querySelector('.hotel-bubble');if(old)old.remove();
+  const b=document.createElement('div');
+  b.className='hotel-bubble';
+  b.textContent=text;
+  av.insertBefore(b,av.firstChild);
+  setTimeout(function(){if(b.parentElement)b.remove();},4500);
+}
+function hotelMoveTo(tx,ty){
+  if(!hotelRoom)return;
+  const N=hotelRoom.widthTiles||5, M=hotelRoom.heightTiles||5;
+  tx=Math.max(0,Math.min(N-1,tx));ty=Math.max(0,Math.min(M-1,ty));
+  const mine=hotelPresenceMap[me.\$id]||{};
+  mine.x=tx;mine.y=ty;mine.uid=me.\$id;mine.\$updatedAt=new Date().toISOString();
+  hotelPresenceMap[me.\$id]=mine;
+  hotelRenderAvatars();
+  hotelPendingMove={roomId:hotelRoomId,x:tx,y:ty,facing:'s'};
+  if(hotelMoveThrottle)clearTimeout(hotelMoveThrottle);
+  hotelMoveThrottle=setTimeout(function(){
+    if(!hotelPendingMove)return;
+    authPost('/api/hotel/room/move',hotelPendingMove).catch(function(){});
+    hotelPendingMove=null;
+  },150);
+}
+async function hotelSendChat(){
+  const input=\$('hotel-chat-input');if(!input)return;
+  const text=input.value.trim();if(!text)return;
+  input.value='';
+  try{await authPost('/api/hotel/chat/send',{roomId:hotelRoomId,text:text});}
+  catch(e){showToast('Message non envoyé.','error');}
+}
+function openHotelAvatarEditor(){
+  const look=hotelMyLook||hotelDefaultLook();
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">🎨 Personnaliser mon avatar</div>'
+    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur du corps<input type="color" id="hotel-look-body" value="'+esc(look.body||'#7c3aed')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
+    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur des cheveux<input type="color" id="hotel-look-hair" value="'+esc(look.hair||'#3a2317')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
+    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur de peau<input type="color" id="hotel-look-skin" value="'+esc(look.skin||'#f2c9a0')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
+    +'<button type="button" class="btn-main" id="hotel-look-save" style="margin-top:14px">Enregistrer</button>'
+    +'<button type="button" class="as-cancel" id="hotel-look-cancel">Annuler</button>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('hotel-look-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  \$('hotel-look-save').onclick=async function(){
+    const newLook={body:\$('hotel-look-body').value,hair:\$('hotel-look-hair').value,skin:\$('hotel-look-skin').value};
+    try{
+      await authPost('/api/hotel/avatar/save',{lookJson:JSON.stringify(newLook)});
+      hotelMyLook=newLook;
+      const mine=hotelPresenceMap[me.\$id];
+      if(mine){mine.avatarLookJson=JSON.stringify(newLook);hotelRenderAvatars();}
+      showToast('Avatar mis à jour.');
+      close();
+    }catch(e){showToast('Impossible d\\'enregistrer.','error');}
+  };
+}
+
 /* ===== Créateurs de contenu (fil public, vues/likes/commentaires/réactions) ===== */
 const CREATOR_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
 let crtPosts=[],crtOffset=0,crtHasMore=true,crtViewUid=null,crtViewName='',crtLoading=false,crtDetailPost=null,crtDetailComments=[],crtMyBadges=null;
@@ -31494,6 +31884,108 @@ async function handle(request, event) {
       const existing = await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { asAdmin: true }).catch(function () { return null; });
       if (existing && existing.hostUid !== acc.$id) throw new Error("Seul l'hôte peut arrêter cette écoute synchronisée.");
       if (existing) await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "DELETE", asAdmin: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/hotel/avatar/save" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const lookJson = String((body && body.lookJson) || "").slice(0, 500);
+      if (!lookJson) throw new Error("lookJson requis");
+      JSON.parse(lookJson);
+      const data = { uid: acc.$id, lookJson: lookJson };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } catch (e2) {
+        await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ credits: 1000 }, data) } });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "Look invalide" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/hotel/room/join" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const roomId = String((body && body.roomId) || "");
+      if (!roomId) throw new Error("roomId requis");
+      const room = await awFetch("/databases/" + AW_DB + "/collections/hotel_rooms/documents/" + roomId, { asAdmin: true }).catch(function () { return null; });
+      if (!room) throw new Error("Salle introuvable.");
+      const profile = await resolveProfile(acc.$id);
+      const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      let avatarLookJson = "{}";
+      try {
+        const av = await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents/" + acc.$id, { asAdmin: true });
+        avatarLookJson = av.lookJson || "{}";
+      } catch (e2) {}
+      // Point d'arrivée déterministe (centre de la salle) : pas de position
+      // aléatoire à valider côté client, jamais de risque de spawn hors-grille.
+      const w = Number(room.widthTiles) || 5, h = Number(room.heightTiles) || 5;
+      const spawnX = Math.floor(w / 2), spawnY = Math.floor(h / 2);
+      const data = { uid: acc.$id, roomId: roomId, x: spawnX, y: spawnY, facing: "s", displayName: displayName, avatarLookJson: avatarLookJson };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } catch (e3) {
+        await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: data } });
+      }
+      return new Response(JSON.stringify({ ok: true, x: spawnX, y: spawnY }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/hotel/room/move" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const roomId = String((body && body.roomId) || "");
+      const x = Number(body && body.x), y = Number(body && body.y);
+      const facing = String((body && body.facing) || "s").slice(0, 8);
+      if (!roomId || !isFinite(x) || !isFinite(y)) throw new Error("Paramètres invalides");
+      // Il faut déjà être dans CETTE salle (avoir appelé /room/join avant) —
+      // jamais fait confiance au roomId envoyé seul, sinon n'importe quel
+      // compte pourrait "apparaître" en train de bouger dans une salle qu'il
+      // n'a jamais rejointe.
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (!existing || existing.roomId !== roomId) throw new Error("Rejoins la salle avant de t'y déplacer.");
+      const room = await awFetch("/databases/" + AW_DB + "/collections/hotel_rooms/documents/" + roomId, { asAdmin: true }).catch(function () { return null; });
+      const w = (room && Number(room.widthTiles)) || 5, h = (room && Number(room.heightTiles)) || 5;
+      const clampedX = Math.max(0, Math.min(w - 1, Math.round(x)));
+      const clampedY = Math.max(0, Math.min(h - 1, Math.round(y)));
+      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { x: clampedX, y: clampedY, facing: facing } } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/hotel/room/leave" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/hotel/chat/send" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const roomId = String((body && body.roomId) || "");
+      const text = String((body && body.text) || "").trim().slice(0, 150);
+      if (!roomId || !text) throw new Error("Message vide.");
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (!existing || existing.roomId !== roomId) throw new Error("Rejoins la salle avant d'y écrire.");
+      const data = { roomId: roomId, uid: acc.$id, displayName: existing.displayName || acc.name || "Membre", text: text };
+      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_chat/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: data, permissions: ["read(\"any\")"] } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
