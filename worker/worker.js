@@ -2511,6 +2511,40 @@ html.xultra-restoring #stage{visibility:hidden}
 .mtp-icon-btn.music-offline-btn.on{background:rgba(124,58,237,.24);color:#c4b5fd;border-color:rgba(167,139,250,.4)}
 .music-offline-btn.locked{opacity:.55}
 .music-feed-repost-tag{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:#4ade80;padding:0 12px;margin:10px 0 -6px}
+/* ===== Upload d'album en lot : aperçu éditable + panneau de progression
+   (même structure que le panneau de transferts de X1 Drive, voir .xd-upload-*
+   — recoloré en vert, demandé explicitement, pour bien le distinguer). */
+.music-bulk-preview-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin:4px 0 10px;padding-right:2px}
+.music-bulk-preview-row{display:grid;grid-template-columns:26px 1.4fr 1fr;gap:6px;align-items:center}
+.music-bulk-preview-num{font-size:.72rem;font-weight:800;color:var(--muted);text-align:center}
+.music-bulk-preview-row input{font-size:.8rem;padding:7px 9px}
+.music-upload-panel{position:fixed;right:20px;bottom:20px;width:320px;max-width:calc(100vw - 40px);background:#0e1a12;border:1px solid rgba(74,222,128,.3);border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.5);z-index:2600;overflow:hidden;animation:xdTileIn .25s ease both}
+.music-upload-panel.hidden{display:none}
+.music-upload-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(74,222,128,.15);font-size:.82rem;font-weight:800;gap:8px}
+.music-upload-head button{color:var(--muted)}
+.music-upload-list{max-height:300px;overflow-y:auto;padding:8px}
+.music-upload-row{padding:9px 10px;border-radius:10px;transition:background .15s}
+.music-upload-row:hover{background:rgba(74,222,128,.05)}
+.music-upload-row-top{display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:4px;gap:8px}
+.music-upload-row-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.music-upload-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+.music-upload-fill{height:100%;background:linear-gradient(90deg,#16a34a,#22c55e,#4ade80);background-size:200% 100%;animation:xdFillShimmer 1.6s linear infinite;transition:width .25s ease;border-radius:99px}
+.music-upload-fill.music-upload-done{background:#22c55e;animation:none}
+.music-upload-fill.music-upload-err{background:#ef4444;animation:none}
+.music-upload-fill.music-upload-indeterminate{position:absolute;width:40%!important;animation:xdIndeterminate 1.1s ease-in-out infinite}
+.music-upload-row-sub{display:flex;justify-content:space-between;font-size:.68rem;color:var(--muted);margin-top:4px}
+.music-upload-status-txt.music-up-st-done{color:#4ade80}
+.music-upload-status-txt.music-up-st-error{color:#f87171}
+.music-upload-status-txt.music-up-st-busy{color:#86efac}
+.music-upload-clear-btn{background:none;border:0;color:var(--muted);font-size:.7rem;cursor:pointer;text-decoration:underline;padding:0}
+.music-album-shelf{margin-bottom:22px}
+.music-album-shelf-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.music-album-shelf-cover{width:48px;height:48px;border-radius:8px;overflow:hidden;background:linear-gradient(145deg,#2e1065,#7c3aed);display:grid;place-items:center;flex-shrink:0;box-shadow:0 6px 16px rgba(124,58,237,.35)}
+.music-album-shelf-cover img{width:100%;height:100%;object-fit:cover}
+.music-album-shelf-name{font-weight:800;font-size:.95rem}
+.music-album-shelf-sub{font-size:.74rem;color:var(--muted)}
+.music-album-shelf-grid{margin-bottom:0}
+.music-singles-label{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin:4px 0 10px}
 /* Sons des membres (liste, esprit SoundCloud) : une rangée par titre avec
    forme d'onde cliquable, dégradé violet/rose X1 pour la progression au
    lieu de l'orange d'origine. */
@@ -7793,6 +7827,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.67',category:'feature',date:'5 septembre 2026',time:'19:00',title:'📀 Ajoute un album entier d\\'un coup, avec reconnaissance automatique',
+    body:'Nouveau bouton "📀 Ajouter un album" à côté de "+ Ajouter un titre" dans X1 Music : sélectionne tous les fichiers audio d\\'un album en une fois, et le titre, l\\'artiste et le numéro de piste de chacun sont devinés depuis le nom des fichiers ("01 - Artiste - Titre.mp3" et variantes courantes) — vérifie et corrige si besoin dans l\\'aperçu avant de publier. Pochette, genre et nom d\\'album sont recherchés automatiquement comme pour un titre seul. Un nouveau panneau d\\'envoi (vert, coin bas-droit) affiche la progression en % de chaque fichier en direct. Les titres partageant un même album se retrouvent ensuite automatiquement regroupés en "étagère" sur le profil de l\\'artiste et dans Mes titres, au lieu d\\'être mélangés à plat.'},
   {version:'4.55.66',category:'feature',date:'5 septembre 2026',time:'18:00',title:'🏨 X1 Hotel — nouveau Lobby social rétro pixel-art',
     body:'Nouvelle icône dans la barre de gauche : X1 Hotel, un lobby isométrique où ton avatar se balade au clic et discute en direct avec tout le monde présent, en vrai temps réel. Personnalise les couleurs de ton avatar depuis 🎨 Personnaliser mon avatar. Mobilier et sol : vrais visuels sous licence libre (CC0), salle unique pour l\\'instant — plusieurs salles, chambres personnelles et un vrai catalogue de mobilier achetable arriveront dans une prochaine mise à jour.'},
   {version:'4.55.65',category:'design',date:'5 septembre 2026',time:'17:00',title:'🎨 Lecteur plein écran : forme d\\'onde interactive et icônes redessinées',
@@ -21831,7 +21867,7 @@ function renderMusicShell(){
   const compact=!!musicViewUid||!!musicTrackPageId;
   overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
       +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
-      +(compact?'':'<button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px;margin-left:auto">+ Ajouter un titre</button>')+'</div>'
+      +(compact?'':'<div class="music-upload-btns" style="display:flex;gap:8px;margin-left:auto"><button type="button" class="set-mini-btn" id="music-bulk-upload-btn">📀 Ajouter un album</button><button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px">+ Ajouter un titre</button></div>')+'</div>'
     +(compact?'':'<div class="seg-group music-tabs" id="music-tabs">'
       +'<button type="button" class="seg-btn'+(musicFilter==='members'?' on':'')+'" data-music-tab="members">🎤 Sons des membres</button>'
       +'<button type="button" class="seg-btn'+(musicFilter==='mine'?' on':'')+'" data-music-tab="mine">Mes titres</button>'
@@ -21860,6 +21896,7 @@ function renderMusicShell(){
   // reste de l'app, et évite d'avoir deux boutons "retour" empilés.
   \$('music-close').onclick=musicTrackPageId?closeMusicTrackPage:closeMusic;
   if(\$('music-upload-btn'))\$('music-upload-btn').onclick=openMusicUploadForm;
+  if(\$('music-bulk-upload-btn'))\$('music-bulk-upload-btn').onclick=openMusicBulkUploadForm;
   if(\$('music-follow-btn'))\$('music-follow-btn').onclick=function(){musicToggleFollow(musicViewUid);};
   updateMusicFollowBtn();
   if(\$('music-search'))\$('music-search').addEventListener('input',function(){
@@ -22083,10 +22120,21 @@ function renderMusicBody(){
     return;
   }
   // Sons des membres : liste façon SoundCloud (forme d'onde, une rangée par
-  // titre) — Streaming/Mes titres : grille façon Spotify (grandes pochettes).
-  const bodyHtml=musicFilter==='members'
-    ?'<div class="music-row-list">'+list.map(musicMemberRowHtml).join('')+'</div>'
-    :'<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  // titre) — Streaming/Mes titres/profil d'un artiste : grille façon Spotify
+  // (grandes pochettes), avec les titres partageant un même album regroupés
+  // en "étagère" (voir musicGroupTracksForDisplay) plutôt que mélangés à
+  // plat — alimenté automatiquement par l'upload d'album en lot.
+  let bodyHtml;
+  if(musicFilter==='members'){
+    bodyHtml='<div class="music-row-list">'+list.map(musicMemberRowHtml).join('')+'</div>';
+  }else if(musicFilter==='mine'||musicFilter==='user'){
+    const grouped=musicGroupTracksForDisplay(list);
+    bodyHtml=grouped.albums.map(musicAlbumShelfHtml).join('')
+      +(grouped.albums.length&&grouped.singles.length?'<div class="music-singles-label">Titres seuls</div>':'')
+      +(grouped.singles.length?'<div class="music-grid">'+grouped.singles.map(musicTrackCardHtml).join('')+'</div>':'');
+  }else{
+    bodyHtml='<div class="music-grid">'+list.map(musicTrackCardHtml).join('')+'</div>';
+  }
   box.innerHTML=musicRecentRailHtml()+bodyHtml;
   wireMusicCardEvents(box);
 }
@@ -23471,6 +23519,7 @@ async function openMusicUploadForm(){
         btn.textContent='Recherche des paroles…';
         lyricsLrc=(await musicSearchLrclib(title,artistName)).slice(0,20000);
       }
+      let album='',year='';
       if(!coverFile||!genre){
         btn.textContent='Recherche de la pochette…';
         try{
@@ -23478,6 +23527,8 @@ async function openMusicUploadForm(){
           if(meta&&meta.found){
             if(!coverFile&&meta.coverUrl)coverUrl=meta.coverUrl;
             if(!genre&&meta.genre)genre=meta.genre;
+            if(meta.album)album=meta.album;
+            if(meta.year)year=meta.year;
           }
         }catch(e){}
       }
@@ -23487,9 +23538,12 @@ async function openMusicUploadForm(){
       // Passe par le serveur, qui revérifie lui-même l'éligibilité Streaming
       // à partir des badges réels du compte — canStreaming ici ne pilote que
       // l'affichage de la case, jamais la décision finale (voir
-      // /api/music/tracks/create côté worker).
+      // /api/music/tracks/create côté worker). album/year : trouvés par la
+      // même recherche automatique que la pochette/le genre ci-dessus (voir
+      // aussi openMusicBulkUploadForm, qui fait le même enrichissement pour
+      // un album entier envoyé en une fois).
       await authPost('/api/music/tracks/create',{
-        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming,waveform:waveform
+        title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:audioFile.type||'',durationSec:durationSec,genre:genre,tags:tags,lyricsLrc:lyricsLrc,wantStreaming:wantStreaming,waveform:waveform,album:album,year:year
       });
       showToast('Titre publié !');
       close();
@@ -23562,6 +23616,280 @@ function musicFallbackWaveform(trackId){
     const next=i<raw.length-1?raw[i+1]:v;
     return Math.max(.12,Math.min(.92,(prev+v*2+next)/4));
   });
+}
+/* ===== Upload d'album en lot ("+ Ajouter un album") =====
+   Sélection de plusieurs fichiers audio d'un coup, avec reconnaissance
+   automatique du titre/artiste/numéro de piste à partir du NOM DE FICHIER
+   (formats courants : "01 - Artiste - Titre.mp3", "01. Titre.mp3",
+   "Artiste - Titre.mp3"...) et enrichissement pochette/genre/album/année
+   via /api/music/tracks/auto-metadata — la MÊME recherche Deezer/iTunes déjà
+   utilisée pour un titre seul, jamais un nouveau service à part. Le tout
+   reste modifiable dans un aperçu avant publication, jamais imposé
+   silencieusement. Les titres partageant le même champ album se retrouvent
+   ensuite regroupés automatiquement en "étagère" (voir
+   musicGroupTracksForDisplay) sur le profil de l'artiste. */
+function musicParseFilename(filename){
+  // Toute cette fonction vit à l'intérieur du littéral gabarit géant qui
+  // compose APP plus bas dans ce fichier worker.js : un \s/\d/\. à une seule
+  // barre oblique inverse s'y ferait silencieusement avaler sa barre oblique
+  // (\s -> s, \d -> d) par l'échappement du littéral gabarit LUI-MÊME avant
+  // même que ce code ne devienne un vrai regex — d'où le doublement productif
+  // ci-dessous (\\s, \\d, \\.), même convention que musicParseLRC plus haut.
+  let base=String(filename||'').replace(/\\.[a-zA-Z0-9]{2,5}\$/,'');
+  base=base.replace(/_/g,' ').trim();
+  let trackNumber=0;
+  // Numéro de piste en tête : "01 - ", "01. ", "1-01 " (disque-piste)... —
+  // jamais si le nom commence par une lettre (pas de faux positif sur
+  // "Artiste - Titre" par exemple, qui ne matche pas ce motif).
+  const m=base.match(/^\\s*(?:\\d{1,2}-)?(\\d{1,3})(?:[-._)]|\\s)\\s*/);
+  if(m){trackNumber=parseInt(m[1],10)||0;base=base.slice(m[0].length).replace(/^[-.\\s]+/,'').trim();}
+  let artist='',title=base;
+  const dashParts=base.split(/\\s+-\\s+/);
+  if(dashParts.length>=2){artist=dashParts[0].trim();title=dashParts.slice(1).join(' - ').trim();}
+  title=title.replace(/^[-–—.\\s]+/,'').trim();
+  return {trackNumber:trackNumber,artist:artist,title:title||base||'Sans titre'};
+}
+// Même mécanique que uploadFileWithProgress()/xdUploadBlobFile() plus haut
+// dans ce fichier (un bloc unique via XHR pour une progression fluide en
+// dessous de UPLOAD_CHUNK_SIZE, le découpage par blocs du SDK au-delà) —
+// dupliquée plutôt que paramétrée par bucket, comme ces deux-là, pour rester
+// cohérente avec le reste du fichier.
+function musicUploadFileWithProgress(file,onProgress){
+  if(file.size>UPLOAD_CHUNK_SIZE){
+    return storage.createFile('xultra_music',Appwrite.ID.unique(),file,[Appwrite.Permission.read(Appwrite.Role.any())],function(p){
+      if(onProgress)onProgress(p.sizeUploaded,file.size);
+    });
+  }
+  return new Promise(function(resolve,reject){
+    try{
+      const xhr=new XMLHttpRequest();
+      const fd=new FormData();
+      const fileId=Appwrite.ID.unique();
+      fd.append('fileId',fileId);
+      fd.append('file',file,file.name||'upload');
+      fd.append('permissions[]',Appwrite.Permission.read(Appwrite.Role.any()));
+      xhr.open('POST',PROXY_EP+'/storage/buckets/xultra_music/files',true);
+      xhr.withCredentials=true;
+      const hdrs=(client&&client.headers)||{};
+      Object.keys(hdrs).forEach(function(k){try{xhr.setRequestHeader(k,hdrs[k]);}catch(e){}});
+      xhr.upload.onprogress=function(e){if(onProgress)onProgress(e.loaded,e.lengthComputable?e.total:file.size);};
+      xhr.onload=function(){
+        if(xhr.status>=200&&xhr.status<400){if(onProgress)onProgress(file.size,file.size);resolve({\$id:fileId});}
+        else{
+          let msg='Upload échoué ('+xhr.status+')';
+          try{const j=JSON.parse(xhr.responseText);if(j&&j.message)msg=j.message;}catch(e){}
+          reject(new Error(msg));
+        }
+      };
+      xhr.onerror=function(){reject(new Error('Erreur réseau pendant l\\'envoi.'));};
+      xhr.send(fd);
+    }catch(e){reject(e);}
+  });
+}
+let musicActiveUploads={};
+function musicShowUploadPanel(){
+  let panel=\$('music-upload-panel');
+  if(!panel){
+    panel=document.createElement('div');
+    panel.id='music-upload-panel';
+    panel.className='music-upload-panel';
+    document.body.appendChild(panel);
+  }
+  panel.classList.remove('hidden');
+  musicRenderUploadPanel();
+}
+const MUSIC_UPLOAD_STATUS_LABELS={
+  uploading:{txt:'⬆️ Envoi du fichier…',cls:'music-up-st-busy',indeterminate:false},
+  metadata:{txt:'🔍 Recherche des infos…',cls:'music-up-st-busy',indeterminate:true},
+  publishing:{txt:'📤 Publication…',cls:'music-up-st-busy',indeterminate:true},
+  done:{txt:'✅ Publié',cls:'music-up-st-done',indeterminate:false},
+  error:{txt:'❌ Échec',cls:'music-up-st-error',indeterminate:false}
+};
+function musicUploadCleanupSoon(id){
+  setTimeout(function(){
+    if(musicActiveUploads[id]&&musicActiveUploads[id].status==='done'){delete musicActiveUploads[id];musicRenderUploadPanel();}
+  },3500);
+}
+function musicRenderUploadPanel(){
+  const panel=\$('music-upload-panel');if(!panel)return;
+  const rows=Object.keys(musicActiveUploads).map(function(id){return {id:id,u:musicActiveUploads[id]};});
+  // Rétabli explicitement à chaque rendu (pas seulement à l'ouverture) :
+  // musicShowUploadPanel() peut très bien peindre un premier rendu AVANT que
+  // la boucle d'envoi n'ait posé la moindre entrée dans musicActiveUploads
+  // (liste encore vide à cet instant précis), ce qui masquait alors le
+  // panneau pour de bon puisque rien d'autre ne rappelait remove('hidden')
+  // ensuite.
+  if(!rows.length){panel.classList.add('hidden');return}
+  panel.classList.remove('hidden');
+  const doneCount=rows.filter(function(r){return r.u.status==='done'||r.u.status==='error';}).length;
+  panel.innerHTML='<div class="music-upload-head"><span>📀 Envoi de l\\'album ('+rows.length+')</span>'
+    +(doneCount?'<button type="button" class="music-upload-clear-btn" id="music-upload-clear">Effacer terminés</button>':'')
+    +'<button type="button" id="music-upload-panel-close">✕</button></div>'
+    +'<div class="music-upload-list">'+rows.map(function(r){
+      const u=r.u;
+      const pct=u.total?Math.min(100,Math.round(u.progress/u.total*100)):0;
+      const st=MUSIC_UPLOAD_STATUS_LABELS[u.status]||MUSIC_UPLOAD_STATUS_LABELS.uploading;
+      const showPct=!st.indeterminate&&u.status!=='done'&&u.status!=='error';
+      const fillCls=u.status==='done'?' music-upload-done':(u.status==='error'?' music-upload-err':(st.indeterminate?' music-upload-indeterminate':''));
+      const fillWidth=u.status==='done'?100:(st.indeterminate?40:pct);
+      return '<div class="music-upload-row">'
+        +'<div class="music-upload-row-top"><span class="music-upload-row-name">'+(u.trackNumber?'<b>'+u.trackNumber+'.</b> ':'')+esc(u.title)+'</span></div>'
+        +'<div class="music-upload-bar"><div class="music-upload-fill'+fillCls+'" style="width:'+fillWidth+'%"></div></div>'
+        +'<div class="music-upload-row-sub"><span>'+(showPct?pct+'%':'')+'</span><span class="music-upload-status-txt '+st.cls+'">'+st.txt+'</span></div>'
+      +'</div>';
+    }).join('')+'</div>';
+  const closeBtn=panel.querySelector('#music-upload-panel-close');
+  if(closeBtn)closeBtn.onclick=function(){panel.classList.add('hidden');};
+  const clearBtn=panel.querySelector('#music-upload-clear');
+  if(clearBtn)clearBtn.onclick=function(){
+    Object.keys(musicActiveUploads).forEach(function(id){if(musicActiveUploads[id].status==='done'||musicActiveUploads[id].status==='error')delete musicActiveUploads[id];});
+    musicRenderUploadPanel();
+  };
+  rows.forEach(function(r){if(r.u.status==='done'&&!r.u._cleanupScheduled){r.u._cleanupScheduled=true;musicUploadCleanupSoon(r.id);}});
+}
+function openMusicBulkUploadForm(){
+  if(!me){showToast('Connecte-toi pour ajouter un album.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto;width:min(560px,94vw)">'
+    +'<div class="set-section-label">📀 Ajouter un album</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Sélectionne tous les fichiers audio de l\\'album d\\'un coup — titre, artiste et numéro de piste sont devinés depuis le nom de chaque fichier, pochette/genre recherchés automatiquement. Vérifie et corrige si besoin avant de publier.</div>'
+    +'<div class="set-row"><label>Nom de l\\'album (optionnel)</label><input type="text" id="music-bulk-album" class="field-input" maxlength="150" placeholder="Nom de l\\'album"></div>'
+    +'<div class="set-row"><label>Artiste (par défaut pour tous les titres)</label><input type="text" id="music-bulk-artist" class="field-input" maxlength="100" value="'+esc(defaultArtist)+'"></div>'
+    +'<div class="set-row"><label>Genre (optionnel, par défaut pour tous)</label><select id="music-bulk-genre" class="field-input"><option value="">Aucun</option>'+MUSIC_GENRES.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('')+'</select></div>'
+    +'<div class="set-row"><label>Pochette de l\\'album (optionnel, utilisée pour les titres sans pochette trouvée automatiquement)</label><input type="file" id="music-bulk-cover" accept="image/*" class="field-input"></div>'
+    +'<div class="set-row"><label>Fichiers audio (sélection multiple)</label><input type="file" id="music-bulk-audio" accept="audio/*" multiple class="field-input"></div>'
+    +'<div id="music-bulk-preview"></div>'
+    +'<div class="err" id="music-bulk-err" style="min-height:1em;margin:8px 0"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-bulk-submit" disabled>Sélectionne des fichiers…</button><button type="button" class="set-mini-btn" id="music-bulk-cancel">Annuler</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-bulk-cancel').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  let parsedFiles=[];
+  function renderPreview(){
+    const box=\$('music-bulk-preview');
+    if(!parsedFiles.length){box.innerHTML='';\$('music-bulk-submit').disabled=true;\$('music-bulk-submit').textContent='Sélectionne des fichiers…';return}
+    box.innerHTML='<div class="music-bulk-preview-list">'+parsedFiles.map(function(pf,i){
+      return '<div class="music-bulk-preview-row">'
+        +'<span class="music-bulk-preview-num">'+(pf.trackNumber||(i+1))+'</span>'
+        +'<input type="text" class="field-input music-bulk-preview-title" data-idx="'+i+'" data-field="title" value="'+esc(pf.title)+'" placeholder="Titre">'
+        +'<input type="text" class="field-input music-bulk-preview-artist" data-idx="'+i+'" data-field="artist" value="'+esc(pf.artist)+'" placeholder="Artiste">'
+      +'</div>';
+    }).join('')+'</div>';
+    box.querySelectorAll('[data-idx]').forEach(function(inp){
+      inp.addEventListener('input',function(){
+        const idx=parseInt(inp.getAttribute('data-idx'),10);
+        parsedFiles[idx][inp.getAttribute('data-field')]=inp.value;
+      });
+    });
+    \$('music-bulk-submit').disabled=false;
+    \$('music-bulk-submit').textContent='Publier l\\'album ('+parsedFiles.length+' titre'+(parsedFiles.length!==1?'s':'')+')';
+  }
+  \$('music-bulk-audio').addEventListener('change',function(){
+    const files=Array.from(this.files||[]);
+    const sharedArtistNow=(\$('music-bulk-artist').value||'').trim();
+    parsedFiles=files.map(function(file,i){
+      const parsed=musicParseFilename(file.name);
+      return {file:file,trackNumber:parsed.trackNumber||(i+1),title:parsed.title,artist:parsed.artist||sharedArtistNow};
+    });
+    renderPreview();
+  });
+  \$('music-bulk-submit').onclick=async function(){
+    const errEl=\$('music-bulk-err');errEl.textContent='';
+    if(!parsedFiles.length)return;
+    for(const pf of parsedFiles){
+      if(pf.file.size>MUSIC_MAX_AUDIO_BYTES){errEl.textContent='"'+pf.file.name+'" dépasse 100 Mo — retire-le et réessaie.';return}
+      if(!pf.title.trim()){errEl.textContent='Chaque titre doit avoir un nom.';return}
+    }
+    const album=(\$('music-bulk-album').value||'').trim();
+    const sharedArtist=(\$('music-bulk-artist').value||'').trim()||defaultArtist||'Artiste inconnu';
+    const sharedGenre=(\$('music-bulk-genre').value||'').trim();
+    const sharedCoverFile=\$('music-bulk-cover').files[0];
+    close();
+    musicShowUploadPanel();
+    let sharedCoverUrl='';
+    if(sharedCoverFile){
+      try{
+        const coverUp=await storage.createFile('xultra_music',Appwrite.ID.unique(),sharedCoverFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
+        sharedCoverUrl=PROXY_EP+'/storage/buckets/xultra_music/files/'+coverUp.\$id+'/view?project='+PID;
+      }catch(e){}
+    }
+    let publishedCount=0,failedCount=0;
+    for(const pf of parsedFiles){
+      const uploadId='bu_'+Math.random().toString(36).slice(2)+publishedCount+failedCount;
+      const title=pf.title.trim();
+      const artistName=(pf.artist||'').trim()||sharedArtist;
+      musicActiveUploads[uploadId]={title:title,trackNumber:pf.trackNumber,status:'uploading',progress:0,total:pf.file.size};
+      musicRenderUploadPanel();
+      try{
+        const audioUp=await musicUploadFileWithProgress(pf.file,function(loaded,total){
+          if(musicActiveUploads[uploadId]){musicActiveUploads[uploadId].progress=loaded;musicActiveUploads[uploadId].total=total;musicRenderUploadPanel();}
+        });
+        const audioUrl=PROXY_EP+'/storage/buckets/xultra_music/files/'+audioUp.\$id+'/view?project='+PID;
+        musicActiveUploads[uploadId].status='metadata';musicRenderUploadPanel();
+        let durationSec=0;try{durationSec=await musicProbeDuration(pf.file);}catch(e){}
+        const waveform=await musicComputeWaveform(pf.file);
+        let coverUrl=sharedCoverUrl,genre=sharedGenre,albumName=album,year='';
+        try{
+          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName});
+          if(meta&&meta.found){
+            if(!coverUrl&&meta.coverUrl)coverUrl=meta.coverUrl;
+            if(!genre&&meta.genre)genre=meta.genre;
+            if(!albumName&&meta.album)albumName=meta.album;
+            if(meta.year)year=meta.year;
+          }
+        }catch(e){}
+        let lyricsLrc='';
+        try{lyricsLrc=(await musicSearchLrclib(title,artistName)).slice(0,20000);}catch(e){}
+        musicActiveUploads[uploadId].status='publishing';musicRenderUploadPanel();
+        await authPost('/api/music/tracks/create',{
+          title:title.slice(0,150),artistName:artistName.slice(0,100),coverUrl:coverUrl,audioUrl:audioUrl,mime:pf.file.type||'',durationSec:durationSec,genre:genre,tags:[],lyricsLrc:lyricsLrc,wantStreaming:false,waveform:waveform,album:albumName,year:year,trackNumber:pf.trackNumber
+        });
+        musicActiveUploads[uploadId].status='done';musicRenderUploadPanel();
+        publishedCount++;
+      }catch(e){
+        musicActiveUploads[uploadId].status='error';musicRenderUploadPanel();
+        failedCount++;
+      }
+    }
+    await loadMusicTracks();
+    renderMusicBody();
+    if(failedCount)showToast(publishedCount+' titre'+(publishedCount!==1?'s':'')+' publié'+(publishedCount!==1?'s':'')+', '+failedCount+' échec'+(failedCount!==1?'s':'')+'.','error');
+    else showToast('📀 Album publié : '+publishedCount+' titre'+(publishedCount!==1?'s':'')+' !');
+  };
+}
+// Regroupe les titres partageant un même (album, artiste) en "étagère"
+// façon Spotify — les titres sans album restent affichés individuellement
+// ("Singles"). Alimenté automatiquement par l'upload d'album en lot
+// ci-dessus (voir openMusicBulkUploadForm), sans étape manuelle
+// supplémentaire — mais s'applique à N'IMPORTE QUEL titre partageant un
+// même champ album, y compris ajoutés un par un.
+function musicGroupTracksForDisplay(list){
+  const albums={},albumOrder=[],singles=[];
+  list.forEach(function(t){
+    const albumName=(t.album||'').trim();
+    if(!albumName){singles.push(t);return}
+    const key=albumName+'::'+t.artistName;
+    if(!albums[key]){albums[key]={name:albumName,artistName:t.artistName,tracks:[]};albumOrder.push(key);}
+    albums[key].tracks.push(t);
+  });
+  albumOrder.forEach(function(key){
+    albums[key].tracks.sort(function(a,b){return (a.trackNumber||999)-(b.trackNumber||999);});
+  });
+  return {albums:albumOrder.map(function(k){return albums[k];}),singles:singles};
+}
+function musicAlbumShelfHtml(album){
+  const cover=safeUrl(album.tracks[0].coverUrl);
+  return '<div class="music-album-shelf">'
+    +'<div class="music-album-shelf-head">'
+      +'<div class="music-album-shelf-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>💿</span>')+'</div>'
+      +'<div><div class="music-album-shelf-name">'+esc(album.name)+'</div><div class="music-album-shelf-sub">'+esc(album.artistName)+' · '+album.tracks.length+' titre'+(album.tracks.length!==1?'s':'')+'</div></div>'
+    +'</div>'
+    +'<div class="music-grid music-album-shelf-grid">'+album.tracks.map(musicTrackCardHtml).join('')+'</div>'
+  +'</div>';
 }
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
@@ -31724,18 +32052,19 @@ async function handle(request, event) {
       try { tags = (Array.isArray(body && body.tags) ? body.tags : []).map(function (t) { return String(t).slice(0, 40); }).slice(0, 15); } catch (e) {}
       const lyricsLrc = String((body && body.lyricsLrc) || "").slice(0, 20000);
       const wantStreaming = !!(body && body.wantStreaming);
+      const album = String((body && body.album) || "").trim().slice(0, 150);
+      const year = String((body && body.year) || "").trim().slice(0, 8);
+      const trackNumber = Math.max(0, Math.round(Number((body && body.trackNumber) || 0))) || null;
       let waveform = [];
       try { waveform = (Array.isArray(body && body.waveform) ? body.waveform : []).map(function (p) { return Math.max(0, Math.min(1, Number(p) || 0)); }).slice(0, 80); } catch (e) {}
       const badges = await musicUserBadges(acc.$id);
       const eligible = MUSIC_STREAMING_BADGES.some(function (b) { return badges.indexOf(b) >= 0; });
       const channel = (wantStreaming && eligible) ? "streaming" : "member";
+      const data = { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year };
+      if (trackNumber) data.trackNumber = trackNumber;
       const doc = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents", {
         method: "POST", asAdmin: true,
-        body: {
-          documentId: "unique()",
-          data: { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform) },
-          permissions: ["read(\"any\")"]
-        }
+        body: { documentId: "unique()", data: data, permissions: ["read(\"any\")"] }
       });
       return new Response(JSON.stringify({ ok: true, track: doc }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
