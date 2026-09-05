@@ -2537,6 +2537,11 @@ html.xultra-restoring #stage{visibility:hidden}
 .music-upload-status-txt.music-up-st-error{color:#f87171}
 .music-upload-row-err{font-size:11px;color:#f87171;margin-top:2px;line-height:1.35}
 .music-official-badge{font-size:11px;margin-left:3px;vertical-align:middle}
+.music-official-artist-head{display:flex;align-items:center;gap:14px}
+.music-official-artist-photo{width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:28px}
+.music-official-artist-photo img{width:100%;height:100%;object-fit:cover}
+.music-official-artist-name{font-size:1.1rem;font-weight:800}
+.music-official-artist-sub{font-size:.78rem;color:var(--muted);margin-top:2px}
 .music-upload-status-txt.music-up-st-busy{color:#86efac}
 .music-upload-clear-btn{background:none;border:0;color:var(--muted);font-size:.7rem;cursor:pointer;text-decoration:underline;padding:0}
 .music-album-shelf{margin-bottom:22px}
@@ -7829,6 +7834,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.69',category:'fix',date:'5 septembre 2026',time:'21:00',title:'🏅 Fiche artiste officielle automatique, et attribution corrigée',
+    body:'Corrige un vrai souci remonté : un album officiel dont les fichiers audio n\\'indiquaient pas l\\'artiste dans leur nom (ex : "01 Titre.mp3" au lieu de "01 - Artiste - Titre.mp3") se retrouvait attribué par erreur à la personne qui l\\'avait envoyé sur X1, au lieu du vrai artiste. Chaque artiste officiel reconnu (Deezer/iTunes) a maintenant sa propre fiche minimale auto-générée avec sa vraie photo — cliquer sur son nom (badge 🏅) ouvre cette fiche et ses titres, plus jamais le profil de la personne ayant fait l\\'upload. Le nom d\\'artiste saisi/deviné à l\\'envoi n\\'est corrigé QUE s\\'il n\\'a jamais été un vrai choix (jamais si quelqu\\'un l\\'a tapé ou deviné lui-même depuis un nom de fichier).'},
   {version:'4.55.68',category:'feature',date:'5 septembre 2026',time:'20:00',title:'🔍 Anti-doublons automatique, et badge 🏅 Officiel',
     body:'Publier un titre déjà présent sur X1 (même fichier audio, ou même titre/artiste/durée qu\\'un morceau existant) est désormais bloqué à l\\'envoi avec un message clair expliquant pourquoi — que ce soit avec "+ Ajouter un titre" ou "📀 Ajouter un album", rien n\\'est jamais supprimé après coup, juste refusé avant publication pour ne jamais risquer d\\'effacer un vrai titre par erreur. Chaque titre affiche aussi désormais automatiquement un badge 🏅 Officiel quand il correspond à une vraie sortie commerciale (recherchée sur le même catalogue public que la pochette/le genre), pour distinguer d\\'un coup d\\'œil une reprise/un réupload officiel d\\'une création originale d\\'un membre X1.'},
   {version:'4.55.67',category:'feature',date:'5 septembre 2026',time:'19:00',title:'📀 Ajoute un album entier d\\'un coup, avec reconnaissance automatique',
@@ -21220,7 +21227,7 @@ let musicRepostsCache=[],musicMyRepostedIds=new Set();
 let musicOfflineIds=new Set(),musicOfflineDB=null,musicOfflineObjectUrl=null;
 let musicFilter='discover',musicViewUid=null,musicViewName='';
 let musicAudioEl=null,musicCurrentTrack=null,musicActivePlaylist=null;
-let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false;
+let musicTrackPageId=null,musicTrackPageComments=[],musicTrackPageArtist=null,musicTrackPageLoading=false,musicTrackPageOfficialArtist=null;
 let musicSearchQuery='',musicShuffleOn=false,musicGenreFilter='';
 // Tri façon SoundCloud (Récent/Populaire) pour Sons des membres uniquement —
 // "populaire" trie sur playsCount, la statistique la plus emblématique de
@@ -21999,6 +22006,13 @@ function musicOfflineButtonHtml(t){
   const title=downloading?'Téléchargement en cours…':(downloaded?'Téléchargé pour l\\'écoute hors-ligne — clique pour supprimer':(locked?'Écoute hors-ligne exclusive à X1+':'Télécharger pour l\\'écoute hors-ligne'));
   return '<button type="button" class="music-mini-btn music-offline-btn'+(downloaded?' on':'')+(locked?' locked':'')+'" data-music-offline="'+esc(t.\$id)+'" title="'+esc(title)+'">'+icon+'</button>';
 }
+// Un titre officiel n'appartient PAS au compte qui l'a envoyé sur X1 — le
+// clic sur son nom d'artiste doit toujours mener à sa fiche officielle
+// auto-générée (voir openMusicOfficialArtistPage), jamais au profil de la
+// personne qui a fait l'upload.
+function musicArtistLinkAttr(t){
+  return (t.contentType==='official'&&t.officialArtistId)?'data-music-official-artist="'+esc(t.officialArtistId)+'"':'data-music-artist="'+esc(t.uid)+'"';
+}
 function musicTrackCardHtml(t){
   const cover=safeUrl(t.coverUrl);
   const liked=musicMyLikedIds.has(t.\$id);
@@ -22009,7 +22023,7 @@ function musicTrackCardHtml(t){
   return '<div class="music-card'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-card-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-card-playbtn">'+(isPlaying?'⏸':'▶')+'</span>'+(t.durationSec?'<span class="music-card-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
     +'<div class="music-card-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</div>'
-    +'<div class="music-card-artist" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+(t.contentType==='official'?' <span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
+    +'<div class="music-card-artist" '+musicArtistLinkAttr(t)+'>'+esc(t.artistName)+(t.contentType==='official'?' <span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+(t.genre?' · '+esc(musicGenreLabel(t.genre)):'')+'</div>'
     +tagsHtml
     +'<div class="music-card-actions">'
       +'<button type="button" class="music-mini-btn'+(liked?' on':'')+'" data-music-like="'+esc(t.\$id)+'">'+(liked?'❤️':'🤍')+' '+(t.likesCount||0)+'</button>'
@@ -22055,15 +22069,20 @@ function musicMemberRowHtml(t){
   // Xj", même formateur que la page de titre) et nombre d'écoutes affiché —
   // la statistique la plus emblématique de SoundCloud, absente jusqu'ici de
   // cette liste alors qu'elle existe déjà côté serveur (t.playsCount).
-  const authorProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(t.uid);});
-  const authorAv=safeUrl(authorProfile&&authorProfile.avatar);
+  // Un titre officiel affiche la vraie photo de l'artiste (fiche
+  // auto-générée, voir musicResolveOfficialArtist côté serveur), JAMAIS
+  // l'avatar du compte qui a fait l'upload — ce serait la même confusion
+  // que le nom d'artiste mal attribué que ce système corrige déjà.
+  const isOfficialTrack=t.contentType==='official'&&t.officialArtistId;
+  const authorProfile=isOfficialTrack?null:membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(t.uid);});
+  const authorAv=isOfficialTrack?safeUrl(t.officialArtistPhoto):safeUrl(authorProfile&&authorProfile.avatar);
   const avInner=authorAv?'<img src="'+esc(authorAv)+'" alt="">':esc(ini(t.artistName||'?'));
   const agoHtml=t.\$createdAt?'<span class="music-row-ago">· il y a '+esc(fmtRelTime(t.\$createdAt))+'</span>':'';
   return '<div class="music-member-row'+(isCurrent?' on':'')+'" data-music-track="'+esc(t.\$id)+'">'
     +'<div class="music-row-cover" data-music-play="'+esc(t.\$id)+'">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="music-card-nocov">🎵</span>')+'<span class="music-row-playbtn">'+(isPlaying?'⏸':'▶')+'</span></div>'
     +'<div class="music-row-body">'
       +'<div class="music-row-top"><span class="music-row-title" data-music-open="'+esc(t.\$id)+'">'+esc(t.title)+'</span>'
-        +'<span class="music-row-artist-wrap" data-music-artist="'+esc(t.uid)+'"><span class="music-row-artist-av">'+avInner+'</span><span class="music-row-artist">'+esc(t.artistName)+'</span>'+(t.contentType==='official'?'<span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+'</span>'
+        +'<span class="music-row-artist-wrap" '+musicArtistLinkAttr(t)+'><span class="music-row-artist-av">'+avInner+'</span><span class="music-row-artist">'+esc(t.artistName)+'</span>'+(t.contentType==='official'?'<span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+'</span>'
         +agoHtml
         +(t.durationSec?'<span class="music-row-dur">'+esc(musicFmtTime(t.durationSec))+'</span>':'')+'</div>'
       +'<div class="music-row-wave" data-music-wave="'+esc(t.\$id)+'"><div class="music-wave-bars">'+barsHtml+'</div><div class="music-wave-progress" style="width:'+progressPct+'%"><div class="music-wave-bars">'+barsHtml+'</div></div>'+markersHtml+'</div>'
@@ -22178,6 +22197,9 @@ function wireMusicCardEvents(box){
   });
   box.querySelectorAll('[data-music-artist]').forEach(function(el){
     el.addEventListener('click',function(e){e.stopPropagation();closeMusic();openProfileModal(el.getAttribute('data-music-artist'));});
+  });
+  box.querySelectorAll('[data-music-official-artist]').forEach(function(el){
+    el.addEventListener('click',function(e){e.stopPropagation();openMusicOfficialArtistPage(el.getAttribute('data-music-official-artist'));});
   });
   box.querySelectorAll('[data-music-wave]').forEach(function(el){
     el.addEventListener('click',function(e){
@@ -23079,6 +23101,7 @@ function openMusicTrackPage(trackId){
   musicTrackPageId=trackId;
   musicTrackPageComments=[];
   musicTrackPageArtist=null;
+  musicTrackPageOfficialArtist=null;
   musicTrackPageLoading=true;
   // renderMusicShell() (pas juste renderMusicBody()) : c'est elle qui décide
   // de masquer les onglets/recherche/genres pour laisser la page du titre
@@ -23088,16 +23111,27 @@ function openMusicTrackPage(trackId){
   musicSyncMiniBar();
   renderMusicBody();
   musicLoadTrackPageComments(trackId);
-  musicLoadTrackPageArtist(t.uid);
+  // Un titre officiel n'a pas de compte X1 réel derrière — sa carte artiste
+  // vient de xm_official_artists (fiche auto-générée), jamais d'un abonnés/
+  // titres calculés sur le compte de la personne qui l'a envoyé.
+  if(t.contentType==='official'&&t.officialArtistId)musicLoadTrackPageOfficialArtist(t.officialArtistId);
+  else musicLoadTrackPageArtist(t.uid);
 }
 function closeMusicTrackPage(){
   musicTrackPageId=null;
   musicTrackPageComments=[];
   musicTrackPageArtist=null;
+  musicTrackPageOfficialArtist=null;
   musicTrackPageLoading=false;
   renderMusicShell();
   musicSyncMiniBar();
   renderMusicBody();
+}
+async function musicLoadTrackPageOfficialArtist(artistId){
+  let result=null;
+  try{result=await db.getDocument(DB,'xm_official_artists',artistId);}catch(e){result=null;}
+  musicTrackPageOfficialArtist=result;
+  if(musicTrackPageId)renderMusicBody();
 }
 async function musicLoadTrackPageComments(trackId){
   try{
@@ -23141,9 +23175,10 @@ function renderMusicTrackPage(box){
     const av=safeUrl(c.avatar);
     return '<span class="mtp-wave-avatar" data-comment-seek="'+c.atSec+'" title="'+esc(c.displayName||'')+' · '+esc(musicFmtTime(c.atSec))+'" style="left:'+Math.min(99,(c.atSec/t.durationSec)*100)+'%">'+(av?'<img src="'+esc(av)+'" alt="">':'<span class="mtp-wave-avatar-fallback">🎵</span>')+'</span>';
   }).join(''):'';
-  const artist=(musicTrackPageArtist&&musicTrackPageArtist.uid===t.uid)?musicTrackPageArtist:null;
-  const artistAvatar=(artist&&artist.profile)?safeUrl(artist.profile.avatar):'';
-  const isSelf=!!(me&&String(t.uid)===String(me.\$id));
+  const isOfficialTrack=t.contentType==='official'&&t.officialArtistId;
+  const artist=(!isOfficialTrack&&musicTrackPageArtist&&musicTrackPageArtist.uid===t.uid)?musicTrackPageArtist:null;
+  const artistAvatar=isOfficialTrack?safeUrl(t.officialArtistPhoto):((artist&&artist.profile)?safeUrl(artist.profile.avatar):'');
+  const isSelf=!!(me&&String(t.uid)===String(me.\$id))&&!isOfficialTrack;
   const following=musicMyFollowedIds.has(String(t.uid));
   const commentsCountLabel=musicTrackPageLoading?'Chargement…':(musicTrackPageComments.length+' COMMENTAIRE'+(musicTrackPageComments.length!==1?'S':''));
   // "Le plus récent" décrit l'ordre RÉEL de la requête (orderDesc($createdAt),
@@ -23169,7 +23204,7 @@ function renderMusicTrackPage(box){
             +'<button type="button" class="mtp-playbtn" id="mtp-play-big">'+(isPlaying?'⏸':'▶')+'</button>'
             +'<div class="mtp-title-block">'
               +'<div class="mtp-title">'+esc(t.title)+'</div>'
-              +'<div class="mtp-sub">par <span class="mtp-artist-link" data-music-artist="'+esc(t.uid)+'">'+esc(t.artistName)+'</span>'+(t.\$createdAt?' · il y a '+fmtRelTime(t.\$createdAt):'')+'</div>'
+              +'<div class="mtp-sub">par <span class="mtp-artist-link" '+musicArtistLinkAttr(t)+'>'+esc(t.artistName)+'</span>'+(t.contentType==='official'?' <span class="music-official-badge" title="Contenu officiel">🏅</span>':'')+(t.\$createdAt?' · il y a '+fmtRelTime(t.\$createdAt):'')+'</div>'
             +'</div>'
           +'</div>'
           +'<div class="mtp-wave-wrap">'
@@ -23205,11 +23240,14 @@ function renderMusicTrackPage(box){
       +'<div class="mtp-sidebar">'
         +'<div class="mtp-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span class="mtp-cover-fallback">🎵</span>')+'</div>'
         +'<div class="mtp-artist-card">'
-          +'<div class="mtp-artist-top" data-music-artist="'+esc(t.uid)+'">'
+          +'<div class="mtp-artist-top" '+musicArtistLinkAttr(t)+'>'
             +'<div class="mtp-artist-avatar">'+(artistAvatar?'<img src="'+esc(artistAvatar)+'" alt="">':'<span>👤</span>')+'</div>'
-            +'<div><div class="mtp-artist-name">'+esc(t.artistName)+'</div>'+(artist?'<div class="mtp-artist-meta">'+artist.followerCount+' abonné'+(artist.followerCount!==1?'s':'')+' · '+artist.trackCount+' titre'+(artist.trackCount!==1?'s':'')+'</div>':'')+'</div>'
+            +'<div><div class="mtp-artist-name">'+esc(t.artistName)+(isOfficialTrack?' <span class="music-official-badge" title="Artiste vérifié">🏅</span>':'')+'</div>'
+              +(isOfficialTrack?'<div class="mtp-artist-meta">Artiste vérifié · '+((musicTrackPageOfficialArtist&&musicTrackPageOfficialArtist.trackCount)||1)+' titre'+(((musicTrackPageOfficialArtist&&musicTrackPageOfficialArtist.trackCount)||1)!==1?'s':'')+' sur X1</div>'
+                :(artist?'<div class="mtp-artist-meta">'+artist.followerCount+' abonné'+(artist.followerCount!==1?'s':'')+' · '+artist.trackCount+' titre'+(artist.trackCount!==1?'s':'')+'</div>':''))
+            +'</div>'
           +'</div>'
-          +(isSelf?'':'<div class="mtp-artist-actions">'
+          +(isSelf||isOfficialTrack?'':'<div class="mtp-artist-actions">'
             +'<button type="button" class="set-mini-btn'+(following?' on':'')+'" id="mtp-follow-btn">'+(following?'✓ Suivi(e)':'+ Suivre')+'</button>'
             +'<button type="button" class="set-mini-btn" id="mtp-dm-btn">Envoyer un message</button>'
           +'</div>')
@@ -23242,6 +23280,9 @@ function renderMusicTrackPage(box){
   });
   box.querySelectorAll('[data-music-artist]').forEach(function(el){
     el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-music-artist'));});
+  });
+  box.querySelectorAll('[data-music-official-artist]').forEach(function(el){
+    el.addEventListener('click',function(){openMusicOfficialArtistPage(el.getAttribute('data-music-official-artist'));});
   });
   \$('mtp-like-btn').onclick=function(){musicToggleLike(t.\$id);};
   \$('mtp-repost-btn').onclick=function(){musicToggleRepost(t.\$id);};
@@ -23489,7 +23530,8 @@ async function openMusicUploadForm(){
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
   \$('music-up-submit').onclick=async function(){
     const title=(\$('music-up-title').value||'').trim();
-    const artistName=(\$('music-up-artist').value||'').trim()||defaultArtist||'Artiste inconnu';
+    let artistName=(\$('music-up-artist').value||'').trim()||defaultArtist||'Artiste inconnu';
+    const artistFieldUntouched=(artistName===defaultArtist);
     const audioFile=\$('music-up-audio').files[0];
     const coverFile=\$('music-up-cover').files[0];
     const errEl=\$('music-up-err');errEl.textContent='';
@@ -23528,12 +23570,20 @@ async function openMusicUploadForm(){
       if(!coverFile||!genre){
         btn.textContent='Recherche de la pochette…';
         try{
-          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName});
+          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName,durationSec:durationSec});
           if(meta&&meta.found){
             if(!coverFile&&meta.coverUrl)coverUrl=meta.coverUrl;
             if(!genre&&meta.genre)genre=meta.genre;
             if(meta.album)album=meta.album;
             if(meta.year)year=meta.year;
+            // Corrige le champ Artiste UNIQUEMENT s'il est resté à sa valeur
+            // par défaut (le nom de la personne qui envoie) — jamais si elle
+            // a explicitement tapé un nom elle-même, même différent. meta.artistName
+            // n'est renvoyé par le serveur qu'avec titre+durée confirmés à
+            // l'identique d'un vrai enregistrement (voir /api/music/tracks/
+            // auto-metadata), donc jamais un simple titre qui coïncide par
+            // hasard avec une chanson du commerce.
+            if(meta.artistName&&artistFieldUntouched)artistName=meta.artistName;
           }
         }catch(e){}
       }
@@ -23803,7 +23853,9 @@ function openMusicBulkUploadForm(){
     box.querySelectorAll('[data-idx]').forEach(function(inp){
       inp.addEventListener('input',function(){
         const idx=parseInt(inp.getAttribute('data-idx'),10);
-        parsedFiles[idx][inp.getAttribute('data-field')]=inp.value;
+        const field=inp.getAttribute('data-field');
+        parsedFiles[idx][field]=inp.value;
+        if(field==='artist')parsedFiles[idx].artistManuallySet=true;
       });
     });
     \$('music-bulk-submit').disabled=false;
@@ -23814,7 +23866,7 @@ function openMusicBulkUploadForm(){
     const sharedArtistNow=(\$('music-bulk-artist').value||'').trim();
     parsedFiles=files.map(function(file,i){
       const parsed=musicParseFilename(file.name);
-      return {file:file,trackNumber:parsed.trackNumber||(i+1),title:parsed.title,artist:parsed.artist||sharedArtistNow};
+      return {file:file,trackNumber:parsed.trackNumber||(i+1),title:parsed.title,artist:parsed.artist||sharedArtistNow,artistFromFilename:!!parsed.artist,artistManuallySet:false};
     });
     renderPreview();
   });
@@ -23842,7 +23894,13 @@ function openMusicBulkUploadForm(){
     for(const pf of parsedFiles){
       const uploadId='bu_'+Math.random().toString(36).slice(2)+publishedCount+failedCount;
       const title=pf.title.trim();
-      const artistName=(pf.artist||'').trim()||sharedArtist;
+      let artistName=(pf.artist||'').trim()||sharedArtist;
+      // Signal "cet artiste est un défaut, pas un vrai choix" : ni deviné
+      // depuis le nom du fichier, ni corrigé à la main dans l'aperçu — c'est
+      // exactement le cas d'un album officiel dont les fichiers n'indiquent
+      // pas l'artiste dans leur nom, qui hérite alors par défaut du nom de
+      // la personne ayant envoyé l'album (voir le correctif ci-dessous).
+      const artistIsUnconfirmedDefault=(!pf.artistFromFilename&&!pf.artistManuallySet);
       musicActiveUploads[uploadId]={title:title,trackNumber:pf.trackNumber,status:'uploading',progress:0,total:pf.file.size};
       musicRenderUploadPanel();
       try{
@@ -23856,12 +23914,17 @@ function openMusicBulkUploadForm(){
         const audioHash=await musicHashAudioFile(pf.file);
         let coverUrl=sharedCoverUrl,genre=sharedGenre,albumName=album,year='';
         try{
-          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName});
+          const meta=await authPost('/api/music/tracks/auto-metadata',{title:title,artistName:artistName,durationSec:durationSec});
           if(meta&&meta.found){
             if(!coverUrl&&meta.coverUrl)coverUrl=meta.coverUrl;
             if(!genre&&meta.genre)genre=meta.genre;
             if(!albumName&&meta.album)albumName=meta.album;
             if(meta.year)year=meta.year;
+            // Même correction que openMusicUploadForm : seulement si
+            // l'artiste de CE titre n'a jamais été un vrai choix (ni deviné
+            // du nom de fichier, ni tapé à la main) — jamais si quelqu'un a
+            // écrit quoi que ce soit lui-même.
+            if(meta.artistName&&artistIsUnconfirmedDefault)artistName=meta.artistName;
           }
         }catch(e){}
         let lyricsLrc='';
@@ -23912,6 +23975,40 @@ function musicAlbumShelfHtml(album){
     +'</div>'
     +'<div class="music-grid music-album-shelf-grid">'+album.tracks.map(musicTrackCardHtml).join('')+'</div>'
   +'</div>';
+}
+// Fiche minimale d'un artiste officiel reconnu automatiquement (photo + nom,
+// voir musicResolveOfficialArtist côté serveur) — jamais un compte X1, donc
+// pas de Suivre/message ici, juste ses titres officiels publiés sur X1.
+async function openMusicOfficialArtistPage(artistId){
+  if(!artistId)return;
+  let artist=null;
+  try{artist=await db.getDocument(DB,'xm_official_artists',artistId);}catch(e){showToast('Artiste introuvable.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  const photo=safeUrl(artist.photoUrl);
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto;width:min(640px,94vw)">'
+    +'<div class="music-official-artist-head">'
+      +'<div class="music-official-artist-photo">'+(photo?'<img src="'+esc(photo)+'" alt="">':'<span>🎤</span>')+'</div>'
+      +'<div><div class="music-official-artist-name">'+esc(artist.name)+' <span class="music-official-badge" title="Artiste vérifié">🏅</span></div>'
+      +'<div class="music-official-artist-sub">Artiste vérifié · '+(artist.trackCount||0)+' titre'+((artist.trackCount||0)!==1?'s':'')+' sur X1</div></div>'
+    +'</div>'
+    +'<div class="music-grid" id="music-official-artist-tracks" style="margin-top:14px"><div class="scr-sub">Chargement…</div></div>'
+    +'<div style="margin-top:12px"><button type="button" class="set-mini-btn" id="music-official-artist-close">Fermer</button></div>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('music-official-artist-close').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  try{
+    const r=await db.listDocuments(DB,'xm_tracks',[Appwrite.Query.equal('officialArtistId',artistId),Appwrite.Query.limit(100)]);
+    const tracks=r.documents||[];
+    tracks.forEach(function(tr){if(!musicTracksCache.find(function(x){return x.\$id===tr.\$id}))musicTracksCache.push(tr);});
+    const grid=overlay.querySelector('#music-official-artist-tracks');
+    grid.innerHTML=tracks.length?tracks.map(musicTrackCardHtml).join(''):'<div class="scr-sub">Aucun titre pour l\\'instant.</div>';
+    grid.querySelectorAll('[data-music-play]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();musicPlayTrack(el.getAttribute('data-music-play'));});});
+    grid.querySelectorAll('[data-music-open]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();close();openMusicTrackPage(el.getAttribute('data-music-open'));});});
+    grid.querySelectorAll('[data-music-like]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();musicToggleLike(el.getAttribute('data-music-like')).then(function(){grid.innerHTML=tracks.map(function(tr){return musicTracksCache.find(function(x){return x.\$id===tr.\$id})||tr;}).map(musicTrackCardHtml).join('');});});});
+  }catch(e){}
 }
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
@@ -32072,7 +32169,16 @@ async function handle(request, event) {
       if (dzRes.ok) {
         const dzJson = await dzRes.json();
         const dzHit = (dzJson.data || [])[0];
-        if (dzHit && dzHit.album) return { found: true, matchedArtist: (dzHit.artist && dzHit.artist.name) || "" };
+        if (dzHit && dzHit.album) {
+          return {
+            found: true,
+            matchedArtist: (dzHit.artist && dzHit.artist.name) || "",
+            matchedArtistPhoto: (dzHit.artist && (dzHit.artist.picture_xl || dzHit.artist.picture_big || dzHit.artist.picture_medium)) || "",
+            matchedArtistDeezerId: (dzHit.artist && String(dzHit.artist.id || "")) || "",
+            matchedTitle: dzHit.title_short || dzHit.title || "",
+            matchedDurationSec: Math.round(Number(dzHit.duration || 0))
+          };
+        }
       }
     } catch (e) {}
     try {
@@ -32080,10 +32186,83 @@ async function handle(request, event) {
       if (searchRes.ok) {
         const searchJson = await searchRes.json();
         const hit = (searchJson.results || [])[0];
-        if (hit) return { found: true, matchedArtist: hit.artistName || "" };
+        if (hit && hit.artistName) {
+          // iTunes ne fournit aucune photo d'artiste — tentative en plus sur
+          // la recherche artiste de Deezer (même catalogue public) pour
+          // quand même pouvoir illustrer sa fiche officielle.
+          let photo = "", deezerId = "";
+          try {
+            const artRes = await fetch("https://api.deezer.com/search/artist?q=" + encodeURIComponent(hit.artistName) + "&limit=1");
+            if (artRes.ok) {
+              const artJson = await artRes.json();
+              const artHit = (artJson.data || [])[0];
+              if (artHit) { photo = artHit.picture_xl || artHit.picture_big || artHit.picture_medium || ""; deezerId = String(artHit.id || ""); }
+            }
+          } catch (e) {}
+          return { found: true, matchedArtist: hit.artistName, matchedArtistPhoto: photo, matchedArtistDeezerId: deezerId, matchedTitle: hit.trackName || "", matchedDurationSec: Math.round(Number(hit.trackTimeMillis || 0) / 1000) };
+        }
       }
     } catch (e) {}
-    return { found: false, matchedArtist: "" };
+    return { found: false, matchedArtist: "", matchedArtistPhoto: "", matchedArtistDeezerId: "", matchedTitle: "", matchedDurationSec: 0 };
+  }
+  // Un résultat de recherche n'est retenu que si le nom d'artiste saisi
+  // ressemble vraiment à celui trouvé, OU si titre ET durée correspondent
+  // exactement à un vrai enregistrement (voir plus haut pourquoi le nom
+  // saisi seul n'est jamais suffisant — il peut être erroné, exactement le
+  // bug que ce système corrige).
+  function musicMatchConfidence(match, title, artistName, durationSec) {
+    if (!match || !match.found) return { confident: false };
+    const artistMatches = musicArtistNamesLikelyMatch(artistName, match.matchedArtist);
+    const titleMatches = musicNormalizeForCompare(title).length >= 3 && musicNormalizeForCompare(title) === musicNormalizeForCompare(match.matchedTitle);
+    const durationMatches = match.matchedDurationSec > 0 && durationSec > 0 && Math.abs(match.matchedDurationSec - durationSec) <= 5;
+    return { confident: artistMatches || (titleMatches && durationMatches) };
+  }
+  // Fiche minimale et automatique pour un artiste officiel reconnu (photo +
+  // nom), JAMAIS un compte X1 — pour ne plus jamais attribuer un titre
+  // officiel à la personne qui l'a simplement envoyé sur le site. Une seule
+  // fiche par artiste (déduplication par nom normalisé) : réutilisée à
+  // chaque nouveau titre du même artiste plutôt que recréée.
+  async function musicResolveOfficialArtist(name, photoUrl, deezerId) {
+    const normalizedName = musicNormalizeForCompare(name);
+    if (!normalizedName) return null;
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/xm_official_artists/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "normalizedName", values: [normalizedName] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+      const existing = (q.documents || [])[0];
+      if (existing) return existing;
+    } catch (e) {}
+    // Pas encore de fiche pour cet artiste : la crée, avec sa photo réelle
+    // rehébergée sur notre propre stockage (jamais un lien direct vers un
+    // service tiers, même logique que la pochette dans /api/music/tracks/
+    // auto-metadata) — best-effort, une fiche sans photo reste valable.
+    let hostedPhoto = "";
+    if (photoUrl) {
+      try {
+        const imgRes = await fetch(photoUrl);
+        if (imgRes.ok) {
+          const blob = await imgRes.blob();
+          const form = new FormData();
+          form.append("fileId", "unique()");
+          form.append("file", blob, "artist.jpg");
+          const upRes = await fetch(AW_EP + "/storage/buckets/xultra_music/files", {
+            method: "POST",
+            headers: { "X-Appwrite-Project": AW_PID, "X-Appwrite-Key": AW_KEY },
+            body: form
+          });
+          if (upRes.ok) {
+            const upJson = await upRes.json();
+            hostedPhoto = WEBAUTHN_ORIGIN + "/api/aw/storage/buckets/xultra_music/files/" + upJson.$id + "/view?project=" + AW_PID;
+          }
+        }
+      } catch (e) {}
+    }
+    try {
+      return await awFetch("/databases/" + AW_DB + "/collections/xm_official_artists/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { name: name, normalizedName: normalizedName, photoUrl: hostedPhoto, deezerId: deezerId || "", trackCount: 0 }, permissions: ["read(\"any\")"] }
+      });
+    } catch (e) { return null; }
   }
   if (path === "/api/music/tracks/create" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
@@ -32156,19 +32335,47 @@ async function handle(request, event) {
       // déterminé ici — soit déjà "officiel" par le mécanisme existant
       // (Streaming, réservé au staff/créateurs), soit par une recherche sur
       // le même catalogue public (Deezer/iTunes) que l'enrichissement
-      // pochette/genre, avec vérification que l'artiste retrouvé correspond
-      // VRAIMENT à celui saisi (jamais juste un titre qui matche par hasard
-      // une chanson connue d'un autre artiste). =====
+      // pochette/genre. Confirmé soit par un nom d'artiste qui ressemble
+      // vraiment à celui saisi, SOIT (cas d'un album en lot dont les
+      // fichiers n'indiquaient pas l'artiste — l'upload "hérite" alors par
+      // défaut du nom de la personne qui a envoyé l'album, qui n'a donc
+      // aucune ressemblance avec le vrai artiste) par un titre ET une durée
+      // qui correspondent exactement à un vrai enregistrement du catalogue —
+      // une preuve suffisamment forte pour ne pas dépendre du nom saisi.
+      // Dans les deux cas, la graphie officielle de l'artiste (et sa fiche,
+      // voir musicResolveOfficialArtist) remplace ce qui avait été saisi ou
+      // deviné à l'envoi. =====
       let contentType = "independent";
+      let finalArtistName = artistName;
+      let officialArtistId = "";
+      let officialArtistPhoto = "";
       if (channel === "streaming") {
         contentType = "official";
       } else {
         try {
-          const match = await musicLookupCommercialMatch(title, artistName);
-          if (match.found && musicArtistNamesLikelyMatch(artistName, match.matchedArtist)) contentType = "official";
+          let match = await musicLookupCommercialMatch(title, artistName);
+          let conf = musicMatchConfidence(match, title, artistName, durationSec);
+          if (!conf.confident) {
+            // Le nom d'artiste saisi peut être erroné (exactement le bug
+            // corrigé ici) et avoir faussé le classement de la recherche —
+            // nouvel essai sur le titre seul avant d'abandonner.
+            const retry = await musicLookupCommercialMatch(title, "");
+            const retryConf = musicMatchConfidence(retry, title, artistName, durationSec);
+            if (retryConf.confident) { match = retry; conf = retryConf; }
+          }
+          if (conf.confident) {
+            contentType = "official";
+            finalArtistName = match.matchedArtist;
+            const artistDoc = await musicResolveOfficialArtist(match.matchedArtist, match.matchedArtistPhoto, match.matchedArtistDeezerId);
+            if (artistDoc) {
+              officialArtistId = artistDoc.$id;
+              officialArtistPhoto = artistDoc.photoUrl || "";
+              await awFetch("/databases/" + AW_DB + "/collections/xm_official_artists/documents/" + artistDoc.$id, { method: "PATCH", asAdmin: true, body: { data: { trackCount: (artistDoc.trackCount || 0) + 1 } } }).catch(function () {});
+            }
+          }
         } catch (e) {}
       }
-      const data = { uid: acc.$id, title: title, artistName: artistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year, audioHash: audioHash, dedupKey: dedupKey, contentType: contentType };
+      const data = { uid: acc.$id, title: title, artistName: finalArtistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year, audioHash: audioHash, dedupKey: dedupKey, contentType: contentType, officialArtistId: officialArtistId, officialArtistPhoto: officialArtistPhoto };
       if (trackNumber) data.trackNumber = trackNumber;
       const doc = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents", {
         method: "POST", asAdmin: true,
@@ -32466,6 +32673,7 @@ async function handle(request, event) {
       const body = await request.json();
       const title = String((body && body.title) || "").trim().slice(0, 150);
       const artistName = String((body && body.artistName) || "").trim().slice(0, 100);
+      const durationSec = Math.max(0, Math.round(Number((body && body.durationSec) || 0)));
       if (!title) throw new Error("Titre requis");
       // Recherche pochette/genre publics pour un titre déjà connu — jamais
       // utilisée pour le fichier audio lui-même (uploadé par la personne,
@@ -32476,7 +32684,7 @@ async function handle(request, event) {
       // limit... itunes-apple-com" en continu depuis ces IP). iTunes garde
       // en secours si Deezer ne trouve rien.
       const q = encodeURIComponent((title + " " + artistName).trim());
-      let artworkSrc = "", genreRaw = "", album = "", year = "";
+      let artworkSrc = "", genreRaw = "", album = "", year = "", foundArtistName = "", matchedTitle = "", matchedDurationSec = 0;
       try {
         const dzRes = await fetch("https://api.deezer.com/search?q=" + q + "&limit=1");
         if (dzRes.ok) {
@@ -32485,6 +32693,9 @@ async function handle(request, event) {
           if (dzHit && dzHit.album) {
             artworkSrc = dzHit.album.cover_xl || dzHit.album.cover_big || dzHit.album.cover_medium || "";
             album = dzHit.album.title || "";
+            foundArtistName = (dzHit.artist && dzHit.artist.name) || "";
+            matchedTitle = dzHit.title_short || dzHit.title || "";
+            matchedDurationSec = Math.round(Number(dzHit.duration || 0));
             try {
               const albRes = await fetch("https://api.deezer.com/album/" + dzHit.album.id);
               if (albRes.ok) {
@@ -32507,6 +32718,7 @@ async function handle(request, event) {
               genreRaw = genreRaw || hit.primaryGenreName || "";
               album = album || hit.collectionName || "";
               year = year || (hit.releaseDate ? String(hit.releaseDate).slice(0, 4) : "");
+              if (!foundArtistName) { foundArtistName = hit.artistName || ""; matchedTitle = hit.trackName || ""; matchedDurationSec = Math.round(Number(hit.trackTimeMillis || 0) / 1000); }
             }
           }
         } catch (e) {}
@@ -32535,8 +32747,34 @@ async function handle(request, event) {
       let genre = "";
       const gname = String(genreRaw || "").toLowerCase();
       for (const k in MUSIC_GENRE_MAP) { if (gname.indexOf(k) >= 0) { genre = MUSIC_GENRE_MAP[k]; break; } }
+      // Le nom d'artiste renvoyé ici sert au client à CORRIGER un champ resté
+      // à sa valeur par défaut (voir openMusicUploadForm/openMusicBulkUploadForm)
+      // — bien plus délicat qu'une simple suggestion de pochette : un titre
+      // original d'un membre X1 dont le titre correspond par coïncidence à
+      // une chanson du commerce ne doit JAMAIS se faire renommer en cet
+      // artiste. Exigé ici : titre ET durée qui correspondent vraiment à
+      // l'enregistrement trouvé (même preuve que /api/music/tracks/create
+      // pour la classification officiel/indépendant) — jamais le titre seul.
+      const titleMatchesExactly = musicNormalizeForCompare(title).length >= 3 && musicNormalizeForCompare(title) === musicNormalizeForCompare(matchedTitle);
+      const durationMatchesToo = matchedDurationSec > 0 && durationSec > 0 && Math.abs(matchedDurationSec - durationSec) <= 5;
+      let confidentArtistName = (titleMatchesExactly && durationMatchesToo) ? foundArtistName : "";
+      if (!confidentArtistName) {
+        // Le nom d'artiste saisi (souvent encore erroné à ce stade — voir
+        // pourquoi ci-dessus) a pu fausser le classement de CETTE recherche
+        // précise ; nouvel essai sur le titre seul avant d'abandonner la
+        // correction (n'affecte jamais coverUrl/genre/album/year, déjà
+        // déterminés plus haut).
+        try {
+          const retry = await musicLookupCommercialMatch(title, "");
+          if (retry.found) {
+            const retryTitleMatches = musicNormalizeForCompare(title).length >= 3 && musicNormalizeForCompare(title) === musicNormalizeForCompare(retry.matchedTitle);
+            const retryDurationMatches = retry.matchedDurationSec > 0 && durationSec > 0 && Math.abs(retry.matchedDurationSec - durationSec) <= 5;
+            if (retryTitleMatches && retryDurationMatches) confidentArtistName = retry.matchedArtist;
+          }
+        } catch (e) {}
+      }
       return new Response(JSON.stringify({
-        ok: true, found: true, coverUrl: coverUrl, genre: genre, album: album, year: year
+        ok: true, found: true, coverUrl: coverUrl, genre: genre, album: album, year: year, artistName: confidentArtistName
       }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
