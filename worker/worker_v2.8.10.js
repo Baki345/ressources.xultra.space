@@ -2085,6 +2085,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .beta-pill:hover{background:rgba(250,204,21,.28)}
 .dl-vt-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:.7rem;font-weight:700;color:#86efac;text-decoration:none}
 .dl-vt-badge:hover{text-decoration:underline}
+.dl-source-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;font-size:.7rem;font-weight:700;color:#93c5fd;text-decoration:none}
+.dl-source-badge:hover{text-decoration:underline}
+.dl-verify-note a{color:#93c5fd}
 .dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
 .dl-verify-toggle:hover{color:#e9d5ff}
 .dl-verify-box{margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;text-align:left}
@@ -4640,6 +4643,7 @@ a.bug-att-item{display:block}
     <div class="desktop-dl" id="desktop-dl">
       <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
       <a class="dl-vt-badge hidden" id="dl-vt-badge" target="_blank" rel="noopener"></a>
+      <a class="dl-source-badge" id="dl-source-badge" target="_blank" rel="noopener">📂 Code source ouvert sur GitHub</a>
       <div class="desktop-dl-others" id="desktop-dl-others"></div>
       <button type="button" class="dl-verify-toggle" id="dl-verify-toggle">🔒 Vérifier l'empreinte du fichier (SHA-256)</button>
       <div class="dl-verify-box hidden" id="dl-verify-box"></div>
@@ -6021,6 +6025,12 @@ const APP_STORAGE_PROJECT='6a73b975002f14dc6b91';
 // et appels fonctionnent quand même, via le PWA (§ manifest.webmanifest).
 // ChromeOS réutilise le même .apk qu'Android (ARC++) : même fileId, juste un
 // intitulé et des instructions d'installation différents.
+// Dépôt GitHub public contenant le code source exact du site (worker/) et de
+// l'application desktop (desktop/) — permet à qui le souhaite (utilisateurs
+// méfiants vis-à-vis d'un binaire fermé) de lire le code, l'auditer, ou le
+// recompiler lui-même plutôt que de faire confiance aveuglément aux fichiers
+// publiés.
+const X1_SOURCE_URL='https://github.com/Baki345/ressources.xultra.space/tree/claude/xultra-space-code-review-gzpd84';
 const APP_PLATFORMS=[
   {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
   {key:'android',label:'Android',fileId:'xultra_dl_android_apk',icon:'🤖'},
@@ -6092,6 +6102,7 @@ function detectAppPlatformKey(){
     vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
     vtBadge.classList.remove('hidden');
   }
+  const srcBadge=\$('dl-source-badge');if(srcBadge)srcBadge.href=X1_SOURCE_URL;
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
     othersBox.innerHTML=APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
@@ -6112,7 +6123,8 @@ function detectAppPlatformKey(){
         verifyBox.innerHTML=APP_PLATFORMS.filter(function(p){return APP_CHECKSUMS[p.key];}).map(function(p){
           const vtP=APP_VT[p.key];
           return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
-        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>';
+        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>'
+        +'<div class="dl-verify-note">📂 Le code est <strong>open source</strong> : <a href="'+esc(X1_SOURCE_URL)+'" target="_blank" rel="noopener">lis-le sur GitHub</a> (site web + appli desktop), vérifie qu\\'il ne fait rien de caché, ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
         verifyBox.dataset.filled='1';
         verifyBox.querySelectorAll('[data-copy-hash]').forEach(function(b){
           b.onclick=function(){
@@ -9047,6 +9059,7 @@ function renderSetDownload(box){
     +'<div class="set-card" style="text-align:center;padding:22px 16px">'
       +'<button type="button" class="btn-main" id="set-dl-btn" style="width:100%;font-size:.95rem;padding:14px">💻 Télécharger pour <span id="set-dl-os">ordinateur</span></button>'
       +'<a class="dl-vt-badge hidden" id="set-dl-vt-badge" target="_blank" rel="noopener"></a>'
+      +'<a class="dl-source-badge" id="set-dl-source-badge" target="_blank" rel="noopener">📂 Code source ouvert sur GitHub</a>'
       +'<div class="desktop-dl-others" id="set-dl-others" style="margin-top:14px"></div>'
     +'</div>'
     +'<div class="set-card">'
@@ -9061,6 +9074,7 @@ function renderSetDownload(box){
     vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
     vtBadge.classList.remove('hidden');
   }
+  const srcBadge=\$('set-dl-source-badge');if(srcBadge)srcBadge.href=X1_SOURCE_URL;
   const othersBox=\$('set-dl-others');
   othersBox.innerHTML='<div class="scr-label" style="margin-bottom:8px">Autres plateformes</div>'
     +APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
@@ -9080,7 +9094,8 @@ function renderSetDownload(box){
         verifyBox.innerHTML=APP_PLATFORMS.filter(function(p){return APP_CHECKSUMS[p.key];}).map(function(p){
           const vtP=APP_VT[p.key];
           return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-set-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
-        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>';
+        }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>'
+        +'<div class="dl-verify-note">📂 Le code est <strong>open source</strong> : <a href="'+esc(X1_SOURCE_URL)+'" target="_blank" rel="noopener">lis-le sur GitHub</a> (site web + appli desktop), vérifie qu\\'il ne fait rien de caché, ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
         verifyBox.dataset.filled='1';
         verifyBox.querySelectorAll('[data-set-copy-hash]').forEach(function(b){
           b.onclick=function(){
