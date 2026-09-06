@@ -2139,46 +2139,6 @@ html.xultra-restoring #stage{visibility:hidden}
 .dl-source-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin:6px auto 0;font-size:.7rem;font-weight:700;color:#93c5fd;text-decoration:none;border:none;background:transparent;font-family:inherit;cursor:pointer;padding:0}
 .dl-source-badge:hover{text-decoration:underline}
 .dl-verify-note a{color:#93c5fd;cursor:pointer}
-/* XCodeHUB : navigateur de code source public (appli desktop native) */
-.codehub-modal{width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;background:linear-gradient(165deg,#1a1030 0%,#0d0818 100%);border:1px solid rgba(167,139,250,.35);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 60px rgba(124,58,237,.15);animation:codehubPop .32s cubic-bezier(.2,.9,.25,1.1)}
-@keyframes codehubPop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
-.codehub-head{padding:24px 46px 16px 26px;border-bottom:1px solid rgba(42,31,61,.9);position:relative;background:radial-gradient(600px 200px at 15% -30%,rgba(124,58,237,.3),transparent 65%);overflow:hidden}
-.codehub-head::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:codehubSheen 2.6s ease-in-out .3s 1}
-@keyframes codehubSheen{to{left:120%}}
-.codehub-logo{font-size:1.35rem;font-weight:900;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.02em;display:flex;align-items:center;gap:9px;position:relative}
-.codehub-sub{font-size:.82rem;color:var(--muted);margin-top:6px;position:relative}
-.codehub-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:relative}
-.codehub-badge{font-size:.68rem;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;opacity:0;animation:codehubBadgeIn .4s ease forwards}
-.codehub-badge:nth-child(1){animation-delay:.08s}.codehub-badge:nth-child(2){animation-delay:.18s}.codehub-badge:nth-child(3){animation-delay:.28s}
-@keyframes codehubBadgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
-.codehub-body{display:flex;flex:1;min-height:0}
-.codehub-files{width:230px;flex-shrink:0;border-right:1px solid rgba(42,31,61,.9);overflow-y:auto;padding:10px}
-.codehub-file-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.82rem;color:#d1c4e9;opacity:0;animation:codehubRowIn .32s ease forwards;transition:background .15s ease,transform .15s ease}
-@keyframes codehubRowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
-.codehub-file-row:hover{background:rgba(167,139,250,.1);transform:translateX(2px)}
-.codehub-file-row.active{background:rgba(124,58,237,.24);box-shadow:inset 0 0 0 1px rgba(167,139,250,.45)}
-.codehub-file-icon{font-size:1rem}
-.codehub-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.codehub-file-size{font-size:.63rem;color:var(--muted);flex-shrink:0}
-.codehub-viewer{flex:1;display:flex;flex-direction:column;min-width:0}
-.codehub-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(42,31,61,.9);background:rgba(255,255,255,.02)}
-.codehub-file-path{font-size:.76rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.codehub-copy-btn{font-size:.7rem;font-weight:700;padding:5px 11px;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.1);color:#e9d5ff;cursor:pointer;transition:background .15s ease,transform .1s ease;flex-shrink:0}
-.codehub-copy-btn:hover{background:rgba(167,139,250,.22)}
-.codehub-copy-btn:active{transform:scale(.94)}
-.codehub-code{flex:1;overflow:auto;margin:0;padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;line-height:1.6;color:#e5e0f0}
-.codehub-code code{white-space:pre}
-.tok-kw{color:#c084fc;font-weight:600}
-.tok-str{color:#86efac}
-.tok-com{color:#7b7690;font-style:italic}
-.tok-num{color:#fbbf24}
-.codehub-foot{padding:12px 20px;font-size:.68rem;color:#6b7280;text-align:center;border-top:1px solid rgba(42,31,61,.9)}
-.codehub-loading{padding:24px;text-align:center;color:var(--muted);font-size:.82rem}
-@media (max-width:640px){
-  .codehub-body{flex-direction:column}
-  .codehub-files{width:100%;max-height:150px;border-right:none;border-bottom:1px solid rgba(42,31,61,.9)}
-  .codehub-head{padding-right:26px}
-}
 .dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
 .dl-verify-toggle:hover{color:#e9d5ff}
 .dl-verify-box{margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;text-align:left}
@@ -3548,6 +3508,50 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .overlay{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.6);display:none;padding:16px;overflow-y:auto}
 .overlay:not(.hidden){display:flex}
 .modal-box{width:min(360px,100%);margin:auto;background:#15101f;border:1px solid rgba(167,139,250,.2);border-radius:16px;padding:20px;position:relative}
+/* XCodeHUB : navigateur de code source public (appli desktop native). Doit
+   rester APRÈS .modal-box dans la feuille de style : même spécificité
+   (une classe), donc l'ordre de déclaration décide — placé avant, ses
+   width/padding se faisaient écraser par ceux de .modal-box (bug repéré
+   avec un écran trop étroit qui laissait Paramètres visible tout autour). */
+.codehub-modal{width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;background:linear-gradient(165deg,#1a1030 0%,#0d0818 100%);border:1px solid rgba(167,139,250,.35);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 60px rgba(124,58,237,.15);animation:codehubPop .32s cubic-bezier(.2,.9,.25,1.1)}
+@keyframes codehubPop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.codehub-head{padding:24px 46px 16px 26px;border-bottom:1px solid rgba(42,31,61,.9);position:relative;background:radial-gradient(600px 200px at 15% -30%,rgba(124,58,237,.3),transparent 65%);overflow:hidden}
+.codehub-head::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:codehubSheen 2.6s ease-in-out .3s 1}
+@keyframes codehubSheen{to{left:120%}}
+.codehub-logo{font-size:1.35rem;font-weight:900;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.02em;display:flex;align-items:center;gap:9px;position:relative}
+.codehub-sub{font-size:.82rem;color:var(--muted);margin-top:6px;position:relative}
+.codehub-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:relative}
+.codehub-badge{font-size:.68rem;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;opacity:0;animation:codehubBadgeIn .4s ease forwards}
+.codehub-badge:nth-child(1){animation-delay:.08s}.codehub-badge:nth-child(2){animation-delay:.18s}.codehub-badge:nth-child(3){animation-delay:.28s}
+@keyframes codehubBadgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
+.codehub-body{display:flex;flex:1;min-height:0}
+.codehub-files{width:230px;flex-shrink:0;border-right:1px solid rgba(42,31,61,.9);overflow-y:auto;padding:10px}
+.codehub-file-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.82rem;color:#d1c4e9;opacity:0;animation:codehubRowIn .32s ease forwards;transition:background .15s ease,transform .15s ease}
+@keyframes codehubRowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.codehub-file-row:hover{background:rgba(167,139,250,.1);transform:translateX(2px)}
+.codehub-file-row.active{background:rgba(124,58,237,.24);box-shadow:inset 0 0 0 1px rgba(167,139,250,.45)}
+.codehub-file-icon{font-size:1rem}
+.codehub-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.codehub-file-size{font-size:.63rem;color:var(--muted);flex-shrink:0}
+.codehub-viewer{flex:1;display:flex;flex-direction:column;min-width:0}
+.codehub-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(42,31,61,.9);background:rgba(255,255,255,.02)}
+.codehub-file-path{font-size:.76rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.codehub-copy-btn{font-size:.7rem;font-weight:700;padding:5px 11px;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.1);color:#e9d5ff;cursor:pointer;transition:background .15s ease,transform .1s ease;flex-shrink:0}
+.codehub-copy-btn:hover{background:rgba(167,139,250,.22)}
+.codehub-copy-btn:active{transform:scale(.94)}
+.codehub-code{flex:1;overflow:auto;margin:0;padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;line-height:1.6;color:#e5e0f0}
+.codehub-code code{white-space:pre}
+.tok-kw{color:#c084fc;font-weight:600}
+.tok-str{color:#86efac}
+.tok-com{color:#7b7690;font-style:italic}
+.tok-num{color:#fbbf24}
+.codehub-foot{padding:12px 20px;font-size:.68rem;color:#6b7280;text-align:center;border-top:1px solid rgba(42,31,61,.9)}
+.codehub-loading{padding:24px;text-align:center;color:var(--muted);font-size:.82rem}
+@media (max-width:640px){
+  .codehub-body{flex-direction:column}
+  .codehub-files{width:100%;max-height:150px;border-right:none;border-bottom:1px solid rgba(42,31,61,.9)}
+  .codehub-head{padding-right:26px}
+}
 .discover-modal-box{width:min(640px,100%)}
 .discover-scroll{max-height:64vh;overflow-y:auto;padding-right:2px}
 @keyframes discoFadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
