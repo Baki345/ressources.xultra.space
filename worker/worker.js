@@ -3458,6 +3458,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .msg.mine .msg-location span{color:rgba(255,255,255,.7)}
 .link-preview-card{margin-top:6px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);max-width:280px}
 .link-preview-card:empty{display:none}
+.yt-embed{margin-top:6px;border-radius:12px;overflow:hidden;border:1px solid rgba(167,139,250,.25);background:#000;max-width:360px;position:relative;aspect-ratio:16/9}
+.yt-embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .lp-inner{display:block;color:inherit;text-decoration:none}
 .lp-img{width:100%;height:110px;background-size:cover;background-position:center;background-color:rgba(255,255,255,.03)}
 .lp-text{padding:8px 10px}
@@ -15305,6 +15307,8 @@ function renderMsgBody(m,text,mediaUrl,mediaItems){
   if(appPrefs&&appPrefs.linkPreview===false)return linkedText;
   const firstLink=firstUrl(text);
   if(!firstLink)return linkedText;
+  const ytId=youtubeVideoId(firstLink);
+  if(ytId)return linkedText+youtubeEmbedHtml(ytId);
   return linkedText+'<div class="link-preview-card" data-lp-url="'+esc(firstLink)+'"></div>';
 }
 // Spoiler (flouté, révélable par n'importe qui d'un clic) / 18+ (flouté,
@@ -15431,6 +15435,18 @@ function openSnapViewer(messageId,url,type,durationSec,noScreenshot){
 function firstUrl(text){
   const m=String(text||'').match(/https?:\\/\\/[^\\s<]+/);
   return m?m[0]:'';
+}
+// Lecture directe depuis le chat pour YouTube (watch/shorts/youtu.be/embed,
+// avec ou sans paramètres additionnels) — seul l'ID (11 caractères
+// [A-Za-z0-9_-]) extrait par cette regex atterrit dans le src de l'iframe,
+// jamais l'URL brute : aucun risque d'y injecter autre chose qu'une vraie
+// intégration youtube-nocookie.com.
+function youtubeVideoId(url){
+  const m=String(url||'').match(/(?:youtube(?:-nocookie)?\\.com\\/(?:watch\\?(?:.*&)?v=|shorts\\/|embed\\/)|youtu\\.be\\/)([A-Za-z0-9_-]{11})/);
+  return m?m[1]:'';
+}
+function youtubeEmbedHtml(id){
+  return '<div class="yt-embed"><iframe src="https://www.youtube-nocookie.com/embed/'+id+'" title="Lecteur YouTube" loading="lazy" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>';
 }
 function mountLinkPreviews(container){
   if(!container)return;
@@ -30154,7 +30170,11 @@ function buildChannelMsgHtml(m,stackClass,stackStyle){
   const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
   const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
   const shareEmbed=(!m.stickerUrl&&!m.pollJson&&!isMediaMsg)?x1ShareParseEmbed(m.text):null;
-  const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):(shareEmbed?renderX1ShareEmbedHtml(shareEmbed):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))))));
+  const chanText=replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()));
+  const chanFirstLink=(!m.stickerUrl&&!m.pollJson&&!isMediaMsg&&!shareEmbed&&appPrefs&&appPrefs.linkPreview!==false)?firstUrl(m.text):'';
+  const chanYtId=chanFirstLink?youtubeVideoId(chanFirstLink):'';
+  const chanTextWithPreview=chanText+(chanYtId?youtubeEmbedHtml(chanYtId):(chanFirstLink?'<div class="link-preview-card" data-lp-url="'+esc(chanFirstLink)+'"></div>':''));
+  const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):(shareEmbed?renderX1ShareEmbedHtml(shareEmbed):applySpoilerGate(m,chanTextWithPreview))));
   const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
   const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
   const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
