@@ -29830,16 +29830,19 @@ function renderServerChannelList(){
   };
 }
 function openServerChannel(channelId){
-  activeChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
-  if(!activeChannel)return;
+  const nextChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
+  if(!nextChannel)return;
+  // Déjà connecté à CE salon vocal : un clic sur son nom ne sert plus à
+  // rejoindre (c'est déjà fait) mais à ouvrir/rouvrir le plein écran
+  // cinéma — deux temps volontairement distincts (1er clic = rejoindre en
+  // silence, 2e clic = afficher les tuiles/cams) pour ne jamais replaquer
+  // le plein écran à la figure de quelqu'un qui vient juste de rejoindre.
+  const wasConnectedHere=nextChannel.type==='voice'&&groupRoom&&groupCallContextType==='channel'&&groupCallContextId===channelId;
+  activeChannel=nextChannel;
   renderServerChannelContent();
-  // Un salon vocal se rejoint directement au clic sur son nom dans la liste
-  // — comme Discord — plutôt que d'exiger un second clic sur "Rejoindre"
-  // une fois la vue ouverte : on passe tout de suite aux caméras et à la
-  // liste des présents. startVoiceChannelJoin() ne fait rien si on est déjà
-  // connecté à CE salon, et refuse proprement si on est déjà dans un AUTRE
-  // salon vocal/appel.
-  if(activeChannel.type==='voice')startVoiceChannelJoin(activeChannel);
+  if(activeChannel.type!=='voice')return;
+  if(wasConnectedHere)enterChannelVoiceCinema();
+  else startVoiceChannelJoin(activeChannel);
 }
 let joiningVoiceChannelId=null;
 function startVoiceChannelJoin(channel){
@@ -29950,49 +29953,19 @@ function renderServerChannelContent(){
   html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
-    if(inVoiceHere){
-      // Toujours plein écran sur toute l'appli dès qu'on est connecté et
-      // qu'on regarde ce salon — voir enterChannelVoiceCinema. "box" ne
-      // sert plus que de filet si jamais le plein écran ne s'affichait pas.
-      enterChannelVoiceCinema();
-      html+='<div class="srv-voice-card"><div class="svc-icon">'+icon('mic',30)+'</div><div class="svc-title">Appel en plein écran</div><button type="button" class="btn-main" id="srv-voice-reopen-cinema" style="margin-top:12px">Revenir à l\\'appel</button></div>';
-      box.innerHTML=html;
-      wireServerChannelBack();
-      const reopenBtn=\$('srv-voice-reopen-cinema');if(reopenBtn)reopenBtn.onclick=enterChannelVoiceCinema;
-      return;
-    }
-    // Écran de "pré-jonction" (façon Discord) : on montre qui est déjà là
-    // avant de rejoindre, plutôt que de se connecter automatiquement au
-    // simple clic sur le salon — startVoiceChannelJoin() n'est déclenché
-    // qu'au clic explicite sur "Rejoindre le salon vocal".
-    const isJoining=joiningVoiceChannelId===activeChannel.\$id;
-    const presence=serverVoicePresenceCache[activeChannel.\$id]||[];
-    html+='<div class="srv-voice-card">'
-      +'<div class="svc-icon">🔊</div>'
-      +'<div class="svc-title">'+esc(activeChannel.name)+'</div>'
-      +'<div class="scr-sub">Qualité audio : '+esc(SERVER_QUALITY_LABELS[activeServer.audioQualityKey]||'Standard')+'</div>'
-      +(presence.length?(
-        '<div class="svc-present-label">'+presence.length+' personne'+(presence.length>1?'s':'')+' dans ce salon</div>'
-        +'<div class="svc-present-list">'+presence.map(function(p){
-          const prof=membersCache.find(function(x){return String(x.authUserId||x.\$id)===String(p.uid);});
-          const name=p.username||(prof&&(prof.displayName||prof.username))||'Membre';
-          const av=prof&&safeUrl(prof.avatar);
-          return '<div class="svc-present-row" data-svc-present="'+esc(p.uid)+'">'
-            +'<span class="svc-present-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(name)))+'</span>'
-            +'<span class="svc-present-name">'+esc(name)+'</span>'
-            +(p.cameraOn?'<span title="Caméra active">📹</span>':'')
-          +'</div>';
-        }).join('')+'</div>'
-      ):'<div class="svc-present-label">Personne dans ce salon pour l\\'instant</div>')
-      +'<button type="button" class="btn-main svc-join-btn" id="srv-voice-join"'+(isJoining?' disabled':'')+'>'+(isJoining?'⏳ Connexion…':'🎙️ Rejoindre le salon vocal')+'</button>'
+    // Le clic sur le salon a déjà déclenché la connexion (ou l'ouverture du
+    // plein écran s'il s'agit d'un re-clic — voir openServerChannel) : "box"
+    // ne montre plus jamais qu'une petite carte de statut minimale, jamais
+    // la vieille liste des présents ni un bouton "Rejoindre" — un salon
+    // vocal se rejoint désormais uniquement en cliquant sur son nom.
+    const isJoining=!inVoiceHere&&joiningVoiceChannelId===activeChannel.\$id;
+    html+='<div class="srv-voice-card"><div class="svc-icon">'+icon('mic',30)+'</div><div class="svc-title">'+esc(activeChannel.name)+'</div>'
+      +'<div class="scr-sub">'+(inVoiceHere?'Connecté — clique à nouveau pour afficher l\\'appel':(isJoining?'⏳ Connexion…':'Clique sur le salon pour le rejoindre'))+'</div>'
+      +(inVoiceHere?'<button type="button" class="btn-main" id="srv-voice-reopen-cinema" style="margin-top:12px">Revenir à l\\'appel</button>':'')
     +'</div>';
     box.innerHTML=html;
     wireServerChannelBack();
-    const voiceBtn=\$('srv-voice-join');
-    if(voiceBtn)voiceBtn.onclick=function(){startVoiceChannelJoin(activeChannel);};
-    box.querySelectorAll('[data-svc-present]').forEach(function(el){
-      el.addEventListener('click',function(){openProfileModal(el.getAttribute('data-svc-present'));});
-    });
+    const reopenBtn=\$('srv-voice-reopen-cinema');if(reopenBtn)reopenBtn.onclick=enterChannelVoiceCinema;
     return;
   }
   if(activeChannel.type==='stage'){
