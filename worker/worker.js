@@ -22,7 +22,7 @@ const CSP_HEADER = "default-src 'self'; " +
   "media-src 'self' blob: https:; " +
   "font-src 'self' data: https:; " +
   "connect-src 'self' https: wss:; " +
-  "frame-src 'self' blob: https://challenges.cloudflare.com; " +
+  "frame-src 'self' blob: https://challenges.cloudflare.com https://www.youtube-nocookie.com; " +
   "object-src 'none'; " +
   "base-uri 'self'; " +
   "form-action 'self'; " +
