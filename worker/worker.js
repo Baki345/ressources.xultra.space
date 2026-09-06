@@ -4105,6 +4105,36 @@ a.bug-att-item{display:block}
 .msg-embed-image{max-width:100%;border-radius:6px;margin-top:8px;display:block}
 .msg-embed-thumb{max-width:64px;max-height:64px;border-radius:6px;float:right}
 .msg-embed-footer{font-size:.68rem;opacity:.6;margin-top:8px}
+/* ===== Partage d'un XBin/titre X1 Music en carte dans une bulle de chat =====
+   Rendu directement dans le texte du message (voir x1ShareParseEmbed/
+   X1SHARE_V1 : jamais un nouveau champ dédié, pour traverser tel quel le
+   chiffrement de bout en bout des DM — le texte chiffré porte cette carte
+   exactement comme il porterait n'importe quel autre message). */
+.chat-share-embed{display:flex;align-items:center;gap:10px;margin-top:4px;padding:9px 10px;border-radius:12px;cursor:pointer;max-width:320px;transition:transform .12s ease,background .15s ease;border:1px solid transparent}
+.chat-share-embed:hover{transform:translateY(-1px)}
+.chat-share-xbin{background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(124,58,237,.05));border-color:rgba(167,139,250,.3)}
+.chat-share-xbin:hover{background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(124,58,237,.08))}
+.chat-share-music{background:linear-gradient(135deg,rgba(219,39,119,.14),rgba(124,58,237,.06));border-color:rgba(244,114,182,.3)}
+.chat-share-music:hover{background:linear-gradient(135deg,rgba(219,39,119,.22),rgba(124,58,237,.1))}
+.chat-share-icon{width:38px;height:38px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.06);display:grid;place-items:center;font-size:1.15rem}
+.chat-share-cover{width:38px;height:38px;flex-shrink:0;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#7c3aed,#db2777);display:grid;place-items:center;font-size:1rem}
+.chat-share-cover img{width:100%;height:100%;object-fit:cover}
+.chat-share-body{flex:1;min-width:0}
+.chat-share-title{font-weight:800;font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-share-sub{font-size:.71rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.chat-share-cta,.chat-share-play{flex-shrink:0;font-size:.72rem;color:var(--muted);font-weight:700}
+.chat-share-play{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;color:#fff}
+/* Sélecteur "Partager dans..." (DM/groupe/serveur) */
+.x1share-section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;padding:10px 4px 6px}
+.x1share-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-radius:10px;cursor:pointer;transition:background .12s ease}
+.x1share-row:hover{background:rgba(255,255,255,.05)}
+.x1share-row-av{width:34px;height:34px;border-radius:50%;overflow:hidden;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,#7c3aed,#db2777);font-weight:800;font-size:.8rem;color:#fff}
+.x1share-row-av img{width:100%;height:100%;object-fit:cover}
+.x1share-row-name{flex:1;min-width:0;font-weight:700;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.x1share-chevron{color:var(--muted);flex-shrink:0}
+.x1share-channels{padding-left:18px}
+.x1share-channels.hidden{display:none}
+.x1share-channel-row .x1share-row-av{background:rgba(255,255,255,.06);font-size:1rem}
 .bot-perm-check{display:flex;align-items:center;gap:6px;font-size:.82rem;padding:5px 0;cursor:pointer}
 .adm-badge-checklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:2px 14px;padding:8px;background:rgba(0,0,0,.2);border-radius:10px}
 .bot-perm-check input{cursor:pointer}
@@ -7865,6 +7895,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.76',category:'feature',date:'6 septembre 2026',time:'04:00',title:'📤 Partager un XBin ou un titre X1 Music en message',
+    body:'Nouveau bouton "📤 Partager"/"📤 Envoyer en message" sur un paste XBin et sur un titre X1 Music (page du titre, cartes, liste) : choisis un DM, un groupe ou un salon de serveur, et le contenu arrive sous forme de carte stylisée cliquable directement dans la bulle de chat — clique dessus pour rouvrir le paste ou lancer le titre. Fonctionne partout, y compris dans les DM chiffrés de bout en bout (la carte voyage chiffrée exactement comme un message normal, jamais en clair sur le serveur).'},
   {version:'4.55.75',category:'design',date:'6 septembre 2026',time:'03:00',title:'🎨 Croix pour fermer, et plus de scroll inutile sur l\\'upload musique',
     body:'"+ Ajouter un titre" et "📀 Ajouter un album" ont maintenant une vraie croix ✕ en haut à droite pour fermer la fenêtre. Les deux formulaires tiennent aussi désormais dans la fenêtre sans avoir à faire défiler quoi que ce soit sur un écran normal — seul le formulaire de l\\'album fait défiler sa liste de titres (et seulement elle) quand l\\'album en contient beaucoup, les boutons Publier/Annuler restant toujours visibles en bas.'},
   {version:'4.55.74',category:'design',date:'6 septembre 2026',time:'02:00',title:'🎨 Zones de dépôt stylisées pour l\\'upload de musique',
@@ -14765,8 +14797,207 @@ function renderMediaGridHtml(items,caption){
   }).join('');
   return '<div class="msg-media-grid" style="grid-template-columns:repeat('+cols+',1fr)">'+cells+'</div>'+(caption?'<div class="msg-caption">'+linkify(esc(caption))+'</div>':'');
 }
+/* ===== Partager un XBin/titre X1 Music en message embed (DM, groupe, salon) =====
+   Encodé directement dans le TEXTE du message ("X1SHARE_V1:" + JSON), jamais
+   dans un champ à part : les DM sont chiffrés de bout en bout (voir
+   e2eEncryptTextWithKey plus haut) et le Worker ne voit jamais leur texte en
+   clair — un champ séparé aurait exigé de faire transiter l'embed en clair
+   par le serveur, cassant cette garantie. En passant par le texte, l'embed
+   est chiffré/déchiffré exactement comme n'importe quel autre message, sans
+   toucher au pipeline de chiffrement existant. Rien n'est validé côté
+   serveur (jamais un nouveau champ ni une nouvelle route) : le contenu
+   référencé (refId) est re-vérifié par ses PROPRES permissions au moment où
+   la personne qui reçoit clique dessus (openXBin / openMusicTrackPage font
+   déjà cette vérification), donc rien à revalider à l'envoi.
+   x1ShareParseEmbed reste strict (kind whitelisté + refId requis) : un
+   message qui commence par ce préfixe sans être un JSON valide de cette
+   forme retombe simplement en texte normal, jamais une erreur. */
+const X1SHARE_PREFIX='X1SHARE_V1:';
+function x1ShareParseEmbed(text){
+  if(typeof text!=='string'||text.indexOf(X1SHARE_PREFIX)!==0)return null;
+  let obj=null;try{obj=JSON.parse(text.slice(X1SHARE_PREFIX.length));}catch(e){return null}
+  if(!obj||typeof obj!=='object')return null;
+  if(obj.kind!=='xbin'&&obj.kind!=='music_track')return null;
+  if(!obj.refId)return null;
+  return obj;
+}
+function x1ShareBuildXbinPayload(d){
+  const lineCount=(d.content||'').split('\\n').length;
+  return {kind:'xbin',refId:d.\$id,title:d.title||'Sans titre',sub:xbinLangLabel(d.language)+' · '+lineCount+' ligne'+(lineCount!==1?'s':'')+' · par '+(d.authorName||'?')};
+}
+function x1ShareBuildTrackPayload(t){
+  return {kind:'music_track',refId:t.\$id,title:t.title||'Sans titre',sub:(t.artistName||'Artiste inconnu')+(t.contentType==='official'?' 🏅':'')+(t.durationSec?' · '+musicFmtTime(t.durationSec):''),cover:t.coverUrl||''};
+}
+// Aperçus courts (citation "en réponse à", barre de réponse en cours) :
+// jamais le JSON brut d'un message partagé, un libellé lisible à la place.
+function x1ShareSnippetLabel(text){
+  const embed=x1ShareParseEmbed(text);
+  if(!embed)return text;
+  return (embed.kind==='xbin'?'📋 ':'🎵 ')+(embed.title||'un contenu partagé');
+}
+function renderX1ShareEmbedHtml(p){
+  if(p.kind==='xbin'){
+    return '<div class="chat-share-embed chat-share-xbin" data-share-open="xbin" data-share-ref="'+esc(p.refId)+'">'
+      +'<div class="chat-share-icon">📋</div>'
+      +'<div class="chat-share-body"><div class="chat-share-title">'+esc(p.title||'Sans titre')+'</div><div class="chat-share-sub">'+esc(p.sub||'')+'</div></div>'
+      +'<div class="chat-share-cta">Ouvrir →</div>'
+    +'</div>';
+  }
+  const cover=safeUrl(p.cover);
+  return '<div class="chat-share-embed chat-share-music" data-share-open="music_track" data-share-ref="'+esc(p.refId)+'">'
+    +'<div class="chat-share-cover">'+(cover?'<img src="'+esc(cover)+'" alt="">':'<span>🎵</span>')+'</div>'
+    +'<div class="chat-share-body"><div class="chat-share-title">'+esc(p.title||'')+'</div><div class="chat-share-sub">'+esc(p.sub||'')+'</div></div>'
+    +'<div class="chat-share-play">▶</div>'
+  +'</div>';
+}
+// Délégué une seule fois au document : couvre tous les points d'insertion
+// (premier rendu, message reçu en direct, texte de DM déchiffré après coup)
+// sans avoir à ajouter un câblage séparé à chacun.
+document.addEventListener('click',function(e){
+  const el=e.target.closest('[data-share-open]');
+  if(!el)return;
+  e.stopPropagation();
+  const kind=el.getAttribute('data-share-open');
+  const refId=el.getAttribute('data-share-ref');
+  if(!refId)return;
+  if(kind==='xbin')openXBin(refId);
+  else if(kind==='music_track')openMusic().then(function(){openMusicTrackPage(refId);});
+});
+// Envoi vers un DM (1:1 ou groupe) : réplique volontairement la logique de
+// chiffrement de postMessage() (voir e2eGetMessageKeyContext) plutôt que de
+// la réutiliser telle quelle — postMessage() dépend des variables globales
+// de LA conversation actuellement ouverte (activeDm/activeDmIsGroup/...),
+// jamais adaptée à un envoi vers une conversation différente choisie dans
+// le sélecteur de partage.
+async function shareEmbedToDm(dm,payload){
+  const text=X1SHARE_PREFIX+JSON.stringify(payload);
+  const isGroup=dmIsGroup(dm);
+  const members=(dm.members||[]).map(String);
+  let aesKey=null,keysJson='';
+  if(isGroup){
+    const rawKey=crypto.getRandomValues(new Uint8Array(32));
+    try{aesKey=await crypto.subtle.importKey('raw',rawKey,{name:'AES-GCM'},false,['encrypt']);}catch(e){aesKey=null}
+    if(aesKey){
+      const rawKeyB64=b64enc(rawKey);
+      const keysObj={};
+      for(const uid of members){
+        if(uid===String(me.\$id))continue;
+        try{const wrapped=await e2eEncryptText(uid,rawKeyB64);if(wrapped)keysObj[uid]=wrapped;}catch(e){}
+      }
+      if(Object.keys(keysObj).length)keysJson=JSON.stringify(keysObj);else aesKey=null;
+    }
+  }else{
+    const peerUid=members.find(function(u){return u!==String(me.\$id);})||'';
+    aesKey=peerUid?await e2eThreadKey(peerUid):null;
+  }
+  let outText=text,enc=false;
+  if(aesKey){try{outText=await e2eEncryptTextWithKey(aesKey,text);enc=true;}catch(e){}}
+  const name=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'User';
+  await authPost('/api/dms/messages/send',{threadId:dm.\$id,displayName:name,type:'text',text:outText,mediaUrl:'',replyToId:'',enc:enc,keysJson:keysJson,contentFlag:''});
+  try{
+    const unread=parseJsonSafe(dm.unreadJson,{});
+    const recipients=members.filter(function(u){return u!==String(me.\$id);});
+    recipients.forEach(function(uid){unread[uid]=(unread[uid]||0)+1;});
+    await db.updateDocument(DB,'dms',dm.\$id,{lastMessage:(enc?'🔒 Message chiffré':'📤 A partagé un contenu'),unreadJson:JSON.stringify(unread)});
+    recipients.forEach(function(uid){authPost('/api/push/notify',{type:'message',toUid:uid,threadId:dm.\$id,preview:'📤 A partagé un contenu'}).catch(function(){});});
+  }catch(e){}
+  if(activeDm===dm.\$id){await appendNewMessages();}
+  await loadDms();if(view==='dms')renderDms();
+}
+// Envoi vers un salon de serveur : aucun chiffrement (les salons ne sont pas
+// en E2E), donc un simple appel à la route d'envoi existante avec le
+// serverId/channelId choisis — jamais besoin qu'ils soient "actifs" dans
+// l'UI, contrairement à sendServerChannelMessage() qui dépend d'activeServer/
+// activeChannel.
+async function shareEmbedToChannel(serverId,channelId,payload){
+  const text=X1SHARE_PREFIX+JSON.stringify(payload);
+  await authPost('/api/servers/channels/messages/send',{serverId:serverId,channelId:channelId,text:text,replyToId:'',threadId:'',contentFlag:''});
+  if(activeServer&&activeServer.\$id===serverId&&activeChannel&&activeChannel.\$id===channelId){await loadChannelMessages();}
+}
+function x1ShareDmRowHtml(dm){
+  const title=dmTitleFor(dm);
+  const group=dmIsGroup(dm);
+  let avHtml;
+  if(group){avHtml='<span class="x1share-row-av">👥</span>';}
+  else{
+    const peerUid=dmPeerId(dm);
+    const prof=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(peerUid);});
+    const av=safeUrl(prof&&prof.avatar);
+    avHtml='<span class="x1share-row-av">'+(av?'<img src="'+esc(av)+'" alt="">':esc(ini(title)))+'</span>';
+  }
+  return '<div class="x1share-row" data-x1share-dm="'+esc(dm.\$id)+'">'+avHtml+'<span class="x1share-row-name">'+esc(title)+'</span></div>';
+}
+function x1ShareServerRowHtml(s){
+  return '<div class="x1share-row x1share-server-row" data-x1share-server-toggle="'+esc(s.\$id)+'"><span class="x1share-row-av">'+serverIconHtml(s)+'</span><span class="x1share-row-name">'+esc(s.name)+'</span><span class="x1share-chevron">▸</span></div>'
+    +'<div class="x1share-channels hidden" id="x1share-channels-'+esc(s.\$id)+'"></div>';
+}
+async function openX1SharePicker(payload){
+  if(!me){showToast('Connecte-toi pour partager.','error');return}
+  const overlay=document.createElement('div');
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card music-modal-card" style="text-align:left;width:min(420px,94vw)">'
+    +'<button type="button" class="modal-close" id="x1share-x">✕</button>'
+    +'<div class="music-modal-head"><div class="set-section-label" style="margin:0">📤 Partager dans…</div></div>'
+    +'<div class="music-modal-body" id="x1share-list"><div class="xbin-loading"><span class="bs-ring"></span></div></div>'
+  +'</div>';
+  document.body.appendChild(overlay);
+  function close(){overlay.remove();}
+  \$('x1share-x').onclick=close;
+  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  await loadDms();
+  await loadMyServers();
+  const list=\$('x1share-list');if(!list)return;
+  const dmRows=dmsCache.map(x1ShareDmRowHtml).join('');
+  const serverRows=myServers.map(x1ShareServerRowHtml).join('');
+  list.innerHTML=(dmRows?'<div class="x1share-section-label">Messages privés</div>'+dmRows:'')
+    +(serverRows?'<div class="x1share-section-label">Serveurs</div>'+serverRows:'')
+    +((!dmRows&&!serverRows)?'<div class="scr-sub" style="padding:20px;text-align:center">Aucune conversation ni serveur pour l\\'instant.</div>':'');
+  list.querySelectorAll('[data-x1share-dm]').forEach(function(el){
+    el.addEventListener('click',async function(){
+      const dmId=el.getAttribute('data-x1share-dm');
+      const dm=dmsCache.find(function(d){return d.\$id===dmId;});
+      if(!dm)return;
+      el.style.opacity='.5';
+      try{await shareEmbedToDm(dm,payload);showToast('Partagé !');close();}
+      catch(e){showToast((e&&e.message)||'Envoi impossible','error');el.style.opacity='';}
+    });
+  });
+  list.querySelectorAll('[data-x1share-server-toggle]').forEach(function(el){
+    el.addEventListener('click',async function(){
+      const serverId=el.getAttribute('data-x1share-server-toggle');
+      const box=\$('x1share-channels-'+serverId);
+      if(!box)return;
+      const opening=box.classList.contains('hidden');
+      list.querySelectorAll('.x1share-channels').forEach(function(b){b.classList.add('hidden');});
+      if(!opening)return;
+      box.classList.remove('hidden');
+      if(box.dataset.loaded)return;
+      box.innerHTML='<div class="xbin-loading"><span class="bs-ring"></span></div>';
+      try{
+        const r=await authPost('/api/servers/channels/list',{serverId:serverId});
+        const channels=(r.channels||[]).filter(function(c){return c.type==='text';});
+        box.innerHTML=channels.length?channels.map(function(c){
+          return '<div class="x1share-row x1share-channel-row" data-x1share-channel="'+esc(serverId)+'|'+esc(c.\$id)+'"><span class="x1share-row-av">#</span><span class="x1share-row-name">'+esc(c.name)+'</span></div>';
+        }).join(''):'<div class="scr-sub" style="padding:8px 12px">Aucun salon textuel.</div>';
+        box.querySelectorAll('[data-x1share-channel]').forEach(function(cel){
+          cel.addEventListener('click',async function(){
+            const parts=cel.getAttribute('data-x1share-channel').split('|');
+            cel.style.opacity='.5';
+            try{await shareEmbedToChannel(parts[0],parts[1],payload);showToast('Partagé !');close();}
+            catch(e){showToast((e&&e.message)||'Envoi impossible','error');cel.style.opacity='';}
+          });
+        });
+      }catch(e){box.innerHTML='<div class="scr-sub" style="padding:8px 12px">Erreur de chargement.</div>';}
+      box.dataset.loaded='1';
+    });
+  });
+}
 function renderMsgBody(m,text,mediaUrl,mediaItems){
   const t=m.type||'text';
+  if(t==='text'){
+    const shareEmbed=x1ShareParseEmbed(text);
+    if(shareEmbed)return renderX1ShareEmbedHtml(shareEmbed);
+  }
   const url=safeUrl(mediaUrl);
   if(m.mediaMode==='ephemeral'&&(t==='image'||t==='video')){
     const mine=m.uid===(me&&me.\$id);
@@ -15290,7 +15521,7 @@ function msgReplyQuoteHtml(replyToId,findFn){
   const orig=findFn(replyToId);
   if(!orig)return '<div class="msg-reply-quote">Message d\\'origine indisponible</div>';
   const label=orig.displayName||orig.username||'Quelqu\\'un';
-  const snippet=orig.enc?'🔒 Déchiffrement…':(orig.text||(orig.mediaUrl?'📎 Pièce jointe':''));
+  const snippet=orig.enc?'🔒 Déchiffrement…':x1ShareSnippetLabel(orig.text||(orig.mediaUrl?'📎 Pièce jointe':''));
   return '<div class="msg-reply-quote" data-scroll-reply="'+esc(replyToId)+'"><b>'+esc(label)+'</b><span class="rq-text">'+esc(snippet)+'</span></div>';
 }
 // Bug remonté : l'aperçu "en réponse à" affichait toujours "Message chiffré"
@@ -15306,7 +15537,7 @@ function hydrateReplyQuotes(container){
     const span=el.querySelector('.rq-text');if(!span)return;
     attemptDecryptMessageText(orig).then(function(text){
       if(!document.body.contains(el))return;
-      span.textContent=text||'🔒 Message chiffré';
+      span.textContent=text?x1ShareSnippetLabel(text):'🔒 Message chiffré';
     }).catch(function(){});
   });
 }
@@ -15316,7 +15547,7 @@ function setReplyTarget(m,kind){
   const bar=\$(kind==='dm'?'reply-preview':'srv-reply-preview');
   if(!bar)return;
   const name=m.displayName||m.username||'Quelqu\\'un';
-  const snippet=m.enc?'🔒 Déchiffrement…':(m.text||(m.mediaUrl?'📎 Pièce jointe':''));
+  const snippet=m.enc?'🔒 Déchiffrement…':x1ShareSnippetLabel(m.text||(m.mediaUrl?'📎 Pièce jointe':''));
   bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((snippet||'').slice(0,60));
   bar.classList.add('show');
   const input=\$(kind==='dm'?'msg-input':'srv-chan-input');
@@ -15324,7 +15555,7 @@ function setReplyTarget(m,kind){
   if(m.enc){
     attemptDecryptMessageText(m).then(function(text){
       if(replyTarget!==m||!bar.classList.contains('show'))return;
-      bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((text||'🔒 Message chiffré').slice(0,60));
+      bar.querySelector('.rp-info').innerHTML='Réponse à <b>'+esc(name)+'</b> — '+esc((text?x1ShareSnippetLabel(text):'🔒 Message chiffré').slice(0,60));
     }).catch(function(){});
   }
 }
@@ -15684,7 +15915,7 @@ async function openPinnedMessages(kind){
   if(!list.length){box.innerHTML='Aucun message épinglé pour l\\'instant.';return}
   box.innerHTML=list.map(function(m){
     const author=esc(m.displayName||m.username||'Quelqu\\'un');
-    const text=esc(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':'')));
+    const text=esc(m.enc?'🔒 Message chiffré':x1ShareSnippetLabel(m.text||(m.mediaUrl?'📎 Pièce jointe':'')));
     return '<div class="msg-reply-quote" data-pinned-scroll="'+esc(m.\$id)+'" style="margin-bottom:8px;cursor:pointer"><b>'+author+'</b><span class="rq-text" style="white-space:normal">'+text+'</span></div>';
   }).join('');
   box.querySelectorAll('[data-pinned-scroll]').forEach(function(el){
@@ -15763,7 +15994,7 @@ async function openMessageSearch(kind){
       resBox.innerHTML=list.map(function(m){
         const author=esc(m.displayName||m.username||'Quelqu\\'un');
         const plain=plainByMid[m.\$id];
-        const text=esc(plain||(m.enc?'🔒 Message chiffré':(m.text||(m.mediaUrl?'📎 Pièce jointe':''))));
+        const text=esc(plain?x1ShareSnippetLabel(plain):(m.enc?'🔒 Message chiffré':x1ShareSnippetLabel(m.text||(m.mediaUrl?'📎 Pièce jointe':''))));
         return '<div class="msg-reply-quote" data-search-scroll="'+esc(m.\$id)+'" style="margin-bottom:8px;cursor:pointer"><b>'+author+'</b><span class="rq-text" style="white-space:normal">'+text+'</span><span style="font-size:.62rem;color:var(--muted);display:block;margin-top:2px">'+esc(fmtRelTime(m.\$createdAt))+(m.pinned?' · 📌':'')+'</span></div>';
       }).join('');
       resBox.querySelectorAll('[data-search-scroll]').forEach(function(el){
@@ -18685,6 +18916,7 @@ function renderXBinDetail(d){
     +'<div class="xbin-detail-actions">'
       +'<button type="button" class="xbin-act-btn" id="xbin-copy-btn">📋 Copier</button>'
       +'<button type="button" class="xbin-act-btn" id="xbin-share-btn">🔗 Partager</button>'
+      +(me?'<button type="button" class="xbin-act-btn" id="xbin-msg-share-btn">📤 Envoyer en message</button>':'')
       +'<button type="button" class="xbin-act-btn" id="xbin-raw-btn">📄 Brut</button>'
       +'<button type="button" class="xbin-act-btn" id="xbin-dl-btn">⬇️ Télécharger</button>'
       +(me?'<button type="button" class="xbin-act-btn" id="xbin-dup-btn">🍴 Dupliquer</button>':'')
@@ -18718,6 +18950,7 @@ function renderXBinDetail(d){
       .then(function(){showToast('Lien copié !');})
       .catch(function(){showToast(url,'error');});
   };
+  if(\$('xbin-msg-share-btn'))\$('xbin-msg-share-btn').onclick=function(){openX1SharePicker(x1ShareBuildXbinPayload(d));};
   \$('xbin-raw-btn').onclick=function(){
     const w=window.open('','_blank');
     if(w){w.document.write('<pre style="white-space:pre-wrap;word-break:break-word;font-family:monospace;padding:20px;background:#0d0814;color:#f2ebff">'+esc(d.content||'')+'</pre>');w.document.close();}
@@ -22244,6 +22477,7 @@ function musicTrackCardHtml(t){
       +musicOfflineButtonHtml(t)
       +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
       +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
+      +(me?'<button type="button" class="music-mini-btn" data-music-share="'+esc(t.\$id)+'" title="Envoyer en message">📤</button>':'')
     +'</div></div>';
 }
 // Rangée façon SoundCloud pour l'onglet Sons des membres : forme d'onde
@@ -22307,6 +22541,7 @@ function musicMemberRowHtml(t){
         +'<span class="music-row-plays" title="Écoutes">▶ '+crtFmtCount(t.playsCount||0)+'</span>'
         +'<button type="button" class="music-mini-btn" data-music-addlist="'+esc(t.\$id)+'">➕ Playlist</button>'
         +'<button type="button" class="music-mini-btn" data-music-radio="'+esc(t.\$id)+'" title="Lancer une radio à partir de ce titre">📻</button>'
+        +(me?'<button type="button" class="music-mini-btn" data-music-share="'+esc(t.\$id)+'" title="Envoyer en message">📤</button>':'')
       +'</div>'
     +'</div>'
   +'</div>';
@@ -22408,6 +22643,13 @@ function wireMusicCardEvents(box){
       e.stopPropagation();
       const t=musicTracksCache.find(function(x){return x.\$id===el.getAttribute('data-music-radio')});
       if(t)musicStartRadio(t);
+    });
+  });
+  box.querySelectorAll('[data-music-share]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      const t=musicTracksCache.find(function(x){return x.\$id===el.getAttribute('data-music-share')});
+      if(t)openX1SharePicker(x1ShareBuildTrackPayload(t));
     });
   });
   box.querySelectorAll('[data-music-artist]').forEach(function(el){
@@ -23532,6 +23774,7 @@ function renderMusicTrackPage(box){
             +'<button type="button" class="mtp-icon-btn music-offline-btn'+(musicOfflineIds.has(t.\$id)?' on':'')+(meIsPlus?'':' locked')+'" id="mtp-offline-btn" title="'+(musicOfflineIds.has(t.\$id)?'Téléchargé — clique pour supprimer':(meIsPlus?'Télécharger pour l\\'écoute hors-ligne':'Écoute hors-ligne exclusive à X1+'))+'">'+(musicOfflineDownloadingIds.has(t.\$id)?'⏳':(musicOfflineIds.has(t.\$id)?'✅':(meIsPlus?'⬇️':'🔒⬇️')))+' Hors-ligne</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-playlist-btn" title="Ajouter à une playlist">➕ Playlist</button>'
             +'<button type="button" class="mtp-icon-btn" id="mtp-radio-btn" title="Lancer une radio à partir de ce titre">📻 Radio</button>'
+            +(me?'<button type="button" class="mtp-icon-btn" id="mtp-share-btn" title="Envoyer en message">📤 Partager</button>':'')
           +'</div>'
           +(isPlayingHere?'<label class="srv-perm-check" style="margin:8px 0 0"><input type="checkbox" id="mtp-comment-at-time" checked> 📍 Positionner le commentaire sur la forme d\\'onde</label>':'')
         +'</div>'
@@ -23595,6 +23838,7 @@ function renderMusicTrackPage(box){
   };
   \$('mtp-playlist-btn').onclick=function(){openMusicAddToPlaylist(t.\$id);};
   \$('mtp-radio-btn').onclick=function(){musicStartRadio(t);};
+  if(\$('mtp-share-btn'))\$('mtp-share-btn').onclick=function(){openX1SharePicker(x1ShareBuildTrackPayload(t));};
   if(\$('mtp-follow-btn'))\$('mtp-follow-btn').onclick=async function(){await musicToggleFollow(t.uid);renderMusicBody();};
   if(\$('mtp-dm-btn'))\$('mtp-dm-btn').onclick=function(){closeMusic();startDmWith(t.uid,t.artistName);};
   async function sendComment(){
@@ -29637,7 +29881,8 @@ function buildChannelMsgHtml(m,stackClass,stackStyle){
   const replyHtml=msgReplyQuoteHtml(m.replyToId,function(id){return activeChannelMessages.find(function(x){return x.\$id===id});});
   const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-chan-react-toggle');
   const isMediaMsg=['image','video','gif','file','audio','location'].indexOf(m.type)>=0;
-  const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel())))));
+  const shareEmbed=(!m.stickerUrl&&!m.pollJson&&!isMediaMsg)?x1ShareParseEmbed(m.text):null;
+  const body=m.stickerUrl?('<img class="msg-sticker-img" src="'+esc(m.stickerUrl)+'" alt="sticker">'):(m.pollJson?pollCardHtml(m):(isMediaMsg?applySpoilerGate(m,renderMsgBody(m,m.text,m.mediaUrl)):(shareEmbed?renderX1ShareEmbedHtml(shareEmbed):applySpoilerGate(m,replaceCustomEmojis(highlightUserMentions(highlightRoleMentions(esc(m.text||'')),mentionCandidatesForChannel()))))));
   const thread=activeThread?null:channelThreadsCache.find(function(t){return t.originMessageId===m.\$id;});
   const threadHtml=thread?('<div class="msg-reply-quote" data-open-thread="'+esc(thread.\$id)+'" style="cursor:pointer;margin-top:4px">'+(thread.private?'🔒 ':'🧵 ')+esc(thread.name)+(thread.archived?' · Archivé':'')+'</div>'):'';
   const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
