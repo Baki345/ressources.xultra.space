@@ -7907,6 +7907,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.77',category:'feature',date:'6 septembre 2026',time:'05:00',title:'📂 Code source ouvert, pour qui veut vérifier',
+    body:'Les sections de téléchargement (page de connexion et Paramètres → Télécharger l\\'application) proposent désormais un lien direct vers le code source complet du site et de l\\'application desktop sur GitHub, en plus de l\\'empreinte SHA-256 et du scan VirusTotal déjà disponibles pour chaque fichier. De quoi vérifier par toi-même qu\\'un fichier téléchargé ne contient rien de caché — le lire, l\\'auditer, ou le recompiler et comparer l\\'empreinte obtenue à celle publiée.'},
   {version:'4.55.76',category:'feature',date:'6 septembre 2026',time:'04:00',title:'📤 Partager un XBin ou un titre X1 Music en message',
     body:'Nouveau bouton "📤 Partager"/"📤 Envoyer en message" sur un paste XBin et sur un titre X1 Music (page du titre, cartes, liste) : choisis un DM, un groupe ou un salon de serveur, et le contenu arrive sous forme de carte stylisée cliquable directement dans la bulle de chat — clique dessus pour rouvrir le paste ou lancer le titre. Fonctionne partout, y compris dans les DM chiffrés de bout en bout (la carte voyage chiffrée exactement comme un message normal, jamais en clair sur le serveur).'},
   {version:'4.55.75',category:'design',date:'6 septembre 2026',time:'03:00',title:'🎨 Croix pour fermer, et plus de scroll inutile sur l\\'upload musique',
