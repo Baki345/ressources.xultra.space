@@ -2547,18 +2547,27 @@ html.xultra-restoring #stage{visibility:hidden}
 @keyframes musicDropPop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
 @keyframes musicDropzonePulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.45)}50%{box-shadow:0 0 0 10px rgba(167,139,250,0)}}
 @keyframes musicDropzoneShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
-.music-dropzone{position:relative;border:2px dashed rgba(124,58,237,.35);border-radius:16px;padding:20px 14px;text-align:center;cursor:pointer;background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(219,39,119,.03));transition:border-color .2s ease,background .2s ease,transform .15s ease}
+.music-dropzone{position:relative;border:2px dashed rgba(124,58,237,.35);border-radius:14px;padding:13px 14px;text-align:center;cursor:pointer;background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(219,39,119,.03));transition:border-color .2s ease,background .2s ease,transform .15s ease}
 .music-dropzone:hover{border-color:rgba(167,139,250,.65);background:linear-gradient(160deg,rgba(124,58,237,.12),rgba(219,39,119,.06))}
 .music-dropzone.dragover{border-color:#a78bfa;border-style:solid;background:linear-gradient(160deg,rgba(124,58,237,.2),rgba(219,39,119,.1));animation:musicDropzonePulse 1.1s ease infinite}
 .music-dropzone.has-file{border-style:solid;border-color:rgba(74,222,128,.55);background:linear-gradient(160deg,rgba(74,222,128,.1),rgba(74,222,128,.03))}
 .music-dropzone.shake{animation:musicDropzoneShake .4s ease}
 .music-dropzone-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0}
 .music-dropzone-visual{pointer-events:none}
-.music-dropzone-icon{font-size:1.9rem;line-height:1;margin-bottom:6px;animation:musicDropPop .3s ease}
-.music-dropzone-thumb{width:56px;height:56px;object-fit:cover;border-radius:10px;margin:0 auto 8px;display:block;box-shadow:0 6px 16px rgba(0,0,0,.35);animation:musicDropPop .3s ease}
+.music-dropzone-icon{font-size:1.6rem;line-height:1;margin-bottom:4px;animation:musicDropPop .3s ease}
+.music-dropzone-thumb{width:44px;height:44px;object-fit:cover;border-radius:10px;margin:0 auto 6px;display:block;box-shadow:0 6px 16px rgba(0,0,0,.35);animation:musicDropPop .3s ease}
 .music-dropzone-title{font-weight:800;font-size:.85rem;color:#f2ebff}
 .music-dropzone.has-file .music-dropzone-title{color:#4ade80;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .music-dropzone-sub{font-size:.71rem;color:var(--muted);margin-top:2px}
+/* Fenêtres d'upload musique : en-tête + pied fixes (titre/croix, boutons
+   Publier/Annuler toujours visibles sans avoir à descendre), seul le corps
+   au milieu défile — et seulement s'il déborde vraiment (beaucoup de
+   fichiers dans l'aperçu de l'album), jamais par défaut sur un formulaire
+   qui tient déjà dans la fenêtre. */
+.music-modal-card{position:relative;max-height:92vh;display:flex;flex-direction:column;padding:14px 14px 12px}
+.music-modal-head{padding-right:30px;margin-bottom:8px;flex-shrink:0}
+.music-modal-body{overflow-y:auto;flex:1;min-height:0;margin:0 -14px;padding:0 14px}
+.music-modal-foot{flex-shrink:0;padding-top:10px}
 .music-album-shelf{margin-bottom:22px}
 .music-album-shelf-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
 .music-album-shelf-cover{width:48px;height:48px;border-radius:8px;overflow:hidden;background:linear-gradient(145deg,#2e1065,#7c3aed);display:grid;place-items:center;flex-shrink:0;box-shadow:0 6px 16px rgba(124,58,237,.35)}
@@ -7856,6 +7865,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.75',category:'design',date:'6 septembre 2026',time:'03:00',title:'🎨 Croix pour fermer, et plus de scroll inutile sur l\\'upload musique',
+    body:'"+ Ajouter un titre" et "📀 Ajouter un album" ont maintenant une vraie croix ✕ en haut à droite pour fermer la fenêtre. Les deux formulaires tiennent aussi désormais dans la fenêtre sans avoir à faire défiler quoi que ce soit sur un écran normal — seul le formulaire de l\\'album fait défiler sa liste de titres (et seulement elle) quand l\\'album en contient beaucoup, les boutons Publier/Annuler restant toujours visibles en bas.'},
   {version:'4.55.74',category:'design',date:'6 septembre 2026',time:'02:00',title:'🎨 Zones de dépôt stylisées pour l\\'upload de musique',
     body:'Remplace le bouton "Choisir un fichier" par défaut du navigateur, dans "+ Ajouter un titre" comme "📀 Ajouter un album", par une vraie zone glisser-déposer animée aux couleurs de X1 : glisse ton fichier directement dessus (ou clique pour parcourir comme avant), aperçu en vrai de la pochette choisie, nom et taille du fichier affichés une fois sélectionné, halo animé pendant le survol, secousse si le mauvais type de fichier est déposé au mauvais endroit. Purement visuel — l\\'envoi fonctionne exactement comme avant.'},
   {version:'4.55.73',category:'feature',date:'6 septembre 2026',time:'01:00',title:'🎉 Notifications de palier pour tes titres',
@@ -23867,24 +23878,28 @@ async function openMusicUploadForm(){
   const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
   const myBadges=await getMyBadges();
   const canStreaming=MUSIC_STREAMING_BADGES.some(function(b){return myBadges.indexOf(b)>=0;});
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:80vh;overflow-y:auto">'
-    +'<div class="set-section-label">🎵 Ajouter un titre</div>'
+  overlay.innerHTML='<div class="action-sheet-card music-modal-card" style="text-align:left">'
+    +'<button type="button" class="modal-close" id="music-up-x">✕</button>'
+    +'<div class="music-modal-head"><div class="set-section-label" style="margin:0">🎵 Ajouter un titre</div></div>'
+    +'<div class="music-modal-body">'
     +'<div class="set-row"><label>Titre</label><input type="text" id="music-up-title" class="field-input" maxlength="150"></div>'
     +'<div class="set-row"><label>Artiste</label><input type="text" id="music-up-artist" class="field-input" maxlength="100" value="'+esc(defaultArtist)+'"></div>'
     +'<div class="set-row"><label>Genre</label><select id="music-up-genre" class="field-input"><option value="">Aucun</option>'+MUSIC_GENRES.map(function(g){return '<option value="'+g.id+'">'+esc(g.name)+'</option>';}).join('')+'</select></div>'
     +'<div class="set-row"><label>Tags (séparés par des virgules)</label><input type="text" id="music-up-tags" class="field-input" placeholder="chill, nuit, guitare…"></div>'
     +'<div class="set-row"><label>Fichier audio</label><div class="music-dropzone" id="music-up-audio-zone"><input type="file" id="music-up-audio" accept="audio/*" class="music-dropzone-input"><div class="music-dropzone-visual">'+MUSIC_DROPZONE_DEFAULTS.audio+'</div></div></div>'
     +'<div class="set-row"><label>Pochette</label><div class="music-dropzone" id="music-up-cover-zone"><input type="file" id="music-up-cover" accept="image/*" class="music-dropzone-input"><div class="music-dropzone-visual">'+MUSIC_DROPZONE_DEFAULTS.cover+'</div></div></div>'
-    +'<div class="set-row"><label>Paroles (optionnel)</label><textarea id="music-up-lyrics" class="field-input" style="height:90px;padding-top:9px;resize:vertical" placeholder="Colle le texte, ou un fichier .lrc horodaté pour un affichage synchronisé façon karaoké : [00:12.50]Premier vers…"></textarea></div>'
+    +'<div class="set-row"><label>Paroles (optionnel)</label><textarea id="music-up-lyrics" class="field-input" style="height:64px;padding-top:9px;resize:vertical" placeholder="Colle le texte, ou un fichier .lrc horodaté pour un affichage synchronisé façon karaoké : [00:12.50]Premier vers…"></textarea></div>'
     +(canStreaming?'<label class="srv-perm-check" style="margin-bottom:10px"><input type="checkbox" id="music-up-streaming"> Publier dans 🎧 Streaming (contenu officiel, réservé au staff/créateurs)</label>':'')
-    +'<div class="err" id="music-up-err" style="min-height:1em;margin-bottom:8px"></div>'
-    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-up-submit">Publier</button><button type="button" class="set-mini-btn" id="music-up-cancel">Annuler</button></div>'
+    +'</div>'
+    +'<div class="music-modal-foot"><div class="err" id="music-up-err" style="min-height:1em;margin-bottom:8px"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-up-submit">Publier</button><button type="button" class="set-mini-btn" id="music-up-cancel">Annuler</button></div></div>'
     +'</div>';
   document.body.appendChild(overlay);
   musicWireDropzone('music-up-audio-zone','music-up-audio','audio/',function(files){musicDropzoneSingleFilePreview(\$('music-up-audio-zone'),files[0],MUSIC_DROPZONE_DEFAULTS.audio,false);});
   musicWireDropzone('music-up-cover-zone','music-up-cover','image/',function(files){musicDropzoneSingleFilePreview(\$('music-up-cover-zone'),files[0],MUSIC_DROPZONE_DEFAULTS.cover,true);});
   function close(){overlay.remove();}
   \$('music-up-cancel').onclick=close;
+  \$('music-up-x').onclick=close;
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
   \$('music-up-submit').onclick=async function(){
     const title=(\$('music-up-title').value||'').trim();
@@ -24181,8 +24196,10 @@ function openMusicBulkUploadForm(){
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
   const defaultArtist=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto;width:min(560px,94vw)">'
-    +'<div class="set-section-label">📀 Ajouter un album</div>'
+  overlay.innerHTML='<div class="action-sheet-card music-modal-card" style="text-align:left;width:min(560px,94vw)">'
+    +'<button type="button" class="modal-close" id="music-bulk-x">✕</button>'
+    +'<div class="music-modal-head"><div class="set-section-label" style="margin:0">📀 Ajouter un album</div></div>'
+    +'<div class="music-modal-body">'
     +'<div class="scr-sub" style="margin-bottom:10px">Sélectionne tous les fichiers audio de l\\'album d\\'un coup — titre, artiste et numéro de piste sont devinés depuis le nom de chaque fichier, pochette/genre recherchés automatiquement. Vérifie et corrige si besoin avant de publier.</div>'
     +'<div class="set-row"><label>Nom de l\\'album (optionnel)</label><input type="text" id="music-bulk-album" class="field-input" maxlength="150" placeholder="Nom de l\\'album"></div>'
     +'<div class="set-row"><label>Artiste (par défaut pour tous les titres)</label><input type="text" id="music-bulk-artist" class="field-input" maxlength="100" value="'+esc(defaultArtist)+'"></div>'
@@ -24190,14 +24207,16 @@ function openMusicBulkUploadForm(){
     +'<div class="set-row"><label>Pochette de l\\'album</label><div class="music-dropzone" id="music-bulk-cover-zone"><input type="file" id="music-bulk-cover" accept="image/*" class="music-dropzone-input"><div class="music-dropzone-visual">'+MUSIC_DROPZONE_DEFAULTS.bulkCover+'</div></div></div>'
     +'<div class="set-row"><label>Fichiers audio</label><div class="music-dropzone" id="music-bulk-audio-zone"><input type="file" id="music-bulk-audio" accept="audio/*" multiple class="music-dropzone-input"><div class="music-dropzone-visual">'+MUSIC_DROPZONE_DEFAULTS.bulkAudio+'</div></div></div>'
     +'<div id="music-bulk-preview"></div>'
-    +'<div class="err" id="music-bulk-err" style="min-height:1em;margin:8px 0"></div>'
-    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-bulk-submit" disabled>Sélectionne des fichiers…</button><button type="button" class="set-mini-btn" id="music-bulk-cancel">Annuler</button></div>'
+    +'</div>'
+    +'<div class="music-modal-foot"><div class="err" id="music-bulk-err" style="min-height:1em;margin-bottom:8px"></div>'
+    +'<div style="display:flex;gap:8px"><button type="button" class="btn-main" id="music-bulk-submit" disabled>Sélectionne des fichiers…</button><button type="button" class="set-mini-btn" id="music-bulk-cancel">Annuler</button></div></div>'
     +'</div>';
   document.body.appendChild(overlay);
   musicWireDropzone('music-bulk-cover-zone','music-bulk-cover','image/',function(files){musicDropzoneSingleFilePreview(\$('music-bulk-cover-zone'),files[0],MUSIC_DROPZONE_DEFAULTS.bulkCover,true);});
   musicWireDropzone('music-bulk-audio-zone','music-bulk-audio','audio/',function(files){musicDropzoneMultiFilePreview(\$('music-bulk-audio-zone'),files,MUSIC_DROPZONE_DEFAULTS.bulkAudio);});
   function close(){overlay.remove();}
   \$('music-bulk-cancel').onclick=close;
+  \$('music-bulk-x').onclick=close;
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
   let parsedFiles=[];
   function renderPreview(){
