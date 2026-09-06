@@ -4064,44 +4064,48 @@ a.bug-att-item{display:block}
 .gcb-p .cb-av-wave{width:88px;height:88px}
 .gcb-p-name{font-size:.68rem;color:var(--muted);max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center}
 .gcb-p.speaking .gcb-p-name{color:#c4b5fd}
-.chan-voice-stage{display:flex;flex-direction:column;height:calc(100dvh - 220px);min-height:320px}
-.chan-voice-stage-top{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 10px;flex-shrink:0}
-.cvst-title{font-weight:800;font-size:.92rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cvst-fs-btn{width:34px;height:34px;border-radius:10px;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:.95rem;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
-.cvst-fs-btn:hover{background:rgba(255,255,255,.16)}
-.cvst-fs-btn.on{background:rgba(124,58,237,.55)}
-.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:4px;overflow-y:auto;align-content:start}
+.x1-icon{display:block;flex-shrink:0}
+/* Appel de salon : toujours dans #call-video-stage (plein écran sur toute
+   l'appli), jamais une simple page — voir enterChannelVoiceCinema. */
+.cvs-cinema-body{flex:1;display:flex;flex-direction:column;min-height:0;padding:4px 22px 22px;background:radial-gradient(1200px 500px at 50% -10%,rgba(124,58,237,.16),transparent 60%)}
+.chan-voice-stage-top{display:flex;align-items:center;gap:10px;padding:6px 4px 16px;flex-shrink:0}
+.cvst-title{font-weight:800;font-size:1rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cvst-count{display:flex;align-items:center;gap:5px;font-size:.76rem;font-weight:700;color:#c4b5fd;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.28);border-radius:999px;padding:4px 10px;flex-shrink:0}
+.cvst-count .x1-icon{display:inline;vertical-align:-2px}
+.chan-voice-stage-top .vstage-btn{margin-left:auto}
+.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:4px;overflow-y:auto;align-content:start}
 .chan-voice-stage-grid.n1{grid-template-columns:1fr}
-.chan-voice-stage-grid.cinema{flex:1;min-height:0;align-content:stretch;grid-auto-rows:1fr}
-.chan-voice-stage-grid.cinema .cvs-tile{aspect-ratio:auto}
-@media (min-width:520px){.chan-voice-stage-grid{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
-.cvs-tile{position:relative;aspect-ratio:1/1;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:16px;border:2px solid transparent;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease;cursor:pointer;min-height:0}
-.cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:16/10;min-height:280px}
-@keyframes voiceSpeakGlow{0%,100%{box-shadow:0 0 0 2px rgba(57,255,20,.55),0 0 10px 3px rgba(57,255,20,.45)}50%{box-shadow:0 0 0 3px rgba(57,255,20,.95),0 0 18px 6px rgba(57,255,20,.85)}}
+@media (min-width:640px){.chan-voice-stage-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+.cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:18px;border:2px solid rgba(255,255,255,.06);overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease,transform .15s ease;cursor:pointer;min-height:0;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.cvs-tile:hover{transform:translateY(-2px)}
+.cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:16/9;min-height:320px}
+@keyframes voiceSpeakGlow{0%,100%{box-shadow:0 0 0 2px rgba(57,255,20,.55),0 0 14px 4px rgba(57,255,20,.4)}50%{box-shadow:0 0 0 3px rgba(57,255,20,.95),0 0 22px 7px rgba(57,255,20,.75)}}
 .cvs-tile.speaking{border-color:#39ff14;animation:voiceSpeakGlow 1.1s ease-in-out infinite}
 .cvs-tile-video-wrap{position:absolute;inset:0}
 .cvs-tile-video-wrap.hidden{display:none}
-.cvs-tile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.3rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1}
+.cvs-tile-avatar{width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;font-weight:800;font-size:1.5rem;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;z-index:1;box-shadow:0 6px 20px rgba(124,58,237,.4),0 0 0 4px rgba(255,255,255,.06)}
 .cvs-tile-avatar.hidden{display:none}
 .cvs-tile-avatar img{width:100%;height:100%;object-fit:cover}
-.cvs-tile-name{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1}
-.cvs-tile-badges{position:absolute;right:10px;bottom:8px;display:flex;gap:5px;z-index:1}
-.cvs-badge{width:22px;height:22px;border-radius:50%;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.cvs-tile-name{position:absolute;left:12px;bottom:10px;font-size:.8rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.4);backdrop-filter:blur(4px);padding:3px 10px;border-radius:9px;max-width:75%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1}
+.cvs-tile-badges{position:absolute;right:10px;bottom:10px;display:flex;gap:6px;z-index:1}
+.cvs-badge{width:24px;height:24px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.45)}
 .cvs-badge.hidden{display:none}
 .cvs-badge-mute{background:#ef4444}
 .cvs-badge-deafen{background:#f59e0b}
 .cvs-badge-screen{background:#22c55e}
-.cvs-tile-hand{position:absolute;left:8px;top:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.4);font-size:.85rem;display:flex;align-items:center;justify-content:center;z-index:1}
+.cvs-tile-hand{position:absolute;left:10px;top:10px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.45);color:#fbbf24;display:flex;align-items:center;justify-content:center;z-index:1}
 .cvs-tile-hand.hidden{display:none}
-.cvs-tile-expand{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:8px;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1}
-.cvs-tile-expand:hover{background:rgba(0,0,0,.65)}
+.cvs-tile-expand{position:absolute;right:10px;top:10px;width:28px;height:28px;border-radius:9px;border:none;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1;transition:background .15s ease}
+.cvs-tile-expand:hover{background:rgba(0,0,0,.7)}
 .cvs-tile-screen{background:#000;aspect-ratio:16/10}
 .cvs-tile-screen video{width:100%;height:100%;object-fit:contain;display:block}
-.chan-voice-stage-controls{display:flex;justify-content:center;gap:14px;padding:14px 4px 4px;flex-shrink:0}
-.cvs-ctrl-btn{width:48px;height:48px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:#fff;font-size:1.15rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease}
-.cvs-ctrl-btn:hover{background:rgba(255,255,255,.16)}
-.cvs-ctrl-btn.on{background:rgba(124,58,237,.55)}
-.cvs-ctrl-btn.danger{background:#ef4444}
+/* Barre de contrôle : pilule flottante centrée, façon Zoom/Meet */
+.chan-voice-stage-controls{display:flex;justify-content:center;align-items:center;gap:10px;padding:16px 20px;flex-shrink:0;margin:14px auto 0;background:rgba(20,12,32,.72);backdrop-filter:blur(16px);border:1px solid rgba(167,139,250,.18);border-radius:999px;box-shadow:0 16px 40px rgba(0,0,0,.45)}
+.cvs-ctrl-btn{width:52px;height:52px;border-radius:50%;border:none;background:rgba(255,255,255,.07);color:#f2ebff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease,transform .1s ease}
+.cvs-ctrl-btn:hover{background:rgba(255,255,255,.16);transform:translateY(-1px)}
+.cvs-ctrl-btn:active{transform:scale(.94)}
+.cvs-ctrl-btn.on{background:rgba(124,58,237,.6)}
+.cvs-ctrl-btn.danger{background:#ef4444;width:60px}
 .cvs-ctrl-btn.danger:hover{background:#dc2626}
 .cvs-ctrl-btn.stage-listener{opacity:.35;cursor:not-allowed}
 .cvs-settings-modal{width:min(360px,100%)}
@@ -5842,6 +5846,18 @@ function \$(id){return document.getElementById(id)}
 // cette dernière règle ne protégeait pas contre une évasion d'attribut.
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 function ini(n){return String(n||'?').trim().charAt(0).toUpperCase()||'?'}
+// Icônes SVG (Lucide, licence ISC — https://lucide.dev) vendorisées à la
+// main plutôt que chargées depuis un CDN à l'exécution : cohérent avec le
+// reste de l'appli (déjà du SVG inline pour les icônes existantes, ex. le
+// bouton message vocal), zéro requête réseau/dépendance JS supplémentaire,
+// et surface CSP inchangée. N'ajouter ici que les icônes réellement
+// utilisées (voir icon()) — pas une copie complète de la bibliothèque.
+const X1_ICONS={"mic":"<path d=\\"M12 19v3\\"/><path d=\\"M19 10v2a7 7 0 0 1-14 0v-2\\"/><rect x=\\"9\\" y=\\"2\\" width=\\"6\\" height=\\"13\\" rx=\\"3\\"/>","micOff":"<path d=\\"M12 19v3\\"/><path d=\\"M15 9.34V5a3 3 0 0 0-5.68-1.33\\"/><path d=\\"M16.95 16.95A7 7 0 0 1 5 12v-2\\"/><path d=\\"M18.89 13.23A7 7 0 0 0 19 12v-2\\"/><path d=\\"m2 2 20 20\\"/><path d=\\"M9 9v3a3 3 0 0 0 5.12 2.12\\"/>","video":"<path d=\\"m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5\\"/><rect x=\\"2\\" y=\\"6\\" width=\\"14\\" height=\\"12\\" rx=\\"2\\"/>","videoOff":"<path d=\\"M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196\\"/><path d=\\"M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2\\"/><path d=\\"m2 2 20 20\\"/>","screenShare":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m17 8 5-5\\"/><path d=\\"M17 3h5v5\\"/>","screenShareOff":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m22 3-5 5\\"/><path d=\\"m17 3 5 5\\"/>","headphones":"<path d=\\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\\"/>","volumeX":"<path d=\\"M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z\\"/><path d=\\"m16.5 14.5 5-5\\"/><path d=\\"m16.5 9.5 5 5\\"/>","settings":"<path d=\\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\\"/><circle cx=\\"12\\" cy=\\"12\\" r=\\"3\\"/>","phoneOff":"<path d=\\"M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272\\"/><path d=\\"M22 2 2 22\\"/><path d=\\"M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473\\"/>","hand":"<path d=\\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\\"/><path d=\\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\\"/><path d=\\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\\"/><path d=\\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\\"/>","maximize":"<path d=\\"M8 3H5a2 2 0 0 0-2 2v3\\"/><path d=\\"M21 8V5a2 2 0 0 0-2-2h-3\\"/><path d=\\"M3 16v3a2 2 0 0 0 2 2h3\\"/><path d=\\"M16 21h3a2 2 0 0 0 2-2v-3\\"/>","minimize":"<path d=\\"M8 3v3a2 2 0 0 1-2 2H3\\"/><path d=\\"M21 8h-3a2 2 0 0 1-2-2V3\\"/><path d=\\"M3 16h3a2 2 0 0 1 2 2v3\\"/><path d=\\"M16 21v-3a2 2 0 0 1 2-2h3\\"/>","x":"<path d=\\"M18 6 6 18\\"/><path d=\\"m6 6 12 12\\"/>","users":"<path d=\\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\\"/><path d=\\"M16 3.128a4 4 0 0 1 0 7.744\\"/><path d=\\"M22 21v-2a4 4 0 0 0-3-3.87\\"/><circle cx=\\"9\\" cy=\\"7\\" r=\\"4\\"/>"};
+function icon(name,size,extraClass){
+  const s=size||20;
+  return '<svg class="x1-icon'+(extraClass?(' '+extraClass):'')+'" viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(X1_ICONS[name]||'')+'</svg>';
+}
+
 function slugUsername(name){
   let s=String(name||'');
   try{s=s.normalize('NFD').replace(/[\\u0300-\\u036f]/g,'')}catch(e){}
@@ -28824,18 +28840,22 @@ function joinServerVoice(serverId,serverName){return joinVoiceRoom('server',serv
    fait place à une grille de tuiles (une par participant), caméra si
    publiée sinon avatar — même connexion LiveKit que la petite barre
    flottante, donc pas de reconnexion, juste un affichage plus riche. ===== */
+// Contenu injecté directement dans #call-video-stage (voir
+// enterChannelVoiceCinema) — plus jamais dans le panneau normal du salon :
+// un appel de serveur s'affiche TOUJOURS en plein écran sur toute l'appli
+// dès qu'on est connecté, jamais comme une simple page parmi d'autres.
 function channelVoiceStageHtml(title){
-  return '<div class="chan-voice-stage">'
-    +'<div class="chan-voice-stage-top"><span class="cvst-title" id="cvs-title">'+esc(title||'')+'</span><button type="button" class="cvst-fs-btn" id="cvs-cinema-btn" title="Plein écran">⛶</button></div>'
+  return '<div class="cvs-cinema-body" id="cvs-cinema-body">'
+    +'<div class="chan-voice-stage-top"><span class="cvst-title" id="cvs-title">'+esc(title||'')+'</span><span class="cvst-count" id="cvs-count"></span><button type="button" class="vstage-btn" id="cvs-realfs-btn" title="Plein écran système">'+icon('maximize',15)+'</button></div>'
     +'<div class="chan-voice-stage-grid" id="chan-voice-stage-grid"></div>'
     +'<div class="chan-voice-stage-controls">'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">📹</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-deafen-btn" title="Sourdine casque">🎧</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-screen-btn" title="Partager l\\'écran">🖥️</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-hand-btn" title="Lever la main">✋</button>'
-      +'<button type="button" class="cvs-ctrl-btn" id="cvs-settings-btn" title="Paramètres d\\'appel">⚙️</button>'
-      +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">📞</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">'+icon('video',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">'+icon('mic',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-deafen-btn" title="Sourdine casque">'+icon('headphones',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-screen-btn" title="Partager l\\'écran">'+icon('screenShare',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-hand-btn" title="Lever la main">'+icon('hand',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-settings-btn" title="Paramètres d\\'appel">'+icon('settings',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">'+icon('phoneOff',20)+'</button>'
     +'</div>'
   +'</div>';
 }
@@ -28854,17 +28874,17 @@ function chanVoiceStageTileHtml(uid,name,avatarUrl){
     +'<div class="cvs-tile-avatar" data-cvs-avatar="'+esc(uid)+'">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="">':esc(ini(name||'?')))+'</div>'
     +'<div class="cvs-tile-name">'+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+'</div>'
     +'<div class="cvs-tile-badges">'
-      +'<span class="cvs-badge cvs-badge-screen hidden" data-cvs-screen-badge="'+esc(uid)+'" title="Partage son écran">🖥️</span>'
-      +'<span class="cvs-badge cvs-badge-mute hidden" data-cvs-mute="'+esc(uid)+'" title="Micro coupé">🔇</span>'
-      +'<span class="cvs-badge cvs-badge-deafen hidden" data-cvs-deafen="'+esc(uid)+'" title="Casque coupé">🎧</span>'
+      +'<span class="cvs-badge cvs-badge-screen hidden" data-cvs-screen-badge="'+esc(uid)+'" title="Partage son écran">'+icon('screenShare',12)+'</span>'
+      +'<span class="cvs-badge cvs-badge-mute hidden" data-cvs-mute="'+esc(uid)+'" title="Micro coupé">'+icon('micOff',12)+'</span>'
+      +'<span class="cvs-badge cvs-badge-deafen hidden" data-cvs-deafen="'+esc(uid)+'" title="Casque coupé">'+icon('volumeX',12)+'</span>'
     +'</div>'
-    +'<div class="cvs-tile-hand hidden" data-cvs-hand="'+esc(uid)+'">✋</div>'
+    +'<div class="cvs-tile-hand hidden" data-cvs-hand="'+esc(uid)+'">'+icon('hand',13)+'</div>'
     +'<button type="button" class="cvs-tile-expand" title="Agrandir">⤢</button>'
     +'</div>';
 }
 function chanVoiceScreenTileHtml(uid,name){
   return '<div class="cvs-tile cvs-tile-screen" data-cvs-key="'+esc(uid)+':screen">'
-    +'<div class="cvs-tile-name">🖥️ '+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+' · Écran</div>'
+    +'<div class="cvs-tile-name">'+icon('screenShare',13)+' '+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+' · Écran</div>'
     +'<button type="button" class="cvs-tile-expand" title="Agrandir">⤢</button>'
     +'</div>';
 }
@@ -28981,28 +29001,34 @@ function renderChannelVoiceStage(){
   updateStageControlsUi();
   startGroupWaveformLoop();
 }
-// ===== Mode plein écran (cinéma) pour un salon vocal de serveur — même
-// #call-video-stage partagé que le 1:1/groupe DM (un seul appel actif à la
-// fois). La vue plein écran d'un salon vocal (channelVoiceStageHtml) sert
-// déjà de "grande vue" par défaut ; ce mode va un cran plus loin en passant
-// en plein écran navigateur, utile en multi-écrans ou pour masquer le reste
-// de l'interface X1 pendant un partage d'écran collectif. =====
+// ===== Un appel de salon de serveur s'affiche TOUJOURS en plein écran sur
+// toute l'appli (#call-video-stage, position:fixed;inset:0, même conteneur
+// partagé que le 1:1/groupe DM) dès qu'on est connecté ET qu'on regarde ce
+// salon — plus de "page" intermédiaire dans le panneau normal. "Réduire"
+// (bouton universel #vstage-exit) ne raccroche PAS : ça revient juste à la
+// liste des salons, l'appel continue en arrière-plan (pastille compacte,
+// voir updateCallMiniPill) exactement comme minimiser un appel Discord. Le
+// contenu (#cvs-cinema-body) n'est reconstruit que si on change de salon —
+// masquer/réafficher #call-video-stage laisse les vidéos déjà attachées
+// tranquilles, sans flash de rattachement au retour. =====
 let cvsCinemaMode=false;
-function enterChannelCinema(){
-  if(cvsCinemaMode)return;
+function enterChannelVoiceCinema(){
+  if(!groupRoom||groupCallContextType!=='channel'||!activeChannel)return;
+  const stage=\$('call-video-stage');if(!stage)return;
   cvsCinemaMode=true;activeCinemaKind='channel';
-  const stage=\$('call-video-stage'),grid=\$('chan-voice-stage-grid');
-  if(stage&&grid){stage.appendChild(grid);grid.classList.add('cinema');stage.classList.remove('hidden');}
-  const btn=\$('cvs-cinema-btn');if(btn)btn.classList.add('on');
-  try{if(stage&&stage.requestFullscreen)stage.requestFullscreen().catch(function(){});}catch(e){}
+  if(stage.dataset.cvsChannelId!==activeChannel.\$id){
+    const oldBody=\$('cvs-cinema-body');if(oldBody)oldBody.remove();
+    stage.insertAdjacentHTML('beforeend',channelVoiceStageHtml(srvChanTypeIcon(activeChannel.type)+' '+activeChannel.name));
+    stage.dataset.cvsChannelId=activeChannel.\$id;
+    wireChannelVoiceStage();
+  }
+  stage.classList.remove('hidden');
+  renderChannelVoiceStage();
 }
 function exitChannelCinema(){
   if(!cvsCinemaMode)return;
   cvsCinemaMode=false;activeCinemaKind=null;
-  const stageWrap=document.querySelector('.chan-voice-stage'),grid=\$('chan-voice-stage-grid');
-  if(stageWrap&&grid){stageWrap.insertBefore(grid,stageWrap.firstChild);grid.classList.remove('cinema');}
   const stage=\$('call-video-stage');if(stage)stage.classList.add('hidden');
-  const btn=\$('cvs-cinema-btn');if(btn)btn.classList.remove('on');
   if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
 }
 function updateStageControlsUi(){
@@ -29011,27 +29037,32 @@ function updateStageControlsUi(){
   const camOn=!!groupRoom.localParticipant.isCameraEnabled;
   const micBtn=\$('cvs-mic-btn');
   if(micBtn){
-    micBtn.textContent=muted?'🔇':'🎤';
+    micBtn.innerHTML=icon(muted?'micOff':'mic',20);
     micBtn.classList.toggle('danger',muted);
     micBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
   const camBtn=\$('cvs-cam-btn');
   if(camBtn){
+    camBtn.innerHTML=icon(camOn?'video':'videoOff',20);
     camBtn.classList.toggle('on',camOn);
     camBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
   const screenBtn=\$('cvs-screen-btn');
   if(screenBtn){
-    screenBtn.classList.toggle('on',!!groupRoom.localParticipant.isScreenShareEnabled);
+    const scOn=!!groupRoom.localParticipant.isScreenShareEnabled;
+    screenBtn.innerHTML=icon(scOn?'screenShareOff':'screenShare',20);
+    screenBtn.classList.toggle('on',scOn);
     screenBtn.classList.toggle('stage-listener',!stageCanPublish);
   }
   const handBtn=\$('cvs-hand-btn');
   if(handBtn)handBtn.classList.toggle('on',cvsHandRaised);
   const deafenBtn=\$('cvs-deafen-btn');
   if(deafenBtn){
-    deafenBtn.textContent=cvsDeafened?'🔇':'🎧';
+    deafenBtn.innerHTML=icon(cvsDeafened?'volumeX':'headphones',20);
     deafenBtn.classList.toggle('danger',cvsDeafened);
   }
+  const countEl=\$('cvs-count');
+  if(countEl)countEl.innerHTML=icon('users',13)+' '+(1+groupRoom.remoteParticipants.size);
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -29110,11 +29141,18 @@ function wireChannelVoiceStage(){
   if(deafenBtn)deafenBtn.onclick=toggleStageDeafen;
   const settingsBtn=\$('cvs-settings-btn');
   if(settingsBtn)settingsBtn.onclick=openCallSettingsPanel;
-  const cinemaBtn=\$('cvs-cinema-btn');
-  if(cinemaBtn)cinemaBtn.onclick=function(){if(cvsCinemaMode)exitChannelCinema();else enterChannelCinema();};
+  const realfsBtn=\$('cvs-realfs-btn');
+  if(realfsBtn)realfsBtn.onclick=function(){
+    if(document.fullscreenElement){document.exitFullscreen().catch(function(){});}
+    else{const stage=\$('call-video-stage');if(stage&&stage.requestFullscreen)stage.requestFullscreen().catch(function(){});}
+  };
   const leaveBtn=\$('cvs-leave-btn');
   if(leaveBtn)leaveBtn.onclick=function(){leaveGroupCall();};
 }
+document.addEventListener('fullscreenchange',function(){
+  const btn=\$('cvs-realfs-btn');if(!btn)return;
+  btn.innerHTML=icon(document.fullscreenElement?'minimize':'maximize',15);
+});
 // Paramètres d'appel (micro/caméra/sortie audio) : un simple choix de
 // périphérique, pas de réglage de qualité (déjà fixé au niveau du serveur
 // via audioQualityKey, pas un choix utilisateur par appel). switchActiveDevice
@@ -29203,6 +29241,8 @@ function cleanupGroupCall(){
   \$('gcb-participants').innerHTML='';
   const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');gcbVGrid.classList.remove('n1');}
   gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;cvsHandRaised=false;cvsDeafened=false;
+  const cvsBody=\$('cvs-cinema-body');if(cvsBody)cvsBody.remove();
+  const cvStage=\$('call-video-stage');if(cvStage)delete cvStage.dataset.cvsChannelId;
   \$('gcb-cam').classList.remove('on');
   \$('gcb-screen').classList.remove('on');
   document.body.appendChild(\$('group-call-bar'));
@@ -29908,16 +29948,14 @@ function renderServerChannelContent(){
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     if(inVoiceHere){
-      // En plein écran (cinéma), la grille vit déjà dans #call-video-stage,
-      // hors de "box" — reconstruire innerHTML ici créerait une DEUXIÈME
-      // grille avec le même id et casserait tout (vidéos live comprises).
-      // Rien à refaire tant qu'on n'en est pas sorti.
-      if(cvsCinemaMode)return;
-      html+=channelVoiceStageHtml(srvChanTypeIcon(activeChannel.type)+' '+activeChannel.name);
+      // Toujours plein écran sur toute l'appli dès qu'on est connecté et
+      // qu'on regarde ce salon — voir enterChannelVoiceCinema. "box" ne
+      // sert plus que de filet si jamais le plein écran ne s'affichait pas.
+      enterChannelVoiceCinema();
+      html+='<div class="srv-voice-card"><div class="svc-icon">'+icon('mic',30)+'</div><div class="svc-title">Appel en plein écran</div><button type="button" class="btn-main" id="srv-voice-reopen-cinema" style="margin-top:12px">Revenir à l\\'appel</button></div>';
       box.innerHTML=html;
       wireServerChannelBack();
-      wireChannelVoiceStage();
-      renderChannelVoiceStage();
+      const reopenBtn=\$('srv-voice-reopen-cinema');if(reopenBtn)reopenBtn.onclick=enterChannelVoiceCinema;
       return;
     }
     // Écran de "pré-jonction" (façon Discord) : on montre qui est déjà là
@@ -32458,7 +32496,19 @@ if(\$('cb-cinema'))\$('cb-cinema').addEventListener('click',function(){
 if(\$('vstage-exit'))\$('vstage-exit').addEventListener('click',function(){
   if(activeCinemaKind==='1v1')exitCinema();
   else if(activeCinemaKind==='dmgroup')exitGroupCinema();
-  else if(activeCinemaKind==='channel')exitChannelCinema();
+  else if(activeCinemaKind==='channel'){
+    exitChannelCinema();
+    // "Réduire" un appel de salon revient à la liste des salons (l'appel
+    // continue, pastille compacte) plutôt que de ré-afficher une page —
+    // il n'y a plus d'état "connecté mais pas en plein écran" pour un
+    // salon vocal de serveur, voir enterChannelVoiceCinema.
+    if(activeChannel){
+      if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
+      activeChannel=null;activeThread=null;
+      renderServerChannelList();
+      repositionCallPanel();
+    }
+  }
 });
 if(\$('cb-mask'))\$('cb-mask').addEventListener('click',function(){videoMasked=true;renderVideoGrid();});
 if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMasked=false;renderVideoGrid();});
