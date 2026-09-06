@@ -4073,9 +4073,12 @@ a.bug-att-item{display:block}
 .cvst-count{display:flex;align-items:center;gap:5px;font-size:.76rem;font-weight:700;color:#c4b5fd;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.28);border-radius:999px;padding:4px 10px;flex-shrink:0}
 .cvst-count .x1-icon{display:inline;vertical-align:-2px}
 .chan-voice-stage-top .vstage-btn{margin-left:auto}
-.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;padding:4px;overflow-y:auto;align-content:start}
-.chan-voice-stage-grid.n1{grid-template-columns:1fr}
-@media (min-width:640px){.chan-voice-stage-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}}
+/* Colonnes bornées (jamais en 1fr plein écran, même pour 1 seule tuile) :
+   une tuile ne grossit plus que jusqu'à sa taille max, elle ne s'étire
+   jamais pour "remplir" la grille — c'est ce qui forçait une seule caméra
+   à occuper tout l'écran et à paraître recadrée/zoomée. */
+.chan-voice-stage-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,200px));justify-content:center;align-content:start;gap:14px;padding:4px;overflow-y:auto}
+.chan-voice-stage-grid.n1{grid-template-columns:minmax(160px,260px)}
 .cvs-tile{position:relative;aspect-ratio:16/10;background:linear-gradient(160deg,#1a1030,#0f0818);border-radius:18px;border:2px solid rgba(255,255,255,.06);overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .15s ease,transform .15s ease;cursor:pointer;min-height:0;box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .cvs-tile:hover{transform:translateY(-2px)}
 .cvs-tile.enlarged{grid-column:1/-1;aspect-ratio:16/9;min-height:320px}
@@ -28978,7 +28981,7 @@ function renderChannelVoiceStage(){
           if(oldVideo){if(tile._camTrack){try{tile._camTrack.detach(oldVideo);}catch(e){}}oldVideo.remove();}
           if(camTrack){
             const el=camTrack.attach();
-            el.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
+            el.style.cssText='width:100%;height:100%;object-fit:contain;display:block';
             if(t.isLocal)el.style.transform='scaleX(-1)';
             wrap.appendChild(el);
           }
