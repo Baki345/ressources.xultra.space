@@ -32,8 +32,11 @@ const CSP_HEADER = "default-src 'self'; " +
 const AW_EP = "https://fra.cloud.appwrite.io/v1";
 const AW_PID = "6a73b975002f14dc6b91";
 const AW_DB = "xultra";
-// API key: Worker-only (never sent to browser). Prefer Cloudflare Secret later.
-const AW_KEY = "standard_dbd86d5c813301a5cb4fb65415361244856cd53019bf52cdac23e405c1fee6a89de9302dc8dd652190e0e823ae2ef7329f33d59a5ae922a3d09ad7607ecbb0e006fd6942b18033bc694c115032e78f0cf3f0bd5cf1eb8a358f09f5df60aac51debe6c92d60a8703c9adec5ad1f25ac846fe07621113577c93b7a75eb3e218491";
+// API key: Worker-only (never sent to browser), read from a Cloudflare
+// Worker secret binding (set via `wrangler secret put AW_ADMIN_KEY` or the
+// dashboard) — never a literal in source, since this file is mirrored to a
+// public GitHub repo for the native-app source-code proof feature.
+const AW_KEY = typeof AW_ADMIN_KEY !== "undefined" ? AW_ADMIN_KEY : "";
 // Yani Neco (6a8faae2001043f4f5c5, badge 🚬 CHAINSMOKER) ajoutée le 27 août
 // 2026 à la demande explicite de Shaman : accès owner complet, à égalité
 // avec Shaman lui-même (panneau admin en entier, ban/modération de
@@ -46,7 +49,9 @@ const AW_KEY = "standard_dbd86d5c813301a5cb4fb65415361244856cd53019bf52cdac23e40
 // "accès owner total" — ce niveau d'accès suppose une confiance totale
 // dans la personne, pas un bac à sable limité.
 const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5", "6a98b09b003e78fa65d4"]);
-const MAINT_GATE = "xu_gate_Z-5olSXEZ3Gw3rgQPqhR_Y-o";
+// Same reasoning as AW_KEY above: read from a Cloudflare secret binding
+// rather than a literal, since this file is mirrored to a public repo.
+const MAINT_GATE = typeof MAINTENANCE_GATE_SECRET !== "undefined" ? MAINTENANCE_GATE_SECRET : "";
 // Serveur TURN dédié (coturn sur VPS), remplace le relai gratuit openrelay.metered.ca
 // qui causait des appels sans son/vidéo (surchargé, non fiable). Le secret sert à
 // générer des identifiants TURN temporaires (norme "TURN REST API") : jamais le
@@ -34689,8 +34694,7 @@ async function handle(request, event) {
         });
       }
       const uid = String(sess.userId || sess.user_id || "");
-      const allowedEmails = new Set(["lordfamily1@proton.me"]);
-      if (!SHAMAN_UIDS.has(uid) && !allowedEmails.has(email)) {
+      if (!SHAMAN_UIDS.has(uid)) {
         return new Response(JSON.stringify({ ok: false, error: "Compte non autorisé en maintenance" }), {
           status: 403,
           headers: Object.assign({ "Content-Type": "application/json" }, cors)

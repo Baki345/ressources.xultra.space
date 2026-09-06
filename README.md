@@ -1,9 +1,7 @@
 # XULTRA (xultra.space) — Pack export complet
 
 **Version worker :** β2.8.10  
-**Date export :** 2026-08-21  
-**Créateur :** JBL / Shaman (lordfamily1@proton.me)  
-**Auth UID shaman :** `6a7895fc00364d72996f`
+**Date export :** 2026-08-21
 
 ---
 
@@ -43,8 +41,7 @@ xultra_export/
 ├── appwrite/
 │   ├── collections_list.json
 │   ├── SCHEMA_SUMMARY.json
-│   ├── users_sample.json
-│   └── collections/*.json    ← schéma de chaque collection
+│   └── collections/*.json    ← schéma de chaque collection (aucune donnée réelle)
 ├── config/
 │   ├── MAINT_GATE.txt        ← token bypass maintenance
 │   └── SECRETS.md            ← secrets / IDs
@@ -75,8 +72,8 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/workers/sc
 - Variable dans le worker : `MAINTENANCE_MODE = true`
 - Page publique de maintenance (statut services + login dev)
 - Bypass cookie `xultra_gate` via :
-  - Login dev (email shaman uniquement), ou
-  - URL `https://xultra.space/?gate=<token>` (voir `config/MAINT_GATE.txt`)
+  - Login dev (comptes admin autorisés uniquement, voir `SHAMAN_UIDS` dans le worker), ou
+  - URL `https://xultra.space/?gate=<token>` (token stocké en secret Cloudflare, jamais dans ce dépôt)
 - Pour rouvrir au public : mettre `MAINTENANCE_MODE = false` et redéployer
 
 ---
@@ -89,7 +86,7 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/ACCOUNT_ID/workers/sc
 - DM (messages, réponses, suppressions) + appels DM (WebRTC)
 - Liste membres globale
 - Notifications
-- Panel admin (Shaman uniquement) + Bug Hunter reports
+- Panel admin (comptes staff uniquement) + Bug Hunter reports
 - Modes maintenance + `/api/maint/status` + `/api/maint/dev-login`
 - Proxies : `/api/members`, `/api/friends`, admin calls, etc.
 
@@ -112,20 +109,11 @@ Permissions récentes : collections sensibles en `read("users")` (plus de `read(
 
 ---
 
-## Comptes connus (échantillon)
-
-- **shaman** — admin/dev (`6a7895fc00364d72996f`)
-- **ryu** — bug hunter
-- **libellule**
-- **moutarde**
-
----
-
 ## Notes pour Claude / reprise
 
 1. Le site est un **monolithe Worker** : presque tout le front est dans le template string `const APP = \`...\``.
 2. Modifier le front = éditer dans `APP`, redéployer le worker.
-3. Ne jamais exposer `AW_KEY` côté navigateur (déjà côté Worker only).
+3. `AW_KEY` et `MAINT_GATE` sont des secrets Cloudflare Worker (`AW_ADMIN_KEY` / `MAINTENANCE_GATE_SECRET`, via `wrangler secret put` ou le dashboard) — jamais de valeur en dur dans `worker.js`, et jamais exposés côté navigateur.
 4. Session Appwrite : `localStorage.xultra_aw_sdk_session` + `client.setSession(secret)`.
 5. Pendant maintenance, le front app ne charge que si cookie `xultra_gate` présent.
 6. Doublons amis : API `/api/friends` déduplique par `friendId`.
