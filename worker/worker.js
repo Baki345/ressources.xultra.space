@@ -4085,8 +4085,12 @@ a.bug-att-item{display:block}
 .cvs-tile-avatar.hidden{display:none}
 .cvs-tile-avatar img{width:100%;height:100%;object-fit:cover}
 .cvs-tile-name{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:1}
-.cvs-tile-mute{position:absolute;right:10px;bottom:8px;width:22px;height:22px;border-radius:50%;background:#ef4444;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;z-index:1}
-.cvs-tile-mute.hidden{display:none}
+.cvs-tile-badges{position:absolute;right:10px;bottom:8px;display:flex;gap:5px;z-index:1}
+.cvs-badge{width:22px;height:22px;border-radius:50%;color:#fff;font-size:.7rem;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.cvs-badge.hidden{display:none}
+.cvs-badge-mute{background:#ef4444}
+.cvs-badge-deafen{background:#f59e0b}
+.cvs-badge-screen{background:#22c55e}
 .cvs-tile-hand{position:absolute;left:8px;top:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.4);font-size:.85rem;display:flex;align-items:center;justify-content:center;z-index:1}
 .cvs-tile-hand.hidden{display:none}
 .cvs-tile-expand{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:8px;border:none;background:rgba(0,0,0,.45);color:#fff;font-size:.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:1}
@@ -4100,6 +4104,11 @@ a.bug-att-item{display:block}
 .cvs-ctrl-btn.danger{background:#ef4444}
 .cvs-ctrl-btn.danger:hover{background:#dc2626}
 .cvs-ctrl-btn.stage-listener{opacity:.35;cursor:not-allowed}
+.cvs-settings-modal{width:min(360px,100%)}
+.cvs-settings-row{margin-bottom:14px}
+.cvs-settings-row label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:6px;font-weight:600}
+.cvs-settings-row select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0d0818;color:#f3e8ff;font-size:.85rem}
+.cvs-settings-row.hidden{display:none}
 .e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(167,139,250,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 /* Invitation à une écoute synchronisée démarrée par quelqu'un d'autre dans le
    même salon vocal (voir musicShowListenInviteBanner) — même famille visuelle
@@ -28581,6 +28590,7 @@ function wireGroupRoomEvents(room){
       const el=track.attach();
       el.dataset.participantIdentity=participant.identity;
       el.style.display='none';
+      el.muted=cvsDeafened;
       document.body.appendChild(el);
     }else if(track.kind==='video'){
       renderChannelVoiceStage();
@@ -28821,8 +28831,10 @@ function channelVoiceStageHtml(title){
     +'<div class="chan-voice-stage-controls">'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-cam-btn" title="Caméra">📹</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-mic-btn" title="Micro">🎤</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-deafen-btn" title="Sourdine casque">🎧</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-screen-btn" title="Partager l\\'écran">🖥️</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-hand-btn" title="Lever la main">✋</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-settings-btn" title="Paramètres d\\'appel">⚙️</button>'
       +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">📞</button>'
     +'</div>'
   +'</div>';
@@ -28841,7 +28853,11 @@ function chanVoiceStageTileHtml(uid,name,avatarUrl){
     +'<div class="cvs-tile-video-wrap hidden" data-cvs-video-wrap="'+esc(uid)+'"></div>'
     +'<div class="cvs-tile-avatar" data-cvs-avatar="'+esc(uid)+'">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="">':esc(ini(name||'?')))+'</div>'
     +'<div class="cvs-tile-name">'+(me&&uid===String(me.\$id)?'Toi':esc(name||'Membre'))+'</div>'
-    +'<div class="cvs-tile-mute hidden" data-cvs-mute="'+esc(uid)+'">🔇</div>'
+    +'<div class="cvs-tile-badges">'
+      +'<span class="cvs-badge cvs-badge-screen hidden" data-cvs-screen-badge="'+esc(uid)+'" title="Partage son écran">🖥️</span>'
+      +'<span class="cvs-badge cvs-badge-mute hidden" data-cvs-mute="'+esc(uid)+'" title="Micro coupé">🔇</span>'
+      +'<span class="cvs-badge cvs-badge-deafen hidden" data-cvs-deafen="'+esc(uid)+'" title="Casque coupé">🎧</span>'
+    +'</div>'
     +'<div class="cvs-tile-hand hidden" data-cvs-hand="'+esc(uid)+'">✋</div>'
     +'<button type="button" class="cvs-tile-expand" title="Agrandir">⤢</button>'
     +'</div>';
@@ -28873,13 +28889,13 @@ function renderChannelVoiceStage(){
   // compte deux fois dans la grille.
   groupRoom.remoteParticipants.forEach(function(p){if(String(p.identity)!==myUid)list.push({identity:p.identity,isLocal:false});});
   const presenceList=(activeChannel&&serverVoicePresenceCache[activeChannel.\$id])||[];
-  const tiles=[];
+  const tiles=[],screenSharingUids=new Set();
   list.forEach(function(item){
     tiles.push({key:item.identity,kind:'person',identity:item.identity,isLocal:item.isLocal});
     const lp=item.isLocal?groupRoom.localParticipant:groupRoom.remoteParticipants.get(item.identity);
     let screenPub=null;
     try{screenPub=lp&&lp.getTrackPublication(LivekitClient.Track.Source.ScreenShare);}catch(e){}
-    if(screenPub&&screenPub.track)tiles.push({key:item.identity+':screen',kind:'screen',identity:item.identity,isLocal:item.isLocal,track:screenPub.track});
+    if(screenPub&&screenPub.track){tiles.push({key:item.identity+':screen',kind:'screen',identity:item.identity,isLocal:item.isLocal,track:screenPub.track});screenSharingUids.add(item.identity);}
   });
   if(cvsEnlargedUid&&!tiles.some(function(t){return t.key===cvsEnlargedUid}))cvsEnlargedUid=null;
   // La tuile agrandie passe en tête pour occuper la première ligne (span
@@ -28954,6 +28970,10 @@ function renderChannelVoiceStage(){
       const presEntry=presenceList.find(function(pp){return String(pp.uid)===t.identity;});
       const handEl=tile.querySelector('[data-cvs-hand]');
       if(handEl)handEl.classList.toggle('hidden',!(presEntry&&presEntry.handRaised));
+      const screenBadgeEl=tile.querySelector('[data-cvs-screen-badge]');
+      if(screenBadgeEl)screenBadgeEl.classList.toggle('hidden',!screenSharingUids.has(t.identity));
+      const deafenBadgeEl=tile.querySelector('[data-cvs-deafen]');
+      if(deafenBadgeEl)deafenBadgeEl.classList.toggle('hidden',!(t.isLocal?cvsDeafened:(presEntry&&presEntry.deafened)));
     }
     tile.classList.toggle('enlarged',cvsEnlargedUid===t.key);
   });
@@ -29007,6 +29027,11 @@ function updateStageControlsUi(){
   }
   const handBtn=\$('cvs-hand-btn');
   if(handBtn)handBtn.classList.toggle('on',cvsHandRaised);
+  const deafenBtn=\$('cvs-deafen-btn');
+  if(deafenBtn){
+    deafenBtn.textContent=cvsDeafened?'🔇':'🎧';
+    deafenBtn.classList.toggle('danger',cvsDeafened);
+  }
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -29034,7 +29059,7 @@ async function toggleStageScreenShare(){
 // répercuté sur le document de présence server_voice_presence pour que
 // n'importe qui voie l'icône ✋ sur la tuile de la personne, connectée à la
 // room ou juste en train de regarder la liste des salons.
-let cvsHandRaised=false;
+let cvsHandRaised=false,cvsDeafened=false;
 function toggleStageHand(){
   if(!groupRoom)return;
   cvsHandRaised=!cvsHandRaised;
@@ -29043,6 +29068,27 @@ function toggleStageHand(){
     db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{handRaised:cvsHandRaised}).catch(function(){});
   }
   showToast(cvsHandRaised?'Main levée ✋':'Main baissée');
+}
+// Sourdine casque (façon Discord) : coupe l'AUDIO REÇU de tout le monde côté
+// client (mute des <audio> déjà attachés, voir wireGroupRoomEvents pour les
+// futurs) — LiveKit n'a pas besoin d'être informé, ça ne change rien à ce
+// qu'on publie. Se sourdine le casque coupe aussi le micro (comme Discord :
+// inutile de continuer à parler si on n'entend plus les réponses) ; ne le
+// réactive PAS en sens inverse, pour ne jamais réveiller un micro que la
+// personne avait volontairement coupé avant de se sourdine.
+async function toggleStageDeafen(){
+  if(!groupRoom)return;
+  cvsDeafened=!cvsDeafened;
+  document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){el.muted=cvsDeafened;});
+  if(cvsDeafened&&groupRoom.localParticipant.isMicrophoneEnabled){
+    try{await groupRoom.localParticipant.setMicrophoneEnabled(false);}catch(e){}
+  }
+  updateStageControlsUi();
+  refreshChannelVoiceStageIfVisible();
+  if(groupPresenceDocId&&groupPresenceCollection==='server_voice_presence'){
+    db.updateDocument(DB,groupPresenceCollection,groupPresenceDocId,{deafened:cvsDeafened}).catch(function(){});
+  }
+  showToast(cvsDeafened?'🔇 Casque coupé':'🎧 Casque réactivé');
 }
 function wireChannelVoiceStage(){
   const micBtn=\$('cvs-mic-btn');
@@ -29060,10 +29106,64 @@ function wireChannelVoiceStage(){
   if(screenBtn)screenBtn.onclick=toggleStageScreenShare;
   const handBtn=\$('cvs-hand-btn');
   if(handBtn)handBtn.onclick=toggleStageHand;
+  const deafenBtn=\$('cvs-deafen-btn');
+  if(deafenBtn)deafenBtn.onclick=toggleStageDeafen;
+  const settingsBtn=\$('cvs-settings-btn');
+  if(settingsBtn)settingsBtn.onclick=openCallSettingsPanel;
   const cinemaBtn=\$('cvs-cinema-btn');
   if(cinemaBtn)cinemaBtn.onclick=function(){if(cvsCinemaMode)exitChannelCinema();else enterChannelCinema();};
   const leaveBtn=\$('cvs-leave-btn');
   if(leaveBtn)leaveBtn.onclick=function(){leaveGroupCall();};
+}
+// Paramètres d'appel (micro/caméra/sortie audio) : un simple choix de
+// périphérique, pas de réglage de qualité (déjà fixé au niveau du serveur
+// via audioQualityKey, pas un choix utilisateur par appel). switchActiveDevice
+// existe nativement dans le SDK LiveKit (vérifié dans le bundle chargé) : pas
+// besoin de recréer les pistes à la main.
+async function openCallSettingsPanel(){
+  if(!groupRoom)return;
+  // ID distinct de #modal-call-settings (déjà utilisé par les appels DM 1:1,
+  // branché sur callPc/localStream/outGainNode — une tout autre pile audio
+  // que LiveKit) : les deux modales servent le même besoin dans deux
+  // contextes techniques différents, jamais interchangeables sans réécrire
+  // l'un des deux systèmes d'appel.
+  let overlay=\$('modal-cvs-call-settings');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='modal-cvs-call-settings';
+    overlay.className='overlay';
+    overlay.innerHTML='<div class="modal-box cvs-settings-modal"><button type="button" class="modal-close" id="cvs-settings-close">✕</button>'
+      +'<div class="set-section-label" style="margin-bottom:14px">⚙️ Paramètres d\\'appel</div>'
+      +'<div class="cvs-settings-row"><label>🎤 Microphone</label><select id="cvs-set-mic"></select></div>'
+      +'<div class="cvs-settings-row"><label>📹 Caméra</label><select id="cvs-set-cam"></select></div>'
+      +'<div class="cvs-settings-row" id="cvs-settings-speaker-row"><label>🔊 Sortie audio</label><select id="cvs-set-speaker"></select></div>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    \$('cvs-settings-close').onclick=function(){overlay.classList.add('hidden');};
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.add('hidden');});
+  }
+  overlay.classList.remove('hidden');
+  let devices=[];
+  try{devices=await navigator.mediaDevices.enumerateDevices();}catch(e){}
+  function fillSelect(sel,kind,activeId,fallbackLabel){
+    const list=devices.filter(function(d){return d.kind===kind;});
+    if(!list.length){sel.innerHTML='<option value="">Aucun trouvé</option>';sel.disabled=true;return}
+    sel.disabled=false;
+    sel.innerHTML=list.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||(fallbackLabel+' '+(i+1)))+'</option>';}).join('');
+    if(activeId)sel.value=activeId;
+  }
+  let activeMic=null,activeCam=null,activeSpeaker=null;
+  try{activeMic=groupRoom.getActiveDevice('audioinput');}catch(e){}
+  try{activeCam=groupRoom.getActiveDevice('videoinput');}catch(e){}
+  try{activeSpeaker=groupRoom.getActiveDevice('audiooutput');}catch(e){}
+  fillSelect(\$('cvs-set-mic'),'audioinput',activeMic,'Microphone');
+  fillSelect(\$('cvs-set-cam'),'videoinput',activeCam,'Caméra');
+  const canSetSinkId=typeof HTMLMediaElement!=='undefined'&&HTMLMediaElement.prototype.setSinkId;
+  \$('cvs-settings-speaker-row').classList.toggle('hidden',!canSetSinkId);
+  if(canSetSinkId)fillSelect(\$('cvs-set-speaker'),'audiooutput',activeSpeaker,'Sortie');
+  \$('cvs-set-mic').onchange=function(){groupRoom.switchActiveDevice('audioinput',this.value).catch(function(){});};
+  \$('cvs-set-cam').onchange=function(){groupRoom.switchActiveDevice('videoinput',this.value).catch(function(){});};
+  if(canSetSinkId)\$('cvs-set-speaker').onchange=function(){groupRoom.switchActiveDevice('audiooutput',this.value).catch(function(){});};
 }
 function refreshChannelVoiceStageIfVisible(){
   if(!activeChannel||activeChannel.type!=='voice')return;
@@ -29102,7 +29202,7 @@ function cleanupGroupCall(){
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
   const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');gcbVGrid.classList.remove('n1');}
-  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;cvsHandRaised=false;
+  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;cvsHandRaised=false;cvsDeafened=false;
   \$('gcb-cam').classList.remove('on');
   \$('gcb-screen').classList.remove('on');
   document.body.appendChild(\$('group-call-bar'));
