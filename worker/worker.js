@@ -52,6 +52,52 @@ const SHAMAN_UIDS = new Set(["6a7895fc00364d72996f", "6a8faae2001043f4f5c5", "6a
 // Same reasoning as AW_KEY above: read from a Cloudflare secret binding
 // rather than a literal, since this file is mirrored to a public repo.
 const MAINT_GATE = typeof MAINTENANCE_GATE_SECRET !== "undefined" ? MAINTENANCE_GATE_SECRET : "";
+// XCodeHUB : navigateur de code source public (accessible sans connexion,
+// depuis l'écran de connexion et les Paramètres) pour l'app desktop native —
+// seule application avec un vrai code source distinct du site web à publier ;
+// Android/iOS/ChromeOS n'embarquent aucun code natif propre (webview du
+// site), il n'y a donc rien de plus à exposer pour ces plateformes. Contenu
+// figé au déploiement (recopier ici après toute modif de desktop/).
+const XCODEHUB_GENERATED_AT = "2026-09-06T17:16:44.552Z";
+const XCODEHUB_FILES = [
+  {
+    "path": "desktop/src/main.js",
+    "lang": "javascript",
+    "content": "const { app, BrowserWindow, Menu, Tray, shell, session, nativeImage, ipcMain } = require('electron');\nconst path = require('path');\nconst windowState = require('./window-state');\nconst appSettings = require('./app-settings');\n\nconst APP_URL = 'https://xultra.space/';\nconst ALLOWED_HOST = 'xultra.space';\nconst ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');\nconst TRAY_ICON_PATH = path.join(__dirname, '..', 'build', 'tray.png');\nconst BADGES_DIR = path.join(__dirname, '..', 'build', 'badges');\n// Argument passé par Electron à l'exécutable relancé au démarrage de session\n// (voir setOpenAtLogin ci-dessous) : distingue un lancement automatique d'un\n// double-clic manuel, pour n'appliquer \"démarrer minimisé\" que dans ce cas.\nconst HIDDEN_LAUNCH_ARG = '--xultra-hidden-launch';\n\nlet mainWindow = null;\nlet tray = null;\nlet settings = appSettings.DEFAULTS;\napp.isQuitting = false;\n\nfunction wasLaunchedHidden() {\n  if (process.argv.includes(HIDDEN_LAUNCH_ARG)) return true;\n  // macOS ne passe pas l'argument (Login Items relance l'app normalement) ;\n  // Electron expose directement l'information dans ce cas.\n  try { return !!app.getLoginItemSettings().wasOpenedAsHidden; } catch (e) { return false; }\n}\n\nfunction isAllowedUrl(urlStr) {\n  try {\n    const u = new URL(urlStr);\n    return u.hostname === ALLOWED_HOST || u.hostname.endsWith('.' + ALLOWED_HOST);\n  } catch (e) {\n    return false;\n  }\n}\n\nfunction createMainWindow() {\n  const saved = windowState.loadState(app);\n  const bounds = windowState.fitsOnDisplay(saved)\n    ? { x: saved.x, y: saved.y, width: saved.width, height: saved.height }\n    : { width: saved.width, height: saved.height };\n\n  mainWindow = new BrowserWindow({\n    ...bounds,\n    minWidth: 940,\n    minHeight: 600,\n    icon: ICON_PATH,\n    backgroundColor: '#0b0710',\n    autoHideMenuBar: true,\n    show: false,\n    webPreferences: {\n      preload: path.join(__dirname, 'preload.js'),\n      contextIsolation: true,\n      nodeIntegration: false,\n      sandbox: true,\n      // Sans ça, Chromium ralentit les timers JS d'une fenêtre cachée (tray)\n      // pour économiser des ressources — inoffensif pour un simple onglet\n      // en arrière-plan, mais retarderait la sonnerie d'un appel entrant ou\n      // le traitement d'une notification tant que la fenêtre reste masquée.\n      backgroundThrottling: false,\n    },\n  });\n\n  if (saved.isMaximized) mainWindow.maximize();\n  windowState.track(app, mainWindow);\n\n  // \"Démarrer minimisé\" ne s'applique qu'à un lancement automatique au\n  // démarrage de session — un double-clic manuel sur l'icône doit toujours\n  // ouvrir la fenêtre, sinon l'appli semblerait ne pas se lancer du tout.\n  const startHidden = settings.startMinimized && wasLaunchedHidden();\n  if (!startHidden) mainWindow.once('ready-to-show', () => mainWindow.show());\n  mainWindow.loadURL(APP_URL);\n\n  // Liens/images ouverts avec window.open() : s'ils pointent vers xultra.space\n  // (ex. aperçu d'image en plein écran), on ouvre une vraie fenêtre native ;\n  // tout le reste (liens externes) part vers le navigateur système, jamais\n  // dans une fenêtre Electron sans restrictions.\n  mainWindow.webContents.setWindowOpenHandler(({ url }) => {\n    if (isAllowedUrl(url)) {\n      return {\n        action: 'allow',\n        overrideBrowserWindowOptions: {\n          icon: ICON_PATH,\n          autoHideMenuBar: true,\n          webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },\n        },\n      };\n    }\n    shell.openExternal(url);\n    return { action: 'deny' };\n  });\n\n  // Empêche la fenêtre principale de naviguer ailleurs que sur xultra.space\n  // (une redirection intempestive resterait dans l'appli au lieu du navigateur).\n  mainWindow.webContents.on('will-navigate', (e, url) => {\n    if (!isAllowedUrl(url)) {\n      e.preventDefault();\n      shell.openExternal(url);\n    }\n  });\n\n  // Comme Discord par défaut : fermer la fenêtre la réduit dans la zone de\n  // notification au lieu de quitter l'appli — désactivable dans les\n  // paramètres XULTRA (§ Paramètres du système), sauf si l'utilisateur\n  // choisit vraiment \"Quitter\" depuis le menu ou l'icône de la zone de\n  // notification.\n  mainWindow.on('close', (e) => {\n    if (!app.isQuitting && tray && settings.minimizeToTray) {\n      e.preventDefault();\n      mainWindow.hide();\n    }\n  });\n  // Sans ce reset, une réouverture depuis la zone de notification après une\n  // fermeture réelle (minimizeToTray désactivé) appellerait .show() sur une\n  // fenêtre déjà détruite.\n  mainWindow.on('closed', () => { mainWindow = null; });\n}\n\nfunction showMainWindow() {\n  if (!mainWindow || mainWindow.isDestroyed()) { createMainWindow(); return; }\n  mainWindow.show();\n  mainWindow.focus();\n}\n\nfunction createTray() {\n  const trayIcon = nativeImage.createFromPath(TRAY_ICON_PATH);\n  tray = new Tray(trayIcon);\n  tray.setToolTip('XULTRA');\n  const menu = Menu.buildFromTemplate([\n    {\n      label: 'Ouvrir XULTRA',\n      click: showMainWindow,\n    },\n    { type: 'separator' },\n    {\n      label: 'Quitter',\n      click: () => {\n        app.isQuitting = true;\n        app.quit();\n      },\n    },\n  ]);\n  tray.setContextMenu(menu);\n  tray.on('click', () => {\n    if (mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible()) mainWindow.focus();\n    else showMainWindow();\n  });\n}\n\nfunction buildAppMenu() {\n  const isMac = process.platform === 'darwin';\n  const template = [\n    ...(isMac ? [{ role: 'appMenu', label: 'XULTRA' }] : []),\n    {\n      label: 'Édition',\n      submenu: [\n        { role: 'undo', label: 'Annuler' },\n        { role: 'redo', label: 'Rétablir' },\n        { type: 'separator' },\n        { role: 'cut', label: 'Couper' },\n        { role: 'copy', label: 'Copier' },\n        { role: 'paste', label: 'Coller' },\n        { role: 'selectAll', label: 'Tout sélectionner' },\n      ],\n    },\n    {\n      label: 'Affichage',\n      submenu: [\n        { role: 'reload', label: 'Actualiser' },\n        { role: 'forceReload', label: 'Forcer l\\'actualisation' },\n        { type: 'separator' },\n        { role: 'resetZoom', label: 'Zoom normal' },\n        { role: 'zoomIn', label: 'Zoomer' },\n        { role: 'zoomOut', label: 'Dézoomer' },\n        { type: 'separator' },\n        { role: 'togglefullscreen', label: 'Plein écran' },\n      ],\n    },\n    {\n      label: 'Fenêtre',\n      submenu: [\n        { role: 'minimize', label: 'Réduire' },\n        { role: 'close', label: 'Fermer' },\n      ],\n    },\n  ];\n  Menu.setApplicationMenu(Menu.buildFromTemplate(template));\n}\n\nconst gotLock = app.requestSingleInstanceLock();\nif (!gotLock) {\n  app.quit();\n} else {\n  app.on('second-instance', () => {\n    if (!mainWindow) return;\n    if (mainWindow.isMinimized()) mainWindow.restore();\n    mainWindow.show();\n    mainWindow.focus();\n  });\n\n  app.whenReady().then(() => {\n    if (process.platform === 'win32') app.setAppUserModelId('space.xultra.desktop');\n\n    settings = appSettings.loadSettings(app);\n\n    // Micro/caméra nécessaires pour les appels et le studio de snap ; on\n    // n'autorise que xultra.space, tout le reste est refusé par défaut.\n    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {\n      const url = webContents.getURL();\n      const allowed = ['media', 'notifications', 'clipboard-sanitized-write', 'fullscreen'];\n      callback(isAllowedUrl(url) && allowed.includes(permission));\n    });\n\n    // Réglages \"Paramètres du système\" exposés à la page web via preload.js\n    // (window.xultraDesktop) — lus/écrits ici car app.setLoginItemSettings\n    // et le fichier de préférences ne sont accessibles que dans ce processus.\n    ipcMain.handle('xultra:get-os-settings', () => ({\n      openAtLogin: app.getLoginItemSettings().openAtLogin,\n      startMinimized: settings.startMinimized,\n      minimizeToTray: settings.minimizeToTray,\n    }));\n    ipcMain.handle('xultra:set-open-at-login', (e, value) => {\n      app.setLoginItemSettings({ openAtLogin: !!value, args: [HIDDEN_LAUNCH_ARG] });\n      return true;\n    });\n    ipcMain.handle('xultra:set-start-minimized', (e, value) => {\n      settings = { ...settings, startMinimized: !!value };\n      appSettings.saveSettings(app, settings);\n      return true;\n    });\n    ipcMain.handle('xultra:set-minimize-to-tray', (e, value) => {\n      settings = { ...settings, minimizeToTray: !!value };\n      appSettings.saveSettings(app, settings);\n      return true;\n    });\n    // Badge de messages non lus sur l'icône de l'appli : macOS et Linux (dock/\n    // launcher qui supporte l'API D-Bus LauncherEntry) ont un vrai compteur\n    // natif via app.setBadgeCount ; Windows n'a pas cet équivalent, il faut y\n    // superposer une petite icône ronde sur la barre des tâches à la place —\n    // d'où les pastilles pré-générées dans build/badges/.\n    // Filet de sécurité pour \"recevoir un appel/une notification en arrière-\n    // plan\" : le clic sur une notification système déclenche déjà\n    // client.focus() côté Service Worker (voir SW_JS côté serveur), ce qui\n    // fonctionne pour un onglet de navigateur normal, mais son effet sur une\n    // BrowserWindow qu'on a explicitement cachée (.hide(), pas juste\n    // minimisée) n'est pas garanti selon l'OS. La page relaie donc aussi un\n    // postMessage du Service Worker vers cet appel IPC, qui rappelle\n    // showMainWindow() directement sur la vraie fenêtre — deux chemins pour\n    // le même résultat, dont un fiable à coup sûr.\n    ipcMain.handle('xultra:show-window', () => { showMainWindow(); return true; });\n    ipcMain.handle('xultra:set-badge-count', (e, count) => {\n      const n = Math.max(0, Number(count) || 0);\n      if (process.platform === 'win32') {\n        if (!mainWindow || mainWindow.isDestroyed()) return true;\n        if (n === 0) { mainWindow.setOverlayIcon(null, ''); return true; }\n        const label = n > 9 ? '9plus' : String(n);\n        const img = nativeImage.createFromPath(path.join(BADGES_DIR, label + '.png'));\n        mainWindow.setOverlayIcon(img, n > 9 ? '9+ notifications non lues' : n + ' notification(s) non lue(s)');\n      } else {\n        app.setBadgeCount(n);\n      }\n      return true;\n    });\n\n    buildAppMenu();\n    createMainWindow();\n    createTray();\n\n    app.on('activate', () => {\n      if (BrowserWindow.getAllWindows().length === 0) createMainWindow();\n      else mainWindow.show();\n    });\n  });\n\n  app.on('window-all-closed', () => {\n    // \"Minimiser dans la barre des tâches\" désactivé : une fenêtre fermée\n    // est réellement fermée, donc quitter l'application comme n'importe\n    // quel logiciel de bureau classique, plutôt que de rester en tâche de\n    // fond sans fenêtre ni moyen évident de la rouvrir.\n    if (!settings.minimizeToTray) {\n      app.isQuitting = true;\n      app.quit();\n      return;\n    }\n    // Sinon la fenêtre reste accessible depuis la zone de notification tant\n    // que l'utilisateur n'a pas explicitement choisi \"Quitter\".\n  });\n\n  app.on('before-quit', () => {\n    app.isQuitting = true;\n  });\n}\n",
+    "sizeBytes": 11124
+  },
+  {
+    "path": "desktop/src/preload.js",
+    "lang": "javascript",
+    "content": "// Pont minimal et isolé entre le processus principal et la page xultra.space.\n// N'expose que ce qui est nécessaire : aucune API Node/Electron n'est\n// accessible depuis le contenu web (contextIsolation reste actif). Les\n// réglages OS (démarrage, minimisation) passent par ipcRenderer.invoke vers\n// des handlers dédiés dans main.js — jamais d'accès direct à `app` ici.\nconst { contextBridge, ipcRenderer } = require('electron');\n\ncontextBridge.exposeInMainWorld('xultraDesktop', {\n  platform: process.platform,\n  isDesktop: true,\n  getOsSettings: () => ipcRenderer.invoke('xultra:get-os-settings'),\n  setOpenAtLogin: (value) => ipcRenderer.invoke('xultra:set-open-at-login', value),\n  setStartMinimized: (value) => ipcRenderer.invoke('xultra:set-start-minimized', value),\n  setMinimizeToTray: (value) => ipcRenderer.invoke('xultra:set-minimize-to-tray', value),\n  setBadgeCount: (count) => ipcRenderer.invoke('xultra:set-badge-count', count),\n  showWindow: () => ipcRenderer.invoke('xultra:show-window'),\n});\n",
+    "sizeBytes": 1022
+  },
+  {
+    "path": "desktop/src/window-state.js",
+    "lang": "javascript",
+    "content": "// Persiste la taille/position de la fenêtre entre deux lancements, sans\n// dépendance externe : un simple fichier JSON dans le dossier userData.\nconst fs = require('fs');\nconst path = require('path');\nconst { screen } = require('electron');\n\nfunction stateFilePath(app) {\n  return path.join(app.getPath('userData'), 'window-state.json');\n}\n\nfunction loadState(app) {\n  try {\n    const raw = fs.readFileSync(stateFilePath(app), 'utf8');\n    const s = JSON.parse(raw);\n    if (s && typeof s.width === 'number' && typeof s.height === 'number') return s;\n  } catch (e) {}\n  return { width: 1280, height: 820 };\n}\n\nfunction fitsOnDisplay(state) {\n  if (typeof state.x !== 'number' || typeof state.y !== 'number') return false;\n  return screen.getAllDisplays().some((d) => {\n    const a = d.workArea;\n    return state.x >= a.x && state.y >= a.y && state.x < a.x + a.width && state.y < a.y + a.height;\n  });\n}\n\nfunction track(app, win) {\n  let saveTimer = null;\n  const save = () => {\n    clearTimeout(saveTimer);\n    saveTimer = setTimeout(() => {\n      if (win.isDestroyed()) return;\n      const bounds = win.getBounds();\n      const isMaximized = win.isMaximized();\n      try {\n        fs.writeFileSync(stateFilePath(app), JSON.stringify({ ...bounds, isMaximized }));\n      } catch (e) {}\n    }, 400);\n  };\n  win.on('resize', save);\n  win.on('move', save);\n  win.on('close', save);\n}\n\nmodule.exports = { loadState, fitsOnDisplay, track };\n",
+    "sizeBytes": 1438
+  },
+  {
+    "path": "desktop/src/app-settings.js",
+    "lang": "javascript",
+    "content": "// Préférences utilisateur pour le comportement de l'appli (indépendant de la\n// taille/position de fenêtre gérée par window-state.js) : un simple fichier\n// JSON dans le dossier userData, sans dépendance externe.\nconst fs = require('fs');\nconst path = require('path');\n\nconst DEFAULTS = { startMinimized: false, minimizeToTray: true };\n\nfunction settingsFilePath(app) {\n  return path.join(app.getPath('userData'), 'app-settings.json');\n}\n\nfunction loadSettings(app) {\n  try {\n    const raw = fs.readFileSync(settingsFilePath(app), 'utf8');\n    const s = JSON.parse(raw);\n    return { ...DEFAULTS, ...s };\n  } catch (e) {\n    return { ...DEFAULTS };\n  }\n}\n\nfunction saveSettings(app, settings) {\n  try {\n    fs.writeFileSync(settingsFilePath(app), JSON.stringify(settings));\n  } catch (e) {}\n}\n\nmodule.exports = { loadSettings, saveSettings, DEFAULTS };\n",
+    "sizeBytes": 861
+  },
+  {
+    "path": "desktop/package.json",
+    "lang": "json",
+    "content": "{\n  \"name\": \"xultra-desktop\",\n  \"version\": \"1.0.2\",\n  \"description\": \"Application de bureau XULTRA — enveloppe native pour xultra.space\",\n  \"main\": \"src/main.js\",\n  \"private\": true,\n  \"author\": {\n    \"name\": \"XULTRA\",\n    \"email\": \"contact@xultra.space\"\n  },\n  \"homepage\": \"https://xultra.space\",\n  \"license\": \"UNLICENSED\",\n  \"repository\": {\n    \"type\": \"git\",\n    \"url\": \"https://github.com/Baki345/ressources.xultra.space.git\"\n  },\n  \"scripts\": {\n    \"start\": \"electron .\",\n    \"dist:win\": \"electron-builder --win\",\n    \"dist:mac\": \"electron-builder --mac\",\n    \"dist:linux\": \"electron-builder --linux\",\n    \"dist\": \"electron-builder -mwl\"\n  },\n  \"devDependencies\": {\n    \"electron\": \"^32.0.0\",\n    \"electron-builder\": \"^25.0.0\"\n  },\n  \"build\": {\n    \"appId\": \"space.xultra.desktop\",\n    \"productName\": \"XULTRA\",\n    \"directories\": {\n      \"output\": \"dist\",\n      \"buildResources\": \"build\"\n    },\n    \"files\": [\n      \"src/**/*\",\n      \"build/icon.png\",\n      \"build/tray.png\",\n      \"build/tray@16.png\",\n      \"build/badges/**/*\"\n    ],\n    \"mac\": {\n      \"icon\": \"build/icon.png\",\n      \"category\": \"public.app-category.social-networking\",\n      \"target\": [\n        \"dmg\",\n        \"zip\"\n      ]\n    },\n    \"win\": {\n      \"icon\": \"build/icon.png\",\n      \"target\": [\n        \"nsis\",\n        \"portable\"\n      ]\n    },\n    \"linux\": {\n      \"icon\": \"build/icon.png\",\n      \"category\": \"Network;Chat;\",\n      \"target\": [\n        \"AppImage\",\n        \"deb\"\n      ],\n      \"maintainer\": \"contact@xultra.space\"\n    },\n    \"nsis\": {\n      \"oneClick\": false,\n      \"allowToChangeInstallationDirectory\": true,\n      \"createDesktopShortcut\": true,\n      \"createStartMenuShortcut\": true\n    }\n  }\n}\n",
+    "sizeBytes": 1690
+  },
+  {
+    "path": "desktop/README.md",
+    "lang": "markdown",
+    "content": "# XULTRA Desktop\n\nApplication de bureau native pour XULTRA (comme le client Discord), construite\navec [Electron](https://www.electronjs.org/). C'est une enveloppe autour de\n`https://xultra.space` — aucune logique métier n'est dupliquée ici, tout le\nsite (chat, DM, snaps, appels, serveurs…) continue de tourner exactement\ncomme dans un navigateur. Le desktop ajoute seulement des attentions natives :\n\n- Fenêtre dédiée avec sa propre icône, sans barre d'adresse ni onglets.\n- Réduction dans la zone de notification (system tray) à la fermeture, comme\n  Discord — l'appli continue de tourner en arrière-plan, \"Quitter\" depuis le\n  tray l'arrête vraiment.\n- Position/taille de fenêtre mémorisées d'un lancement à l'autre.\n- Les liens externes (hors xultra.space) s'ouvrent dans le navigateur système\n  au lieu d'une fenêtre Electron sans restriction ; les aperçus d'images/liens\n  internes s'ouvrent dans une vraie fenêtre native.\n- Permissions caméra/micro/notifications accordées uniquement à xultra.space\n  (nécessaires pour les appels et le studio de snap).\n- Une seule instance à la fois (relancer l'appli redonne le focus à la\n  fenêtre existante au lieu d'en ouvrir une deuxième).\n- Badge de messages non lus sur l'icône de l'appli (dock macOS, launcher\n  Linux compatible D-Bus, superposition sur la barre des tâches Windows) —\n  relié au réglage \"Badge sur l'icône\" de XULTRA (§ Paramètres → Notifications).\n- Réglages système pilotables depuis XULTRA (§ Paramètres → Paramètres du\n  système) : ouverture au démarrage de session, démarrage minimisé, et\n  activer/désactiver la réduction dans la zone de notification à la\n  fermeture (par défaut activée, comme ci-dessus).\n\n## Développement\n\n```bash\ncd desktop\nnpm install\nnpm start\n```\n\n## Construire les installeurs\n\n```bash\nnpm run dist:win     # .exe (NSIS + portable)\nnpm run dist:mac     # .dmg + .zip\nnpm run dist:linux   # AppImage + .deb\nnpm run dist         # les trois plateformes (nécessite les outils natifs de chacune)\n```\n\nLes binaires sortent dans `desktop/dist/`. L'icône (`build/icon.png`, 1024×1024)\nest celle du favicon/logo web — `electron-builder` en dérive automatiquement\nles `.icns`/`.ico` nécessaires à chaque plateforme, aucune conversion manuelle\nn'est nécessaire.\n\nNote : le `.dmg` macOS ne peut être produit que depuis un vrai Mac (le\npaquet `dmg-license` qu'il utilise a une dépendance native `darwin`-only,\nimpossible à installer sur Linux/Windows). Depuis un environnement non-Mac,\nutiliser `electron-builder --mac zip` pour obtenir uniquement le `.zip`\n(ce que ce dépôt distribue actuellement sur la page de téléchargement).\n\n## Notes\n\n- `src/main.js` : processus principal (fenêtre, tray, menu, permissions,\n  badge, réglages système exposés via IPC).\n- `src/preload.js` : pont isolé (`contextIsolation`) qui expose\n  `window.xultraDesktop` au site (`isDesktop`, `platform`, `getOsSettings`,\n  `setOpenAtLogin`, `setStartMinimized`, `setMinimizeToTray`,\n  `setBadgeCount`) — utilisé par XULTRA pour ses paramètres système et son\n  badge de notifications, sans jamais exposer Node/Electron à la page.\n- `src/window-state.js` : persistance position/taille de fenêtre (fichier JSON\n  dans le dossier `userData`, aucune dépendance externe).\n- `src/app-settings.js` : persistance des préférences \"démarrer minimisé\" /\n  \"minimiser dans la barre des tâches\" (même principe, fichier JSON séparé).\n- `build/badges/*.png` : pastilles rondes pré-générées (1 à 9, \"9+\") utilisées\n  comme icône de superposition sur la barre des tâches Windows pour le badge\n  de notifications (macOS/Linux utilisent l'API native `app.setBadgeCount`,\n  qui n'a pas besoin d'image).\n- Build vérifié dans ce dépôt via un lancement headless (`xvfb-run`) : le\n  processus principal démarre sans erreur JS (création de fenêtre, tray, menu,\n  permissions, handlers IPC). Le chargement réel de xultra.space et les\n  fonctions caméra/appels/badge n'ont pas pu être testés visuellement depuis\n  cet environnement (pas de navigateur graphique ni de caméra ici) — à\n  vérifier après le premier lancement sur une vraie machine.\n",
+    "sizeBytes": 4200
+  }
+];
+
 // Serveur TURN dédié (coturn sur VPS), remplace le relai gratuit openrelay.metered.ca
 // qui causait des appels sans son/vidéo (surchargé, non fiable). Le secret sert à
 // générer des identifiants TURN temporaires (norme "TURN REST API") : jamais le
@@ -2090,9 +2136,49 @@ html.xultra-restoring #stage{visibility:hidden}
 .beta-pill:hover{background:rgba(250,204,21,.28)}
 .dl-vt-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px;font-size:.7rem;font-weight:700;color:#86efac;text-decoration:none}
 .dl-vt-badge:hover{text-decoration:underline}
-.dl-source-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:6px;font-size:.7rem;font-weight:700;color:#93c5fd;text-decoration:none}
+.dl-source-badge{display:flex;align-items:center;justify-content:center;gap:5px;margin:6px auto 0;font-size:.7rem;font-weight:700;color:#93c5fd;text-decoration:none;border:none;background:transparent;font-family:inherit;cursor:pointer;padding:0}
 .dl-source-badge:hover{text-decoration:underline}
-.dl-verify-note a{color:#93c5fd}
+.dl-verify-note a{color:#93c5fd;cursor:pointer}
+/* XCodeHUB : navigateur de code source public (appli desktop native) */
+.codehub-modal{width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;background:linear-gradient(165deg,#1a1030 0%,#0d0818 100%);border:1px solid rgba(167,139,250,.35);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 60px rgba(124,58,237,.15);animation:codehubPop .32s cubic-bezier(.2,.9,.25,1.1)}
+@keyframes codehubPop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+.codehub-head{padding:24px 46px 16px 26px;border-bottom:1px solid rgba(42,31,61,.9);position:relative;background:radial-gradient(600px 200px at 15% -30%,rgba(124,58,237,.3),transparent 65%);overflow:hidden}
+.codehub-head::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:codehubSheen 2.6s ease-in-out .3s 1}
+@keyframes codehubSheen{to{left:120%}}
+.codehub-logo{font-size:1.35rem;font-weight:900;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#7c3aed);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.02em;display:flex;align-items:center;gap:9px;position:relative}
+.codehub-sub{font-size:.82rem;color:var(--muted);margin-top:6px;position:relative}
+.codehub-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;position:relative}
+.codehub-badge{font-size:.68rem;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;opacity:0;animation:codehubBadgeIn .4s ease forwards}
+.codehub-badge:nth-child(1){animation-delay:.08s}.codehub-badge:nth-child(2){animation-delay:.18s}.codehub-badge:nth-child(3){animation-delay:.28s}
+@keyframes codehubBadgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
+.codehub-body{display:flex;flex:1;min-height:0}
+.codehub-files{width:230px;flex-shrink:0;border-right:1px solid rgba(42,31,61,.9);overflow-y:auto;padding:10px}
+.codehub-file-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.82rem;color:#d1c4e9;opacity:0;animation:codehubRowIn .32s ease forwards;transition:background .15s ease,transform .15s ease}
+@keyframes codehubRowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.codehub-file-row:hover{background:rgba(167,139,250,.1);transform:translateX(2px)}
+.codehub-file-row.active{background:rgba(124,58,237,.24);box-shadow:inset 0 0 0 1px rgba(167,139,250,.45)}
+.codehub-file-icon{font-size:1rem}
+.codehub-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.codehub-file-size{font-size:.63rem;color:var(--muted);flex-shrink:0}
+.codehub-viewer{flex:1;display:flex;flex-direction:column;min-width:0}
+.codehub-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(42,31,61,.9);background:rgba(255,255,255,.02)}
+.codehub-file-path{font-size:.76rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.codehub-copy-btn{font-size:.7rem;font-weight:700;padding:5px 11px;border-radius:8px;border:1px solid rgba(167,139,250,.3);background:rgba(167,139,250,.1);color:#e9d5ff;cursor:pointer;transition:background .15s ease,transform .1s ease;flex-shrink:0}
+.codehub-copy-btn:hover{background:rgba(167,139,250,.22)}
+.codehub-copy-btn:active{transform:scale(.94)}
+.codehub-code{flex:1;overflow:auto;margin:0;padding:16px 18px;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.78rem;line-height:1.6;color:#e5e0f0}
+.codehub-code code{white-space:pre}
+.tok-kw{color:#c084fc;font-weight:600}
+.tok-str{color:#86efac}
+.tok-com{color:#7b7690;font-style:italic}
+.tok-num{color:#fbbf24}
+.codehub-foot{padding:12px 20px;font-size:.68rem;color:#6b7280;text-align:center;border-top:1px solid rgba(42,31,61,.9)}
+.codehub-loading{padding:24px;text-align:center;color:var(--muted);font-size:.82rem}
+@media (max-width:640px){
+  .codehub-body{flex-direction:column}
+  .codehub-files{width:100%;max-height:150px;border-right:none;border-bottom:1px solid rgba(42,31,61,.9)}
+  .codehub-head{padding-right:26px}
+}
 .dl-verify-toggle{display:block;margin:8px auto 0;font-size:.7rem;color:var(--muted);text-decoration:underline;text-align:center}
 .dl-verify-toggle:hover{color:#e9d5ff}
 .dl-verify-box{margin-top:8px;padding:10px 12px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:10px;text-align:left}
@@ -4648,7 +4734,7 @@ a.bug-att-item{display:block}
     <div class="desktop-dl" id="desktop-dl">
       <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
       <a class="dl-vt-badge hidden" id="dl-vt-badge" target="_blank" rel="noopener"></a>
-      <a class="dl-source-badge" id="dl-source-badge" target="_blank" rel="noopener">📂 Code source ouvert sur GitHub</a>
+      <button type="button" class="dl-source-badge" id="dl-source-badge">🖥️ Voir le code source — XCodeHUB</button>
       <div class="desktop-dl-others" id="desktop-dl-others"></div>
       <button type="button" class="dl-verify-toggle" id="dl-verify-toggle">🔒 Vérifier l'empreinte du fichier (SHA-256)</button>
       <div class="dl-verify-box hidden" id="dl-verify-box"></div>
@@ -6030,12 +6116,6 @@ const APP_STORAGE_PROJECT='6a73b975002f14dc6b91';
 // et appels fonctionnent quand même, via le PWA (§ manifest.webmanifest).
 // ChromeOS réutilise le même .apk qu'Android (ARC++) : même fileId, juste un
 // intitulé et des instructions d'installation différents.
-// Dépôt GitHub public contenant le code source exact du site (worker/) et de
-// l'application desktop (desktop/) — permet à qui le souhaite (utilisateurs
-// méfiants vis-à-vis d'un binaire fermé) de lire le code, l'auditer, ou le
-// recompiler lui-même plutôt que de faire confiance aveuglément aux fichiers
-// publiés.
-const X1_SOURCE_URL='https://github.com/Baki345/ressources.xultra.space/tree/claude/xultra-space-code-review-gzpd84';
 const APP_PLATFORMS=[
   {key:'win',label:'Windows',fileId:'xultra_dl_win_setup',icon:'🪟'},
   {key:'android',label:'Android',fileId:'xultra_dl_android_apk',icon:'🤖'},
@@ -6107,7 +6187,7 @@ function detectAppPlatformKey(){
     vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
     vtBadge.classList.remove('hidden');
   }
-  const srcBadge=\$('dl-source-badge');if(srcBadge)srcBadge.href=X1_SOURCE_URL;
+  const srcBadge=\$('dl-source-badge');if(srcBadge)srcBadge.onclick=openXCodeHubModal;
   const othersBox=\$('desktop-dl-others');
   if(othersBox){
     othersBox.innerHTML=APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
@@ -6129,7 +6209,7 @@ function detectAppPlatformKey(){
           const vtP=APP_VT[p.key];
           return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
         }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>'
-        +'<div class="dl-verify-note">📂 Le code est <strong>open source</strong> : <a href="'+esc(X1_SOURCE_URL)+'" target="_blank" rel="noopener">lis-le sur GitHub</a> (site web + appli desktop), vérifie qu\\'il ne fait rien de caché, ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
+        +'<div class="dl-verify-note">🖥️ Le code de l\\'appli native est <strong>public</strong> : <a href="#" id="dl-verify-codehub-link">consulte-le dans XCodeHUB</a> (aucun compte requis), ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
         verifyBox.dataset.filled='1';
         verifyBox.querySelectorAll('[data-copy-hash]').forEach(function(b){
           b.onclick=function(){
@@ -6137,6 +6217,8 @@ function detectAppPlatformKey(){
             (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(h):Promise.reject()).then(function(){showToast('Empreinte copiée !');}).catch(function(){});
           };
         });
+        const codehubLink=\$('dl-verify-codehub-link');
+        if(codehubLink)codehubLink.onclick=function(e){e.preventDefault();openXCodeHubModal();};
       }
       verifyBox.classList.remove('hidden');
     }else verifyBox.classList.add('hidden');
@@ -9045,6 +9127,123 @@ function openLegalDocsModal(which){
   show(which||'legal');
   overlay.classList.remove('hidden');
 }
+// XCodeHUB : petit navigateur de code, accessible sans compte (bouton dans
+// #desktop-dl sur l'écran de connexion, et depuis Paramètres → Télécharger),
+// pour prouver concrètement que le code de l'appli desktop native est public
+// et lisible — pas juste une affirmation. Le contenu vient de
+// /api/codehub/files (route publique, cf. XCODEHUB_FILES côté serveur),
+// chargé une seule fois et mis en cache côté client.
+let xcodehubFilesCache=null,xcodehubActivePath=null;
+function xcodehubFileIcon(lang){return lang==='json'?'🧾':(lang==='markdown'?'📘':'📄');}
+function xcodehubFmtBytes(n){return n<1024?n+' o':(n/1024).toFixed(1)+' Ko';}
+// Coloration syntaxique minimale, maison (pas de dépendance externe) : un
+// tokenizer à une passe qui échappe chaque fragment séparément (chaîne,
+// commentaire, mot-clé, nombre) plutôt que d'échapper le tout puis de
+// regexer dessus — évite tout risque d'incohérence entre le HTML déjà
+// échappé et les motifs de recherche.
+const XCODEHUB_KEYWORDS=new Set(['const','let','var','function','return','if','else','for','while','new','this','async','await','require','module','exports','class','try','catch','finally','typeof','instanceof','true','false','null','undefined','throw','switch','case','break','continue','default','extends','super','static','get','set','delete','in','of','yield','export','import','from']);
+function xcodehubHighlight(content,lang){
+  if(lang!=='javascript'&&lang!=='json')return esc(content);
+  let out='',i=0;
+  const n=content.length;
+  while(i<n){
+    const c=content[i];
+    if(c==='/'&&content[i+1]==='/'){
+      let j=content.indexOf('\\n',i);if(j===-1)j=n;
+      out+='<span class="tok-com">'+esc(content.slice(i,j))+'</span>';i=j;continue;
+    }
+    if(c==='/'&&content[i+1]==='*'){
+      let j=content.indexOf('*/',i+2);j=j===-1?n:j+2;
+      out+='<span class="tok-com">'+esc(content.slice(i,j))+'</span>';i=j;continue;
+    }
+    if(c==='"'||c==="'"||c==='\`'){
+      let j=i+1;
+      while(j<n&&content[j]!==c){if(content[j]==='\\\\')j++;j++;}
+      j=Math.min(j+1,n);
+      out+='<span class="tok-str">'+esc(content.slice(i,j))+'</span>';i=j;continue;
+    }
+    if(/[0-9]/.test(c)&&!/[A-Za-z_$]/.test(content[i-1]||'')){
+      let j=i;while(j<n&&/[0-9.xXa-fA-F]/.test(content[j]))j++;
+      out+='<span class="tok-num">'+esc(content.slice(i,j))+'</span>';i=j;continue;
+    }
+    if(/[A-Za-z_$]/.test(c)){
+      let j=i;while(j<n&&/[A-Za-z0-9_$]/.test(content[j]))j++;
+      const word=content.slice(i,j);
+      out+=XCODEHUB_KEYWORDS.has(word)?('<span class="tok-kw">'+word+'</span>'):esc(word);
+      i=j;continue;
+    }
+    out+=esc(c);i++;
+  }
+  return out;
+}
+async function xcodehubLoadFiles(){
+  if(xcodehubFilesCache)return xcodehubFilesCache;
+  const r=await fetch('/api/codehub/files',{cache:'no-store'});
+  const j=await r.json();
+  xcodehubFilesCache=j.files||[];
+  return xcodehubFilesCache;
+}
+function xcodehubRenderFile(path){
+  const f=xcodehubFilesCache&&xcodehubFilesCache.find(function(x){return x.path===path;});
+  if(!f)return;
+  xcodehubActivePath=path;
+  \$('codehub-file-path').textContent=f.path;
+  \$('codehub-code-inner').innerHTML=xcodehubHighlight(f.content,f.lang);
+  \$('codehub-code').scrollTop=0;
+  \$('codehub-files').querySelectorAll('.codehub-file-row').forEach(function(el){
+    el.classList.toggle('active',el.getAttribute('data-path')===path);
+  });
+}
+async function openXCodeHubModal(){
+  let overlay=\$('modal-codehub');
+  if(!overlay){
+    overlay=document.createElement('div');
+    overlay.id='modal-codehub';
+    overlay.className='overlay';
+    overlay.innerHTML='<div class="modal-box codehub-modal"><button type="button" class="modal-close" id="codehub-close">✕</button>'
+      +'<div class="codehub-head">'
+        +'<div class="codehub-logo">🖥️ XCodeHUB</div>'
+        +'<div class="codehub-sub">Code source public de l\\'application de bureau X1 (Windows/Mac/Linux) — aucun compte requis.</div>'
+        +'<div class="codehub-badges">'
+          +'<span class="codehub-badge">✅ 0 dépendance runtime</span>'
+          +'<span class="codehub-badge">🔍 Lisible ligne par ligne</span>'
+          +'<span class="codehub-badge">🛠️ Recompilable soi-même</span>'
+        +'</div>'
+      +'</div>'
+      +'<div class="codehub-body">'
+        +'<div class="codehub-files" id="codehub-files"></div>'
+        +'<div class="codehub-viewer">'
+          +'<div class="codehub-viewer-head"><span class="codehub-file-path" id="codehub-file-path"></span><button type="button" class="codehub-copy-btn" id="codehub-copy-btn">📋 Copier</button></div>'
+          +'<pre class="codehub-code" id="codehub-code"><code id="codehub-code-inner"></code></pre>'
+        +'</div>'
+      +'</div>'
+      +'<div class="codehub-foot">Concerne l\\'appli de bureau native. Android/ChromeOS/iOS affichent le site dans une coquille système, sans code natif propre à publier.</div>'
+      +'</div>';
+    document.body.appendChild(overlay);
+    \$('codehub-close').onclick=function(){overlay.classList.add('hidden');};
+    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.add('hidden');});
+    \$('codehub-copy-btn').onclick=function(){
+      const f=xcodehubFilesCache&&xcodehubFilesCache.find(function(x){return x.path===xcodehubActivePath;});
+      if(!f)return;
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(f.content):Promise.reject()).then(function(){showToast('Code copié !');}).catch(function(){});
+    };
+  }
+  overlay.classList.remove('hidden');
+  const filesBox=\$('codehub-files');
+  if(!xcodehubFilesCache){
+    filesBox.innerHTML='<div class="codehub-loading">Chargement…</div>';
+    try{await xcodehubLoadFiles();}
+    catch(e){filesBox.innerHTML='<div class="codehub-loading">Impossible de charger le code pour l\\'instant, réessaie plus tard.</div>';return;}
+    if(!xcodehubFilesCache.length){filesBox.innerHTML='<div class="codehub-loading">Aucun fichier disponible.</div>';return;}
+  }
+  filesBox.innerHTML=xcodehubFilesCache.map(function(f,i){
+    return '<div class="codehub-file-row" data-path="'+esc(f.path)+'" style="animation-delay:'+(i*35)+'ms"><span class="codehub-file-icon">'+xcodehubFileIcon(f.lang)+'</span><span class="codehub-file-name">'+esc(f.path.split('/').pop())+'</span><span class="codehub-file-size">'+xcodehubFmtBytes(f.sizeBytes)+'</span></div>';
+  }).join('');
+  filesBox.querySelectorAll('.codehub-file-row').forEach(function(el){
+    el.onclick=function(){xcodehubRenderFile(el.getAttribute('data-path'));};
+  });
+  xcodehubRenderFile(xcodehubActivePath&&xcodehubFilesCache.some(function(f){return f.path===xcodehubActivePath;})?xcodehubActivePath:xcodehubFilesCache[0].path);
+}
 // Réutilise APP_PLATFORMS/APP_VT/APP_CHECKSUMS/appDlUrl/triggerAppPlatform/
 // detectAppPlatformKey — la même logique que le widget de téléchargement de
 // l'écran de connexion (avant authentification), avec des id="" distincts
@@ -9066,7 +9265,7 @@ function renderSetDownload(box){
     +'<div class="set-card" style="text-align:center;padding:22px 16px">'
       +'<button type="button" class="btn-main" id="set-dl-btn" style="width:100%;font-size:.95rem;padding:14px">💻 Télécharger pour <span id="set-dl-os">ordinateur</span></button>'
       +'<a class="dl-vt-badge hidden" id="set-dl-vt-badge" target="_blank" rel="noopener"></a>'
-      +'<a class="dl-source-badge" id="set-dl-source-badge" target="_blank" rel="noopener">📂 Code source ouvert sur GitHub</a>'
+      +'<button type="button" class="dl-source-badge" id="set-dl-source-badge">🖥️ Voir le code source — XCodeHUB</button>'
       +'<div class="desktop-dl-others" id="set-dl-others" style="margin-top:14px"></div>'
     +'</div>'
     +'<div class="set-card">'
@@ -9081,7 +9280,7 @@ function renderSetDownload(box){
     vtBadge.textContent='🛡️ Scanné par VirusTotal — '+vt.malicious+'/'+vt.total+' détections';
     vtBadge.classList.remove('hidden');
   }
-  const srcBadge=\$('set-dl-source-badge');if(srcBadge)srcBadge.href=X1_SOURCE_URL;
+  const srcBadge=\$('set-dl-source-badge');if(srcBadge)srcBadge.onclick=openXCodeHubModal;
   const othersBox=\$('set-dl-others');
   othersBox.innerHTML='<div class="scr-label" style="margin-bottom:8px">Autres plateformes</div>'
     +APP_PLATFORMS.filter(function(p){return p.key!==primary.key;}).map(function(p){
@@ -9102,7 +9301,7 @@ function renderSetDownload(box){
           const vtP=APP_VT[p.key];
           return '<div class="dl-verify-row"><span class="dvr-label">'+esc(p.label)+'</span><span class="dvr-hash">'+esc(APP_CHECKSUMS[p.key])+'</span><button type="button" class="dvr-copy" data-set-copy-hash="'+esc(APP_CHECKSUMS[p.key])+'">Copier</button>'+(vtP?('<a class="dvr-copy" href="'+esc(vtP.url)+'" target="_blank" rel="noopener">VirusTotal</a>'):'')+'</div>';
         }).join('')+'<div class="dl-verify-note">Compare avec la commande <code>sha256sum</code> (Linux/Mac) ou <code>Get-FileHash</code> (Windows) sur le fichier téléchargé.</div>'
-        +'<div class="dl-verify-note">📂 Le code est <strong>open source</strong> : <a href="'+esc(X1_SOURCE_URL)+'" target="_blank" rel="noopener">lis-le sur GitHub</a> (site web + appli desktop), vérifie qu\\'il ne fait rien de caché, ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
+        +'<div class="dl-verify-note">🖥️ Le code de l\\'appli native est <strong>public</strong> : <a href="#" id="set-dl-verify-codehub-link">consulte-le dans XCodeHUB</a>, ou recompile-le toi-même et compare l\\'empreinte obtenue à celle ci-dessus.</div>';
         verifyBox.dataset.filled='1';
         verifyBox.querySelectorAll('[data-set-copy-hash]').forEach(function(b){
           b.onclick=function(){
@@ -9110,6 +9309,8 @@ function renderSetDownload(box){
             (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(h):Promise.reject()).then(function(){showToast('Empreinte copiée !');}).catch(function(){});
           };
         });
+        const codehubLink=\$('set-dl-verify-codehub-link');
+        if(codehubLink)codehubLink.onclick=function(e){e.preventDefault();openXCodeHubModal();};
       }
       verifyBox.classList.remove('hidden');
     }else verifyBox.classList.add('hidden');
@@ -32637,6 +32838,8 @@ async function handle(request, event) {
       // fall through to handler below
     } else if (!hasGate && path === "/api/maint/status") {
       // public status
+    } else if (!hasGate && path === "/api/codehub/files") {
+      // public code browser, allowed even without the gate
     } else if (!hasGate && path === "/api/note" && request.method === "POST") {
       // temporary client diagnostics, allowed even without the gate
     } else if (!hasGate) {
@@ -32710,7 +32913,13 @@ async function handle(request, event) {
 
 
   // --- Dev login during maintenance (shaman only) ---
-  
+
+  if (path === "/api/codehub/files") {
+    return new Response(JSON.stringify({ ok: true, files: XCODEHUB_FILES, generatedAt: XCODEHUB_GENERATED_AT }), {
+      headers: Object.assign({ "Content-Type": "application/json", "Cache-Control": "public, max-age=300" }, cors)
+    });
+  }
+
   if (path === "/api/maint/status") {
     const services = [];
     services.push({ name: "Cloudflare Worker", desc: "Edge xultra.space", state: "ok", label: "OK" });
