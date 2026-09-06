@@ -4218,6 +4218,22 @@ a.bug-att-item{display:block}
 .chat-share-sub{font-size:.71rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .chat-share-cta,.chat-share-play{flex-shrink:0;font-size:.72rem;color:var(--muted);font-weight:700}
 .chat-share-play{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;color:#fff}
+/* Invitation de serveur : carte plus large (bannière + ligne d'infos), avec
+   un léger effet "qui brille" (lueur douce + reflet en balayage) — discret,
+   pas une pub clignotante, juste de quoi la distinguer d'un message normal. */
+.chat-share-invite{display:block;flex-direction:unset;align-items:unset;max-width:280px;padding:0;overflow:hidden;position:relative;border-color:rgba(167,139,250,.35);background:rgba(124,58,237,.08);box-shadow:0 0 0 0 rgba(167,139,250,.35);animation:inviteGlow 3.2s ease-in-out infinite}
+.chat-share-invite:hover{background:rgba(124,58,237,.14)}
+@keyframes inviteGlow{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,.22)}50%{box-shadow:0 0 16px 1px rgba(167,139,250,.32)}}
+.chat-share-invite-banner{height:44px;background:linear-gradient(135deg,#7c3aed,#db2777);background-size:cover;background-position:center;position:relative;overflow:hidden}
+.chat-share-invite-banner::after{content:'';position:absolute;top:0;left:-60%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);animation:inviteSheen 3.2s ease-in-out infinite}
+@keyframes inviteSheen{0%{left:-60%}55%{left:130%}100%{left:130%}}
+.chat-share-invite-banner-fallback{background:linear-gradient(135deg,#7c3aed,#a855f7,#db2777)}
+.chat-share-invite-body{display:flex;align-items:center;gap:9px;padding:9px 10px}
+.chat-share-invite-icon{width:32px;height:32px;flex-shrink:0;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:1rem;margin-top:-20px;border:2px solid #1a1030;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.chat-share-invite-icon img{width:100%;height:100%;object-fit:cover}
+.chat-share-invite-info{flex:1;min-width:0}
+.chat-share-join-btn{flex-shrink:0;border:none;border-radius:8px;padding:6px 12px;font-size:.7rem;font-weight:800;color:#fff;background:linear-gradient(135deg,#7c3aed,#a855f7);cursor:pointer;transition:transform .1s ease,box-shadow .15s ease}
+.chat-share-join-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(124,58,237,.4)}
 /* Sélecteur "Partager dans..." (DM/groupe/serveur) */
 .x1share-section-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800;padding:10px 4px 6px}
 .x1share-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-radius:10px;cursor:pointer;transition:background .12s ease}
@@ -15040,7 +15056,7 @@ function x1ShareParseEmbed(text){
   if(typeof text!=='string'||text.indexOf(X1SHARE_PREFIX)!==0)return null;
   let obj=null;try{obj=JSON.parse(text.slice(X1SHARE_PREFIX.length));}catch(e){return null}
   if(!obj||typeof obj!=='object')return null;
-  if(obj.kind!=='xbin'&&obj.kind!=='music_track')return null;
+  if(obj.kind!=='xbin'&&obj.kind!=='music_track'&&obj.kind!=='server_invite')return null;
   if(!obj.refId)return null;
   return obj;
 }
@@ -15051,12 +15067,20 @@ function x1ShareBuildXbinPayload(d){
 function x1ShareBuildTrackPayload(t){
   return {kind:'music_track',refId:t.\$id,title:t.title||'Sans titre',sub:(t.artistName||'Artiste inconnu')+(t.contentType==='official'?' 🏅':'')+(t.durationSec?' · '+musicFmtTime(t.durationSec):''),cover:t.coverUrl||''};
 }
+// Compte de membres/en ligne figé au moment du partage (comme le titre/cover
+// d'un xbin ou d'un titre X1 Music ci-dessus) — pas un second aller-retour
+// réseau à chaque affichage de la bulle : le bouton "Rejoindre" ré-interroge
+// de toute façon l'état réel du serveur au clic (openServerJoinModal).
+function x1ShareBuildServerInvitePayload(s,memberCount,onlineCount){
+  return {kind:'server_invite',refId:s.inviteCode||'',title:s.name||'Serveur',sub:(memberCount||0)+' membre'+(memberCount===1?'':'s')+' · '+(onlineCount||0)+' en ligne',cover:s.icon||'',banner:s.banner||''};
+}
 // Aperçus courts (citation "en réponse à", barre de réponse en cours) :
 // jamais le JSON brut d'un message partagé, un libellé lisible à la place.
 function x1ShareSnippetLabel(text){
   const embed=x1ShareParseEmbed(text);
   if(!embed)return text;
-  return (embed.kind==='xbin'?'📋 ':'🎵 ')+(embed.title||'un contenu partagé');
+  const icon=embed.kind==='xbin'?'📋 ':(embed.kind==='music_track'?'🎵 ':'🔗 ');
+  return icon+(embed.title||'un contenu partagé');
 }
 function renderX1ShareEmbedHtml(p){
   if(p.kind==='xbin'){
@@ -15064,6 +15088,17 @@ function renderX1ShareEmbedHtml(p){
       +'<div class="chat-share-icon">📋</div>'
       +'<div class="chat-share-body"><div class="chat-share-title">'+esc(p.title||'Sans titre')+'</div><div class="chat-share-sub">'+esc(p.sub||'')+'</div></div>'
       +'<div class="chat-share-cta">Ouvrir →</div>'
+    +'</div>';
+  }
+  if(p.kind==='server_invite'){
+    const banner=safeUrl(p.banner),icon=safeUrl(p.cover);
+    return '<div class="chat-share-embed chat-share-invite" data-share-open="server_invite" data-share-ref="'+esc(p.refId)+'">'
+      +(banner?'<div class="chat-share-invite-banner" style="background-image:url(\\''+esc(banner)+'\\')"></div>':'<div class="chat-share-invite-banner chat-share-invite-banner-fallback"></div>')
+      +'<div class="chat-share-invite-body">'
+        +'<div class="chat-share-invite-icon">'+(icon?'<img src="'+esc(icon)+'" alt="">':'<span>🔗</span>')+'</div>'
+        +'<div class="chat-share-invite-info"><div class="chat-share-title">'+esc(p.title||'Serveur')+'</div><div class="chat-share-sub">'+esc(p.sub||'')+'</div></div>'
+        +'<button type="button" class="chat-share-join-btn">Rejoindre</button>'
+      +'</div>'
     +'</div>';
   }
   const cover=safeUrl(p.cover);
@@ -15085,6 +15120,7 @@ document.addEventListener('click',function(e){
   if(!refId)return;
   if(kind==='xbin')openXBin(refId);
   else if(kind==='music_track')openMusic().then(function(){openMusicTrackPage(refId);});
+  else if(kind==='server_invite')openServerJoinModal(refId);
 });
 // Envoi vers un DM (1:1 ou groupe) : réplique volontairement la logique de
 // chiffrement de postMessage() (voir e2eGetMessageKeyContext) plutôt que de
@@ -26055,6 +26091,14 @@ function routeToDeepLink(urlStr){
   }
   if(profile){openProfileModal(profile);return true}
   if(invite){openServerJoinModal(invite.toUpperCase());return true}
+  // Lien d'invitation "propre" (xultra.space/MonServeur) plutôt que
+  // ?invite=MonServeur : un simple segment de chemin, sans point (pour ne
+  // jamais confondre avec un futur fichier statique du genre /robots.txt),
+  // dans le même format que le code vanity (3-20 lettres/chiffres/tirets).
+  try{
+    const pathCode=new URL(urlStr,location.origin).pathname.replace(/^\\/+|\\/+$/g,'');
+    if(pathCode&&/^[A-Za-z0-9-]{3,32}$/.test(pathCode)){openServerJoinModal(pathCode.toUpperCase());return true}
+  }catch(e){}
   return false;
 }
 function urlBase64ToUint8Array(base64String){
@@ -29557,7 +29601,7 @@ function renderServerChannelList(){
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   let html='';
   if(canInvite){
-    html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
+    html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(location.origin+'/'+activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-share-invite" title="Partager en DM/serveur">📤</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
   }
   let hasWelcomeContent=!!(activeServer.welcomeMessage||'').trim();
   if(!hasWelcomeContent)try{hasWelcomeContent=(JSON.parse(activeServer.welcomeScreenChannelsJson||'[]')||[]).length>0;}catch(e){}
@@ -29582,8 +29626,13 @@ function renderServerChannelList(){
   box.innerHTML=html;
   const copyBtn=\$('srv-copy-invite');
   if(copyBtn)copyBtn.onclick=function(){
-    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(activeServer.inviteCode):Promise.reject())
-      .then(function(){showToast('Code copié !');}).catch(function(){});
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(location.origin+'/'+activeServer.inviteCode):Promise.reject())
+      .then(function(){showToast('Lien copié !');}).catch(function(){});
+  };
+  const shareBtn=\$('srv-share-invite');
+  if(shareBtn)shareBtn.onclick=function(){
+    const onlineCount=activeServerMembers.filter(function(m){return (presenceByUid[String(m.uid)]||'offline')!=='offline';}).length;
+    openX1SharePicker(x1ShareBuildServerInvitePayload(activeServer,activeServerMembers.length,onlineCount));
   };
   const regenBtn=\$('srv-regen-invite');
   if(regenBtn)regenBtn.onclick=async function(){
