@@ -4178,6 +4178,21 @@ a.bug-att-item{display:block}
 .srv-cat-label{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
 .srv-channel-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.86rem;font-weight:600}
 .srv-channel-row:hover{background:rgba(124,58,237,.1)}
+.srv-channel-row.active{background:rgba(124,58,237,.25);color:#e9d5ff}
+/* Vue d'ensemble d'un serveur, demandée explicitement façon Discord : la
+   liste des salons reste TOUJOURS visible (petite colonne scrollante) au
+   lieu de disparaître dès qu'on ouvre un salon texte — seul le panneau de
+   droite change pour afficher sa conversation. Les salons vocaux/scène/forum
+   gardent leur ancien comportement plein écran (hors de portée de cette
+   demande, qui ne parlait que du chat des salons TEXTUELS). */
+.srv-overview-split{display:flex;gap:14px;align-items:flex-start}
+.srv-overview-chanlist{flex:0 0 230px;max-width:230px;max-height:min(65vh,560px);overflow-y:auto;padding-right:2px}
+.srv-overview-chat{flex:1;min-width:0;display:flex;flex-direction:column}
+.srv-overview-chat-empty{display:flex;align-items:center;justify-content:center;text-align:center;min-height:180px;color:var(--muted);font-size:.86rem;padding:20px;border:1px dashed rgba(167,139,250,.25);border-radius:14px}
+@media (max-width:760px){
+  .srv-overview-split{flex-direction:column}
+  .srv-overview-chanlist{flex:none;max-width:none;width:100%;max-height:220px}
+}
 .srv-chan-icon{color:var(--muted);font-weight:800;width:16px;text-align:center;flex-shrink:0}
 .srv-chan-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-chan-lock{font-size:.72rem;flex-shrink:0}
@@ -4191,7 +4206,8 @@ a.bug-att-item{display:block}
 .srv-voice-member-cam{flex-shrink:0;font-size:.72rem;opacity:.85}
 .srv-voice-member.speaking .srv-voice-member-av{animation:voiceSpeakGlow 1.1s ease-in-out infinite}
 .srv-voice-member.speaking .srv-voice-member-name{color:#39ff14}
-.srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.srv-chan-topbar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.srv-chan-topbar #srv-chan-back{margin-right:auto}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
 .srv-chan-msgs-wrap{position:relative}
@@ -30039,7 +30055,10 @@ async function loadServerChannels(){
   subscribeServerVoicePresence();
 }
 function renderServerOverviewTab(){
-  if(activeChannel)renderServerChannelContent();
+  // Un salon texte/annonce reste affiché DANS la vue partagée (liste +
+  // chat) — seuls vocal/scène/forum gardent l'ancien écran plein écran.
+  const isTextLike=activeChannel&&(activeChannel.type==='text'||activeChannel.type==='announcement');
+  if(activeChannel&&!isTextLike)renderServerChannelContent();
   else renderServerChannelList();
 }
 // Membres actuellement connectés à un salon vocal/scène, affichés en
@@ -30049,7 +30068,8 @@ function renderServerOverviewTab(){
 function serverChannelRowHtml(c,canManageChannels){
   const isVoiceLike=c.type==='voice'||c.type==='stage';
   const presence=isVoiceLike?(serverVoicePresenceCache[c.\$id]||[]):[];
-  let html='<div class="srv-channel-row"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(srvChanTypeIcon(c.type))+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
+  const isActive=activeChannel&&String(activeChannel.\$id)===String(c.\$id);
+  let html='<div class="srv-channel-row'+(isActive?' active':'')+'"><div data-srv-chan="'+esc(c.\$id)+'" style="flex:1;display:flex;align-items:center;gap:6px;min-width:0"><span class="srv-chan-icon">'+(srvChanTypeIcon(c.type))+'</span><span class="srv-chan-name">'+esc(c.name)+'</span>'+((c.visibleRoleIds&&c.visibleRoleIds.length)?'<span class="srv-chan-lock" title="Salon restreint à certains rôles">🔒</span>':'')+'</div>'
     +(presence.length?('<span class="srv-chan-voice-count">'+presence.length+'</span>'):'')
     +((canManageChannels&&c.categoryId)?'<button type="button" class="set-mini-btn" data-srv-chan-sync="'+esc(c.\$id)+'" title="Synchroniser les permissions avec la catégorie">🔄</button>':'')
     +'</div>';
@@ -30136,6 +30156,12 @@ function subscribeServerVoicePresence(){
 }
 function renderServerChannelList(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
+  // activeChannel peut pointer vers un objet devenu périmé (nom/verrouillage/
+  // mode lent modifiés via l'éditeur de salon, ou salon supprimé entre-temps)
+  // — cette vue affichant désormais aussi le chat du salon sélectionné (voir
+  // renderServerOverviewChatPane plus bas), le resynchroniser ici avec la
+  // liste fraîchement chargée évite d'afficher un en-tête/composer périmé.
+  if(activeChannel)activeChannel=activeServerChannels.find(function(c){return c.\$id===activeChannel.\$id;})||null;
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
   const canInvite=serverHasPermission('manage_invites');
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
@@ -30151,6 +30177,10 @@ function renderServerChannelList(){
   activeServerChannels.forEach(function(c){const key=c.categoryId||'';(grouped[key]=grouped[key]||[]).push(c);});
   Object.keys(grouped).forEach(function(key){grouped[key].sort(function(a,b){return (a.position||0)-(b.position||0);});});
   const catIds=activeServerCategories.map(function(c){return c.\$id;}).filter(function(id){return grouped[id]&&grouped[id].length;});
+  // Vue partagée façon Discord : la liste (colonne étroite, scrollable) ne
+  // disparaît plus jamais quand on ouvre un salon texte — seul le panneau de
+  // droite (#srv-ov-chat) change pour afficher sa conversation.
+  html+='<div class="srv-overview-split"><div class="srv-overview-chanlist" id="srv-ov-chanlist">';
   catIds.forEach(function(cid){
     html+='<div class="srv-cat-label" style="display:flex;align-items:center;justify-content:space-between">'+esc(catMap[cid].name)
       +(canManageChannels?'<button type="button" class="set-mini-btn" data-srv-cat-edit="'+esc(cid)+'" style="text-transform:none;letter-spacing:0">⚙️</button>':'')+'</div>'
@@ -30163,6 +30193,7 @@ function renderServerChannelList(){
   if(!activeServerChannels.length)html+='<div class="empty-hint">Aucun salon pour l\\'instant.'+(canManageChannels?' Crée-en un avec le bouton + Salon.':'')+'</div>';
   html+='<div class="scr-sub" style="margin-top:14px">'+activeServerMembers.length+' membre(s)</div>';
   if(!isOwner)html+='<button type="button" class="set-mini-btn danger" id="srv-leave-btn" style="margin-top:10px">Quitter le serveur</button>';
+  html+='</div><div class="srv-overview-chat" id="srv-ov-chat"></div></div>';
   box.innerHTML=html;
   const copyBtn=\$('srv-copy-invite');
   if(copyBtn)copyBtn.onclick=function(){
@@ -30205,6 +30236,20 @@ function renderServerChannelList(){
     if(!confirm('Quitter ce serveur ?'))return;
     try{await authPost('/api/servers/leave',{serverId:activeServer.\$id});closeServerDetail();await loadMyServers();renderServersListView();showToast('Tu as quitté le serveur.');}catch(e){showToast((e&&e.message)||'Erreur','error');}
   };
+  renderServerOverviewChatPane();
+}
+// Panneau de droite de la vue partagée : vide tant qu'aucun salon texte
+// n'est sélectionné, sinon la conversation complète de activeChannel — les
+// salons vocal/scène/forum ne passent jamais par ici (openServerChannel les
+// envoie plein écran comme avant, voir plus bas).
+function renderServerOverviewChatPane(){
+  const chatBox=\$('srv-ov-chat');if(!chatBox)return;
+  const isTextLike=activeChannel&&(activeChannel.type==='text'||activeChannel.type==='announcement');
+  if(!isTextLike){
+    chatBox.innerHTML='<div class="srv-overview-chat-empty">👈 Sélectionne un salon texte pour afficher sa conversation ici.</div>';
+    return;
+  }
+  renderChanTextChat(chatBox,false);
 }
 function openServerChannel(channelId){
   const nextChannel=activeServerChannels.find(function(c){return c.\$id===channelId})||null;
@@ -30216,7 +30261,19 @@ function openServerChannel(channelId){
   // le plein écran à la figure de quelqu'un qui vient juste de rejoindre.
   const wasConnectedHere=nextChannel.type==='voice'&&groupRoom&&groupCallContextType==='channel'&&groupCallContextId===channelId;
   activeChannel=nextChannel;
-  renderServerChannelContent();
+  const isTextLike=nextChannel.type==='text'||nextChannel.type==='announcement';
+  const chatPane=\$('srv-ov-chat');
+  if(isTextLike&&chatPane){
+    // La colonne des salons reste affichée telle quelle (vue partagée) : on
+    // met juste à jour le panneau de droite + le surlignage de la ligne
+    // sélectionnée, sans reconstruire toute la liste de gauche.
+    document.querySelectorAll('#srv-ov-chanlist .srv-channel-row.active').forEach(function(row){row.classList.remove('active');});
+    let rowMarker=null;try{rowMarker=document.querySelector('#srv-ov-chanlist [data-srv-chan="'+CSS.escape(channelId)+'"]');}catch(e){}
+    if(rowMarker){const rowEl=rowMarker.closest('.srv-channel-row');if(rowEl)rowEl.classList.add('active');}
+    renderServerOverviewChatPane();
+  }else{
+    renderServerChannelContent();
+  }
   if(activeChannel.type!=='voice')return;
   if(wasConnectedHere)enterChannelVoiceCinema();
   else startVoiceChannelJoin(activeChannel);
@@ -30318,16 +30375,6 @@ function renderServerChannelContent(){
     stageStateUnsub=null;stageViewChannelId=null;stageState=null;
   }
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
-  const isTextLike=activeChannel.type==='text'||activeChannel.type==='announcement';
-  const showQuickLock=canManageChannels&&(isTextLike||activeChannel.type==='forum');
-  let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
-    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>':'')
-    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>':'')
-    +(isTextLike?'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>':'')
-    +(activeChannel.type==='announcement'?'<button type="button" class="set-mini-btn" id="srv-chan-follow">🔗 Suivre</button>':'')
-    +(showQuickLock?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
-    +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
-  html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   if(activeChannel.type==='voice'){
     const inVoiceHere=groupRoom&&groupCallContextType==='channel'&&groupCallContextId===activeChannel.\$id;
     // Le clic sur le salon a déjà déclenché la connexion (ou l'ouverture du
@@ -30336,6 +30383,9 @@ function renderServerChannelContent(){
     // la vieille liste des présents ni un bouton "Rejoindre" — un salon
     // vocal se rejoint désormais uniquement en cliquant sur son nom.
     const isJoining=!inVoiceHere&&joiningVoiceChannelId===activeChannel.\$id;
+    let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+      +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
+    html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+'</div>';
     html+='<div class="srv-voice-card"><div class="svc-icon">'+icon('mic',30)+'</div><div class="svc-title">'+esc(activeChannel.name)+'</div>'
       +'<div class="scr-sub">'+(inVoiceHere?'Connecté — clique à nouveau pour afficher l\\'appel':(isJoining?'⏳ Connexion…':'Clique sur le salon pour le rejoindre'))+'</div>'
       +(inVoiceHere?'<button type="button" class="btn-main" id="srv-voice-reopen-cinema" style="margin-top:12px">Revenir à l\\'appel</button>':'')
@@ -30346,6 +30396,9 @@ function renderServerChannelContent(){
     return;
   }
   if(activeChannel.type==='stage'){
+    let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+      +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
+    html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+'</div>';
     html+='<div class="srv-stage-card" id="srv-stage-body"><div class="empty-hint">Chargement…</div></div>';
     box.innerHTML=html;
     wireServerChannelBack();
@@ -30354,6 +30407,10 @@ function renderServerChannelContent(){
   }
   if(activeChannel.type==='forum'){
     const canPostHere=!activeChannel.locked||canManageChannels;
+    let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>'
+      +(canManageChannels?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
+      +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
+    html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+'</div>';
     html+='<div class="srv-chan-msgs" id="srv-forum-posts"><div class="empty-hint" style="text-align:center">Chargement…</div></div>'
       +'<div style="padding:10px"><button type="button" class="btn-main" id="srv-forum-new-post" style="width:100%"'+(canPostHere?'':' disabled')+'>'+(canPostHere?'+ Nouveau post':'🔒 Salon verrouillé')+'</button></div>';
     box.innerHTML=html;
@@ -30364,6 +30421,26 @@ function renderServerChannelContent(){
     if(newPostBtn)newPostBtn.onclick=function(){if(canPostHere)openForumPostCreateForm();};
     return;
   }
+  renderChanTextChat(box,true);
+}
+// Rendu complet d'un salon TEXTE/ANNONCE (en-tête + messages + composer),
+// factorisé pour être appelé aussi bien plein écran (renderServerChannelContent,
+// showBackBtn=true) que dans le panneau de droite de la vue partagée de
+// l'onglet Vue d'ensemble (renderServerOverviewChatPane, showBackBtn=false,
+// la liste des salons restant visible à gauche donc sans besoin de bouton
+// retour). wireServerChannelBack() gère un bouton #srv-chan-back absent sans
+// broncher, donc l'appeler dans les deux cas ne casse rien.
+function renderChanTextChat(container,showBackBtn){
+  const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
+  let html='<div class="srv-chan-topbar">'
+    +(showBackBtn?'<button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>':'')
+    +'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>'
+    +'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>'
+    +'<button type="button" class="set-mini-btn" id="srv-chan-pinned">📌</button>'
+    +(activeChannel.type==='announcement'?'<button type="button" class="set-mini-btn" id="srv-chan-follow">🔗 Suivre</button>':'')
+    +(canManageChannels?'<button type="button" class="set-mini-btn'+(activeChannel.locked?' danger':'')+'" id="srv-chan-quicklock">'+(activeChannel.locked?'🔓 Déverrouiller':'🔒 Verrouiller')+'</button>':'')
+    +(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-chan-edit">✏️ Modifier</button>':'')+'</div>';
+  html+='<div class="srv-chan-title">'+(srvChanTypeIcon(activeChannel.type))+' '+esc(activeChannel.name)+(activeChannel.locked?' 🔒':'')+(Number(activeChannel.slowmodeSeconds)>0?' 🐢':'')+'</div>';
   const canBypassLock=canManageChannels||serverHasPermission('administrator');
   const lockedForMe=activeChannel.locked&&!canBypassLock;
   const composerPlaceholder=lockedForMe?'🔒 Ce salon est verrouillé':(Number(activeChannel.slowmodeSeconds)>0?'🐢 Mode lent actif — Écrire dans #'+esc(activeChannel.name):'Écrire dans #'+esc(activeChannel.name));
@@ -30371,7 +30448,7 @@ function renderServerChannelContent(){
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
     +srvChanComposerHtml(composerPlaceholder,lockedForMe,true);
-  box.innerHTML=html;
+  container.innerHTML=html;
   wireServerChannelBack();
   wireChanJumpButton();
   loadChannelMessages();
@@ -30553,7 +30630,12 @@ function wireQuickLock(){
       activeChannel.locked=newLocked;
       const idx=activeServerChannels.findIndex(function(c){return c.\$id===activeChannel.\$id});
       if(idx>=0)activeServerChannels[idx].locked=newLocked;
-      renderServerChannelContent();
+      // Le salon peut être affiché soit plein écran (renderServerChannelContent,
+      // forum) soit dans le panneau de droite de la vue partagée
+      // (renderServerOverviewChatPane, texte/annonce) — se re-rendre avec la
+      // mauvaise des deux ferait sortir l'utilisateur de la vue partagée sans
+      // qu'il ait rien demandé.
+      if(\$('srv-ov-chat'))renderServerOverviewChatPane();else renderServerChannelContent();
       showToast(newLocked?'Salon verrouillé.':'Salon déverrouillé.');
     }catch(e){showToast((e&&e.message)||'Erreur','error');this.disabled=false;}
   };
