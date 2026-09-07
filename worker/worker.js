@@ -4728,7 +4728,17 @@ a.bug-att-item{display:block}
       </label>
       <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
       <button type="submit" class="btn-main" id="btn-login" data-i18n="auth_enter">Entrer</button>
-      <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔑 Se connecter avec une clé d’accès</button>
+      <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🪪 Se connecter avec une passkey</button>
+      <button type="button" id="btn-show-devicekey-login" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔒 Se connecter avec une clé secrète</button>
+      <div class="hidden" id="devicekey-login-block" style="margin-top:8px">
+        <div class="field"><label>Clé secrète</label><input id="in-devicekey" type="text" placeholder="X1-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"/></div>
+        <button type="button" class="btn-main" id="btn-devicekey-login" style="width:100%">Se connecter</button>
+      </div>
+      <button type="button" id="btn-show-recover-account" style="margin-top:8px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0;display:block">Compte perdu ? Récupérer avec un code de secours</button>
+      <div class="hidden" id="recover-account-block" style="margin-top:8px">
+        <div class="field"><label>Code de secours</label><input id="in-recovery-code" type="text" placeholder="X1R-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"/></div>
+        <button type="button" class="btn-main" id="btn-recover-account" style="width:100%">Récupérer mon compte</button>
+      </div>
     </form>
     <div class="qr-login-block" id="qr-login-block">
       <button type="button" class="qr-login-toggle" id="qr-login-toggle">
@@ -4765,13 +4775,22 @@ a.bug-att-item{display:block}
         <div class="field field-grow"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
         <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
       </div>
-      <div class="reg-section-div"><span>Identifiants</span></div>
-      <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
-      <div class="field"><label>Mot de passe</label><div class="field-pw-wrap"><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass2" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
-      <div class="pw-strength" id="pw-strength">
-        <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
-        <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
+      <div class="reg-section-div"><span>Méthode de connexion</span></div>
+      <div class="seg-group" id="reg-auth-mode" style="margin-bottom:12px">
+        <button type="button" class="seg-btn on" data-reg-mode="email">📧 Email</button>
+        <button type="button" class="seg-btn" data-reg-mode="devicekey">🔒 Clé secrète</button>
+        <button type="button" class="seg-btn hidden" id="reg-mode-passkey-btn" data-reg-mode="passkey">🪪 Passkey (biométrie)</button>
       </div>
+      <div id="reg-email-fields">
+        <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
+        <div class="field"><label>Mot de passe</label><div class="field-pw-wrap"><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass2" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
+        <div class="pw-strength" id="pw-strength">
+          <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
+          <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
+        </div>
+      </div>
+      <div class="scr-sub hidden" id="reg-devicekey-note">🔒 Une clé secrète unique s'affichera une seule fois juste après l'inscription — elle remplace l'email et le mot de passe pour te reconnecter. Un code de secours séparé te permettra de récupérer ton compte si tu la perds.</div>
+      <div class="scr-sub hidden" id="reg-passkey-note">🪪 Utilise Face ID, Windows Hello, ton empreinte ou une clé de sécurité pour t'inscrire sans mot de passe. Un code de secours te sera aussi fourni pour récupérer ton compte si tu perds l'accès à cet appareil.</div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
       <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
       <button type="submit" class="btn-main" id="btn-register" data-i18n="auth_create_account">Créer mon compte</button>
@@ -5037,6 +5056,23 @@ a.bug-att-item{display:block}
     <div class="field"><label>Confirmer le mot de passe</label><input id="rp-new-pass2" type="password" minlength="8" autocomplete="new-password"/></div>
     <div class="err" id="rp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
     <button type="button" class="btn-main" id="rp-submit" style="width:100%">Réinitialiser mon mot de passe</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="modal-save-credentials">
+  <div class="modal-box" style="width:min(420px,100%)">
+    <h3>🔒 Ton compte n'a pas d'e-mail</h3>
+    <div class="sc-desc">C'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l'accès à celui-ci. Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.</div>
+    <div class="set-section-label" id="save-cred-key-wrap-label" style="margin-top:14px">Ta clé secrète</div>
+    <div id="save-cred-key-wrap">
+      <div style="font-family:monospace;font-size:.88rem;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;word-break:break-all" id="save-cred-key"></div>
+    </div>
+    <div class="set-section-label">Code de secours (dernier recours)</div>
+    <div style="font-family:monospace;font-size:.88rem;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;word-break:break-all" id="save-cred-recovery"></div>
+    <div style="display:flex;gap:8px">
+      <button type="button" class="set-mini-btn" id="save-cred-copy">Copier tout</button>
+      <button type="button" class="btn-main" id="save-cred-done" style="flex:1">J'ai bien tout noté</button>
+    </div>
   </div>
 </div>
 
@@ -7710,7 +7746,7 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
   if(!identifier){showErrTxt('Entre ton e-mail ou pseudo#tag ci-dessus, puis réessaie.');return}
   showErrTxt('');
   const btn=\$('btn-login-passkey');
-  btn.disabled=true;btn.textContent='🔑 Vérification…';
+  btn.disabled=true;btn.textContent='🪪 Vérification…';
   try{
     const jj=await loginWithPasskey(identifier);
     if(jj.mfaRequired){
@@ -7722,9 +7758,57 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
     }
   }catch(e){
     xlog('login_passkey_fail',{msg:(e&&e.message)||String(e)});
-    showErrTxt((e&&e.message)||'Connexion impossible avec cette clé d’accès.');
+    showErrTxt((e&&e.message)||'Connexion impossible avec cette passkey.');
   }
-  btn.disabled=false;btn.textContent='🔑 Se connecter avec une clé d’accès';
+  btn.disabled=false;btn.textContent='🪪 Se connecter avec une passkey';
+});
+if(\$('btn-show-devicekey-login'))\$('btn-show-devicekey-login').addEventListener('click',function(){
+  \$('devicekey-login-block').classList.toggle('hidden');
+  \$('recover-account-block').classList.add('hidden');
+  if(!\$('devicekey-login-block').classList.contains('hidden'))setTimeout(function(){\$('in-devicekey').focus();},50);
+});
+if(\$('btn-devicekey-login'))\$('btn-devicekey-login').addEventListener('click',async function(){
+  const key=(\$('in-devicekey').value||'').trim();
+  if(!key){showErrTxt('Entre ta clé secrète.');return}
+  showErrTxt('');
+  const btn=\$('btn-devicekey-login');
+  btn.disabled=true;btn.textContent='Connexion…';
+  try{
+    const r=await fetch('/api/auth/devicekey/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({deviceKey:key})});
+    const jj=await r.json().catch(function(){return {}});
+    if(!r.ok||!jj.ok)throw new Error((jj&&jj.error)||'Connexion impossible');
+    applySession(jj.secret,jj.jwt);
+    xlog('login_devicekey_ok',{});
+    await enterApp();
+  }catch(e){
+    xlog('login_devicekey_fail',{msg:(e&&e.message)||String(e)});
+    showErrTxt((e&&e.message)||'Clé secrète invalide.');
+  }
+  btn.disabled=false;btn.textContent='Se connecter';
+});
+if(\$('btn-show-recover-account'))\$('btn-show-recover-account').addEventListener('click',function(){
+  \$('recover-account-block').classList.toggle('hidden');
+  \$('devicekey-login-block').classList.add('hidden');
+  if(!\$('recover-account-block').classList.contains('hidden'))setTimeout(function(){\$('in-recovery-code').focus();},50);
+});
+if(\$('btn-recover-account'))\$('btn-recover-account').addEventListener('click',async function(){
+  const code=(\$('in-recovery-code').value||'').trim();
+  if(!code){showErrTxt('Entre ton code de secours.');return}
+  showErrTxt('');
+  const btn=\$('btn-recover-account');
+  btn.disabled=true;btn.textContent='Récupération…';
+  try{
+    const r=await fetch('/api/auth/recover-account',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({recoveryCode:code})});
+    const jj=await r.json().catch(function(){return {}});
+    if(!r.ok||!jj.ok)throw new Error((jj&&jj.error)||'Récupération impossible');
+    applySession(jj.secret,jj.jwt);
+    xlog('recover_account_ok',{});
+    showSaveCredentialsModal(jj.deviceKey,jj.recoveryCode,function(){enterApp();});
+  }catch(e){
+    xlog('recover_account_fail',{msg:(e&&e.message)||String(e)});
+    showErrTxt((e&&e.message)||'Code de secours invalide.');
+  }
+  btn.disabled=false;btn.textContent='Récupérer mon compte';
 });
 let mfaPendingToken=null,mfaUseRecovery=false,mfaPendingPassword=null;
 function openMfaVerifyPanel(mfaToken,password){
@@ -7774,16 +7858,110 @@ if(\$('mfa-toggle-recovery'))\$('mfa-toggle-recovery').addEventListener('click',
   }
 });
 
+// Inscription sans e-mail (clé secrète tapée par la personne, ou passkey
+// biométrique dès l'inscription) — partagent le même écran "note tes codes"
+// puisque les deux ne laissent qu'un code de secours comme filet de
+// récupération (pas d'e-mail à envoyer). Voir /api/auth/devicekey/register
+// et /api/auth/passkey/register-start|finish côté Worker.
+function showSaveCredentialsModal(deviceKey,recoveryCode,onDone){
+  const modal=\$('modal-save-credentials');
+  if(!modal){onDone();return}
+  \$('save-cred-key-wrap-label').classList.toggle('hidden',!deviceKey);
+  \$('save-cred-key-wrap').classList.toggle('hidden',!deviceKey);
+  if(deviceKey)\$('save-cred-key').textContent=deviceKey;
+  \$('save-cred-recovery').textContent=recoveryCode;
+  modal.classList.remove('hidden');
+  \$('save-cred-copy').onclick=function(){
+    const text=(deviceKey?('Clé secrète : '+deviceKey+'\\n'):'')+'Code de secours : '+recoveryCode;
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text):Promise.reject()).then(function(){showToast('Copié !');}).catch(function(){});
+  };
+  \$('save-cred-done').onclick=function(){modal.classList.add('hidden');onDone();};
+}
+async function doRegisterDeviceKey(name){
+  if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
+  const regTsResult=await verifyTurnstile('register');
+  if(!regTsResult)return;
+  \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
+  try{
+    const r=await fetch('/api/auth/devicekey/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,turnstileToken:typeof regTsResult==='string'?regTsResult:''})});
+    const jj=await r.json().catch(function(){return {}});
+    if(!r.ok||!jj.ok)throw new Error((jj&&jj.error)||'Inscription impossible');
+    applySession(jj.secret,jj.jwt);
+    xlog('register_devicekey_ok',{});
+    authPost('/api/account/grant-early-badge',{}).catch(function(){});
+    showSaveCredentialsModal(jj.deviceKey,jj.recoveryCode,function(){enterApp();});
+  }catch(e){
+    xlog('register_devicekey_fail',{msg:(e&&e.message)||String(e)});
+    showErrTxt((e&&e.message)||'Inscription impossible, réessaie.');
+    if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
+  }
+  \$('btn-register').disabled=false;\$('btn-register').textContent="Créer ma clé secrète";
+}
+async function doRegisterPasskeyAnon(name){
+  if(!passkeysSupported()){showErrTxt('Les passkeys ne sont pas prises en charge par ce navigateur.');return}
+  if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
+  const regTsResult=await verifyTurnstile('register');
+  if(!regTsResult)return;
+  \$('btn-register').disabled=true;\$('btn-register').textContent='Suis les instructions…';
+  try{
+    const r1=await fetch('/api/auth/passkey/register-start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,turnstileToken:typeof regTsResult==='string'?regTsResult:''})});
+    const opts=await r1.json().catch(function(){return {}});
+    if(!r1.ok||!opts.ok)throw new Error((opts&&opts.error)||'Inscription impossible');
+    const publicKey={
+      challenge:b64urlDec(opts.challenge),
+      rp:{id:opts.rpId,name:opts.rpName},
+      user:{id:new TextEncoder().encode(opts.userId),name:opts.userDisplayName,displayName:opts.userDisplayName},
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{userVerification:'preferred'},
+      timeout:60000,
+      attestation:'none'
+    };
+    const cred=await navigator.credentials.create({publicKey:publicKey});
+    if(!cred)throw new Error('Création annulée.');
+    const res=cred.response;
+    const r2=await fetch('/api/auth/passkey/register-finish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      registrationToken:opts.registrationToken,
+      credentialId:b64urlEnc(cred.rawId),
+      attestationObject:b64urlEnc(res.attestationObject),
+      clientDataJSON:b64urlEnc(res.clientDataJSON)
+    })});
+    const jj=await r2.json().catch(function(){return {}});
+    if(!r2.ok||!jj.ok)throw new Error((jj&&jj.error)||'Inscription impossible');
+    applySession(jj.secret,jj.jwt);
+    xlog('register_passkey_anon_ok',{});
+    authPost('/api/account/grant-early-badge',{}).catch(function(){});
+    showSaveCredentialsModal('',jj.recoveryCode,function(){enterApp();});
+  }catch(e){
+    xlog('register_passkey_anon_fail',{msg:(e&&e.message)||String(e)});
+    showErrTxt((e&&e.message)||'Inscription impossible avec une passkey.');
+    if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
+  }
+  \$('btn-register').disabled=false;\$('btn-register').textContent='🪪 Créer avec une passkey';
+}
+let regAuthMode='email';
+document.querySelectorAll('#reg-auth-mode [data-reg-mode]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    regAuthMode=btn.getAttribute('data-reg-mode');
+    document.querySelectorAll('#reg-auth-mode [data-reg-mode]').forEach(function(b){b.classList.toggle('on',b===btn);});
+    \$('reg-email-fields').classList.toggle('hidden',regAuthMode!=='email');
+    \$('reg-devicekey-note').classList.toggle('hidden',regAuthMode!=='devicekey');
+    \$('reg-passkey-note').classList.toggle('hidden',regAuthMode!=='passkey');
+    \$('btn-register').textContent=regAuthMode==='email'?'Créer mon compte':(regAuthMode==='devicekey'?'Créer ma clé secrète':'🪪 Créer avec une passkey');
+  });
+});
+if(passkeysSupported()&&\$('reg-mode-passkey-btn'))\$('reg-mode-passkey-btn').classList.remove('hidden');
 async function doRegister(){
   xlog('register_click',{hp:!!(\$('in-hp')&&\$('in-hp').value)});
   if(\$('in-hp')&&\$('in-hp').value){xlog('register_honeypot_blocked',{});return}
   if(Date.now()-regShownAt<1200){showErrTxt('Un instant…');return}
   const name=((\$('in-user')&&\$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\\- ]/g,'').slice(0,24);
+  showErrTxt('');
+  if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
+  if(regAuthMode==='devicekey')return doRegisterDeviceKey(name);
+  if(regAuthMode==='passkey')return doRegisterPasskeyAnon(name);
   const email=((\$('in-email2')&&\$('in-email2').value)||'').trim();
   const pass=(\$('in-pass2')&&\$('in-pass2').value)||'';
   const accent='#7c3aed';
-  showErrTxt('');
-  if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
   if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
   if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
   if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
@@ -32959,7 +33137,7 @@ async function verifyWebauthnSignature(jwkInfo, authenticatorDataBuf, clientData
 }
 const WEBAUTHN_RP_ID = "xultra.space";
 const WEBAUTHN_ORIGIN = "https://xultra.space";
-async function finishLoginSession(secret, sessionId, userId) {
+async function finishLoginSession(secret, sessionId, userId, extra) {
   let jwt = null;
   let mfaErr = null;
   try {
@@ -32981,7 +33159,106 @@ async function finishLoginSession(secret, sessionId, userId) {
   if (!jwt) throw new Error("Connexion impossible, réessaie.");
   const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors2);
   cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
-  return new Response(JSON.stringify({ ok: true, secret, jwt, sessionId, userId }), { headers: cookieHeaders });
+  return new Response(JSON.stringify(Object.assign({ ok: true, secret, jwt, sessionId, userId }, extra || {})), { headers: cookieHeaders });
+}
+
+// ===== Comptes sans e-mail : clé d'accès locale à l'appareil + passkey
+// "anonyme" (WebAuthn sans compte préexistant) — deux façons de s'inscrire
+// sans jamais fournir d'adresse e-mail, chacune avec un code de secours à
+// usage unique pour tout récupérer si l'appareil/la clé est perdu(e).
+// Format volontairement auto-descriptif : la clé/le code embarquent
+// eux-mêmes l'identifiant du compte (pas besoin d'un attribut indexé côté
+// base — on va chercher le document account_recovery directement par son
+// ID, dérivé de la même partie "identifiant" que la clé publique).
+const B32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford — sans I,L,O,U (ambiguïté visuelle)
+function randomBase32(byteLen) {
+  const bytes = crypto.getRandomValues(new Uint8Array(byteLen));
+  let bits = 0, value = 0, out = "";
+  for (let i = 0; i < bytes.length; i++) {
+    value = (value << 8) | bytes[i];
+    bits += 8;
+    while (bits >= 5) { out += B32_ALPHABET[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32_ALPHABET[(value << (5 - bits)) & 31];
+  return out;
+}
+function groupInFours(s) { return (s.match(/.{1,4}/g) || [s]).join("-"); }
+async function pbkdf2Derive(secretStr, saltBytes) {
+  const keyMaterial = await crypto.subtle.importKey("raw", new TextEncoder().encode(secretStr), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: saltBytes, iterations: 100000, hash: "SHA-256" }, keyMaterial, 256);
+  return bufToB64url(bits);
+}
+async function hashSecretNew(secretStr) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await pbkdf2Derive(secretStr, saltBytes);
+  return { hash: hash, salt: bufToB64url(saltBytes.buffer) };
+}
+async function verifySecretAgainstHash(secretStr, saltB64, hashB64) {
+  if (!saltB64 || !hashB64) return false;
+  const saltBytes = new Uint8Array(b64urlToBuf(saltB64));
+  const computed = await pbkdf2Derive(secretStr, saltBytes);
+  if (computed.length !== hashB64.length) return false;
+  let diff = 0;
+  for (let i = 0; i < computed.length; i++) diff |= computed.charCodeAt(i) ^ hashB64.charCodeAt(i);
+  return diff === 0;
+}
+// uid Appwrite valide (alphanumérique + . _ -, doit commencer par un
+// caractère alphanumérique) dérivé directement de la partie "identifiant"
+// de la clé, pour que account_recovery/{uid} et la clé/le code affichés
+// pointent toujours vers le même compte sans avoir besoin d'index.
+function deviceIdPartToUid(idPart) { return "dk" + idPart.toLowerCase(); }
+function randomSecretPart() { return randomBase32(10); } // 16 caractères
+function formatAccessSecret(displayPrefix, idPart, secretPart) {
+  return displayPrefix + "-" + groupInFours(idPart) + "-" + groupInFours(secretPart);
+}
+// Reparse une clé/un code affiché (tolérant aux espaces/tirets/casse) en
+// {idPart, secretPart} — renvoie null si le format ne correspond pas.
+function parseAccessSecret(raw, displayPrefix) {
+  const cleaned = String(raw || "").toUpperCase().replace(new RegExp("^" + displayPrefix + "-?"), "").replace(/[\s-]/g, "");
+  if (cleaned.length !== 32) return null;
+  return { idPart: cleaned.slice(0, 16), secretPart: cleaned.slice(16) };
+}
+// Nom d'utilisateur/tag générés et vérifiés côté serveur (même règles que
+// slugUsername()/isUsernameTagTaken() côté client dans doRegister, mais ces
+// deux flux n'ont pas de session pour appeler le SDK client : on refait
+// l'équivalent ici, avec la clé admin).
+function slugUsernameServer(name) {
+  return String(name || "").toLowerCase().replace(/[^a-z0-9_.]/g, "").slice(0, 24) || "membre";
+}
+async function isUsernameTagTakenServer(username, tag) {
+  const q = [
+    JSON.stringify({ method: "equal", attribute: "username", values: [username] }),
+    JSON.stringify({ method: "equal", attribute: "tag", values: [tag] }),
+    JSON.stringify({ method: "limit", values: [1] })
+  ].map(function (x) { return "queries[]=" + encodeURIComponent(x); }).join("&");
+  const list = await awFetch("/databases/" + AW_DB + "/collections/users/documents?" + q, { asAdmin: true });
+  return (list.documents || []).length > 0;
+}
+async function createPasswordlessProfile(uid, name) {
+  const uname = slugUsernameServer(name);
+  let tag = String(Math.floor(1000 + Math.random() * 9000));
+  let tries = 0;
+  while (tries < 30 && (await isUsernameTagTakenServer(uname, tag))) { tag = String(Math.floor(1000 + Math.random() * 9000)); tries++; }
+  const accent = "#7c3aed";
+  await awFetch("/databases/" + AW_DB + "/collections/users/documents", {
+    method: "POST", asAdmin: true,
+    body: {
+      documentId: "unique()",
+      data: { authUserId: uid, email: "", username: uname, baseUsername: uname, tag: tag, displayName: name, bio: "", avatar: "", bg: "", bgType: "gradient", bgColor: accent, btnColor: accent, statusManual: "online" },
+      permissions: ["read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"]
+    }
+  });
+  return { username: uname, tag: tag };
+}
+function validateRegisterName(name) {
+  const cleaned = String(name || "").trim().replace(/[^a-zA-Z0-9_.\- ]/g, "").slice(0, 24);
+  if (!cleaned || cleaned.length < 2) throw new Error("Pseudo trop court");
+  return cleaned;
+}
+async function checkAntiAbuse(request, rlKey, turnstileToken, maxAttempts) {
+  if (!(await rateLimitCheck(rlKey, maxAttempts))) throw new Error("Trop de tentatives, réessaie dans quelques minutes.");
+  const ip = request.headers.get("CF-Connecting-IP") || "";
+  if (!(await verifyTurnstileToken(turnstileToken, ip))) { await rateLimitBump(rlKey, 900); throw new Error("Vérification anti-robot échouée, réessaie."); }
 }
 
 // Mots-clés (organisation ASN) associés à des fournisseurs de VPN connus ou à
@@ -33060,6 +33337,36 @@ async function resolveLoginEmail(identifier) {
   if (docs.length > 1) throw new Error("Plusieurs comptes ont ce pseudo, précise le tag complet (pseudo#1234)");
   if (!docs[0].email) throw new Error("Identifiants invalides");
   return docs[0].email;
+}
+// Comme resolveLoginEmail, mais renvoie l'uid Appwrite directement plutôt
+// qu'un e-mail — nécessaire pour les comptes clé d'accès/passkey qui n'ont
+// jamais eu d'e-mail (email:"" dans leur profil), sinon toujours introuvables
+// par pseudo#tag lors d'une connexion par passkey.
+async function resolveLoginUserId(identifier) {
+  const raw = String(identifier || "").trim();
+  if (!raw) throw new Error("Identifiants invalides");
+  if (raw.indexOf("@") !== -1) {
+    const q = JSON.stringify({ method: "equal", attribute: "email", values: [raw] });
+    const users = await awFetch("/users?queries[]=" + encodeURIComponent(q), { asAdmin: true });
+    const u = (users.users || [])[0];
+    if (!u) throw new Error("Identifiants invalides");
+    return u.$id;
+  }
+  let s = raw.replace(/^@/, "").toLowerCase();
+  let uname = s, tag = "";
+  const hashIdx = s.indexOf("#");
+  if (hashIdx !== -1) { uname = s.slice(0, hashIdx); tag = s.slice(hashIdx + 1); }
+  if (!uname) throw new Error("Identifiants invalides");
+  const queries = [JSON.stringify({ method: "equal", attribute: "username", values: [uname] })];
+  if (tag) queries.push(JSON.stringify({ method: "equal", attribute: "tag", values: [tag] }));
+  queries.push(JSON.stringify({ method: "limit", values: [5] }));
+  const qs = queries.map(function (q) { return "queries[]=" + encodeURIComponent(q); }).join("&");
+  const list = await awFetch("/databases/" + AW_DB + "/collections/users/documents?" + qs, { asAdmin: true });
+  const docs = list.documents || [];
+  if (!docs.length) throw new Error("Identifiants invalides");
+  if (docs.length > 1) throw new Error("Plusieurs comptes ont ce pseudo, précise le tag complet (pseudo#1234)");
+  if (!docs[0].authUserId) throw new Error("Identifiants invalides");
+  return docs[0].authUserId;
 }
 
 // 5 paliers du badge Bug Hunter, calculés à partir du nombre de rapports de
@@ -42591,19 +42898,15 @@ async function handle(request, event) {
       const body = await request.json();
       const identifier = String((body && (body.identifier || body.email)) || "").trim();
       if (!identifier) throw new Error("E-mail ou pseudo#tag requis");
-      const email = await resolveLoginEmail(identifier);
-      const q = JSON.stringify({ method: "equal", attribute: "email", values: [email] });
-      const users = await awFetch("/users?queries[]=" + encodeURIComponent(q), { asAdmin: true });
-      const u = (users.users || [])[0];
-      if (!u) throw new Error("Aucune clé d'accès trouvée pour cet e-mail");
-      const q2 = JSON.stringify({ method: "equal", attribute: "uid", values: [u.$id] });
+      const userId = await resolveLoginUserId(identifier);
+      const q2 = JSON.stringify({ method: "equal", attribute: "uid", values: [userId] });
       const list = await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents?queries[]=" + encodeURIComponent(q2), { asAdmin: true });
       const docs = list.documents || [];
       if (!docs.length) throw new Error("Aucune clé d'accès associée à ce compte");
       const challenge = bufToB64url(crypto.getRandomValues(new Uint8Array(32)).buffer);
       const loginToken = crypto.randomUUID();
       if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
-      await SITE_KV.put("passkey_login:" + loginToken, JSON.stringify({ userId: u.$id, challenge }), { expirationTtl: 300 });
+      await SITE_KV.put("passkey_login:" + loginToken, JSON.stringify({ userId: userId, challenge }), { expirationTtl: 300 });
       return new Response(JSON.stringify({
         ok: true, loginToken, challenge, rpId: WEBAUTHN_RP_ID,
         allowCredentials: docs.map(function (d) { return { id: d.credentialId, type: "public-key" }; })
@@ -42668,6 +42971,220 @@ async function handle(request, event) {
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  // ===== Inscription/connexion sans e-mail : clé d'accès locale à
+  // l'appareil (secret affiché une fois, ré-utilisable partout) et passkey
+  // "anonyme" (WebAuthn dès l'inscription, pas seulement ajoutée à un
+  // compte existant) — chacune avec un code de secours à usage unique
+  // comme UNIQUE filet de récupération (pas d'e-mail à envoyer). =====
+  if (path === "/api/auth/devicekey/register" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const name = validateRegisterName(body && body.name);
+      const turnstileToken = String((body && body.turnstileToken) || "");
+      const ip = request.headers.get("CF-Connecting-IP") || "";
+      await checkAntiAbuse(request, "devicekey_register:" + ip, turnstileToken, 8);
+      const idPart = randomBase32(10);
+      const uid = deviceIdPartToUid(idPart);
+      const keySecret = randomSecretPart();
+      const recoverySecret = randomSecretPart();
+      await awFetch("/users", { method: "POST", asAdmin: true, body: { userId: uid, name: name } });
+      let profile;
+      try {
+        profile = await createPasswordlessProfile(uid, name);
+      } catch (eProfile) {
+        await awFetch("/users/" + uid, { method: "DELETE", asAdmin: true }).catch(function () {});
+        throw eProfile;
+      }
+      const keyHashed = await hashSecretNew(keySecret);
+      const recoveryHashed = await hashSecretNew(recoverySecret);
+      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: uid, data: { method: "devicekey", keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+      });
+      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, uid, {
+        deviceKey: formatAccessSecret("X1", idPart, keySecret),
+        recoveryCode: formatAccessSecret("X1R", idPart, recoverySecret),
+        username: profile.username, tag: profile.tag
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/auth/devicekey/login" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const ip = request.headers.get("CF-Connecting-IP") || "";
+      if (!(await rateLimitCheck("devicekey_login_ip:" + ip, 30))) throw new Error("Trop de tentatives, réessaie plus tard.");
+      const parsed = parseAccessSecret((body && body.deviceKey) || "", "X1");
+      if (!parsed) { await rateLimitBump("devicekey_login_ip:" + ip, 900); throw new Error("Clé d'accès invalide"); }
+      const uid = deviceIdPartToUid(parsed.idPart);
+      const rlKey = "devicekey_login:" + uid;
+      if (!(await rateLimitCheck(rlKey, 10))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      let rec;
+      try {
+        rec = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, { asAdmin: true });
+      } catch (eLookup) {
+        await rateLimitBump("devicekey_login_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        throw new Error("Clé d'accès invalide");
+      }
+      if (rec.method !== "devicekey" || !(await verifySecretAgainstHash(parsed.secretPart, rec.keySalt, rec.keyHash))) {
+        await rateLimitBump("devicekey_login_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        throw new Error("Clé d'accès invalide");
+      }
+      await rateLimitClear(rlKey);
+      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, uid);
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/auth/recover-account" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const ip = request.headers.get("CF-Connecting-IP") || "";
+      if (!(await rateLimitCheck("recover_ip:" + ip, 20))) throw new Error("Trop de tentatives, réessaie plus tard.");
+      const parsed = parseAccessSecret((body && body.recoveryCode) || "", "X1R");
+      if (!parsed) { await rateLimitBump("recover_ip:" + ip, 900); throw new Error("Code de secours invalide"); }
+      const uid = deviceIdPartToUid(parsed.idPart);
+      const rlKey = "recover:" + uid;
+      if (!(await rateLimitCheck(rlKey, 8))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      let rec;
+      try {
+        rec = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, { asAdmin: true });
+      } catch (eLookup) {
+        await rateLimitBump("recover_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        throw new Error("Code de secours invalide");
+      }
+      if (!(await verifySecretAgainstHash(parsed.secretPart, rec.recoverySalt, rec.recoveryHash))) {
+        await rateLimitBump("recover_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        throw new Error("Code de secours invalide");
+      }
+      await rateLimitClear(rlKey);
+      // À usage unique : on régénère TOUJOURS clé ET code ensemble, pour ne
+      // jamais laisser un secret déjà montré une fois valide indéfiniment.
+      const newKeySecret = randomSecretPart();
+      const newRecoverySecret = randomSecretPart();
+      const keyHashed = await hashSecretNew(newKeySecret);
+      const recoveryHashed = await hashSecretNew(newRecoverySecret);
+      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, {
+        method: "PATCH", asAdmin: true,
+        body: { data: { method: "devicekey", keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+      });
+      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, uid, {
+        deviceKey: formatAccessSecret("X1", parsed.idPart, newKeySecret),
+        recoveryCode: formatAccessSecret("X1R", parsed.idPart, newRecoverySecret)
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/auth/passkey/register-start" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const name = validateRegisterName(body && body.name);
+      const turnstileToken = String((body && body.turnstileToken) || "");
+      const ip = request.headers.get("CF-Connecting-IP") || "";
+      await checkAntiAbuse(request, "passkey_anon_register:" + ip, turnstileToken, 8);
+      // Rien n'est créé côté Appwrite tant que la cérémonie WebAuthn n'a pas
+      // réussi (register-finish) — un utilisateur qui annule Face ID/Windows
+      // Hello ne laisse donc jamais de compte fantôme sans aucun moyen de
+      // s'y reconnecter derrière lui.
+      const idPart = randomBase32(10);
+      const challenge = bufToB64url(crypto.getRandomValues(new Uint8Array(32)).buffer);
+      const registrationToken = crypto.randomUUID();
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      await SITE_KV.put("passkey_reg_anon:" + registrationToken, JSON.stringify({ idPart: idPart, challenge: challenge, name: name }), { expirationTtl: 300 });
+      return new Response(JSON.stringify({
+        ok: true, registrationToken: registrationToken, challenge: challenge, rpId: WEBAUTHN_RP_ID, rpName: "X1",
+        userId: deviceIdPartToUid(idPart), userDisplayName: name
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/auth/passkey/register-finish" && request.method === "POST") {
+    try {
+      const body = await request.json();
+      const registrationToken = String((body && body.registrationToken) || "");
+      const credentialId = String((body && body.credentialId) || "");
+      const attestationObjectB64 = String((body && body.attestationObject) || "");
+      const clientDataJSONB64 = String((body && body.clientDataJSON) || "");
+      if (!registrationToken || !credentialId || !attestationObjectB64 || !clientDataJSONB64) throw new Error("Données manquantes");
+      if (typeof SITE_KV === "undefined" || !SITE_KV) throw new Error("Stockage indisponible");
+      const raw = await SITE_KV.get("passkey_reg_anon:" + registrationToken);
+      if (!raw) throw new Error("Session d'enregistrement expirée, réessaie.");
+      const pending = JSON.parse(raw);
+
+      const clientDataJSONBuf = b64urlToBuf(clientDataJSONB64);
+      const clientData = JSON.parse(new TextDecoder().decode(clientDataJSONBuf));
+      if (clientData.type !== "webauthn.create") throw new Error("Type de cérémonie invalide");
+      if (clientData.challenge !== pending.challenge) throw new Error("Challenge invalide");
+      if (clientData.origin !== WEBAUTHN_ORIGIN) throw new Error("Origine invalide");
+
+      const attestationObjectBuf = b64urlToBuf(attestationObjectB64);
+      const attObj = cborDecodeOne(attestationObjectBuf).value;
+      const authDataBytes = attObj.get("authData");
+      const parsedAuth = parseAuthData(authDataBytes);
+      const expectedRpIdHash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(WEBAUTHN_RP_ID)));
+      const actualRpIdHash = new Uint8Array(parsedAuth.rpIdHash);
+      for (let i = 0; i < 32; i++) if (expectedRpIdHash[i] !== actualRpIdHash[i]) throw new Error("RP ID invalide");
+      if (!parsedAuth.up) throw new Error("Vérification utilisateur manquante");
+      if (!parsedAuth.coseKeyMap) throw new Error("Clé publique manquante dans la réponse");
+
+      const jwkInfo = coseKeyToJwk(parsedAuth.coseKeyMap);
+      await importPasskeyPublicKey(jwkInfo); // échoue si la clé est malformée/inutilisable
+
+      const actualCredentialId = bufToB64url(parsedAuth.credentialId.buffer || parsedAuth.credentialId);
+      if (actualCredentialId !== credentialId) throw new Error("Identifiant de clé incohérent");
+
+      // La cérémonie a réussi : on crée le compte MAINTENANT, jamais avant.
+      const uid = deviceIdPartToUid(pending.idPart);
+      await awFetch("/users", { method: "POST", asAdmin: true, body: { userId: uid, name: pending.name } });
+      let profile;
+      try {
+        profile = await createPasswordlessProfile(uid, pending.name);
+      } catch (eProfile) {
+        await awFetch("/users/" + uid, { method: "DELETE", asAdmin: true }).catch(function () {});
+        throw eProfile;
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/passkeys/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { uid: uid, credentialId: credentialId, publicKeyJwk: JSON.stringify(jwkInfo), signCount: parsedAuth.signCount || 0, label: "Cet appareil" } }
+      });
+      const recoverySecret = randomSecretPart();
+      const recoveryHashed = await hashSecretNew(recoverySecret);
+      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: uid, data: { method: "passkey", keyHash: "", keySalt: "", recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+      });
+      await SITE_KV.delete("passkey_reg_anon:" + registrationToken).catch(function () {});
+
+      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, uid, {
+        recoveryCode: formatAccessSecret("X1R", pending.idPart, recoverySecret),
+        username: profile.username, tag: profile.tag
+      });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
   }
