@@ -19244,6 +19244,19 @@ function xbinDownloadFilename(d){
   return base+'.'+ext;
 }
 let xbinHlLoaded=false,xbinHlLoading=null;
+// Bug remonté ("le code reste blanc, jamais coloré") : le paquet npm
+// highlight.js NE PUBLIE PAS de bundle navigateur prêt à l'emploi sous
+// /lib/ (son lib/index.js est du CommonJS avec des require(), il plante
+// silencieusement en <script> classique) — l'ancienne URL
+// npm/highlight.js@.../lib/highlight.min.js renvoyait en réalité un 404 sur
+// jsdelivr depuis le début, jamais détecté car l'échec de chargement était
+// avalé en silence (dégradation "propre" vers du texte non coloré, voir
+// onerror plus bas) — non pas depuis une régression récente. Le vrai bundle
+// UMD (celui que sert cdnjs, hors de la liste blanche CSP) vit dans le dépôt
+// GitHub séparé highlightjs/cdn-release ; jsdelivr sait aussi servir
+// n'importe quel dépôt GitHub (cdn.jsdelivr.net/gh/...), donc cette URL
+// reste sur le même hôte déjà autorisé par la CSP (script-src) sans
+// avoir besoin d'y ajouter cdnjs.cloudflare.com.
 function ensureHighlightJs(){
   if(xbinHlLoaded)return Promise.resolve();
   if(xbinHlLoading)return xbinHlLoading;
@@ -19251,15 +19264,17 @@ function ensureHighlightJs(){
     try{
       const link=document.createElement('link');
       link.rel='stylesheet';
-      link.href='https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css';
+      link.href='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css';
       document.head.appendChild(link);
       const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js';
+      s.src='https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js';
       s.crossOrigin='anonymous';
       s.onload=function(){xbinHlLoaded=true;resolve();};
       // Dégradé propre si le CDN est bloqué/hors service : le texte reste
-      // lisible en monospace, juste sans les couleurs de syntaxe.
-      s.onerror=function(){resolve();};
+      // lisible en monospace, juste sans les couleurs de syntaxe. xlog garde
+      // une trace de cet échec précis (contrairement à avant) au lieu de le
+      // masquer complètement.
+      s.onerror=function(){try{xlog('xbin_hljs_load_fail',{});}catch(e){}resolve();};
       document.head.appendChild(s);
     }catch(e){resolve();}
   });
