@@ -15104,6 +15104,20 @@ function subscribeCallBadgeWatcher(){
       if(activeDmPeerUid&&!activeDmIsGroup&&String(otherUid)===String(activeDmPeerUid))refreshCallBadge(activeDmPeerUid);
     });
   }catch(e){}
+  // Même correctif que /api/call/group-presence/join côté serveur (voir ce
+  // commentaire) : avant, même en regardant DÉJÀ la conversation de groupe
+  // au moment où quelqu'un démarrait un appel, rien ne se passait tant
+  // qu'on ne rouvrait pas la conversation — aucun abonnement temps réel
+  // n'existait pour group_call_presence. Toujours actif (posé une seule
+  // fois à la connexion, comme le reste de cette fonction), il compare
+  // juste au groupe actuellement affiché à chaque événement.
+  try{
+    client.subscribe('databases.'+DB+'.collections.group_call_presence.documents',function(res){
+      if(!eventIs(res.events,'.create'))return;
+      const p=res.payload;if(!p||!p.dmId)return;
+      if(activeDmIsGroup&&activeDm===p.dmId)refreshGroupCallBadge(p.dmId);
+    });
+  }catch(e){}
 }
 // ===== Placement unifié des widgets d'appel (1:1, groupe DM, salon vocal de
 // serveur) : la grosse interface (participants, vidéo, contrôles complets)
@@ -29163,11 +29177,16 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
     if(!isServer){
       groupPresenceCollection='group_call_presence';
       try{
-        const pres=await db.createDocument(DB,'group_call_presence',Appwrite.ID.unique(),
-          {dmId:contextId,uid:me.\$id,username:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Membre'},
-          [Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))]
-        );
-        groupPresenceDocId=pres.\$id;
+        // Passe désormais par le Worker (voir /api/call/group-presence/join)
+        // au lieu d'un db.createDocument() direct : celui-ci ne donnait la
+        // lecture qu'à soi-même (Permission.read(Role.user(me.$id)) seul),
+        // rendant le document invisible à tous les autres membres du groupe
+        // — ni leur badge "salon vocal actif" ni leur abonnement temps réel
+        // ne pouvaient donc jamais rien recevoir. La route accorde la
+        // lecture à tout le groupe et envoie en plus la notification push
+        // manquante au premier membre qui rejoint.
+        const pres=await authPost('/api/call/group-presence/join',{dmId:contextId});
+        groupPresenceDocId=pres.docId;
       }catch(e){groupPresenceDocId=null;}
       startGroupHeartbeat();
     }else if(contextType==='channel'){
@@ -39819,6 +39838,74 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room }), {
         headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/call/group-presence/join" && request.method === "POST") {
+    // Bug remonté explicitement ("les appels de groupe ne notifient
+    // personne, rien n'est vraiment temps réel") : le client créait jusqu'ici
+    // le document group_call_presence directement via le SDK, avec
+    // Permission.read(Role.user(me.$id)) SEULEMENT — aucun AUTRE membre du
+    // groupe n'avait le droit de LIRE ce document. Résultat : ni
+    // db.listDocuments() (le badge "salon vocal actif") ni l'abonnement
+    // temps réel ne renvoyaient jamais rien aux autres membres, quel que
+    // soit leur propre code client — le document leur était invisible côté
+    // Appwrite, pas juste "pas rafraîchi". Cette route corrige ça en donnant
+    // la lecture à TOUS les membres du groupe, exactement comme
+    // /api/servers/channels/voice-presence/join le fait déjà pour les
+    // salons vocaux de serveur — et ajoute la notification push absente
+    // (l'équivalent de pushToUid() dans /api/calls/start pour un 1:1),
+    // envoyée aux autres membres uniquement quand cette connexion démarre
+    // vraiment l'appel (personne d'autre déjà présent), jamais à chaque
+    // heartbeat ni à chaque membre qui rejoint un appel déjà en cours.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const dmId = String((body && body.dmId) || "").slice(0, 64);
+      if (!dmId) throw new Error("dmId requis");
+      const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmId, { asAdmin: true });
+      const members = (dm.members || []).map(String);
+      if (members.indexOf(String(acc.$id)) < 0) throw new Error("Tu n'es pas membre de ce groupe");
+      if (members.length <= 2) throw new Error("Cette conversation n'est pas un groupe");
+      const perms = members.map(function (m) { return "read(\"user:" + m + "\")"; })
+        .concat(["update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]);
+      const profile = await resolveProfile(acc.$id);
+      const uname = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
+      const docId = "gcp_" + (await sha256HexShort(dmId + ":" + acc.$id, 32));
+      let isFirstJoiner = true;
+      try {
+        const existing = await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "dmId", values: [dmId] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [50] })), { asAdmin: true });
+        const staleCutoff = Date.now() - 120000;
+        isFirstJoiner = !(existing.documents || []).some(function (d) {
+          return String(d.uid) !== String(acc.$id) && new Date(d.$updatedAt).getTime() > staleCutoff;
+        });
+      } catch (e) {}
+      const data = { dmId: dmId, uid: String(acc.$id), username: uname };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents", { method: "POST", asAdmin: true, body: { documentId: docId, data: data, permissions: perms } });
+        } else throw e;
+      }
+      if (isFirstJoiner) {
+        const others = members.filter(function (m) { return String(m) !== String(acc.$id); });
+        await Promise.all(others.map(function (uid) {
+          return pushToUid(uid, { type: "group_call", title: uname, body: "🎙️ Salon vocal démarré", tag: "groupcall-" + dmId, url: "/?dm=" + dmId }).catch(function () {});
+        }));
+      }
+      return new Response(JSON.stringify({ ok: true, docId: docId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
