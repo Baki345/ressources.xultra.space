@@ -7265,14 +7265,19 @@ function maybeStartTutorial(){
   setTimeout(function(){if(!tutState)startTutorial();},700);
 }
 
-// Musique et Chatroulette : en pause pour tout le monde sauf le compte
-// propriétaire (isShaman, posé côté serveur dans /api/auth/me — jamais
-// recalculable ici). Un simple masquage de bouton n'est PAS un contrôle
-// d'accès réel : Chatroulette est en plus verrouillée côté serveur sur
-// chacune de ses routes /api/chatroulette/*.
+// Chatroulette : en pause pour tout le monde sauf le compte propriétaire
+// (isShaman, posé côté serveur dans /api/auth/me — jamais recalculable
+// ici). Un simple masquage de bouton n'est PAS un contrôle d'accès réel :
+// Chatroulette est en plus verrouillée côté serveur sur chacune de ses
+// routes /api/chatroulette/*.
+// X1 Music, elle, est ouverte à tout le monde depuis toujours côté serveur
+// (aucune route /api/music/* n'a jamais vérifié isShamanAccount) — seul le
+// bouton de nav était encore masqué en attendant que la fonctionnalité soit
+// jugée prête, ce qui n'a plus lieu d'être : le bouton reste donc visible
+// pour tout compte connecté.
 function applyOwnerOnlyNav(){
   const isOwner=!!(me&&me.isShaman);
-  ['nav-music','nav-music-mobile','nav-chatroulette','nav-chatroulette-mobile'].forEach(function(id){
+  ['nav-chatroulette','nav-chatroulette-mobile'].forEach(function(id){
     const b=\$(id);if(b)b.classList.toggle('hidden',!isOwner);
   });
 }
@@ -13919,7 +13924,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(meta.plan==='plus'?'<div class="pc-xultraplus">⭐ X1+ À VIE</div>':'')
       +(p.bio?'<div class="pc-bio" style="text-align:'+bioAlign+'">'+esc(p.bio)+'</div>':'')
       +(linksHtml?'<div class="pc-socials">'+linksHtml+'</div>':'')
-      +((me&&me.isShaman)?('<button type="button" class="pc-music-btn" data-music-open="'+esc(p.authUserId||p.\$id||'')+'" data-music-name="'+esc(name)+'">🎵 Musique</button>'):'')
+      +(me?('<button type="button" class="pc-music-btn" data-music-open="'+esc(p.authUserId||p.\$id||'')+'" data-music-name="'+esc(name)+'">🎵 Musique</button>'):'')
       +(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')
       +(opts.mutualCount!=null&&opts.mutualCount>0?'<div class="pc-mutual">👥 '+opts.mutualCount+' ami'+(opts.mutualCount>1?'s':'')+' en commun</div>':'')
       +(opts.hideSince?'':'<div class="pc-since">Membre depuis '+esc(sinceTxt)+(opts.showLastSeen&&lastSeenTxt?' · '+esc(lastSeenTxt):'')+'</div>')
