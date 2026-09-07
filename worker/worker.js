@@ -4164,7 +4164,14 @@ a.bug-att-item{display:block}
 .srv-item-name{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-item-sub{font-size:.72rem;color:var(--muted)}
 .srv-item-owner{font-size:.62rem;font-weight:800;color:#facc15;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);padding:2px 7px;border-radius:999px;flex-shrink:0}
-.srv-detail-banner{height:90px;background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center;flex-shrink:0}
+/* Agrandie (90px -> jusqu'à 200px) : demandé explicitement pour que la
+   bannière soit vraiment visible — sûr uniquement depuis que la zone de
+   chat en dessous a son propre défilement interne (voir .srv-chan-body) :
+   une bannière plus haute ne fait plus jamais reculer le composer hors
+   champ, elle ne fait que réduire un peu la part restante à la liste de
+   messages, qui absorbe ça via son propre scroll. clamp() plutôt qu'une
+   valeur fixe pour ne pas dévorer tout l'écran sur mobile. */
+.srv-detail-banner{height:clamp(110px,16vh,200px);background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center;flex-shrink:0}
 .srv-detail-icon{width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;overflow:hidden;flex-shrink:0}
 .srv-detail-icon img{width:100%;height:100%;object-fit:cover}
 .srv-detail-icon-sm{width:32px;height:32px;border-radius:9px;font-size:.85rem}
@@ -30171,6 +30178,47 @@ function subscribeServerVoicePresence(){
     });
   });
 }
+// Panneau compact (façon Discord "Inviter des amis") pour le lien
+// d'invitation — remplace l'ancienne barre toujours affichée au-dessus de la
+// liste des salons. Réutilise exactement les mêmes id (srv-copy-invite/
+// srv-share-invite/srv-regen-invite) que l'ancienne barre, donc leur
+// contenu/logique reste inchangé, juste déplacé ici.
+function openServerInvitePopover(){
+  if(!activeServer)return;
+  const existing=document.getElementById('srv-invite-popover');
+  if(existing)existing.remove();
+  const overlay=document.createElement('div');
+  overlay.id='srv-invite-popover';
+  overlay.className='action-sheet-overlay show';
+  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
+    +'<div class="set-section-label">🔗 Inviter sur '+esc(activeServer.name)+'</div>'
+    +'<div class="srv-invite-row" style="margin-bottom:0"><span class="srv-invite-code" id="srv-invite-code-display">'+esc(location.origin+'/'+activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-share-invite" title="Partager en DM/serveur">📤</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>'
+    +'</div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.remove();});
+  const copyBtn=\$('srv-copy-invite');
+  if(copyBtn)copyBtn.onclick=function(){
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(location.origin+'/'+activeServer.inviteCode):Promise.reject())
+      .then(function(){showToast('Lien copié !');}).catch(function(){});
+  };
+  const shareBtn=\$('srv-share-invite');
+  if(shareBtn)shareBtn.onclick=function(){
+    const onlineCount=activeServerMembers.filter(function(m){return (presenceByUid[String(m.uid)]||'offline')!=='offline';}).length;
+    openX1SharePicker(x1ShareBuildServerInvitePayload(activeServer,activeServerMembers.length,onlineCount));
+  };
+  const regenBtn=\$('srv-regen-invite');
+  if(regenBtn)regenBtn.onclick=async function(){
+    regenBtn.disabled=true;
+    try{
+      const r=await authPost('/api/servers/regenerate-invite',{serverId:activeServer.\$id});
+      activeServer.inviteCode=r.inviteCode;
+      const codeDisplay=\$('srv-invite-code-display');
+      if(codeDisplay)codeDisplay.textContent=location.origin+'/'+activeServer.inviteCode;
+      showToast('Nouveau code généré !');
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+    regenBtn.disabled=false;
+  };
+}
 function renderServerChannelList(){
   const box=\$('srv-detail-body');if(!box||!activeServer)return;
   // activeChannel peut pointer vers un objet devenu périmé (nom/verrouillage/
@@ -30182,13 +30230,16 @@ function renderServerChannelList(){
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
   const canInvite=serverHasPermission('manage_invites');
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
+  // Le lien d'invitation occupait une barre entière en permanence au-dessus
+  // de "SALONS" — remonté comme prenant trop de place. Il ne reste plus
+  // qu'un petit bouton "🔗 Inviter" au milieu des autres actions du salon
+  // (👋/+ Salon), qui ouvre un panneau compact (voir openServerInvitePopover)
+  // avec le lien, copier/partager/régénérer — le contenu et les 3 boutons y
+  // sont IDENTIQUES (mêmes id) pour réutiliser leur câblage tel quel.
   let html='<div class="srv-ov-body">';
-  if(canInvite){
-    html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(location.origin+'/'+activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-share-invite" title="Partager en DM/serveur">📤</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
-  }
   let hasWelcomeContent=!!(activeServer.welcomeMessage||'').trim();
   if(!hasWelcomeContent)try{hasWelcomeContent=(JSON.parse(activeServer.welcomeScreenChannelsJson||'[]')||[]).length>0;}catch(e){}
-  html+='<div class="srv-section-row"><div class="set-section-label">Salons</div><div style="display:flex;gap:6px">'+(hasWelcomeContent?'<button type="button" class="set-mini-btn" id="srv-reopen-welcome" title="Revoir l\\'écran d\\'accueil">👋</button>':'')+(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-add-channel">+ Salon</button>':'')+'</div></div>';
+  html+='<div class="srv-section-row"><div class="set-section-label">Salons</div><div style="display:flex;gap:6px">'+(canInvite?'<button type="button" class="set-mini-btn" id="srv-invite-btn" title="Inviter sur ce serveur">🔗 Inviter</button>':'')+(hasWelcomeContent?'<button type="button" class="set-mini-btn" id="srv-reopen-welcome" title="Revoir l\\'écran d\\'accueil">👋</button>':'')+(canManageChannels?'<button type="button" class="set-mini-btn" id="srv-add-channel">+ Salon</button>':'')+'</div></div>';
   const catMap={};activeServerCategories.forEach(function(c){catMap[c.\$id]=c;});
   const grouped={};
   activeServerChannels.forEach(function(c){const key=c.categoryId||'';(grouped[key]=grouped[key]||[]).push(c);});
@@ -30212,20 +30263,8 @@ function renderServerChannelList(){
   if(!isOwner)html+='<button type="button" class="set-mini-btn danger" id="srv-leave-btn" style="margin-top:10px">Quitter le serveur</button>';
   html+='</div><div class="srv-overview-chat" id="srv-ov-chat"></div></div></div>';
   box.innerHTML=html;
-  const copyBtn=\$('srv-copy-invite');
-  if(copyBtn)copyBtn.onclick=function(){
-    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(location.origin+'/'+activeServer.inviteCode):Promise.reject())
-      .then(function(){showToast('Lien copié !');}).catch(function(){});
-  };
-  const shareBtn=\$('srv-share-invite');
-  if(shareBtn)shareBtn.onclick=function(){
-    const onlineCount=activeServerMembers.filter(function(m){return (presenceByUid[String(m.uid)]||'offline')!=='offline';}).length;
-    openX1SharePicker(x1ShareBuildServerInvitePayload(activeServer,activeServerMembers.length,onlineCount));
-  };
-  const regenBtn=\$('srv-regen-invite');
-  if(regenBtn)regenBtn.onclick=async function(){
-    try{const r=await authPost('/api/servers/regenerate-invite',{serverId:activeServer.\$id});activeServer.inviteCode=r.inviteCode;renderServerChannelList();showToast('Nouveau code généré !');}catch(e){showToast((e&&e.message)||'Erreur','error');}
-  };
+  const inviteBtn=\$('srv-invite-btn');
+  if(inviteBtn)inviteBtn.onclick=openServerInvitePopover;
   const addChanBtn=\$('srv-add-channel');
   if(addChanBtn)addChanBtn.onclick=function(){openServerChannelEditor(null);};
   const reopenWelcomeBtn=\$('srv-reopen-welcome');
