@@ -4049,9 +4049,17 @@ a.bug-att-item{display:block}
 .gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0;max-height:280px;overflow-y:auto}
 .gcb-video-grid.hidden{display:none}
 .gcb-video-grid.n1{grid-template-columns:1fr}
-.gcb-video-grid.cinema{flex:1;min-height:0;max-height:none;margin:0;padding:0 14px 14px;grid-auto-rows:1fr}
+/* Plein écran cinéma : mêmes règles que .chan-voice-stage-grid (serveur) —
+   colonnes JAMAIS en 1fr plein écran (une tuile ne s'étire plus pour
+   "remplir" la grille) et vidéo en object-fit:contain (résolution/proportions
+   d'origine, jamais recadrée) puisqu'il n'y a plus de petite liste à faire
+   tenir mais tout l'écran à répartir sans jamais avoir besoin de scroller. */
+.gcb-video-grid.cinema{flex:1;min-height:0;max-height:none;margin:0;padding:0 14px 14px;grid-template-columns:repeat(auto-fit,minmax(160px,260px));justify-content:center;align-content:start;grid-auto-rows:1fr}
+.gcb-video-grid.cinema.n1{grid-template-columns:minmax(160px,260px)}
 .gcb-video-grid.cinema .gcb-vtile{aspect-ratio:auto}
+.gcb-video-grid.cinema .gcb-vtile video{object-fit:contain}
 .gcb-vtile{position:relative;aspect-ratio:4/3;border-radius:10px;overflow:hidden;background:#0d0814;border:1px solid rgba(167,139,250,.15);cursor:pointer;min-height:0}
+.gcb-vtile video{object-fit:cover}
 .gcb-vtile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:260px}
 .gcb-vtile-name{position:absolute;left:6px;bottom:6px;font-size:.64rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;z-index:1}
 .gcb-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -4349,8 +4357,14 @@ a.bug-att-item{display:block}
 .vstage-btn:disabled{opacity:.35;pointer-events:none}
 .vgrid{display:grid;gap:8px;padding:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 .vgrid.n1{grid-template-columns:1fr}
-.vgrid.cinema{flex:1;min-height:0;padding:0 14px 14px;grid-auto-rows:1fr}
+/* Même traitement que les salons de groupe/serveur en plein écran cinéma :
+   colonnes bornées (jamais 1fr plein écran) + object-fit:contain, pour que
+   la résolution/proportion d'origine de la caméra reste visible sans jamais
+   avoir besoin de scroller la grille. */
+.vgrid.cinema{flex:1;min-height:0;padding:0 14px 14px;grid-template-columns:repeat(auto-fit,minmax(160px,260px));justify-content:center;align-content:start;grid-auto-rows:1fr}
+.vgrid.cinema.n1{grid-template-columns:minmax(160px,260px)}
 .vgrid.cinema .vtile{aspect-ratio:auto}
+.vgrid.cinema .vtile video{object-fit:contain}
 /* Correctif remonté explicitement : une hauteur de grille fixe (140/220px)
    combinée à object-fit:cover écrasait n'importe quel flux caméra qui
    n'était pas pile au format attendu (portrait, webcam large...). Une
@@ -5420,6 +5434,10 @@ a.bug-att-item{display:block}
     </div>
     <div class="set-section">
       <div class="set-section-label">Sortie audio</div>
+      <div class="set-row" id="cs-speaker-row">
+        <label>Sortie</label>
+        <select id="cs-speaker-device"></select>
+      </div>
       <div class="set-row">
         <label>Volume sortie <span class="val" id="cs-out-vol-val">100%</span></label>
         <input type="range" id="cs-out-vol" min="0" max="200" value="100"/>
@@ -5427,6 +5445,10 @@ a.bug-att-item{display:block}
     </div>
     <div class="set-section">
       <div class="set-section-label">Caméra</div>
+      <div class="set-row">
+        <label>Source</label>
+        <select id="cs-cam-device"></select>
+      </div>
       <div class="set-row">
         <label>Qualité</label>
         <select id="cs-cam-quality">
@@ -5481,6 +5503,7 @@ a.bug-att-item{display:block}
     <button type="button" class="cb-ctl" id="cb-deafen" title="Assourdir"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 16 0"/><rect x="3" y="12" width="4" height="7" rx="1.5"/><rect x="17" y="12" width="4" height="7" rx="1.5"/></svg></span></button>
     <button type="button" class="cb-ctl" id="cb-cam" title="Caméra"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.2l5-3v9.6l-5-3z"/></svg></span></button>
     <button type="button" class="cb-ctl" id="cb-screen" title="Partager l'écran"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 17.5v3"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="cb-pip" title="Picture-in-picture"><span class="cb-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h4"/><rect width="10" height="7" x="12" y="13" rx="2"/></svg></span></button>
     <button type="button" class="cb-ctl hangup" id="cb-hangup" title="Raccrocher"><span class="cb-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>
   </div>
   <div class="cb-video hidden" id="cb-video">
@@ -5503,15 +5526,18 @@ a.bug-att-item{display:block}
   <div class="gcb-top">
     <div class="gcb-title">🎙️ Salon vocal · <span id="gcb-group-name"></span></div>
     <span class="gcb-count" id="gcb-count"></span>
+    <button type="button" class="cb-gear" id="gcb-settings" title="Paramètres d'appel"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="9" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg></button>
   </div>
   <div class="gcb-participants" id="gcb-participants"></div>
   <div class="gcb-video-grid hidden" id="gcb-video-grid"></div>
   <div class="cb-controls">
-    <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico">🎤</span></button>
-    <button type="button" class="cb-ctl" id="gcb-cam" title="Caméra"><span class="cb-ico">📹</span></button>
-    <button type="button" class="cb-ctl" id="gcb-screen" title="Partager l'écran"><span class="cb-ico">🖥️</span></button>
-    <button type="button" class="cb-ctl" id="gcb-cinema" title="Plein écran" disabled><span class="cb-ico">⛶</span></button>
-    <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico">✕</span></button>
+    <button type="button" class="cb-ctl" id="gcb-mute" title="Muet"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="gcb-deafen" title="Assourdir"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 16 0"/><rect x="3" y="12" width="4" height="7" rx="1.5"/><rect x="17" y="12" width="4" height="7" rx="1.5"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="gcb-cam" title="Caméra"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="M15.5 10.2l5-3v9.6l-5-3z"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="gcb-screen" title="Partager l'écran"><span class="cb-ico"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8 20.5h8M12 17.5v3"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="gcb-pip" title="Picture-in-picture"><span class="cb-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 9V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h4"/><rect width="10" height="7" x="12" y="13" rx="2"/></svg></span></button>
+    <button type="button" class="cb-ctl" id="gcb-cinema" title="Plein écran" disabled><span class="cb-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></span></button>
+    <button type="button" class="cb-ctl hangup" id="gcb-leave" title="Quitter le salon"><span class="cb-ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></span></button>
   </div>
 </div>
 
@@ -5855,7 +5881,7 @@ function ini(n){return String(n||'?').trim().charAt(0).toUpperCase()||'?'}
 // bouton message vocal), zéro requête réseau/dépendance JS supplémentaire,
 // et surface CSP inchangée. N'ajouter ici que les icônes réellement
 // utilisées (voir icon()) — pas une copie complète de la bibliothèque.
-const X1_ICONS={"mic":"<path d=\\"M12 19v3\\"/><path d=\\"M19 10v2a7 7 0 0 1-14 0v-2\\"/><rect x=\\"9\\" y=\\"2\\" width=\\"6\\" height=\\"13\\" rx=\\"3\\"/>","micOff":"<path d=\\"M12 19v3\\"/><path d=\\"M15 9.34V5a3 3 0 0 0-5.68-1.33\\"/><path d=\\"M16.95 16.95A7 7 0 0 1 5 12v-2\\"/><path d=\\"M18.89 13.23A7 7 0 0 0 19 12v-2\\"/><path d=\\"m2 2 20 20\\"/><path d=\\"M9 9v3a3 3 0 0 0 5.12 2.12\\"/>","video":"<path d=\\"m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5\\"/><rect x=\\"2\\" y=\\"6\\" width=\\"14\\" height=\\"12\\" rx=\\"2\\"/>","videoOff":"<path d=\\"M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196\\"/><path d=\\"M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2\\"/><path d=\\"m2 2 20 20\\"/>","screenShare":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m17 8 5-5\\"/><path d=\\"M17 3h5v5\\"/>","screenShareOff":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m22 3-5 5\\"/><path d=\\"m17 3 5 5\\"/>","headphones":"<path d=\\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\\"/>","volumeX":"<path d=\\"M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z\\"/><path d=\\"m16.5 14.5 5-5\\"/><path d=\\"m16.5 9.5 5 5\\"/>","settings":"<path d=\\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\\"/><circle cx=\\"12\\" cy=\\"12\\" r=\\"3\\"/>","phoneOff":"<path d=\\"M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272\\"/><path d=\\"M22 2 2 22\\"/><path d=\\"M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473\\"/>","hand":"<path d=\\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\\"/><path d=\\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\\"/><path d=\\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\\"/><path d=\\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\\"/>","maximize":"<path d=\\"M8 3H5a2 2 0 0 0-2 2v3\\"/><path d=\\"M21 8V5a2 2 0 0 0-2-2h-3\\"/><path d=\\"M3 16v3a2 2 0 0 0 2 2h3\\"/><path d=\\"M16 21h3a2 2 0 0 0 2-2v-3\\"/>","minimize":"<path d=\\"M8 3v3a2 2 0 0 1-2 2H3\\"/><path d=\\"M21 8h-3a2 2 0 0 1-2-2V3\\"/><path d=\\"M3 16h3a2 2 0 0 1 2 2v3\\"/><path d=\\"M16 21v-3a2 2 0 0 1 2-2h3\\"/>","x":"<path d=\\"M18 6 6 18\\"/><path d=\\"m6 6 12 12\\"/>","users":"<path d=\\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\\"/><path d=\\"M16 3.128a4 4 0 0 1 0 7.744\\"/><path d=\\"M22 21v-2a4 4 0 0 0-3-3.87\\"/><circle cx=\\"9\\" cy=\\"7\\" r=\\"4\\"/>"};
+const X1_ICONS={"mic":"<path d=\\"M12 19v3\\"/><path d=\\"M19 10v2a7 7 0 0 1-14 0v-2\\"/><rect x=\\"9\\" y=\\"2\\" width=\\"6\\" height=\\"13\\" rx=\\"3\\"/>","micOff":"<path d=\\"M12 19v3\\"/><path d=\\"M15 9.34V5a3 3 0 0 0-5.68-1.33\\"/><path d=\\"M16.95 16.95A7 7 0 0 1 5 12v-2\\"/><path d=\\"M18.89 13.23A7 7 0 0 0 19 12v-2\\"/><path d=\\"m2 2 20 20\\"/><path d=\\"M9 9v3a3 3 0 0 0 5.12 2.12\\"/>","video":"<path d=\\"m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5\\"/><rect x=\\"2\\" y=\\"6\\" width=\\"14\\" height=\\"12\\" rx=\\"2\\"/>","videoOff":"<path d=\\"M10.66 6H14a2 2 0 0 1 2 2v2.5l5.248-3.062A.5.5 0 0 1 22 7.87v8.196\\"/><path d=\\"M16 16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2\\"/><path d=\\"m2 2 20 20\\"/>","screenShare":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m17 8 5-5\\"/><path d=\\"M17 3h5v5\\"/>","screenShareOff":"<path d=\\"M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3\\"/><path d=\\"M8 21h8\\"/><path d=\\"M12 17v4\\"/><path d=\\"m22 3-5 5\\"/><path d=\\"m17 3 5 5\\"/>","headphones":"<path d=\\"M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3\\"/>","volumeX":"<path d=\\"M11 4.702a.7.7 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.7.7 0 0 0 11 19.298z\\"/><path d=\\"m16.5 14.5 5-5\\"/><path d=\\"m16.5 9.5 5 5\\"/>","settings":"<path d=\\"M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915\\"/><circle cx=\\"12\\" cy=\\"12\\" r=\\"3\\"/>","phoneOff":"<path d=\\"M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272\\"/><path d=\\"M22 2 2 22\\"/><path d=\\"M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473\\"/>","hand":"<path d=\\"M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2\\"/><path d=\\"M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2\\"/><path d=\\"M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8\\"/><path d=\\"M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15\\"/>","maximize":"<path d=\\"M8 3H5a2 2 0 0 0-2 2v3\\"/><path d=\\"M21 8V5a2 2 0 0 0-2-2h-3\\"/><path d=\\"M3 16v3a2 2 0 0 0 2 2h3\\"/><path d=\\"M16 21h3a2 2 0 0 0 2-2v-3\\"/>","minimize":"<path d=\\"M8 3v3a2 2 0 0 1-2 2H3\\"/><path d=\\"M21 8h-3a2 2 0 0 1-2-2V3\\"/><path d=\\"M3 16h3a2 2 0 0 1 2 2v3\\"/><path d=\\"M16 21v-3a2 2 0 0 1 2-2h3\\"/>","x":"<path d=\\"M18 6 6 18\\"/><path d=\\"m6 6 12 12\\"/>","users":"<path d=\\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\\"/><path d=\\"M16 3.128a4 4 0 0 1 0 7.744\\"/><path d=\\"M22 21v-2a4 4 0 0 0-3-3.87\\"/><circle cx=\\"9\\" cy=\\"7\\" r=\\"4\\"/>","pip":"<path d=\\"M21 9V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h4\\"/><rect width=\\"10\\" height=\\"7\\" x=\\"12\\" y=\\"13\\" rx=\\"2\\"/>"};
 function icon(name,size,extraClass){
   const s=size||20;
   return '<svg class="x1-icon'+(extraClass?(' '+extraClass):'')+'" viewBox="0 0 24 24" width="'+s+'" height="'+s+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+(X1_ICONS[name]||'')+'</svg>';
@@ -27532,12 +27558,17 @@ let activeCinemaKind=null;
 let camQualityKey='720p30', screenQualityKey='1080p60';
 let micVolumePct=100, outVolumePct=100;
 let noiseSuppressionOn=true, echoCancellationOn=true, agcOn=true, channelMode='mono';
-let preferredMicDeviceId='';
+let preferredMicDeviceId='',preferredCamDeviceId='',preferredSpeakerDeviceId='';
 // Demandé : les réglages qualité audio/vidéo doivent rester valables pour
 // toujours, sur tous les appels — avant ça, camQualityKey/screenQualityKey
 // et le reste (volume micro/sortie, réduction de bruit, écho, gain
 // automatique, canal, micro préféré) repartaient de zéro à chaque
 // rechargement de page, aucune persistance nulle part.
+// Un seul et même magasin (xultra_call_prefs) pour les TROIS piles d'appel
+// (1:1 WebRTC, appel de groupe DM et salon vocal de serveur LiveKit) : choisir
+// son micro/caméra/sortie audio une fois, n'importe où, doit rester valable
+// partout ensuite — voir openCallSettingsPanel() et joinVoiceRoom() qui
+// appliquent preferredCamDeviceId/preferredSpeakerDeviceId côté LiveKit.
 function loadCallPrefs(){
   try{
     const raw=localStorage.getItem('xultra_call_prefs');
@@ -27552,6 +27583,8 @@ function loadCallPrefs(){
     if(typeof p.agcOn==='boolean')agcOn=p.agcOn;
     if(p.channelMode)channelMode=p.channelMode;
     if(p.preferredMicDeviceId)preferredMicDeviceId=p.preferredMicDeviceId;
+    if(p.preferredCamDeviceId)preferredCamDeviceId=p.preferredCamDeviceId;
+    if(p.preferredSpeakerDeviceId)preferredSpeakerDeviceId=p.preferredSpeakerDeviceId;
   }catch(e){}
 }
 function saveCallPrefs(){
@@ -27560,7 +27593,8 @@ function saveCallPrefs(){
       camQualityKey:camQualityKey,screenQualityKey:screenQualityKey,
       micVolumePct:micVolumePct,outVolumePct:outVolumePct,
       noiseSuppressionOn:noiseSuppressionOn,echoCancellationOn:echoCancellationOn,agcOn:agcOn,
-      channelMode:channelMode,preferredMicDeviceId:preferredMicDeviceId
+      channelMode:channelMode,preferredMicDeviceId:preferredMicDeviceId,
+      preferredCamDeviceId:preferredCamDeviceId,preferredSpeakerDeviceId:preferredSpeakerDeviceId
     }));
   }catch(e){}
 }
@@ -27928,6 +27962,7 @@ function onRemoteTrack(e){
     const a=\$('call-remote-audio');
     if(a){
       a.srcObject=e.streams[0]||new MediaStream([e.track]);
+      if(preferredSpeakerDeviceId&&a.setSinkId)a.setSinkId(preferredSpeakerDeviceId).catch(function(){});
       const playPromise=a.play();
       if(playPromise&&playPromise.catch)playPromise.catch(function(err){
         /* Le geste utilisateur qui a lancé/accepté l'appel a pu expirer le
@@ -27994,7 +28029,9 @@ async function toggleCamera(){
   camToggleBusy=true;
   try{
     const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
-    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}}});
+    const camConstraints={facingMode:'user',width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}};
+    if(preferredCamDeviceId)camConstraints.deviceId={ideal:preferredCamDeviceId};
+    camStream=await navigator.mediaDevices.getUserMedia({video:camConstraints});
     const track=camStream.getVideoTracks()[0];
     if(!callPc){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;return}
     camSender=callPc.addTrack(track,camStream);
@@ -28697,7 +28734,11 @@ function renderGroupCallVideoGrid(){
       const oldVideo=wrap.querySelector('video');
       if(oldVideo){if(wrap._track){try{wrap._track.detach(oldVideo);}catch(e){}}oldVideo.remove();}
       const el=t.track.attach();
-      el.style.cssText='width:100%;height:100%;object-fit:cover;display:block;position:absolute;inset:0';
+      // object-fit vient de la CSS (.gcb-vtile video), pas d'ici : cover en
+      // mode barre flottante compacte, contain en plein écran cinéma — voir
+      // .gcb-video-grid.cinema .gcb-vtile video (résolution native, jamais
+      // recadrée, comme pour les salons de serveur).
+      el.style.cssText='width:100%;height:100%;display:block;position:absolute;inset:0';
       if(t.mirror)el.style.transform='scaleX(-1)';
       wrap.insertBefore(el,wrap.firstChild);
       wrap._track=t.track;
@@ -28772,6 +28813,13 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
     groupCallServerId=contextType==='channel'?(activeServer&&activeServer.\$id||null):(contextType==='server'?contextId:null);
     wireGroupRoomEvents(room);
     await room.connect(res.wsUrl,res.token);
+    // Même préférences d'appareils que le 1:1 (xultra_call_prefs) : choisi
+    // une fois dans un DM, un salon de groupe ou un salon de serveur, le
+    // micro/caméra/sortie choisi reste valable partout ensuite — silencieux
+    // si l'appareil a disparu depuis (fallback par défaut de LiveKit).
+    if(preferredMicDeviceId)room.switchActiveDevice('audioinput',preferredMicDeviceId).catch(function(){});
+    if(preferredCamDeviceId)room.switchActiveDevice('videoinput',preferredCamDeviceId).catch(function(){});
+    if(preferredSpeakerDeviceId)room.switchActiveDevice('audiooutput',preferredSpeakerDeviceId).catch(function(){});
     // Sur un salon de scène, le jeton n'accorde le droit de publier qu'aux
     // orateurs/modérateurs (res.canPublish) — un simple auditeur rejoint la
     // room pour écouter sans jamais tenter d'activer son micro (le serveur
@@ -28857,6 +28905,7 @@ function channelVoiceStageHtml(title){
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-deafen-btn" title="Sourdine casque">'+icon('headphones',20)+'</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-screen-btn" title="Partager l\\'écran">'+icon('screenShare',20)+'</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-hand-btn" title="Lever la main">'+icon('hand',20)+'</button>'
+      +'<button type="button" class="cvs-ctrl-btn" id="cvs-pip-btn" title="Picture-in-picture">'+icon('pip',20)+'</button>'
       +'<button type="button" class="cvs-ctrl-btn" id="cvs-settings-btn" title="Paramètres d\\'appel">'+icon('settings',20)+'</button>'
       +'<button type="button" class="cvs-ctrl-btn danger" id="cvs-leave-btn" title="Quitter le salon">'+icon('phoneOff',20)+'</button>'
     +'</div>'
@@ -29034,10 +29083,16 @@ function exitChannelCinema(){
   const stage=\$('call-video-stage');if(stage)stage.classList.add('hidden');
   if(document.fullscreenElement){try{document.exitFullscreen();}catch(e){}}
 }
+// Met à jour à la fois la barre flottante (#group-call-bar, DM) et le
+// cinéma plein écran (#call-video-stage, serveur) : les deux s'appuient sur
+// le MÊME groupRoom LiveKit, donc les mêmes icônes/états — un salon de
+// serveur et un appel de groupe DM doivent se comporter et se piloter à
+// l'identique, jamais deux jeux de règles différents pour la même techno.
 function updateStageControlsUi(){
   if(!groupRoom)return;
   const muted=!groupRoom.localParticipant.isMicrophoneEnabled;
   const camOn=!!groupRoom.localParticipant.isCameraEnabled;
+  const scOn=!!groupRoom.localParticipant.isScreenShareEnabled;
   const micBtn=\$('cvs-mic-btn');
   if(micBtn){
     micBtn.innerHTML=icon(muted?'micOff':'mic',20);
@@ -29052,7 +29107,6 @@ function updateStageControlsUi(){
   }
   const screenBtn=\$('cvs-screen-btn');
   if(screenBtn){
-    const scOn=!!groupRoom.localParticipant.isScreenShareEnabled;
     screenBtn.innerHTML=icon(scOn?'screenShareOff':'screenShare',20);
     screenBtn.classList.toggle('on',scOn);
     screenBtn.classList.toggle('stage-listener',!stageCanPublish);
@@ -29066,6 +29120,30 @@ function updateStageControlsUi(){
   }
   const countEl=\$('cvs-count');
   if(countEl)countEl.innerHTML=icon('users',13)+' '+(1+groupRoom.remoteParticipants.size);
+  const gcbMute=\$('gcb-mute');
+  if(gcbMute){gcbMute.innerHTML=icon(muted?'micOff':'mic',19);gcbMute.classList.toggle('on',muted);}
+  const gcbCam=\$('gcb-cam');
+  if(gcbCam){gcbCam.innerHTML=icon(camOn?'video':'videoOff',19);gcbCam.classList.toggle('on',camOn);}
+  const gcbScreen=\$('gcb-screen');
+  if(gcbScreen){gcbScreen.innerHTML=icon(scOn?'screenShareOff':'screenShare',19);gcbScreen.classList.toggle('on',scOn);}
+  const gcbDeafen=\$('gcb-deafen');
+  if(gcbDeafen){gcbDeafen.innerHTML=icon(cvsDeafened?'volumeX':'headphones',19);gcbDeafen.classList.toggle('on',cvsDeafened);}
+}
+// Picture-in-picture natif du navigateur, disponible sur les TROIS types
+// d'appel (1:1, groupe DM, salon de serveur) via un seul point d'entrée :
+// permet de garder l'appel visible (fenêtre flottante système) en naviguant
+// ailleurs dans l'appli ou même dans un autre onglet — quelque chose
+// qu'aucun concurrent (Discord compris) n'offre nativement pour un appel.
+function findPipVideo(gridId){
+  const grid=\$(gridId);if(!grid)return null;
+  return grid.querySelector('.enlarged video')||grid.querySelector('video');
+}
+async function toggleCallPip(gridId){
+  if(!document.pictureInPictureEnabled){showToast('Picture-in-picture non pris en charge par ce navigateur.','error');return}
+  if(document.pictureInPictureElement){try{await document.exitPictureInPicture();}catch(e){}return}
+  const video=findPipVideo(gridId);
+  if(!video||!video.srcObject){showToast('Aucune vidéo à afficher en incrustation pour le moment.','error');return}
+  try{await video.requestPictureInPicture();}catch(e){showToast('Picture-in-picture impossible sur cet appareil.','error');}
 }
 async function toggleStageCamera(){
   if(!groupRoom)return;
@@ -29142,6 +29220,8 @@ function wireChannelVoiceStage(){
   if(handBtn)handBtn.onclick=toggleStageHand;
   const deafenBtn=\$('cvs-deafen-btn');
   if(deafenBtn)deafenBtn.onclick=toggleStageDeafen;
+  const pipBtn=\$('cvs-pip-btn');
+  if(pipBtn)pipBtn.onclick=function(){toggleCallPip('chan-voice-stage-grid');};
   const settingsBtn=\$('cvs-settings-btn');
   if(settingsBtn)settingsBtn.onclick=openCallSettingsPanel;
   const realfsBtn=\$('cvs-realfs-btn');
@@ -29193,18 +29273,22 @@ async function openCallSettingsPanel(){
     sel.innerHTML=list.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||(fallbackLabel+' '+(i+1)))+'</option>';}).join('');
     if(activeId)sel.value=activeId;
   }
+  // Le périphérique ACTIF (getActiveDevice) prime s'il existe déjà (LiveKit
+  // vient de l'appliquer), sinon on retombe sur le dernier choix mémorisé
+  // (preferredXDeviceId) — c'est ce qui fait que ce panneau reflète toujours
+  // ton choix précédent même avant que LiveKit n'ait publié quoi que ce soit.
   let activeMic=null,activeCam=null,activeSpeaker=null;
   try{activeMic=groupRoom.getActiveDevice('audioinput');}catch(e){}
   try{activeCam=groupRoom.getActiveDevice('videoinput');}catch(e){}
   try{activeSpeaker=groupRoom.getActiveDevice('audiooutput');}catch(e){}
-  fillSelect(\$('cvs-set-mic'),'audioinput',activeMic,'Microphone');
-  fillSelect(\$('cvs-set-cam'),'videoinput',activeCam,'Caméra');
+  fillSelect(\$('cvs-set-mic'),'audioinput',activeMic||preferredMicDeviceId,'Microphone');
+  fillSelect(\$('cvs-set-cam'),'videoinput',activeCam||preferredCamDeviceId,'Caméra');
   const canSetSinkId=typeof HTMLMediaElement!=='undefined'&&HTMLMediaElement.prototype.setSinkId;
   \$('cvs-settings-speaker-row').classList.toggle('hidden',!canSetSinkId);
-  if(canSetSinkId)fillSelect(\$('cvs-set-speaker'),'audiooutput',activeSpeaker,'Sortie');
-  \$('cvs-set-mic').onchange=function(){groupRoom.switchActiveDevice('audioinput',this.value).catch(function(){});};
-  \$('cvs-set-cam').onchange=function(){groupRoom.switchActiveDevice('videoinput',this.value).catch(function(){});};
-  if(canSetSinkId)\$('cvs-set-speaker').onchange=function(){groupRoom.switchActiveDevice('audiooutput',this.value).catch(function(){});};
+  if(canSetSinkId)fillSelect(\$('cvs-set-speaker'),'audiooutput',activeSpeaker||preferredSpeakerDeviceId,'Sortie');
+  \$('cvs-set-mic').onchange=function(){preferredMicDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('audioinput',this.value).catch(function(){});};
+  \$('cvs-set-cam').onchange=function(){preferredCamDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('videoinput',this.value).catch(function(){});};
+  if(canSetSinkId)\$('cvs-set-speaker').onchange=function(){preferredSpeakerDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('audiooutput',this.value).catch(function(){});};
 }
 function refreshChannelVoiceStageIfVisible(){
   if(!activeChannel||activeChannel.type!=='voice')return;
@@ -29268,6 +29352,9 @@ if(\$('gcb-mute'))\$('gcb-mute').addEventListener('click',async function(){
   updateStageControlsUi();
 });
 if(\$('gcb-leave'))\$('gcb-leave').addEventListener('click',leaveGroupCall);
+if(\$('gcb-deafen'))\$('gcb-deafen').addEventListener('click',toggleStageDeafen);
+if(\$('gcb-settings'))\$('gcb-settings').addEventListener('click',openCallSettingsPanel);
+if(\$('gcb-pip'))\$('gcb-pip').addEventListener('click',function(){toggleCallPip('gcb-video-grid');});
 window.addEventListener('pagehide',function(){
   /* Filet de sécurité en plus du battement de coeur (heartbeat) : en cas de
      fermeture propre de l'onglet, on tente un nettoyage immédiat plutôt que
@@ -32458,6 +32545,7 @@ if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
 });
 if(\$('cb-cam'))\$('cb-cam').addEventListener('click',toggleCamera);
 if(\$('cb-screen'))\$('cb-screen').addEventListener('click',toggleScreenShare);
+if(\$('cb-pip'))\$('cb-pip').addEventListener('click',function(){toggleCallPip('vgrid');});
 if(\$('cb-deafen'))\$('cb-deafen').addEventListener('click',function(){
   const deafened=!this.classList.contains('on');
   this.classList.toggle('on',deafened);
@@ -32493,6 +32581,8 @@ if(\$('cb-settings'))\$('cb-settings').addEventListener('click',function(){
   \$('modal-call-settings').classList.remove('hidden');
   syncCallSettingsUi();
   populateMicDevices();
+  populateCamDevices();
+  populateSpeakerDevices();
   startMicMeter();
 });
 if(\$('cs-close'))\$('cs-close').addEventListener('click',function(){
@@ -32508,6 +32598,54 @@ async function populateMicDevices(){
     if(preferredMicDeviceId&&mics.some(function(d){return d.deviceId===preferredMicDeviceId}))sel.value=preferredMicDeviceId;
   }catch(e){}
 }
+// Même logique que le micro (choix mémorisé dans xultra_call_prefs, partagé
+// avec les appels de groupe/serveur LiveKit) pour la caméra et la sortie
+// audio — avant ça, seul le micro pouvait être choisi ici.
+async function populateCamDevices(){
+  const sel=\$('cs-cam-device');if(!sel)return;
+  try{
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const cams=devices.filter(function(d){return d.kind==='videoinput'});
+    if(!cams.length){sel.innerHTML='<option value="">Aucune trouvée</option>';sel.disabled=true;return}
+    sel.disabled=false;
+    sel.innerHTML=cams.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||('Caméra '+(i+1)))+'</option>'}).join('');
+    if(preferredCamDeviceId&&cams.some(function(d){return d.deviceId===preferredCamDeviceId}))sel.value=preferredCamDeviceId;
+  }catch(e){}
+}
+async function populateSpeakerDevices(){
+  const sel=\$('cs-speaker-device');if(!sel)return;
+  const canSetSinkId=typeof HTMLMediaElement!=='undefined'&&HTMLMediaElement.prototype.setSinkId;
+  const row=\$('cs-speaker-row');if(row)row.classList.toggle('hidden',!canSetSinkId);
+  if(!canSetSinkId)return;
+  try{
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    const speakers=devices.filter(function(d){return d.kind==='audiooutput'});
+    if(!speakers.length){sel.innerHTML='<option value="">Par défaut</option>';return}
+    sel.innerHTML=speakers.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||('Sortie '+(i+1)))+'</option>';}).join('');
+    if(preferredSpeakerDeviceId&&speakers.some(function(d){return d.deviceId===preferredSpeakerDeviceId}))sel.value=preferredSpeakerDeviceId;
+  }catch(e){}
+}
+if(\$('cs-cam-device'))\$('cs-cam-device').addEventListener('change',async function(){
+  const deviceId=this.value;if(!deviceId)return;
+  preferredCamDeviceId=deviceId;saveCallPrefs();
+  if(!callPc||!camSender)return;
+  try{
+    const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
+    const newStream=await navigator.mediaDevices.getUserMedia({video:{deviceId:{exact:deviceId},width:{ideal:q.w},height:{ideal:q.h},frameRate:{ideal:q.fps}}});
+    const newTrack=newStream.getVideoTracks()[0];
+    const oldTrack=camStream&&camStream.getVideoTracks()[0];
+    await camSender.replaceTrack(newTrack);
+    if(oldTrack)try{oldTrack.stop();}catch(e){}
+    camStream=newStream;
+    applyEncodingBitrate(camSender,q.bitrate);
+  }catch(e){alert('Changement de caméra impossible');}
+});
+if(\$('cs-speaker-device'))\$('cs-speaker-device').addEventListener('change',async function(){
+  const deviceId=this.value;if(!deviceId)return;
+  preferredSpeakerDeviceId=deviceId;saveCallPrefs();
+  const a=\$('call-remote-audio');
+  if(a&&a.setSinkId)try{await a.setSinkId(deviceId);}catch(e){}
+});
 if(\$('cs-mic-device'))\$('cs-mic-device').addEventListener('change',async function(){
   const deviceId=this.value;if(!deviceId)return;
   preferredMicDeviceId=deviceId;saveCallPrefs();
