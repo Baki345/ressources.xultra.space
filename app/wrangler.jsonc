@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // Nom DÉLIBÉRÉMENT différent du Worker de production ("bitter-violet-3f1a",
+  // route xultra.space) — ce projet est la nouvelle base React/TypeScript en
+  // cours de construction, déployée sur son propre sous-domaine workers.dev
+  // pendant la migration progressive, jamais sur le domaine live tant qu'une
+  // section n'a pas été vérifiée bout en bout.
+  "name": "xultra-app-preview",
+  "compatibility_date": "2026-08-22",
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  }
+}

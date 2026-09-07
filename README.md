@@ -18,6 +18,15 @@
 ### Workers Cloudflare déployés
 - `bitter-violet-3f1a` (principal, route xultra.space)
 - `ultravoc` (miroir / alias)
+- `xultra-app-preview` (nouvelle base React/TypeScript en cours de migration progressive, voir `app/README.md` — pas encore branchée sur xultra.space)
+
+### Migration en cours vers React/TypeScript
+
+Le monolithe `worker/worker.js` est progressivement remplacé par une base
+moderne (React + TypeScript + Vite + Wrangler) dans le dossier `app/`,
+section par section, sans jamais interrompre le site en production. Voir
+`app/README.md` pour l'architecture, la stratégie de migration et comment
+lancer/tester/déployer ce nouveau projet.
 
 ### Appwrite
 - **Endpoint :** `https://fra.cloud.appwrite.io/v1`
