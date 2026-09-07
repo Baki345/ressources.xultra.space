@@ -19409,17 +19409,42 @@ function renderXBinList(docs){
   list.querySelectorAll('[data-xbin-open]').forEach(function(card){
     card.addEventListener('click',function(){openXBinPaste(card.getAttribute('data-xbin-open'));});
   });
+  // Aperçus de la liste : jusqu'ici du texte brut, jamais colorié même pour
+  // un paste avec un langage précis — seuls l'éditeur et la page de détail
+  // passaient par hljs. En profite aussi pour révéler le langage détecté
+  // (au lieu du chip générique "🪄 Détection automatique") sur les pastes en
+  // mode auto, comme sur la page de détail.
+  ensureHighlightJs().then(function(){
+    if(!window.hljs)return;
+    list.querySelectorAll('[data-xbin-hl]').forEach(function(el){
+      const card=el.closest('.xbin-card');
+      const chip=card?card.querySelector('.xbin-lang-chip'):null;
+      if(card&&card.getAttribute('data-xbin-lang')==='auto'){
+        try{
+          const res=window.hljs.highlightAuto(el.textContent);
+          if(res&&res.language){
+            el.innerHTML=res.value;
+            if(chip){const label=xbinLangLabel(res.language);chip.textContent='🪄 '+(label&&label!==res.language?label:res.language);}
+          }
+        }catch(e){}
+      }else{
+        try{window.hljs.highlightElement(el);}catch(e){}
+      }
+    });
+  });
 }
 function xbinCardHtml(d){
   const preview=esc((d.content||'').slice(0,220));
   const isPrivate=d.visibility==='private',isUnlisted=d.visibility==='unlisted';
-  return '<div class="xbin-card" data-xbin-open="'+d.\$id+'">'
+  const langClass=(d.language&&d.language!=='auto'&&d.language!=='plaintext')?' class="language-'+esc(d.language)+'"':'';
+  const skipHl=d.language==='plaintext';
+  return '<div class="xbin-card" data-xbin-open="'+d.\$id+'" data-xbin-lang="'+esc(d.language||'')+'">'
     +'<div class="xbin-card-top">'
       +'<span class="xbin-lang-chip">'+esc(xbinLangLabel(d.language))+'</span>'
       +(isPrivate?'<span class="xbin-vis-chip xbin-vis-private">🔒 Privé</span>':(isUnlisted?'<span class="xbin-vis-chip xbin-vis-unlisted">🔗 Non listé</span>':''))
     +'</div>'
     +'<h3 class="xbin-card-title">'+esc(d.title||'Sans titre')+'</h3>'
-    +'<pre class="xbin-card-preview">'+preview+'</pre>'
+    +'<pre class="xbin-card-preview"><code'+langClass+(skipHl?'':' data-xbin-hl')+'>'+preview+'</code></pre>'
     +'<div class="xbin-card-foot">'
       +'<span class="xbin-card-author">'+esc(d.authorName||'?')+'</span>'
       +'<span class="xbin-card-meta">👁️ '+(d.views||0)+' · '+esc(xbinFmtExpiry(d))+'</span>'
@@ -19434,8 +19459,15 @@ function xbinCardHtml(d){
 // re-synchronisés au défilement. Évite d'ajouter un vrai éditeur de code
 // (CodeMirror/Monaco) juste pour ce besoin.
 let xbinEditorHlTimer=null;
+// Le mode "🪄 Détection automatique" (déjà la valeur par défaut d'un nouveau
+// paste) coloriait déjà le code au fil de la frappe/du collage, mais ne
+// disait jamais QUEL langage avait été deviné — d'où l'impression, une fois
+// qu'on connaît hljs, que "rien de spécial ne se passe". highlightAuto()
+// (plutôt que highlightElement(), qui ne redonne pas sa réponse de façon
+// fiable) donne à la fois le HTML coloré ET le langage détecté en un seul
+// appel, pour afficher les deux ensemble.
 function xbinSyncEditorHighlight(){
-  const ta=\$('xbin-content-input'),hl=\$('xbin-editor-hl'),langSel=\$('xbin-lang-select');
+  const ta=\$('xbin-content-input'),hl=\$('xbin-editor-hl'),langSel=\$('xbin-lang-select'),detectedEl=\$('xbin-auto-detected');
   if(!ta||!hl)return;
   hl.textContent=ta.value;
   const lang=langSel?langSel.value:'auto';
@@ -19444,7 +19476,21 @@ function xbinSyncEditorHighlight(){
     try{
       if(!window.hljs)return;
       delete hl.dataset.highlighted;
-      if(lang!=='plaintext')window.hljs.highlightElement(hl);
+      if(lang==='auto'){
+        if(!ta.value.trim()){if(detectedEl)detectedEl.classList.add('hidden');return}
+        const res=window.hljs.highlightAuto(ta.value);
+        if(res&&res.language){
+          hl.innerHTML=res.value;
+          if(detectedEl){
+            const label=xbinLangLabel(res.language);
+            detectedEl.textContent='🪄 Langage détecté : '+(label&&label!==res.language?label:res.language);
+            detectedEl.classList.remove('hidden');
+          }
+        }else if(detectedEl)detectedEl.classList.add('hidden');
+      }else{
+        if(detectedEl)detectedEl.classList.add('hidden');
+        if(lang!=='plaintext')window.hljs.highlightElement(hl);
+      }
     }catch(e){}
   });
 }
@@ -19472,6 +19518,7 @@ function openXBinEditor(prefill){
           +XBIN_EXPIRY_OPTS.map(function(o){return '<option value="'+o.id+'">'+esc(o.label)+'</option>';}).join('')
         +'</select>'
       +'</div>'
+      +'<div class="scr-sub hidden" id="xbin-auto-detected" style="margin:-4px 0 6px"></div>'
       +'<div class="xbin-editor-code-wrap">'
         +'<pre class="xbin-editor-pre" aria-hidden="true"><code id="xbin-editor-hl"></code></pre>'
         +'<textarea id="xbin-content-input" class="xbin-editor-ta" placeholder="Colle ou écris ton texte ici…" spellcheck="false">'+esc((prefill&&prefill.content)||'')+'</textarea>'
@@ -19586,7 +19633,7 @@ function renderXBinDetail(d){
     +'<div class="xbin-detail-head">'
       +'<h1>'+esc(d.title||'Sans titre')+'</h1>'
       +'<div class="xbin-detail-meta">'
-        +'<span>'+esc(d.authorName||'?')+'</span> · <span>'+esc(xbinLangLabel(d.language))+'</span> · '
+        +'<span>'+esc(d.authorName||'?')+'</span> · <span id="xbin-detail-lang">'+esc(xbinLangLabel(d.language))+'</span> · '
         +'<span>👁️ '+(d.views||0)+'</span> · <span>'+esc(xbinFmtExpiry(d))+'</span>'
       +'</div>'
     +'</div>'
@@ -19612,8 +19659,17 @@ function renderXBinDetail(d){
     try{
       if(!window.hljs)return;
       const el=\$('xbin-code-el');if(!el)return;
-      if(d.language==='auto')window.hljs.highlightElement(el);
-      else if(d.language&&d.language!=='plaintext')window.hljs.highlightElement(el);
+      if(d.language==='auto'){
+        const res=window.hljs.highlightAuto(d.content||'');
+        if(res&&res.language){
+          el.innerHTML=res.value;
+          const metaLangEl=\$('xbin-detail-lang');
+          if(metaLangEl){
+            const label=xbinLangLabel(res.language);
+            metaLangEl.textContent='🪄 '+(label&&label!==res.language?label:res.language);
+          }
+        }
+      }else if(d.language&&d.language!=='plaintext')window.hljs.highlightElement(el);
     }catch(e){}
   });
   \$('xbin-copy-btn').onclick=function(){
