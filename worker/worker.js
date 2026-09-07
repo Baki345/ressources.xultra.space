@@ -5061,13 +5061,13 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-save-credentials">
   <div class="modal-box" style="width:min(420px,100%)">
-    <h3>🔒 Ton compte n'a pas d'e-mail</h3>
-    <div class="sc-desc">C'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l'accès à celui-ci. Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.</div>
+    <h3 id="save-cred-title">🔒 Note bien ceci</h3>
+    <div class="sc-desc" id="save-cred-desc">C'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l'accès à celui-ci. Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.</div>
     <div class="set-section-label" id="save-cred-key-wrap-label" style="margin-top:14px">Ta clé secrète</div>
     <div id="save-cred-key-wrap">
       <div style="font-family:monospace;font-size:.88rem;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;word-break:break-all" id="save-cred-key"></div>
     </div>
-    <div class="set-section-label">Code de secours (dernier recours)</div>
+    <div class="set-section-label" id="save-cred-recovery-label">Code de secours (dernier recours)</div>
     <div style="font-family:monospace;font-size:.88rem;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;word-break:break-all" id="save-cred-recovery"></div>
     <div style="display:flex;gap:8px">
       <button type="button" class="set-mini-btn" id="save-cred-copy">Copier tout</button>
@@ -7869,10 +7869,14 @@ function showSaveCredentialsModal(deviceKey,recoveryCode,onDone){
   \$('save-cred-key-wrap-label').classList.toggle('hidden',!deviceKey);
   \$('save-cred-key-wrap').classList.toggle('hidden',!deviceKey);
   if(deviceKey)\$('save-cred-key').textContent=deviceKey;
-  \$('save-cred-recovery').textContent=recoveryCode;
+  \$('save-cred-recovery-label').classList.toggle('hidden',!recoveryCode);
+  \$('save-cred-recovery').classList.toggle('hidden',!recoveryCode);
+  if(recoveryCode)\$('save-cred-recovery').textContent=recoveryCode;
+  \$('save-cred-title').textContent=(deviceKey&&recoveryCode)?'🔒 Note bien ceci':(deviceKey?'🔒 Ta nouvelle clé secrète':'🔒 Ton nouveau code de secours');
+  \$('save-cred-desc').innerHTML=(deviceKey?'C\\'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l\\'accès à celui-ci. ':'')+'Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.';
   modal.classList.remove('hidden');
   \$('save-cred-copy').onclick=function(){
-    const text=(deviceKey?('Clé secrète : '+deviceKey+'\\n'):'')+'Code de secours : '+recoveryCode;
+    const text=(deviceKey?('Clé secrète : '+deviceKey+'\\n'):'')+(recoveryCode?('Code de secours : '+recoveryCode):'');
     (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(text):Promise.reject()).then(function(){showToast('Copié !');}).catch(function(){});
   };
   \$('save-cred-done').onclick=function(){modal.classList.add('hidden');onDone();};
@@ -10347,6 +10351,7 @@ function renderSetAccount(box){
   const name=(meProfile&&(meProfile.displayName||meProfile.username))||(me&&me.name)||'—';
   const tag=(meProfile&&meProfile.tag)||'0000';
   const email=(me&&me.email)||'—';
+  const isPasswordless=!(me&&me.email);
   const avatarUrl=safeUrl(meProfile&&meProfile.avatar);
   const extra=parseProfileExtra(settingsMeta&&settingsMeta.profileExtraJson);
   const disabled=!!extra.disabled;
@@ -10355,9 +10360,12 @@ function renderSetAccount(box){
     +'<div class="settings-account-head"><div class="av">'+(avatarUrl?'<img src="'+esc(avatarUrl)+'" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':esc((name||'?').slice(0,1).toUpperCase()))+'</div><div><div class="sah-name">'+esc(name)+'</div><div class="sah-tag">#'+esc(tag)+'</div></div></div>'
     +'<div class="set-card">'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Pseudo</div><div class="scr-sub">'+esc(name)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-name">Modifier</button></div>'
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+' '+((me&&me.emailVerification)?'<span style="color:#22c55e">✓ vérifié</span>':'<span style="color:#f59e0b">⚠ non vérifié</span>')+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
-      +(!(me&&me.emailVerification)?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">Vérifie ton adresse e-mail</div><div class="scr-sub">Un lien de vérification t\\'a été envoyé par e-mail à l\\'inscription. Tu ne l\\'as pas reçu ?</div></div><button type="button" class="set-mini-btn" id="acc-resend-verify">Renvoyer</button></div>'):'')
-      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Mot de passe</div><div class="scr-sub">••••••••</div></div><button type="button" class="set-mini-btn" id="acc-edit-pass">Modifier</button></div>'
+      +(isPasswordless?
+        '<div class="set-card-row"><div class="scr-info"><div class="scr-label">Connexion</div><div class="scr-sub">Ce compte n\\'a pas d\\'e-mail ni de mot de passe — tu te connectes avec une clé secrète ou une passkey (voir Sécurité ci-dessous).</div></div></div>'
+        :
+        ('<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+' '+((me&&me.emailVerification)?'<span style="color:#22c55e">✓ vérifié</span>':'<span style="color:#f59e0b">⚠ non vérifié</span>')+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
+        +(!(me&&me.emailVerification)?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">Vérifie ton adresse e-mail</div><div class="scr-sub">Un lien de vérification t\\'a été envoyé par e-mail à l\\'inscription. Tu ne l\\'as pas reçu ?</div></div><button type="button" class="set-mini-btn" id="acc-resend-verify">Renvoyer</button></div>'):'')
+        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Mot de passe</div><div class="scr-sub">••••••••</div></div><button type="button" class="set-mini-btn" id="acc-edit-pass">Modifier</button></div>'))
       +(appPrefs.devMode?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">ID utilisateur</div><div class="scr-sub">'+esc((me&&me.\$id)||'')+'</div></div><button type="button" class="set-mini-btn" id="acc-copy-id">Copier</button></div>'):'')
     +'</div>'
     +'<div class="set-card hidden" id="acc-name-form"><div class="set-row"><label>Nouveau pseudo</label><input type="text" id="acc-name-input" class="field-input" maxlength="64"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-name-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-name-cancel">Annuler</button></div></div>'
@@ -10366,9 +10374,11 @@ function renderSetAccount(box){
     +'<div class="set-card">'
       +'<div class="set-section-label">Sécurité</div>'
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Authentification à deux facteurs</div><div class="scr-sub">'+((me&&me.mfa)?'Activée — ton compte est protégé par un code à usage unique.':'Ajoute une couche de sécurité à ton compte.')+'</div></div><button type="button" class="set-mini-btn'+((me&&me.mfa)?' danger':'')+'" id="acc-mfa-toggle">'+((me&&me.mfa)?'Désactiver':'Activer')+'</button></div>'
-      +((me&&me.mfa)?'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours</div><div class="scr-sub">Régénère tes codes si tu les as perdus ou déjà utilisés.</div></div><button type="button" class="set-mini-btn" id="acc-mfa-recovery">Régénérer</button></div>':'')
+      +((me&&me.mfa)?'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Codes de secours (2FA)</div><div class="scr-sub">Régénère tes codes si tu les as perdus ou déjà utilisés.</div></div><button type="button" class="set-mini-btn" id="acc-mfa-recovery">Régénérer</button></div>':'')
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Clés de sécurité / passkeys</div><div class="scr-sub">Face ID, Windows Hello, empreinte digitale, clé USB… connecte-toi sans mot de passe.</div></div><button type="button" class="set-mini-btn" id="acc-passkey-add">Ajouter</button></div>'
       +'<div id="acc-passkey-list"></div>'
+      +'<div class="set-card-row" id="acc-devicekey-row"><div class="scr-info"><div class="scr-label">Clé secrète</div><div class="scr-sub" id="acc-devicekey-sub">Chargement…</div></div><button type="button" class="set-mini-btn" id="acc-devicekey-btn" disabled>…</button></div>'
+      +'<div class="set-card-row hidden" id="acc-recovery-row"><div class="scr-info"><div class="scr-label">Code de secours</div><div class="scr-sub">Ton unique filet si tu perds ta clé secrète/ton appareil — régénère-le si tu doutes qu\\'il soit encore secret.</div></div><button type="button" class="set-mini-btn" id="acc-recovery-btn">Régénérer</button></div>'
     +'</div>'
     +'<div class="set-card hidden" id="acc-mfa-enroll"></div>'
     +'<div class="set-card settings-danger">'
@@ -10379,6 +10389,44 @@ function renderSetAccount(box){
     +'</div>';
   wireSetAccount(box,name);
   loadPasskeyList(box);
+  loadDeviceKeySecurity(box);
+}
+// État de la clé secrète/du code de secours pour LE COMPTE ACTUEL, quel que
+// soit son mode d'inscription d'origine (email, clé, passkey) — un compte
+// email peut très bien ajouter une clé secrète en secours, et inversement.
+async function loadDeviceKeySecurity(box){
+  const sub=\$('acc-devicekey-sub'),btn=\$('acc-devicekey-btn'),recRow=\$('acc-recovery-row');
+  if(!sub||!btn)return;
+  try{
+    const res=await authPost('/api/account/security-status',{});
+    if(res.hasDeviceKey){
+      sub.textContent='Une clé secrète est déjà configurée sur ce compte.';
+      btn.textContent='Régénérer';
+    }else{
+      sub.textContent='Ajoute une clé secrète comme deuxième façon de te connecter, sans mot de passe.';
+      btn.textContent='Ajouter';
+    }
+    btn.disabled=false;
+    if(recRow)recRow.classList.toggle('hidden',!res.hasDeviceKey);
+    btn.onclick=async function(){
+      btn.disabled=true;btn.textContent='…';
+      try{
+        const r=await authPost('/api/account/add-devicekey',{});
+        showSaveCredentialsModal(r.deviceKey,r.recoveryCode||'',function(){loadDeviceKeySecurity(box);});
+      }catch(e){showToast((e&&e.message)||'Erreur','error');}
+      btn.disabled=false;
+      loadDeviceKeySecurity(box);
+    };
+  }catch(e){sub.textContent='Indisponible pour le moment.';}
+  const recBtn=\$('acc-recovery-btn');
+  if(recBtn)recBtn.onclick=async function(){
+    recBtn.disabled=true;recBtn.textContent='…';
+    try{
+      const r=await authPost('/api/account/regenerate-recovery',{});
+      showSaveCredentialsModal('',r.recoveryCode,function(){});
+    }catch(e){showToast((e&&e.message)||'Erreur','error');}
+    recBtn.disabled=false;recBtn.textContent='Régénérer';
+  };
 }
 function wireSetAccount(box,name){
   const copyIdBtn=\$('acc-copy-id');
@@ -33255,6 +33303,43 @@ function validateRegisterName(name) {
   if (!cleaned || cleaned.length < 2) throw new Error("Pseudo trop court");
   return cleaned;
 }
+// Un compte créé DIRECTEMENT par clé secrète/passkey a authUserId===uid et
+// le document account_recovery est stocké sous cet uid (dk...) — mais une
+// clé secrète AJOUTÉE plus tard à un compte email existant (uid Appwrite
+// quelconque, jamais au format dk...) est stockée sous idPart directement,
+// avec authUserId pointant vers le vrai compte. On tente les deux, dans cet
+// ordre, pour que login/récupération marchent dans les deux cas sans jamais
+// avoir à savoir à l'avance lequel s'applique.
+// Pour une clé secrète AJOUTÉE à un compte déjà existant (pas créé
+// directement par ce système), le document account_recovery est stocké
+// sous un idPart dérivé de façon STABLE et DÉTERMINISTE de l'uid réel du
+// compte (jamais aléatoire) : ainsi add-devicekey/regenerate-recovery
+// retombent toujours sur le MÊME document pour ce compte (jamais de doc
+// orphelin), et resolveRecoveryDoc("cet idPart") le retrouve immédiatement
+// via son deuxième chemin de recherche, sans avoir besoin d'un index de
+// requête sur authUserId.
+async function deriveIdPartFromUid(uid) {
+  const hashBuf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("x1-devicekey-idpart:" + uid));
+  const bytes = new Uint8Array(hashBuf).slice(0, 10);
+  let bits = 0, value = 0, out = "";
+  for (let i = 0; i < bytes.length; i++) {
+    value = (value << 8) | bytes[i];
+    bits += 8;
+    while (bits >= 5) { out += B32_ALPHABET[(value >>> (bits - 5)) & 31]; bits -= 5; }
+  }
+  if (bits > 0) out += B32_ALPHABET[(value << (5 - bits)) & 31];
+  return out;
+}
+async function resolveRecoveryDoc(idPart) {
+  const uid = deviceIdPartToUid(idPart);
+  try {
+    const doc = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, { asAdmin: true });
+    return { doc: doc, targetUid: doc.authUserId || uid };
+  } catch (e) {
+    const doc2 = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, { asAdmin: true });
+    return { doc: doc2, targetUid: doc2.authUserId || idPart };
+  }
+}
 async function checkAntiAbuse(request, rlKey, turnstileToken, maxAttempts) {
   if (!(await rateLimitCheck(rlKey, maxAttempts))) throw new Error("Trop de tentatives, réessaie dans quelques minutes.");
   const ip = request.headers.get("CF-Connecting-IP") || "";
@@ -37943,6 +38028,109 @@ async function handle(request, event) {
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  // ===== Gestion de la clé secrète / du code de secours depuis les
+  // Paramètres, pour N'IMPORTE QUEL compte déjà connecté (email, clé
+  // secrète ou passkey) — ajouter une clé secrète à un compte email
+  // existant comme filet de secours, ou régénérer son code si on l'a
+  // perdu, sans jamais avoir besoin de repasser par l'inscription. =====
+  if (path === "/api/account/security-status" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    let hasDeviceKey = false, hasRecoveryCode = false;
+    try {
+      // Compte créé directement par clé/passkey : document sous acc.$id.
+      const rec = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + acc.$id, { asAdmin: true });
+      hasDeviceKey = !!rec.keyHash; hasRecoveryCode = !!rec.recoveryHash;
+    } catch (e) {
+      try {
+        // Clé secrète ajoutée plus tard à un compte existant : document
+        // sous l'idPart dérivé, pas sous acc.$id — voir deriveIdPartFromUid.
+        const idPart = await deriveIdPartFromUid(acc.$id);
+        const rec2 = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, { asAdmin: true });
+        hasDeviceKey = !!rec2.keyHash; hasRecoveryCode = !!rec2.recoveryHash;
+      } catch (e2) {}
+    }
+    return new Response(JSON.stringify({ ok: true, hasDeviceKey: hasDeviceKey, hasRecoveryCode: hasRecoveryCode, isPasswordless: !acc.email }), {
+      headers: Object.assign({ "Content-Type": "application/json" }, cors)
+    });
+  }
+
+  if (path === "/api/account/add-devicekey" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const rlKey = "add_devicekey:" + acc.$id;
+      if (!(await rateLimitCheck(rlKey, 5))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      await rateLimitBump(rlKey, 900);
+      // idPart dérivé de façon stable de acc.$id (jamais aléatoire ici) :
+      // le document vit toujours au même endroit pour ce compte, retrouvable
+      // par resolveRecoveryDoc, qu'on l'appelle une ou dix fois.
+      const idPart = await deriveIdPartFromUid(acc.$id);
+      const keySecret = randomSecretPart();
+      const keyHashed = await hashSecretNew(keySecret);
+      let existing = null;
+      try { existing = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, { asAdmin: true }); } catch (e) {}
+      let recoverySecret = null, recoveryHashed = null;
+      if (!existing || !existing.recoveryHash) {
+        recoverySecret = randomSecretPart();
+        recoveryHashed = await hashSecretNew(recoverySecret);
+      }
+      const data = { method: existing ? existing.method : "devicekey", authUserId: acc.$id, keyHash: keyHashed.hash, keySalt: keyHashed.salt };
+      if (recoveryHashed) { data.recoveryHash = recoveryHashed.hash; data.recoverySalt = recoveryHashed.salt; }
+      if (existing) {
+        await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents", { method: "POST", asAdmin: true, body: { documentId: idPart, data: data } });
+      }
+      await rateLimitClear(rlKey);
+      const resp = { ok: true, deviceKey: formatAccessSecret("X1", idPart, keySecret) };
+      if (recoverySecret) resp.recoveryCode = formatAccessSecret("X1R", idPart, recoverySecret);
+      return new Response(JSON.stringify(resp), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/regenerate-recovery" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const rlKey = "regen_recovery:" + acc.$id;
+      if (!(await rateLimitCheck(rlKey, 5))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      await rateLimitBump(rlKey, 900);
+      const idPart = await deriveIdPartFromUid(acc.$id);
+      let existing = null;
+      try { existing = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, { asAdmin: true }); } catch (e) {}
+      if (!existing || !existing.keyHash) throw new Error("Ajoute d'abord une clé secrète avant de générer un code de secours.");
+      // Même idPart que la clé secrète déjà affichée — seul le code change.
+      const recoverySecret = randomSecretPart();
+      const recoveryHashed = await hashSecretNew(recoverySecret);
+      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + idPart, {
+        method: "PATCH", asAdmin: true, body: { data: { authUserId: acc.$id, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+      });
+      await rateLimitClear(rlKey);
+      return new Response(JSON.stringify({ ok: true, recoveryCode: formatAccessSecret("X1R", idPart, recoverySecret) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
   }
@@ -43003,7 +43191,7 @@ async function handle(request, event) {
       const recoveryHashed = await hashSecretNew(recoverySecret);
       await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: uid, data: { method: "devicekey", keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+        body: { documentId: uid, data: { method: "devicekey", authUserId: uid, keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
       });
       const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
       return await finishLoginSession(sess.secret, sess.$id, uid, {
@@ -43025,23 +43213,23 @@ async function handle(request, event) {
       if (!(await rateLimitCheck("devicekey_login_ip:" + ip, 30))) throw new Error("Trop de tentatives, réessaie plus tard.");
       const parsed = parseAccessSecret((body && body.deviceKey) || "", "X1");
       if (!parsed) { await rateLimitBump("devicekey_login_ip:" + ip, 900); throw new Error("Clé d'accès invalide"); }
-      const uid = deviceIdPartToUid(parsed.idPart);
-      const rlKey = "devicekey_login:" + uid;
-      if (!(await rateLimitCheck(rlKey, 10))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
-      let rec;
+      let rec, targetUid;
       try {
-        rec = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, { asAdmin: true });
+        const resolved = await resolveRecoveryDoc(parsed.idPart);
+        rec = resolved.doc; targetUid = resolved.targetUid;
       } catch (eLookup) {
-        await rateLimitBump("devicekey_login_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        await rateLimitBump("devicekey_login_ip:" + ip, 900);
         throw new Error("Clé d'accès invalide");
       }
-      if (rec.method !== "devicekey" || !(await verifySecretAgainstHash(parsed.secretPart, rec.keySalt, rec.keyHash))) {
+      const rlKey = "devicekey_login:" + targetUid;
+      if (!(await rateLimitCheck(rlKey, 10))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      if (!rec.keyHash || !(await verifySecretAgainstHash(parsed.secretPart, rec.keySalt, rec.keyHash))) {
         await rateLimitBump("devicekey_login_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
         throw new Error("Clé d'accès invalide");
       }
       await rateLimitClear(rlKey);
-      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
-      return await finishLoginSession(sess.secret, sess.$id, uid);
+      const sess = await awFetch("/users/" + targetUid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, targetUid);
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
@@ -43056,16 +43244,16 @@ async function handle(request, event) {
       if (!(await rateLimitCheck("recover_ip:" + ip, 20))) throw new Error("Trop de tentatives, réessaie plus tard.");
       const parsed = parseAccessSecret((body && body.recoveryCode) || "", "X1R");
       if (!parsed) { await rateLimitBump("recover_ip:" + ip, 900); throw new Error("Code de secours invalide"); }
-      const uid = deviceIdPartToUid(parsed.idPart);
-      const rlKey = "recover:" + uid;
-      if (!(await rateLimitCheck(rlKey, 8))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
-      let rec;
+      let rec, targetUid;
       try {
-        rec = await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, { asAdmin: true });
+        const resolved = await resolveRecoveryDoc(parsed.idPart);
+        rec = resolved.doc; targetUid = resolved.targetUid;
       } catch (eLookup) {
-        await rateLimitBump("recover_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
+        await rateLimitBump("recover_ip:" + ip, 900);
         throw new Error("Code de secours invalide");
       }
+      const rlKey = "recover:" + targetUid;
+      if (!(await rateLimitCheck(rlKey, 8))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
       if (!(await verifySecretAgainstHash(parsed.secretPart, rec.recoverySalt, rec.recoveryHash))) {
         await rateLimitBump("recover_ip:" + ip, 900); await rateLimitBump(rlKey, 900);
         throw new Error("Code de secours invalide");
@@ -43073,16 +43261,18 @@ async function handle(request, event) {
       await rateLimitClear(rlKey);
       // À usage unique : on régénère TOUJOURS clé ET code ensemble, pour ne
       // jamais laisser un secret déjà montré une fois valide indéfiniment.
+      // On garde le MÊME idPart (donc la même clé affichée continue de
+      // pointer vers le même document) — seul le contenu change.
       const newKeySecret = randomSecretPart();
       const newRecoverySecret = randomSecretPart();
       const keyHashed = await hashSecretNew(newKeySecret);
       const recoveryHashed = await hashSecretNew(newRecoverySecret);
-      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + uid, {
+      await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents/" + rec.$id, {
         method: "PATCH", asAdmin: true,
-        body: { data: { method: "devicekey", keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+        body: { data: { method: "devicekey", authUserId: targetUid, keyHash: keyHashed.hash, keySalt: keyHashed.salt, recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
       });
-      const sess = await awFetch("/users/" + uid + "/sessions", { method: "POST", asAdmin: true, body: {} });
-      return await finishLoginSession(sess.secret, sess.$id, uid, {
+      const sess = await awFetch("/users/" + targetUid + "/sessions", { method: "POST", asAdmin: true, body: {} });
+      return await finishLoginSession(sess.secret, sess.$id, targetUid, {
         deviceKey: formatAccessSecret("X1", parsed.idPart, newKeySecret),
         recoveryCode: formatAccessSecret("X1R", parsed.idPart, newRecoverySecret)
       });
@@ -43173,7 +43363,7 @@ async function handle(request, event) {
       const recoveryHashed = await hashSecretNew(recoverySecret);
       await awFetch("/databases/" + AW_DB + "/collections/account_recovery/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: uid, data: { method: "passkey", keyHash: "", keySalt: "", recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
+        body: { documentId: uid, data: { method: "passkey", authUserId: uid, keyHash: "", keySalt: "", recoveryHash: recoveryHashed.hash, recoverySalt: recoveryHashed.salt } }
       });
       await SITE_KV.delete("passkey_reg_anon:" + registrationToken).catch(function () {});
 
