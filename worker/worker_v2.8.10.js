@@ -2324,21 +2324,36 @@ html.xultra-restoring #stage{visibility:hidden}
 .discover-tabs button.on{background:#7c3aed;color:#fff}
 .discover-body{flex:1;min-height:0;overflow-y:auto;padding:0 14px 14px}
 /* ===== XBin (partage de texte façon pastebin) ===== */
-.xbin-head{flex-wrap:wrap;background:linear-gradient(90deg,rgba(124,58,237,.14),rgba(236,72,153,.08));position:relative}
-.xbin-head h2{background:linear-gradient(135deg,#e9d5ff,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
-.xbin-tabs{display:flex;gap:6px}
-.xbin-tab{padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.8rem;font-weight:700;color:var(--muted);transition:all .18s ease}
+/* Remonté explicitement ("interface très moche") — deux bugs CSS concrets
+   en étaient la cause principale, pas juste un manque de style :
+   1) .xbin-new-btn héritait de .btn-main{width:100%;height:44px}, jamais
+      neutralisé ici — dans l'en-tête flex, width:100% devient sa base flex
+      (flex-basis:auto + width agit comme base), donc CE bouton à lui seul
+      réclamait toute la largeur de la ligne et forçait tout le reste
+      (retour/titre/onglets) à passer à la ligne du dessus, laissant une
+      immense barre dégradée pleine largeur au lieu d'un petit bouton.
+   2) .xbin-grid utilisait grid-template-columns:repeat(auto-fill,...) —
+      avec moins de pastes qu'il n'y a de colonnes possibles (le cas de tout
+      nouvel utilisateur, voir la capture), auto-fill réserve quand même
+      TOUTES les pistes de colonnes vides, laissant l'unique carte réelle
+      minuscule au milieu d'un vide énorme à droite. auto-fit fait
+      s'effondrer les pistes vides et laisse les cartes existantes absorber
+      l'espace restant. */
+.xbin-head{flex-wrap:wrap;gap:8px 10px;background:linear-gradient(90deg,rgba(124,58,237,.14),rgba(236,72,153,.08));position:relative}
+.xbin-head h2{flex:none;background:linear-gradient(135deg,#e9d5ff,#a78bfa,#ec4899);-webkit-background-clip:text;background-clip:text;color:transparent}
+.xbin-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.xbin-tab{padding:7px 13px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.78rem;font-weight:700;color:var(--muted);transition:all .18s ease}
 .xbin-tab:hover{background:rgba(255,255,255,.12);color:#fff}
 .xbin-tab.on{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.4)}
-.xbin-new-btn{background:linear-gradient(135deg,#7c3aed,#ec4899);box-shadow:0 4px 14px rgba(124,58,237,.35);transition:transform .15s ease,box-shadow .15s ease}
+.xbin-new-btn{width:auto;height:auto;margin:0 0 0 auto;padding:8px 16px;font-size:.82rem;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#ec4899);box-shadow:0 4px 14px rgba(124,58,237,.35);transition:transform .15s ease,box-shadow .15s ease}
 .xbin-new-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.5)}
 .xbin-body{max-width:1080px;margin:0 auto;width:100%}
-.xbin-search-row{padding:14px 0}
-.xbin-search-row .field-input{width:100%}
-.xbin-filter-row{display:flex;gap:10px;padding-bottom:14px;flex-wrap:wrap}
-.xbin-filter-row .field-input{flex:1;min-width:160px}
+.xbin-toolbar{display:flex;gap:10px;padding:14px 0;flex-wrap:wrap}
+.xbin-toolbar .field-input{margin-bottom:0}
+.xbin-toolbar-search{flex:2;min-width:220px}
+.xbin-toolbar-select{flex:1;min-width:150px}
 .xbin-loading{display:flex;justify-content:center;padding:60px 0}
-.xbin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding-bottom:20px}
+.xbin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding-bottom:20px}
 .xbin-card{background:linear-gradient(165deg,rgba(124,58,237,.1),rgba(20,12,32,.6));border:1px solid rgba(167,139,250,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
 @keyframes xbinCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .xbin-card:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5);box-shadow:0 12px 30px rgba(124,58,237,.25)}
@@ -19238,6 +19253,15 @@ const XBIN_EXPIRY_OPTS=[
   {id:'1d',label:'1 jour',ms:24*60*60*1000},{id:'1w',label:'1 semaine',ms:7*24*60*60*1000},{id:'1mo',label:'1 mois',ms:30*24*60*60*1000}
 ];
 const XBIN_LANG_EXT={javascript:'js',typescript:'ts',python:'py',java:'java',c:'c',cpp:'cpp',csharp:'cs',php:'php',ruby:'rb',go:'go',rust:'rs',kotlin:'kt',swift:'swift',lua:'lua',perl:'pl',sql:'sql',xml:'html',css:'css',json:'json',yaml:'yml',markdown:'md',bash:'sh',powershell:'ps1',dos:'bat',dockerfile:'txt',ini:'ini',x86asm:'asm',diff:'diff'};
+// Couleurs d'accent par langage (façon GitHub linguist) pour que les puces de langue
+// dans le feed XBin soient identifiables d'un coup d'œil plutôt que toutes violettes.
+const XBIN_LANG_COLORS={javascript:'#f1e05a',typescript:'#3178c6',python:'#3572a5',java:'#b07219',c:'#555555',cpp:'#f34b7d',csharp:'#178600',php:'#4f5d95',ruby:'#701516',go:'#00add8',rust:'#dea584',kotlin:'#a97bff',swift:'#f05138',lua:'#000080',perl:'#0298c3',sql:'#e38c00',xml:'#e34c26',css:'#563d7c',json:'#292929',yaml:'#cb171e',markdown:'#083fa1',bash:'#89e051',powershell:'#012456',dos:'#c1f12e',dockerfile:'#384d54',ini:'#9c8f8f',x86asm:'#6e4c13',diff:'#41436a',plaintext:'#8a8a8a'};
+function xbinLangColor(lang){return XBIN_LANG_COLORS[lang]||'#a855f7';}
+function xbinLangChipStyle(lang){
+  const hex=xbinLangColor(lang);
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return 'background:rgba('+r+','+g+','+b+',.16);border-color:rgba('+r+','+g+','+b+',.4);color:'+hex;
+}
 function xbinDownloadFilename(d){
   const ext=XBIN_LANG_EXT[d.language]||'txt';
   const base=(d.title||'paste').trim().toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').replace(/[^a-z0-9\\-_]+/g,'-').replace(/^-+|-+\$/g,'').slice(0,60)||'paste';
@@ -19348,13 +19372,13 @@ function renderXBinShell(){
     +'<button type="button" class="btn-main xbin-new-btn" id="xbin-new-btn">+ Nouveau</button>'
   +'</div>'
   +'<div class="discover-body xbin-body" id="xbin-body">'
-    +'<div class="xbin-search-row"><input type="text" id="xbin-search" class="field-input" placeholder="🔎 Titre, auteur ou contenu…" value="'+esc(xbinSearchQuery)+'"/></div>'
-    +'<div class="xbin-filter-row">'
-      +'<select id="xbin-filter-lang" class="field-input">'
+    +'<div class="xbin-toolbar">'
+      +'<input type="text" id="xbin-search" class="field-input xbin-toolbar-search" placeholder="🔎 Titre, auteur ou contenu…" value="'+esc(xbinSearchQuery)+'"/>'
+      +'<select id="xbin-filter-lang" class="field-input xbin-toolbar-select">'
         +'<option value="">🗂️ Tous les langages</option>'
         +XBIN_LANGS.map(function(l){return '<option value="'+l.id+'"'+(xbinFilterLang===l.id?' selected':'')+'>'+esc(l.label)+'</option>';}).join('')
       +'</select>'
-      +'<select id="xbin-sort-select" class="field-input">'
+      +'<select id="xbin-sort-select" class="field-input xbin-toolbar-select">'
         +'<option value="recent"'+(xbinSortMode==='recent'?' selected':'')+'>🕒 Plus récents</option>'
         +'<option value="views"'+(xbinSortMode==='views'?' selected':'')+'>👁️ Plus vus</option>'
       +'</select>'
@@ -19439,7 +19463,11 @@ function renderXBinList(docs){
           const res=window.hljs.highlightAuto(el.textContent);
           if(res&&res.language){
             el.innerHTML=res.value;
-            if(chip){const label=xbinLangLabel(res.language);chip.textContent='🪄 '+(label&&label!==res.language?label:res.language);}
+            if(chip){
+              const label=xbinLangLabel(res.language);
+              chip.textContent='🪄 '+(label&&label!==res.language?label:res.language);
+              chip.setAttribute('style',xbinLangChipStyle(res.language));
+            }
           }
         }catch(e){}
       }else{
@@ -19455,7 +19483,7 @@ function xbinCardHtml(d){
   const skipHl=d.language==='plaintext';
   return '<div class="xbin-card" data-xbin-open="'+d.\$id+'" data-xbin-lang="'+esc(d.language||'')+'">'
     +'<div class="xbin-card-top">'
-      +'<span class="xbin-lang-chip">'+esc(xbinLangLabel(d.language))+'</span>'
+      +'<span class="xbin-lang-chip" style="'+xbinLangChipStyle(d.language)+'">'+esc(xbinLangLabel(d.language))+'</span>'
       +(isPrivate?'<span class="xbin-vis-chip xbin-vis-private">🔒 Privé</span>':(isUnlisted?'<span class="xbin-vis-chip xbin-vis-unlisted">🔗 Non listé</span>':''))
     +'</div>'
     +'<h3 class="xbin-card-title">'+esc(d.title||'Sans titre')+'</h3>'
@@ -19856,7 +19884,7 @@ async function loadAndRenderXBinTab(uid,container){
   container.classList.remove('hidden');
   container.innerHTML='<div class="pm-section-label">📋 XBin</div>'+docs.map(function(d){
     return '<button type="button" class="xbin-profile-item" data-xbin-open="'+d.\$id+'">'
-      +'<span class="xbin-lang-chip">'+esc(xbinLangLabel(d.language))+'</span>'
+      +'<span class="xbin-lang-chip" style="'+xbinLangChipStyle(d.language)+'">'+esc(xbinLangLabel(d.language))+'</span>'
       +'<span class="xbin-profile-title">'+esc(d.title||'Sans titre')+'</span>'
       +'<span class="xbin-profile-views">👁️ '+(d.views||0)+'</span>'
     +'</button>';
