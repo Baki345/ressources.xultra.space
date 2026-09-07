@@ -4184,15 +4184,32 @@ a.bug-att-item{display:block}
    lieu de disparaître dès qu'on ouvre un salon texte — seul le panneau de
    droite change pour afficher sa conversation. Les salons vocaux/scène/forum
    gardent leur ancien comportement plein écran (hors de portée de cette
-   demande, qui ne parlait que du chat des salons TEXTUELS). */
-.srv-overview-split{display:flex;gap:14px;align-items:flex-start}
-.srv-overview-chanlist{flex:0 0 230px;max-width:230px;max-height:min(65vh,560px);overflow-y:auto;padding-right:2px}
-.srv-overview-chat{flex:1;min-width:0;display:flex;flex-direction:column}
-.srv-overview-chat-empty{display:flex;align-items:center;justify-content:center;text-align:center;min-height:180px;color:var(--muted);font-size:.86rem;padding:20px;border:1px dashed rgba(167,139,250,.25);border-radius:14px}
+   demande, qui ne parlait que du chat des salons TEXTUELS).
+   Bug remonté juste après : il fallait faire défiler TOUT le panneau
+   (#srv-detail-body) pour atteindre le champ de saisie, celui-ci arrivant
+   simplement APRÈS la liste de messages dans le flux normal au lieu d'être
+   fixé en bas comme en DM. Cause racine : #srv-detail-body (.admin-body)
+   n'est qu'un bloc qui défile tout entier, jamais une colonne flex avec une
+   zone de messages qui grandit/défile seule et un composer épinglé — le
+   correctif reprend donc exactement le schéma déjà utilisé pour les DM
+   (.chat-active > .msgs{flex:1} + .composer{flex-shrink:0}), via l'enrobage
+   .srv-chan-body (voir renderChanTextChat/renderThreadContent) plutôt que de
+   toucher .admin-body lui-même (partagé par les onglets Membres/Rôles/
+   Paramètres, qui eux doivent garder leur simple défilement en bloc). */
+.srv-ov-body{display:flex;flex-direction:column;height:100%;min-height:0}
+.srv-overview-split{display:flex;gap:14px;align-items:stretch;flex:1;min-height:0;margin-top:10px}
+.srv-overview-chanlist{flex:0 0 230px;max-width:230px;height:100%;overflow-y:auto;padding:8px;border-radius:14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)}
+.srv-overview-chat{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;border-radius:14px;background:rgba(255,255,255,.015);border:1px solid rgba(255,255,255,.06);padding:14px}
+.srv-overview-chat-empty{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:.86rem;padding:20px}
 @media (max-width:760px){
   .srv-overview-split{flex-direction:column}
-  .srv-overview-chanlist{flex:none;max-width:none;width:100%;max-height:220px}
+  .srv-overview-chanlist{flex:none;max-width:none;width:100%;height:auto;max-height:220px}
 }
+.srv-chan-body{display:flex;flex-direction:column;height:100%;min-height:0}
+.srv-chan-body .srv-chan-topbar,.srv-chan-body .srv-chan-title{flex-shrink:0}
+.srv-chan-body .srv-chan-msgs-wrap{flex:1;min-height:0;display:flex;flex-direction:column}
+.srv-chan-body .srv-chan-msgs{flex:1;min-height:0;max-height:none}
+.srv-chan-body .reply-preview{flex-shrink:0}
 .srv-chan-icon{color:var(--muted);font-weight:800;width:16px;text-align:center;flex-shrink:0}
 .srv-chan-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .srv-chan-lock{font-size:.72rem;flex-shrink:0}
@@ -30165,7 +30182,7 @@ function renderServerChannelList(){
   const isOwner=me&&String(activeServer.ownerId)===String(me.\$id);
   const canInvite=serverHasPermission('manage_invites');
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
-  let html='';
+  let html='<div class="srv-ov-body">';
   if(canInvite){
     html+='<div class="srv-invite-row"><span class="srv-invite-code">'+esc(location.origin+'/'+activeServer.inviteCode)+'</span><button type="button" class="set-mini-btn" id="srv-copy-invite">Copier</button><button type="button" class="set-mini-btn" id="srv-share-invite" title="Partager en DM/serveur">📤</button><button type="button" class="set-mini-btn" id="srv-regen-invite" title="Régénérer">🔄</button></div>';
   }
@@ -30193,7 +30210,7 @@ function renderServerChannelList(){
   if(!activeServerChannels.length)html+='<div class="empty-hint">Aucun salon pour l\\'instant.'+(canManageChannels?' Crée-en un avec le bouton + Salon.':'')+'</div>';
   html+='<div class="scr-sub" style="margin-top:14px">'+activeServerMembers.length+' membre(s)</div>';
   if(!isOwner)html+='<button type="button" class="set-mini-btn danger" id="srv-leave-btn" style="margin-top:10px">Quitter le serveur</button>';
-  html+='</div><div class="srv-overview-chat" id="srv-ov-chat"></div></div>';
+  html+='</div><div class="srv-overview-chat" id="srv-ov-chat"></div></div></div>';
   box.innerHTML=html;
   const copyBtn=\$('srv-copy-invite');
   if(copyBtn)copyBtn.onclick=function(){
@@ -30432,7 +30449,7 @@ function renderServerChannelContent(){
 // broncher, donc l'appeler dans les deux cas ne casse rien.
 function renderChanTextChat(container,showBackBtn){
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
-  let html='<div class="srv-chan-topbar">'
+  let html='<div class="srv-chan-body"><div class="srv-chan-topbar">'
     +(showBackBtn?'<button type="button" class="set-mini-btn" id="srv-chan-back">← Salons</button>':'')
     +'<button type="button" class="set-mini-btn" id="srv-chan-threads">🧵 Fils</button>'
     +'<button type="button" class="set-mini-btn" id="srv-chan-search">🔍</button>'
@@ -30447,7 +30464,8 @@ function renderChanTextChat(container,showBackBtn){
   html+='<div class="srv-chan-msgs-wrap"><div class="srv-chan-msgs" id="srv-chan-msgs"></div><button type="button" class="srv-chan-jump-btn hidden" id="srv-chan-jump-btn"></button></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
-    +srvChanComposerHtml(composerPlaceholder,lockedForMe,true);
+    +srvChanComposerHtml(composerPlaceholder,lockedForMe,true)
+    +'</div>';
   container.innerHTML=html;
   wireServerChannelBack();
   wireChanJumpButton();
@@ -31178,7 +31196,7 @@ function renderThreadContent(box){
   const t=activeThread;
   const canManageChannels=serverHasPermission('manage_channels')||serverHasPermission('manage_server');
   const isCreator=me&&String(t.creatorUid)===String(me.\$id);
-  let html='<div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-thread-back">← #'+esc(activeChannel.name)+'</button>'
+  let html='<div class="srv-chan-body"><div class="srv-chan-topbar"><button type="button" class="set-mini-btn" id="srv-thread-back">← #'+esc(activeChannel.name)+'</button>'
     +((canManageChannels||isCreator)?'<button type="button" class="set-mini-btn'+(t.archived?'':' danger')+'" id="srv-thread-archive">'+(t.archived?'Rouvrir':'Archiver'):'')
     +((canManageChannels||isCreator)?'</button>':'')+'</div>';
   html+='<div class="srv-chan-title">'+(t.private?'🔒 ':activeChannel.type==='forum'?'📝 ':'🧵 ')+esc(t.name)+(t.archived?' · Archivé':'')+'</div>';
@@ -31186,7 +31204,8 @@ function renderThreadContent(box){
   html+='<div class="srv-chan-msgs-wrap"><div class="srv-chan-msgs" id="srv-chan-msgs"></div><button type="button" class="srv-chan-jump-btn hidden" id="srv-chan-jump-btn"></button></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
-    +srvChanComposerHtml(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…',archivedForMe,false);
+    +srvChanComposerHtml(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…',archivedForMe,false)
+    +'</div>';
   box.innerHTML=html;
   wireChanJumpButton();
   \$('srv-thread-back').onclick=function(){
