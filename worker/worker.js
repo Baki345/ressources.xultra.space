@@ -4194,6 +4194,10 @@ a.bug-att-item{display:block}
 .srv-chan-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .srv-chan-title{font-weight:800;font-size:1rem;margin-bottom:12px}
 .srv-chan-msgs{display:flex;flex-direction:column;gap:var(--msg-gap,10px);margin-bottom:0;max-height:min(60vh,520px);overflow-y:auto;padding:10px 4px}
+.srv-chan-msgs-wrap{position:relative}
+.srv-chan-jump-btn{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:999px;background:#7c3aed;color:#fff;border:none;font-size:.78rem;font-weight:700;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.35);z-index:2;animation:chanJumpBtnIn .2s ease both}
+.srv-chan-jump-btn:hover{background:#6d28d9}
+@keyframes chanJumpBtnIn{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .srv-chan-author{font-weight:800;font-size:.72rem;margin-right:4px}
 .srv-invite-code{flex:1;font-weight:800;letter-spacing:.06em;font-family:monospace;font-size:.9rem}
 .srv-voice-card{background:rgba(124,58,237,.08);border:1px solid rgba(167,139,250,.25);border-radius:14px;padding:16px;text-align:center;margin-bottom:14px}
@@ -30363,12 +30367,13 @@ function renderServerChannelContent(){
   const canBypassLock=canManageChannels||serverHasPermission('administrator');
   const lockedForMe=activeChannel.locked&&!canBypassLock;
   const composerPlaceholder=lockedForMe?'🔒 Ce salon est verrouillé':(Number(activeChannel.slowmodeSeconds)>0?'🐢 Mode lent actif — Écrire dans #'+esc(activeChannel.name):'Écrire dans #'+esc(activeChannel.name));
-  html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
+  html+='<div class="srv-chan-msgs-wrap"><div class="srv-chan-msgs" id="srv-chan-msgs"></div><button type="button" class="srv-chan-jump-btn hidden" id="srv-chan-jump-btn"></button></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
     +srvChanComposerHtml(composerPlaceholder,lockedForMe,true);
   box.innerHTML=html;
   wireServerChannelBack();
+  wireChanJumpButton();
   loadChannelMessages();
   const sendBtn=\$('srv-chan-send');
   if(sendBtn)sendBtn.onclick=sendServerChannelMessage;
@@ -30734,8 +30739,41 @@ function wireChannelMsgContainer(container){
     });
   });
 }
+// Bug jamais remonté mais visible dès qu'on relit un ancien message pendant
+// que le salon reçoit du nouveau trafic : appendChannelMessagesIncremental
+// n'ajoutait déjà les messages qu'EN BAS quand on était loin du bas (pour ne
+// pas arracher la lecture en cours), mais sans jamais prévenir qu'il y avait
+// du nouveau à lire — rien ne changeait visuellement tant qu'on ne
+// redescendait pas par hasard. chanUnseenCount + le bouton flottant
+// #srv-chan-jump-btn comblent ce trou, façon Discord/Slack.
+let chanUnseenCount=0;
+function wireChanJumpButton(){
+  chanUnseenCount=0;
+  const box=\$('srv-chan-msgs'),btn=\$('srv-chan-jump-btn');
+  if(!box||!btn)return;
+  btn.classList.add('hidden');
+  btn.onclick=function(){
+    box.scrollTop=box.scrollHeight;
+    chanUnseenCount=0;
+    btn.classList.add('hidden');
+  };
+  box.addEventListener('scroll',function(){
+    if(chanUnseenCount&&box.scrollHeight-box.scrollTop-box.clientHeight<80){
+      chanUnseenCount=0;
+      btn.classList.add('hidden');
+    }
+  });
+}
+function showChanJumpButton(addedCount){
+  chanUnseenCount+=addedCount;
+  const btn=\$('srv-chan-jump-btn');if(!btn)return;
+  btn.textContent='↓ '+chanUnseenCount+' nouveau'+(chanUnseenCount>1?'x':'')+' message'+(chanUnseenCount>1?'s':'');
+  btn.classList.remove('hidden');
+}
 function renderChannelMessages(stagger){
   const box=\$('srv-chan-msgs');if(!box)return;
+  chanUnseenCount=0;
+  const jumpBtn=\$('srv-chan-jump-btn');if(jumpBtn)jumpBtn.classList.add('hidden');
   if(!activeChannelMessages.length){box.innerHTML='<div class="empty-hint" style="text-align:center">Aucun message. Sois le premier à écrire !</div>';return}
   const chanMsgCount=activeChannelMessages.length;
   box.innerHTML=activeChannelMessages.map(function(m,mi){
@@ -30755,7 +30793,12 @@ function renderChannelMessages(stagger){
 function appendChannelMessagesIncremental(fresh){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length||box.querySelector('.empty-hint')){renderChannelMessages();return}
-  const wasNearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  // Un message qu'on vient soi-même d'envoyer doit TOUJOURS faire descendre
+  // le fil, même si on relisait de vieux messages plus haut au moment de
+  // l'envoi (sinon on enverrait un message sans jamais le voir apparaître
+  // sans agir soi-même) — comportement déjà celui des DM.
+  const hasOwnMsg=fresh.some(function(m){return me&&String(m.uid)===String(me.\$id);});
+  const wasNearBottom=hasOwnMsg||box.scrollHeight-box.scrollTop-box.clientHeight<80;
   const baseIdx=activeChannelMessages.length-fresh.length;
   const temp=document.createElement('div');
   temp.innerHTML=fresh.map(function(m,i){return msgDateDividerHtml(activeChannelMessages[baseIdx+i-1],m)+buildChannelMsgHtml(m,'','');}).join('');
@@ -30763,6 +30806,7 @@ function appendChannelMessagesIncremental(fresh){
   wireChannelMsgContainer(temp);
   nodes.forEach(function(n){box.appendChild(n);});
   if(wasNearBottom){box.scrollTop=box.scrollHeight;pinScrollBottomAfterImages(box);}
+  else{showChanJumpButton(fresh.length);}
 }
 // Met à jour UN SEUL message de salon déjà affiché (réaction, épinglage,
 // vote de sondage, édition…) sans reconstruire ni retoucher les autres —
@@ -31057,11 +31101,12 @@ function renderThreadContent(box){
     +((canManageChannels||isCreator)?'</button>':'')+'</div>';
   html+='<div class="srv-chan-title">'+(t.private?'🔒 ':activeChannel.type==='forum'?'📝 ':'🧵 ')+esc(t.name)+(t.archived?' · Archivé':'')+'</div>';
   const archivedForMe=t.archived;
-  html+='<div class="srv-chan-msgs" id="srv-chan-msgs"></div>'
+  html+='<div class="srv-chan-msgs-wrap"><div class="srv-chan-msgs" id="srv-chan-msgs"></div><button type="button" class="srv-chan-jump-btn hidden" id="srv-chan-jump-btn"></button></div>'
     +'<div class="reply-preview" id="srv-reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="srv-reply-preview-close">✕</button></div>'
     +'<div class="reply-preview edit-preview" id="srv-edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="srv-edit-preview-close">✕</button></div>'
     +srvChanComposerHtml(archivedForMe?'🔒 Ce fil est archivé':'Écrire dans le fil…',archivedForMe,false);
   box.innerHTML=html;
+  wireChanJumpButton();
   \$('srv-thread-back').onclick=function(){
     if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
     clearReplyTarget('channel');
