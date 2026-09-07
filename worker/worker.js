@@ -4171,7 +4171,7 @@ a.bug-att-item{display:block}
    champ, elle ne fait que réduire un peu la part restante à la liste de
    messages, qui absorbe ça via son propre scroll. clamp() plutôt qu'une
    valeur fixe pour ne pas dévorer tout l'écran sur mobile. */
-.srv-detail-banner{height:clamp(110px,16vh,200px);background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center;flex-shrink:0}
+.srv-detail-banner{height:clamp(160px,26vh,320px);background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);background-size:cover;background-position:center;flex-shrink:0}
 .srv-detail-icon{width:76px;height:76px;border-radius:20px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);display:grid;place-items:center;font-weight:900;font-size:1.7rem;color:#fff;overflow:hidden;flex-shrink:0}
 .srv-detail-icon img{width:100%;height:100%;object-fit:cover}
 .srv-detail-icon-sm{width:32px;height:32px;border-radius:9px;font-size:.85rem}
