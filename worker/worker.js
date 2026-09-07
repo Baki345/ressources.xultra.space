@@ -3230,6 +3230,15 @@ body.theme-oled .pe-frame-inner{background:#050505}
 .reaction-pill:hover{background:var(--hover)}
 .reaction-pill.mine{background:rgba(139,92,246,.28);border-color:#8b5cf6}
 .reaction-pill span{font-size:.66rem;color:var(--muted);font-weight:700}
+.msg-date-sep{display:flex;align-items:center;gap:10px;margin:14px 4px 10px;user-select:none}
+.msg-date-sep::before,.msg-date-sep::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+.msg-date-sep span{font-size:.68rem;font-weight:700;color:var(--muted);padding:3px 10px;border-radius:999px;background:var(--elev);border:1px solid rgba(255,255,255,.06);white-space:nowrap}
+.msg-quickreact-bar{display:none;position:absolute;top:-14px;gap:2px;padding:3px 5px;border-radius:999px;background:#1a1030;border:1px solid rgba(167,139,250,.35);box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:2}
+.msg-quickreact-bar button{background:none;border:none;font-size:.95rem;line-height:1;padding:2px 4px;cursor:pointer;border-radius:6px;transition:transform .1s ease,background .1s ease}
+.msg-quickreact-bar button:hover{background:rgba(255,255,255,.1);transform:scale(1.2)}
+.msg:not(.mine) .bub .msg-quickreact-bar{left:6px}
+.msg.mine .bub .msg-quickreact-bar{right:6px}
+@media (hover:hover){.msg:hover .msg-quickreact-bar{display:flex}}
 .poll-card{min-width:220px;max-width:100%}
 .poll-question{font-weight:800;margin-bottom:8px}
 .poll-opt-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer}
@@ -13130,6 +13139,28 @@ function fmtClockTime(dateStr){
   if(!dateStr)return '';
   try{return new Date(dateStr).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
 }
+// Séparateur de date entre deux messages (façon Discord/WhatsApp) — jamais
+// affiché nulle part avant : sans lui, une conversation ouverte le matin
+// mélange visuellement les messages d'hier et d'aujourd'hui sans repère.
+function fmtDaySeparatorLabel(d){
+  const now=new Date();
+  const startOfDay=function(x){return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();};
+  const diffDays=Math.round((startOfDay(now)-startOfDay(d))/86400000);
+  if(diffDays===0)return 'Aujourd\\'hui';
+  if(diffDays===1)return 'Hier';
+  const opts={day:'numeric',month:'long'};
+  if(d.getFullYear()!==now.getFullYear())opts.year='numeric';
+  return d.toLocaleDateString('fr-FR',opts);
+}
+function msgDateDividerHtml(prevMsg,curMsg){
+  if(!curMsg||!curMsg.\$createdAt)return '';
+  const curDate=new Date(curMsg.\$createdAt);
+  if(prevMsg&&prevMsg.\$createdAt){
+    const prevDate=new Date(prevMsg.\$createdAt);
+    if(prevDate.toDateString()===curDate.toDateString())return '';
+  }
+  return '<div class="msg-date-sep"><span>'+esc(fmtDaySeparatorLabel(curDate))+'</span></div>';
+}
 function fmtRelTime(dateStr){
   if(!dateStr)return '';
   const diff=Math.max(0,(Date.now()-new Date(dateStr).getTime())/1000);
@@ -15164,6 +15195,7 @@ async function loadOlderMessages(){
       return true;
     });
     if(!batch.length)return;
+    const oldFirstMsg=msgsCache[0];
     msgsCache=batch.concat(msgsCache);
     const temp=document.createElement('div');
     temp.innerHTML=buildMsgsHtml(batch,null);
@@ -15171,7 +15203,13 @@ async function loadOlderMessages(){
     wireMsgContainer(temp);
     const oldScrollHeight=box.scrollHeight,oldScrollTop=box.scrollTop;
     const anchor=box.firstChild;
+    // anchor est le séparateur de date déjà affiché devant l'ex-premier
+    // message — s'il tombe le même jour que le dernier message qu'on vient
+    // de charger au-dessus, le garder afficherait deux séparateurs "Hier"
+    // collés l'un à l'autre.
+    const dupDivider=(anchor&&anchor.classList&&anchor.classList.contains('msg-date-sep')&&oldFirstMsg&&oldFirstMsg.\$createdAt&&new Date(batch[batch.length-1].\$createdAt).toDateString()===new Date(oldFirstMsg.\$createdAt).toDateString())?anchor:null;
     nodes.forEach(function(n){box.insertBefore(n,anchor);});
+    if(dupDivider&&dupDivider.parentNode)dupDivider.parentNode.removeChild(dupDivider);
     box.scrollTop=oldScrollTop+(box.scrollHeight-oldScrollHeight);
     hydrateEncryptedMessages();
   }catch(e){xlog('load_older_msgs_fail',{msg:(e&&e.message)||String(e)});}
@@ -15200,8 +15238,9 @@ function appendMessagesToDomIncremental(fresh){
   const box=\$('msgs');if(!box)return;
   if(!msgsCache.length||box.querySelector('.empty-hint')){renderMessages(true,true);return}
   const seenInfo=computeSeenInfo();
+  const precedingMsg=msgsCache[msgsCache.length-fresh.length-1];
   const temp=document.createElement('div');
-  temp.innerHTML=buildMsgsHtml(fresh,seenInfo,false);
+  temp.innerHTML=buildMsgsHtml(fresh,seenInfo,false,precedingMsg);
   const nodes=Array.prototype.slice.call(temp.children);
   wireMsgContainer(temp);
   nodes.forEach(function(n){box.appendChild(n);});
@@ -16028,6 +16067,17 @@ function openEmojiPicker(anchorBtn,onPick,customEmojis,stickers,onStickerPick){
     });
   },0);
 }
+const MSG_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
+// Barre de réactions rapides au survol (façon Discord) — réutilise
+// volontairement le MÊME attribut data-*-react-toggle que les pastilles de
+// réaction déjà affichées sous un message, pour profiter du câblage de clic
+// déjà en place (wireMsgContainer/wireChannelMsgContainer) sans en dupliquer
+// un second.
+function msgQuickReactBarHtml(onToggleAttr){
+  return '<div class="msg-quickreact-bar">'+MSG_QUICK_REACTIONS.map(function(r){
+    return '<button type="button" '+onToggleAttr+'="'+esc(r)+'" title="Réagir">'+r+'</button>';
+  }).join('')+'</div>';
+}
 function msgReactionsHtml(reactionsJson,onToggleAttr){
   let reactions={};try{reactions=JSON.parse(reactionsJson||'{}');}catch(e){reactions={};}
   const keys=Object.keys(reactions).filter(function(k){return Array.isArray(reactions[k])&&reactions[k].length;});
@@ -16201,8 +16251,12 @@ function rebuildSingleDmMessageDom(m){
   if(!el)return;
   const seenInfo=computeSeenInfo();
   const temp=document.createElement('div');
-  temp.innerHTML=buildMsgsHtml([m],seenInfo,false);
-  const newEl=temp.firstElementChild;
+  // precedingMsg=m (même date que curMsg) : ce rechargement ne remplace QUE
+  // la bulle déjà en place dans le fil, jamais le séparateur de date qui la
+  // précède éventuellement — lui passer m garantit qu'aucun séparateur n'est
+  // (re)généré ici, quelle que soit la position réelle du message.
+  temp.innerHTML=buildMsgsHtml([m],seenInfo,false,m);
+  const newEl=temp.querySelector('.msg[data-mid]');
   if(!newEl)return;
   wireMsgContainer(temp);
   el.replaceWith(newEl);
@@ -16274,14 +16328,15 @@ function callHistoryHtml(m){
 // remontant — l'empilement demandé explicitement. Délai plafonné aux ~20
 // derniers messages pour qu'un historique chargé (jusqu'à 60) reste rapide
 // à s'afficher en entier, jamais une cascade qui traîne en longueur.
-function buildMsgsHtml(list,seenInfo,stagger){
+function buildMsgsHtml(list,seenInfo,stagger,precedingMsg){
   const n=list.length;
   return list.map(function(m,i){
     const distFromEnd=Math.min(n-1-i,20);
     const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
     const stackClass=stagger?' stack-in':'';
-    if(m.type==='sysshot')return '<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
-    if(m.type==='syscall')return callHistoryHtml(m);
+    const dateSepHtml=msgDateDividerHtml(i===0?precedingMsg:list[i-1],m);
+    if(m.type==='sysshot')return dateSepHtml+'<div class="msg-system-notice'+stackClass+'"'+stackStyle+'>📸 '+esc(m.text||((m.displayName||'Quelqu\\'un')+' a pris une capture d\\'écran'))+'</div>';
+    if(m.type==='syscall')return dateSepHtml+callHistoryHtml(m);
     const mine=m.uid===(me&&me.\$id);
     const isBot=!!m.isBot;
     const name=m.displayName||'User';
@@ -16294,8 +16349,8 @@ function buildMsgsHtml(list,seenInfo,stagger){
     const reactionsHtml=msgReactionsHtml(m.reactionsJson,'data-react-toggle');
     const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
     const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
-    return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
+    return dateSepHtml+'<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isBot?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
+      +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+msgQuickReactBarHtml('data-react-toggle')+'<button type="button" class="msg-menu-btn" data-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml+'<div class="meta">'+esc(mine?'':name)+(mine?'':userTagBadgeForUid(m.uid))+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+(mine?'':' · ')+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.enc?' 🔒':'')+(m.pinned?' 📌':'')+'</div>'+seenTag+'</div></div>';
   }).join('');
 }
 // Idée reçue dans la Boîte à idées : ouvrir les images/gifs dans un widget
@@ -30611,7 +30666,7 @@ function buildChannelMsgHtml(m,stackClass,stackStyle){
   const componentsHtml=isBot?renderBotComponentsHtml(m.componentsJson,m.\$id):'';
   const embedHtml=isBot?renderBotEmbedHtml(m.embedJson):'';
   return '<div class="msg'+(mine?' mine':'')+stackClass+'" data-mid="'+esc(m.\$id||'')+'"'+stackStyle+'><div class="av"'+(isSynthetic?'':(' data-profile="'+esc(m.uid||'')+'"'))+'>'+avInner+'</div>'
-    +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
+    +'<div>'+replyHtml+'<div class="bub">'+body+embedHtml+componentsHtml+msgQuickReactBarHtml('data-chan-react-toggle')+'<button type="button" class="msg-menu-btn" data-chan-menu="'+esc(m.\$id||'')+'" title="Actions">⋯</button></div>'+reactionsHtml
     +'<div class="meta"><span class="srv-chan-author"'+(authorColor?' style="color:'+esc(authorColor)+'"':'')+'>'+esc(name)+'</span>'+(isSynthetic?'':userTagBadgeForUid(m.uid))+(isWebhook?' <span class="srv-webhook-tag">WEBHOOK</span>':'')+(isCrosspost?' <span class="srv-webhook-tag">📢 SUIVI</span>':'')+(isBot?' <span class="srv-webhook-tag" style="background:rgba(56,189,248,.18);color:#7dd3fc;border-color:rgba(56,189,248,.4)">🤖 BOT</span>':'')+' · '+esc(fmtClockTime(m.\$createdAt))+(m.edited?' <span class="msg-edited-tag">(modifié)</span>':'')+(m.pinned?' 📌':'')+'</div>'+threadHtml+'</div></div>';
 }
 // Câblage des interactions d'un lot de messages de salon déjà dans le DOM —
@@ -30682,7 +30737,7 @@ function renderChannelMessages(stagger){
     const distFromEnd=Math.min(chanMsgCount-1-mi,20);
     const stackStyle=stagger?(' style="animation-delay:'+(distFromEnd*22)+'ms"'):'';
     const stackClass=stagger?' stack-in':'';
-    return buildChannelMsgHtml(m,stackClass,stackStyle);
+    return msgDateDividerHtml(activeChannelMessages[mi-1],m)+buildChannelMsgHtml(m,stackClass,stackStyle);
   }).join('');
   box.scrollTop=box.scrollHeight;
   wireChannelMsgContainer(box);
@@ -30696,8 +30751,9 @@ function appendChannelMessagesIncremental(fresh){
   const box=\$('srv-chan-msgs');if(!box)return;
   if(!activeChannelMessages.length||box.querySelector('.empty-hint')){renderChannelMessages();return}
   const wasNearBottom=box.scrollHeight-box.scrollTop-box.clientHeight<80;
+  const baseIdx=activeChannelMessages.length-fresh.length;
   const temp=document.createElement('div');
-  temp.innerHTML=fresh.map(function(m){return buildChannelMsgHtml(m,'','');}).join('');
+  temp.innerHTML=fresh.map(function(m,i){return msgDateDividerHtml(activeChannelMessages[baseIdx+i-1],m)+buildChannelMsgHtml(m,'','');}).join('');
   const nodes=Array.prototype.slice.call(temp.children);
   wireChannelMsgContainer(temp);
   nodes.forEach(function(n){box.appendChild(n);});
