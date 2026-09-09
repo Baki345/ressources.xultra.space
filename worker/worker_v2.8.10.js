@@ -27345,6 +27345,25 @@ function renderAdminServers(list){
     \$('admin-active').classList.add('hidden');
     openServerDetail(serverId);
   }
+  // Rejoindre de force : contrairement à "🔧 Ouvrir" (qui donne déjà accès
+  // aux réglages/modération de N'IMPORTE QUEL serveur sans y adhérer, voir
+  // isServerOwnerOrShaman), ceci crée un vrai server_members pour Shaman —
+  // visible dans la liste des membres, capable de parler/participer comme
+  // n'importe qui. Owner-only côté serveur (requireShaman), sans code
+  // d'invitation ni blocage par un éventuel bannissement.
+  async function forceJoinFromAdmin(serverId,btn){
+    if(!serverId)return;
+    if(btn){btn.disabled=true;btn.textContent='…';}
+    try{
+      const r=await authPost('/api/admin/servers/force-join',{serverId:serverId});
+      showToast(r.alreadyMember?'Tu es déjà membre de ce serveur.':'Serveur rejoint de force ✅');
+      if(!r.alreadyMember)openServerFromAdmin(serverId);
+    }catch(e){
+      showToast('Impossible de rejoindre : '+((e&&e.message)||'erreur'),'error');
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='🔨 Rejoindre de force';}
+    }
+  }
   function renderList(){
     const q=(\$('admin-srv-search').value||'').trim().toLowerCase();
     const filtered=q?list.filter(function(s){return String(s.name||'').toLowerCase().indexOf(q)>=0;}):list;
@@ -27354,11 +27373,15 @@ function renderAdminServers(list){
       return '<div class="admin-row">'
         +'<div class="av">'+esc(ini(s.name||'?'))+'</div>'
         +'<div class="info"><div class="n">'+esc(s.name||'(sans nom)')+'</div><div class="p">'+esc((s.description||'').slice(0,80))+' — propriétaire '+esc(s.ownerId)+' — '+esc(fmtRelTime(s.\$createdAt))+'</div></div>'
-        +'<div class="acts"><button type="button" data-admin-srv-open="'+esc(s.\$id)+'" class="ok">🔧 Ouvrir</button></div>'
+        +'<div class="acts"><button type="button" data-admin-srv-open="'+esc(s.\$id)+'" class="ok">🔧 Ouvrir</button>'
+        +'<button type="button" data-admin-srv-force-join="'+esc(s.\$id)+'">🔨 Rejoindre de force</button></div>'
         +'</div>';
     }).join('');
     listBox.querySelectorAll('[data-admin-srv-open]').forEach(function(el){
       el.onclick=function(){openServerFromAdmin(el.getAttribute('data-admin-srv-open'));};
+    });
+    listBox.querySelectorAll('[data-admin-srv-force-join]').forEach(function(el){
+      el.onclick=function(){forceJoinFromAdmin(el.getAttribute('data-admin-srv-force-join'),el);};
     });
   }
   \$('admin-srv-search').addEventListener('input',renderList);
@@ -32195,7 +32218,8 @@ const AUDIT_ACTION_LABELS={
   channel_follow_add:{icon:'📢',label:'a abonné ce serveur au salon'},channel_follow_remove:{icon:'📢',label:'a désabonné ce serveur d\\'un salon suivi'},
   nickname_set:{icon:'🏷️',label:'a changé le pseudo de'},
   stage_speaker_add:{icon:'🎤',label:'a invité sur scène'},stage_speaker_remove:{icon:'🎤',label:'a retiré de la scène'},
-  stage_topic_set:{icon:'🎤',label:'a défini le sujet de la scène :'}
+  stage_topic_set:{icon:'🎤',label:'a défini le sujet de la scène :'},
+  admin_force_join:{icon:'🛡️',label:'(Shaman) a rejoint ce serveur depuis le panel admin'}
 };
 let auditLogEntries=[];
 function auditActionLabel(action){
@@ -40092,6 +40116,35 @@ async function handle(request, event) {
         body: { documentId: "unique()", data: { serverId: server.$id, uid: String(acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + acc.$id + "\")"] }
       });
       fireBotEvent(event, server.$id, "member_join", { user: { id: acc.$id, username: uname } });
+      return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Rejoindre de force n'importe quel serveur depuis le panel admin — sans
+  // code d'invitation, sans être bloqué par un éventuel bannissement.
+  // Strictement Shaman (voir requireShaman) : contourner l'invitation et un
+  // ban est un pouvoir bien plus sensible qu'isServerOwnerOrShaman (qui ne
+  // donne déjà accès aux réglages/modération d'un serveur sans y adhérer) —
+  // ici Shaman devient un membre réel, visible dans la liste des membres.
+  if (path === "/api/admin/servers/force-join" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      if (!serverId) throw new Error("serverId requis");
+      const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
+      const already = await getServerMembership(serverId, gate.acc.$id);
+      if (already) return new Response(JSON.stringify({ ok: true, server: server, alreadyMember: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const uname = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "Shaman";
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: server.$id, uid: String(gate.acc.$id), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + gate.acc.$id + "\")"] }
+      });
+      await logServerAudit(serverId, gate.acc.$id, uname, "admin_force_join", server.name, {});
+      fireBotEvent(event, serverId, "member_join", { user: { id: gate.acc.$id, username: uname } });
       return new Response(JSON.stringify({ ok: true, server: server }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
