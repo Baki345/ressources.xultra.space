@@ -40300,6 +40300,18 @@ async function handle(request, event) {
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
       for (const r of (roles.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + r.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      // Manquait jusqu'ici : les salons et catégories restaient orphelins en
+      // base (serverId pointant vers un serveur supprimé) indéfiniment — trouvé
+      // en auditant les permissions de lecture pour le temps réel (56 salons
+      // orphelins de serveurs de test déjà supprimés retrouvés en base).
+      const orphanChannels = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      for (const c of (orphanChannels.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + c.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      const orphanCategories = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      for (const c of (orphanCategories.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + c.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
       await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "DELETE", asAdmin: true });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
