@@ -7426,6 +7426,7 @@ async function enterApp(e2ePassword){
   try{subscribeDmMessagesWatcher();}catch(e){}
   try{subscribeFriendsWatcher();}catch(e){}
   try{subscribeNotifWatcher();}catch(e){}
+  try{subscribeUserMetaWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
@@ -12301,6 +12302,11 @@ if(\$('bi-close'))\$('bi-close').addEventListener('click',function(){\$('modal-b
 if(\$('modal-badge-info'))\$('modal-badge-info').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
 
 let membersCache=[], memberMetaByUid={}, presenceByUid={};
+// uid dont la carte de profil (modal-profile) est actuellement ouverte et
+// visible — utilisé par subscribeUserMetaWatcher pour savoir s'il faut la
+// re-rendre en direct (badge accordé, plan X1+, statut perso...) sans
+// jamais toucher à un modal fermé ou affichant quelqu'un d'autre.
+let activeProfileModalUid=null;
 async function loadMembers(){
   // users et user_meta sont deux collections indépendantes (aucune ne dépend
   // du résultat de l'autre) : les lancer en parallèle plutôt que l'une après
@@ -12888,6 +12894,29 @@ function subscribeNotifWatcher(){
         playNotifSound(p.type==='friend_request'?'mention':'message');
         speakText(p.text);
         if(!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
+      }
+    });
+  }catch(e){}
+}
+function subscribeUserMetaWatcher(){
+  /* Sans ça, un changement sur user_meta (badge accordé par un admin, plan
+     X1+, statut personnalisé, cadre d'avatar, pseudo épinglé...) ne se
+     reflétait qu'après un rechargement complet de la page — quelqu'un à qui
+     on venait d'accorder un badge ne le voyait jamais apparaître sur sa
+     propre carte de profil restée ouverte, ni la personne qui la regardait
+     au même moment. Pas de filtre sur .create/.update : le tout premier
+     badge d'un compte crée son document user_meta au lieu de le modifier. */
+  try{
+    client.subscribe('databases.'+DB+'.collections.user_meta.documents',function(res){
+      const doc=res.payload;if(!doc||!doc.\$id)return;
+      const uid=String(doc.\$id);
+      memberMetaByUid[uid]=doc;
+      if(me&&uid===String(me.\$id)){
+        try{refreshSelfBar();}catch(e){}
+      }
+      if(view==='members')renderMembers();
+      if(activeProfileModalUid===uid&&\$('modal-profile')&&!\$('modal-profile').classList.contains('hidden')){
+        openProfileModal(uid);
       }
     });
   }catch(e){}
@@ -14092,6 +14121,7 @@ async function openProfileModal(uid){
       mutualCount=mineIds.filter(function(id){return theirIds.indexOf(id)>=0}).length;
     }catch(e){mutualCount=null;}
   }
+  activeProfileModalUid=uid;
   const renderEl=\$('pm-render');
   if(renderEl){
     renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{mutualCount:mutualCount,showLastSeen:!isSelf,showHighlights:true});
@@ -29865,6 +29895,7 @@ const SERVER_PERM_DEFS=[
 const BOT_GRANTABLE_PERM_KEYS=['kick_members','ban_members','moderate_members','manage_roles'];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
+let serverStructureUnsub=null;
 let stageState=null,stageStateUnsub=null,stageViewChannelId=null;
 let activeServerEmojis=[],activeServerStickers=[];
 let activeThread=null,channelThreadsCache=[];
@@ -29934,6 +29965,7 @@ function closeServerDetail(){
   if(channelMsgUnsub){try{channelMsgUnsub();}catch(e){}channelMsgUnsub=null;}
   if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
   if(serverVoicePresenceUnsub){try{serverVoicePresenceUnsub();}catch(e){}serverVoicePresenceUnsub=null;}
+  if(serverStructureUnsub){try{serverStructureUnsub();}catch(e){}serverStructureUnsub=null;}
   activeServer=null;activeChannel=null;
   document.getElementById('app').classList.remove('chat-open');
   \$('server-active').classList.add('hidden');
@@ -30162,6 +30194,7 @@ async function openServerDetail(serverId){
   if(stageStateUnsub){try{stageStateUnsub();}catch(e){}stageStateUnsub=null;stageViewChannelId=null;stageState=null;}
   activeChannel=null;
   await loadServerChannels();
+  subscribeServerStructureWatcher();
   try{
     const jEm=await authGet('/api/servers/emojis/list?serverId='+encodeURIComponent(serverId));
     activeServerEmojis=(jEm&&jEm.emojis)||[];
@@ -30322,6 +30355,89 @@ function subscribeServerVoicePresence(){
       refreshChannelVoiceStageIfVisible();
     });
   });
+}
+// Structure du serveur (membres/rôles/salons/catégories) : jusqu'ici chargée
+// une seule fois à l'ouverture (openServerDetail), donc un rôle changé, un
+// timeout posé, un kick, ou un salon créé/déplacé/renommé par quelqu'un
+// d'autre restait invisible sans recharger la page entière. server_roles et
+// server_members ont déjà read("any") au niveau collection ; server_channels
+// et server_categories reçoivent maintenant des permissions calculées à la
+// création/modification (voir computeChannelViewerReadPermissions côté
+// Worker) — sans quoi Appwrite n'aurait poussé aucun événement temps réel.
+function subscribeServerStructureWatcher(){
+  if(serverStructureUnsub){try{serverStructureUnsub();}catch(e){}serverStructureUnsub=null;}
+  if(!activeServer)return;
+  const forServer=activeServer.\$id;
+  const unsubs=[];
+  unsubs.push(client.subscribe('databases.'+DB+'.collections.server_members.documents',function(res){
+    const payload=res.payload;
+    if(!payload||String(payload.serverId)!==String(forServer))return;
+    const isMe=!!(me&&String(payload.uid)===String(me.\$id));
+    if(eventIs(res.events,'.delete')){
+      activeServerMembers=activeServerMembers.filter(function(m){return m.\$id!==payload.\$id});
+      if(isMe){
+        showToast('Tu as été expulsé de ce serveur.','error');
+        closeServerDetail();
+        return;
+      }
+    }else{
+      const idx=activeServerMembers.findIndex(function(m){return m.\$id===payload.\$id});
+      if(idx>=0)activeServerMembers[idx]=payload;else activeServerMembers.push(payload);
+      if(isMe)activeServerMembership=payload;
+    }
+    if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
+    if(activeServerTab==='members')renderServerMembersTab();
+    else if(activeServerTab==='overview')renderServerOverviewTab();
+  }));
+  unsubs.push(client.subscribe('databases.'+DB+'.collections.server_roles.documents',function(res){
+    const payload=res.payload;
+    if(!payload||String(payload.serverId)!==String(forServer))return;
+    if(eventIs(res.events,'.delete')){
+      activeServerRoles=activeServerRoles.filter(function(r){return r.\$id!==payload.\$id});
+    }else{
+      const idx=activeServerRoles.findIndex(function(r){return r.\$id===payload.\$id});
+      if(idx>=0)activeServerRoles[idx]=payload;else activeServerRoles.push(payload);
+      activeServerRoles.sort(function(a,b){return (Number(b.position)||0)-(Number(a.position)||0);});
+    }
+    if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
+    // serverHasPermission() relit activeServerRoles à chaque appel : la garder
+    // à jour suffit à corriger les boutons dépendants, pas seulement l'onglet.
+    const canRoles=serverHasPermission('manage_roles');
+    const canSettings=serverHasPermission('manage_server');
+    const canAudit=serverHasPermission('view_audit_log')||canSettings;
+    if(\$('srv-tab-roles-btn'))\$('srv-tab-roles-btn').classList.toggle('hidden',!canRoles);
+    if(\$('srv-tab-audit-btn'))\$('srv-tab-audit-btn').classList.toggle('hidden',!canAudit);
+    if(\$('srv-tab-insights-btn'))\$('srv-tab-insights-btn').classList.toggle('hidden',!canSettings);
+    if(\$('srv-tab-settings-btn'))\$('srv-tab-settings-btn').classList.toggle('hidden',!canSettings);
+    if(activeServerTab==='roles')renderServerRolesTab();
+  }));
+  unsubs.push(client.subscribe('databases.'+DB+'.collections.server_channels.documents',function(res){
+    const payload=res.payload;
+    if(!payload||String(payload.serverId)!==String(forServer))return;
+    if(eventIs(res.events,'.delete')){
+      activeServerChannels=activeServerChannels.filter(function(c){return c.\$id!==payload.\$id});
+      if(activeChannel&&activeChannel.\$id===payload.\$id)activeChannel=null;
+    }else{
+      const idx=activeServerChannels.findIndex(function(c){return c.\$id===payload.\$id});
+      if(idx>=0)activeServerChannels[idx]=payload;else activeServerChannels.push(payload);
+    }
+    if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
+    if(activeServerTab==='overview')renderServerOverviewTab();
+  }));
+  unsubs.push(client.subscribe('databases.'+DB+'.collections.server_categories.documents',function(res){
+    const payload=res.payload;
+    if(!payload||String(payload.serverId)!==String(forServer))return;
+    if(eventIs(res.events,'.delete')){
+      activeServerCategories=activeServerCategories.filter(function(c){return c.\$id!==payload.\$id});
+    }else{
+      const idx=activeServerCategories.findIndex(function(c){return c.\$id===payload.\$id});
+      if(idx>=0)activeServerCategories[idx]=payload;else activeServerCategories.push(payload);
+      activeServerCategories.sort(function(a,b){return (a.position||0)-(b.position||0);});
+    }
+    if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
+    if(activeServerTab==='overview')renderServerOverviewTab();
+  }));
+  serverStructureUnsub=function(){unsubs.forEach(function(u){try{u();}catch(e){}});};
 }
 // Panneau compact (façon Discord "Inviter des amis") pour le lien
 // d'invitation — remplace l'ancienne barre toujours affichée au-dessus de la
@@ -41778,8 +41894,16 @@ async function handle(request, event) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const name = String((body && body.name) || "").trim().slice(0, 64);
       if (!name) throw new Error("Nom de catégorie requis");
+      // Une catégorie n'a jamais de restriction à la création (visibleRoleIds/
+      // overwrites ne sont réglables qu'ensuite via /api/servers/categories/update)
+      // donc tout membre y a accès pour l'instant — mais aucune permission de
+      // lecture n'était posée du tout, empêchant le temps réel (voir le
+      // commentaire au-dessus de computeChannelMessagePermissions pour le
+      // pourquoi : Appwrite n'envoie un événement realtime qu'à qui a
+      // explicitement la permission de lire le document concerné).
+      const catPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: [], overwritesJson: "[]" });
       const cat = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents", {
-        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { serverId: serverId, name: name, position: Number(body.position) || 0 } }
+        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { serverId: serverId, name: name, position: Number(body.position) || 0 }, permissions: catPerms }
       });
       const actorProfile7 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile7 && (actorProfile7.displayName || actorProfile7.username)) || acc.name, "category_create", name, {});
@@ -41803,7 +41927,19 @@ async function handle(request, event) {
       if (typeof body.position === "number") data.position = body.position;
       if (Array.isArray(body.visibleRoleIds)) data.visibleRoleIds = body.visibleRoleIds.map(String);
       if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      const patchBody = { data: data };
+      // Recalcule qui peut lire ce document (donc en recevoir le temps réel)
+      // uniquement quand la visibilité change réellement — sinon un simple
+      // renommage n'a pas besoin de re-parcourir tous les membres/rôles.
+      if (data.visibleRoleIds !== undefined || data.overwritesJson !== undefined) {
+        const existingCat = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { asAdmin: true }).catch(function () { return null; });
+        const mergedCat = {
+          visibleRoleIds: data.visibleRoleIds !== undefined ? data.visibleRoleIds : ((existingCat && existingCat.visibleRoleIds) || []),
+          overwritesJson: data.overwritesJson !== undefined ? data.overwritesJson : ((existingCat && existingCat.overwritesJson) || "[]")
+        };
+        patchBody.permissions = await computeChannelViewerReadPermissions(serverId, mergedCat);
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents/" + categoryId, { method: "PATCH", asAdmin: true, body: patchBody });
       return new Response(JSON.stringify({ ok: true, category: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -41878,9 +42014,13 @@ async function handle(request, event) {
       const type = body.type === "voice" ? "voice" : body.type === "stage" ? "stage" : body.type === "forum" ? "forum" : body.type === "announcement" ? "announcement" : "text";
       const visibleRoleIds = Array.isArray(body.visibleRoleIds) ? body.visibleRoleIds.map(String) : [];
       const overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
+      // Même raison que pour server_categories/computeChannelMessagePermissions :
+      // sans permission de lecture explicite posée sur le document, Appwrite ne
+      // pousserait jamais d'événement temps réel à personne pour ce salon.
+      const chanPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson });
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson } }
+        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
       });
       const actorProfile9 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile9 && (actorProfile9.displayName || actorProfile9.username)) || acc.name, "channel_create", name, { type: type });
@@ -41907,7 +42047,20 @@ async function handle(request, event) {
       if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       if (typeof body.slowmodeSeconds === "number") data.slowmodeSeconds = Math.max(0, Math.min(21600, Math.round(body.slowmodeSeconds)));
       if (typeof body.locked === "boolean") data.locked = body.locked;
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "PATCH", asAdmin: true, body: { data: data } });
+      const patchBody = { data: data };
+      // Recalcule les permissions de lecture (donc qui reçoit le temps réel)
+      // uniquement quand la visibilité change vraiment, comme pour les
+      // catégories — un renommage/déplacement/slowmode n'a pas besoin de
+      // reparcourir tous les membres/rôles du serveur.
+      if (data.visibleRoleIds !== undefined || data.overwritesJson !== undefined) {
+        const existingChan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true }).catch(function () { return null; });
+        const mergedChan = {
+          visibleRoleIds: data.visibleRoleIds !== undefined ? data.visibleRoleIds : ((existingChan && existingChan.visibleRoleIds) || []),
+          overwritesJson: data.overwritesJson !== undefined ? data.overwritesJson : ((existingChan && existingChan.overwritesJson) || "[]")
+        };
+        patchBody.permissions = await computeChannelViewerReadPermissions(serverId, mergedChan);
+      }
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "PATCH", asAdmin: true, body: patchBody });
       if (typeof body.locked === "boolean") {
         const actorProfileLock = await resolveProfile(acc.$id);
         await logServerAudit(serverId, acc.$id, (actorProfileLock && (actorProfileLock.displayName || actorProfileLock.username)) || acc.name, body.locked ? "channel_lock" : "channel_unlock", updated.name || channelId, {});
