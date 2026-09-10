@@ -7427,6 +7427,7 @@ async function enterApp(e2ePassword){
   try{subscribeFriendsWatcher();}catch(e){}
   try{subscribeNotifWatcher();}catch(e){}
   try{subscribeUserMetaWatcher();}catch(e){}
+  try{subscribeCustomBadgesWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
@@ -12894,6 +12895,19 @@ function subscribeNotifWatcher(){
         playNotifSound(p.type==='friend_request'?'mention':'message');
         speakText(p.text);
         if(!\$('modal-notifications').classList.contains('hidden'))renderNotifications();
+        // support_messages n'a AUCUNE permission de lecture client (même pas
+        // par document) — un ticket peut contenir des signalements/plaintes
+        // privées, donc pas question d'y poser un calcul de permissions façon
+        // salons de serveur juste pour le confort du temps réel. On se sert à
+        // la place de la notification (déjà temps réel, déjà filtrée à son
+        // destinataire) comme simple déclencheur pour aller re-charger le fil
+        // via la route /api/support/tickets/thread existante — la personne
+        // voit la réponse arriver en quelques centaines de ms au lieu
+        // d'attendre le prochain sondage (jusqu'à 3,5s), sans jamais exposer
+        // le contenu des messages via un canal moins contrôlé.
+        if((p.type==='support_ticket_reply'||p.type==='support_ticket_escalated')&&ticketChatId&&String(p.refId)===String(ticketChatId)&&!\$('modal-ticket-chat').classList.contains('hidden')){
+          refreshTicketChat();
+        }
       }
     });
   }catch(e){}
@@ -12917,6 +12931,28 @@ function subscribeUserMetaWatcher(){
       if(view==='members')renderMembers();
       if(activeProfileModalUid===uid&&\$('modal-profile')&&!\$('modal-profile').classList.contains('hidden')){
         openProfileModal(uid);
+      }
+    });
+  }catch(e){}
+}
+function subscribeCustomBadgesWatcher(){
+  /* custom_badges est read("any") sans documentSecurity (donc déjà public,
+     aucun souci de permission côté temps réel) mais n'était rechargé qu'au
+     démarrage — un admin qui change l'icône/la couleur/le libellé d'un
+     badge custom pendant que quelqu'un regarde une liste de membres ou une
+     carte de profil affichant ce badge ne le voyait changer qu'au prochain
+     rechargement complet. */
+  try{
+    client.subscribe('databases.'+DB+'.collections.custom_badges.documents',function(res){
+      const doc=res.payload;if(!doc||!doc.key)return;
+      if(eventIs(res.events,'.delete')){
+        delete CUSTOM_BADGES[doc.key];
+      }else{
+        CUSTOM_BADGES[doc.key]={icon:doc.icon,label:doc.label,color:doc.color,desc:doc.description,custom:true,docId:doc.\$id,grantsPlus:!!doc.grantsPlus,bannerImageUrl:doc.bannerImageUrl||''};
+      }
+      if(view==='members')renderMembers();
+      if(activeProfileModalUid&&\$('modal-profile')&&!\$('modal-profile').classList.contains('hidden')){
+        openProfileModal(activeProfileModalUid);
       }
     });
   }catch(e){}
