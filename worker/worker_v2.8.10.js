@@ -3459,6 +3459,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .toast{background:#1a1030;border:1px solid rgba(167,139,250,.35);color:#f2ebff;padding:11px 18px;border-radius:12px;font-size:.85rem;font-weight:600;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;max-width:min(380px,100%);text-align:center}
 .toast.show{opacity:1;transform:translateY(0)}
 .toast-error{border-color:rgba(239,68,68,.5);background:#2a1015}
+/* Bandeau persistant "position partagée" — en haut de l'écran (la barre
+   musique occupe déjà le bas) pour rester visible depuis N'IMPORTE QUELLE
+   page tant que le partage est actif, pas seulement sur la page carte. */
+.loc-share-indicator{position:fixed;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);z-index:5100;display:flex;align-items:center;gap:8px;background:#1a1030;border:1px solid rgba(34,197,94,.4);color:#f2ebff;padding:7px 8px 7px 12px;border-radius:999px;font-size:.76rem;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);max-width:calc(100vw - 24px)}
+.loc-share-indicator-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25);flex-shrink:0;animation:locSharePulse 2s ease-in-out infinite}
+@keyframes locSharePulse{0%,100%{opacity:1}50%{opacity:.4}}
+.loc-share-indicator button{background:rgba(239,68,68,.18);color:#fca5a5;border-radius:999px;padding:4px 10px;font-size:.72rem;font-weight:700;flex-shrink:0}
 .slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(5,3,10,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(24px + env(safe-area-inset-bottom));animation:scFade .15s ease}
 @keyframes scFade{from{opacity:0}to{opacity:1}}
 .slide-confirm-card{width:100%;max-width:400px;background:#1a1030;border:1px solid rgba(239,68,68,.35);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
@@ -12471,6 +12478,11 @@ async function blockUser(uid){
     const row=friendsCache.find(function(f){return String(f.userId)===String(me.\$id)&&String(f.friendId)===String(uid)});
     if(row)await db.updateDocument(DB,'ultravoc_friends',row.\$id,{status:'blocked'});
     else await db.createDocument(DB,'ultravoc_friends',Appwrite.ID.unique(),{userId:me.\$id,friendId:uid,status:'blocked',name:'—'});
+    // Bloquer coupe aussi tout accès de partage de position resté valide
+    // dans un sens comme dans l'autre — le but même d'un blocage serait
+    // vidé de son sens si la personne bloquée pouvait continuer à voir où
+    // l'on se trouve.
+    authPost('/api/location/revoke-mutual',{uid:uid}).catch(function(){});
     await loadFriends();
     if(view==='friends')renderFriends();
     if(view==='dms')renderDms();
@@ -12637,6 +12649,10 @@ async function removeFriend(uid,name){
       const theirs=await db.listDocuments(DB,'ultravoc_friends',[Appwrite.Query.equal('userId',uid),Appwrite.Query.equal('friendId',me.\$id),Appwrite.Query.limit(5)]);
       for(const d of (theirs.documents||[]))await db.deleteDocument(DB,'ultravoc_friends',d.\$id);
     }catch(e){}
+    // Même raison que pour blockUser : ne plus être amis ne doit jamais
+    // laisser une permission de lecture de position accordée "tant qu'on
+    // était amis" traîner indéfiniment des deux côtés.
+    authPost('/api/location/revoke-mutual',{uid:uid}).catch(function(){});
     const myName=(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Quelqu\\'un';
     sendNotification(uid,'friend_removed',me.\$id,myName,myName+' t\\'a retiré de ses amis');
     await loadFriends();if(view==='friends')renderFriends();
@@ -18180,10 +18196,26 @@ async function sendGif(gifUrl){
   }catch(e){xlog('gif_send_fail',{msg:(e&&e.message)||String(e)});showToast('Envoi du GIF impossible.','error');}
 }
 
+// Extraite pour être testable indépendamment de shareLocation() (qui
+// démarre par LOCATION_SHARING_PAUSED — un const jamais réassignable depuis
+// l'extérieur, donc invérifiable autrement en dehors d'un vrai navigateur).
+function locationShareConfirmMessage(){
+  if(activeServer&&activeChannel){
+    return 'Envoyer ta position exacte dans #'+(activeChannel.name||'ce salon')+' ? Elle sera visible par tous les membres ayant accès à ce salon ('+(activeServerMembers.length||0)+' membre(s)), pas seulement tes proches.';
+  }
+  return 'Envoyer ta position exacte dans cette conversation ?';
+}
 function shareLocation(){
   if(LOCATION_SHARING_PAUSED){showToast('Le partage de position est temporairement désactivé.','error');return}
   if(!activeDm&&!(activeServer&&activeChannel)){alert('Ouvre une conversation ou un salon.');return}
   if(!navigator.geolocation){alert('Géolocalisation non supportée sur cet appareil.');return}
+  // Un seul clic envoyait jusqu'ici des coordonnées GPS exactes sans jamais
+  // demander confirmation ni dire à qui exactement ça allait être visible —
+  // particulièrement risqué dans un salon de serveur, potentiellement vu par
+  // bien plus de monde qu'une conversation privée. Un point d'arrêt clair et
+  // explicite, avant même de déclencher la demande de permission du
+  // navigateur, vaut mieux qu'un envoi accidentel irréversible.
+  if(!confirm(locationShareConfirmMessage()))return;
   navigator.geolocation.getCurrentPosition(async function(pos){
     try{
       /* Contrairement à sendMessage()/handleFileAttach(), ce point d'envoi
@@ -18901,21 +18933,52 @@ function updateLocationShareBtnLabel(){
 // enregistrées (location_shares.sharing) : un membre qui avait activé le
 // partage avant la pause le retrouvera tel quel si la fonctionnalité revient.
 const LOCATION_SHARING_PAUSED=true;
-let myLocationSharingOn=false,myLocationRefreshTimer=null;
+// Durées proposées (en minutes) — 0 = illimité. Une durée bornée est
+// maintenant la valeur par défaut (voir openLocationShareSheet) : le risque
+// perçu le plus fréquent avec ce type de fonctionnalité n'est pas le
+// partage lui-même mais l'oubli de le couper, donc "illimité" reste
+// possible mais n'est plus jamais le choix silencieux par défaut.
+const LOCATION_SHARE_DURATIONS=[{min:15,label:'15 minutes'},{min:60,label:'1 heure'},{min:480,label:'8 heures'},{min:1440,label:'24 heures'},{min:0,label:'Jusqu\\'à ce que je l\\'arrête'}];
+let myLocationSharingOn=false,myLocationRefreshTimer=null,myLocationExpiresAt=null,myLocationExpiryTimer=null;
 async function resumeMyLocationSharingIfEnabled(){
   if(LOCATION_SHARING_PAUSED)return;
   try{
     const r=await authGet('/api/location/my-settings');
-    if(r&&r.sharing){myLocationSharingOn=true;startMyLocationRefreshLoop();}
+    if(r&&r.sharing){myLocationSharingOn=true;myLocationExpiresAt=r.sharingExpiresAt||null;startMyLocationRefreshLoop();}
+    renderLocationSharingIndicator();
   }catch(e){}
 }
 function startMyLocationRefreshLoop(){
+  scheduleMyLocationExpiry();
+  renderLocationSharingIndicator();
   if(myLocationRefreshTimer)return;
   sendMyLocationOnce().catch(function(){});
   myLocationRefreshTimer=setInterval(function(){sendMyLocationOnce().catch(function(){});},5*60*1000);
 }
 function stopMyLocationRefreshLoop(){
   if(myLocationRefreshTimer){clearInterval(myLocationRefreshTimer);myLocationRefreshTimer=null;}
+  if(myLocationExpiryTimer){clearTimeout(myLocationExpiryTimer);myLocationExpiryTimer=null;}
+  myLocationExpiresAt=null;
+  renderLocationSharingIndicator();
+}
+// Filet de sécurité CÔTÉ CLIENT en plus du contrôle côté serveur (qui reste
+// la vraie source de vérité, voir /api/location/update et /api/location/
+// friends) : dès que l'heure d'expiration choisie arrive, on coupe la
+// boucle nous-mêmes sans attendre qu'un envoi échoue, pour que "Jusqu'à ce
+// que je l'arrête" reste le seul mode qui tourne vraiment sans limite.
+function scheduleMyLocationExpiry(){
+  if(myLocationExpiryTimer){clearTimeout(myLocationExpiryTimer);myLocationExpiryTimer=null;}
+  if(!myLocationExpiresAt)return;
+  const ms=new Date(myLocationExpiresAt).getTime()-Date.now();
+  if(ms<=0){stopSharingMyLocation(true);return}
+  myLocationExpiryTimer=setTimeout(function(){stopSharingMyLocation(true);},Math.min(ms,2147483647));
+}
+async function stopSharingMyLocation(expired){
+  myLocationSharingOn=false;
+  stopMyLocationRefreshLoop();
+  updateLocationShareBtnLabel();
+  try{await authPost('/api/location/share-settings',{sharing:false,visibleTo:[]});}catch(e){}
+  showToast(expired?'Partage de position expiré — arrêté automatiquement.':'Partage de position arrêté.');
 }
 // Instantané volontairement, pas un suivi continu : getCurrentPosition()
 // une fois par appel, jamais watchPosition() — cohérent avec le
@@ -18930,16 +18993,49 @@ function sendMyLocationOnce(){
   if(!myLocationSharingOn||!navigator.geolocation)return Promise.reject(new Error('Géolocalisation non supportée.'));
   return new Promise(function(resolve,reject){
     navigator.geolocation.getCurrentPosition(function(pos){
-      authPost('/api/location/update',{lat:pos.coords.latitude,lng:pos.coords.longitude}).then(resolve).catch(reject);
+      authPost('/api/location/update',{lat:pos.coords.latitude,lng:pos.coords.longitude}).then(resolve).catch(function(e){
+        // Le serveur a le dernier mot sur l'expiration (voir /api/location/
+        // update) : si notre minuteur local a raté l'échéance pour une
+        // raison ou une autre (ordinateur endormi, etc.), on s'aligne quand
+        // même sur lui plutôt que de continuer à essayer d'envoyer.
+        if(e&&/expired/i.test(e.message||''))stopSharingMyLocation(true);
+        reject(e);
+      });
     },function(err){
       xlog('my_location_send_fail',{code:err&&err.code,msg:(err&&err.message)||String(err)});
       reject(new Error(err&&err.code===1?'Localisation refusée par le navigateur.':'Position indisponible.'));
     },{enableHighAccuracy:false,timeout:8000,maximumAge:120000});
   });
 }
+// Indicateur persistant, visible depuis N'IMPORTE QUELLE page du site tant
+// que le partage est actif — avant ça, seul le bouton de la page carte
+// reflétait l'état, donc quitter cette page faisait perdre toute trace
+// visible qu'on était encore en train de partager sa position en direct.
+// Un seul bouton "Arrêter" immédiat, sans avoir à retrouver le panneau.
+function renderLocationSharingIndicator(){
+  let el=\$('loc-share-indicator');
+  if(!myLocationSharingOn){
+    if(el)el.remove();
+    return;
+  }
+  if(!el){
+    el=document.createElement('div');
+    el.id='loc-share-indicator';
+    el.className='loc-share-indicator';
+    el.innerHTML='<span class="loc-share-indicator-dot"></span><span id="loc-share-indicator-text"></span><button type="button" id="loc-share-indicator-stop">Arrêter</button>';
+    document.body.appendChild(el);
+    el.querySelector('#loc-share-indicator-stop').onclick=function(){stopSharingMyLocation(false);};
+  }
+  const textEl=el.querySelector('#loc-share-indicator-text');
+  if(textEl){
+    textEl.textContent=myLocationExpiresAt
+      ? ('Position partagée · jusqu\\'à '+new Date(myLocationExpiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))
+      : 'Position partagée en continu';
+  }
+}
 async function openLocationShareSheet(){
   if(LOCATION_SHARING_PAUSED){showToast('Le partage de position est temporairement désactivé.','error');return}
-  let settings={sharing:false,visibleTo:[]};
+  let settings={sharing:false,visibleTo:[],sharingExpiresAt:null};
   try{settings=await authGet('/api/location/my-settings');}catch(e){}
   const accepted=friendsCache.filter(function(f){return f.status==='accepted';});
   const visibleSet=new Set((settings.visibleTo||[]).map(String));
@@ -18947,8 +19043,14 @@ async function openLocationShareSheet(){
   overlay.className='action-sheet-overlay show';
   overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:70vh;overflow-y:auto">'
     +'<div class="set-section-label">📍 Partager ma position</div>'
-    +'<div class="scr-sub" style="margin-bottom:8px">Instantané, pas un suivi en direct : ta position se rafraîchit environ toutes les 5 minutes tant que X1 est ouvert et le partage actif.</div>'
+    +'<div class="scr-sub" style="margin-bottom:8px">Instantané, pas un suivi en direct : ta position se rafraîchit environ toutes les 5 minutes tant que X1 est ouvert et le partage actif. Il s\\'arrête toujours automatiquement à la fin de la durée choisie, même si tu oublies.</div>'
     +'<label class="srv-perm-check"><input type="checkbox" id="loc-share-toggle"'+(settings.sharing?' checked':'')+'> Partager ma position</label>'
+    +'<div id="loc-share-duration-wrap" style="margin:8px 0'+(settings.sharing?'':';display:none')+'">'
+      +'<div class="scr-sub" style="margin-bottom:4px">Pendant combien de temps :</div>'
+      +'<select id="loc-share-duration" class="field-input">'
+        +LOCATION_SHARE_DURATIONS.map(function(d){return '<option value="'+d.min+'"'+(d.min===60?' selected':'')+'>'+esc(d.label)+'</option>';}).join('')
+      +'</select>'
+    +'</div>'
     +(accepted.length
       ? ('<div class="scr-sub" style="margin:10px 0 4px">Visible par :</div>'
         +accepted.map(function(f){
@@ -18960,13 +19062,18 @@ async function openLocationShareSheet(){
   document.body.appendChild(overlay);
   function close(){overlay.remove();}
   overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
+  overlay.querySelector('#loc-share-toggle').addEventListener('change',function(){
+    overlay.querySelector('#loc-share-duration-wrap').style.display=this.checked?'':'none';
+  });
   overlay.querySelector('#loc-share-save').onclick=async function(){
     const btn=this;btn.disabled=true;btn.textContent='…';
     const sharing=overlay.querySelector('#loc-share-toggle').checked;
+    const durationMinutes=Number(overlay.querySelector('#loc-share-duration').value);
     const visibleTo=Array.from(overlay.querySelectorAll('[data-loc-friend]:checked')).map(function(c){return c.getAttribute('data-loc-friend');});
     try{
-      await authPost('/api/location/share-settings',{sharing:sharing,visibleTo:visibleTo});
+      const r=await authPost('/api/location/share-settings',{sharing:sharing,visibleTo:visibleTo,durationMinutes:durationMinutes});
       myLocationSharingOn=sharing;
+      myLocationExpiresAt=r.sharingExpiresAt||null;
       if(sharing){
         // On tente un vrai envoi de position tout de suite, avant de fermer
         // et d'annoncer un succès — sinon un refus/échec de géolocalisation
@@ -37630,7 +37737,12 @@ async function handle(request, event) {
     try {
       const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
       let visibleTo = []; if (doc) try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
-      return new Response(JSON.stringify({ ok: true, sharing: !!(doc && doc.sharing), visibleTo: visibleTo }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      // Un partage qui a dépassé sa durée choisie n'est plus vraiment actif,
+      // même si le champ "sharing" en base dit encore true (voir la même
+      // logique dans /api/location/friends) — jamais annoncer "actif" à
+      // quelqu'un qui rouvrirait le panneau après expiration.
+      const expired = !!(doc && doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= Date.now());
+      return new Response(JSON.stringify({ ok: true, sharing: !!(doc && doc.sharing && !expired), visibleTo: visibleTo, sharingExpiresAt: (doc && !expired) ? (doc.sharingExpiresAt || null) : null }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -37645,9 +37757,17 @@ async function handle(request, event) {
       const requestedVisible = Array.isArray(body && body.visibleTo) ? body.visibleTo.map(String) : [];
       const acceptedFriends = await getAcceptedFriendUids(acc.$id);
       const visibleTo = requestedVisible.filter(function (uid) { return acceptedFriends.indexOf(uid) >= 0; }).slice(0, 200);
+      // Durée bornée par défaut plutôt qu'un partage indéfini par défaut — le
+      // cas d'oubli ("j'ai activé ça il y a 3 semaines et j'avais oublié")
+      // est le scénario qui inquiète le plus les gens avec ce type de
+      // fonctionnalité. "0" reste accepté pour un partage illimité choisi en
+      // connaissance de cause (ex. partagé en continu avec un proche).
+      const ALLOWED_DURATIONS_MIN = [15, 60, 480, 1440, 0];
+      const durationMinutes = ALLOWED_DURATIONS_MIN.indexOf(Number(body && body.durationMinutes)) >= 0 ? Number(body.durationMinutes) : 60;
+      const sharingExpiresAt = (sharing && durationMinutes > 0) ? new Date(Date.now() + durationMinutes * 60000).toISOString() : null;
       const perms = ["update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
         .concat(sharing ? visibleTo.map(function (uid) { return "read(\"user:" + uid + "\")"; }) : []);
-      const data = { uid: String(acc.$id), sharing: sharing, visibleToJson: JSON.stringify(visibleTo) };
+      const data = { uid: String(acc.$id), sharing: sharing, visibleToJson: JSON.stringify(visibleTo), sharingExpiresAt: sharingExpiresAt };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
       } catch (e) {
@@ -37655,7 +37775,7 @@ async function handle(request, event) {
           await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ lat: 0, lng: 0 }, data), permissions: perms } });
         } else throw e;
       }
-      return new Response(JSON.stringify({ ok: true, sharing: sharing, visibleTo: visibleTo }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, sharing: sharing, visibleTo: visibleTo, sharingExpiresAt: sharingExpiresAt }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -37671,10 +37791,14 @@ async function handle(request, event) {
       if (!isFinite(lat) || !isFinite(lng)) throw new Error("Coordonnées invalides");
       const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
       if (!doc || !doc.sharing) throw new Error("Active le partage de position avant d'envoyer ta position");
+      // Le client ne doit jamais pouvoir prolonger un partage expiré en lui
+      // envoyant simplement une position fraîche — la durée choisie fait foi
+      // côté serveur, jamais côté client.
+      if (doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= Date.now()) throw new Error("expired");
       await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { lat: lat, lng: lng } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "expired") ? 410 : 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
@@ -37689,6 +37813,7 @@ async function handle(request, event) {
       const results = await Promise.all(friendUids.map(async function (fuid) {
         const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + fuid, { asAdmin: true }).catch(function () { return null; });
         if (!doc || !doc.sharing) return null;
+        if (doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= now) return null;
         let visibleTo = []; try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
         if (visibleTo.map(String).indexOf(myUid) < 0) return null;
         if (now - new Date(doc.$updatedAt).getTime() > maxAgeMs) return null;
@@ -37703,6 +37828,36 @@ async function handle(request, event) {
         };
       }));
       return new Response(JSON.stringify({ ok: true, friends: results.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Coupe le partage de position dans LES DEUX SENS entre deux comptes —
+  // appelé au blocage ou au retrait d'amitié, pour qu'une relation coupée
+  // n'emporte jamais un accès à la position resté valide seulement parce
+  // que personne n'a repensé à retourner dans les réglages de partage.
+  // asAdmin des deux côtés : ni l'un ni l'autre compte n'a de permission
+  // d'écriture directe sur le document de partage de l'autre.
+  if (path === "/api/location/revoke-mutual" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const otherUid = String((body && body.uid) || "");
+      if (!otherUid) throw new Error("uid requis");
+      await Promise.all([String(acc.$id), otherUid].map(async function (ownerUid) {
+        const other = ownerUid === String(acc.$id) ? otherUid : String(acc.$id);
+        const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + ownerUid, { asAdmin: true }).catch(function () { return null; });
+        if (!doc) return;
+        let visibleTo = []; try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
+        if (visibleTo.map(String).indexOf(other) < 0) return;
+        const newVisible = visibleTo.filter(function (u) { return String(u) !== other; });
+        const perms = ["update(\"user:" + ownerUid + "\")", "delete(\"user:" + ownerUid + "\")"]
+          .concat(doc.sharing ? newVisible.map(function (u) { return "read(\"user:" + u + "\")"; }) : []);
+        await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + ownerUid, { method: "PATCH", asAdmin: true, body: { data: { visibleToJson: JSON.stringify(newVisible) }, permissions: perms } }).catch(function () {});
+      }));
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
