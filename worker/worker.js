@@ -7428,11 +7428,12 @@ async function enterApp(e2ePassword){
   try{subscribeNotifWatcher();}catch(e){}
   try{subscribeUserMetaWatcher();}catch(e){}
   try{subscribeCustomBadgesWatcher();}catch(e){}
+  try{subscribeXBinFeedWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
-  (async function(){try{await loadStories();}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}})();
+  (async function(){try{await loadStories();try{subscribeStoriesWatcher();}catch(e){}}catch(e){xlog('stories_init_fail',{msg:(e&&e.message)||String(e)});}})();
   (async function(){try{await resumeMyLocationSharingIfEnabled();}catch(e){}})();
   (async function(){try{await checkAdmin();}catch(e){xlog('admin_check_fail',{msg:(e&&e.message)||String(e)});}})();
   (async function(){try{await refreshHunterEligibility();}catch(e){xlog('hunter_check_fail',{msg:(e&&e.message)||String(e)});}})();
@@ -12927,6 +12928,11 @@ function subscribeUserMetaWatcher(){
       memberMetaByUid[uid]=doc;
       if(me&&uid===String(me.\$id)){
         try{refreshSelfBar();}catch(e){}
+        // Ne touche QUE peEarnedBadges (source de la liste à épingler), jamais
+        // peDraft : le panneau d'édition contient potentiellement des
+        // modifications non enregistrées (bio en cours de frappe, etc.) qu'un
+        // badge reçu au même moment ne doit surtout pas écraser.
+        try{peEarnedBadges=parseBadges(doc);renderBadgePicker();}catch(e){}
       }
       if(view==='members')renderMembers();
       if(activeProfileModalUid===uid&&\$('modal-profile')&&!\$('modal-profile').classList.contains('hidden')){
@@ -18211,6 +18217,20 @@ function shareLocation(){
 }
 
 /* ===== Stories (photo/vidéo éphémères, façon Instagram) ===== */
+// Déjà correctement scellées par permission dès la publication (read("any")
+// pour "public", read(user:X) par ami accepté pour "amis" — voir la route
+// serveur) : il ne manquait que l'abonnement, aucune permission à changer.
+function subscribeStoriesWatcher(){
+  try{
+    client.subscribe('databases.'+DB+'.collections.stories.documents',function(res){
+      const p=res.payload;if(!p||!me)return;
+      const friendUids=(friendsCache||[]).filter(function(f){return f.status==='accepted';}).map(function(f){return String(f.friendId);});
+      const relevantUids=[String(me.\$id)].concat(friendUids);
+      if(relevantUids.indexOf(String(p.uid))<0)return;
+      loadStories();
+    });
+  }catch(e){}
+}
 let storiesCache=[];
 const STORY_MAX_BYTES=50*1024*1024;
 async function loadStories(){
@@ -19482,6 +19502,21 @@ function renderXBinShell(){
     xbinSortMode=this.value;
     renderXBinList(xbinView==='feed'?xbinFeedCache:xbinMineCache);
   });
+}
+function subscribeXBinFeedWatcher(){
+  /* xbin_pastes a déjà les bonnes permissions posées à la création
+     (read("any") pour public/non-listé, read(user:auteur) pour privé) —
+     encore une fois pur ajout d'abonnement, aucun calcul de permission à
+     refaire. Ne recharge que si le feed XBin est réellement affiché. */
+  try{
+    client.subscribe('databases.'+DB+'.collections.xbin_pastes.documents',function(res){
+      const p=res.payload;if(!p)return;
+      const overlay=\$('xbin-overlay');
+      if(!overlay||!overlay.classList.contains('show'))return;
+      if(xbinView==='feed'&&p.visibility==='public')loadXBinFeed();
+      else if(xbinView==='mine'&&me&&String(p.authorId)===String(me.\$id))loadXBinMine();
+    });
+  }catch(e){}
 }
 async function loadXBinFeed(){
   const list=\$('xbin-list');
@@ -30472,6 +30507,30 @@ function subscribeServerStructureWatcher(){
     }
     if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
     if(activeServerTab==='overview')renderServerOverviewTab();
+  }));
+  // Le document "servers" lui-même (nom/icône/bannière/description/réglages)
+  // était read("any") depuis le début — rien à sécuriser, juste jamais
+  // abonné : renommer un serveur ou changer sa bannière pendant que
+  // quelqu'un d'autre le regarde restait invisible sans rouvrir le serveur.
+  unsubs.push(client.subscribe('databases.'+DB+'.collections.servers.documents.'+forServer,function(res){
+    const payload=res.payload;
+    if(!activeServer||String(activeServer.\$id)!==String(forServer))return;
+    if(eventIs(res.events,'.delete')){
+      showToast('Ce serveur a été supprimé.','error');
+      closeServerDetail();
+      return;
+    }
+    if(!payload)return;
+    activeServer=payload;
+    if(\$('srv-detail-name'))\$('srv-detail-name').textContent=activeServer.name;
+    if(\$('srv-detail-desc'))\$('srv-detail-desc').textContent=activeServer.description||'';
+    if(\$('srv-detail-icon'))\$('srv-detail-icon').innerHTML=serverIconHtml(activeServer);
+    const bannerEl=\$('srv-detail-banner');
+    if(bannerEl){
+      const bannerUrl=safeUrl(activeServer.banner);
+      bannerEl.style.backgroundImage=bannerUrl?'url('+JSON.stringify(bannerUrl)+')':'';
+    }
+    if(activeServerTab==='settings')renderServerSettingsTab();
   }));
   serverStructureUnsub=function(){unsubs.forEach(function(u){try{u();}catch(e){}});};
 }
