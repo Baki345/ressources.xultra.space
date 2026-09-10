@@ -18926,13 +18926,14 @@ function updateLocationShareBtnLabel(){
   btn.textContent=myLocationSharingOn?'📍 Je partage ma position':'📍 Partager ma position';
   btn.classList.toggle('on',myLocationSharingOn);
 }
-// Partage de position — EN PAUSE (demande explicite) : toute la logique
-// reste intacte ci-dessous pour une réactivation facile plus tard (il suffit
-// de repasser ce flag à false), seuls les points d'entrée UI et la reprise
-// automatique au démarrage sont coupés. Ne touche pas aux préférences déjà
-// enregistrées (location_shares.sharing) : un membre qui avait activé le
-// partage avant la pause le retrouvera tel quel si la fonctionnalité revient.
-const LOCATION_SHARING_PAUSED=true;
+// Partage de position — RÉACTIVÉ (durci d'abord : durée bornée obligatoire,
+// révocation automatique au blocage/retrait d'ami, indicateur persistant,
+// confirmation avant un envoi ponctuel en message — voir les fonctions
+// ci-dessous et /api/location/* côté Worker). Repasser à true coupe à
+// nouveau les points d'entrée UI et la reprise automatique au démarrage
+// sans toucher aux préférences déjà enregistrées, si besoin de refaire
+// une pause.
+const LOCATION_SHARING_PAUSED=false;
 // Durées proposées (en minutes) — 0 = illimité. Une durée bornée est
 // maintenant la valeur par défaut (voir openLocationShareSheet) : le risque
 // perçu le plus fréquent avec ce type de fonctionnalité n'est pas le
