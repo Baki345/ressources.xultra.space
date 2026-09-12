@@ -4007,9 +4007,19 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-report-link:hover{color:#fca5a5}
 .pc2-report-link.hidden{display:none}
 .pc-card.pc-dashboard-header .pc-banner{height:150px}
-.pc2-header-row{display:flex;align-items:flex-end;gap:14px;padding:0 20px 14px;margin-top:-40px;position:relative}
+/* Bug remonté (capture d'écran) : align-items:flex-end + margin-top:-40px
+   PARTAGÉS par toute la ligne (avatar 84px + bloc nom/tag bien plus court)
+   alignaient tout le monde sur le MÊME bas — le bloc nom, plus court que
+   l'avatar, se retrouvait entraîné vers le haut par ricochet et son pseudo
+   finissait à cheval sur la bannière (photo opaque par-dessus le texte).
+   Passé en flex-start : le texte démarre proprement juste sous la bannière,
+   et seul l'avatar reçoit son propre décalage négatif pour la chevaucher
+   (même principe que la carte complète hors lecture, .pc-av-frame de base,
+   qui n'a jamais eu ce problème puisque le texte n'y partage pas son
+   alignement avec l'avatar). */
+.pc2-header-row{display:flex;align-items:flex-start;gap:14px;padding:0 20px 14px;position:relative}
 .pc-card.pc-dashboard-header .pc-avwrap{display:block;flex-shrink:0}
-.pc-card.pc-dashboard-header .pc-av-frame{margin-top:0;width:84px;height:84px;border-radius:20px}
+.pc-card.pc-dashboard-header .pc-av-frame{margin-top:-40px;width:84px;height:84px;border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av{border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av img.pc-av-img{border-radius:20px}
 .pc2-header-text{flex:1;min-width:0;padding-bottom:2px}
