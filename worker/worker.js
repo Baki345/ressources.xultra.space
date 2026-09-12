@@ -3848,6 +3848,69 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes pcpFall{from{transform:translateY(-10px)}to{transform:translateY(140px)}}
 .pcp-confetti{top:-10px;width:6px;height:10px;animation:pcpConfetti linear infinite}
 @keyframes pcpConfetti{from{transform:translateY(-10px) rotate(0deg)}to{transform:translateY(140px) rotate(360deg)}}
+.profile-card-view{width:min(720px,96vw)}
+.pc2-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 44px 0 18px}
+.pc2-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.pc2-report-link{font-size:.68rem;font-weight:800;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;text-decoration:underline;text-underline-offset:2px}
+.pc2-report-link:hover{color:#fca5a5}
+.pc2-report-link.hidden{display:none}
+.pc-card.pc-dashboard-header .pc-banner{height:150px}
+.pc2-header-row{display:flex;align-items:flex-end;gap:14px;padding:0 20px 14px;margin-top:-40px;position:relative}
+.pc-card.pc-dashboard-header .pc-avwrap{display:block;flex-shrink:0}
+.pc-card.pc-dashboard-header .pc-av-frame{margin-top:0;width:84px;height:84px;border-radius:20px}
+.pc-card.pc-dashboard-header .pc-av{border-radius:20px}
+.pc-card.pc-dashboard-header .pc-av img.pc-av-img{border-radius:20px}
+.pc2-header-text{flex:1;min-width:0;padding-bottom:2px}
+.pc2-header-eyebrow{font-size:.64rem;font-weight:800;letter-spacing:.08em;color:#c4b5fd;text-transform:uppercase}
+.pc2-header-text .pc-name{margin-top:2px;font-size:1.3rem}
+.pc2-header-text .pc-tag{margin-top:0}
+.pc2-presence-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:7px 12px;flex-shrink:0;margin-bottom:2px;white-space:nowrap}
+.pc2-presence-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.pc2-presence-label{font-size:.76rem;font-weight:800}
+.pc2-presence-sub{font-size:.64rem;color:var(--muted);margin-top:1px}
+.pc2-header-extras{padding:0 20px}
+.pc2-header-extras .pc-socials{justify-content:flex-start;margin-top:0}
+.pc2-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:14px 20px 0}
+.pc2-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
+.pc2-col-side{display:flex;flex-direction:column;gap:12px}
+.pc2-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pc2-card-title{font-size:.68rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.pc2-card-title-sm{font-size:.64rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.pc2-xplus-pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.62rem;font-weight:900;letter-spacing:.03em;color:#1a1005;background-image:linear-gradient(125deg,#78350f,#facc15,#fff7cc,#f59e0b,#facc15,#78350f);background-size:220% 220%;animation:badgeShift 3.2s ease infinite}
+.pc2-bio-wrap{margin-top:10px}
+.pc2-bio{font-size:.85rem;line-height:1.5;opacity:.92;white-space:pre-wrap}
+.pc2-bio.pc2-clamp{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.pc2-bio-toggle{margin-top:6px;font-size:.72rem;font-weight:700;color:#c4b5fd}
+.pc2-bio-toggle.hidden{display:none}
+.pc2-badges-wrap{margin-top:14px}
+.pc2-card-subhead{display:flex;align-items:center;justify-content:space-between}
+.pc2-badges-count{font-size:.64rem;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.pc2-badges-wrap .pc-badges{justify-content:flex-start;margin:8px 0 0}
+.pc2-stats-row{display:flex;gap:22px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
+.pc2-stat-label{font-size:.62rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:block}
+.pc2-stat-value{font-size:.84rem;font-weight:800;margin-top:2px;display:block}
+.pc2-activity.hidden,.pc2-xbin-pin.hidden{display:none}
+.pc2-activity-row{display:flex;align-items:center;gap:10px;margin-top:8px}
+.pc2-activity-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#c084fc);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0}
+.pc2-activity-text{font-size:.82rem;font-weight:700;line-height:1.35}
+.pc2-xbin-pin-item{display:block;width:100%;text-align:left;margin-top:8px;padding:0}
+.pc2-xbin-pin-title{display:block;font-size:.84rem;font-weight:800;line-height:1.3}
+.pc2-xbin-pin-meta{display:block;font-size:.68rem;color:var(--muted);margin-top:3px}
+.pc2-actions{display:flex;gap:8px;padding:16px 20px 0}
+.pc2-actions .btn-main{flex:1}
+@media (max-width:640px){
+  .profile-card-view{width:96vw}
+  .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
+  .pc2-topbar{padding:12px 40px 0 14px}
+  .pc2-header-row{padding:0 14px 12px;gap:10px}
+  .pc2-header-extras{padding:0 14px}
+  .pc2-actions{padding:14px 14px 0}
+  .pc2-header-text .pc-name{font-size:1.1rem}
+  .pc-card.pc-dashboard-header .pc-banner{height:130px}
+  .pc-card.pc-dashboard-header .pc-av-frame{width:68px;height:68px}
+  .pc2-presence-pill{padding:5px 9px}
+  .pc2-presence-label{font-size:.7rem}
+}
 .profile-edit-panel{width:min(900px,96vw);max-height:92dvh;padding:0;overflow:hidden}
 .pe-layout{display:flex;max-height:92dvh}
 .pe-preview-col{width:320px;flex-shrink:0;background:#0d0814;padding:20px;overflow-y:auto;border-right:1px solid rgba(255,255,255,.06)}
@@ -5264,20 +5327,25 @@ a.bug-att-item{display:block}
 </div>
 
 <div class="overlay hidden" id="modal-profile">
-  <div class="modal-box profile-card">
+  <div class="modal-box profile-card profile-card-view">
     <button type="button" class="modal-close" id="pm-close">✕</button>
     <div class="pm-scroll">
+      <div class="pc2-topbar">
+        <span class="pc2-eyebrow">Profil X1</span>
+        <button type="button" class="pc2-report-link" id="pm-report" title="Signaler ce membre">🚩 Signaler ce profil</button>
+      </div>
       <div id="pm-render"></div>
-      <div class="pm-btn-row">
+      <div id="pm-dashboard"></div>
+      <div class="pm-btn-row pc2-actions">
         <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
         <button type="button" class="btn-main hidden" id="pm-creator">🎬 Voir la chaîne</button>
+        <button type="button" class="btn-main hidden" id="pm-music">🎵 Musique</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
         <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
       </div>
       <div class="pm-icon-row">
         <button type="button" class="pm-icon-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil">🔗</button>
         <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
-        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-report" title="Signaler ce membre" data-tip="Signaler ce membre">🚩</button>
       </div>
       <div class="pm-section pm-xbin-section hidden" id="pm-xbin-section"></div>
       <div class="pm-section pm-xdrive-section hidden" id="pm-xdrive-section"></div>
@@ -14057,15 +14125,54 @@ function buildProfileCardHtml(p,meta,badges,opts){
   }else if(geoFlag){
     geoBadgeHtml='<span class="pc-geo-badge" title="'+esc(meta.geoCountry.toUpperCase())+'">'+geoFlag+'</span>';
   }
-  return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
-    +'<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
+  const bannerHtml='<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
       +geoBadgeHtml
-    +'</div>'
-    +'<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"'+(frame==='shop'?' style="'+shopFrameCss+'"':'')+'><div class="pc-av">'+avatarInner+'</div>'
+    +'</div>';
+  /* Le petit point de présence SUR l'avatar reflète historiquement le statut
+     MANUEL choisi (statusManual) — correct pour l'aperçu d'édition (on
+     prévisualise le statut qu'on est en train de choisir), mais trompeur en
+     lecture (headerOnly) : quelqu'un resté sur "En ligne" par défaut sans
+     avoir rouvert l'app depuis des heures y apparaîtrait toujours vert. En
+     lecture on utilise donc computePresence(), qui retombe sur "offline" dès
+     que lastSeen est trop ancien, peu importe le statut manuel choisi. */
+  const livePresenceKey=computePresence(p);
+  const pillDef=PRESENCE_DEFS[livePresenceKey]||{dot:'#6b7280',label:'Hors ligne'};
+  const lastSeenPillTxt=(livePresenceKey==='offline'&&p.lastSeen)?('Vu il y a '+fmtRelTime(p.lastSeen)):'';
+  const dotDef=opts.headerOnly?pillDef:(p.statusManual&&p.statusManual!=='invisible'?presence:null);
+  const avatarHtml='<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"'+(frame==='shop'?' style="'+shopFrameCss+'"':'')+'><div class="pc-av">'+avatarInner+'</div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo" data-tip="Changer la photo">📷</button>':'')
-      +(p.statusManual&&p.statusManual!=='invisible'?'<span class="pc-presence-dot" style="background:'+presence.dot+'" title="'+esc(presence.label)+'"></span>':'')
-    +'</div></div>'
+      +(dotDef?'<span class="pc-presence-dot" style="background:'+dotDef.dot+'" title="'+esc(dotDef.label)+'"></span>':'')
+    +'</div></div>';
+  if(opts.headerOnly){
+    // Version "dashboard" utilisée par la fiche de profil en lecture
+    // (openProfileModal) : seuls la bannière, l'avatar, le nom/tag et la
+    // présence restent ici — badges/bio/X1+/depuis/en-commun partent dans
+    // buildProfileDashboardHtml() (grille à deux colonnes), et le statut
+    // personnalisé migre vers le widget "En ce moment". Les liens sociaux,
+    // Spotify et les stories à la une (highlights) restent affichés tels
+    // quels juste sous l'en-tête pour ne rien perdre de la personnalisation
+    // existante — seul le placement change, jamais la fonctionnalité.
+    return '<div class="pc-card pc-dashboard-header border-'+border+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
+      +bannerHtml
+      +'<div class="pc2-header-row">'
+        +avatarHtml
+        +'<div class="pc2-header-text" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
+          +'<div class="pc2-header-eyebrow">Membre X1</div>'
+          +'<h3 class="pc-name">'+esc(name)+serverTagBadgeHtml(extra)+'</h3>'
+          +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
+        +'</div>'
+        +'<div class="pc2-presence-pill"><span class="pc2-presence-dot" style="background:'+pillDef.dot+'"></span><div><div class="pc2-presence-label">'+esc(pillDef.label)+'</div>'+(lastSeenPillTxt?'<div class="pc2-presence-sub">'+esc(lastSeenPillTxt)+'</div>':'')+'</div></div>'
+      +'</div>'
+      +'<div class="pc2-header-extras" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
+        +(linksHtml||spUrl?'<div class="pc-socials">'+linksHtml+(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div>':'')
+        +'<div class="pc-highlights hidden" id="pc-highlights"></div>'
+      +'</div>'
+    +'</div>';
+  }
+  return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
+    +bannerHtml
+    +avatarHtml
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
       +'<h3 class="pc-name" style="font-size:'+titleSize+'">'+esc(name)+serverTagBadgeHtml(extra)+'</h3>'
       +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
@@ -14081,6 +14188,62 @@ function buildProfileCardHtml(p,meta,badges,opts){
       +(opts.showHighlights?'<div class="pc-highlights hidden" id="pc-highlights"></div>':'')
     +'</div>'
   +'</div>';
+}
+/* Grille "à propos / en ce moment / XBin épinglé" affichée sous l'en-tête en
+   lecture (voir buildProfileCardHtml(...,{headerOnly:true}) ci-dessus) —
+   jamais utilisée par l'aperçu d'édition, qui garde le rendu carte complet
+   d'origine (l'utilisateur y prévisualise littéralement ce qu'il personnalise,
+   pas ce que les autres verront une fois affiché en lecture). */
+function buildProfileDashboardHtml(p,meta,badges,opts){
+  p=p||{};meta=meta||{};opts=opts||{};
+  const extra=parseProfileExtra(meta.profileExtraJson);
+  const since=p.createdAt||p['\$createdAt'];
+  const sinceTxt=since?new Date(since).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}):'—';
+  const bio=(p.bio||'').trim();
+  const badgeCount=(badges||[]).length;
+  const statusActive=!!(extra.customStatus&&!(extra.customStatusExpiresAt&&new Date(extra.customStatusExpiresAt).getTime()<=Date.now()));
+  return '<div class="pc2-grid">'
+    +'<div class="pc2-card pc2-about">'
+      +'<div class="pc2-card-head"><span class="pc2-card-title">À propos</span>'
+        +(meta.plan==='plus'?'<span class="pc2-xplus-pill">★ X1+ à vie</span>':'')
+      +'</div>'
+      +(bio
+        ?'<div class="pc2-bio-wrap"><div class="pc2-bio pc2-clamp" id="pc2-bio">'+esc(bio)+'</div><button type="button" class="pc2-bio-toggle hidden" id="pc2-bio-toggle">Afficher la bio complète</button></div>'
+        :'<div class="pc2-bio-wrap"><div class="pc2-bio" style="opacity:.5">Pas encore de bio.</div></div>')
+      +(badgeCount?'<div class="pc2-badges-wrap"><div class="pc2-card-subhead"><span class="pc2-card-title-sm">Badges</span><span class="pc2-badges-count">'+badgeCount+' distinction'+(badgeCount>1?'s':'')+'</span></div><div class="pc-badges">'+badgeChipsHtml(badges)+'</div></div>':'')
+      +'<div class="pc2-stats-row">'
+        +'<div class="pc2-stat"><span class="pc2-stat-label">Membre depuis</span><span class="pc2-stat-value">'+esc(sinceTxt)+'</span></div>'
+        +(opts.mutualCount!=null?'<div class="pc2-stat"><span class="pc2-stat-label">Amis en commun</span><span class="pc2-stat-value">'+opts.mutualCount+'</span></div>':'')
+      +'</div>'
+    +'</div>'
+    +'<div class="pc2-col-side">'
+      +'<div class="pc2-card pc2-activity'+(statusActive?'':' hidden')+'" id="pc2-activity">'
+        +'<span class="pc2-card-title-sm">En ce moment</span>'
+        +'<div class="pc2-activity-row"><span class="pc2-activity-icon">💬</span><span class="pc2-activity-text">'+esc(extra.customStatus||'')+'</span></div>'
+      +'</div>'
+      +'<div class="pc2-card pc2-xbin-pin hidden" id="pc2-xbin-pin">'
+        +'<span class="pc2-card-title-sm">XBin épinglé</span>'
+        +'<button type="button" class="pc2-xbin-pin-item" id="pc2-xbin-pin-btn"><span class="pc2-xbin-pin-title" id="pc2-xbin-pin-title"></span><span class="pc2-xbin-pin-meta" id="pc2-xbin-pin-meta"></span></button>'
+      +'</div>'
+    +'</div>'
+  +'</div>';
+}
+function mountProfileDashboardExtras(container){
+  if(!container)return;
+  const bioEl=container.querySelector('#pc2-bio');
+  const toggleBtn=container.querySelector('#pc2-bio-toggle');
+  if(bioEl&&toggleBtn){
+    // Le bouton "Afficher la bio complète" ne sert à rien pour un texte déjà
+    // assez court pour tenir dans les 3 lignes du clamp CSS — on ne le
+    // révèle que si le clamp a réellement tronqué quelque chose de visible.
+    requestAnimationFrame(function(){
+      if(bioEl.scrollHeight>bioEl.clientHeight+1)toggleBtn.classList.remove('hidden');
+    });
+    toggleBtn.addEventListener('click',function(){
+      bioEl.classList.toggle('pc2-clamp');
+      toggleBtn.textContent=bioEl.classList.contains('pc2-clamp')?'Afficher la bio complète':'Réduire la bio';
+    });
+  }
 }
 function mountProfileCardExtras(container){
   if(!container)return;
@@ -14182,13 +14345,24 @@ async function openProfileModal(uid){
   activeProfileModalUid=uid;
   const renderEl=\$('pm-render');
   if(renderEl){
-    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{mutualCount:mutualCount,showLastSeen:!isSelf,showHighlights:true});
-    wireBadgeChips(renderEl.querySelector('.pc-badges'));
+    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{headerOnly:true});
     mountProfileCardExtras(renderEl);
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
   }
-  if(typeof loadAndRenderXBinTab==='function')loadAndRenderXBinTab(uid,\$('pm-xbin-section'));
+  const dashboardEl=\$('pm-dashboard');
+  if(dashboardEl){
+    dashboardEl.innerHTML=buildProfileDashboardHtml(p,meta,badges,{mutualCount:isSelf?null:mutualCount});
+    const badgesEl=dashboardEl.querySelector('.pc-badges');
+    if(badgesEl)wireBadgeChips(badgesEl);
+    mountProfileDashboardExtras(dashboardEl);
+  }
+  if(typeof loadAndRenderXBinTab==='function')loadAndRenderXBinTab(uid,\$('pm-xbin-section'),dashboardEl&&dashboardEl.querySelector('#pc2-xbin-pin'));
   if(typeof loadAndRenderXDriveTab==='function')loadAndRenderXDriveTab(uid,\$('pm-xdrive-section'),(p&&(p.displayName||p.username))||'Ce membre');
+  const musicBtn=\$('pm-music');
+  if(musicBtn){
+    musicBtn.classList.toggle('hidden',!me);
+    musicBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openMusic(uid,name);};
+  }
   const shareBtn=\$('pm-share');
   if(shareBtn){
     shareBtn.onclick=function(){
@@ -20086,13 +20260,39 @@ function xbinWireComments(d){
 }
 // Onglet XBin sur les profils (pastes PUBLICS de la personne) — voir
 // openProfileModal, qui appelle cette fonction comme loadAndRenderHighlights.
-async function loadAndRenderXBinTab(uid,container){
-  if(!container)return;
+async function loadAndRenderXBinTab(uid,container,pinnedContainer){
+  if(!container&&!pinnedContainer)return;
   let docs=[];
   try{
     const r=await db.listDocuments(DB,'xbin_pastes',[Appwrite.Query.equal('authorId',uid),Appwrite.Query.equal('visibility','public'),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(12)]);
     docs=(r.documents||[]).filter(function(d){return !xbinIsExpired(d);});
-  }catch(e){container.classList.add('hidden');return}
+  }catch(e){
+    if(container)container.classList.add('hidden');
+    if(pinnedContainer)pinnedContainer.classList.add('hidden');
+    return;
+  }
+  // Widget "XBin épinglé" de la fiche de profil en lecture (voir
+  // buildProfileDashboardHtml) : plutôt qu'une requête séparée pour son
+  // XBin public le plus récent, on réutilise la même liste déjà chargée
+  // ici (triée \$createdAt desc) — son premier élément EST ce XBin.
+  if(pinnedContainer){
+    const top=docs[0];
+    if(!top){
+      pinnedContainer.classList.add('hidden');
+    }else{
+      pinnedContainer.classList.remove('hidden');
+      const titleEl=pinnedContainer.querySelector('#pc2-xbin-pin-title');
+      const metaEl=pinnedContainer.querySelector('#pc2-xbin-pin-meta');
+      const btn=pinnedContainer.querySelector('#pc2-xbin-pin-btn');
+      if(titleEl)titleEl.textContent=top.title||'Sans titre';
+      if(metaEl)metaEl.textContent=xbinLangLabel(top.language)+' · '+(top.views||0)+' vues · mis à jour '+fmtRelTime(top['\$updatedAt']||top['\$createdAt']);
+      if(btn)btn.onclick=function(){
+        const pm=\$('modal-profile');if(pm)pm.classList.add('hidden');
+        openXBin(top.\$id);
+      };
+    }
+  }
+  if(!container)return;
   if(!docs.length){container.classList.add('hidden');return}
   container.classList.remove('hidden');
   container.innerHTML='<div class="pm-section-label">📋 XBin</div>'+docs.map(function(d){

@@ -23,6 +23,7 @@ import {
   type DmThread,
 } from '../dms';
 import { dmTitle } from './DmListScreen';
+import ProfileScreen from './ProfileScreen';
 
 interface Props {
   dm: DmThread;
@@ -37,7 +38,9 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const isGroup = dmIsGroup(dm);
+  const peerUid = user ? dmPeerId(dm, user.$id) : '';
 
   const refresh = useCallback(async () => {
     if (!user) return;
@@ -59,11 +62,9 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
   }, [refresh]);
 
   useEffect(() => {
-    if (!user || isGroup) return;
-    const peerUid = dmPeerId(dm, user.$id);
-    if (!peerUid) return;
+    if (!user || isGroup || !peerUid) return;
     getUserProfile(peerUid).then((profile) => setTitle(dmTitle(dm, user.$id, profile)));
-  }, [dm, user, isGroup]);
+  }, [dm, user, isGroup, peerUid]);
 
   const onSend = useCallback(async () => {
     const text = draft.trim();
@@ -82,6 +83,10 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
     }
   }, [draft, user, e2eJwk, dm, sending, refresh]);
 
+  if (showProfile && peerUid) {
+    return <ProfileScreen uid={peerUid} onBack={() => setShowProfile(false)} />;
+  }
+
   return (
     <KeyboardAvoidingView
       style={styles.container}
@@ -91,9 +96,16 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
         <TouchableOpacity onPress={onBack} testID="dm-back-button">
           <Text style={styles.back}>‹ Retour</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {title}
-        </Text>
+        <TouchableOpacity
+          style={styles.headerTitleTouch}
+          onPress={() => setShowProfile(true)}
+          disabled={isGroup || !peerUid}
+          testID="dm-header-title"
+        >
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {title}
+          </Text>
+        </TouchableOpacity>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -159,7 +171,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   back: { color: '#c4b5fd', fontSize: 15, fontWeight: '600', width: 64 },
-  headerTitle: { color: '#f2ebff', fontSize: 17, fontWeight: '700', flex: 1, textAlign: 'center' },
+  headerTitleTouch: { flex: 1 },
+  headerTitle: { color: '#f2ebff', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   headerSpacer: { width: 64 },
   notice: { color: '#fbbf24', textAlign: 'center', paddingHorizontal: 16, paddingBottom: 8, fontSize: 12 },
   error: { color: '#fca5a5', textAlign: 'center', paddingHorizontal: 16, paddingBottom: 8, fontSize: 12 },

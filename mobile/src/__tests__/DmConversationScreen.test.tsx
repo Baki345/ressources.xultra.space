@@ -16,9 +16,14 @@ jest.mock('../dms', () => {
     sendDmText: jest.fn(),
   };
 });
+jest.mock('../profile', () => {
+  const actual = jest.requireActual('../profile');
+  return { ...actual, getProfileDetails: jest.fn() };
+});
 
 const mockedUseAuth = useAuth as jest.Mock;
 const mockedDms = dms as jest.Mocked<typeof dms>;
+const mockedProfile = jest.requireMock('../profile') as { getProfileDetails: jest.Mock };
 
 const DM: dms.DmThread = { $id: 'dm1', members: ['u1', 'u2'], $updatedAt: '2026-01-01T00:00:00.000Z' };
 
@@ -80,4 +85,26 @@ test('a group thread disables the composer with an explanatory notice', async ()
   const { getByText, getByTestId } = await render(<DmConversationScreen dm={groupDm} onBack={jest.fn()} />);
   await waitFor(() => expect(getByText(/pas encore pris en charge/)).toBeTruthy());
   expect(getByTestId('dm-send-button').props.accessibilityState?.disabled).toBe(true);
+});
+
+test('tapping the header title opens the peer\'s profile, and going back returns to the conversation', async () => {
+  mockedProfile.getProfileDetails.mockResolvedValueOnce({
+    uid: 'u2', username: 'bob', displayName: 'Bob', tag: '4242', bio: '', presence: 'online', badges: ['base'],
+  });
+  const { getByTestId, queryByTestId } = await render(<DmConversationScreen dm={DM} onBack={jest.fn()} />);
+
+  await waitFor(() => expect(getByTestId('dm-header-title')).toBeTruthy());
+  await fireEvent.press(getByTestId('dm-header-title'));
+  await waitFor(() => expect(getByTestId('profile-name')).toBeTruthy());
+  expect(queryByTestId('dm-input')).toBeNull();
+
+  await fireEvent.press(getByTestId('profile-back-button'));
+  await waitFor(() => expect(getByTestId('dm-input')).toBeTruthy());
+});
+
+test('the header title is not tappable for a group thread (no single peer to show)', async () => {
+  const groupDm: dms.DmThread = { $id: 'dm2', members: ['u1', 'u2', 'u3'], $updatedAt: '2026-01-01T00:00:00.000Z' };
+  const { getByTestId } = await render(<DmConversationScreen dm={groupDm} onBack={jest.fn()} />);
+  await waitFor(() => expect(getByTestId('dm-header-title')).toBeTruthy());
+  expect(getByTestId('dm-header-title').props.accessibilityState?.disabled).toBe(true);
 });
