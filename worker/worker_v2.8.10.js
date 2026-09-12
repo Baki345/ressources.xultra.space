@@ -11502,6 +11502,8 @@ async function renderSetBots(box){
       +oauthCodeBlockHtml('bot-doc-voice-connect','import { Room, AudioSource, LocalAudioTrack, TrackPublishOptions, TrackSource } from \\'@livekit/rtc-node\\';\\n\\nconst room = new Room();\\nawait room.connect(wsUrl, token, { autoSubscribe: true });\\n\\n// Recevoir l\\'audio des humains présents dans le salon :\\nroom.on(\\'trackSubscribed\\', (track, publication, participant) => {\\n  if (track.kind === \\'audio\\') {\\n    // track.on(\\'frameReceived\\', ...) — chaque frame audio brute (PCM),\\n    // à toi de faire STT/traitement/relais, X1 ne fournit aucun traitement audio.\\n  }\\n});\\n\\n// Envoyer de l\\'audio dans le salon (ex : une réponse TTS) :\\nconst source = new AudioSource(48000, 1);\\nconst track = LocalAudioTrack.createAudioTrack(\\'bot-voice\\', source);\\nawait room.localParticipant.publishTrack(track, new TrackPublishOptions({ source: TrackSource.SOURCE_MICROPHONE }));\\n// source.captureFrame(frame) pour pousser de l\\'audio PCM 48kHz mono.')
       +'<div class="oauth-doc-step">En quittant, préviens la présence pour disparaître proprement de la liste des participants :</div>'
       +oauthCodeBlockHtml('bot-doc-voice-leave','await room.disconnect();\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/presence/leave\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ channelId }) });')
+      +'<div class="oauth-doc-step">Même mécanisme pour un <b>appel de groupe en DM</b> (3 membres ou plus — un DM à 2 est un appel 1:1 en WebRTC pair-à-pair, jamais accessible à un bot) : remplace <code>serverId</code>/<code>channelId</code> par <code>dmThreadId</code>, et les routes de vocal/présence par leurs équivalents <code>dm-token</code> / <code>dm-presence/join</code> / <code>dm-presence/leave</code> :</div>'
+      +oauthCodeBlockHtml('bot-doc-voice-dm-token','const res = await fetch(\\'https://xultra.space/api/bot/v1/voice/dm-token\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ dmThreadId }) });\\nconst { token, wsUrl, room } = await res.json();\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/dm-presence/join\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ dmThreadId }) });\\n// ... même connexion LiveKit qu\\'un salon de serveur (voir plus haut) ...\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/dm-presence/leave\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ dmThreadId }) });')
       +'<div class="oauth-doc-step">X1 ne fait jamais de traitement audio à ta place (reconnaissance vocale, synthèse, mixage) — comme pour tout le reste de cette API, ton bot héberge sa propre logique ; X1 fournit seulement l\\'accès au salon.</div>'
     +'</div>'
     +'<div class="set-card" style="margin-top:18px">'
@@ -36360,6 +36362,74 @@ async function handle(request, event) {
       const uid = "bot_" + bot.publicId;
       const docId = "vp_" + (await sha256HexShort(channelId + ":" + uid, 32));
       await awFetch("/databases/" + AW_DB + "/collections/server_voice_presence/documents/" + docId, { method: "DELETE", asAdmin: true }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== Vocal pour bots — appel de groupe en DM =====
+  // Même principe que /api/bot/v1/voice/token ci-dessus, mais pour un appel
+  // de groupe en DM (room LiveKit "xu-dm-"+dmId, voir /api/call/group-token
+  // côté client humain) plutôt qu'un salon vocal de serveur. Un DM à 2
+  // membres (1:1) n'est PAS concerné : ces appels sont en WebRTC pair-à-pair
+  // fait main, jamais LiveKit — un bot ne peut donc rejoindre un appel vocal
+  // qu'en DM DE GROUPE ou en salon vocal de serveur, jamais un 1:1.
+  async function resolveBotGroupDm(bot, dmThreadId) {
+    const dm = await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { asAdmin: true });
+    const members = (dm.members || []).map(String);
+    if (members.indexOf("bot_" + bot.publicId) < 0) throw new Error("Ce bot n'est pas dans cette conversation privée");
+    if (members.length <= 2) throw new Error("Cette conversation n'est pas un groupe (un DM 1:1 est en WebRTC pair-à-pair, pas accessible à un bot)");
+    return { dm: dm, members: members };
+  }
+  if (path === "/api/bot/v1/voice/dm-token" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const dmThreadId = String((body && body.dmThreadId) || "");
+      await resolveBotGroupDm(bot, dmThreadId);
+      const room = "xu-dm-" + dmThreadId;
+      const token = await mintLiveKitParticipantToken("bot_" + bot.publicId, bot.name, room, true);
+      return new Response(JSON.stringify({ ok: true, token: token, wsUrl: LIVEKIT_WS_URL, room: room }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Présence facultative (voir /api/bot/v1/voice/presence/join plus haut,
+  // même mécanique) : fait apparaître le bot dans la liste des participants
+  // de l'appel de groupe, jamais requis pour se connecter réellement via
+  // LiveKit. Permissions de lecture données à TOUS les membres du groupe,
+  // comme /api/call/group-presence/join côté humain.
+  if (path === "/api/bot/v1/voice/dm-presence/join" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const dmThreadId = String((body && body.dmThreadId) || "");
+      const { members } = await resolveBotGroupDm(bot, dmThreadId);
+      const uid = "bot_" + bot.publicId;
+      const perms = members.map(function (m) { return "read(\"user:" + m + "\")"; })
+        .concat(["update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"]);
+      const docId = "gcp_" + (await sha256HexShort(dmThreadId + ":" + uid, 32));
+      const data = { dmId: dmThreadId, uid: uid, username: bot.name };
+      try {
+        await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents/" + docId, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
+      } catch (e) {
+        if (e && e.status === 404) {
+          await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents", { method: "POST", asAdmin: true, body: { documentId: docId, data: data, permissions: perms } });
+        } else throw e;
+      }
+      return new Response(JSON.stringify({ ok: true, docId: docId }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/voice/dm-presence/leave" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const dmThreadId = String((body && body.dmThreadId) || "");
+      const uid = "bot_" + bot.publicId;
+      const docId = "gcp_" + (await sha256HexShort(dmThreadId + ":" + uid, 32));
+      await awFetch("/databases/" + AW_DB + "/collections/group_call_presence/documents/" + docId, { method: "DELETE", asAdmin: true }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
