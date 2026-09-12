@@ -3879,6 +3879,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
 .pc-card{position:relative;transition:transform .1s ease;will-change:transform}
+/* Fond de toute la carte (demandé explicitement : "le reste du fond" sous
+   le reflet de bannière) — même dégradé/couleur que la bannière pour rester
+   cohérent, ou une copie FLOUTÉE (jamais nette, le texte doit rester
+   lisible par-dessus) de la même photo. Toujours derrière tout le reste
+   (z-index:-1) — purement décoratif. */
+.pc-card-bg{position:absolute;inset:0;z-index:-1}
+.pc-card-bg-photo{background-size:cover;background-position:center;filter:blur(30px) brightness(.4) saturate(1.15);transform:scale(1.15)}
 .pc-banner{height:172px;position:relative;overflow:hidden}
 .pc-banner-photo{background:#000}
 /* Bug remonté : une photo de bannière "contenue" (contain) laissait des
@@ -4014,8 +4021,6 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-presence-label{font-size:.76rem;font-weight:800}
 .pc2-presence-sub{font-size:.64rem;color:var(--muted);margin-top:1px}
 .pc2-header-extras{padding:10px 20px 0}
-.pc2-links-card{margin-bottom:2px}
-.pc2-header-extras .pc-socials{justify-content:flex-start;margin-top:0}
 .pc2-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:14px 20px 0}
 .pc2-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
 .pc2-col-side{display:flex;flex-direction:column;gap:12px}
@@ -4032,6 +4037,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-card-subhead{display:flex;align-items:center;justify-content:space-between}
 .pc2-badges-count{font-size:.64rem;font-weight:800;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
 .pc2-badges-wrap .pc-badges{justify-content:flex-start;margin:8px 0 0}
+.pc2-socials-wrap{margin-top:14px}
 .pc2-stats-row{display:flex;gap:22px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06)}
 .pc2-stat-label{font-size:.62rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;display:block}
 .pc2-stat-value{font-size:.84rem;font-weight:800;margin-top:2px;display:block}
@@ -14370,6 +14376,15 @@ function buildProfileCardHtml(p,meta,badges,opts){
   if(bgType==='image'&&bannerImg)bannerStyle='background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\');background-size:cover;background-position:center';
   else if(bgType==='color')bannerStyle='background:'+esc(bgColor);
   else bannerStyle='background:linear-gradient(135deg,'+esc(bgColor)+',#0b0614)';
+  // Fond de la fiche entière (demandé explicitement : "le reste du fond" en
+  // dessous du reflet de bannière) — même dégradé/couleur que la bannière
+  // pour un dégradé (continuité visuelle), ou une copie FLOUTÉE de la photo
+  // pour une bannière-image (jamais nette : le texte par-dessus doit rester
+  // lisible). Un seul réglage (celui de la bannière) pilote donc les deux,
+  // plutôt qu'une deuxième photo à uploader séparément.
+  const cardBgHtml=(bgType==='image'&&bannerImg)
+    ? '<div class="pc-card-bg pc-card-bg-photo" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+    : '<div class="pc-card-bg" style="'+bannerStyle+'"></div>';
   const btnColor=p.btnColor||bgColor;
   const btnTextColor=p.btnTextColor||'#ffffff';
   const textColor=p.textColor||'#f2ebff';
@@ -14473,11 +14488,12 @@ function buildProfileCardHtml(p,meta,badges,opts){
     // (openProfileModal) : seuls la bannière, l'avatar, le nom/tag et la
     // présence restent ici — badges/bio/X1+/depuis/en-commun partent dans
     // buildProfileDashboardHtml() (grille à deux colonnes), et le statut
-    // personnalisé migre vers le widget "En ce moment". Les liens sociaux,
-    // Spotify et les stories à la une (highlights) restent affichés tels
-    // quels juste sous l'en-tête pour ne rien perdre de la personnalisation
-    // existante — seul le placement change, jamais la fonctionnalité.
+    // personnalisé migre vers le widget "En ce moment". Les liens sociaux et
+    // Spotify migrent eux aussi dans buildProfileDashboardHtml (sous les
+    // badges, demandé explicitement) — seules les stories à la une
+    // (highlights) restent ici, juste sous l'en-tête.
     return '<div class="pc-card pc-dashboard-header border-'+border+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
+      +cardBgHtml
       +bannerHtml
       +'<div class="pc2-header-row">'
         +avatarHtml
@@ -14489,12 +14505,12 @@ function buildProfileCardHtml(p,meta,badges,opts){
         +'<div class="pc2-presence-pill"><span class="pc2-presence-dot" style="background:'+pillDef.dot+'"></span><div><div class="pc2-presence-label">'+esc(pillDef.label)+'</div>'+(lastSeenPillTxt?'<div class="pc2-presence-sub">'+esc(lastSeenPillTxt)+'</div>':'')+'</div></div>'
       +'</div>'
       +'<div class="pc2-header-extras" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
-        +(linksHtml||spUrl?'<div class="pc2-card pc2-links-card"><div class="pc-socials">'+linksHtml+(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div></div>':'')
         +'<div class="pc-highlights hidden" id="pc-highlights"></div>'
       +'</div>'
     +'</div>';
   }
   return '<div class="pc-card border-'+border+' '+layout+'" data-avatar-count="'+avatarUrls.length+'" style="'+(border==='glow'?('--pc-glow:'+esc(btnColor)):(border==='gradient'?('--pc-grad-a:'+esc(btnColor)+';--pc-grad-b:'+esc(bgColor)):''))+'">'
+    +cardBgHtml
     +bannerHtml
     +avatarHtml
     +'<div class="pc-body" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
@@ -14526,6 +14542,26 @@ function buildProfileDashboardHtml(p,meta,badges,opts){
   const bio=(p.bio||'').trim();
   const badgeCount=(badges||[]).length;
   const statusActive=!!(extra.customStatus&&!(extra.customStatusExpiresAt&&new Date(extra.customStatusExpiresAt).getTime()<=Date.now()));
+  // Liens sociaux + Spotify (demandé explicitement : sous les badges plutôt
+  // que dans l'en-tête, voir buildProfileCardHtml) — même dérivation de
+  // style de bouton que là-bas, X1 ne fournissant qu'un thème par profil.
+  const themeColor=THEME_PRESETS[p.theme]||THEME_PRESETS.violet;
+  const bgColor2=p.bgColor||themeColor;
+  const btnColor2=p.btnColor||bgColor2;
+  const btnTextColor2=p.btnTextColor||'#ffffff';
+  const textColor2=p.textColor||'#f2ebff';
+  const btnShapeR2=p.btnShape==='square'?'6px':(p.btnShape==='pill'?'999px':'12px');
+  let btnBase2;
+  if(p.btnStyle==='outline')btnBase2='background:transparent;border:1.5px solid '+esc(btnColor2)+';color:'+esc(btnColor2);
+  else if(p.btnStyle==='glass')btnBase2='background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:'+esc(textColor2)+';backdrop-filter:blur(6px)';
+  else btnBase2='background:'+esc(btnColor2)+';color:'+esc(btnTextColor2)+';border:0';
+  const links2=parseSocialLinks(meta.socialLinksJson);
+  const linksHtml2=SOCIAL_DEFS.map(function(def){
+    const url=normalizeSocialUrl(def,links2[def.key]);
+    if(!url)return '';
+    return '<a class="pc-social-btn" href="'+esc(url)+'" target="_blank" rel="noopener" style="'+btnBase2+';border-radius:'+btnShapeR2+'" title="'+esc(def.label)+'"><span>'+def.icon+'</span></a>';
+  }).join('');
+  const spUrl2=safeUrl(p.spotify);
   return '<div class="pc2-grid">'
     +'<div class="pc2-card pc2-about">'
       +'<div class="pc2-card-head"><span class="pc2-card-title">À propos</span>'
@@ -14535,6 +14571,7 @@ function buildProfileDashboardHtml(p,meta,badges,opts){
         ?'<div class="pc2-bio-wrap"><div class="pc2-bio pc2-clamp" id="pc2-bio">'+esc(bio)+'</div><button type="button" class="pc2-bio-toggle hidden" id="pc2-bio-toggle">Afficher la bio complète</button></div>'
         :'<div class="pc2-bio-wrap"><div class="pc2-bio" style="opacity:.5">Pas encore de bio.</div></div>')
       +(badgeCount?'<div class="pc2-badges-wrap"><div class="pc2-card-subhead"><span class="pc2-card-title-sm">Badges</span><span class="pc2-badges-count">'+badgeCount+' distinction'+(badgeCount>1?'s':'')+'</span></div><div class="pc-badges">'+badgeChipsHtml(badges)+'</div></div>':'')
+      +(linksHtml2||spUrl2?'<div class="pc2-socials-wrap"><div class="pc-socials" style="justify-content:flex-start;margin-top:0">'+linksHtml2+(spUrl2?'<a class="pc-spotify" href="'+esc(spUrl2)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div></div>':'')
       +'<div class="pc2-stats-row">'
         +'<div class="pc2-stat"><span class="pc2-stat-label">Membre depuis</span><span class="pc2-stat-value">'+esc(sinceTxt)+'</span></div>'
         +(opts.mutualCount!=null?'<div class="pc2-stat"><span class="pc2-stat-label">Amis en commun</span><span class="pc2-stat-value">'+opts.mutualCount+'</span></div>':'')
