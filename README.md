@@ -28,6 +28,16 @@ section par section, sans jamais interrompre le site en production. Voir
 `app/README.md` pour l'architecture, la stratégie de migration et comment
 lancer/tester/déployer ce nouveau projet.
 
+### Application mobile native (iOS/Android)
+
+Base React Native + Expo (TypeScript) dans `mobile/`, connectée aux mêmes
+Appwrite + routes `/api/*` que le site — aucun changement backend. Socle
+d'authentification vérifié de bout en bout (typecheck, tests, bundle Metro
+Android/iOS), aucune fonctionnalité X1 portée pour l'instant. Voir
+`mobile/README.md` pour l'architecture, comment lancer/tester, et ce qu'il
+reste avant un vrai lancement (comptes développeur Apple/Google, EAS Build,
+notifications push).
+
 ### Appwrite
 - **Endpoint :** `https://fra.cloud.appwrite.io/v1`
 - **Project ID :** `6a73b975002f14dc6b91`
