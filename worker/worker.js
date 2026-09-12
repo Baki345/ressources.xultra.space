@@ -6252,6 +6252,21 @@ function translateAuthError(msg){
 // zoomer, puis exporte la zone visible en une image déjà recadrée — le
 // rendu "cover" en aval ne fait plus alors qu'un ajustement mineur.
 function openBannerCropModal(file,onDone){
+  // Un GIF animé perdrait son animation en passant par le pipeline de
+  // recadrage ci-dessous : canvas.toBlob(...,'image/jpeg') ne peut produire
+  // qu'une seule image statique (la frame visible au moment du clic sur
+  // "Valider"), quel que soit le format d'origine — bug remonté ("le gif sur
+  // mon profil ne s'anime pas") après que le formulaire ait explicitement
+  // annoncé le GIF comme format supporté sans jamais le préserver. On saute
+  // donc entièrement le recadrage pour ce format et on renvoie le fichier
+  // original tel quel (animation intacte), au prix de ne pas pouvoir le
+  // recadrer — un compromis honnête plutôt qu'un recadrage qui détruit
+  // silencieusement l'animation.
+  if(file&&file.type==='image/gif'){
+    showToast('Les GIF ne peuvent pas être recadrés pour garder leur animation — image utilisée telle quelle.');
+    onDone(file);
+    return;
+  }
   const RATIO=3;
   const overlay=document.createElement('div');
   overlay.className='action-sheet-overlay show';
@@ -6754,7 +6769,11 @@ if(\$('reg-file-banner'))\$('reg-file-banner').addEventListener('change',functio
   if(!isSafeImageFile(file)){showErrTxt('Format non supporté (PNG, JPG, WebP, AVIF ou GIF)');return}
   openBannerCropModal(file,function(blob){
     if(!blob)return;
-    regBannerFile=new File([blob],'banner.jpg',{type:'image/jpeg'});
+    // Un GIF passe tel quel (voir openBannerCropModal) : le renommer/retyper
+    // en "image/jpeg" corromprait son contenu réel (des octets GIF avec une
+    // étiquette JPEG), donc on ne force ce type QUE pour le résultat recadré
+    // (toujours un vrai JPEG dans ce cas).
+    regBannerFile=blob.type==='image/gif'?blob:new File([blob],'banner.jpg',{type:'image/jpeg'});
     regBannerUrl=URL.createObjectURL(blob);
     updateRegPreview();
   });
@@ -14918,7 +14937,11 @@ function wirePeInputs(){
     openBannerCropModal(f,async function(blob){
       if(!blob)return;
       try{
-        const cropped=new File([blob],'banner.jpg',{type:'image/jpeg'});
+        // Un GIF passe tel quel (voir openBannerCropModal) : le renommer/
+        // retyper en "image/jpeg" corromprait son contenu réel (des octets
+        // GIF avec une étiquette JPEG), donc on ne force ce type QUE pour le
+        // résultat recadré (toujours un vrai JPEG dans ce cas).
+        const cropped=blob.type==='image/gif'?blob:new File([blob],'banner.jpg',{type:'image/jpeg'});
         const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),cropped,[Appwrite.Permission.read(Appwrite.Role.any())]);
         peDraft.bg=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
         peDraft.bgType='image';\$('pe-bgtype').value='image';
