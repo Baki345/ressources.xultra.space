@@ -3881,9 +3881,25 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-card{position:relative;transition:transform .1s ease;will-change:transform}
 .pc-banner{height:172px;position:relative;overflow:hidden}
 .pc-banner-photo{background:#000}
-.pc-banner-blur{position:absolute;inset:-20px;background-size:cover;background-position:center;background-repeat:no-repeat;filter:blur(24px) brightness(.55) saturate(1.15);transform:scale(1.15);z-index:0}
-.pc-banner-fg{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;z-index:1}
+/* Bug remonté : une photo de bannière "contenue" (contain) laissait des
+   bandes vides sur les côtés, comblées par une copie floutée qui donnait
+   un effet "miroir" indésirable — la bannière devait sembler tronquée.
+   Passé en cover : l'image remplit tout le cadre, quitte à en rogner le
+   haut/bas ou les côtés selon son ratio, comme une vraie bannière. */
+.pc-banner-fg{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;z-index:1}
 .pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+/* Reflet flouté de la bannière (demandé explicitement) : comble le vide qui
+   suivait la bannière avant les icônes réseaux sociaux avec un miroir
+   flouté de la même image plutôt qu'un fond uni. En position absolue
+   (ancrée à .pc-card, jamais dans le flux) : un bloc en flux normal aurait
+   ajouté sa propre hauteur et écarté l'avatar de la bannière au lieu de
+   combler un vide déjà là (bug remonté en testant la première version).
+   top: doit correspondre à la hauteur de LA bannière (variantes ci-dessous),
+   sous l'avatar/le nom qui restent lisibles par-dessus (z-index:0, aucune
+   interaction). */
+.pc-banner-reflection{position:absolute;left:0;right:0;top:172px;height:84px;z-index:0;background-size:cover;background-position:center;transform:scaleY(-1);filter:blur(14px) brightness(.4) saturate(1.15);opacity:.7;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);pointer-events:none}
+.pc-card.pc-dashboard-header .pc-banner-reflection{top:150px}
+.pc-card.pc-centered .pc-banner-reflection{top:112px}
 .pc-avwrap{display:flex;justify-content:center}
 .pc-av-frame{width:78px;height:78px;margin-top:-42px;position:relative;z-index:1;border-radius:50%}
 /* Bug remonté par Yani Neco : dans la fenêtre d'édition du profil, les
@@ -3914,8 +3930,14 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
      plein, pas un anneau creux, donc le mettre devant masquerait toute la
      photo) et ne dépassait que de 5px la bordure sombre de 4px déjà posée
      sur .pc-av — un liseré de a peine 1px net, quasi invisible. Passé à
-     10px pour qu'un vrai anneau coloré reste visible autour de la photo. */
-  content:'';position:absolute;inset:-10px;border-radius:50%;z-index:-1;
+     10px pour qu'un vrai anneau coloré reste visible autour de la photo.
+     border-radius EN DUR à 50% (bug remonté séparément) : la fiche de
+     profil en lecture utilise un avatar en carré arrondi (pc-dashboard-header
+     .pc-av-frame, border-radius:20px), pas un cercle — l'anneau restait
+     rond quel que soit l'avatar, débordant en cercle aux coins d'un avatar
+     carré. inherit reprend la forme réelle de .pc-av-frame (cercle
+     normalement, carré arrondi ici). */
+  content:'';position:absolute;inset:-10px;border-radius:inherit;z-index:-1;
 }
 .pc-av-frame.frame-fire::before{background:conic-gradient(from 0deg,#f59e0b,#ef4444,#f59e0b,#fbbf24,#f59e0b);animation:frameSpin 3s linear infinite;filter:blur(1px)}
 .pc-av-frame.frame-frost::before{background:conic-gradient(from 0deg,#38bdf8,#a5f3fc,#0ea5e9,#e0f2fe,#38bdf8);animation:frameSpin 4s linear infinite;filter:blur(1px)}
@@ -3952,6 +3974,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-card.border-glow{box-shadow:0 0 0 1px var(--pc-glow,#7c3aed),0 0 28px 2px color-mix(in srgb,var(--pc-glow,#7c3aed) 55%,transparent)}
 .pc-card.border-gradient{position:relative;isolation:isolate}
 .pc-card.border-gradient::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;background:linear-gradient(135deg,var(--pc-grad-a,#7c3aed),var(--pc-grad-b,#22c55e));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2}
+/* Bug remonté : le cadre choisi (glow/gradient) ne dessinait le contour QUE
+   de la carte d'en-tête (bannière+avatar+réseaux), pas de la fenêtre de
+   profil entière — la grille "À propos/En ce moment" en dessous restait
+   sans bordure, comme deux fenêtres empilées. openProfileModal() copie
+   désormais la classe et les couleurs de .pc-card vers .profile-card
+   (voir #pm-box) et les retire de .pc-card, pour un seul cadre continu
+   autour de toute la fenêtre — mêmes règles, juste sur le conteneur externe.
+   .profile-card{border-radius:16px} vient de .modal-box, d'où le
+   border-radius:inherit qui fonctionne ici aussi. */
+.profile-card.border-glow{box-shadow:0 0 0 1px var(--pc-glow,#7c3aed),0 0 28px 2px color-mix(in srgb,var(--pc-glow,#7c3aed) 55%,transparent)}
+.profile-card.border-gradient{isolation:isolate}
+.profile-card.border-gradient::after{content:'';position:absolute;inset:0;border-radius:inherit;padding:2px;background:linear-gradient(135deg,var(--pc-grad-a,#7c3aed),var(--pc-grad-b,#22c55e));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;z-index:2}
 .pcp{position:absolute;pointer-events:none}
 .pcp-stars{width:3px;height:3px;border-radius:50%;background:#fff;animation:pcpTwinkle linear infinite}
 @keyframes pcpTwinkle{0%,100%{opacity:.15}50%{opacity:1}}
@@ -4019,6 +4053,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
   .pc-card.pc-dashboard-header .pc-banner{height:130px}
+  .pc-card.pc-dashboard-header .pc-banner-reflection{top:130px}
   .pc-card.pc-dashboard-header .pc-av-frame{width:68px;height:68px}
   .pc2-presence-pill{padding:5px 9px}
   .pc2-presence-label{font-size:.7rem}
@@ -5461,7 +5496,7 @@ a.bug-att-item{display:block}
 </div>
 
 <div class="overlay hidden" id="modal-profile">
-  <div class="modal-box profile-card profile-card-view">
+  <div class="modal-box profile-card profile-card-view" id="pm-box">
     <button type="button" class="modal-close" id="pm-close">✕</button>
     <div class="pm-scroll">
       <div class="pc2-topbar">
@@ -14394,21 +14429,20 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const bannerInnerHtml='<div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
       +geoBadgeHtml;
-  // Une photo/GIF de bannière n'a pas forcément le même ratio que le
-  // bandeau (3:1) : en background-size:cover pur, une image plus "carrée"
-  // laisse un vide uni (souvent noir) sur les côtés une fois recadrée au
-  // centre — signalé par un utilisateur ("remplis le vide ici"). Plutôt que
-  // de forcer un cadrage qui coupe l'image, la bannière superpose désormais
-  // deux couches pour ce cas précis (bgType==='image' uniquement — un
-  // dégradé/couleur uni n'a jamais ce problème, il remplit déjà tout
-  // l'espace) : une copie floutée et agrandie en fond (remplit tout,
-  // jamais de vide visible) et l'image nette par-dessus, non recadrée.
+  // Bannière en cover plein cadre (bug remonté : "contain" laissait des
+  // bandes floutées type miroir sur les côtés — la bannière était censée
+  // remplir tout l'espace). Le vide qui suivait la bannière, lui, reçoit
+  // désormais un vrai reflet flouté de la même image (juste en dessous,
+  // voir .pc-banner-reflection) plutôt qu'un fond uni.
+  const bannerReflectionHtml=(bgType==='image'&&bannerImg)
+    ? '<div class="pc-banner-reflection" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+    : '';
   const bannerHtml=(bgType==='image'&&bannerImg)
     ? '<div class="pc-banner pc-banner-photo">'
-        +'<div class="pc-banner-blur" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
         +'<div class="pc-banner-fg" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
         +bannerInnerHtml
       +'</div>'
+      +bannerReflectionHtml
     : '<div class="pc-banner" style="'+bannerStyle+'">'+bannerInnerHtml+'</div>';
   /* Le petit point de présence SUR l'avatar reflète historiquement le statut
      MANUEL choisi (statusManual) — correct pour l'aperçu d'édition (on
@@ -14556,27 +14590,6 @@ function mountProfileCardExtras(container){
         imgs[idx].classList.add('on');
       },3000);
     }
-    if(typeof IS_HOVER_DEVICE!=='undefined'&&IS_HOVER_DEVICE){
-      // Bug remonté par Yani Neco, en deux temps. D'abord : le survol ne
-      // faisait bouger que le contenu (.pc-card) sans le cadre de la fenêtre
-      // (.profile-card) qui l'entoure. Le premier correctif appliquait le
-      // MÊME transform aux deux — mais .pc-card est un DESCENDANT de
-      // .profile-card, donc les transforms CSS se cumulent sur les éléments
-      // imbriqués : le contenu tournait deux fois plus que le cadre au lieu
-      // de le suivre, et cette rotation démultipliée déplaçait suffisamment
-      // les bords de .pc-card (cible des écouteurs mousemove/mouseleave)
-      // pour que le curseur en sorte et rentre en boucle près des coins —
-      // le "stutter" signalé ensuite. Un seul transform, posé sur le cadre
-      // uniquement : le contenu (enfant) suit automatiquement, sans cumul.
-      const frame=card.closest('.profile-card');
-      card.addEventListener('mousemove',function(e){
-        const r=card.getBoundingClientRect();
-        const px=(e.clientX-r.left)/r.width-0.5,py=(e.clientY-r.top)/r.height-0.5;
-        const t='perspective(700px) rotateY('+(px*6)+'deg) rotateX('+(py*-6)+'deg)';
-        (frame||card).style.transform=t;
-      });
-      card.addEventListener('mouseleave',function(){(frame||card).style.transform='';});
-    }
   }
 }
 // Stories à la une (idée proposée par hi) : contrairement à storiesByUid()
@@ -14639,6 +14652,22 @@ async function openProfileModal(uid){
     renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{headerOnly:true,livePresenceOverride:livePresenceOverride});
     mountProfileCardExtras(renderEl);
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
+    // Le cadre choisi (glow/gradient, voir Personnalisation du profil) doit
+    // entourer TOUTE la fenêtre de profil, pas seulement la carte d'en-tête
+    // rendue ci-dessus — voir .profile-card.border-glow/.border-gradient.
+    // On récupère la classe/les couleurs posées par buildProfileCardHtml sur
+    // .pc-card puis on les déplace sur #pm-box (la fenêtre elle-même) au
+    // lieu de les dupliquer : une seule source de vérité pour le cadre.
+    const innerCard=renderEl.querySelector('.pc-card');
+    const pmBox=\$('pm-box');
+    if(innerCard&&pmBox){
+      const borderClass=(innerCard.className.match(/border-\\S+/)||['border-none'])[0];
+      pmBox.className='modal-box profile-card profile-card-view '+borderClass;
+      pmBox.style.setProperty('--pc-glow',innerCard.style.getPropertyValue('--pc-glow'));
+      pmBox.style.setProperty('--pc-grad-a',innerCard.style.getPropertyValue('--pc-grad-a'));
+      pmBox.style.setProperty('--pc-grad-b',innerCard.style.getPropertyValue('--pc-grad-b'));
+      innerCard.classList.remove('border-glow','border-gradient','border-none');
+    }
   }
   const dashboardEl=\$('pm-dashboard');
   if(dashboardEl){
