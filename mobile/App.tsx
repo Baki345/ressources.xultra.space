@@ -8,8 +8,9 @@ import DmConversationScreen from './src/screens/DmConversationScreen';
 import DmListScreen from './src/screens/DmListScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import LoginScreen from './src/screens/LoginScreen';
+import NotificationsScreen from './src/screens/NotificationsScreen';
 
-type Tab = 'dms' | 'friends';
+type Tab = 'dms' | 'friends' | 'notifications';
 
 function AuthenticatedApp() {
   const [tab, setTab] = useState<Tab>('dms');
@@ -22,7 +23,13 @@ function AuthenticatedApp() {
   return (
     <View style={styles.tabRoot}>
       <View style={styles.tabContent}>
-        {tab === 'dms' ? <DmListScreen onOpenThread={setOpenThread} /> : <FriendsScreen />}
+        {tab === 'dms' ? (
+          <DmListScreen onOpenThread={setOpenThread} />
+        ) : tab === 'friends' ? (
+          <FriendsScreen />
+        ) : (
+          <NotificationsScreen />
+        )}
       </View>
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabButton} onPress={() => setTab('dms')} testID="tab-dms">
@@ -30,6 +37,9 @@ function AuthenticatedApp() {
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabButton} onPress={() => setTab('friends')} testID="tab-friends">
           <Text style={[styles.tabLabel, tab === 'friends' && styles.tabLabelActive]}>👥 Amis</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton} onPress={() => setTab('notifications')} testID="tab-notifications">
+          <Text style={[styles.tabLabel, tab === 'notifications' && styles.tabLabelActive]}>🔔 Notifs</Text>
         </TouchableOpacity>
       </View>
     </View>

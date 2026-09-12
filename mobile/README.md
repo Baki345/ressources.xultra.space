@@ -1,8 +1,8 @@
 # XULTRA Mobile — app native (iOS/Android)
 
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
-bout (E2E), fiche de profil, et gestion des amis — premières fonctionnalités
-X1 portées. Notifications, serveurs, appels... à venir.**
+bout (E2E), fiche de profil, gestion des amis et notifications — premières
+fonctionnalités X1 portées. Serveurs, appels... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -81,7 +81,18 @@ installable (voir "Ce qu'il reste" plus bas).
   les cas de double-demande simultanée (A et B s'envoient une demande au
   même instant) ne sont pas dédupliqués aussi agressivement que côté web ;
   le pire résultat possible reste deux documents "accepted" redondants,
-  jamais une relation cassée. Nouvel onglet "Amis" à côté de "Messages".
+  jamais une relation cassée.
+- `src/notifications.ts` + `src/screens/NotificationsScreen.tsx` : flux de
+  notifications génériques (ami accepté/retiré, badge obtenu, commentaire
+  XBin, palier musique...) — port de la collection `notifications` (voir
+  `loadNotifications`/`renderNotifications`/`openNotificationsPanel` dans
+  `worker.js`). Les demandes d'ami en sont exclues : elles ont déjà leur
+  propre section dans l'onglet Amis, exactement comme côté web (sinon la
+  même demande apparaîtrait deux fois). Tout est marqué lu à l'ouverture de
+  l'écran ; taper une entrée avec un `fromUid` ouvre le profil concerné —
+  les autres (badge, XBin, musique...) restent lisibles mais pas encore
+  cliquables vers un écran dédié, ces fonctionnalités n'étant pas encore
+  portées sur mobile. Nouvel onglet "🔔 Notifs" à côté de "Messages"/"Amis".
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -89,8 +100,8 @@ installable (voir "Ce qu'il reste" plus bas).
 ## Stratégie de portage (même principe que `app/`)
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
-(la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil et
-amis (fait), puis notifications, serveurs, appels... Chaque section
+(la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
+amis et notifications (fait), puis serveurs, appels... Chaque section
 vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
@@ -99,8 +110,7 @@ vérifiée (tests + `expo export` propre) avant de passer à la suivante.
    primitives `encryptBytesWithKey`/`decryptBytesWithKey` existent déjà
    dans `src/e2e.ts`, pas encore branchées à une UI), bloquer/débloquer un
    membre (les fonctions existent dans `src/friends.ts`, pas encore
-   d'entrée dans l'UI), flux de notifications générique, serveurs, appels,
-   notifications push.
+   d'entrée dans l'UI), serveurs, appels, notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.
