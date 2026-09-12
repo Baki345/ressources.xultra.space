@@ -297,6 +297,41 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
     return { content: '✅ Message de bienvenue activé dans ce salon : "' + texte + '"', ephemeral: true };
   }
 
+  // Niveaux XP (texte uniquement — le vocal demanderait au bot de rester
+  // connecté en permanence à tous les salons vocaux pour observer qui y
+  // parle, une architecture bien plus lourde que "rejoindre sur demande"
+  // comme aujourd'hui) + économie virtuelle basique. Une seule commande à 3
+  // actions plutôt que 3 commandes séparées, pour rester sous la limite de
+  // 15 commandes par bot.
+  if (name === 'economie') {
+    const action = String(args.action || '').toLowerCase();
+    if (action === 'profil') {
+      const membreRaw = String(args.membre || '').trim();
+      const uid = membreRaw ? store.resolveMember(serverId, membreRaw) : (payload.user && payload.user.id);
+      const label = membreRaw || (payload.user && payload.user.username) || 'toi';
+      const p = store.getProfile(serverId, uid) || { xp: 0, level: 0, balance: 0 };
+      return { content: '📊 Profil de ' + label + '\nNiveau ' + p.level + ' (' + p.xp + ' XP)\n💰 ' + p.balance + ' pièces', ephemeral: true };
+    }
+    if (action === 'classement') {
+      const type = String(args.type || 'xp').toLowerCase() === 'argent' ? 'argent' : 'xp';
+      const top = store.leaderboard(serverId, type, 10);
+      if (!top.length) return { content: 'Aucune donnée pour l\'instant — les membres gagnent de l\'XP en écrivant.', ephemeral: true };
+      const lines = top.map(function (p, i) { return (i + 1) + '. ' + (p.username || p.uid) + ' — ' + (type === 'argent' ? p.balance + ' pièces' : 'niveau ' + p.level + ' (' + p.xp + ' XP)'); });
+      return { content: '🏆 Classement (' + (type === 'argent' ? 'économie' : 'XP') + ') :\n' + lines.join('\n'), ephemeral: false };
+    }
+    if (action === 'daily') {
+      const uid = payload.user && payload.user.id;
+      const username = payload.user && payload.user.username;
+      const result = store.claimDaily(serverId, uid, username);
+      if (!result.ok) {
+        const hrs = Math.ceil(result.remainingMs / 3600000);
+        return { content: '⏳ Déjà réclamé — reviens dans environ ' + hrs + 'h.', ephemeral: true };
+      }
+      return { content: '💰 +' + result.amount + ' pièces ! Solde : ' + result.balance, ephemeral: true };
+    }
+    return { content: 'Utilise `action:profil`, `action:classement` ou `action:daily`.', ephemeral: true };
+  }
+
   return { content: 'Commande inconnue : /' + name, ephemeral: true };
 }
 
@@ -335,7 +370,7 @@ async function handleCommand(payload) {
   return handleModCommand(name, serverId, payload.channel && payload.channel.id, args, payload);
 }
 
-// ===== Événements (auto-mod, bienvenue) =====
+// ===== Événements (auto-mod, bienvenue, XP) =====
 async function handleMessageCreate(payload) {
   const serverId = payload.server && payload.server.id;
   const channelId = payload.data && payload.data.channel && payload.data.channel.id;
@@ -344,20 +379,33 @@ async function handleMessageCreate(payload) {
   store.learnMember(serverId, message.author.id, message.author.username);
 
   const cfg = store.load(serverId).automod;
-  if (!cfg.enabled) return;
-  const text = String(message.content || '');
-  let violation = automod.checkWordFilter(cfg, text) || automod.checkLinks(cfg, text);
-  if (!violation && spamTracker.hit(serverId + ':' + message.author.id)) violation = { rule: 'spam' };
-  if (!violation) return;
+  if (cfg.enabled) {
+    const text = String(message.content || '');
+    let violation = automod.checkWordFilter(cfg, text) || automod.checkLinks(cfg, text);
+    if (!violation && spamTracker.hit(serverId + ':' + message.author.id)) violation = { rule: 'spam' };
+    if (violation) {
+      const reasonLabel = violation.rule === 'word' ? 'mot interdit (' + violation.detail + ')' : violation.rule === 'link' ? 'lien non autorisé (' + violation.detail + ')' : 'spam';
+      try {
+        await api.deleteMessage(serverId, message.id);
+        api.sendMessage({ serverId: serverId, channelId: channelId }, '🧹 Message de **' + message.author.username + '** supprimé (' + reasonLabel + ').').catch(function () {});
+        store.addSanction(serverId, message.author.id, { type: 'automod', reason: reasonLabel, moderator: 'Auto-mod' });
+        postModLog(serverId, { type: 'automod', uid: message.author.id, username: message.author.username, reason: reasonLabel, moderator: 'Auto-mod' });
+      } catch (e) {
+        console.error('[automod] échec de suppression:', e.message);
+      }
+      return; // pas d'XP pour un message supprimé
+    }
+  }
 
-  const reasonLabel = violation.rule === 'word' ? 'mot interdit (' + violation.detail + ')' : violation.rule === 'link' ? 'lien non autorisé (' + violation.detail + ')' : 'spam';
-  try {
-    await api.deleteMessage(serverId, message.id);
-    api.sendMessage({ serverId: serverId, channelId: channelId }, '🧹 Message de **' + message.author.username + '** supprimé (' + reasonLabel + ').').catch(function () {});
-    store.addSanction(serverId, message.author.id, { type: 'automod', reason: reasonLabel, moderator: 'Auto-mod' });
-    postModLog(serverId, { type: 'automod', uid: message.author.id, username: message.author.username, reason: reasonLabel, moderator: 'Auto-mod' });
-  } catch (e) {
-    console.error('[automod] échec de suppression:', e.message);
+  // XP texte : un gain aléatoire par message, avec un délai (60s) entre deux
+  // gains par personne pour ne pas récompenser le simple débit de messages.
+  if (store.canEarnXp(serverId, message.author.id)) {
+    store.markXpTimestamp(serverId, message.author.id, message.author.username);
+    const gained = 5 + Math.floor(Math.random() * 11);
+    const result = store.addXp(serverId, message.author.id, message.author.username, gained);
+    if (result.leveledUp) {
+      api.sendMessage({ serverId: serverId, channelId: channelId }, '🎉 **' + message.author.username + '** passe niveau **' + result.profile.level + '** !').catch(function () {});
+    }
   }
 }
 

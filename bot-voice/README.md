@@ -95,6 +95,11 @@ mon-bot.exemple.com {
    | `modlogs` | `action` (texte, choix : `set`/`disable`) | Fait de CE salon la destination des logs de modération (ou coupe les logs) |
    | `reaction-role` | `role` (texte, requis), `label` (texte) | Poste un message avec un bouton "obtenir ce rôle" |
    | `bienvenue` | `action` (texte, choix : `set`/`off`), `texte` (texte, avec `{membre}`) | Message automatique posté dans CE salon à chaque arrivée |
+   | `economie` | `action` (texte, requis, choix : `profil`/`classement`/`daily`), `membre` (texte, pour `profil`), `type` (texte, choix : `xp`/`argent`, pour `classement`) | Niveaux XP + monnaie virtuelle |
+
+   Exactement 15 commandes — la limite du bot. Pour en ajouter une nouvelle,
+   il faut soit en retirer une, soit en fusionner deux (comme `economie`
+   fusionne déjà 3 actions en une seule commande pour cette raison).
 
    **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
@@ -183,6 +188,28 @@ qu'il reçoit).
   voulu) — à chaque arrivée sur le serveur (`member_join`), poste ce message
   dans ce salon, `{membre}` remplacé par le pseudo. `/bienvenue action:off`
   désactive.
+
+## Niveaux XP & économie
+
+- **XP texte uniquement** — un message qui passe l'auto-mod (ou l'auto-mod
+  désactivé) rapporte 5 à 15 XP, avec 60 secondes de délai entre deux gains
+  par personne (pour ne pas juste récompenser le débit de messages). Niveau
+  = `floor(sqrt(xp / 50))` — 50 XP pour le niveau 1, 200 pour le niveau 2,
+  450 pour le niveau 3, etc. Un passage de niveau est annoncé dans le salon
+  où le message a été envoyé.
+- **Pas d'XP vocal** : suivre qui parle dans un salon vocal demanderait au
+  bot de rester connecté en permanence à TOUS les salons vocaux du serveur
+  pour observer les participants (LiveKit ne remonte cette info qu'aux
+  participants effectivement connectés à la room) — une architecture bien
+  plus lourde que "le bot rejoint sur demande" comme aujourd'hui. Pas fait
+  pour l'instant.
+- `/economie action:profil` — ton propre niveau/XP/solde ; `membre:<pseudo>`
+  pour voir celui de quelqu'un d'autre.
+- `/economie action:classement` — top 10 par XP ; `type:argent` pour trier
+  par solde à la place.
+- `/economie action:daily` — 100 à 200 pièces, une fois par 24h.
+- Pas de boutique/inventaire/jeux/métiers pour l'instant — socle XP +
+  monnaie seulement, le reste de la catégorie "Engagement" reste à faire.
 
 ## Limites connues / pistes d'amélioration
 

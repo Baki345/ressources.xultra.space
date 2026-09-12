@@ -20,7 +20,8 @@ function defaults() {
     modlogsChannelId: '',
     sanctions: {},
     members: {},
-    welcome: { enabled: false, channelId: '', template: 'Bienvenue {membre} !' }
+    welcome: { enabled: false, channelId: '', template: 'Bienvenue {membre} !' },
+    profiles: {}
   };
 }
 
@@ -111,4 +112,65 @@ function setWelcome(serverId, patch) {
   return store.welcome;
 }
 
-module.exports = { load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel, setWelcome };
+// ===== Niveaux XP + économie =====
+// Courbe simple façon "MEE6" allégée : niveau = floor(sqrt(xp / 50)) — 50xp
+// pour le niveau 1, 200 pour le 2, 450 pour le 3, etc. Amplement suffisant
+// pour un premier système ; à remplacer par une vraie courbe si besoin.
+function xpToLevel(xp) { return Math.floor(Math.sqrt(xp / 50)); }
+
+function ensureProfile(serverId, uid, username) {
+  const store = load(serverId);
+  if (!store.profiles[uid]) store.profiles[uid] = { xp: 0, level: 0, balance: 0, lastDaily: 0, lastXpAt: 0, username: username || uid };
+  else if (username) store.profiles[uid].username = username;
+  return store.profiles[uid];
+}
+
+function getProfile(serverId, uid) {
+  return load(serverId).profiles[uid];
+}
+
+function canEarnXp(serverId, uid) {
+  const p = load(serverId).profiles[uid];
+  if (!p) return true;
+  return Date.now() - p.lastXpAt > 60000; // 60s entre deux gains d'XP par personne
+}
+
+function markXpTimestamp(serverId, uid, username) {
+  const p = ensureProfile(serverId, uid, username);
+  p.lastXpAt = Date.now();
+  save(serverId);
+}
+
+function addXp(serverId, uid, username, amount) {
+  const p = ensureProfile(serverId, uid, username);
+  p.xp += amount;
+  const newLevel = xpToLevel(p.xp);
+  const leveledUp = newLevel > p.level;
+  p.level = newLevel;
+  save(serverId);
+  return { profile: p, leveledUp: leveledUp };
+}
+
+function claimDaily(serverId, uid, username) {
+  const p = ensureProfile(serverId, uid, username);
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  if (now - p.lastDaily < DAY_MS) return { ok: false, remainingMs: DAY_MS - (now - p.lastDaily) };
+  const amount = 100 + Math.floor(Math.random() * 101); // 100-200
+  p.balance += amount;
+  p.lastDaily = now;
+  save(serverId);
+  return { ok: true, amount: amount, balance: p.balance };
+}
+
+function leaderboard(serverId, type, limit) {
+  const profiles = load(serverId).profiles;
+  const arr = Object.keys(profiles).map(function (uid) { return Object.assign({ uid: uid }, profiles[uid]); });
+  arr.sort(function (a, b) { return type === 'argent' ? b.balance - a.balance : b.xp - a.xp; });
+  return arr.slice(0, limit || 10);
+}
+
+module.exports = {
+  load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel, setWelcome,
+  getProfile, canEarnXp, markXpTimestamp, addXp, claimDaily, leaderboard
+};
