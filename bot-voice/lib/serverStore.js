@@ -21,7 +21,8 @@ function defaults() {
     sanctions: {},
     members: {},
     welcome: { enabled: false, channelId: '', template: 'Bienvenue {membre} !' },
-    profiles: {}
+    profiles: {},
+    tickets: { staffRoleId: '', nextNumber: 1, open: {} }
   };
 }
 
@@ -170,7 +171,39 @@ function leaderboard(serverId, type, limit) {
   return arr.slice(0, limit || 10);
 }
 
+// ===== Tickets de support (un salon privé par ticket, voir README) =====
+function setTicketStaffRole(serverId, roleId) {
+  const store = load(serverId);
+  store.tickets.staffRoleId = roleId;
+  save(serverId);
+}
+
+function nextTicketNumber(serverId) {
+  const store = load(serverId);
+  const n = store.tickets.nextNumber;
+  store.tickets.nextNumber = n + 1;
+  save(serverId);
+  return n;
+}
+
+function addOpenTicket(serverId, channelId, entry) {
+  const store = load(serverId);
+  store.tickets.open[channelId] = entry;
+  save(serverId);
+}
+
+function getOpenTicket(serverId, channelId) {
+  return load(serverId).tickets.open[channelId];
+}
+
+function removeOpenTicket(serverId, channelId) {
+  const store = load(serverId);
+  delete store.tickets.open[channelId];
+  save(serverId);
+}
+
 module.exports = {
   load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel, setWelcome,
-  getProfile, canEarnXp, markXpTimestamp, addXp, claimDaily, leaderboard
+  getProfile, canEarnXp, markXpTimestamp, addXp, claimDaily, leaderboard,
+  setTicketStaffRole, nextTicketNumber, addOpenTicket, getOpenTicket, removeOpenTicket
 };

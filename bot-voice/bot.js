@@ -334,6 +334,77 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
     return { content: 'Utilise `action:profil`, `action:classement` ou `action:daily`.', ephemeral: true };
   }
 
+  // Tickets de support : X1 ne connaît la visibilité d'un salon QUE par rôle
+  // (jamais par utilisateur individuel — voir /api/bot/v1/channels/create),
+  // donc un salon privé pour une seule personne + le staff passe par un
+  // rôle jetable créé et attribué à la volée, supprimé à la fermeture.
+  if (name === 'ticket-config') {
+    const roleName = String(args.role || '').trim();
+    if (!roleName) return { content: 'Précise `role:` (le rôle qui doit voir tous les tickets).', ephemeral: true };
+    let roles;
+    try { roles = await api.listRoles(serverId); }
+    catch (e) { return { content: '❌ ' + e.message, ephemeral: true }; }
+    const match = roles.find(function (r) { return r.name.toLowerCase() === roleName.toLowerCase(); });
+    if (!match) {
+      const names = roles.map(function (r) { return r.name; }).join(', ') || '(aucun rôle sur ce serveur)';
+      return { content: 'Rôle "' + roleName + '" introuvable. Disponibles : ' + names, ephemeral: true };
+    }
+    store.setTicketStaffRole(serverId, match.id);
+    return { content: '✅ Le rôle **' + match.name + '** verra désormais tous les tickets ouverts.', ephemeral: true };
+  }
+
+  if (name === 'ticket') {
+    const cfg = store.load(serverId).tickets;
+    if (!cfg.staffRoleId) return { content: 'Configure d\'abord un rôle staff avec `/ticket-config role:<nom>`.', ephemeral: true };
+    const sujet = String(args.sujet || 'Sans sujet').trim().slice(0, 200);
+    const authorUid = payload.user && payload.user.id;
+    const authorName = (payload.user && payload.user.username) || 'membre';
+    (async function () {
+      let ticketRole, channel;
+      try {
+        const number = store.nextTicketNumber(serverId);
+        const chanName = 'ticket-' + number;
+        ticketRole = await api.createRole(serverId, chanName);
+        try {
+          await api.addRole(serverId, authorUid, ticketRole.$id);
+        } catch (e) {
+          // Le propriétaire du serveur ne peut jamais recevoir de rôle par
+          // un bot (protection générale, voir /api/bot/v1/roles/add) — sans
+          // conséquence ici puisqu'il voit de toute façon TOUS les salons,
+          // rôle ou pas (bypass total des restrictions de visibilité).
+          if (!/propriétaire/.test(e.message)) throw e;
+        }
+        channel = await api.createChannel(serverId, chanName, [cfg.staffRoleId, ticketRole.$id]);
+        store.addOpenTicket(serverId, channel.$id, { number: number, authorUid: authorUid, roleId: ticketRole.$id });
+        await api.sendMessage({ serverId: serverId, channelId: channel.$id },
+          '🎫 **Ticket #' + number + '** ouvert par ' + authorName + '\nSujet : ' + sujet + '\n\nUn membre du staff va te répondre ici. Tape `/ticket-close` dans ce salon une fois réglé.');
+        await api.sendMessage({ serverId: serverId, channelId: channelId }, '🎫 Ticket ouvert pour ' + authorName + ' : **' + chanName + '**');
+      } catch (e) {
+        // Nettoyage best-effort si une étape échoue en cours de route (ex.
+        // le rôle a été créé mais la création du salon échoue derrière).
+        if (ticketRole && !channel) api.deleteRole(serverId, ticketRole.$id).catch(function () {});
+        api.sendMessage({ serverId: serverId, channelId: channelId }, '❌ Échec de l\'ouverture du ticket : ' + e.message).catch(function () {});
+      }
+    })();
+    return { content: '⏳ Ouverture du ticket…', ephemeral: true };
+  }
+
+  if (name === 'ticket-close') {
+    const ticket = store.getOpenTicket(serverId, channelId);
+    if (!ticket) return { content: 'Cette commande se tape dans le salon du ticket lui-même.', ephemeral: true };
+    (async function () {
+      try {
+        await api.sendMessage({ serverId: serverId, channelId: channelId }, '🔒 Ticket #' + ticket.number + ' fermé par ' + ((payload.user && payload.user.username) || 'un membre') + '.');
+        await api.deleteChannel(serverId, channelId);
+        await api.deleteRole(serverId, ticket.roleId);
+        store.removeOpenTicket(serverId, channelId);
+      } catch (e) {
+        api.sendMessage({ serverId: serverId, channelId: channelId }, '❌ Échec de la fermeture : ' + e.message).catch(function () {});
+      }
+    })();
+    return { content: '⏳ Fermeture du ticket…', ephemeral: true };
+  }
+
   return { content: 'Commande inconnue : /' + name, ephemeral: true };
 }
 

@@ -66,6 +66,20 @@ function addRole(serverId, uid, roleId) {
 function removeRole(serverId, uid, roleId) {
   return botFetch('/api/bot/v1/roles/remove', { serverId: serverId, uid: uid, roleId: roleId });
 }
+function createRole(serverId, name) {
+  return botFetch('/api/bot/v1/roles/create', { serverId: serverId, name: name }).then(function (r) { return r.role; });
+}
+function deleteRole(serverId, roleId) {
+  return botFetch('/api/bot/v1/roles/delete', { serverId: serverId, roleId: roleId });
+}
+
+// ===== Salons (nécessite "manage_channels" accordée à l'installation) =====
+function createChannel(serverId, name, visibleRoleIds) {
+  return botFetch('/api/bot/v1/channels/create', { serverId: serverId, name: name, visibleRoleIds: visibleRoleIds || [] }).then(function (r) { return r.channel; });
+}
+function deleteChannel(serverId, channelId) {
+  return botFetch('/api/bot/v1/channels/delete', { serverId: serverId, channelId: channelId });
+}
 
 // Pour le dashboard web : vérifie qu'un visiteur (identifié via "Se
 // connecter avec X1") a bien le droit d'administrer ce serveur avant de le
@@ -74,4 +88,4 @@ function memberPermissions(serverId, uid) {
   return botFetch('/api/bot/v1/servers/member-permissions', { serverId: serverId, uid: uid }).then(function (r) { return r.permissions || []; });
 }
 
-module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage, listRoles, addRole, removeRole, memberPermissions };
+module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage, listRoles, addRole, removeRole, createRole, deleteRole, createChannel, deleteChannel, memberPermissions };

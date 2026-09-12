@@ -96,10 +96,13 @@ mon-bot.exemple.com {
    | `reaction-role` | `role` (texte, requis), `label` (texte) | Poste un message avec un bouton "obtenir ce rôle" |
    | `bienvenue` | `action` (texte, choix : `set`/`off`), `texte` (texte, avec `{membre}`) | Message automatique posté dans CE salon à chaque arrivée |
    | `economie` | `action` (texte, requis, choix : `profil`/`classement`/`daily`), `membre` (texte, pour `profil`), `type` (texte, choix : `xp`/`argent`, pour `classement`) | Niveaux XP + monnaie virtuelle |
+   | `ticket-config` | `role` (texte, requis) | Rôle staff qui verra tous les tickets ouverts |
+   | `ticket` | `sujet` (texte) | Ouvre un salon de ticket privé (toi + le staff) |
+   | `ticket-close` | — (se tape dans le salon du ticket) | Ferme et supprime le ticket courant |
 
-   Exactement 15 commandes — la limite du bot. Pour en ajouter une nouvelle,
-   il faut soit en retirer une, soit en fusionner deux (comme `economie`
-   fusionne déjà 3 actions en une seule commande pour cette raison).
+   18 commandes sur 30 possibles. Au-delà, il faut soit en retirer une, soit
+   en fusionner (comme `economie` fusionne déjà 3 actions en une seule
+   commande).
 
    **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
@@ -139,6 +142,14 @@ possible, pas d'ambiguïté.
 - `/record action:stop` — finalise les fichiers et poste le chemin de
   chacun. Pas d'upload automatique : les fichiers restent sur ton VPS, à toi
   de les récupérer (`scp`, etc.) — le bot n'a pas d'API d'envoi de fichier.
+
+**Rejoindre un DM avec un ami, juste toi/lui/le bot** : un DM strict à 2
+personnes reste un mur technique dur — c'est du WebRTC pair-à-pair direct
+entre deux navigateurs, aucune "room" serveur qu'un bot pourrait rejoindre.
+La solution : crée un **groupe** (bouton "Groupe+" dans Messages) avec ton
+ami **et** ton bot comme 3ᵉ membre — la modale liste maintenant aussi tes
+bots aux côtés de tes amis. Un groupe (3+ membres) tourne déjà sur LiveKit
+comme un vrai salon de serveur, donc `/join` y fonctionne normalement.
 
 ## Modération
 
@@ -188,6 +199,38 @@ qu'il reçoit).
   voulu) — à chaque arrivée sur le serveur (`member_join`), poste ce message
   dans ce salon, `{membre}` remplacé par le pseudo. `/bienvenue action:off`
   désactive.
+
+## Tickets de support
+
+Un **vrai salon privé par ticket** (comme sur Discord), pas un salon partagé
+numéroté — visible seulement par son auteur et le rôle staff. Nécessite les
+permissions `manage_channels` **et** `manage_roles` accordées au bot à
+l'installation.
+
+- `/ticket-config role:Modérateur` — à faire une fois : quel rôle voit tous
+  les tickets.
+- `/ticket sujet:"Mon jeu plante au lancement"` — crée un salon
+  `ticket-<numéro>`, poste le sujet dedans, et prévient dans le salon où la
+  commande a été tapée.
+- `/ticket-close` — tapée **dans le salon du ticket lui-même** (il a une
+  zone de saisie normale, c'est un salon texte comme un autre) : ferme et
+  supprime définitivement le salon.
+
+**Comment la confidentialité est obtenue** — X1 ne connaît la visibilité
+d'un salon *que* par rôle, jamais par utilisateur individuel. Ouvrir un
+ticket crée donc un **rôle jetable** (`ticket-<numéro>`, sans aucune
+permission, jamais mentionnable), l'attribue à l'auteur, puis crée le salon
+avec `visibleRoleIds: [rôleStaff, rôleJetable]`. Fermer le ticket supprime
+le salon puis ce rôle jetable — rien ne traîne. Exception : le
+**propriétaire du serveur** ne peut jamais recevoir de rôle d'un bot (X1 le
+protège spécifiquement) — sans conséquence puisqu'il voit de toute façon
+tous les salons, avec ou sans rôle.
+
+**Limites** : pas de transcription archivée à la fermeture (X1 n'a pas de
+route bot pour lire l'historique d'un salon) — les messages sont juste
+perdus avec le salon. Pas de formulaire de candidature/recrutement ni de
+suggestions avec vote pour l'instant (X1 n'a pas de fenêtre modale pour un
+bot, contrairement à Discord).
 
 ## Niveaux XP & économie
 
