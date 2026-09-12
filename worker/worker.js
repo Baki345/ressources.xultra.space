@@ -11493,7 +11493,7 @@ async function renderSetBots(box){
       +'<div class="oauth-doc-step"><b>Ton bot peut aussi écrire de lui-même</b> (annonce programmée, relais externe, cron...), sans attendre une interaction — vers un salon (<code>channelId</code>) ou une DM (<code>dmThreadId</code>) :</div>'
       +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
       +'<div class="oauth-doc-step"><b>API de modération</b> (nécessite que le serveur t\\'ait accordé la permission correspondante à l\\'installation) :</div>'
-      +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
+      +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Supprimer un message (utile pour un auto-mod) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/delete-message\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, messageId }) });\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
       +'<div class="oauth-doc-step"><b>"Gateway" événementielle</b> — X1 ne fonctionne pas sur un process persistant (Worker Cloudflare sans état entre deux requêtes), donc pas de vraie connexion permanente façon Discord. À la place : renseigne une <b>URL d\\'événements</b> ci-dessus et coche les types qui t\\'intéressent — X1 t\\'envoie alors un POST signé (même en-tête <code>X-X1-Signature</code>) à chaque événement, sans attendre de réponse (aucune garantie de livraison, comme un webhook classique — pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne) :</div>'
       +oauthCodeBlockHtml('bot-doc-event','{\\n  "type": "event",\\n  "event": "message_create",   // ou message_delete, member_join, member_leave\\n  "server": { "id": "...", "name": "..." },\\n  "data": { "channel": { "id": "..." }, "message": { "id": "...", "author": { "id": "...", "username": "..." }, "content": "..." } },\\n  "ts": 1234567890\\n}')
       +'<div class="oauth-doc-step">🎙️ <b>Vocal</b> — les salons vocaux de serveur tournent sur <a href="https://livekit.io" target="_blank" rel="noopener">LiveKit</a> (un vrai SFU), jamais du WebRTC fait main : ton bot n\\'a donc pas besoin de réimplémenter ICE/DTLS/SRTP, juste d\\'utiliser le <b>SDK serveur LiveKit</b> dans ton propre process (<code>@livekit/rtc-node</code> en Node.js, ou l\\'équivalent Python/Go). Le propriétaire du serveur doit d\\'abord t\\'accorder l\\'accès vocal (paramètres du serveur → 🤖 Bots), puis tu demandes un jeton :</div>'
@@ -36259,6 +36259,29 @@ async function handle(request, event) {
       const until = minutes ? new Date(Date.now() + minutes * 60000).toISOString() : "";
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { timeoutUntil: until } } });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, minutes ? "timeout" : "timeout_clear", member.nickname || member.username || targetUid, { minutes: minutes });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Un auto-mod (filtre de mots, anti-spam, anti-liens) a besoin de pouvoir
+  // retirer le message fautif — jusqu'ici aucune route bot ne le permettait
+  // (seulement envoyer des messages, jamais en supprimer). Même permission
+  // que la suppression humaine par un modérateur (voir
+  // /api/servers/channels/messages/delete) : "moderate_members".
+  if (path === "/api/bot/v1/moderation/delete-message" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const messageId = String((body && body.messageId) || "");
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "moderate_members");
+      const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { asAdmin: true });
+      if (String(msg.serverId) !== serverId) throw new Error("Message introuvable dans ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + messageId, { method: "DELETE", asAdmin: true });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "message_delete", msg.username || msg.uid, { text: String(msg.text || "").slice(0, 200) });
+      fireBotEvent(event, serverId, "message_delete", { channel: { id: msg.channelId }, message: { id: messageId, author: { id: msg.uid } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
