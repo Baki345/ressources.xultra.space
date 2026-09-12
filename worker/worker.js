@@ -3772,7 +3772,10 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pm-section-body{font-size:.85rem;line-height:1.4}
 .pc-card{position:relative;transition:transform .1s ease;will-change:transform}
 .pc-banner{height:172px;position:relative;overflow:hidden}
-.pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.pc-banner-photo{background:#000}
+.pc-banner-blur{position:absolute;inset:-20px;background-size:cover;background-position:center;background-repeat:no-repeat;filter:blur(24px) brightness(.55) saturate(1.15);transform:scale(1.15);z-index:0}
+.pc-banner-fg{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;z-index:1}
+.pc-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
 .pc-avwrap{display:flex;justify-content:center}
 .pc-av-frame{width:78px;height:78px;margin-top:-42px;position:relative;z-index:1;border-radius:50%}
 /* Bug remonté par Yani Neco : dans la fenêtre d'édition du profil, les
@@ -3868,7 +3871,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-presence-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .pc2-presence-label{font-size:.76rem;font-weight:800}
 .pc2-presence-sub{font-size:.64rem;color:var(--muted);margin-top:1px}
-.pc2-header-extras{padding:0 20px}
+.pc2-header-extras{padding:10px 20px 0}
+.pc2-links-card{margin-bottom:2px}
 .pc2-header-extras .pc-socials{justify-content:flex-start;margin-top:0}
 .pc2-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:14px 20px 0}
 .pc2-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
@@ -3903,7 +3907,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
   .pc2-topbar{padding:12px 40px 0 14px}
   .pc2-header-row{padding:0 14px 12px;gap:10px}
-  .pc2-header-extras{padding:0 14px}
+  .pc2-header-extras{padding:8px 14px 0}
   .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
   .pc-card.pc-dashboard-header .pc-banner{height:130px}
@@ -14144,10 +14148,25 @@ function buildProfileCardHtml(p,meta,badges,opts){
   }else if(geoFlag){
     geoBadgeHtml='<span class="pc-geo-badge" title="'+esc(meta.geoCountry.toUpperCase())+'">'+geoFlag+'</span>';
   }
-  const bannerHtml='<div class="pc-banner" style="'+bannerStyle+'"><div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
+  const bannerInnerHtml='<div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
-      +geoBadgeHtml
-    +'</div>';
+      +geoBadgeHtml;
+  // Une photo/GIF de bannière n'a pas forcément le même ratio que le
+  // bandeau (3:1) : en background-size:cover pur, une image plus "carrée"
+  // laisse un vide uni (souvent noir) sur les côtés une fois recadrée au
+  // centre — signalé par un utilisateur ("remplis le vide ici"). Plutôt que
+  // de forcer un cadrage qui coupe l'image, la bannière superpose désormais
+  // deux couches pour ce cas précis (bgType==='image' uniquement — un
+  // dégradé/couleur uni n'a jamais ce problème, il remplit déjà tout
+  // l'espace) : une copie floutée et agrandie en fond (remplit tout,
+  // jamais de vide visible) et l'image nette par-dessus, non recadrée.
+  const bannerHtml=(bgType==='image'&&bannerImg)
+    ? '<div class="pc-banner pc-banner-photo">'
+        +'<div class="pc-banner-blur" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+        +'<div class="pc-banner-fg" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+        +bannerInnerHtml
+      +'</div>'
+    : '<div class="pc-banner" style="'+bannerStyle+'">'+bannerInnerHtml+'</div>';
   /* Le petit point de présence SUR l'avatar reflète historiquement le statut
      MANUEL choisi (statusManual) — correct pour l'aperçu d'édition (on
      prévisualise le statut qu'on est en train de choisir), mais trompeur en
@@ -14184,7 +14203,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
         +'<div class="pc2-presence-pill"><span class="pc2-presence-dot" style="background:'+pillDef.dot+'"></span><div><div class="pc2-presence-label">'+esc(pillDef.label)+'</div>'+(lastSeenPillTxt?'<div class="pc2-presence-sub">'+esc(lastSeenPillTxt)+'</div>':'')+'</div></div>'
       +'</div>'
       +'<div class="pc2-header-extras" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
-        +(linksHtml||spUrl?'<div class="pc-socials">'+linksHtml+(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div>':'')
+        +(linksHtml||spUrl?'<div class="pc2-card pc2-links-card"><div class="pc-socials">'+linksHtml+(spUrl?'<a class="pc-spotify" href="'+esc(spUrl)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div></div>':'')
         +'<div class="pc-highlights hidden" id="pc-highlights"></div>'
       +'</div>'
     +'</div>';
