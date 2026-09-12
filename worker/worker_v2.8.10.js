@@ -14186,7 +14186,16 @@ function buildProfileCardHtml(p,meta,badges,opts){
      avoir rouvert l'app depuis des heures y apparaîtrait toujours vert. En
      lecture on utilise donc computePresence(), qui retombe sur "offline" dès
      que lastSeen est trop ancien, peu importe le statut manuel choisi. */
-  const livePresenceKey=computePresence(p);
+  // Bug remonté : ta PROPRE fiche de profil pouvait s'afficher "Hors ligne"
+  // alors que tu es en train de la regarder, donc forcément connecté —
+  // computePresence(p) se fie uniquement à p.lastSeen (écrit par le
+  // battement de présence périodique), qui peut être en retard de quelques
+  // dizaines de secondes juste après la connexion ou un changement de
+  // statut. refreshSelfBar() (la barre en bas à gauche) évite déjà ce
+  // décalage en lisant meProfile.statusManual en direct — on applique la
+  // même logique ici via opts.livePresenceOverride plutôt que de refaire
+  // confiance à une valeur potentiellement pas encore à jour en base.
+  const livePresenceKey=opts.livePresenceOverride||computePresence(p);
   const pillDef=PRESENCE_DEFS[livePresenceKey]||{dot:'#6b7280',label:'Hors ligne'};
   const lastSeenPillTxt=(livePresenceKey==='offline'&&p.lastSeen)?('Vu il y a '+fmtRelTime(p.lastSeen)):'';
   const dotDef=opts.headerOnly?pillDef:(p.statusManual&&p.statusManual!=='invisible'?presence:null);
@@ -14395,7 +14404,8 @@ async function openProfileModal(uid){
   activeProfileModalUid=uid;
   const renderEl=\$('pm-render');
   if(renderEl){
-    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{headerOnly:true});
+    const livePresenceOverride=isSelf&&meProfile?(meProfile.statusManual==='invisible'?'offline':(meProfile.statusManual||'online')):null;
+    renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{headerOnly:true,livePresenceOverride:livePresenceOverride});
     mountProfileCardExtras(renderEl);
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
   }
