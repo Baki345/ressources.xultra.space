@@ -41,6 +41,16 @@ lancement
 (serveurs, appels, comptes développeur Apple/Google, EAS Build,
 notifications push).
 
+### Bot vocal (musique YouTube + enregistrement)
+
+Bot tiers dans `bot-voice/` — un process Node.js externe (à héberger sur son
+propre VPS, jamais sur l'infra X1) qui utilise le SDK serveur LiveKit
+(`@livekit/rtc-node`) pour rejoindre un salon vocal de serveur ou un appel de
+groupe en DM, y jouer de l'audio YouTube (`yt-dlp` + `ffmpeg`) et enregistrer
+les participants (un `.wav` par personne). Consomme uniquement l'API bot
+publique de X1 (`/api/bot/v1/*`, voir le portail développeur) — aucun accès
+privé au Worker. Voir `bot-voice/README.md` pour le déploiement complet.
+
 ### Appwrite
 - **Endpoint :** `https://fra.cloud.appwrite.io/v1`
 - **Project ID :** `6a73b975002f14dc6b91`
