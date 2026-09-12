@@ -56,4 +56,15 @@ function deleteMessage(serverId, messageId) {
   return botFetch('/api/bot/v1/moderation/delete-message', { serverId: serverId, messageId: messageId });
 }
 
-module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage };
+// ===== Rôles (nécessite "manage_roles" accordée à l'installation) =====
+function listRoles(serverId) {
+  return botFetch('/api/bot/v1/roles/list', { serverId: serverId }).then(function (r) { return r.roles || []; });
+}
+function addRole(serverId, uid, roleId) {
+  return botFetch('/api/bot/v1/roles/add', { serverId: serverId, uid: uid, roleId: roleId });
+}
+function removeRole(serverId, uid, roleId) {
+  return botFetch('/api/bot/v1/roles/remove', { serverId: serverId, uid: uid, roleId: roleId });
+}
+
+module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage, listRoles, addRole, removeRole };

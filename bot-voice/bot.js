@@ -265,7 +265,57 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
     return { content: '✅ Les logs de modération seront postés dans ce salon.', ephemeral: true };
   }
 
+  // Reaction role : le bouton ne fait qu'AJOUTER le rôle (pas de bascule
+  // retrait) — pour retirer un rôle attribué ainsi, un modérateur doit
+  // encore le faire à la main. Volontairement simple pour une première
+  // version ; voir README pour l'idée d'un second bouton "retirer" plus tard.
+  if (name === 'reaction-role') {
+    const roleName = String(args.role || '').trim();
+    const label = String(args.label || 'Obtenir ce rôle').trim().slice(0, 32);
+    if (!roleName) return { content: 'Précise `role:` (nom exact du rôle).', ephemeral: true };
+    let roles;
+    try { roles = await api.listRoles(serverId); }
+    catch (e) { return { content: '❌ ' + e.message, ephemeral: true }; }
+    const match = roles.find(function (r) { return r.name.toLowerCase() === roleName.toLowerCase(); });
+    if (!match) {
+      const names = roles.map(function (r) { return r.name; }).join(', ') || '(aucun rôle sur ce serveur)';
+      return { content: 'Rôle "' + roleName + '" introuvable. Disponibles : ' + names, ephemeral: true };
+    }
+    if (!match.assignable) return { content: 'Ce rôle a des permissions administrateur — un bot ne peut jamais l\'attribuer.', ephemeral: true };
+    return {
+      content: '🎭 Clique pour obtenir le rôle **' + match.name + '**.',
+      components: [{ label: label, style: 'primary', customId: 'rr_' + match.id }]
+    };
+  }
+
+  if (name === 'bienvenue') {
+    const action = String(args.action || 'set').toLowerCase();
+    if (action === 'off') { store.setWelcome(serverId, { enabled: false }); return { content: '🔕 Message de bienvenue désactivé.', ephemeral: true }; }
+    const texte = String(args.texte || '').trim();
+    if (!texte) return { content: 'Précise `texte:` (utilise {membre} pour le pseudo).', ephemeral: true };
+    store.setWelcome(serverId, { enabled: true, channelId: channelId, template: texte });
+    return { content: '✅ Message de bienvenue activé dans ce salon : "' + texte + '"', ephemeral: true };
+  }
+
   return { content: 'Commande inconnue : /' + name, ephemeral: true };
+}
+
+// ===== Clics de bouton (reaction-roles, etc.) =====
+async function handleComponent(payload) {
+  const customId = (payload.component && payload.component.customId) || '';
+  if (customId.indexOf('rr_') === 0) {
+    const roleId = customId.slice(3);
+    const serverId = payload.server && payload.server.id;
+    const uid = payload.user && payload.user.id;
+    if (!serverId || !uid) return { content: 'Contexte invalide.', ephemeral: true };
+    try {
+      await api.addRole(serverId, uid, roleId);
+      return { content: '✅ Rôle attribué !', ephemeral: true };
+    } catch (e) {
+      return { content: '❌ ' + e.message, ephemeral: true };
+    }
+  }
+  return { content: 'Bouton inconnu.', ephemeral: true };
 }
 
 // ===== Dispatch des interactions (commandes slash) =====
@@ -285,9 +335,8 @@ async function handleCommand(payload) {
   return handleModCommand(name, serverId, payload.channel && payload.channel.id, args, payload);
 }
 
-// ===== Événements (auto-mod) =====
-async function handleEvent(payload) {
-  if (payload.event !== 'message_create') return;
+// ===== Événements (auto-mod, bienvenue) =====
+async function handleMessageCreate(payload) {
   const serverId = payload.server && payload.server.id;
   const channelId = payload.data && payload.data.channel && payload.data.channel.id;
   const message = payload.data && payload.data.message;
@@ -310,6 +359,24 @@ async function handleEvent(payload) {
   } catch (e) {
     console.error('[automod] échec de suppression:', e.message);
   }
+}
+
+async function handleMemberJoin(payload) {
+  const serverId = payload.server && payload.server.id;
+  const user = payload.data && payload.data.user;
+  if (!serverId || !user) return;
+  store.learnMember(serverId, user.id, user.username);
+  const welcome = store.load(serverId).welcome;
+  if (!welcome.enabled || !welcome.channelId) return;
+  const text = welcome.template.replace(/\{membre\}/g, user.username || 'nouveau membre');
+  api.sendMessage({ serverId: serverId, channelId: welcome.channelId }, text).catch(function (e) {
+    console.error('[bienvenue] échec d\'envoi:', e.message);
+  });
+}
+
+async function handleEvent(payload) {
+  if (payload.event === 'message_create') return handleMessageCreate(payload);
+  if (payload.event === 'member_join') return handleMemberJoin(payload);
 }
 
 // ===== Serveur HTTP (identique dans l'esprit au kit de démarrage) =====
@@ -343,6 +410,7 @@ const server = http.createServer(function (req, res) {
       let reply;
       try {
         if (payload.type === 'command') reply = await handleCommand(payload);
+        else if (payload.type === 'component') reply = await handleComponent(payload);
         else reply = { content: 'Type d\'interaction non géré.', ephemeral: true };
       } catch (e) {
         console.error('[bot-voice] erreur handler:', e);

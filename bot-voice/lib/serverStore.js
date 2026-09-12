@@ -19,7 +19,8 @@ function defaults() {
     automod: { enabled: false, words: [], antiLinks: false, linkAllowlist: [] },
     modlogsChannelId: '',
     sanctions: {},
-    members: {}
+    members: {},
+    welcome: { enabled: false, channelId: '', template: 'Bienvenue {membre} !' }
   };
 }
 
@@ -103,4 +104,11 @@ function setModlogsChannel(serverId, channelId) {
   save(serverId);
 }
 
-module.exports = { load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel };
+function setWelcome(serverId, patch) {
+  const store = load(serverId);
+  store.welcome = Object.assign({}, store.welcome, patch);
+  save(serverId);
+  return store.welcome;
+}
+
+module.exports = { load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel, setWelcome };

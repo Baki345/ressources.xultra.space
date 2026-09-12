@@ -73,8 +73,9 @@ mon-bot.exemple.com {
 ## Configurer le bot sur X1
 
 1. **Mes bots** → "Bot Vocal" → colle `https://mon-bot.exemple.com/interactions`
-   dans "URL d'interactions" **et** dans "URL d'événements" (coche au moins
-   `message_create` — c'est ce flux qui alimente l'auto-mod, voir plus bas).
+   dans "URL d'interactions" **et** dans "URL d'événements" (coche
+   `message_create` pour l'auto-mod et `member_join` pour le message de
+   bienvenue, voir plus bas).
 2. **✏️ Modifier les commandes** → déclare exactement ces commandes (le code
    dans `bot.js` répond précisément à ces noms/options) :
 
@@ -92,6 +93,8 @@ mon-bot.exemple.com {
    | `automod` | `action` (texte, choix : `on`/`off`/`liens-on`/`liens-off`/`status`) | Active/désactive l'auto-mod, ou affiche son état |
    | `automod-word` | `action` (texte, requis, choix : `add`/`remove`), `mot` (texte, requis) | Ajoute/retire un mot filtré |
    | `modlogs` | `action` (texte, choix : `set`/`disable`) | Fait de CE salon la destination des logs de modération (ou coupe les logs) |
+   | `reaction-role` | `role` (texte, requis), `label` (texte) | Poste un message avec un bouton "obtenir ce rôle" |
+   | `bienvenue` | `action` (texte, choix : `set`/`off`), `texte` (texte, avec `{membre}`) | Message automatique posté dans CE salon à chaque arrivée |
 
    **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
@@ -167,6 +170,19 @@ qu'il reçoit).
 - `membre:` accepte un pseudo **seulement si le bot l'a déjà vu écrire** au
   moins un message depuis son démarrage (c'est comme ça qu'il apprend
   pseudo→uid) — sinon, donne directement l'uid X1 de la personne.
+
+## Rôles & bienvenue
+
+- `/reaction-role role:Membre label:"Je veux ce rôle"` — poste la réponse de
+  la commande elle-même (visible par tout le monde) avec un bouton. Cliquer
+  dessus attribue le rôle nommé au clic. Nécessite la permission
+  `manage_roles` accordée au bot à l'installation. **Le bouton ajoute
+  seulement le rôle** — pour le retirer, un modérateur doit encore le faire
+  à la main (pas de bascule automatique pour l'instant).
+- `/bienvenue action:set texte:"Bienvenue {membre} !"` (tapée dans le salon
+  voulu) — à chaque arrivée sur le serveur (`member_join`), poste ce message
+  dans ce salon, `{membre}` remplacé par le pseudo. `/bienvenue action:off`
+  désactive.
 
 ## Limites connues / pistes d'amélioration
 
