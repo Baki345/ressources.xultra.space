@@ -15147,10 +15147,25 @@ let activeDm=null, activeDmPeerUid=null, activeDmMembers=[], activeDmIsGroup=fal
 // installées par l'utilisateur" de Discord) : au plus un bot par
 // conversation 1:1 (jamais dans un groupe), chargé à l'ouverture de la
 // conversation dans openDm ci-dessous — voir /api/bots/public.
+// Pour un DM DE GROUPE (3+ membres), plusieurs bots peuvent être membres à
+// la fois (voir "Groupe+" et /join en vocal) — un seul bot 1:1 ne suffit
+// plus à représenter cette conversation, d'où ce second cache en parallèle,
+// jamais rempli en même temps qu'activeDmBotInfo (mêmes principes qu'
+// activeServerBotsCache pour un salon de serveur, voir loadActiveServerBots).
 let activeDmBotInfo=null;
+let activeDmGroupBotsCache=[];
 function activeDmBotCommands(){
-  if(!activeDmBotInfo)return [];
-  return (activeDmBotInfo.commands||[]).map(function(c){return {botAppId:activeDmBotInfo.botAppId,botName:activeDmBotInfo.name,name:c.name,description:c.description,options:c.options||[]};});
+  if(activeDmBotInfo)return (activeDmBotInfo.commands||[]).map(function(c){return {botAppId:activeDmBotInfo.botAppId,botName:activeDmBotInfo.name,name:c.name,description:c.description,options:c.options||[]};});
+  const out=[];
+  activeDmGroupBotsCache.forEach(function(b){(b.commands||[]).forEach(function(c){out.push({botAppId:b.botAppId,botName:b.name,name:c.name,description:c.description,options:c.options||[]});});});
+  return out;
+}
+function botAppIdForDmMessage(m){
+  if(!m||!m.isBot)return null;
+  if(activeDmBotInfo)return activeDmBotInfo.botAppId;
+  const publicId=String(m.uid||'').indexOf('bot_')===0?String(m.uid).slice(4):'';
+  const entry=activeDmGroupBotsCache.find(function(b){return b.publicId===publicId});
+  return entry?entry.botAppId:null;
 }
 let msgsOldestId=null,msgsHasMoreOlder=true,msgsLoadingOlder=false;
 async function openDm(threadId,title,peerUid){
@@ -15179,11 +15194,20 @@ async function openDm(threadId,title,peerUid){
   activeDmIsGroup=members.length>2;
   activeDmPeerUid=activeDmIsGroup?null:(peerUid||members.find(function(m){return m!==(me&&me.\$id)})||null);
   activeDmBotInfo=null;
+  activeDmGroupBotsCache=[];
   if(activeDmPeerUid&&String(activeDmPeerUid).indexOf('bot_')===0){
     const botPublicId=String(activeDmPeerUid).slice(4);
     fetch('/api/bots/public?publicId='+encodeURIComponent(botPublicId)).then(function(r){return r.json();}).then(function(j){
       if(j&&j.ok&&activeDmPeerUid===('bot_'+botPublicId))activeDmBotInfo=j.bot;
     }).catch(function(){});
+  }
+  if(activeDmIsGroup){
+    members.filter(function(u){return String(u).indexOf('bot_')===0;}).forEach(function(u){
+      const botPublicId=String(u).slice(4);
+      fetch('/api/bots/public?publicId='+encodeURIComponent(botPublicId)).then(function(r){return r.json();}).then(function(j){
+        if(j&&j.ok&&activeDm===threadId)activeDmGroupBotsCache.push(j.bot);
+      }).catch(function(){});
+    });
   }
   // Ouvrir une conversation force une lecture fraîche de la clé publique de
   // l'interlocuteur plutôt que de faire confiance à un cache potentiellement
@@ -16827,10 +16851,13 @@ function wireMsgContainer(container){
   mountGifFreeze(container);
 }
 async function triggerDmBotComponent(messageId,customId,btnEl){
-  if(!activeDm||!activeDmBotInfo)return;
+  if(!activeDm)return;
+  const m=msgsCache.find(function(x){return x.\$id===messageId});
+  const botAppId=botAppIdForDmMessage(m);
+  if(!botAppId)return;
   if(btnEl)btnEl.disabled=true;
   try{
-    const r=await authPost('/api/bots/interact',{dmThreadId:activeDm,botAppId:activeDmBotInfo.botAppId,kind:'component',customId:customId,messageId:messageId});
+    const r=await authPost('/api/bots/interact',{dmThreadId:activeDm,botAppId:botAppId,kind:'component',customId:customId,messageId:messageId});
     if(r.badgeJustGranted)showToast('🤖 Badge Développeur de Bot débloqué pour le créateur de ce bot !');
     if(r.ephemeral)showBotEphemeralReply(r.content,r.embed,'msgs');
     else{await appendNewMessages();}
@@ -17336,11 +17363,11 @@ async function sendMessage(){
   }
   if(!text||!activeDm||!me)return;
   // Commande /slash vers un bot ajouté en message privé (§ bots
-  // installables en DM) — même contrat que sur un salon de serveur (voir
-  // sendServerChannelMessage), juste posté dans dms_messages côté worker
-  // au lieu de server_channel_messages (voir /api/bots/interact,
-  // paramètre dmThreadId).
-  if(activeDmBotInfo){
+  // installables en DM) OU vers un bot membre d'un DM de groupe (§ Groupe+)
+  // — même contrat que sur un salon de serveur (voir sendServerChannelMessage),
+  // juste posté dans dms_messages côté worker au lieu de
+  // server_channel_messages (voir /api/bots/interact, paramètre dmThreadId).
+  if(activeDmBotCommands().length){
     const slashMatch=/^\\/([a-z0-9_-]{1,32})(?:\\s+([\\s\\S]*))?$/i.exec(text);
     if(slashMatch){
       const cmd=activeDmBotCommands().find(function(c){return c.name===slashMatch[1].toLowerCase();});
@@ -35794,12 +35821,13 @@ async function handle(request, event) {
       }
       if (body.commands !== undefined) {
         const cmds = Array.isArray(body.commands) ? body.commands : [];
-        // 30 plutôt que 15 : la vraie contrainte n'a jamais été le nombre de
+        // 50 plutôt que 30 : la vraie contrainte n'a jamais été le nombre de
         // commandes mais le stockage (commandsJson plafonné à ~8000
         // caractères côté Appwrite/MariaDB, vérifié plus bas à l'octet près)
         // — ce chiffre n'est qu'un garde-fou grossier pour donner une erreur
-        // lisible avant même d'atteindre cette vraie limite.
-        if (cmds.length > 30) throw new Error("30 commandes maximum par bot");
+        // lisible avant même d'atteindre cette vraie limite, relevé pour
+        // laisser de la marge à un bot visant la complétude d'un MEE6/Dyno.
+        if (cmds.length > 50) throw new Error("50 commandes maximum par bot");
         const nameRe = /^[a-z0-9_-]{1,32}$/;
         const seen = {};
         const cleaned = [];
