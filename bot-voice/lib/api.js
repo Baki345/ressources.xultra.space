@@ -67,4 +67,11 @@ function removeRole(serverId, uid, roleId) {
   return botFetch('/api/bot/v1/roles/remove', { serverId: serverId, uid: uid, roleId: roleId });
 }
 
-module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage, listRoles, addRole, removeRole };
+// Pour le dashboard web : vérifie qu'un visiteur (identifié via "Se
+// connecter avec X1") a bien le droit d'administrer ce serveur avant de le
+// laisser toucher à la config du bot.
+function memberPermissions(serverId, uid) {
+  return botFetch('/api/bot/v1/servers/member-permissions', { serverId: serverId, uid: uid }).then(function (r) { return r.permissions || []; });
+}
+
+module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage, listRoles, addRole, removeRole, memberPermissions };

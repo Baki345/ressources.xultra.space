@@ -15,6 +15,7 @@
 //   - yt-dlp          (binaire officiel, voir README.md)
 // Voir README.md pour le détail complet du déploiement.
 const http = require('http');
+const { URL } = require('url');
 const env = require('./lib/env');
 const { verifySignature } = require('./lib/signature');
 const api = require('./lib/api');
@@ -24,6 +25,7 @@ const { Recorder } = require('./lib/recorder');
 const sessions = require('./lib/session');
 const store = require('./lib/serverStore');
 const automod = require('./lib/automod');
+const dashboard = require('./lib/dashboard');
 
 const VOICE_COMMANDS = ['join', 'leave', 'play', 'skip', 'stop', 'queue', 'record'];
 const spamTracker = new automod.SpamTracker(5, 5000); // 5 messages / 5s par personne, tous serveurs confondus (clé "serverId:uid")
@@ -478,6 +480,34 @@ const server = http.createServer(function (req, res) {
       try { payload = JSON.parse(raw); } catch (e) { return; }
       handleEvent(payload).catch(function (e) { console.error('[bot-voice] erreur événement:', e); });
     }).catch(function () { res.writeHead(400); res.end(); });
+    return;
+  }
+
+  const url = new URL(req.url, 'http://localhost');
+
+  if (req.method === 'GET' && url.pathname === '/dashboard') {
+    dashboard.handleDashboard(req, res, Object.fromEntries(url.searchParams)).catch(function (e) {
+      console.error('[dashboard] erreur:', e);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Erreur interne');
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/oauth/callback') {
+    dashboard.handleOauthCallback(req, res, Object.fromEntries(url.searchParams)).catch(function (e) {
+      console.error('[dashboard] erreur callback:', e);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Erreur interne');
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/dashboard/save') {
+    readBody(req).then(function (raw) {
+      return dashboard.handleSave(req, res, raw);
+    }).catch(function (e) {
+      console.error('[dashboard] erreur save:', e);
+      res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }); res.end('Erreur interne');
+    });
     return;
   }
 

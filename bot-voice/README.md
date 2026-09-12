@@ -211,6 +211,42 @@ qu'il reçoit).
 - Pas de boutique/inventaire/jeux/métiers pour l'instant — socle XP +
   monnaie seulement, le reste de la catégorie "Engagement" reste à faire.
 
+## Dashboard web (facultatif)
+
+Une page `/dashboard?serverId=<id>` pour configurer l'auto-mod et le message
+de bienvenue sans passer par des commandes — connexion via **"Se connecter
+avec X1"** (OAuth2 officiel, voir le portail développeur), jamais de mot de
+passe géré par ce bot. Entièrement facultatif : si les variables ci-dessous
+sont vides, `/dashboard` répond juste "non configuré" et tout le reste du
+bot (commandes, voix, auto-mod...) continue de fonctionner normalement.
+
+**Mise en place :**
+
+1. **Paramètres → 👨‍💻 Se connecter avec X1 → + Créer une application** sur
+   ton compte X1 (celui qui possède le bot). URL de redirection à renseigner :
+   `https://mon-bot.exemple.com/oauth/callback` (remplace par ton vrai domaine).
+2. Complète `.env` :
+   ```
+   PUBLIC_URL=https://mon-bot.exemple.com
+   OAUTH_CLIENT_ID=...       # depuis l'application créée à l'étape 1
+   OAUTH_CLIENT_SECRET=...   # idem — jamais exposé au navigateur, reste sur le VPS
+   DASHBOARD_SECRET=...      # une valeur aléatoire à toi (ex. openssl rand -hex 32)
+   ```
+3. `pm2 restart bot-voice`, puis ouvre `https://mon-bot.exemple.com/dashboard?serverId=<id du serveur>`.
+
+**Comment ça vérifie les droits** : après la connexion X1, le bot appelle
+`/api/bot/v1/servers/member-permissions` (routes publiques de l'API bot) pour
+savoir si CE visiteur a `manage_server` sur CE serveur précis — impossible de
+configurer un serveur qui n'est pas le sien, quel que soit son compte X1.
+
+**Limites** : pas de sélecteur de salon pour le message de bienvenue ou les
+logs de modération (X1 n'a pas de route bot pour lister les salons texte,
+contrairement aux salons vocaux) — ces deux-là restent à définir via
+`/bienvenue` et `/modlogs`, tapées dans le salon voulu ; le dashboard ne fait
+qu'afficher s'ils sont déjà définis. Session en cookie signé (12h), pas de
+stockage de session côté serveur — un redémarrage du bot sans
+`DASHBOARD_SECRET` fixé dans `.env` déconnecte tout le monde.
+
 ## Limites connues / pistes d'amélioration
 
 - **Pas de mixage** : un `.wav` séparé par personne, jamais un fichier unique
@@ -251,6 +287,7 @@ bot-voice/
   lib/session.js        état en mémoire par salon/DM (file, connexion, enregistreur)
   lib/serverStore.js     config auto-mod + casier + annuaire pseudo→uid, persistés en JSON
   lib/automod.js         détection (filtre de mots, liens, anti-spam)
+  lib/dashboard.js       dashboard web facultatif ("Se connecter avec X1" + pages HTML)
 ```
 
 `handleCommand()` (commandes) et `handleEvent()` (auto-mod, sur les
