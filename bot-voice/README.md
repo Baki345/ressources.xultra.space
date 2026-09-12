@@ -99,10 +99,19 @@ mon-bot.exemple.com {
    | `ticket-config` | `role` (texte, requis) | Rôle staff qui verra tous les tickets ouverts |
    | `ticket` | `sujet` (texte) | Ouvre un salon de ticket privé (toi + le staff) |
    | `ticket-close` | — (se tape dans le salon du ticket) | Ferme et supprime le ticket courant |
+   | `autorole` | `action` (texte, choix : `off`), `role` (texte) | Rôle attribué automatiquement à chaque arrivée |
+   | `customcmd-add` | `nom` (texte, requis), `reponse` (texte, requis) | Ajoute une commande personnalisée `!nom` |
+   | `customcmd-remove` | `nom` (texte, requis) | Retire une commande personnalisée |
+   | `customcmd-list` | — | Liste les commandes personnalisées du serveur |
+   | `niveau-role` | `action` (texte, requis, choix : `set`/`remove`/`list`), `niveau` (texte), `role` (texte) | Rôle attribué automatiquement à un niveau XP donné |
+   | `giveaway-start` | `prix` (texte, requis), `duree` (texte, requis, en minutes), `gagnants` (texte) | Lance un giveaway avec bouton "Participer" |
+   | `giveaway-end` | — (se tape dans le salon du giveaway) | Termine le giveaway et tire les gagnants immédiatement |
 
-   18 commandes sur 30 possibles. Au-delà, il faut soit en retirer une, soit
+   25 commandes sur 50 possibles. Au-delà, il faut soit en retirer une, soit
    en fusionner (comme `economie` fusionne déjà 3 actions en une seule
-   commande).
+   commande) — les commandes personnalisées (`!nom`, voir plus bas) ne
+   comptent elles jamais dans ce total puisqu'elles ne sont pas déclarées
+   comme de vraies commandes /slash.
 
    **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
@@ -199,6 +208,26 @@ qu'il reçoit).
   voulu) — à chaque arrivée sur le serveur (`member_join`), poste ce message
   dans ce salon, `{membre}` remplacé par le pseudo. `/bienvenue action:off`
   désactive.
+- `/autorole role:Membre` — attribue automatiquement ce rôle à chaque
+  nouvelle arrivée (façon Dyno "autorole"), en plus du message de bienvenue
+  s'il est configuré. `/autorole action:off` désactive. Nécessite
+  `manage_roles`.
+
+## Commandes personnalisées
+
+Façon MEE6 : réponses automatiques déclenchées par un texte préfixé `!`,
+jamais de vraies commandes `/slash` — ça ne coûte donc rien sur le quota de
+50 commandes déclarées par bot, et une commande personnalisée est active
+immédiatement, sans repasser par "✏️ Modifier les commandes".
+
+- `/customcmd-add nom:regles reponse:"Lis le salon #règles avant de poster !"`
+  — quiconque tape `!regles` dans un salon reçoit cette réponse.
+  `{membre}` dans la réponse est remplacé par le pseudo de qui a tapé la
+  commande.
+- `/customcmd-remove nom:regles` — la retire.
+- `/customcmd-list` — liste toutes les commandes personnalisées du serveur.
+- Le nom ne doit contenir que des minuscules, chiffres, `-` et `_` (mêmes
+  règles qu'une vraie commande /slash), sans le `!`.
 
 ## Tickets de support
 
@@ -251,8 +280,32 @@ bot, contrairement à Discord).
 - `/economie action:classement` — top 10 par XP ; `type:argent` pour trier
   par solde à la place.
 - `/economie action:daily` — 100 à 200 pièces, une fois par 24h.
+- `/niveau-role action:set niveau:5 role:VIP` — attribue automatiquement le
+  rôle **VIP** à qui atteint le niveau 5 (façon MEE6 "level rewards").
+  `action:remove niveau:5` retire la récompense, `action:list` les liste
+  toutes. Nécessite `manage_roles`. Ne rattrape pas les niveaux déjà
+  dépassés au moment où la récompense est configurée — seul un futur
+  passage de niveau la déclenche.
 - Pas de boutique/inventaire/jeux/métiers pour l'instant — socle XP +
   monnaie seulement, le reste de la catégorie "Engagement" reste à faire.
+
+## Giveaways
+
+Façon MEE6/Dyno : un message avec un bouton "🎉 Participer", un tirage
+aléatoire à l'expiration du délai.
+
+- `/giveaway-start prix:"1 mois de Nitro" duree:60 gagnants:1` — poste le
+  giveaway dans le salon (durée en minutes, 1 à 10080 soit une semaine
+  maximum ; `gagnants` par défaut 1). Un seul giveaway actif à la fois par
+  salon.
+- `/giveaway-end` — tapée **dans le salon du giveaway** : le termine
+  immédiatement et tire les gagnants sans attendre l'expiration.
+- À l'expiration (ou à `/giveaway-end`), un nouveau message annonce le ou
+  les gagnants tirés au sort parmi les participants, ou "Personne n'a
+  participé" si personne n'a cliqué.
+- **État en mémoire uniquement** (même limite que les sessions vocales,
+  voir plus bas) : un redémarrage du bot pendant un giveaway en cours le
+  perd — les participants déjà inscrits ne sont pas sauvegardés sur disque.
 
 ## Dashboard web (facultatif)
 
@@ -299,7 +352,8 @@ stockage de session côté serveur — un redémarrage du bot sans
   simple à ajouter dans `lib/player.js` si besoin (couper l'écriture vers
   `AudioSource` puis la reprendre).
 - **Sessions en mémoire uniquement** : un redémarrage du process (crash,
-  redéploiement) oublie les salons connectés — retape `/join`.
+  redéploiement) oublie les salons connectés — retape `/join`. Même limite
+  pour les giveaways en cours (voir plus haut).
 - **Recherche YouTube** via `ytsearch1:` (yt-dlp) — prend le premier résultat,
   pas de choix parmi plusieurs.
 - yt-dlp doit rester à jour (`pip install -U yt-dlp` régulièrement) —

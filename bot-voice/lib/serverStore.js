@@ -22,7 +22,10 @@ function defaults() {
     members: {},
     welcome: { enabled: false, channelId: '', template: 'Bienvenue {membre} !' },
     profiles: {},
-    tickets: { staffRoleId: '', nextNumber: 1, open: {} }
+    tickets: { staffRoleId: '', nextNumber: 1, open: {} },
+    autorole: { roleId: '' },
+    customCommands: {},
+    levelRoles: {}
   };
 }
 
@@ -202,8 +205,62 @@ function removeOpenTicket(serverId, channelId) {
   save(serverId);
 }
 
+// ===== Rôle automatique à l'arrivée (façon Dyno "autorole") =====
+function setAutorole(serverId, roleId) {
+  const store = load(serverId);
+  store.autorole.roleId = roleId;
+  save(serverId);
+}
+
+// ===== Commandes personnalisées (façon MEE6 "custom commands") — pas des
+// vraies commandes /slash de X1 (ça consommerait vite le quota déclaré par
+// bot), mais du texte préfixé par "!" détecté dans les messages reçus, voir
+// bot.js/handleMessageCreate. =====
+function addCustomCommand(serverId, trigger, response) {
+  const store = load(serverId);
+  store.customCommands[trigger.toLowerCase()] = response;
+  save(serverId);
+}
+
+function removeCustomCommand(serverId, trigger) {
+  const store = load(serverId);
+  const existed = trigger.toLowerCase() in store.customCommands;
+  delete store.customCommands[trigger.toLowerCase()];
+  save(serverId);
+  return existed;
+}
+
+function getCustomCommand(serverId, trigger) {
+  return load(serverId).customCommands[trigger.toLowerCase()];
+}
+
+function listCustomCommands(serverId) {
+  return load(serverId).customCommands;
+}
+
+// ===== Rôles de récompense par niveau (façon MEE6 "level rewards") =====
+function setLevelRole(serverId, level, roleId) {
+  const store = load(serverId);
+  store.levelRoles[String(level)] = roleId;
+  save(serverId);
+}
+
+function removeLevelRole(serverId, level) {
+  const store = load(serverId);
+  const existed = String(level) in store.levelRoles;
+  delete store.levelRoles[String(level)];
+  save(serverId);
+  return existed;
+}
+
+function listLevelRoles(serverId) {
+  return load(serverId).levelRoles;
+}
+
 module.exports = {
   load, learnMember, resolveMember, addSanction, getSanctions, setAutomod, addBannedWord, removeBannedWord, setModlogsChannel, setWelcome,
   getProfile, canEarnXp, markXpTimestamp, addXp, claimDaily, leaderboard,
-  setTicketStaffRole, nextTicketNumber, addOpenTicket, getOpenTicket, removeOpenTicket
+  setTicketStaffRole, nextTicketNumber, addOpenTicket, getOpenTicket, removeOpenTicket,
+  setAutorole, addCustomCommand, removeCustomCommand, getCustomCommand, listCustomCommands,
+  setLevelRole, removeLevelRole, listLevelRoles
 };

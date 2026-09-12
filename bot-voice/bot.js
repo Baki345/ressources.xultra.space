@@ -30,6 +30,14 @@ const dashboard = require('./lib/dashboard');
 const VOICE_COMMANDS = ['join', 'leave', 'play', 'skip', 'stop', 'queue', 'record'];
 const spamTracker = new automod.SpamTracker(5, 5000); // 5 messages / 5s par personne, tous serveurs confondus (clé "serverId:uid")
 
+// ===== Giveaways (façon MEE6/Dyno) — état en mémoire uniquement, comme les
+// sessions vocales : un redémarrage du bot oublie les giveaways en cours
+// (même limite déjà acceptée pour les sessions de vocal, voir README).
+// giveawayId -> { serverId, channelId, prize, winnersCount, participants:Set<uid>, names:Map<uid,pseudo>, timer }
+const giveaways = new Map();
+const giveawayByChannel = new Map(); // channelId -> giveawayId, pour /giveaway-end et empêcher les doublons dans un même salon
+let giveawaySeq = 0;
+
 // ---- Contexte cible (salon de serveur OU DM de groupe) pour les commandes de VOIX ----
 // Un salon vocal n'a pas de zone de saisie (voir README) : toute commande
 // arrive donc depuis un salon TEXTE du même serveur, jamais depuis le salon
@@ -181,6 +189,29 @@ async function handleVoiceCommand(name, target, args, payload) {
   }
 
   return { content: 'Commande inconnue : /' + name, ephemeral: true };
+}
+
+function endGiveaway(giveawayId) {
+  const g = giveaways.get(giveawayId);
+  if (!g) return;
+  clearTimeout(g.timer);
+  giveaways.delete(giveawayId);
+  giveawayByChannel.delete(g.channelId);
+  const pool = Array.from(g.participants);
+  if (!pool.length) {
+    api.sendMessage({ serverId: g.serverId, channelId: g.channelId }, '🎉 Giveaway terminé — **' + g.prize + '**\nPersonne n\'a participé.').catch(function () {});
+    return;
+  }
+  const winners = [];
+  const pick = pool.slice();
+  for (let i = 0; i < g.winnersCount && pick.length; i++) {
+    const idx = Math.floor(Math.random() * pick.length);
+    winners.push(pick.splice(idx, 1)[0]);
+  }
+  const names = winners.map(function (uid) { return g.names.get(uid) || uid; });
+  api.sendMessage({ serverId: g.serverId, channelId: g.channelId },
+    '🎉 Giveaway terminé — **' + g.prize + '**\n' + (names.length > 1 ? 'Gagnants' : 'Gagnant') + ' : ' + names.map(function (n) { return '**' + n + '**'; }).join(', ')
+  ).catch(function () {});
 }
 
 // ===== Auto-mod / sanctions / logs =====
@@ -405,6 +436,120 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
     return { content: '⏳ Fermeture du ticket…', ephemeral: true };
   }
 
+  // Rôle automatique à l'arrivée (façon Dyno "autorole") — voir handleMemberJoin.
+  if (name === 'autorole') {
+    const action = String(args.action || '').toLowerCase();
+    if (action === 'off') { store.setAutorole(serverId, ''); return { content: '🔕 Rôle automatique désactivé.', ephemeral: true }; }
+    const roleName = String(args.role || '').trim();
+    if (!roleName) return { content: 'Précise `role:` (nom exact du rôle), ou `action:off` pour désactiver.', ephemeral: true };
+    let roles;
+    try { roles = await api.listRoles(serverId); }
+    catch (e) { return { content: '❌ ' + e.message, ephemeral: true }; }
+    const match = roles.find(function (r) { return r.name.toLowerCase() === roleName.toLowerCase(); });
+    if (!match) {
+      const names = roles.map(function (r) { return r.name; }).join(', ') || '(aucun rôle sur ce serveur)';
+      return { content: 'Rôle "' + roleName + '" introuvable. Disponibles : ' + names, ephemeral: true };
+    }
+    if (!match.assignable) return { content: 'Ce rôle a des permissions administrateur — un bot ne peut jamais l\'attribuer.', ephemeral: true };
+    store.setAutorole(serverId, match.id);
+    return { content: '✅ Le rôle **' + match.name + '** sera attribué automatiquement à chaque nouvelle arrivée.', ephemeral: true };
+  }
+
+  // Commandes personnalisées (façon MEE6) — déclenchées par un préfixe "!"
+  // dans le texte des messages plutôt que par une vraie commande /slash
+  // (voir handleMessageCreate) : une seule commande /slash suffit pour en
+  // gérer un nombre illimité, sans jamais toucher au quota de 50 commandes
+  // déclarées par bot.
+  if (name === 'customcmd-add') {
+    const nom = String(args.nom || '').trim().toLowerCase();
+    const reponse = String(args.reponse || '').trim();
+    if (!nom || !/^[a-z0-9_-]{1,32}$/.test(nom)) return { content: 'Précise `nom:` (minuscules, chiffres, - et _ uniquement, sans espace).', ephemeral: true };
+    if (!reponse) return { content: 'Précise `reponse:` (utilise {membre} pour le pseudo de qui déclenche la commande).', ephemeral: true };
+    store.addCustomCommand(serverId, nom, reponse);
+    return { content: '✅ Commande **!' + nom + '** enregistrée.', ephemeral: true };
+  }
+
+  if (name === 'customcmd-remove') {
+    const nom = String(args.nom || '').trim().toLowerCase();
+    if (!nom) return { content: 'Précise `nom:`.', ephemeral: true };
+    const existed = store.removeCustomCommand(serverId, nom);
+    return { content: existed ? ('🗑️ Commande **!' + nom + '** retirée.') : 'Cette commande n\'existe pas.', ephemeral: true };
+  }
+
+  if (name === 'customcmd-list') {
+    const cmds = store.listCustomCommands(serverId);
+    const names = Object.keys(cmds);
+    if (!names.length) return { content: 'Aucune commande personnalisée pour l\'instant — voir `/customcmd-add`.', ephemeral: true };
+    return { content: '📜 Commandes personnalisées (' + names.length + ') :\n' + names.map(function (n) { return '!' + n; }).join(', '), ephemeral: true };
+  }
+
+  // Rôles de récompense par niveau (façon MEE6 "level rewards") — voir
+  // handleMessageCreate pour l'attribution automatique au passage de niveau.
+  if (name === 'niveau-role') {
+    const action = String(args.action || '').toLowerCase();
+    if (action === 'list') {
+      const map = store.listLevelRoles(serverId);
+      const levels = Object.keys(map);
+      if (!levels.length) return { content: 'Aucune récompense de niveau configurée.', ephemeral: true };
+      let roles = [];
+      try { roles = await api.listRoles(serverId); } catch (e) {}
+      const lines = levels.sort(function (a, b) { return Number(a) - Number(b); }).map(function (lvl) {
+        const role = roles.find(function (r) { return r.id === map[lvl]; });
+        return 'Niveau ' + lvl + ' → ' + (role ? role.name : map[lvl]);
+      });
+      return { content: '🏅 Récompenses de niveau :\n' + lines.join('\n'), ephemeral: true };
+    }
+    const niveau = parseInt(args.niveau, 10);
+    if (!niveau || niveau < 1) return { content: 'Précise `niveau:` (un nombre entier ≥ 1).', ephemeral: true };
+    if (action === 'remove') {
+      const existed = store.removeLevelRole(serverId, niveau);
+      return { content: existed ? ('🗑️ Récompense du niveau ' + niveau + ' retirée.') : 'Aucune récompense configurée pour ce niveau.', ephemeral: true };
+    }
+    const roleName = String(args.role || '').trim();
+    if (!roleName) return { content: 'Précise `role:` (nom exact du rôle à donner à ce niveau).', ephemeral: true };
+    let roles;
+    try { roles = await api.listRoles(serverId); }
+    catch (e) { return { content: '❌ ' + e.message, ephemeral: true }; }
+    const match = roles.find(function (r) { return r.name.toLowerCase() === roleName.toLowerCase(); });
+    if (!match) {
+      const names = roles.map(function (r) { return r.name; }).join(', ') || '(aucun rôle sur ce serveur)';
+      return { content: 'Rôle "' + roleName + '" introuvable. Disponibles : ' + names, ephemeral: true };
+    }
+    if (!match.assignable) return { content: 'Ce rôle a des permissions administrateur — un bot ne peut jamais l\'attribuer.', ephemeral: true };
+    store.setLevelRole(serverId, niveau, match.id);
+    return { content: '✅ Le rôle **' + match.name + '** sera attribué automatiquement au niveau ' + niveau + '.', ephemeral: true };
+  }
+
+  // Giveaways (façon MEE6/Dyno) : le message posté EN RÉPONSE à cette
+  // commande (content + components) porte lui-même le bouton "Participer" —
+  // aucun besoin de connaître son messageId ensuite, le customId du bouton
+  // (ga_<id>) suffit à retrouver le bon giveaway.
+  if (name === 'giveaway-start') {
+    const prix = String(args.prix || '').trim().slice(0, 200);
+    if (!prix) return { content: 'Précise `prix:` (ce que la personne gagne).', ephemeral: true };
+    const duree = Math.min(10080, Math.max(1, parseInt(args.duree, 10) || 0));
+    if (!duree) return { content: 'Précise `duree:` (en minutes, entre 1 et 10080).', ephemeral: true };
+    const gagnants = Math.min(20, Math.max(1, parseInt(args.gagnants, 10) || 1));
+    if (giveawayByChannel.has(channelId)) return { content: 'Il y a déjà un giveaway en cours dans ce salon — termine-le d\'abord avec `/giveaway-end`.', ephemeral: true };
+    const giveawayId = 'g' + (Date.now().toString(36)) + (giveawaySeq++).toString(36);
+    const endsAt = Date.now() + duree * 60000;
+    const timer = setTimeout(function () { endGiveaway(giveawayId); }, duree * 60000);
+    giveaways.set(giveawayId, { serverId: serverId, channelId: channelId, prize: prix, winnersCount: gagnants, participants: new Set(), names: new Map(), timer: timer });
+    giveawayByChannel.set(channelId, giveawayId);
+    const endsTxt = new Date(endsAt).toLocaleString('fr-FR');
+    return {
+      content: '🎉 **Giveaway !**\nÀ gagner : **' + prix + '**\n' + gagnants + ' gagnant' + (gagnants > 1 ? 's' : '') + ' · se termine le ' + endsTxt,
+      components: [{ label: '🎉 Participer', style: 'primary', customId: 'ga_' + giveawayId }]
+    };
+  }
+
+  if (name === 'giveaway-end') {
+    const giveawayId = giveawayByChannel.get(channelId);
+    if (!giveawayId) return { content: 'Aucun giveaway en cours dans ce salon.', ephemeral: true };
+    endGiveaway(giveawayId);
+    return { content: '⏹️ Giveaway terminé.', ephemeral: true };
+  }
+
   return { content: 'Commande inconnue : /' + name, ephemeral: true };
 }
 
@@ -422,6 +567,16 @@ async function handleComponent(payload) {
     } catch (e) {
       return { content: '❌ ' + e.message, ephemeral: true };
     }
+  }
+  if (customId.indexOf('ga_') === 0) {
+    const giveawayId = customId.slice(3);
+    const g = giveaways.get(giveawayId);
+    const uid = payload.user && payload.user.id;
+    if (!g || !uid) return { content: 'Ce giveaway est terminé.', ephemeral: true };
+    if (g.participants.has(uid)) return { content: 'Tu participes déjà !', ephemeral: true };
+    g.participants.add(uid);
+    g.names.set(uid, (payload.user && payload.user.username) || uid);
+    return { content: '✅ Tu participes ! (' + g.participants.size + ' participant' + (g.participants.size > 1 ? 's' : '') + ')', ephemeral: true };
   }
   return { content: 'Bouton inconnu.', ephemeral: true };
 }
@@ -470,6 +625,18 @@ async function handleMessageCreate(payload) {
     }
   }
 
+  // Commandes personnalisées (façon MEE6) — un texte préfixé par "!" plutôt
+  // qu'une vraie commande /slash (voir /customcmd-add) : détecté ici comme
+  // n'importe quel autre message reçu, jamais déclaré au quota de commandes.
+  const trimmed = String(message.content || '').trim();
+  if (trimmed.charAt(0) === '!') {
+    const trigger = trimmed.slice(1).split(/\s+/)[0].toLowerCase();
+    const response = trigger && store.getCustomCommand(serverId, trigger);
+    if (response) {
+      api.sendMessage({ serverId: serverId, channelId: channelId }, response.replace(/\{membre\}/g, message.author.username || 'membre')).catch(function () {});
+    }
+  }
+
   // XP texte : un gain aléatoire par message, avec un délai (60s) entre deux
   // gains par personne pour ne pas récompenser le simple débit de messages.
   if (store.canEarnXp(serverId, message.author.id)) {
@@ -478,6 +645,14 @@ async function handleMessageCreate(payload) {
     const result = store.addXp(serverId, message.author.id, message.author.username, gained);
     if (result.leveledUp) {
       api.sendMessage({ serverId: serverId, channelId: channelId }, '🎉 **' + message.author.username + '** passe niveau **' + result.profile.level + '** !').catch(function () {});
+      // Rôle de récompense (façon MEE6 "level rewards") : uniquement si CE
+      // niveau précis a une récompense configurée — voir /niveau-role.
+      const roleId = store.listLevelRoles(serverId)[String(result.profile.level)];
+      if (roleId) {
+        api.addRole(serverId, message.author.id, roleId).catch(function (e) {
+          console.error('[niveau-role] échec d\'attribution:', e.message);
+        });
+      }
     }
   }
 }
@@ -487,7 +662,13 @@ async function handleMemberJoin(payload) {
   const user = payload.data && payload.data.user;
   if (!serverId || !user) return;
   store.learnMember(serverId, user.id, user.username);
-  const welcome = store.load(serverId).welcome;
+  const cfg = store.load(serverId);
+  if (cfg.autorole.roleId) {
+    api.addRole(serverId, user.id, cfg.autorole.roleId).catch(function (e) {
+      console.error('[autorole] échec d\'attribution:', e.message);
+    });
+  }
+  const welcome = cfg.welcome;
   if (!welcome.enabled || !welcome.channelId) return;
   const text = welcome.template.replace(/\{membre\}/g, user.username || 'nouveau membre');
   api.sendMessage({ serverId: serverId, channelId: welcome.channelId }, text).catch(function (e) {
