@@ -11497,6 +11497,8 @@ async function renderSetBots(box){
       +'<div class="oauth-doc-step"><b>"Gateway" événementielle</b> — X1 ne fonctionne pas sur un process persistant (Worker Cloudflare sans état entre deux requêtes), donc pas de vraie connexion permanente façon Discord. À la place : renseigne une <b>URL d\\'événements</b> ci-dessus et coche les types qui t\\'intéressent — X1 t\\'envoie alors un POST signé (même en-tête <code>X-X1-Signature</code>) à chaque événement, sans attendre de réponse (aucune garantie de livraison, comme un webhook classique — pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne) :</div>'
       +oauthCodeBlockHtml('bot-doc-event','{\\n  "type": "event",\\n  "event": "message_create",   // ou message_delete, member_join, member_leave\\n  "server": { "id": "...", "name": "..." },\\n  "data": { "channel": { "id": "..." }, "message": { "id": "...", "author": { "id": "...", "username": "..." }, "content": "..." } },\\n  "ts": 1234567890\\n}')
       +'<div class="oauth-doc-step">🎙️ <b>Vocal</b> — les salons vocaux de serveur tournent sur <a href="https://livekit.io" target="_blank" rel="noopener">LiveKit</a> (un vrai SFU), jamais du WebRTC fait main : ton bot n\\'a donc pas besoin de réimplémenter ICE/DTLS/SRTP, juste d\\'utiliser le <b>SDK serveur LiveKit</b> dans ton propre process (<code>@livekit/rtc-node</code> en Node.js, ou l\\'équivalent Python/Go). Le propriétaire du serveur doit d\\'abord t\\'accorder l\\'accès vocal (paramètres du serveur → 🤖 Bots), puis tu demandes un jeton :</div>'
+      +'<div class="oauth-doc-step">⚠️ Un salon vocal n\\'a pas de zone de saisie — une commande slash ne peut donc jamais être tapée depuis le salon vocal cible lui-même, seulement depuis un salon texte du même serveur. Prévois une option (ex. <code>salon</code>) pour que l\\'utilisateur nomme le salon vocal voulu, et résous ce nom en ID avec cette route :</div>'
+      +oauthCodeBlockHtml('bot-doc-voice-channels','const res = await fetch(\\'https://xultra.space/api/bot/v1/voice/channels\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId }) });\\nconst { channels } = await res.json(); // [{ id, name, type: \\'voice\\'|\\'stage\\' }, ...]')
       +oauthCodeBlockHtml('bot-doc-voice-token','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\nconst res = await fetch(\\'https://xultra.space/api/bot/v1/voice/token\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, channelId }) });\\nconst { token, wsUrl, room } = await res.json();\\n// Optionnel, juste pour l\\'affichage : fait apparaître le bot dans la liste des participants du salon.\\nawait fetch(\\'https://xultra.space/api/bot/v1/voice/presence/join\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, channelId }) });')
       +'<div class="oauth-doc-step">Puis rejoins le salon avec le SDK serveur LiveKit (exemple Node.js — <code>npm i @livekit/rtc-node</code>) :</div>'
       +oauthCodeBlockHtml('bot-doc-voice-connect','import { Room, AudioSource, LocalAudioTrack, TrackPublishOptions, TrackSource } from \\'@livekit/rtc-node\\';\\n\\nconst room = new Room();\\nawait room.connect(wsUrl, token, { autoSubscribe: true });\\n\\n// Recevoir l\\'audio des humains présents dans le salon :\\nroom.on(\\'trackSubscribed\\', (track, publication, participant) => {\\n  if (track.kind === \\'audio\\') {\\n    // track.on(\\'frameReceived\\', ...) — chaque frame audio brute (PCM),\\n    // à toi de faire STT/traitement/relais, X1 ne fournit aucun traitement audio.\\n  }\\n});\\n\\n// Envoyer de l\\'audio dans le salon (ex : une réponse TTS) :\\nconst source = new AudioSource(48000, 1);\\nconst track = LocalAudioTrack.createAudioTrack(\\'bot-voice\\', source);\\nawait room.localParticipant.publishTrack(track, new TrackPublishOptions({ source: TrackSource.SOURCE_MICROPHONE }));\\n// source.captureFrame(frame) pour pousser de l\\'audio PCM 48kHz mono.')
@@ -36309,6 +36311,31 @@ async function handle(request, event) {
     const { install } = await resolveBotServerInstall(bot, serverId);
     if (!install.botVoiceEnabled) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
     return channel;
+  }
+  // Un salon vocal n'a pas de composer texte (voir renderServerChannelContent
+  // côté client : type "voice"/"stage" n'affiche qu'une carte de statut,
+  // jamais de zone de saisie) — une commande slash ne peut donc JAMAIS être
+  // tapée depuis le salon vocal cible lui-même, seulement depuis un salon
+  // texte du même serveur. Un bot vocal a besoin de connaître les salons
+  // vocaux disponibles pour laisser l'utilisateur en nommer un (ex.
+  // "/join salon:Lounge 1") plutôt que de deviner un ID.
+  if (path === "/api/bot/v1/voice/channels" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const { install } = await resolveBotServerInstall(bot, serverId);
+      if (!install.botVoiceEnabled) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
+      const q = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      const channels = (q.documents || [])
+        .filter(function (c) { return c.type === "voice" || c.type === "stage"; })
+        .map(function (c) { return { id: c.$id, name: c.name, type: c.type }; });
+      return new Response(JSON.stringify({ ok: true, channels: channels }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
   }
   if (path === "/api/bot/v1/voice/token" && request.method === "POST") {
     try {
