@@ -11528,6 +11528,10 @@ async function renderSetBots(box){
       +'<div class="oauth-doc-step"><b>7. Déclare tes commandes</b> (« ✏️ Modifier les commandes ») : <code>ping</code> (aucune option), <code>say</code> (une option texte <code>texte</code>), <code>info</code> (aucune option) — le kit sait déjà y répondre.</div>'
       +'<div class="oauth-doc-step"><b>8. Installe ton bot</b> sur un serveur (Paramètres du serveur → 🤖 Bots → colle son identifiant public) et tape <code>/ping</code> pour vérifier que tout fonctionne.</div>'
       +'<div class="oauth-doc-step">La logique du bot tient dans les fonctions <code>handleCommand()</code> et <code>handleComponent()</code> au milieu de <code>bot-x1.js</code> — modifie-les librement, c\\'est un point de départ, pas une boîte noire.</div>'
+    +'</div>'
+    +'<div class="set-card" style="margin-top:18px">'
+      +'<div class="set-section-label">🎙️ Envie de vocal, musique et modération dès le départ ?</div>'
+      +'<div class="scr-sub">Le kit ci-dessus reste volontairement minimal (zéro dépendance, juste du texte) pour être le plus simple possible à héberger. Pour un bot qui rejoint un salon vocal (LiveKit), joue de la musique YouTube, enregistre le vocal, et fait de l\\'auto-mod/reaction-roles/niveaux XP, un second template complet (avec ses dépendances npm) est disponible sur le dépôt GitHub d\\'X1 : <a href="https://github.com/Baki345/ressources.xultra.space/tree/claude/xultra-space-code-review-gzpd84/bot-voice" target="_blank" rel="noopener">dossier <code>bot-voice/</code></a>. Son propre README détaille l\\'installation (Node.js + ffmpeg + yt-dlp) et toutes les commandes.</div>'
     +'</div>';
   wireOauthCodeBlocks(box);
   \$('bot-new-btn').addEventListener('click',function(){\$('bot-new-form').classList.toggle('hidden');});
