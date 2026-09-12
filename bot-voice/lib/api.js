@@ -42,4 +42,18 @@ function listVoiceChannels(serverId) {
   return botFetch('/api/bot/v1/voice/channels', { serverId: serverId }).then(function (r) { return r.channels || []; });
 }
 
-module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels };
+// ===== Modération (nécessite les permissions accordées à l'installation) =====
+function kick(serverId, uid) {
+  return botFetch('/api/bot/v1/moderation/kick', { serverId: serverId, uid: uid });
+}
+function ban(serverId, uid, unban) {
+  return botFetch('/api/bot/v1/moderation/ban', { serverId: serverId, uid: uid, unban: !!unban });
+}
+function timeout(serverId, uid, minutes) {
+  return botFetch('/api/bot/v1/moderation/timeout', { serverId: serverId, uid: uid, minutes: minutes });
+}
+function deleteMessage(serverId, messageId) {
+  return botFetch('/api/bot/v1/moderation/delete-message', { serverId: serverId, messageId: messageId });
+}
+
+module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels, kick, ban, timeout, deleteMessage };

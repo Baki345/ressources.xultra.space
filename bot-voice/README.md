@@ -1,10 +1,11 @@
-# Bot vocal X1 — musique YouTube + enregistrement
+# Bot X1 — voix (musique YouTube + enregistrement) + auto-mod
 
 Étend le [kit de démarrage officiel](https://xultra.space) (`bot-x1.js`) avec
 une vraie connexion vocale [LiveKit](https://livekit.io) (`@livekit/rtc-node`) :
 le bot peut rejoindre un salon vocal de serveur ou un appel de groupe en DM,
 y jouer de l'audio YouTube, et enregistrer les personnes qui parlent (un
-fichier `.wav` par personne).
+fichier `.wav` par personne) — plus un socle de modération (filtre de mots,
+anti-liens, anti-spam, sanctions, casier, logs).
 
 C'est un **process externe** — X1 (Cloudflare Worker) ne peut pas tenir une
 connexion vocale persistante lui-même, voir le portail développeur (Mes bots
@@ -72,7 +73,8 @@ mon-bot.exemple.com {
 ## Configurer le bot sur X1
 
 1. **Mes bots** → "Bot Vocal" → colle `https://mon-bot.exemple.com/interactions`
-   dans "URL d'interactions".
+   dans "URL d'interactions" **et** dans "URL d'événements" (coche au moins
+   `message_create` — c'est ce flux qui alimente l'auto-mod, voir plus bas).
 2. **✏️ Modifier les commandes** → déclare exactement ces commandes (le code
    dans `bot.js` répond précisément à ces noms/options) :
 
@@ -85,15 +87,26 @@ mon-bot.exemple.com {
    | `stop` | `salon` (texte) | Vide la file et arrête la lecture |
    | `queue` | `salon` (texte) | Liste les morceaux en attente |
    | `record` | `action` (texte, requis, choix : `start` / `stop`), `salon` (texte) | Démarre/arrête l'enregistrement |
+   | `sanction` | `type` (texte, requis, choix : `warn`/`mute`/`kick`/`ban`/`unban`), `membre` (texte, requis), `raison` (texte), `minutes` (texte, pour `mute`) | Applique une sanction |
+   | `casier` | `membre` (texte, requis) | Historique des sanctions d'un membre |
+   | `automod` | `action` (texte, choix : `on`/`off`/`liens-on`/`liens-off`/`status`) | Active/désactive l'auto-mod, ou affiche son état |
+   | `automod-word` | `action` (texte, requis, choix : `add`/`remove`), `mot` (texte, requis) | Ajoute/retire un mot filtré |
+   | `modlogs` | `action` (texte, choix : `set`/`disable`) | Fait de CE salon la destination des logs de modération (ou coupe les logs) |
 
    **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
-   le salon vocal lui-même. C'est pour ça que `salon` existe : c'est ainsi que
-   le bot sait quel salon vocal tu vises (voir "Commandes disponibles"
-   ci-dessous pour quand `salon` peut être omis).
+   le salon vocal lui-même. C'est pour ça que `salon` existe sur les
+   commandes de voix : c'est ainsi que le bot sait quel salon vocal tu vises
+   (voir "Commandes disponibles" ci-dessous pour quand `salon` peut être
+   omis). Les commandes de modération, elles, n'en ont pas besoin — elles
+   s'appliquent toujours au serveur entier.
 
-3. Le bot doit déjà être installé sur le serveur voulu avec **🎙️ Rejoindre
-   les salons vocaux** coché (ou invité dans un DM de groupe existant).
+3. Pour la voix : le bot doit être installé sur le serveur voulu avec
+   **🎙️ Rejoindre les salons vocaux** coché (ou invité dans un DM de groupe
+   existant). Pour la modération : coche les permissions correspondantes à
+   l'installation (`moderate_members` pour mute/auto-mod, `kick_members`,
+   `ban_members`) — le bot ne peut jamais recevoir plus que ce que la
+   personne qui l'installe détient elle-même.
 4. Depuis n'importe quel salon **texte** du serveur, tape `/join salon:Lounge 1`
    (remplace par le nom réel du salon vocal).
 
@@ -119,6 +132,42 @@ possible, pas d'ambiguïté.
   chacun. Pas d'upload automatique : les fichiers restent sur ton VPS, à toi
   de les récupérer (`scp`, etc.) — le bot n'a pas d'API d'envoi de fichier.
 
+## Modération
+
+Tout est stocké dans un fichier JSON par serveur (`data/servers/<id>.json` —
+aucune base de données, X1 n'en fournit pas au bot) : config auto-mod,
+casier de sanctions, et un annuaire pseudo→uid appris au fil des messages
+reçus (X1 n'a pas de route bot pour chercher un membre par pseudo — le bot
+apprend donc lui-même "qui est qui" à partir des événements `message_create`
+qu'il reçoit).
+
+- `/automod action:on` / `action:off` — active/désactive tout l'auto-mod.
+- `/automod-word action:add mot:<mot>` / `action:remove mot:<mot>` — gère la
+  liste de mots filtrés (recherche en mot entier, insensible à la casse).
+- `/automod action:liens-on` / `action:liens-off` — bloque tout lien
+  `http(s)://` non listé dans `linkAllowlist` (à éditer directement dans le
+  fichier JSON du serveur pour l'instant, pas encore de commande dédiée).
+- **Anti-spam** : intégré, pas de commande — 5 messages en 5 secondes par
+  personne déclenche l'action, sans configuration.
+- Une violation détectée = le message est supprimé
+  (`/api/bot/v1/moderation/delete-message`) + une note est postée dans le
+  salon + une entrée "automod" est ajoutée au casier de l'auteur.
+- `/sanction type:warn membre:<pseudo> raison:<texte>` — un avertissement
+  n'a pas d'équivalent côté X1 (aucun concept natif) : uniquement suivi par
+  ce bot, dans le casier.
+- `/sanction type:mute membre:<pseudo> minutes:10 raison:<texte>` — timeout
+  réel côté X1 (nécessite la permission `moderate_members` accordée au bot).
+- `/sanction type:kick|ban|unban membre:<pseudo> raison:<texte>` — nécessite
+  `kick_members`/`ban_members`.
+- `/casier membre:<pseudo>` — historique complet (avertissements + sanctions
+  réelles + auto-mod) pour cette personne sur ce serveur.
+- `/modlogs` (tapée dans le salon voulu) — chaque sanction (manuelle ou
+  auto-mod) est ensuite postée là sous forme d'embed. `/modlogs action:disable`
+  coupe les logs.
+- `membre:` accepte un pseudo **seulement si le bot l'a déjà vu écrire** au
+  moins un message depuis son démarrage (c'est comme ça qu'il apprend
+  pseudo→uid) — sinon, donne directement l'uid X1 de la personne.
+
 ## Limites connues / pistes d'amélioration
 
 - **Pas de mixage** : un `.wav` séparé par personne, jamais un fichier unique
@@ -133,20 +182,35 @@ possible, pas d'ambiguïté.
   pas de choix parmi plusieurs.
 - yt-dlp doit rester à jour (`pip install -U yt-dlp` régulièrement) —
   YouTube change son site plus vite que certaines versions figées.
+- **Casier/config par serveur non sauvegardés ailleurs que sur ce VPS** :
+  pense à sauvegarder `data/` si tu tiens à cet historique.
+- **`membre:` par pseudo dépend de la mémoire du bot** (voir plus haut) —
+  après un redémarrage, un pseudo jamais revu depuis ne se résout plus tant
+  que la personne n'a pas reposté (le fichier `data/servers/<id>.json`
+  garde l'ancien annuaire, donc en pratique ça ne se réinitialise pas, sauf
+  suppression manuelle du fichier).
+- **Anti-liens** : liste blanche modifiable seulement en éditant le JSON
+  pour l'instant (pas de commande dédiée) ; l'auto-mod ne connaît que la
+  détection par mot entier / URL brute, pas de filtre "intelligent"
+  (contournable par des variantes orthographiques volontaires).
 
 ## Structure
 
 ```
 bot-voice/
-  bot.js              serveur HTTP (/interactions, /events) + dispatch des commandes
-  lib/env.js          chargement .env + config
-  lib/signature.js     vérification HMAC (identique au kit de démarrage)
-  lib/api.js           appels aux routes /api/bot/v1/* de X1
-  lib/voice.js         connexion/déconnexion LiveKit + piste audio publiée
-  lib/player.js        yt-dlp + ffmpeg → PCM → AudioSource (lecture)
-  lib/recorder.js       abonnement aux pistes distantes → fichiers .wav (enregistrement)
-  lib/session.js       état en mémoire par salon/DM (file, connexion, enregistreur)
+  bot.js               serveur HTTP (/interactions, /events) + dispatch des commandes
+  lib/env.js           chargement .env + config
+  lib/signature.js      vérification HMAC (identique au kit de démarrage)
+  lib/api.js            appels aux routes /api/bot/v1/* de X1
+  lib/voice.js          connexion/déconnexion LiveKit + piste audio publiée
+  lib/player.js         yt-dlp + ffmpeg → PCM → AudioSource (lecture)
+  lib/recorder.js        abonnement aux pistes distantes → fichiers .wav (enregistrement)
+  lib/session.js        état en mémoire par salon/DM (file, connexion, enregistreur)
+  lib/serverStore.js     config auto-mod + casier + annuaire pseudo→uid, persistés en JSON
+  lib/automod.js         détection (filtre de mots, liens, anti-spam)
 ```
 
-`handleCommand()` dans `bot.js` reste le point d'entrée à modifier pour
-ajouter/changer des commandes — même esprit que le kit de démarrage.
+`handleCommand()` (commandes) et `handleEvent()` (auto-mod, sur les
+événements `message_create`) dans `bot.js` restent les points d'entrée à
+modifier pour ajouter/changer des fonctionnalités — même esprit que le kit
+de démarrage.

@@ -36,5 +36,6 @@ module.exports = {
   LIVEKIT_WS_URL: process.env.LIVEKIT_WS_URL || 'wss://voice.xultra.space',
   RECORDINGS_DIR: process.env.RECORDINGS_DIR || path.join(__dirname, '..', 'recordings'),
   YTDLP_PATH: process.env.YTDLP_PATH || 'yt-dlp',
-  FFMPEG_PATH: process.env.FFMPEG_PATH || 'ffmpeg'
+  FFMPEG_PATH: process.env.FFMPEG_PATH || 'ffmpeg',
+  DATA_DIR: process.env.DATA_DIR || path.join(__dirname, '..', 'data')
 };
