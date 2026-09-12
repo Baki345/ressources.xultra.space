@@ -20,10 +20,15 @@ jest.mock('../profile', () => {
   const actual = jest.requireActual('../profile');
   return { ...actual, getProfileDetails: jest.fn() };
 });
+jest.mock('../friends', () => {
+  const actual = jest.requireActual('../friends');
+  return { ...actual, loadFriends: jest.fn() };
+});
 
 const mockedUseAuth = useAuth as jest.Mock;
 const mockedDms = dms as jest.Mocked<typeof dms>;
 const mockedProfile = jest.requireMock('../profile') as { getProfileDetails: jest.Mock };
+const mockedFriends = jest.requireMock('../friends') as { loadFriends: jest.Mock };
 
 const DM: dms.DmThread = { $id: 'dm1', members: ['u1', 'u2'], $updatedAt: '2026-01-01T00:00:00.000Z' };
 
@@ -32,6 +37,7 @@ beforeEach(() => {
   mockedUseAuth.mockReturnValue({ user: { $id: 'u1', name: 'Alice' }, e2eJwk: null });
   mockedDms.getUserProfile.mockResolvedValue({ authUserId: 'u2', displayName: 'Bob' });
   mockedDms.loadThreadMessages.mockResolvedValue([]);
+  mockedFriends.loadFriends.mockResolvedValue([]);
 });
 
 test('renders decrypted messages, distinguishing mine from theirs', async () => {

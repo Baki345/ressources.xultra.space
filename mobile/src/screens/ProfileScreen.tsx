@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
+import { useAuth } from '../AuthContext';
+import { acceptFriendRequest, loadFriends, sendFriendRequest, type FriendRelation } from '../friends';
 import { BADGE_DEFS, getProfileDetails, presenceDotColor, presenceLabel, type ProfileDetails } from '../profile';
 
 interface Props {
@@ -13,9 +15,13 @@ function initials(name: string): string {
 }
 
 export default function ProfileScreen({ uid, onBack }: Props) {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [relation, setRelation] = useState<FriendRelation | null>(null);
+  const [friendActionBusy, setFriendActionBusy] = useState(false);
+  const isSelf = user?.$id === uid;
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +43,41 @@ export default function ProfileScreen({ uid, onBack }: Props) {
       cancelled = true;
     };
   }, [uid]);
+
+  useEffect(() => {
+    if (!user || isSelf) return;
+    let cancelled = false;
+    loadFriends(user.$id)
+      .then((rels) => {
+        if (cancelled) return;
+        setRelation(rels.find((r) => String(r.friendId) === String(uid)) || null);
+      })
+      .catch(() => {
+        // best-effort : sans relation connue, le bouton retombe sur "Ajouter
+        // en ami" plutôt que de bloquer l'affichage du reste du profil.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user, uid, isSelf]);
+
+  const onFriendAction = useCallback(async () => {
+    if (!user || friendActionBusy) return;
+    const myName = user.name || user.email || 'Moi';
+    const name = profile?.displayName || profile?.username || 'Membre';
+    setFriendActionBusy(true);
+    try {
+      if (relation?.status === 'pending_in') {
+        await acceptFriendRequest(user.$id, myName, relation.$id, uid);
+      } else if (!relation) {
+        await sendFriendRequest(user.$id, myName, uid, name);
+      }
+      const rels = await loadFriends(user.$id);
+      setRelation(rels.find((r) => String(r.friendId) === String(uid)) || null);
+    } finally {
+      setFriendActionBusy(false);
+    }
+  }, [user, relation, uid, profile, friendActionBusy]);
 
   const name = profile?.displayName || profile?.username || 'Membre';
 
@@ -119,6 +160,27 @@ export default function ProfileScreen({ uid, onBack }: Props) {
               </Text>
             </View>
           </View>
+
+          {!isSelf ? (
+            <TouchableOpacity
+              style={[styles.friendButton, relation?.status === 'accepted' || relation?.status === 'pending_out' ? styles.friendButtonDisabled : null]}
+              onPress={onFriendAction}
+              disabled={friendActionBusy || relation?.status === 'accepted' || relation?.status === 'pending_out'}
+              testID="profile-friend-button"
+            >
+              <Text style={styles.friendButtonText}>
+                {relation?.status === 'accepted'
+                  ? '✅ Ami'
+                  : relation?.status === 'pending_out'
+                    ? '📨 Demande envoyée'
+                    : relation?.status === 'pending_in'
+                      ? '✅ Accepter sa demande'
+                      : friendActionBusy
+                        ? '…'
+                        : '➕ Ajouter en ami'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
       )}
     </View>
@@ -210,4 +272,14 @@ const styles = StyleSheet.create({
   statsRow: { marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,.06)' },
   statLabel: { color: '#9c8fb0', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
   statValue: { color: '#f2ebff', fontSize: 14, fontWeight: '700', marginTop: 2 },
+  friendButton: {
+    marginTop: 16,
+    marginHorizontal: 16,
+    backgroundColor: '#7c3aed',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  friendButtonDisabled: { backgroundColor: 'rgba(255,255,255,.06)' },
+  friendButtonText: { color: '#f2ebff', fontWeight: '700', fontSize: 14 },
 });

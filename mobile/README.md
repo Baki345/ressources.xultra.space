@@ -1,8 +1,8 @@
 # XULTRA Mobile — app native (iOS/Android)
 
-**Statut : auth de bout en bout + DM 1:1 et de groupe chiffrés de bout en
-bout (E2E) + fiche de profil en lecture — premières fonctionnalités X1
-portées. Amis/notifications, serveurs, appels... à venir.**
+**Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
+bout (E2E), fiche de profil, et gestion des amis — premières fonctionnalités
+X1 portées. Notifications, serveurs, appels... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -69,11 +69,19 @@ installable (voir "Ce qu'il reste" plus bas).
   `worker.js`) — jamais une clé de groupe statique partagée en clair. Le
   nom de l'expéditeur s'affiche au-dessus des messages reçus dans un
   groupe.
-- `src/profile.ts` + `src/screens/ProfileScreen.tsx` : fiche de profil en
-  lecture (bannière, avatar, présence réelle, bio, badges, membre depuis),
-  accessible en tapant le nom du contact dans l'en-tête d'une conversation
-  1:1 — pas encore de bouton "Ami" (le système de demandes d'ami n'est pas
-  encore porté, voir "Stratégie de portage" ci-dessous).
+- `src/profile.ts` + `src/screens/ProfileScreen.tsx` : fiche de profil
+  (bannière, avatar, présence réelle, bio, badges, membre depuis) avec un
+  vrai bouton "Ami" (➕ Ajouter / 📨 En attente / ✅ Accepter sa demande /
+  ✅ Ami, selon la relation), accessible en tapant le nom du contact dans
+  l'en-tête d'une conversation 1:1.
+- `src/friends.ts` + `src/screens/FriendsScreen.tsx` : demandes d'ami
+  (envoyer, accepter, refuser), liste d'amis (retirer), recherche par
+  pseudo — port de `ultravoc_friends` (voir `sendFriendRequest`/
+  `acceptFriendRequest`/... dans `worker.js`). Simplification assumée :
+  les cas de double-demande simultanée (A et B s'envoient une demande au
+  même instant) ne sont pas dédupliqués aussi agressivement que côté web ;
+  le pire résultat possible reste deux documents "accepted" redondants,
+  jamais une relation cassée. Nouvel onglet "Amis" à côté de "Messages".
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -81,16 +89,17 @@ installable (voir "Ce qu'il reste" plus bas).
 ## Stratégie de portage (même principe que `app/`)
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
-(la fonctionnalité la plus utilisée), puis DM de groupe et fiche de profil
-(fait), puis amis/notifications, serveurs, appels... Chaque section
+(la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil et
+amis (fait), puis notifications, serveurs, appels... Chaque section
 vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
 1. **Fonctionnalités** : pièces jointes chiffrées (images/fichiers — les
    primitives `encryptBytesWithKey`/`decryptBytesWithKey` existent déjà
-   dans `src/e2e.ts`, pas encore branchées à une UI), amis/notifications
-   (dont le bouton "Ami" sur la fiche de profil), serveurs, appels,
+   dans `src/e2e.ts`, pas encore branchées à une UI), bloquer/débloquer un
+   membre (les fonctions existent dans `src/friends.ts`, pas encore
+   d'entrée dans l'UI), flux de notifications générique, serveurs, appels,
    notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
