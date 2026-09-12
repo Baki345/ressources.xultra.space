@@ -1,7 +1,7 @@
 # XULTRA Mobile — app native (iOS/Android)
 
-**Statut : socle technique validé (auth de bout en bout), aucune fonctionnalité
-X1 portée pour l'instant.**
+**Statut : auth de bout en bout + DM 1:1 chiffrés de bout en bout (E2E) —
+première fonctionnalité X1 portée. Groupes, appels, serveurs... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -36,15 +36,36 @@ installable (voir "Ce qu'il reste" plus bas).
 
 ## Ce qui existe déjà
 
-- `src/appwrite.ts` : client Appwrite partagé (même endpoint/projet que
+- `src/appwrite.ts` : client Appwrite partagé (même endpoint/projet/base que
   `worker.js` — ce sont des identifiants publics, pas des secrets).
 - `src/AuthContext.tsx` : état d'authentification (session restaurée
   automatiquement au lancement si elle existe déjà, connexion, déconnexion
-  qui ne bloque jamais même si la session serveur est déjà expirée).
+  qui ne bloque jamais même si la session serveur est déjà expirée) — et
+  garantit une clé E2E locale (génération/restauration) dès qu'un utilisateur
+  est authentifié.
 - `src/screens/LoginScreen.tsx` : écran de connexion email/mot de passe.
-- `src/screens/HomeScreen.tsx` : écran minimal une fois connecté — preuve
-  que le flux fonctionne de bout en bout, pas encore de vraies
-  fonctionnalités X1 (DM, serveurs, appels...).
+- `src/e2e.ts` : portage pur JS (`@noble/curves` + `@noble/hashes` +
+  `@noble/ciphers`, sans module natif) du schéma E2E du site — ECDH P-256 +
+  HKDF-SHA256 + AES-256-GCM, sauvegarde de la clé privée chiffrée par mot de
+  passe (PBKDF2 100k itérations) dans `e2e_keys`. Compatibilité bit-à-bit
+  avec l'implémentation Web Crypto du site validée dans les deux sens (voir
+  `src/__tests__/e2e.test.ts`, vecteurs générés par le vrai Web Crypto API de
+  Node). La clé privée ne quitte jamais l'appareil : stockée uniquement dans
+  `expo-secure-store` (Keychain/Keystore), jamais envoyée en clair au
+  serveur — même invariant que le `localStorage` du site.
+- `src/api.ts` : appels authentifiés (JWT Appwrite) aux routes `/api/*` du
+  Worker — l'envoi d'un message DM passe toujours par
+  `/api/dms/messages/send` (validation serveur : appartenance au thread,
+  permissions, notifications), jamais une écriture directe dans
+  `dms_messages`.
+- `src/dms.ts` + `src/screens/DmListScreen.tsx` /
+  `src/screens/DmConversationScreen.tsx` : **DM 1:1 chiffrés de bout en
+  bout**, premier vrai morceau de X1 porté — liste des conversations
+  (aperçu déchiffré, nom du contact résolu via `users`), fil de discussion,
+  envoi de texte. Les DM de groupe (déchiffrement par clé de message
+  enveloppée par membre, voir `e2eGetMessageKeyContext` dans `worker.js`) ne
+  sont pas encore portés : un fil de groupe s'affiche dans la liste mais son
+  contenu reste marqué illisible plutôt que de planter.
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -52,14 +73,16 @@ installable (voir "Ce qu'il reste" plus bas).
 ## Stratégie de portage (même principe que `app/`)
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM/messagerie
-d'abord (la fonctionnalité la plus utilisée), puis amis/notifications,
-serveurs, appels... Chaque section vérifiée (tests + `expo export` propre)
-avant de passer à la suivante.
+d'abord (la fonctionnalité la plus utilisée, fait), puis DM de groupe,
+amis/notifications, serveurs, appels... Chaque section vérifiée (tests +
+`expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : toute la logique X1 au-delà de la connexion (DM,
-   serveurs, appels, notifications push...).
+1. **Fonctionnalités** : DM de groupe, pièces jointes chiffrées (images/
+   fichiers — les primitives `encryptBytesWithKey`/`decryptBytesWithKey`
+   existent déjà dans `src/e2e.ts`, pas encore branchées à une UI), amis/
+   notifications, serveurs, appels, notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

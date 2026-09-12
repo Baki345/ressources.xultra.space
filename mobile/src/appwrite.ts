@@ -1,4 +1,4 @@
-import { Account, Client } from 'react-native-appwrite';
+import { Account, Client, Databases } from 'react-native-appwrite';
 
 // Mêmes AW_EP/AW_PID que worker/worker.js (constantes publiques, jamais des
 // secrets — l'endpoint et l'ID de projet Appwrite sont déjà visibles dans le
@@ -9,6 +9,8 @@ export const APPWRITE_PROJECT_ID = '6a73b975002f14dc6b91';
 // Doit correspondre à un Platform "React Native" (Android/iOS) déclaré côté
 // Appwrite (project settings), sans quoi les requêtes sont rejetées.
 export const APPWRITE_PLATFORM = 'space.xultra.mobile';
+// Même base de données que worker.js (constante DB='xultra' dans worker.js).
+export const APPWRITE_DATABASE_ID = 'xultra';
 
 export const client = new Client()
   .setEndpoint(APPWRITE_ENDPOINT)
@@ -16,3 +18,4 @@ export const client = new Client()
   .setPlatform(APPWRITE_PLATFORM);
 
 export const account = new Account(client);
+export const databases = new Databases(client);

@@ -29,8 +29,9 @@ test('shows the login screen once there is no session to restore', async () => {
   await waitFor(() => expect(getByTestId('login-email')).toBeTruthy());
 });
 
-test('goes straight to the home screen when a session already exists (no forced re-login)', async () => {
+test('goes straight to the DM list when a session already exists (no forced re-login)', async () => {
   mockedAccount.get.mockResolvedValueOnce({ $id: 'u1', name: 'Alice' } as any);
-  const { getByText } = await render(<App />);
-  await waitFor(() => expect(getByText(/Alice/)).toBeTruthy());
+  const { getByText, queryByTestId } = await render(<App />);
+  await waitFor(() => expect(getByText('Messages')).toBeTruthy());
+  expect(queryByTestId('login-email')).toBeNull();
 });

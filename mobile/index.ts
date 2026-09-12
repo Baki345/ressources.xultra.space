@@ -1,6 +1,8 @@
-// Doit être importé avant tout usage du SDK Appwrite (react-native-appwrite) —
-// React Native n'a pas d'implémentation native complète de l'API URL/URLSearchParams
-// utilisée en interne par le SDK.
+// Polyfills globaux requis AVANT tout usage du SDK Appwrite ou du module E2E
+// (src/e2e.ts) : React Native ne fournit nativement ni crypto.getRandomValues
+// (nécessaire à @noble/curves comme à Appwrite) ni une implémentation
+// complète de l'API URL/URLSearchParams utilisée par react-native-appwrite.
+import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import { registerRootComponent } from 'expo';
 
