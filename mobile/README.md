@@ -1,7 +1,8 @@
 # XULTRA Mobile — app native (iOS/Android)
 
-**Statut : auth de bout en bout + DM 1:1 chiffrés de bout en bout (E2E) —
-première fonctionnalité X1 portée. Groupes, appels, serveurs... à venir.**
+**Statut : auth de bout en bout + DM 1:1 et de groupe chiffrés de bout en
+bout (E2E) + fiche de profil en lecture — premières fonctionnalités X1
+portées. Amis/notifications, serveurs, appels... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -59,30 +60,38 @@ installable (voir "Ce qu'il reste" plus bas).
   permissions, notifications), jamais une écriture directe dans
   `dms_messages`.
 - `src/dms.ts` + `src/screens/DmListScreen.tsx` /
-  `src/screens/DmConversationScreen.tsx` : **DM 1:1 chiffrés de bout en
-  bout**, premier vrai morceau de X1 porté — liste des conversations
-  (aperçu déchiffré, nom du contact résolu via `users`), fil de discussion,
-  envoi de texte. Les DM de groupe (déchiffrement par clé de message
-  enveloppée par membre, voir `e2eGetMessageKeyContext` dans `worker.js`) ne
-  sont pas encore portés : un fil de groupe s'affiche dans la liste mais son
-  contenu reste marqué illisible plutôt que de planter.
+  `src/screens/DmConversationScreen.tsx` : **DM 1:1 ET de groupe, chiffrés
+  de bout en bout** — liste des conversations (aperçu déchiffré, nom du
+  contact résolu via `users`), fil de discussion, envoi de texte. Un
+  message de groupe utilise une clé éphémère enveloppée pour chaque membre
+  (voir `generateGroupMessageKey`/`wrapGroupMessageKeyForMember` dans
+  `src/e2e.ts`, même schéma que `e2eGetMessageKeyContext` dans
+  `worker.js`) — jamais une clé de groupe statique partagée en clair. Le
+  nom de l'expéditeur s'affiche au-dessus des messages reçus dans un
+  groupe.
+- `src/profile.ts` + `src/screens/ProfileScreen.tsx` : fiche de profil en
+  lecture (bannière, avatar, présence réelle, bio, badges, membre depuis),
+  accessible en tapant le nom du contact dans l'en-tête d'une conversation
+  1:1 — pas encore de bouton "Ami" (le système de demandes d'ami n'est pas
+  encore porté, voir "Stratégie de portage" ci-dessous).
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
 
 ## Stratégie de portage (même principe que `app/`)
 
-Une section à la fois, jamais tout reconstruit d'un coup : DM/messagerie
-d'abord (la fonctionnalité la plus utilisée, fait), puis DM de groupe,
-amis/notifications, serveurs, appels... Chaque section vérifiée (tests +
-`expo export` propre) avant de passer à la suivante.
+Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
+(la fonctionnalité la plus utilisée), puis DM de groupe et fiche de profil
+(fait), puis amis/notifications, serveurs, appels... Chaque section
+vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : DM de groupe, pièces jointes chiffrées (images/
-   fichiers — les primitives `encryptBytesWithKey`/`decryptBytesWithKey`
-   existent déjà dans `src/e2e.ts`, pas encore branchées à une UI), amis/
-   notifications, serveurs, appels, notifications push.
+1. **Fonctionnalités** : pièces jointes chiffrées (images/fichiers — les
+   primitives `encryptBytesWithKey`/`decryptBytesWithKey` existent déjà
+   dans `src/e2e.ts`, pas encore branchées à une UI), amis/notifications
+   (dont le bouton "Ami" sur la fiche de profil), serveurs, appels,
+   notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

@@ -80,11 +80,24 @@ test('going back calls onBack', async () => {
   expect(onBack).toHaveBeenCalled();
 });
 
-test('a group thread disables the composer with an explanatory notice', async () => {
+test('a group thread has a fully working composer, and shows the sender name above messages that are not mine', async () => {
   const groupDm: dms.DmThread = { $id: 'dm2', members: ['u1', 'u2', 'u3'], $updatedAt: '2026-01-01T00:00:00.000Z' };
+  const messages: dms.DmMessage[] = [
+    { $id: 'm1', threadId: 'dm2', uid: 'u3', displayName: 'Carol', type: 'text', text: 'ct1', mediaUrl: '', enc: true, keysJson: '{}', $createdAt: '2026-01-01T00:00:00.000Z' },
+  ];
+  mockedDms.loadThreadMessages.mockResolvedValueOnce(messages);
+  mockedDms.decryptDmMessageText.mockResolvedValueOnce('Salut !');
+  mockedDms.sendDmText.mockResolvedValueOnce(undefined);
+
   const { getByText, getByTestId } = await render(<DmConversationScreen dm={groupDm} onBack={jest.fn()} />);
-  await waitFor(() => expect(getByText(/pas encore pris en charge/)).toBeTruthy());
-  expect(getByTestId('dm-send-button').props.accessibilityState?.disabled).toBe(true);
+
+  await waitFor(() => expect(getByTestId('dm-message-m1')).toBeTruthy());
+  expect(getByText('Carol')).toBeTruthy();
+  expect(getByText('Salut !')).toBeTruthy();
+
+  await fireEvent.changeText(getByTestId('dm-input'), 'Salut le groupe !');
+  await fireEvent.press(getByTestId('dm-send-button'));
+  await waitFor(() => expect(mockedDms.sendDmText).toHaveBeenCalledWith('u1', null, 'Alice', groupDm, 'Salut le groupe !'));
 });
 
 test('tapping the header title opens the peer\'s profile, and going back returns to the conversation', async () => {

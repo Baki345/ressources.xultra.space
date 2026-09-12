@@ -32,11 +32,11 @@ lancer/tester/déployer ce nouveau projet.
 
 Base React Native + Expo (TypeScript) dans `mobile/`, connectée aux mêmes
 Appwrite + routes `/api/*` que le site — aucun changement backend. Auth de
-bout en bout et premiers DM 1:1 chiffrés de bout en bout (E2E) portés,
-compatibles bit-à-bit avec le chiffrement du site (vérifié dans les deux
-sens contre le vrai Web Crypto API). Voir `mobile/README.md` pour
-l'architecture, comment lancer/tester, et ce qu'il reste avant un vrai
-lancement (DM de groupe, comptes développeur Apple/Google, EAS Build,
+bout en bout, DM 1:1 ET de groupe chiffrés de bout en bout (E2E, compatibles
+bit-à-bit avec le chiffrement du site — vérifié dans les deux sens contre le
+vrai Web Crypto API), et fiche de profil en lecture. Voir `mobile/README.md`
+pour l'architecture, comment lancer/tester, et ce qu'il reste avant un vrai
+lancement (amis/notifications, comptes développeur Apple/Google, EAS Build,
 notifications push).
 
 ### Appwrite

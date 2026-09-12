@@ -1,17 +1,26 @@
 /* Couche de données DM — lecture directe Appwrite (comme worker.js
  * loadDms()/appendNewMessages()), envoi via le Worker (voir src/api.ts).
  *
- * Portée actuelle : conversations 1:1 uniquement. Les DM de groupe existent
- * côté site (déchiffrement par clé de message enveloppée par membre, voir
- * e2eGetMessageKeyContext dans worker.js) mais ne sont pas encore portés ici
- * — un thread de groupe s'affichera dans la liste mais l'envoi/déchiffrement
- * de messages y échouera proprement (texte de repli) plutôt que de planter.
+ * DM 1:1 ET DM de groupe : un message de groupe chiffré porte un `keysJson`
+ * (clé de message éphémère enveloppée par membre, voir
+ * e2eGetMessageKeyContext/e2eResolveIncomingKey dans worker.js) ; un message
+ * 1:1 utilise directement la clé de session pairwise, sans keysJson — même
+ * distinction que côté web.
  */
 import { Query } from 'react-native-appwrite';
 
 import { APPWRITE_DATABASE_ID, databases } from './appwrite';
 import { apiPost } from './api';
-import { decryptTextWithKey, e2eEncryptText, e2eThreadKey, type E2EPrivateJwk } from './e2e';
+import {
+  decryptTextWithKey,
+  e2eEncryptText,
+  e2eThreadKey,
+  encryptTextWithKey,
+  generateGroupMessageKey,
+  unwrapGroupMessageKeyFromSender,
+  wrapGroupMessageKeyForMember,
+  type E2EPrivateJwk,
+} from './e2e';
 
 const UNREADABLE_TEXT = '🔒 Message illisible sur cet appareil';
 
@@ -96,7 +105,33 @@ export async function loadThreadMessages(threadId: string): Promise<DmMessage[]>
   return r.documents as unknown as DmMessage[];
 }
 
-/** Déchiffre le texte d'un message pour un thread 1:1, avec le même texte de
+/** Résout la clé AES applicable à CE message précis : sa propre enveloppe
+ * dans keysJson pour un message de groupe, ou la clé de session pairwise
+ * pour un 1:1 — identique à e2eResolveIncomingKey() côté web. */
+async function resolveIncomingKeyBytes(
+  myUid: string,
+  myJwk: E2EPrivateJwk,
+  m: DmMessage
+): Promise<Uint8Array | null> {
+  if (m.keysJson) {
+    let map: Record<string, string> = {};
+    try {
+      map = JSON.parse(m.keysJson);
+    } catch {
+      return null;
+    }
+    const mine = map[myUid];
+    if (!mine) return null;
+    try {
+      return await unwrapGroupMessageKeyFromSender(myUid, myJwk, m.uid, mine);
+    } catch {
+      return null;
+    }
+  }
+  return e2eThreadKey(myUid, myJwk, m.uid);
+}
+
+/** Déchiffre le texte d'un message (1:1 ou groupe), avec le même texte de
  * repli que côté web quand la clé locale ne correspond pas (ex. clé
  * régénérée sur un autre appareil sans restauration par mot de passe). Un
  * message non chiffré (`enc:false`, ex. reçu avant l'activation de l'E2E, ou
@@ -104,14 +139,12 @@ export async function loadThreadMessages(threadId: string): Promise<DmMessage[]>
 export async function decryptDmMessageText(
   myUid: string,
   myJwk: E2EPrivateJwk | null,
-  dm: DmThread,
   m: DmMessage
 ): Promise<string> {
   if (!m.enc) return m.text || '';
-  if (!myJwk || dmIsGroup(dm)) return UNREADABLE_TEXT;
-  const peerUid = dmPeerId(dm, myUid);
+  if (!myJwk) return UNREADABLE_TEXT;
   try {
-    const key = await e2eThreadKey(myUid, myJwk, peerUid);
+    const key = await resolveIncomingKeyBytes(myUid, myJwk, m);
     if (!key) return UNREADABLE_TEXT;
     return decryptTextWithKey(key, m.text);
   } catch {
@@ -119,10 +152,13 @@ export async function decryptDmMessageText(
   }
 }
 
-/** Chiffre et envoie un message texte vers un DM 1:1, via la même route
- * Worker que le site (/api/dms/messages/send) — jamais une écriture directe
- * dans dms_messages, qui contournerait la validation serveur (appartenance
- * au thread, notifications, taille des pièces jointes...). */
+/** Chiffre et envoie un message texte vers un DM 1:1 ou de groupe, via la
+ * même route Worker que le site (/api/dms/messages/send) — jamais une
+ * écriture directe dans dms_messages, qui contournerait la validation
+ * serveur (appartenance au thread, notifications, taille des pièces
+ * jointes...). Un groupe utilise une clé de message éphémère enveloppée pour
+ * chaque membre (voir e2eGetMessageKeyContext côté worker.js) ; un 1:1 utilise
+ * directement la clé de session pairwise. */
 export async function sendDmText(
   myUid: string,
   myJwk: E2EPrivateJwk | null,
@@ -130,15 +166,32 @@ export async function sendDmText(
   dm: DmThread,
   text: string
 ): Promise<void> {
-  if (dmIsGroup(dm)) throw new Error('Envoi vers un DM de groupe pas encore pris en charge sur mobile.');
-  const peerUid = dmPeerId(dm, myUid);
   let outText = text;
   let enc = false;
-  if (myJwk && peerUid) {
-    const encrypted = await e2eEncryptText(myUid, myJwk, peerUid, text);
-    if (encrypted) {
-      outText = encrypted;
-      enc = true;
+  let keysJson = '';
+  if (myJwk) {
+    if (dmIsGroup(dm)) {
+      const members = (dm.members || []).map(String).filter((u) => u !== myUid);
+      const groupKey = generateGroupMessageKey();
+      const keysObj: Record<string, string> = {};
+      for (const uid of members) {
+        const wrapped = await wrapGroupMessageKeyForMember(myUid, myJwk, uid, groupKey);
+        if (wrapped) keysObj[uid] = wrapped;
+      }
+      if (Object.keys(keysObj).length) {
+        outText = encryptTextWithKey(groupKey, text);
+        keysJson = JSON.stringify(keysObj);
+        enc = true;
+      }
+    } else {
+      const peerUid = dmPeerId(dm, myUid);
+      if (peerUid) {
+        const encrypted = await e2eEncryptText(myUid, myJwk, peerUid, text);
+        if (encrypted) {
+          outText = encrypted;
+          enc = true;
+        }
+      }
     }
   }
   await apiPost('/api/dms/messages/send', {
@@ -149,7 +202,7 @@ export async function sendDmText(
     mediaUrl: '',
     replyToId: '',
     enc,
-    keysJson: '',
+    keysJson,
     contentFlag: '',
   });
 }

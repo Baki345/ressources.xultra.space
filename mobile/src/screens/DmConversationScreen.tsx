@@ -48,7 +48,7 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
     try {
       const raw = await loadThreadMessages(dm.$id);
       const decrypted = await Promise.all(
-        raw.map(async (m) => ({ ...m, plainText: await decryptDmMessageText(user.$id, e2eJwk, dm, m) })),
+        raw.map(async (m) => ({ ...m, plainText: await decryptDmMessageText(user.$id, e2eJwk, m) })),
       );
       setMessages(decrypted);
     } catch (e) {
@@ -109,9 +109,6 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
         <View style={styles.headerSpacer} />
       </View>
 
-      {isGroup ? (
-        <Text style={styles.notice}>Les DM de groupe ne sont pas encore pris en charge sur mobile.</Text>
-      ) : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {loading ? (
@@ -127,8 +124,11 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
           renderItem={({ item }) => {
             const mine = item.uid === user!.$id;
             return (
-              <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]} testID={`dm-message-${item.$id}`}>
-                <Text style={styles.bubbleText}>{item.plainText}</Text>
+              <View style={mine ? styles.bubbleRowMine : styles.bubbleRowTheirs}>
+                {isGroup && !mine ? <Text style={styles.senderName}>{item.displayName}</Text> : null}
+                <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]} testID={`dm-message-${item.$id}`}>
+                  <Text style={styles.bubbleText}>{item.plainText}</Text>
+                </View>
               </View>
             );
           }}
@@ -142,14 +142,13 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
           onChangeText={setDraft}
           placeholder="Écrire un message..."
           placeholderTextColor="#6b6180"
-          editable={!isGroup}
           testID="dm-input"
           multiline
         />
         <TouchableOpacity
-          style={[styles.sendButton, (!draft.trim() || sending || isGroup) && styles.sendButtonDisabled]}
+          style={[styles.sendButton, (!draft.trim() || sending) && styles.sendButtonDisabled]}
           onPress={onSend}
-          disabled={!draft.trim() || sending || isGroup}
+          disabled={!draft.trim() || sending}
           testID="dm-send-button"
         >
           <Text style={styles.sendButtonText}>{sending ? '…' : 'Envoyer'}</Text>
@@ -174,10 +173,12 @@ const styles = StyleSheet.create({
   headerTitleTouch: { flex: 1 },
   headerTitle: { color: '#f2ebff', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   headerSpacer: { width: 64 },
-  notice: { color: '#fbbf24', textAlign: 'center', paddingHorizontal: 16, paddingBottom: 8, fontSize: 12 },
   error: { color: '#fca5a5', textAlign: 'center', paddingHorizontal: 16, paddingBottom: 8, fontSize: 12 },
   list: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
-  bubble: { maxWidth: '80%', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, marginVertical: 4 },
+  bubbleRowMine: { alignItems: 'flex-end', marginVertical: 4 },
+  bubbleRowTheirs: { alignItems: 'flex-start', marginVertical: 4 },
+  senderName: { color: '#c4b5fd', fontSize: 11, fontWeight: '700', marginBottom: 2, marginLeft: 4 },
+  bubble: { maxWidth: '80%', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10 },
   bubbleMine: { backgroundColor: '#7c3aed', alignSelf: 'flex-end' },
   bubbleTheirs: { backgroundColor: '#1a1030', alignSelf: 'flex-start' },
   bubbleText: { color: '#f2ebff', fontSize: 15 },

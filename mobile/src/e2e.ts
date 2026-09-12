@@ -22,9 +22,11 @@
  * de passe (jamais le mot de passe lui-même, jamais la clé en clair) est
  * envoyée au serveur, exactement comme sur le site.
  *
- * Portée actuelle : DM 1:1 uniquement (texte + pièces jointes binaires).
- * Le "wrap" de clé de message éphémère par membre pour les DM de groupe
- * (voir e2eGetMessageKeyContext dans worker.js) n'est pas encore porté.
+ * Portée actuelle : texte, en 1:1 comme en groupe (clé de message éphémère
+ * enveloppée par membre, voir generateGroupMessageKey/wrapGroupMessageKeyForMember
+ * plus bas — même schéma que e2eGetMessageKeyContext côté worker.js). Les
+ * pièces jointes binaires ont leurs primitives (encryptBytesWithKey/
+ * decryptBytesWithKey) mais pas encore d'UI côté mobile.
  */
 import { gcm } from '@noble/ciphers/aes.js';
 import { hkdf } from '@noble/hashes/hkdf.js';
@@ -364,18 +366,24 @@ async function peerPubKey(peerUid: string): Promise<string | null> {
 
 export async function e2eThreadKey(myUid: string, myJwk: E2EPrivateJwk, peerUid: string): Promise<Uint8Array | null> {
   if (!peerUid || !myUid) return null;
-  if (threadKeyCache[peerUid] !== undefined) return threadKeyCache[peerUid];
+  // Contrairement au site (où `me` est une variable globale fixe pour toute
+  // la durée de la page), myUid est ici un paramètre : un changement de
+  // compte sans redémarrage complet de l'app doit voir sa propre clé de
+  // session, jamais celle mise en cache pour le compte précédent — d'où la
+  // clé composite plutôt qu'un simple peerUid.
+  const cacheKey = myUid + '|' + peerUid;
+  if (threadKeyCache[cacheKey] !== undefined) return threadKeyCache[cacheKey];
   const peerPub = await peerPubKey(peerUid);
   if (!peerPub) {
-    threadKeyCache[peerUid] = null;
+    threadKeyCache[cacheKey] = null;
     return null;
   }
   try {
     const key = deriveThreadKey(myJwk, peerPub, myUid, peerUid);
-    threadKeyCache[peerUid] = key;
+    threadKeyCache[cacheKey] = key;
     return key;
   } catch {
-    threadKeyCache[peerUid] = null;
+    threadKeyCache[cacheKey] = null;
     return null;
   }
 }
@@ -404,5 +412,41 @@ export async function e2eDecryptText(
 
 export function invalidateE2EPeerCache(peerUid: string): void {
   delete peerPubKeyCache[peerUid];
-  delete threadKeyCache[peerUid];
+  Object.keys(threadKeyCache)
+    .filter((k) => k.endsWith('|' + peerUid))
+    .forEach((k) => delete threadKeyCache[k]);
+}
+
+// ---- Groupe (>2 membres) — même schéma que e2eGetMessageKeyContext() /
+// e2eResolveIncomingKey() côté worker.js : une clé AES éphémère par message,
+// enveloppée pour chaque membre via sa clé de session pairwise avec
+// l'expéditeur (jamais une clé de groupe statique/partagée en clair). ----
+
+/** Génère une clé AES-256 éphémère pour UN message de groupe. */
+export function generateGroupMessageKey(): Uint8Array {
+  return randomBytes(32);
+}
+
+/** Enveloppe la clé de message éphémère pour un membre donné : chiffrée avec
+ * la clé de session pairwise expéditeur↔membre, identique à
+ * e2eEncryptText(uid, rawKeyB64) côté web. */
+export async function wrapGroupMessageKeyForMember(
+  myUid: string,
+  myJwk: E2EPrivateJwk,
+  memberUid: string,
+  groupKey: Uint8Array
+): Promise<string | null> {
+  return e2eEncryptText(myUid, myJwk, memberUid, bytesToB64(groupKey));
+}
+
+/** Déchiffre l'enveloppe reçue (ma part de keysJson) pour retrouver la clé de
+ * message éphémère de CE message précis. */
+export async function unwrapGroupMessageKeyFromSender(
+  myUid: string,
+  myJwk: E2EPrivateJwk,
+  senderUid: string,
+  wrapped: string
+): Promise<Uint8Array> {
+  const rawKeyB64 = await e2eDecryptText(myUid, myJwk, senderUid, wrapped);
+  return b64ToBytes(rawKeyB64);
 }

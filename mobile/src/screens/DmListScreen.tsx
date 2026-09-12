@@ -51,7 +51,7 @@ export default function DmListScreen({ onOpenThread }: { onOpenThread: (dm: DmTh
           let preview = '';
           try {
             const [latest] = await loadThreadMessages(dm.$id);
-            if (latest) preview = await decryptDmMessageText(user.$id, e2eJwk, dm, latest);
+            if (latest) preview = await decryptDmMessageText(user.$id, e2eJwk, latest);
           } catch {
             preview = '';
           }
