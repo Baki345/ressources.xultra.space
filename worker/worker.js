@@ -11494,6 +11494,8 @@ async function renderSetBots(box){
       +oauthCodeBlockHtml('bot-doc-push','await fetch(\\'https://xultra.space/api/bot/v1/messages/send\\', {\\n  method: \\'POST\\',\\n  headers: { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN },\\n  body: JSON.stringify({ channelId: \\'...\\', content: \\'Le serveur est en ligne ✅\\' })\\n});')
       +'<div class="oauth-doc-step"><b>API de modération</b> (nécessite que le serveur t\\'ait accordé la permission correspondante à l\\'installation) :</div>'
       +oauthCodeBlockHtml('bot-doc-mod','const H = { \\'Content-Type\\': \\'application/json\\', Authorization: \\'Bot \\' + BOT_TOKEN };\\n// Expulser :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/kick\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Bannir (unban:true pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/ban\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) });\\n// Timeout (minutes:0 pour lever) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/timeout\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, minutes: 10 }) });\\n// Supprimer un message (utile pour un auto-mod) :\\nfetch(\\'https://xultra.space/api/bot/v1/moderation/delete-message\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, messageId }) });\\n// Lister les rôles (pour laisser un humain en nommer un plutôt que deviner un ID) :\\nconst { roles } = await (await fetch(\\'https://xultra.space/api/bot/v1/roles/list\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId }) })).json();\\n// Rôle (add/remove) :\\nfetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId }) });')
+      +'<div class="oauth-doc-step"><b>📁 Salons &amp; rôles</b> (créer/supprimer, ex. un salon de ticket de support) — nécessite <code>manage_channels</code>/<code>manage_roles</code> accordées à l\\'installation. X1 ne connaît la visibilité d\\'un salon QUE par rôle (jamais par utilisateur individuel) : pour un salon privé à une seule personne + le staff, crée-lui un rôle jetable et donne-le-lui :</div>'
+      +oauthCodeBlockHtml('bot-doc-channels','// Rôle jetable pour cette seule personne (aucune permission, jamais mentionnable) :\\nconst { role } = await (await fetch(\\'https://xultra.space/api/bot/v1/roles/create\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, name: \\'ticket-42\\' }) })).json();\\nawait fetch(\\'https://xultra.space/api/bot/v1/roles/add\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid, roleId: role.$id }) });\\n// Salon visible seulement par ce rôle (+ un rôle staff existant si tu veux) :\\nconst { channel } = await (await fetch(\\'https://xultra.space/api/bot/v1/channels/create\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, name: \\'ticket-42\\', visibleRoleIds: [role.$id, staffRoleId] }) })).json();\\n// À la fermeture : supprimer le salon, puis le rôle jetable.\\nawait fetch(\\'https://xultra.space/api/bot/v1/channels/delete\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, channelId: channel.$id }) });\\nawait fetch(\\'https://xultra.space/api/bot/v1/roles/delete\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, roleId: role.$id }) });')
       +'<div class="oauth-doc-step"><b>🖥️ Dashboard web</b> (configurer ton bot par une page plutôt que par commande) : combine "Se connecter avec X1" (Paramètres → Se connecter avec X1, pour identifier ton visiteur) avec cette route, pour vérifier qu\\'il a bien le droit d\\'administrer le serveur avant de le laisser toucher à ta config :</div>'
       +oauthCodeBlockHtml('bot-doc-member-perms','// Après le flux OAuth "Se connecter avec X1" (voir plus bas), tu as le uid du visiteur.\\nconst { permissions } = await (await fetch(\\'https://xultra.space/api/bot/v1/servers/member-permissions\\', { method: \\'POST\\', headers: H, body: JSON.stringify({ serverId, uid }) })).json();\\nif (!permissions.includes(\\'manage_server\\')) throw new Error(\\'Pas admin de ce serveur\\');')
       +'<div class="oauth-doc-step"><b>"Gateway" événementielle</b> — X1 ne fonctionne pas sur un process persistant (Worker Cloudflare sans état entre deux requêtes), donc pas de vraie connexion permanente façon Discord. À la place : renseigne une <b>URL d\\'événements</b> ci-dessus et coche les types qui t\\'intéressent — X1 t\\'envoie alors un POST signé (même en-tête <code>X-X1-Signature</code>) à chaque événement, sans attendre de réponse (aucune garantie de livraison, comme un webhook classique — pas de file d\\'attente ni de nouvelle tentative si ton endpoint est hors ligne) :</div>'
@@ -26862,17 +26864,26 @@ if(\$('btn-add-friend'))\$('btn-add-friend').addEventListener('click',function()
   \$('fq').value='';\$('fr').innerHTML='';\$('modal-friend').classList.remove('hidden');
 });
 const MAX_GROUP_MEMBERS=6;
-if(\$('btn-new-group'))\$('btn-new-group').addEventListener('click',function(){
+if(\$('btn-new-group'))\$('btn-new-group').addEventListener('click',async function(){
   \$('mg-name').value='';\$('mg-err').textContent='';
   const accepted=friendsCache.filter(function(f){return f.status==='accepted'});
   const box=\$('mg-friends');
-  if(!accepted.length){
-    box.innerHTML='<div class="empty-hint">Ajoute des amis avant de créer un groupe.</div>';
-  }else{
-    box.innerHTML=accepted.map(function(f){
-      return '<label class="mg-friend-row"><input type="checkbox" value="'+esc(f.friendId)+'" data-name="'+esc(f.name||'Ami')+'"/><div class="av">'+esc(ini(f.name||'?'))+'</div><div class="n">'+esc(f.name||'Ami')+'</div></label>';
-    }).join('');
-  }
+  box.innerHTML=accepted.length?accepted.map(function(f){
+    return '<label class="mg-friend-row"><input type="checkbox" value="'+esc(f.friendId)+'" data-name="'+esc(f.name||'Ami')+'"/><div class="av">'+esc(ini(f.name||'?'))+'</div><div class="n">'+esc(f.name||'Ami')+'</div></label>';
+  }).join(''):'<div class="empty-hint">Ajoute des amis avant de créer un groupe.</div>';
+  // Un groupe (3+ membres) tourne sur LiveKit, contrairement à un DM 1:1
+  // (WebRTC pair-à-pair) — c'est donc le SEUL moyen d'avoir un bot en vocal
+  // en DM : en l'ajoutant ici comme 3e membre (toi + un ami + ton bot).
+  try{
+    const rb=await authGet('/api/bots/list');
+    const myBots=(rb&&rb.bots)||[];
+    if(myBots.length){
+      box.insertAdjacentHTML('beforeend','<div class="scr-sub" style="margin:10px 0 4px">🤖 Tes bots (pour du vocal en DM de groupe)</div>'
+        +myBots.map(function(b){
+          return '<label class="mg-friend-row"><input type="checkbox" value="bot_'+esc(b.publicId)+'" data-name="'+esc(b.name)+'"/><div class="av">🤖</div><div class="n">'+esc(b.name)+'</div></label>';
+        }).join(''));
+    }
+  }catch(e){}
   \$('modal-group').classList.remove('hidden');
 });
 if(\$('mg-close'))\$('mg-close').addEventListener('click',function(){\$('modal-group').classList.add('hidden')});
@@ -26883,7 +26894,7 @@ if(\$('mg-create'))\$('mg-create').addEventListener('click',async function(){
   const name=\$('mg-name').value.trim();
   const checked=Array.from(\$('mg-friends').querySelectorAll('input[type="checkbox"]:checked'));
   if(!name){\$('mg-err').textContent='Donne un nom au groupe';return}
-  if(checked.length<2){\$('mg-err').textContent='Choisis au moins 2 amis';return}
+  if(checked.length<2){\$('mg-err').textContent='Choisis au moins 2 membres';return}
   if(checked.length>MAX_GROUP_MEMBERS-1){\$('mg-err').textContent='Maximum '+MAX_GROUP_MEMBERS+' membres (toi compris)';return}
   btn.disabled=true;btn.textContent='Création…';
   try{
@@ -35783,7 +35794,12 @@ async function handle(request, event) {
       }
       if (body.commands !== undefined) {
         const cmds = Array.isArray(body.commands) ? body.commands : [];
-        if (cmds.length > 15) throw new Error("15 commandes maximum par bot");
+        // 30 plutôt que 15 : la vraie contrainte n'a jamais été le nombre de
+        // commandes mais le stockage (commandsJson plafonné à ~8000
+        // caractères côté Appwrite/MariaDB, vérifié plus bas à l'octet près)
+        // — ce chiffre n'est qu'un garde-fou grossier pour donner une erreur
+        // lisible avant même d'atteindre cette vraie limite.
+        if (cmds.length > 30) throw new Error("30 commandes maximum par bot");
         const nameRe = /^[a-z0-9_-]{1,32}$/;
         const seen = {};
         const cleaned = [];
@@ -36363,6 +36379,107 @@ async function handle(request, event) {
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + member.$id, { method: "PATCH", asAdmin: true, body: { data: { roleIds: roleIds } } });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, path === "/api/bot/v1/roles/add" ? "role_assign" : "role_unassign", member.nickname || member.username || targetUid, { role: role.name });
       return new Response(JSON.stringify({ ok: true, roleIds: roleIds }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // Un rôle créé par un bot n'a jamais de permission propre (juste un
+  // vecteur de visibilité, ex. un rôle jetable par ticket de support pour
+  // rendre un salon privé — X1 n'a pas de visibilité de salon par UTILISATEUR,
+  // seulement par RÔLE, voir /api/bot/v1/channels/create ci-dessous) — jamais
+  // mentionnable non plus, pour ne pas polluer les autocomplétions @mention.
+  if (path === "/api/bot/v1/roles/create" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const name = String((body && body.name) || "").trim().slice(0, 64);
+      if (!name) throw new Error("Nom du rôle requis");
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "manage_roles");
+      const existingRoles = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const role = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, name: name, color: String((body && body.color) || "#7c3aed").slice(0, 16), permissionsJson: "[]", position: (existingRoles.documents || []).length, mentionable: false } }
+      });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "role_create", name, {});
+      return new Response(JSON.stringify({ ok: true, role: role }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/roles/delete" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const roleId = String((body && body.roleId) || "");
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "manage_roles");
+      const role = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { asAdmin: true });
+      if (String(role.serverId) !== serverId) throw new Error("Rôle introuvable sur ce serveur");
+      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { method: "DELETE", asAdmin: true });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "role_delete", role.name, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  // ===== Salons pour bots (ex. tickets de support) =====
+  // Comme pour les rôles/la modération, un bot ne reçoit jamais plus que ce
+  // que l'installateur détenait lui-même (manage_channels) — voir
+  // resolveBotServerInstall. X1 n'a pas de visibilité de salon par
+  // utilisateur individuel, seulement par rôle (visibleRoleIds/overwritesJson,
+  // voir /api/servers/channels/create côté humain) — un salon "privé" créé
+  // par un bot (ex. un ticket visible seulement par son auteur + le staff)
+  // doit donc passer par un rôle dédié, généralement jetable, créé via
+  // /api/bot/v1/roles/create et attribué au concerné via /api/bot/v1/roles/add.
+  if (path === "/api/bot/v1/channels/create" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const name = String((body && body.name) || "").trim().slice(0, 64);
+      if (!name) throw new Error("Nom de salon requis");
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "manage_channels");
+      const type = body.type === "voice" ? "voice" : body.type === "stage" ? "stage" : body.type === "forum" ? "forum" : body.type === "announcement" ? "announcement" : "text";
+      const visibleRoleIds = Array.isArray(body.visibleRoleIds) ? body.visibleRoleIds.map(String) : [];
+      const overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
+      const chanPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson });
+      const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
+      });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "channel_create", name, { type: type });
+      return new Response(JSON.stringify({ ok: true, channel: chan }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+  if (path === "/api/bot/v1/channels/delete" && request.method === "POST") {
+    try {
+      const bot = await resolveBotByToken(request);
+      const body = await request.json();
+      const serverId = String((body && body.serverId) || "");
+      const channelId = String((body && body.channelId) || "");
+      const { perms } = await resolveBotServerInstall(bot, serverId);
+      assertBotHasPerm(perms, "manage_channels");
+      const chanDoc = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { asAdmin: true }).catch(function () { return null; });
+      if (!chanDoc || String(chanDoc.serverId) !== serverId) throw new Error("Salon introuvable sur ce serveur");
+      const msgs = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const m of (msgs.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents/" + m.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      const threads = await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "channelId", values: [channelId] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
+      for (const t of (threads.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/server_threads/documents/" + t.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents/" + channelId, { method: "DELETE", asAdmin: true });
+      await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "channel_delete", chanDoc.name || channelId, {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
