@@ -78,27 +78,39 @@ mon-bot.exemple.com {
 
    | Commande | Options | Rôle |
    |---|---|---|
-   | `join` | — | Rejoint le vocal du salon/DM où la commande est tapée |
-   | `leave` | — | Quitte le vocal (arrête aussi un enregistrement en cours) |
-   | `play` | `requete` (texte, requis) | URL YouTube ou recherche libre |
-   | `skip` | — | Passe au morceau suivant de la file |
-   | `stop` | — | Vide la file et arrête la lecture |
-   | `queue` | — | Liste les morceaux en attente |
-   | `record` | `action` (texte, requis, choix : `start` / `stop`) | Démarre/arrête l'enregistrement |
+   | `join` | `salon` (texte) | Rejoint un salon vocal du serveur |
+   | `leave` | `salon` (texte) | Quitte le vocal (arrête aussi un enregistrement en cours) |
+   | `play` | `requete` (texte, requis), `salon` (texte) | URL YouTube ou recherche libre |
+   | `skip` | `salon` (texte) | Passe au morceau suivant de la file |
+   | `stop` | `salon` (texte) | Vide la file et arrête la lecture |
+   | `queue` | `salon` (texte) | Liste les morceaux en attente |
+   | `record` | `action` (texte, requis, choix : `start` / `stop`), `salon` (texte) | Démarre/arrête l'enregistrement |
+
+   **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
+   toute commande se tape depuis un salon **texte** du serveur, jamais depuis
+   le salon vocal lui-même. C'est pour ça que `salon` existe : c'est ainsi que
+   le bot sait quel salon vocal tu vises (voir "Commandes disponibles"
+   ci-dessous pour quand `salon` peut être omis).
 
 3. Le bot doit déjà être installé sur le serveur voulu avec **🎙️ Rejoindre
    les salons vocaux** coché (ou invité dans un DM de groupe existant).
-4. Tape `/join` **dans le salon vocal lui-même** (chaque salon vocal a son
-   propre fil de discussion — c'est de là que le bot sait où se connecter,
-   pas d'ID à saisir à la main).
+4. Depuis n'importe quel salon **texte** du serveur, tape `/join salon:Lounge 1`
+   (remplace par le nom réel du salon vocal).
 
 ## Commandes disponibles
 
-- `/join` — connexion silencieuse (utile avant `/record start` si tu veux
-  enregistrer sans jouer de musique).
-- `/play requete:<url ou recherche>` — ajoute à la file ; démarre tout de
-  suite si rien ne joue.
-- `/skip`, `/stop`, `/queue`
+Sur un **serveur**, `salon` (le nom du salon vocal, ex. `Lounge 1`) est requis
+sur `/join` — le tout premier appel, puisqu'aucune session n'existe encore —
+et optionnel sur les autres commandes : s'il n'y a qu'un seul salon vocal
+actif sur ce serveur, elles s'appliquent à celui-là automatiquement. Dans un
+**DM de groupe**, `salon` est ignoré : il n'y a qu'une seule conversation
+possible, pas d'ambiguïté.
+
+- `/join salon:<nom>` — connexion silencieuse (utile avant `/record start`
+  si tu veux enregistrer sans jouer de musique).
+- `/play requete:<url ou recherche> salon:<nom>` — ajoute à la file ; démarre
+  tout de suite si rien ne joue.
+- `/skip`, `/stop`, `/queue` (+ `salon:<nom>` si plusieurs salons actifs)
 - `/record action:start` — poste d'abord une annonce visible **🔴
   Enregistrement démarré** dans le salon/DM (consentement : tout le monde
   voit que ça enregistre), puis écrit un `.wav` par personne qui parle dans

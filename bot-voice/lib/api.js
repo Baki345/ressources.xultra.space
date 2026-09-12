@@ -36,4 +36,10 @@ function presenceLeave(target) {
   return botFetch(target.dmThreadId ? '/api/bot/v1/voice/dm-presence/leave' : '/api/bot/v1/voice/presence/leave', body);
 }
 
-module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave };
+// Un salon vocal n'a pas de zone de saisie (voir README) — pour résoudre le
+// nom de salon tapé par l'utilisateur dans un salon TEXTE en ID réel.
+function listVoiceChannels(serverId) {
+  return botFetch('/api/bot/v1/voice/channels', { serverId: serverId }).then(function (r) { return r.channels || []; });
+}
+
+module.exports = { sendMessage, getVoiceToken, presenceJoin, presenceLeave, listVoiceChannels };

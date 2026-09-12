@@ -15,4 +15,15 @@ function set(target, session) { sessions.set(keyFor(target), session); return se
 function remove(target) { sessions.delete(keyFor(target)); }
 function all() { return sessions.values(); }
 
-module.exports = { keyFor, get, set, remove, all };
+// Un serveur peut avoir plusieurs salons vocaux actifs à la fois (un bot par
+// salon) — sert à deviner "le" salon visé quand l'utilisateur ne précise pas
+// `salon:` sur une commande qui n'est pas /join (skip, stop, queue, record).
+function forServer(serverId) {
+  const out = [];
+  for (const session of sessions.values()) {
+    if (session.target.serverId === serverId) out.push(session);
+  }
+  return out;
+}
+
+module.exports = { keyFor, get, set, remove, all, forServer };

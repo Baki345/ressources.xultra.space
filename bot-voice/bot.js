@@ -22,9 +22,30 @@ const { Recorder } = require('./lib/recorder');
 const sessions = require('./lib/session');
 
 // ---- Contexte cible (salon de serveur OU DM de groupe) à partir du payload d'interaction ----
-function targetFromPayload(payload) {
+// Un salon vocal n'a pas de zone de saisie (voir README) : toute commande
+// arrive donc depuis un salon TEXTE du même serveur, jamais depuis le salon
+// vocal visé lui-même. Sur un serveur, on résout le salon voulu via l'option
+// `salon` (nom tapé par l'utilisateur, résolu en ID via l'API), ou — si elle
+// est omise — via la session déjà active sur ce serveur quand il n'y en a
+// qu'une seule.
+async function resolveTarget(payload, args) {
   if (payload.channel && payload.channel.isDm) return { dmThreadId: payload.channel.id };
-  return { serverId: payload.server && payload.server.id, channelId: payload.channel && payload.channel.id };
+  const serverId = payload.server && payload.server.id;
+  if (!serverId) throw new Error('Contexte invalide (pas de serveur identifié).');
+  const salon = String(args.salon || '').trim();
+  if (salon) {
+    const channels = await api.listVoiceChannels(serverId);
+    const match = channels.find(function (c) { return c.name.toLowerCase() === salon.toLowerCase(); });
+    if (!match) {
+      const names = channels.map(function (c) { return c.name; }).join(', ') || '(aucun salon vocal sur ce serveur)';
+      throw new Error('Salon vocal "' + salon + '" introuvable. Disponibles : ' + names);
+    }
+    return { serverId: serverId, channelId: match.id };
+  }
+  const active = sessions.forServer(serverId);
+  if (active.length === 1) return active[0].target;
+  if (active.length === 0) throw new Error('Précise le salon vocal avec `salon:` (ex. `salon:Lounge 1`).');
+  throw new Error('Plusieurs salons vocaux actifs sur ce serveur — précise lequel avec `salon:`.');
 }
 
 async function ensureSession(target) {
@@ -77,12 +98,13 @@ async function playLoop(session) {
 
 // ===== Commandes =====
 async function handleCommand(payload) {
-  const target = targetFromPayload(payload);
   const name = payload.command && payload.command.name;
   const args = (payload.command && payload.command.args) || {};
-
-  if (!target.dmThreadId && !target.channelId) {
-    return { content: 'Contexte invalide (pas de salon/DM identifié).', ephemeral: true };
+  let target;
+  try {
+    target = await resolveTarget(payload, args);
+  } catch (e) {
+    return { content: '❌ ' + e.message, ephemeral: true };
   }
 
   if (name === 'join') {
