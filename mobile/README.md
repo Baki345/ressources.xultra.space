@@ -1,10 +1,10 @@
 # XULTRA Mobile — app native (iOS/Android)
 
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
-bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis
-(dont bloquer/débloquer), notifications et serveurs (salons
-texte/annonces/forum/vocaux/scène) — premières fonctionnalités X1
-portées. Appels, notifications push... à venir.**
+bout (E2E, texte ET pièces jointes, + appel vocal pour un groupe),
+fiche de profil, gestion des amis (dont bloquer/débloquer), notifications
+et serveurs (salons texte/annonces/forum/vocaux/scène) — premières
+fonctionnalités X1 portées. Appel 1:1, notifications push... à venir.**
 
 ⚠️ **Depuis les salons vocaux (LiveKit), l'app ne tourne plus sous Expo
 Go** — voir "Démarrer" ci-dessous : une vraie build de développement EAS
@@ -115,6 +115,16 @@ EAS.
     (`expo-sharing`) pour l'ouvrir ou l'enregistrer. Palier de taille
     actuel : 10 Mo (X1+ n'est pas encore branché côté mobile, contrairement
     au site).
+  - **Appel vocal de groupe** (`src/dmCalls.ts` + `DmGroupCallScreen.tsx`,
+    bouton 🎙️ dans l'en-tête d'un DM de groupe) : architecture identique
+    aux salons vocaux de serveur (`src/voice.ts`, même jeton LiveKit, même
+    schéma de présence/heartbeat/abandon après 2 min) — seules la room
+    (`xu-dm-<dmId>`) et la collection de présence (`group_call_presence`)
+    changent, voir `/api/call/group-token`/`/api/call/group-presence/join`
+    côté `worker.js`. Réservé aux DM de groupe : un DM 1:1 utilise côté
+    web une architecture entièrement différente (WebRTC brut pair-à-pair
+    avec sonnerie/accepter/refuser via `direct_calls`, jamais LiveKit) —
+    hors scope pour l'instant, voir "Ce qu'il reste" plus bas.
 - `src/profile.ts` + `src/screens/ProfileScreen.tsx` : fiche de profil
   (bannière, avatar, présence réelle, bio, badges, membre depuis) avec un
   vrai bouton "Ami" (➕ Ajouter / 📨 En attente / ✅ Accepter sa demande /
@@ -230,20 +240,20 @@ EAS.
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
 (la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
 amis et notifications, puis serveurs (fait, y compris forum, vocal et
-scène), puis appels... Chaque section vérifiée (tests + `expo export`
-propre, plus une vraie build de développement EAS pour tout ce qui touche
-à LiveKit) avant de passer à la suivante.
+scène) et l'appel vocal de groupe en DM (fait). Chaque section vérifiée
+(tests + `expo export` propre, plus une vraie build de développement EAS
+pour tout ce qui touche à LiveKit) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : appels DM — de groupe (même schéma que les
-   salons vocaux de serveur : jeton LiveKit + présence, room
-   `xu-dm-<dmId>`, voir `/api/call/group-token`/`/api/call/group-presence/join`
-   côté worker.js) et 1:1 (architecture différente et nettement plus
-   lourde côté web : WebRTC brut pair-à-pair avec sonnerie/accepter/
-   refuser via la collection `direct_calls`, pas LiveKit — un chantier à
-   part entière, pas une extension de ce qui existe déjà) ; notifications
-   push (voir juste en dessous — nécessite ta participation).
+1. **Fonctionnalités** : appel DM 1:1 — architecture différente et
+   nettement plus lourde côté web que tout ce qui a été porté jusqu'ici :
+   WebRTC brut pair-à-pair avec sonnerie/accepter/refuser via la
+   collection `direct_calls`, jamais LiveKit (contrairement aux salons
+   vocaux/scène de serveur et à l'appel de groupe en DM, tous les trois
+   déjà en place) — un chantier à part entière, pas une extension de ce
+   qui existe déjà ; notifications push (voir juste en dessous —
+   nécessite ta participation).
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

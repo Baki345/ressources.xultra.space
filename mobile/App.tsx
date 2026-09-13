@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './src/AuthContext';
 import type { DmThread } from './src/dms';
 import type { Server, ServerChannel, ServerThread } from './src/servers';
 import DmConversationScreen from './src/screens/DmConversationScreen';
+import DmGroupCallScreen from './src/screens/DmGroupCallScreen';
 import DmListScreen from './src/screens/DmListScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -26,9 +27,14 @@ function AuthenticatedApp() {
   const [openForumChannel, setOpenForumChannel] = useState<ServerChannel | null>(null);
   const [openForumThread, setOpenForumThread] = useState<ServerThread | null>(null);
   const [openVoiceChannel, setOpenVoiceChannel] = useState<ServerChannel | null>(null);
+  const [openGroupCall, setOpenGroupCall] = useState<DmThread | null>(null);
+
+  if (openGroupCall) {
+    return <DmGroupCallScreen dm={openGroupCall} onBack={() => setOpenGroupCall(null)} />;
+  }
 
   if (openThread) {
-    return <DmConversationScreen dm={openThread} onBack={() => setOpenThread(null)} />;
+    return <DmConversationScreen dm={openThread} onBack={() => setOpenThread(null)} onOpenGroupCall={setOpenGroupCall} />;
   }
 
   if (openServer && openChannel) {

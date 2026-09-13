@@ -36,6 +36,7 @@ import ProfileScreen from './ProfileScreen';
 interface Props {
   dm: DmThread;
   onBack: () => void;
+  onOpenGroupCall?: (dm: DmThread) => void;
 }
 
 // Palier gratuit uniquement (X1+ n'est pas encore branché côté mobile, voir
@@ -44,7 +45,7 @@ interface Props {
 // voué à l'échec après un long upload.
 const MAX_ATTACH_BYTES = 10 * 1024 * 1024;
 
-export default function DmConversationScreen({ dm, onBack }: Props) {
+export default function DmConversationScreen({ dm, onBack, onOpenGroupCall }: Props) {
   const { user, e2eJwk } = useAuth();
   const [messages, setMessages] = useState<DecryptedDmMessage[]>([]);
   const [title, setTitle] = useState(dmTitle(dm, user!.$id));
@@ -216,7 +217,13 @@ export default function DmConversationScreen({ dm, onBack }: Props) {
             {title}
           </Text>
         </TouchableOpacity>
-        <View style={styles.headerSpacer} />
+        {isGroup && onOpenGroupCall ? (
+          <TouchableOpacity onPress={() => onOpenGroupCall(dm)} testID="dm-group-call-button">
+            <Text style={styles.callButton}>🎙️</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.headerSpacer} />
+        )}
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -318,6 +325,7 @@ const styles = StyleSheet.create({
   headerTitleTouch: { flex: 1 },
   headerTitle: { color: '#f2ebff', fontSize: 17, fontWeight: '700', textAlign: 'center' },
   headerSpacer: { width: 64 },
+  callButton: { fontSize: 20, width: 64, textAlign: 'right' },
   error: { color: '#fca5a5', textAlign: 'center', paddingHorizontal: 16, paddingBottom: 8, fontSize: 12 },
   list: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
   bubbleRowMine: { alignItems: 'flex-end', marginVertical: 4 },

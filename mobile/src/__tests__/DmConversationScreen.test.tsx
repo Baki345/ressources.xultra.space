@@ -158,6 +158,34 @@ test('the header title is not tappable for a group thread (no single peer to sho
   expect(getByTestId('dm-header-title').props.accessibilityState?.disabled).toBe(true);
 });
 
+describe('appel de groupe', () => {
+  test('a group thread shows a call button that opens the group call screen', async () => {
+    const groupDm: dms.DmThread = { $id: 'dm2', members: ['u1', 'u2', 'u3'], $updatedAt: '2026-01-01T00:00:00.000Z' };
+    const onOpenGroupCall = jest.fn();
+    const { getByTestId } = await render(
+      <DmConversationScreen dm={groupDm} onBack={jest.fn()} onOpenGroupCall={onOpenGroupCall} />,
+    );
+    await waitFor(() => expect(getByTestId('dm-group-call-button')).toBeTruthy());
+    await fireEvent.press(getByTestId('dm-group-call-button'));
+    expect(onOpenGroupCall).toHaveBeenCalledWith(groupDm);
+  });
+
+  test('a 1:1 thread never shows a call button, even when onOpenGroupCall is provided', async () => {
+    const { queryByTestId } = await render(
+      <DmConversationScreen dm={DM} onBack={jest.fn()} onOpenGroupCall={jest.fn()} />,
+    );
+    await waitFor(() => expect(queryByTestId('dm-header-title')).toBeTruthy());
+    expect(queryByTestId('dm-group-call-button')).toBeNull();
+  });
+
+  test('a group thread without onOpenGroupCall shows no call button (falls back to the header spacer)', async () => {
+    const groupDm: dms.DmThread = { $id: 'dm2', members: ['u1', 'u2', 'u3'], $updatedAt: '2026-01-01T00:00:00.000Z' };
+    const { queryByTestId } = await render(<DmConversationScreen dm={groupDm} onBack={jest.fn()} />);
+    await waitFor(() => expect(queryByTestId('dm-header-title')).toBeTruthy());
+    expect(queryByTestId('dm-group-call-button')).toBeNull();
+  });
+});
+
 describe('pièces jointes', () => {
   let alertSpy: jest.SpiedFunction<typeof Alert.alert>;
 
