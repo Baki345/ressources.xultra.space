@@ -3,8 +3,8 @@
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
 bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis
 (dont bloquer/débloquer), notifications et serveurs (salons
-texte/annonces/forum/vocaux) — premières fonctionnalités X1 portées.
-Salons de scène, appels, notifications push... à venir.**
+texte/annonces/forum/vocaux/scène) — premières fonctionnalités X1
+portées. Appels, notifications push... à venir.**
 
 ⚠️ **Depuis les salons vocaux (LiveKit), l'app ne tourne plus sous Expo
 Go** — voir "Démarrer" ci-dessous : une vraie build de développement EAS
@@ -162,10 +162,9 @@ EAS.
   timeout...) reste calculée côté Worker via les routes
   `/api/servers/channels/*`, jamais dupliquée côté mobile. Portée
   volontairement limitée à cette première version : salons TEXTE,
-  ANNONCES, FORUM (texte simple, pas de pièces jointes) et VOCAUX (audio
-  seul) — scène (LiveKit avec demandes de parole et modération des
-  orateurs) reste hors scope. Nouvel onglet "🗂️ Serveurs" à côté de
-  "Messages".
+  ANNONCES, FORUM (texte simple, pas de pièces jointes), VOCAUX et de
+  SCÈNE (audio seul, pas de caméra/partage d'écran). Nouvel onglet
+  "🗂️ Serveurs" à côté de "Messages".
   - **Salons forum** (`ServerForumScreen.tsx`) : liste des posts d'un
     salon 📋 (les plus récents en premier), bouton "+ Post" pour en publier
     un nouveau (titre + corps). Un post de forum EST un fil côté worker.js
@@ -201,6 +200,27 @@ EAS.
     participants LiveKit en temps réel — pas d'indicateur "qui parle en ce
     moment" ni de caméra/main levée pour les autres, juste soi-même
     (micro) pour cette première version.
+  - **Salons de scène** (`src/stage.ts`, 🎙️, même `ServerVoiceScreen.tsx`
+    que les salons vocaux — un salon de scène n'est qu'une variante avec
+    deux rôles) : sujet affiché en haut, liste des orateurs, section
+    "Demandes de parole" réservée à la modération
+    (`/api/servers/stage/*` côté worker.js — qui peut gérer le vocal du
+    serveur), bouton "🖐️ Demander la parole"/"✋ Annuler ma demande" pour
+    le public, "Descendre"/"Retirer" pour quitter la scène (soi-même
+    toujours permis, retirer quelqu'un d'autre réservé à la modération).
+    Point important : le droit de publier son micro est figé dans le
+    jeton LiveKit au moment de la connexion (`canPublish`, voir
+    `src/voice.ts`) — être approuvé comme orateur PENDANT que je suis
+    déjà connecté ne me donne donc rien tant que je n'ai pas un jeton
+    frais. `ServerVoiceScreen.tsx` sonde `/api/servers/stage/state`
+    toutes les 5s et RECONNECTE ENTIÈREMENT (nouveau jeton, donc nouveau
+    `canPublish`) dès que mon statut orateur change, exactement comme le
+    fait le site (`leaveGroupCall()` puis `joinVoiceRoom()` dans
+    `loadStageChannel()`) — un sondage plutôt qu'un abonnement Appwrite
+    Realtime (cohérent avec le reste du portage mobile, qui n'utilise le
+    temps réel nulle part), avec un garde-fou dédié pour que cette
+    reconnexion volontaire ne soit jamais confondue avec un abandon réel
+    et ne renvoie jamais par erreur à la liste des salons.
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -209,18 +229,21 @@ EAS.
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
 (la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
-amis et notifications, puis serveurs (fait, y compris forum et vocal),
-puis appels... Chaque section vérifiée (tests + `expo export` propre, plus
-une vraie build de développement EAS pour les salons vocaux) avant de
-passer à la suivante.
+amis et notifications, puis serveurs (fait, y compris forum, vocal et
+scène), puis appels... Chaque section vérifiée (tests + `expo export`
+propre, plus une vraie build de développement EAS pour tout ce qui touche
+à LiveKit) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : salons de scène de serveur (demandes de parole,
-   modération des orateurs — LiveKit déjà en place pour le vocal simple,
-   "juste" une UI et une logique de permissions en plus), appels (1:1 et
-   groupe DM — même SDK LiveKit que les salons vocaux, déjà installé),
-   notifications push.
+1. **Fonctionnalités** : appels DM — de groupe (même schéma que les
+   salons vocaux de serveur : jeton LiveKit + présence, room
+   `xu-dm-<dmId>`, voir `/api/call/group-token`/`/api/call/group-presence/join`
+   côté worker.js) et 1:1 (architecture différente et nettement plus
+   lourde côté web : WebRTC brut pair-à-pair avec sonnerie/accepter/
+   refuser via la collection `direct_calls`, pas LiveKit — un chantier à
+   part entière, pas une extension de ce qui existe déjà) ; notifications
+   push (voir juste en dessous — nécessite ta participation).
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

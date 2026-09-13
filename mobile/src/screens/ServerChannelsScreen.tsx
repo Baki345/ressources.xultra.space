@@ -71,12 +71,24 @@ export default function ServerChannelsScreen({
             <TouchableOpacity
               style={styles.row}
               onPress={() =>
-                item.type === 'forum' ? onOpenForum(item) : item.type === 'voice' ? onOpenVoice(item) : onOpenChannel(item)
+                item.type === 'forum'
+                  ? onOpenForum(item)
+                  : item.type === 'voice' || item.type === 'stage'
+                    ? onOpenVoice(item)
+                    : onOpenChannel(item)
               }
               testID={`channel-row-${item.$id}`}
             >
               <Text style={styles.hash}>
-                {item.type === 'announcement' ? '📣' : item.type === 'forum' ? '📋' : item.type === 'voice' ? '🔊' : '#'}
+                {item.type === 'announcement'
+                  ? '📣'
+                  : item.type === 'forum'
+                    ? '📋'
+                    : item.type === 'voice'
+                      ? '🔊'
+                      : item.type === 'stage'
+                        ? '🎙️'
+                        : '#'}
               </Text>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {item.name}

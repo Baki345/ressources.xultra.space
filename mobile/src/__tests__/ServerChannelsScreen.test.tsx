@@ -83,6 +83,22 @@ test('tapping a voice channel calls onOpenVoice only', async () => {
   expect(onOpenForum).not.toHaveBeenCalled();
 });
 
+test('tapping a stage channel calls onOpenVoice only (same screen as a regular voice channel)', async () => {
+  mockedServers.loadServerChannels.mockResolvedValueOnce([
+    { $id: 'c4', serverId: 's1', name: 'ama-scène', type: 'stage', position: 0 },
+  ]);
+  const onOpenChannel = jest.fn();
+  const onOpenForum = jest.fn();
+  const onOpenVoice = jest.fn();
+  const { getByTestId, getByText } = await renderScreen({ onOpenChannel, onOpenForum, onOpenVoice });
+  await waitFor(() => expect(getByTestId('channel-row-c4')).toBeTruthy());
+  expect(getByText('🎙️')).toBeTruthy();
+  await fireEvent.press(getByTestId('channel-row-c4'));
+  expect(onOpenVoice).toHaveBeenCalledWith(expect.objectContaining({ $id: 'c4' }));
+  expect(onOpenChannel).not.toHaveBeenCalled();
+  expect(onOpenForum).not.toHaveBeenCalled();
+});
+
 test('the back button calls onBack', async () => {
   mockedServers.loadServerChannels.mockResolvedValueOnce([]);
   const onBack = jest.fn();
