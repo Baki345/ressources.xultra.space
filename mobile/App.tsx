@@ -4,7 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 import { AuthProvider, useAuth } from './src/AuthContext';
 import type { DmThread } from './src/dms';
-import type { Server, ServerChannel } from './src/servers';
+import type { Server, ServerChannel, ServerThread } from './src/servers';
 import DmConversationScreen from './src/screens/DmConversationScreen';
 import DmListScreen from './src/screens/DmListScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
@@ -12,6 +12,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import ServerChannelScreen from './src/screens/ServerChannelScreen';
 import ServerChannelsScreen from './src/screens/ServerChannelsScreen';
+import ServerForumScreen from './src/screens/ServerForumScreen';
 import ServersScreen from './src/screens/ServersScreen';
 
 type Tab = 'dms' | 'servers' | 'friends' | 'notifications';
@@ -21,6 +22,8 @@ function AuthenticatedApp() {
   const [openThread, setOpenThread] = useState<DmThread | null>(null);
   const [openServer, setOpenServer] = useState<Server | null>(null);
   const [openChannel, setOpenChannel] = useState<ServerChannel | null>(null);
+  const [openForumChannel, setOpenForumChannel] = useState<ServerChannel | null>(null);
+  const [openForumThread, setOpenForumThread] = useState<ServerThread | null>(null);
 
   if (openThread) {
     return <DmConversationScreen dm={openThread} onBack={() => setOpenThread(null)} />;
@@ -30,11 +33,34 @@ function AuthenticatedApp() {
     return <ServerChannelScreen server={openServer} channel={openChannel} onBack={() => setOpenChannel(null)} />;
   }
 
+  if (openServer && openForumChannel && openForumThread) {
+    return (
+      <ServerChannelScreen
+        server={openServer}
+        channel={openForumChannel}
+        thread={openForumThread}
+        onBack={() => setOpenForumThread(null)}
+      />
+    );
+  }
+
+  if (openServer && openForumChannel) {
+    return (
+      <ServerForumScreen
+        server={openServer}
+        channel={openForumChannel}
+        onOpenThread={setOpenForumThread}
+        onBack={() => setOpenForumChannel(null)}
+      />
+    );
+  }
+
   if (openServer) {
     return (
       <ServerChannelsScreen
         server={openServer}
         onOpenChannel={setOpenChannel}
+        onOpenForum={setOpenForumChannel}
         onBack={() => setOpenServer(null)}
       />
     );

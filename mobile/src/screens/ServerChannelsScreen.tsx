@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { loadServerTextChannels, type Server, type ServerChannel } from '../servers';
+import { loadServerChannels, type Server, type ServerChannel } from '../servers';
 
 export default function ServerChannelsScreen({
   server,
   onOpenChannel,
+  onOpenForum,
   onBack,
 }: {
   server: Server;
   onOpenChannel: (channel: ServerChannel) => void;
+  onOpenForum: (channel: ServerChannel) => void;
   onBack: () => void;
 }) {
   const [channels, setChannels] = useState<ServerChannel[]>([]);
@@ -20,7 +22,7 @@ export default function ServerChannelsScreen({
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      setChannels(await loadServerTextChannels(server.$id));
+      setChannels(await loadServerChannels(server.$id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de charger les salons.');
     }
@@ -60,16 +62,16 @@ export default function ServerChannelsScreen({
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#7c3aed" />}
           ListEmptyComponent={
             <Text style={styles.empty} testID="server-channels-empty">
-              Aucun salon texte visible sur ce serveur.
+              Aucun salon visible sur ce serveur.
             </Text>
           }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
-              onPress={() => onOpenChannel(item)}
+              onPress={() => (item.type === 'forum' ? onOpenForum(item) : onOpenChannel(item))}
               testID={`channel-row-${item.$id}`}
             >
-              <Text style={styles.hash}>{item.type === 'announcement' ? '📣' : '#'}</Text>
+              <Text style={styles.hash}>{item.type === 'announcement' ? '📣' : item.type === 'forum' ? '📋' : '#'}</Text>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {item.name}
               </Text>

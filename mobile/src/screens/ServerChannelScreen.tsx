@@ -12,15 +12,27 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../AuthContext';
-import { loadChannelMessages, sendChannelText, type Server, type ServerChannel, type ServerChannelMessage } from '../servers';
+import {
+  loadChannelMessages,
+  sendChannelText,
+  type Server,
+  type ServerChannel,
+  type ServerChannelMessage,
+  type ServerThread,
+} from '../servers';
 
 interface Props {
   server: Server;
   channel: ServerChannel;
+  /** Présent uniquement pour un post de forum : les messages/envois sont
+   * alors scopés à ce fil précis (voir loadChannelMessages/sendChannelText
+   * dans servers.ts), et l'en-tête affiche le titre du post plutôt que le
+   * nom du salon. */
+  thread?: ServerThread;
   onBack: () => void;
 }
 
-export default function ServerChannelScreen({ server, channel, onBack }: Props) {
+export default function ServerChannelScreen({ server, channel, thread, onBack }: Props) {
   const { user } = useAuth();
   const [messages, setMessages] = useState<ServerChannelMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,11 +43,11 @@ export default function ServerChannelScreen({ server, channel, onBack }: Props) 
   const refresh = useCallback(async () => {
     setError(null);
     try {
-      setMessages(await loadChannelMessages(server.$id, channel.$id));
+      setMessages(await loadChannelMessages(server.$id, channel.$id, thread?.$id));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Impossible de charger les messages.');
     }
-  }, [server.$id, channel.$id]);
+  }, [server.$id, channel.$id, thread?.$id]);
 
   useEffect(() => {
     setLoading(true);
@@ -48,7 +60,7 @@ export default function ServerChannelScreen({ server, channel, onBack }: Props) 
     setSending(true);
     setError(null);
     try {
-      await sendChannelText(server.$id, channel.$id, text);
+      await sendChannelText(server.$id, channel.$id, text, thread?.$id);
       setDraft('');
       await refresh();
     } catch (e) {
@@ -56,7 +68,7 @@ export default function ServerChannelScreen({ server, channel, onBack }: Props) 
     } finally {
       setSending(false);
     }
-  }, [draft, user, sending, server.$id, channel.$id, refresh]);
+  }, [draft, user, sending, server.$id, channel.$id, thread?.$id, refresh]);
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -65,8 +77,7 @@ export default function ServerChannelScreen({ server, channel, onBack }: Props) 
           <Text style={styles.back}>‹ Retour</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {channel.type === 'announcement' ? '📣 ' : '# '}
-          {channel.name}
+          {thread ? '📋 ' + thread.name : (channel.type === 'announcement' ? '📣 ' : '# ') + channel.name}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -102,7 +113,7 @@ export default function ServerChannelScreen({ server, channel, onBack }: Props) 
           style={styles.input}
           value={draft}
           onChangeText={setDraft}
-          placeholder={`Écrire dans #${channel.name}...`}
+          placeholder={thread ? 'Répondre à ce post...' : `Écrire dans #${channel.name}...`}
           placeholderTextColor="#6b6180"
           testID="server-channel-input"
           multiline

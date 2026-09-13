@@ -12,13 +12,16 @@ jest.mock('../appwrite', () => ({
 jest.mock('../api', () => ({ apiPost: (...args: unknown[]) => mockApiPost(...args) }));
 
 import {
+  createForumPost,
   loadChannelMessages,
+  loadForumPosts,
   loadMyServers,
-  loadServerTextChannels,
+  loadServerChannels,
   sendChannelText,
   type Server,
   type ServerChannel,
   type ServerChannelMessage,
+  type ServerThread,
 } from '../servers';
 
 const ME = 'u1';
@@ -58,21 +61,22 @@ describe('loadMyServers', () => {
   });
 });
 
-describe('loadServerTextChannels', () => {
-  test('keeps only text/announcement channels, sorted by position', async () => {
+describe('loadServerChannels', () => {
+  test('keeps text/announcement/forum channels, drops voice/stage, sorted by position', async () => {
     const channels: ServerChannel[] = [
       { $id: 'c1', serverId: 's1', name: 'annonces', type: 'announcement', position: 2 },
       { $id: 'c2', serverId: 's1', name: 'général', type: 'text', position: 0 },
       { $id: 'c3', serverId: 's1', name: 'vocal', type: 'voice', position: 1 },
       { $id: 'c4', serverId: 's1', name: 'aide', type: 'forum', position: 3 },
       { $id: 'c5', serverId: 's1', name: 'off-topic', type: 'text', position: 1 },
+      { $id: 'c6', serverId: 's1', name: 'scène', type: 'stage', position: 4 },
     ];
     mockApiPost.mockResolvedValueOnce({ channels });
 
-    const result = await loadServerTextChannels('s1');
+    const result = await loadServerChannels('s1');
 
     expect(mockApiPost).toHaveBeenCalledWith('/api/servers/channels/list', { serverId: 's1' });
-    expect(result.map((c) => c.$id)).toEqual(['c2', 'c5', 'c1']);
+    expect(result.map((c: ServerChannel) => c.$id)).toEqual(['c2', 'c5', 'c1', 'c4']);
   });
 });
 
@@ -90,8 +94,21 @@ describe('loadChannelMessages', () => {
     expect(mockApiPost).toHaveBeenCalledWith('/api/servers/channels/messages/list', {
       serverId: 's1',
       channelId: 'c1',
+      threadId: '',
     });
     expect(result.map((m) => m.$id)).toEqual(['m3', 'm2', 'm1']);
+  });
+
+  test('passes a threadId through, to read a single forum post', async () => {
+    mockApiPost.mockResolvedValueOnce({ messages: [] });
+
+    await loadChannelMessages('s1', 'c1', 't1');
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/servers/channels/messages/list', {
+      serverId: 's1',
+      channelId: 'c1',
+      threadId: 't1',
+    });
   });
 });
 
@@ -106,6 +123,52 @@ describe('sendChannelText', () => {
       serverId: 's1',
       channelId: 'c1',
       text: 'salut le salon',
+      threadId: '',
     });
+  });
+
+  test('passes a threadId through, to reply inside an existing forum post', async () => {
+    mockApiPost.mockResolvedValueOnce({ ok: true });
+
+    await sendChannelText('s1', 'c1', 'je suis d\'accord', 't1');
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/servers/channels/messages/send', {
+      serverId: 's1',
+      channelId: 'c1',
+      text: 'je suis d\'accord',
+      threadId: 't1',
+    });
+  });
+});
+
+describe('loadForumPosts', () => {
+  test('lists the posts (threads) of a forum channel', async () => {
+    const threads: ServerThread[] = [
+      { $id: 't1', serverId: 's1', channelId: 'c1', name: 'Bienvenue', creatorUid: ME, private: false, archived: false, originMessageId: 'm1', $createdAt: '2026-01-01T00:00:00.000Z' },
+    ];
+    mockApiPost.mockResolvedValueOnce({ threads });
+
+    const result = await loadForumPosts('s1', 'c1');
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/servers/threads/list', { serverId: 's1', channelId: 'c1' });
+    expect(result).toEqual(threads);
+  });
+});
+
+describe('createForumPost', () => {
+  test('publishes a new post and returns the created thread and its first message', async () => {
+    const thread: ServerThread = { $id: 't1', serverId: 's1', channelId: 'c1', name: 'Titre', creatorUid: ME, private: false, archived: false, originMessageId: 'm1', $createdAt: '2026-01-01T00:00:00.000Z' };
+    const message: ServerChannelMessage = { $id: 'm1', channelId: 'c1', serverId: 's1', uid: ME, username: 'Moi', text: 'Corps du post', threadId: 't1', $createdAt: '2026-01-01T00:00:00.000Z' };
+    mockApiPost.mockResolvedValueOnce({ thread, message });
+
+    const result = await createForumPost('s1', 'c1', 'Titre', 'Corps du post');
+
+    expect(mockApiPost).toHaveBeenCalledWith('/api/servers/forum/post/create', {
+      serverId: 's1',
+      channelId: 'c1',
+      title: 'Titre',
+      text: 'Corps du post',
+    });
+    expect(result).toEqual({ thread, message });
   });
 });

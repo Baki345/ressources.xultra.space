@@ -3,8 +3,8 @@
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
 bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis
 (dont bloquer/débloquer), notifications et serveurs (salons
-texte/annonces) — premières fonctionnalités X1 portées. Appels,
-notifications push... à venir.**
+texte/annonces/forum) — premières fonctionnalités X1 portées. Salons
+vocaux, appels, notifications push... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -136,9 +136,23 @@ installable (voir "Ce qu'il reste" plus bas).
   permissions (qui a le droit de VOIR un salon — rôles, overwrites,
   timeout...) reste calculée côté Worker via les routes
   `/api/servers/channels/*`, jamais dupliquée côté mobile. Portée
-  volontairement limitée à cette première version : salons TEXTE et
-  ANNONCES uniquement — vocal (LiveKit), forum (fils) et pièces jointes
-  restent hors scope. Nouvel onglet "🗂️ Serveurs" à côté de "Messages".
+  volontairement limitée à cette première version : salons TEXTE,
+  ANNONCES et FORUM (texte simple, pas de pièces jointes) — vocal/scène
+  (LiveKit) restent hors scope. Nouvel onglet "🗂️ Serveurs" à côté de
+  "Messages".
+  - **Salons forum** (`ServerForumScreen.tsx`) : liste des posts d'un
+    salon 📋 (les plus récents en premier), bouton "+ Post" pour en publier
+    un nouveau (titre + corps). Un post de forum EST un fil côté worker.js
+    (§30, collection `server_threads`, pas de collection dédiée) — ouvrir
+    un post réutilise donc entièrement `ServerChannelScreen` (même
+    composant que pour un salon texte) en lui passant le fil concerné via
+    sa prop `thread`, plutôt que d'écrire un écran de fil séparé :
+    `loadChannelMessages`/`sendChannelText` (dans `src/servers.ts`)
+    acceptent un `threadId` optionnel qui les scope à CE post précis pour
+    la lecture des réponses et la publication d'une réponse. Simplification
+    assumée : le corps du post s'affiche comme un message normal dans le
+    fil (premier de la liste) plutôt que dans un bandeau séparé façon
+    Discord — suffisant pour une première version.
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -147,12 +161,15 @@ installable (voir "Ce qu'il reste" plus bas).
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
 (la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
-amis et notifications, puis serveurs (fait), puis appels... Chaque section
-vérifiée (tests + `expo export` propre) avant de passer à la suivante.
+amis et notifications, puis serveurs (fait, y compris forum), puis
+appels... Chaque section vérifiée (tests + `expo export` propre) avant de
+passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : salons vocaux/forum de serveur, appels,
+1. **Fonctionnalités** : salons vocaux/scène de serveur (LiveKit — nécessite
+   un client natif WebRTC, donc un build de développement personnalisé via
+   EAS, incompatible avec le flux 100% Expo Go suivi jusqu'ici), appels,
    notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le

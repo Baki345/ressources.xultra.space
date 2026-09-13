@@ -13,9 +13,18 @@
  * document créé n'a ni `enc` ni `keysJson`) — aucune couche de
  * chiffrement/déchiffrement nécessaire ici.
  *
- * Portée volontairement limitée à cette première version : salons TEXTE et
- * ANNONCES uniquement (lecture + envoi de texte simple). Vocal (LiveKit),
- * forum (fils de discussion) et pièces jointes restent hors scope — voir
+ * Salons FORUM (§30 côté worker.js) : un post de forum EST un fil
+ * (collection `server_threads`) — pas de collection dédiée. Créer un post
+ * crée le fil puis son premier message (qui porte le corps du post) et les
+ * relie via `originMessageId`/`threadId` ; répondre à un post est un message
+ * normal avec ce même `threadId`. On réutilise donc entièrement
+ * loadChannelMessages()/sendChannelText() (déjà écrites pour les salons
+ * texte) en leur passant un `threadId`, plutôt que d'inventer un chemin
+ * séparé pour les réponses à un post.
+ *
+ * Portée volontairement limitée à cette première version : salons TEXTE,
+ * ANNONCES et FORUM (lecture + envoi de texte simple, pas de pièces
+ * jointes). Vocal/scène (LiveKit) restent hors scope — voir
  * mobile/README.md, "Ce qu'il reste".
  */
 import { Query } from 'react-native-appwrite';
@@ -60,6 +69,22 @@ export interface ServerChannelMessage {
   type?: string;
   mediaUrl?: string;
   replyToId?: string;
+  threadId?: string;
+  $createdAt: string;
+}
+
+/** Un post de forum — voir la note en tête de fichier : c'est un fil
+ * (`server_threads`), pas une collection dédiée. */
+export interface ServerThread {
+  $id: string;
+  serverId: string;
+  channelId: string;
+  name: string;
+  creatorUid: string;
+  private: boolean;
+  archived: boolean;
+  originMessageId: string;
+  memberUids?: string[];
   $createdAt: string;
 }
 
@@ -84,40 +109,70 @@ export async function loadMyServers(myUid: string): Promise<Server[]> {
   return servers;
 }
 
-const TEXT_LIKE_TYPES: ChannelType[] = ['text', 'announcement'];
+const VISIBLE_TYPES: ChannelType[] = ['text', 'announcement', 'forum'];
 
-/** Salons TEXTE/ANNONCES que je peux VOIR sur ce serveur, triés par
+/** Salons TEXTE/ANNONCES/FORUM que je peux VOIR sur ce serveur, triés par
  * position — le Worker filtre déjà par visibilité (voir
  * /api/servers/channels/list côté worker.js), donc tout salon renvoyé ici
- * est légitimement affichable. Vocal/forum/stage sont exclus (hors scope,
- * voir l'en-tête de ce fichier). */
-export async function loadServerTextChannels(serverId: string): Promise<ServerChannel[]> {
+ * est légitimement affichable. Vocal/scène sont exclus (hors scope, voir
+ * l'en-tête de ce fichier). */
+export async function loadServerChannels(serverId: string): Promise<ServerChannel[]> {
   const r = await apiPost<{ channels: ServerChannel[] }>('/api/servers/channels/list', { serverId });
   return r.channels
-    .filter((c) => TEXT_LIKE_TYPES.includes(c.type))
+    .filter((c) => VISIBLE_TYPES.includes(c.type))
     .sort((a, b) => (a.position || 0) - (b.position || 0));
 }
 
-/** Les 60 derniers messages "racine" d'un salon (hors fils, voir
- * worker.js), plus récents en premier — même convention que
+/** Les 60 derniers messages d'un salon texte/annonces (`threadId` omis), ou
+ * d'UN post de forum précis (`threadId` = l'identifiant du fil/post, voir
+ * loadForumPosts) — plus récents en premier, même convention que
  * loadThreadMessages() dans src/dms.ts, consommée telle quelle par un
  * <FlatList inverted>. La route Worker (même /api/servers/channels/messages/list
  * que le web) renvoie déjà les messages du PLUS ANCIEN au plus récent (elle
  * fait elle-même .reverse() sur sa requête $createdAt desc, pour un rendu
  * web classique de haut en bas) — on l'inverse donc ici pour retrouver
  * l'ordre "plus récent en premier" qu'attend l'écran mobile. */
-export async function loadChannelMessages(serverId: string, channelId: string): Promise<ServerChannelMessage[]> {
+export async function loadChannelMessages(serverId: string, channelId: string, threadId?: string): Promise<ServerChannelMessage[]> {
   const r = await apiPost<{ messages: ServerChannelMessage[] }>('/api/servers/channels/messages/list', {
     serverId,
     channelId,
+    threadId: threadId || '',
   });
   return r.messages.slice().reverse();
 }
 
-/** Poste un message texte simple dans un salon — jamais d'écriture directe
- * dans server_channel_messages (voir le commentaire en tête de fichier :
- * la validation des permissions/timeout/mode lent/auto-mod vit uniquement
- * côté Worker). */
-export async function sendChannelText(serverId: string, channelId: string, text: string): Promise<void> {
-  await apiPost('/api/servers/channels/messages/send', { serverId, channelId, text });
+/** Poste un message texte simple dans un salon texte/annonces, ou une
+ * RÉPONSE à un post de forum existant (`threadId`) — jamais d'écriture
+ * directe dans server_channel_messages (voir le commentaire en tête de
+ * fichier : la validation des permissions/timeout/mode lent/auto-mod vit
+ * uniquement côté Worker). Un salon forum n'accepte pas de message sans
+ * `threadId` (voir §30 côté worker.js) : créer un nouveau post passe par
+ * createForumPost(), pas par cette fonction. */
+export async function sendChannelText(serverId: string, channelId: string, text: string, threadId?: string): Promise<void> {
+  await apiPost('/api/servers/channels/messages/send', { serverId, channelId, text, threadId: threadId || '' });
+}
+
+/** Les posts (fils) d'un salon forum, plus récents en premier — le Worker
+ * filtre déjà les fils privés auxquels je n'ai pas accès (voir
+ * /api/servers/threads/list côté worker.js). */
+export async function loadForumPosts(serverId: string, channelId: string): Promise<ServerThread[]> {
+  const r = await apiPost<{ threads: ServerThread[] }>('/api/servers/threads/list', { serverId, channelId });
+  return r.threads;
+}
+
+/** Crée un nouveau post de forum (titre + corps) — le Worker crée le fil ET
+ * son premier message ensemble (voir /api/servers/forum/post/create côté
+ * worker.js) ; il n'existe aucun autre moyen valide de créer un post. */
+export async function createForumPost(
+  serverId: string,
+  channelId: string,
+  title: string,
+  text: string
+): Promise<{ thread: ServerThread; message: ServerChannelMessage }> {
+  return apiPost<{ thread: ServerThread; message: ServerChannelMessage }>('/api/servers/forum/post/create', {
+    serverId,
+    channelId,
+    title,
+    text,
+  });
 }
