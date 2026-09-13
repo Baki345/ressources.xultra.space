@@ -256,6 +256,51 @@ EAS.
   ça marche en vrai : voir "Ce qu'il reste", point 4 — nécessite ta
   participation** (comptes Firebase/Apple + déploiement).
 
+## Publier sur le Play Store (priorité actuelle)
+
+`eas.json` est déjà en place (profils `development`/`preview`/`production`,
+ce dernier en `app-bundle` avec incrément automatique du numéro de version —
+rien à toucher). Ce qui reste ne peut se faire qu'avec TES comptes :
+
+1. **Compte Google Play Console** (25 $ US, paiement unique) — à créer sur
+   [play.google.com/console](https://play.google.com/console) si ce n'est
+   pas déjà fait.
+2. **Lier un projet EAS** : `npx eas login` (compte Expo/EAS, gratuit) puis
+   `npx eas init` depuis `mobile/` — écrit un `projectId` dans `app.json`
+   sous `extra.eas.projectId`. Étape unique, valable pour toutes les builds
+   futures (dev comme prod).
+3. **Icônes réelles** : `assets/icon.png`, `assets/android-icon-*.png` et
+   `assets/splash-icon.png` sont encore le visuel par défaut d'Expo (le
+   logo bleu générique) — à remplacer par les vraies icônes X1 avant la
+   build de production. Donne-moi les fichiers (1024×1024 pour `icon.png`,
+   voir [la doc icônes Expo](https://docs.expo.dev/develop/user-interface/app-icons/))
+   et je les intègre.
+4. **URL publique de politique de confidentialité** : Play Console exige un
+   lien PUBLIC (pas de connexion requise) vers la politique de
+   confidentialité. Le site a déjà ce texte, mais seulement dans un modal
+   des Paramètres — pas de route dédiée accessible sans être connecté. Dis-moi
+   si tu veux que j'ajoute une route publique simple (ex. `xultra.space/privacy`)
+   sur `worker.js` pour ce lien.
+5. **Build de production** : `npx eas build --profile production --platform android`
+   (compile dans le cloud EAS, ~10-20 min, gère la signature automatiquement
+   dès la première build — aucun Android Studio local nécessaire).
+6. **Fiche Play Store** (dans Play Console, une fois l'app créée) :
+   description courte/longue, icône 512×512, image de couverture
+   ("feature graphic") 1024×500, au moins 2 captures d'écran téléphone,
+   catégorie, questionnaire de classification de contenu, et surtout le
+   formulaire **"Sécurité des données"** (obligatoire — déclarer ce qui est
+   collecté : email, messages chiffrés de bout en bout, éventuellement le
+   micro via les salons vocaux LiveKit).
+7. **Premier envoi** : télécharger le `.aab` produit par EAS (lien donné en
+   fin de build) et l'envoyer sur un canal de **test interne** d'abord
+   (recommandé par Google avant la Production) — soit manuellement dans
+   Play Console, soit via `npx eas submit -p android` si tu configures une
+   clé de compte de service Google Cloud pour l'envoi automatique.
+
+Une fois testée en interne, l'app se promeut vers Production directement
+depuis Play Console — aucune nouvelle build n'est nécessaire si rien n'a
+changé entre-temps.
+
 ## Stratégie de portage (même principe que `app/`)
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
