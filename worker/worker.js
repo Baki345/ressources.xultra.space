@@ -34938,6 +34938,9 @@ async function handle(request, event) {
       // public code browser, allowed even without the gate
     } else if (!hasGate && path === "/api/note" && request.method === "POST") {
       // temporary client diagnostics, allowed even without the gate
+    } else if (!hasGate && path === "/privacy") {
+      // Politique de confidentialité publique (ex. fiche Google Play) : doit
+      // rester consultable même pendant une maintenance du reste du site.
     } else if (!hasGate) {
       // Block ALL paths including /api/*
       return new Response(buildMaintHtml(maintState.message), {
@@ -34952,6 +34955,51 @@ async function handle(request, event) {
     }
   }
 
+
+  // Politique de confidentialité en page statique publique, sans JS ni
+  // connexion requise (contrairement à la version dans l'app, ouverte depuis
+  // Paramètres via openLegalDocsModal()) — nécessaire pour les stores
+  // (Google Play exige une URL publique dans "Contenu de l'app"), le contenu
+  // reste le même texte que privacyPolicyHtml() côté client, tenu à jour ici
+  // en parallèle.
+  if (path === "/privacy" && request.method === "GET") {
+    const html = "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\">"
+      + "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+      + "<title>Politique de confidentialité — XULTRA</title>"
+      + "<style>"
+      + "body{margin:0;background:#0d0814;color:#f4f2fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6}"
+      + "main{max-width:720px;margin:0 auto;padding:40px 20px 80px}"
+      + "h1{font-size:1.6rem;margin-bottom:4px}"
+      + ".sub{color:#a79ec2;margin-bottom:32px}"
+      + "section{background:#171225;border:1px solid #2a2340;border-radius:14px;padding:20px 22px;margin-bottom:16px}"
+      + "h2{font-size:1rem;margin:0 0 10px}"
+      + "p{margin:0 0 12px;color:#d9d3ea}"
+      + "p:last-child{margin-bottom:0}"
+      + "a{color:#c4b5fd}"
+      + "</style></head><body><main>"
+      + "<h1>🔐 Politique de confidentialité (RGPD)</h1>"
+      + "<div class=\"sub\">Ce qu'on collecte, pourquoi, et comment reprendre le contrôle — en clair, pas en jargon juridique.</div>"
+      + "<section><h2>👤 Qui est responsable de tes données ?</h2><p><b>CISCOSH</b>, éditeur de X1/XULTRA — <a href=\"mailto:contact@xultra.space\">contact@xultra.space</a>.</p></section>"
+      + "<section><h2>📋 Ce qu'on collecte, et pourquoi</h2>"
+      + "<p><b>Email et mot de passe</b> — créer et sécuriser ton compte. Le mot de passe est haché : personne chez nous ne peut le lire en clair.</p>"
+      + "<p><b>Pseudo, tag, avatar, bannière, bio</b> (facultatifs) — ton profil public.</p>"
+      + "<p><b>Adresse IP, au moment de la connexion</b> — sécurité (limite du nombre de tentatives, détection d'abus), estimation du pays affichée en drapeau sur ton profil, détection si ta connexion ressemble à un VPN/hébergeur. Jamais revendue, jamais utilisée à des fins publicitaires.</p>"
+      + "<p><b>Messages privés et fichiers X1 Drive</b> — chiffrés de bout en bout <i>sur ton appareil</i>, avant même d'être envoyés. Nos serveurs ne voient jamais que du texte chiffré et illisible : on ne peut techniquement pas lire le contenu de tes échanges privés, même si on le voulait.</p>"
+      + "<p><b>Photo de vérification d'âge</b> (si tu utilises cette fonctionnalité) — analysée en mémoire par une IA pour une estimation d'âge, puis immédiatement supprimée. Jamais stockée, jamais transmise à un tiers.</p>"
+      + "<p><b>Moyens de paiement</b> (X1+, X1 Coins) — intégralement gérés par Stripe. X1 ne voit et ne stocke jamais ton numéro de carte.</p>"
+      + "<p><b>Journal de sécurité</b> (connexions, appareils) — détection de fraude et alerte en cas de connexion suspecte.</p></section>"
+      + "<section><h2>⚖️ Sur quelle base légale ?</h2><p>Exécution du contrat qui te lie à X1 (fournir le service que tu utilises), intérêt légitime (sécurité, lutte anti-abus, anti-spam), et ton consentement explicite quand il est demandé (notifications push, partage optionnel de statistiques d'usage — désactivé par défaut).</p></section>"
+      + "<section><h2>🤝 Qui peut voir tes données ?</h2><p>Quelques sous-traitants techniques, jamais des acheteurs de données — X1 ne vend rien à personne : <b>Appwrite</b> (hébergement base de données/authentification/stockage, Union européenne) · <b>Cloudflare</b> (infrastructure réseau, États-Unis — encadré par des clauses contractuelles types pour le transfert hors UE) · <b>Stripe</b> (paiement, uniquement si tu payes quelque chose) · <b>Cloudflare Turnstile</b> (anti-robot à la connexion, ne suit pas ta navigation ailleurs) · <b>Cloudflare Workers AI</b> (estimation d'âge, traitement en mémoire uniquement, rien de stocké).</p></section>"
+      + "<section><h2>🗑️ Combien de temps on les garde</h2><p>Tant que ton compte existe. Le supprimer (Paramètres → Mon compte) supprime tes données personnelles, sauf ce qu'une obligation légale nous impose de conserver (ex. facturation).</p></section>"
+      + "<section><h2>✋ Tes droits</h2><p>Accès, rectification, effacement, limitation, portabilité, opposition — exerçables directement dans Paramètres (modifier ton profil, supprimer ton compte) ou par email à <a href=\"mailto:contact@xultra.space\">contact@xultra.space</a>. Tu peux aussi déposer une réclamation auprès de la <a href=\"https://www.cnil.fr\" target=\"_blank\" rel=\"noopener\">CNIL</a> si tu estimes que tes droits ne sont pas respectés.</p></section>"
+      + "<section><h2>🍪 Cookies et stockage local</h2><p>Aucun cookie publicitaire, aucun traceur tiers à but commercial. X1/XULTRA utilise le stockage local de ton navigateur ou de ton appareil uniquement pour retenir tes préférences (langue, thème, taille du texte…) et un jeton de connexion pour te garder connecté — rien de tout ça n'est partagé avec des annonceurs.</p></section>"
+      + "<section><h2>🔒 Sécurité</h2><p>Chiffrement de bout en bout (messages, X1 Drive), connexion HTTPS partout, mots de passe hachés, authentification à deux facteurs et clés de sécurité/passkeys disponibles.</p></section>"
+      + "<section><p>Ce texte peut évoluer ; toute mise à jour importante est annoncée dans les Notes de version.</p></section>"
+      + "</main></body></html>";
+    return new Response(html, {
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=3600" }
+    });
+  }
 
   // === Reverse proxy transparent vers Appwrite Cloud (contourne les réseaux qui ===
   // === bloquent les appels directs du navigateur vers fra.cloud.appwrite.io)   ===
