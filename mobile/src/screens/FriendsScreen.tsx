@@ -18,6 +18,7 @@ import {
   removeFriend,
   searchUsers,
   sendFriendRequest,
+  unblockUser,
   type FriendRelation,
 } from '../friends';
 import ProfileScreen from './ProfileScreen';
@@ -121,12 +122,26 @@ export default function FriendsScreen() {
     [user, refresh],
   );
 
+  const onUnblock = useCallback(
+    async (rel: FriendRelation) => {
+      if (!user) return;
+      try {
+        await unblockUser(user.$id, rel.friendId);
+        await refresh();
+      } catch {
+        setError('Impossible de débloquer cet utilisateur.');
+      }
+    },
+    [user, refresh],
+  );
+
   if (openProfileUid) {
     return <ProfileScreen uid={openProfileUid} onBack={() => setOpenProfileUid(null)} />;
   }
 
   const incoming = relations.filter((f) => f.status === 'pending_in');
   const accepted = relations.filter((f) => f.status === 'accepted');
+  const blocked = relations.filter((f) => f.status === 'blocked');
 
   if (loading) {
     return (
@@ -175,6 +190,8 @@ export default function FriendsScreen() {
           ...incoming.map((f) => ({ kind: 'incoming' as const, rel: f })),
           ...(accepted.length ? [{ kind: 'section' as const, label: 'Amis' }] : []),
           ...accepted.map((f) => ({ kind: 'accepted' as const, rel: f })),
+          ...(blocked.length ? [{ kind: 'section' as const, label: 'Utilisateurs bloqués' }] : []),
+          ...blocked.map((f) => ({ kind: 'blocked' as const, rel: f })),
         ]}
         keyExtractor={(item, i) => (item.kind === 'section' ? 'section-' + item.label : item.rel.$id) + i}
         ListEmptyComponent={
@@ -200,6 +217,18 @@ export default function FriendsScreen() {
                     <Text style={styles.rejectButtonText}>Refuser</Text>
                   </TouchableOpacity>
                 </View>
+              </View>
+            );
+          }
+          if (item.kind === 'blocked') {
+            return (
+              <View style={styles.row} testID={`friend-blocked-${item.rel.friendId}`}>
+                <View style={styles.rowInfo}>
+                  <Text style={styles.rowName}>{item.rel.name || 'Utilisateur'}</Text>
+                </View>
+                <TouchableOpacity style={styles.rejectButton} onPress={() => onUnblock(item.rel)} testID={`friend-unblock-${item.rel.friendId}`}>
+                  <Text style={styles.rejectButtonText}>Débloquer</Text>
+                </TouchableOpacity>
               </View>
             );
           }

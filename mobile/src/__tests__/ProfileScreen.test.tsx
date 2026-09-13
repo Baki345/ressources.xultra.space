@@ -1,5 +1,6 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, waitFor } from '@testing-library/react-native';
 import React from 'react';
+import { Alert } from 'react-native';
 
 import { useAuth } from '../AuthContext';
 import * as friends from '../friends';
@@ -13,7 +14,14 @@ jest.mock('../profile', () => {
 });
 jest.mock('../friends', () => {
   const actual = jest.requireActual('../friends');
-  return { ...actual, loadFriends: jest.fn(), sendFriendRequest: jest.fn(), acceptFriendRequest: jest.fn() };
+  return {
+    ...actual,
+    loadFriends: jest.fn(),
+    sendFriendRequest: jest.fn(),
+    acceptFriendRequest: jest.fn(),
+    blockUser: jest.fn(),
+    unblockUser: jest.fn(),
+  };
 });
 
 const mockedUseAuth = useAuth as jest.Mock;
@@ -123,5 +131,60 @@ describe('the "Ami" button', () => {
     const { getByTestId, getByText } = await render(<ProfileScreen uid="u2" onBack={jest.fn()} />);
     await waitFor(() => expect(getByText('✅ Ami')).toBeTruthy());
     expect(getByTestId('profile-friend-button').props.accessibilityState?.disabled).toBe(true);
+  });
+});
+
+describe('the block/unblock button', () => {
+  test('is hidden when viewing my own profile', async () => {
+    mockedUseAuth.mockReturnValue({ user: { $id: 'u2', name: 'Me' } });
+    mockedProfile.getProfileDetails.mockResolvedValueOnce({
+      uid: 'u2', username: 'me', tag: '1111', bio: '', presence: 'online', badges: ['base'],
+    });
+    const { getByTestId, queryByTestId } = await render(<ProfileScreen uid="u2" onBack={jest.fn()} />);
+    await waitFor(() => expect(getByTestId('profile-name')).toBeTruthy());
+    expect(queryByTestId('profile-block-button')).toBeNull();
+  });
+
+  test('shows "Bloquer" for someone not blocked, asks for confirmation, and blocks only once confirmed', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockedProfile.getProfileDetails.mockResolvedValueOnce({
+      uid: 'u2', username: 'shaman', displayName: 'Shaman', tag: '7777', bio: '', presence: 'online', badges: ['base'],
+    });
+    mockedFriends.loadFriends
+      .mockResolvedValueOnce([]) // initial relation lookup
+      .mockResolvedValueOnce([{ $id: 'f1', userId: 'me1', friendId: 'u2', status: 'blocked', name: 'Shaman' }]);
+    mockedFriends.blockUser.mockResolvedValueOnce(undefined);
+
+    const { getByTestId, getByText } = await render(<ProfileScreen uid="u2" onBack={jest.fn()} />);
+    await waitFor(() => expect(getByText('⛔ Bloquer')).toBeTruthy());
+
+    await fireEvent.press(getByTestId('profile-block-button'));
+    expect(mockedFriends.blockUser).not.toHaveBeenCalled(); // pas avant confirmation
+    const confirmButton = alertSpy.mock.calls[0][2]?.find((b) => b.text === 'Bloquer');
+    await act(async () => {
+      await confirmButton?.onPress?.();
+    });
+
+    await waitFor(() => expect(mockedFriends.blockUser).toHaveBeenCalledWith('me1', 'u2'));
+    await waitFor(() => expect(getByText('✅ Débloquer')).toBeTruthy());
+  });
+
+  test('shows "Débloquer" for someone already blocked, and unblocks immediately without confirmation', async () => {
+    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    mockedProfile.getProfileDetails.mockResolvedValueOnce({
+      uid: 'u2', username: 'shaman', tag: '7777', bio: '', presence: 'online', badges: ['base'],
+    });
+    mockedFriends.loadFriends
+      .mockResolvedValueOnce([{ $id: 'f1', userId: 'me1', friendId: 'u2', status: 'blocked' }])
+      .mockResolvedValueOnce([]);
+    mockedFriends.unblockUser.mockResolvedValueOnce(undefined);
+
+    const { getByTestId, getByText } = await render(<ProfileScreen uid="u2" onBack={jest.fn()} />);
+    await waitFor(() => expect(getByText('✅ Débloquer')).toBeTruthy());
+
+    await fireEvent.press(getByTestId('profile-block-button'));
+    expect(alertSpy).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockedFriends.unblockUser).toHaveBeenCalledWith('me1', 'u2'));
+    await waitFor(() => expect(getByText('⛔ Bloquer')).toBeTruthy());
   });
 });

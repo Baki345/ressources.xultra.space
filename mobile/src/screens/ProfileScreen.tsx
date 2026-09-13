@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { useAuth } from '../AuthContext';
-import { acceptFriendRequest, loadFriends, sendFriendRequest, type FriendRelation } from '../friends';
+import { acceptFriendRequest, blockUser, loadFriends, sendFriendRequest, unblockUser, type FriendRelation } from '../friends';
 import { BADGE_DEFS, getProfileDetails, presenceDotColor, presenceLabel, type ProfileDetails } from '../profile';
 
 interface Props {
@@ -21,7 +21,9 @@ export default function ProfileScreen({ uid, onBack }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [relation, setRelation] = useState<FriendRelation | null>(null);
   const [friendActionBusy, setFriendActionBusy] = useState(false);
+  const [blockActionBusy, setBlockActionBusy] = useState(false);
   const isSelf = user?.$id === uid;
+  const isBlocked = relation?.status === 'blocked';
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +80,32 @@ export default function ProfileScreen({ uid, onBack }: Props) {
       setFriendActionBusy(false);
     }
   }, [user, relation, uid, profile, friendActionBusy]);
+
+  const doBlockAction = useCallback(async () => {
+    if (!user || blockActionBusy) return;
+    setBlockActionBusy(true);
+    try {
+      if (isBlocked) await unblockUser(user.$id, uid);
+      else await blockUser(user.$id, uid);
+      const rels = await loadFriends(user.$id);
+      setRelation(rels.find((r) => String(r.friendId) === String(uid)) || null);
+    } finally {
+      setBlockActionBusy(false);
+    }
+  }, [user, uid, isBlocked, blockActionBusy]);
+
+  const onBlockPress = useCallback(() => {
+    if (blockActionBusy) return;
+    if (isBlocked) {
+      doBlockAction();
+      return;
+    }
+    const name = profile?.displayName || profile?.username || 'cet utilisateur';
+    Alert.alert('Bloquer ' + name + ' ?', 'Tu ne recevras plus ses messages.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Bloquer', style: 'destructive', onPress: doBlockAction },
+    ]);
+  }, [isBlocked, blockActionBusy, profile, doBlockAction]);
 
   const name = profile?.displayName || profile?.username || 'Membre';
 
@@ -178,6 +206,19 @@ export default function ProfileScreen({ uid, onBack }: Props) {
                       : friendActionBusy
                         ? '…'
                         : '➕ Ajouter en ami'}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {!isSelf ? (
+            <TouchableOpacity
+              style={styles.blockButton}
+              onPress={onBlockPress}
+              disabled={blockActionBusy}
+              testID="profile-block-button"
+            >
+              <Text style={styles.blockButtonText}>
+                {blockActionBusy ? '…' : isBlocked ? '✅ Débloquer' : '⛔ Bloquer'}
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -282,4 +323,15 @@ const styles = StyleSheet.create({
   },
   friendButtonDisabled: { backgroundColor: 'rgba(255,255,255,.06)' },
   friendButtonText: { color: '#f2ebff', fontWeight: '700', fontSize: 14 },
+  blockButton: {
+    marginTop: 10,
+    marginHorizontal: 16,
+    backgroundColor: 'rgba(255,255,255,.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(252,165,165,.25)',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  blockButtonText: { color: '#fca5a5', fontWeight: '700', fontSize: 14 },
 });

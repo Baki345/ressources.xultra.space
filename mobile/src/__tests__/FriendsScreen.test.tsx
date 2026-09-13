@@ -16,6 +16,7 @@ jest.mock('../friends', () => {
     acceptFriendRequest: jest.fn(),
     rejectFriendRequest: jest.fn(),
     removeFriend: jest.fn(),
+    unblockUser: jest.fn(),
   };
 });
 // ProfileScreen is reachable from a friend row tap — stub it out so this
@@ -109,4 +110,28 @@ test('tapping a friend row opens their profile', async () => {
   await waitFor(() => expect(getByText('Carol')).toBeTruthy());
   await fireEvent.press(getByText('Carol'));
   await waitFor(() => expect(getByTestId('fake-profile-screen')).toBeTruthy());
+});
+
+test('lists blocked users in their own section, and unblocking calls unblockUser and refreshes the list', async () => {
+  mockedFriends.loadFriends
+    .mockResolvedValueOnce([{ $id: 'f1', userId: 'me1', friendId: 'u5', status: 'blocked', name: 'Troll' }])
+    .mockResolvedValueOnce([]);
+  mockedFriends.unblockUser.mockResolvedValueOnce(undefined);
+
+  const { getByText, getByTestId, queryByTestId } = await render(<FriendsScreen />);
+  await waitFor(() => expect(getByText('Utilisateurs bloqués')).toBeTruthy());
+  expect(getByText('Troll')).toBeTruthy();
+  expect(getByTestId('friend-blocked-u5')).toBeTruthy();
+
+  await fireEvent.press(getByTestId('friend-unblock-u5'));
+  await waitFor(() => expect(mockedFriends.unblockUser).toHaveBeenCalledWith('me1', 'u5'));
+  await waitFor(() => expect(queryByTestId('friend-blocked-u5')).toBeNull());
+});
+
+test('a blocked row is not tappable to open a profile (unlike an accepted friend)', async () => {
+  mockedFriends.loadFriends.mockResolvedValueOnce([{ $id: 'f1', userId: 'me1', friendId: 'u5', status: 'blocked', name: 'Troll' }]);
+  const { getByText, queryByTestId } = await render(<FriendsScreen />);
+  await waitFor(() => expect(getByText('Troll')).toBeTruthy());
+  await fireEvent.press(getByText('Troll'));
+  expect(queryByTestId('fake-profile-screen')).toBeNull();
 });

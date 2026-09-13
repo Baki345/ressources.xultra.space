@@ -1,10 +1,10 @@
 # XULTRA Mobile — app native (iOS/Android)
 
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
-bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis,
-notifications et serveurs (salons texte/annonces) — premières
-fonctionnalités X1 portées. Bloquer/débloquer, appels, notifications
-push... à venir.**
+bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis
+(dont bloquer/débloquer), notifications et serveurs (salons
+texte/annonces) — premières fonctionnalités X1 portées. Appels,
+notifications push... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -103,6 +103,17 @@ installable (voir "Ce qu'il reste" plus bas).
   même instant) ne sont pas dédupliqués aussi agressivement que côté web ;
   le pire résultat possible reste deux documents "accepted" redondants,
   jamais une relation cassée.
+  - **Bloquer/débloquer un membre** : bouton ⛔ Bloquer / ✅ Débloquer sur
+    la fiche de profil (`ProfileScreen`, masqué sur son propre profil),
+    avec confirmation avant blocage ("Tu ne recevras plus ses messages.")
+    mais déblocage immédiat — même dissymétrie que côté web
+    (`confirmBlockUser`/`unblockUser` dans `worker.js`). Une section
+    "Utilisateurs bloqués" dans l'onglet Amis liste les comptes bloqués
+    avec un bouton Débloquer, équivalent mobile de `renderSetBlocked()`
+    côté web. Aucune logique d'application du blocage à porter ici : les
+    routes Worker déjà utilisées par l'envoi de DM (`isBlockedPair` dans
+    `worker.js`) refusent déjà les messages entre comptes bloqués, dans
+    les deux sens.
 - `src/notifications.ts` + `src/screens/NotificationsScreen.tsx` : flux de
   notifications génériques (ami accepté/retiré, badge obtenu, commentaire
   XBin, palier musique...) — port de la collection `notifications` (voir
@@ -141,9 +152,8 @@ vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : bloquer/débloquer un membre (les fonctions
-   existent dans `src/friends.ts`, pas encore d'entrée dans l'UI), salons
-   vocaux/forum de serveur, appels, notifications push.
+1. **Fonctionnalités** : salons vocaux/forum de serveur, appels,
+   notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.
