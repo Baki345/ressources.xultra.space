@@ -1,8 +1,9 @@
 # XULTRA Mobile — app native (iOS/Android)
 
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
-bout (E2E), fiche de profil, gestion des amis et notifications — premières
-fonctionnalités X1 portées. Serveurs, appels... à venir.**
+bout (E2E), fiche de profil, gestion des amis, notifications et serveurs
+(salons texte/annonces) — premières fonctionnalités X1 portées. Pièces
+jointes chiffrées, appels, notifications push... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -93,6 +94,20 @@ installable (voir "Ce qu'il reste" plus bas).
   les autres (badge, XBin, musique...) restent lisibles mais pas encore
   cliquables vers un écran dédié, ces fonctionnalités n'étant pas encore
   portées sur mobile. Nouvel onglet "🔔 Notifs" à côté de "Messages"/"Amis".
+- `src/servers.ts` + `src/screens/ServersScreen.tsx` /
+  `ServerChannelsScreen.tsx` / `ServerChannelScreen.tsx` : **serveurs,
+  salons texte/annonces** — liste de mes serveurs (lecture directe
+  `server_members`/`servers`, comme `loadMyServers()` côté web), liste des
+  salons visibles d'un serveur et fil de discussion d'un salon, envoi de
+  texte simple. Contrairement aux DM, les salons de serveur ne sont **pas**
+  chiffrés de bout en bout (voir `/api/servers/channels/messages/send`
+  côté `worker.js`), donc aucune couche E2E ici. Toute la logique de
+  permissions (qui a le droit de VOIR un salon — rôles, overwrites,
+  timeout...) reste calculée côté Worker via les routes
+  `/api/servers/channels/*`, jamais dupliquée côté mobile. Portée
+  volontairement limitée à cette première version : salons TEXTE et
+  ANNONCES uniquement — vocal (LiveKit), forum (fils) et pièces jointes
+  restent hors scope. Nouvel onglet "🗂️ Serveurs" à côté de "Messages".
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -101,7 +116,7 @@ installable (voir "Ce qu'il reste" plus bas).
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
 (la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
-amis et notifications (fait), puis serveurs, appels... Chaque section
+amis et notifications, puis serveurs (fait), puis appels... Chaque section
 vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
@@ -110,7 +125,8 @@ vérifiée (tests + `expo export` propre) avant de passer à la suivante.
    primitives `encryptBytesWithKey`/`decryptBytesWithKey` existent déjà
    dans `src/e2e.ts`, pas encore branchées à une UI), bloquer/débloquer un
    membre (les fonctions existent dans `src/friends.ts`, pas encore
-   d'entrée dans l'UI), serveurs, appels, notifications push.
+   d'entrée dans l'UI), salons vocaux/forum de serveur, appels,
+   notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

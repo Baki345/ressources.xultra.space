@@ -4,20 +4,40 @@ import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'rea
 
 import { AuthProvider, useAuth } from './src/AuthContext';
 import type { DmThread } from './src/dms';
+import type { Server, ServerChannel } from './src/servers';
 import DmConversationScreen from './src/screens/DmConversationScreen';
 import DmListScreen from './src/screens/DmListScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import ServerChannelScreen from './src/screens/ServerChannelScreen';
+import ServerChannelsScreen from './src/screens/ServerChannelsScreen';
+import ServersScreen from './src/screens/ServersScreen';
 
-type Tab = 'dms' | 'friends' | 'notifications';
+type Tab = 'dms' | 'servers' | 'friends' | 'notifications';
 
 function AuthenticatedApp() {
   const [tab, setTab] = useState<Tab>('dms');
   const [openThread, setOpenThread] = useState<DmThread | null>(null);
+  const [openServer, setOpenServer] = useState<Server | null>(null);
+  const [openChannel, setOpenChannel] = useState<ServerChannel | null>(null);
 
   if (openThread) {
     return <DmConversationScreen dm={openThread} onBack={() => setOpenThread(null)} />;
+  }
+
+  if (openServer && openChannel) {
+    return <ServerChannelScreen server={openServer} channel={openChannel} onBack={() => setOpenChannel(null)} />;
+  }
+
+  if (openServer) {
+    return (
+      <ServerChannelsScreen
+        server={openServer}
+        onOpenChannel={setOpenChannel}
+        onBack={() => setOpenServer(null)}
+      />
+    );
   }
 
   return (
@@ -25,6 +45,8 @@ function AuthenticatedApp() {
       <View style={styles.tabContent}>
         {tab === 'dms' ? (
           <DmListScreen onOpenThread={setOpenThread} />
+        ) : tab === 'servers' ? (
+          <ServersScreen onOpenServer={setOpenServer} />
         ) : tab === 'friends' ? (
           <FriendsScreen />
         ) : (
@@ -34,6 +56,9 @@ function AuthenticatedApp() {
       <View style={styles.tabBar}>
         <TouchableOpacity style={styles.tabButton} onPress={() => setTab('dms')} testID="tab-dms">
           <Text style={[styles.tabLabel, tab === 'dms' && styles.tabLabelActive]}>💬 Messages</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.tabButton} onPress={() => setTab('servers')} testID="tab-servers">
+          <Text style={[styles.tabLabel, tab === 'servers' && styles.tabLabelActive]}>🗂️ Serveurs</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.tabButton} onPress={() => setTab('friends')} testID="tab-friends">
           <Text style={[styles.tabLabel, tab === 'friends' && styles.tabLabelActive]}>👥 Amis</Text>
