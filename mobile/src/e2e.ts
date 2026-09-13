@@ -73,8 +73,10 @@ export interface EnsureE2EKeysResult {
 }
 
 // ---- base64 (standard) / base64url (JWK) — pas de Buffer en React Native,
-// on passe par btoa/atob (disponibles nativement dans Hermes/JSC modernes). ----
-function bytesToB64(bytes: Uint8Array): string {
+// on passe par btoa/atob (disponibles nativement dans Hermes/JSC modernes).
+// bytesToB64/b64ToBytes sont exportées pour src/dms.ts (encodage des pièces
+// jointes déchiffrées en data URI, pour l'affichage). ----
+export function bytesToB64(bytes: Uint8Array): string {
   let bin = '';
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
   return btoa(bin);

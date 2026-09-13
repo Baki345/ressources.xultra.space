@@ -1,9 +1,10 @@
 # XULTRA Mobile — app native (iOS/Android)
 
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
-bout (E2E), fiche de profil, gestion des amis, notifications et serveurs
-(salons texte/annonces) — premières fonctionnalités X1 portées. Pièces
-jointes chiffrées, appels, notifications push... à venir.**
+bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis,
+notifications et serveurs (salons texte/annonces) — premières
+fonctionnalités X1 portées. Bloquer/débloquer, appels, notifications
+push... à venir.**
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -70,6 +71,25 @@ installable (voir "Ce qu'il reste" plus bas).
   `worker.js`) — jamais une clé de groupe statique partagée en clair. Le
   nom de l'expéditeur s'affiche au-dessus des messages reçus dans un
   groupe.
+  - **Pièces jointes chiffrées (photos/fichiers)** : bouton 📎 dans le
+    composeur, choix "Photo" (`expo-image-picker`, avec la légende tapée
+    dans le composeur comme texte du message) ou "Fichier" (sélecteur
+    natif intégré à `expo-file-system` — `File.pickFileAsync()`, aucune
+    dépendance supplémentaire). Les octets sont chiffrés AES-GCM avec
+    EXACTEMENT la même clé de message que le texte qui les accompagne
+    (`sendDmAttachment`/`resolveOutgoingMessageKey` dans `src/dms.ts` —
+    une seule clé par envoi, jamais une pour le texte et une autre pour le
+    fichier), écrits dans un fichier temporaire (le SDK Appwrite React
+    Native lit les fichiers par URI, jamais par Blob comme le SDK web),
+    puis uploadés dans le bucket `ultravoc_media` (même bucket que le
+    site) en lecture publique — la confidentialité vient du chiffrement,
+    jamais d'une permission Appwrite restreinte. À la réception, une image
+    est déchiffrée en mémoire et affichée directement (data URI, voir
+    `decryptDmMessageForDisplay`) ; un fichier générique est déchiffré
+    dans le cache local puis proposé via la feuille de partage système
+    (`expo-sharing`) pour l'ouvrir ou l'enregistrer. Palier de taille
+    actuel : 10 Mo (X1+ n'est pas encore branché côté mobile, contrairement
+    au site).
 - `src/profile.ts` + `src/screens/ProfileScreen.tsx` : fiche de profil
   (bannière, avatar, présence réelle, bio, badges, membre depuis) avec un
   vrai bouton "Ami" (➕ Ajouter / 📨 En attente / ✅ Accepter sa demande /
@@ -121,12 +141,9 @@ vérifiée (tests + `expo export` propre) avant de passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : pièces jointes chiffrées (images/fichiers — les
-   primitives `encryptBytesWithKey`/`decryptBytesWithKey` existent déjà
-   dans `src/e2e.ts`, pas encore branchées à une UI), bloquer/débloquer un
-   membre (les fonctions existent dans `src/friends.ts`, pas encore
-   d'entrée dans l'UI), salons vocaux/forum de serveur, appels,
-   notifications push.
+1. **Fonctionnalités** : bloquer/débloquer un membre (les fonctions
+   existent dans `src/friends.ts`, pas encore d'entrée dans l'UI), salons
+   vocaux/forum de serveur, appels, notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.

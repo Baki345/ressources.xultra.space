@@ -1,4 +1,4 @@
-import { Account, Client, Databases } from 'react-native-appwrite';
+import { Account, Client, Databases, Storage } from 'react-native-appwrite';
 
 // Mêmes AW_EP/AW_PID que worker/worker.js (constantes publiques, jamais des
 // secrets — l'endpoint et l'ID de projet Appwrite sont déjà visibles dans le
@@ -11,6 +11,12 @@ export const APPWRITE_PROJECT_ID = '6a73b975002f14dc6b91';
 export const APPWRITE_PLATFORM = 'space.xultra.mobile';
 // Même base de données que worker.js (constante DB='xultra' dans worker.js).
 export const APPWRITE_DATABASE_ID = 'xultra';
+// Même bucket que worker.js (constante BUCKET='ultravoc_media') — les
+// pièces jointes DM y sont stockées (chiffrées AES-GCM avant upload quand
+// l'E2E est disponible), en lecture publique (Permission.read(Role.any()))
+// exactement comme côté web : c'est le chiffrement, pas une permission
+// Appwrite restreinte, qui protège le contenu.
+export const APPWRITE_BUCKET_ID = 'ultravoc_media';
 
 export const client = new Client()
   .setEndpoint(APPWRITE_ENDPOINT)
@@ -19,3 +25,4 @@ export const client = new Client()
 
 export const account = new Account(client);
 export const databases = new Databases(client);
+export const storage = new Storage(client);
