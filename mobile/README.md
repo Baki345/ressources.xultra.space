@@ -3,8 +3,9 @@
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
 bout (E2E, texte ET pièces jointes, + appel vocal pour un groupe),
 fiche de profil, gestion des amis (dont bloquer/débloquer), notifications
-et serveurs (salons texte/annonces/forum/vocaux/scène) — premières
-fonctionnalités X1 portées. Appel 1:1, notifications push... à venir.**
+(en direct dans l'app ET en push mobile) et serveurs (salons
+texte/annonces/forum/vocaux/scène) — premières fonctionnalités X1 portées.
+Appel 1:1 à venir.**
 
 ⚠️ **Depuis les salons vocaux (LiveKit), l'app ne tourne plus sous Expo
 Go** — voir "Démarrer" ci-dessous : une vraie build de développement EAS
@@ -234,6 +235,26 @@ EAS.
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
+- **Notifications push mobiles** (`src/pushNotifications.ts`) : équivalent
+  Expo du Web Push (VAPID) déjà utilisé côté site — mais un jeton par
+  installation (`ExponentPushToken[...]`) plutôt qu'un abonnement
+  navigateur, relayé par Expo (https://exp.host) plutôt que signé nous-même.
+  Enregistrement best-effort juste après connexion (`AuthContext.tsx`,
+  jamais bloquant : simulateur, permission refusée, pas de projet EAS
+  configuré → simplement pas de push, comme le reste de l'E2E côté auth) ;
+  désenregistrement à la déconnexion pour qu'un appareil partagé n'écoute
+  pas les push d'un compte dont on vient de sortir. Côté `worker.js`,
+  `pushToUidExpo()` tourne en parallèle de `pushToUidWebPush()` dans
+  `pushToUid()` — **aucune route appelante n'a besoin de changer** (message,
+  mention, demande d'ami, ticket support escaladé... tout ce qui appelait
+  déjà `pushToUid()` pousse maintenant aussi vers mobile), stockage dans une
+  collection dédiée `expo_push_tokens` (jamais mélangée à `push_subs`, qui
+  reste au format abonnement navigateur). Nouvelles routes
+  `/api/push/expo/register` et `/api/push/expo/unregister`, mêmes
+  permissions par document que `push_subs` (lecture/écriture/suppression
+  réservées à l'utilisateur propriétaire). **Ce qui manque encore pour que
+  ça marche en vrai : voir "Ce qu'il reste", point 4 — nécessite ta
+  participation** (comptes Firebase/Apple + déploiement).
 
 ## Stratégie de portage (même principe que `app/`)
 
@@ -252,8 +273,7 @@ pour tout ce qui touche à LiveKit) avant de passer à la suivante.
    collection `direct_calls`, jamais LiveKit (contrairement aux salons
    vocaux/scène de serveur et à l'appel de groupe en DM, tous les trois
    déjà en place) — un chantier à part entière, pas une extension de ce
-   qui existe déjà ; notifications push (voir juste en dessous —
-   nécessite ta participation).
+   qui existe déjà.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le
    Play Store — aucun des deux n'existe encore pour X1.
@@ -262,8 +282,48 @@ pour tout ce qui touche à LiveKit) avant de passer à la suivante.
    nécessite soit un Mac + Android Studio en local, soit le service
    [EAS Build](https://docs.expo.dev/build/introduction/) d'Expo (cloud,
    gère les deux plateformes sans matériel local, y compris la signature).
-4. **Notifications push** : nécessite les identifiants Apple Push
-   Notification service (APNs) et Firebase Cloud Messaging (Android),
-   aucun des deux configuré pour l'instant.
+4. **Notifications push : le code est fait des deux côtés (app +
+   `worker.js`), il manque uniquement de la configuration qui ne peut se
+   faire qu'avec TES comptes.** Sans ça, `registerForPushNotificationsAsync()`
+   échoue silencieusement (best-effort, voir plus haut) et personne ne
+   reçoit rien. Dans l'ordre :
+   1. **Lier un projet EAS** (nécessaire de toute façon pour la build de
+      développement LiveKit, voir "Démarrer") : `npx eas init` depuis
+      `mobile/`, avec un compte Expo (gratuit). Ça écrit un `projectId`
+      dans `app.json` sous `extra.eas.projectId` — sans lui,
+      `getExpoPushTokenAsync()` s'arrête tout de suite (pas de jeton du
+      tout, voir `src/pushNotifications.ts`).
+   2. **Android : un projet Firebase** (gratuit) — créer un projet sur
+      [console.firebase.google.com](https://console.firebase.google.com),
+      y ajouter une app Android avec le `package` de `app.json`
+      (`space.xultra.mobile`), puis générer une clé de compte de service
+      Firebase Cloud Messaging **V1** (Paramètres du projet → Comptes de
+      service → Générer une nouvelle clé privée, fichier JSON). Donne ce
+      JSON à EAS avec `npx eas credentials` (menu Android → Push
+      Notifications: Manage FCM V1) — EAS le stocke pour signer les push
+      Android à ta place, rien à coder de plus.
+   3. **iOS : un compte Apple Developer Program** (99 $ US/an,
+      déjà listé au point 2 ci-dessus pour l'App Store — sert aussi ici).
+      Une fois le compte actif, `npx eas credentials` (menu iOS → Push
+      Notifications) peut générer et gérer la clé APNs automatiquement ;
+      pas besoin de le faire à la main dans le portail Apple.
+   4. **Créer la collection Appwrite `expo_push_tokens`** (base `xultra`,
+      même projet que le reste) — n'existe pas encore, à créer une fois
+      dans la console Appwrite comme `push_subs` : attributs `uid`
+      (string, requis), `token` (string, requis), `platform` (string,
+      optionnel) ; permissions par document gérées par le Worker (voir
+      `/api/push/expo/register` dans `worker.js`), donc pas de permission
+      de collection particulière à poser à part la lecture/écriture pour
+      la clé API standard (déjà le cas pour toutes les autres collections).
+   5. **Déployer le `worker.js` modifié** sur le Worker Cloudflare
+      (`ultravoc`) — les routes `/api/push/expo/register`/`unregister` et
+      l'extension de `pushToUid()` ne prennent effet qu'après déploiement ;
+      je peux le faire dès que tu confirmes (j'ai les identifiants
+      nécessaires), ou tu peux le faire toi-même si tu as déjà un pipeline
+      de déploiement en place.
+   Une fois ces cinq étapes faites, rebuild l'app avec
+   `npx eas build --profile development` (le `projectId`/les credentials
+   sont repris automatiquement) — aucun changement de code mobile
+   supplémentaire n'est nécessaire.
 5. **Icône/splash screen** : les icônes par défaut d'Expo sont encore en
    place (`assets/`), à remplacer par celles de X1.

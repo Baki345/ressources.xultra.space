@@ -1667,6 +1667,12 @@ async function notifyTicketEscalated(ticketId, subject) {
   }));
 }
 async function pushToUid(uid, payloadObj) {
+  await Promise.all([
+    pushToUidWebPush(uid, payloadObj).catch(function () {}),
+    pushToUidExpo(uid, payloadObj).catch(function () {})
+  ]);
+}
+async function pushToUidWebPush(uid, payloadObj) {
   try {
     const url = "/databases/" + AW_DB + "/collections/push_subs/documents?" +
       "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
@@ -1680,6 +1686,49 @@ async function pushToUid(uid, payloadObj) {
           try { await awFetch("/databases/" + AW_DB + "/collections/push_subs/documents/" + sub.$id, { method: "DELETE", asAdmin: true }); } catch (e2) {}
         }
       } catch (e) {}
+    }));
+  } catch (e) {}
+}
+// Équivalent mobile de pushToUidWebPush() ci-dessus, pour les installations
+// XULTRA (Expo/React Native) enregistrées via /api/push/expo/register — voir
+// mobile/src/pushNotifications.ts. Relais géré par Expo (https://exp.host),
+// aucune clé VAPID ici : Expo signe lui-même vers APNs/FCM à partir du jeton
+// "ExponentPushToken[...]" une fois les credentials Android/iOS configurés
+// côté EAS (voir mobile/README.md, section notifications push).
+async function pushToUidExpo(uid, payloadObj) {
+  try {
+    const url = "/databases/" + AW_DB + "/collections/expo_push_tokens/documents?" +
+      "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
+      "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+    const data = await awFetch(url, { asAdmin: true });
+    const tokens = (data && data.documents) || [];
+    if (!tokens.length) return;
+    const messages = tokens.map(function (t) {
+      return {
+        to: t.token,
+        title: payloadObj.title || "XULTRA",
+        body: payloadObj.body || "",
+        data: payloadObj,
+        sound: "default",
+        priority: "high"
+      };
+    });
+    const resp = await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Accept": "application/json", "Accept-encoding": "gzip, deflate", "Content-Type": "application/json" },
+      body: JSON.stringify(messages)
+    });
+    const result = await resp.json().catch(function () { return null; });
+    const tickets = (result && result.data) || [];
+    // Un jeton désinstallé/révoqué renvoie un ticket "DeviceNotRegistered" —
+    // même nettoyage que le 404/410 du Web Push ci-dessus, pour ne pas
+    // réessayer indéfiniment une installation qui n'existe plus.
+    await Promise.all(tickets.map(function (ticket, i) {
+      if (ticket && ticket.status === "error" && ticket.details && ticket.details.error === "DeviceNotRegistered") {
+        const doc = tokens[i];
+        if (doc) return awFetch("/databases/" + AW_DB + "/collections/expo_push_tokens/documents/" + doc.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      return Promise.resolve();
     }));
   } catch (e) {}
 }
@@ -44042,6 +44091,66 @@ async function handle(request, event) {
       const docs = ((existing && existing.documents) || []).filter(function (d) { return !endpoint || d.endpoint === endpoint; });
       await Promise.all(docs.map(function (d) {
         return awFetch("/databases/" + AW_DB + "/collections/push_subs/documents/" + d.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }));
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/push/expo/register" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const token = String((body && body.token) || "");
+      const platform = String((body && body.platform) || "").slice(0, 20);
+      if (!token) throw new Error("jeton invalide");
+      const existingUrl = "/databases/" + AW_DB + "/collections/expo_push_tokens/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+      const existing = await awFetch(existingUrl, { asAdmin: true });
+      const dup = ((existing && existing.documents) || []).find(function (d) { return d.token === token; });
+      const perms = ["read(\"user:" + acc.$id + "\")", "update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"];
+      if (dup) {
+        await awFetch("/databases/" + AW_DB + "/collections/expo_push_tokens/documents/" + dup.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { platform: platform } }
+        });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/expo_push_tokens/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data: { uid: acc.$id, token: token, platform: platform }, permissions: perms }
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+  if (path === "/api/push/expo/unregister" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      const body = await request.json();
+      const token = String((body && body.token) || "");
+      const url = "/databases/" + AW_DB + "/collections/expo_push_tokens/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [acc.$id] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [20] }));
+      const existing = await awFetch(url, { asAdmin: true });
+      const docs = ((existing && existing.documents) || []).filter(function (d) { return !token || d.token === token; });
+      await Promise.all(docs.map(function (d) {
+        return awFetch("/databases/" + AW_DB + "/collections/expo_push_tokens/documents/" + d.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
       }));
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {

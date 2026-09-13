@@ -3,6 +3,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 import { account } from './appwrite';
 import { ensureE2EKeys, getLocalPrivateJwk, type E2EPrivateJwk } from './e2e';
+import { registerForPushNotificationsAsync, unregisterPushNotifications } from './pushNotifications';
 
 type XUser = Models.User<Models.Preferences>;
 
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await ensureE2EKeys(uid, password).catch(() => null);
     const jwk = await getLocalPrivateJwk();
     setE2eJwk(jwk);
+    registerForPushNotificationsAsync().catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -63,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = useCallback(async () => {
+    await unregisterPushNotifications();
     try {
       await account.deleteSession('current');
     } catch (e) {
