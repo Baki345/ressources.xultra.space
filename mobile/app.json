@@ -9,7 +9,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "bundleIdentifier": "space.xultra.mobile",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bitcode": false
     },
     "android": {
       "package": "space.xultra.mobile",
@@ -19,7 +20,17 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.WAKE_LOCK",
+        "android.permission.BLUETOOTH",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,7 +49,9 @@
       [
         "@livekit/react-native-expo-plugin",
         {
-          "android": { "audioType": "communication" }
+          "android": {
+            "audioType": "communication"
+          }
         }
       ],
       [
@@ -54,6 +67,12 @@
           "color": "#7c3aed"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f928e598-c48c-4fb1-bff4-1144a890f9cd"
+      }
+    },
+    "owner": "ciscodev7"
   }
 }
