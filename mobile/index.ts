@@ -5,8 +5,15 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 import { registerRootComponent } from 'expo';
+import { registerGlobals } from '@livekit/react-native';
 
 import App from './App';
+
+// Requis par LiveKit (salons vocaux de serveur, voir src/voice.ts) avant tout
+// usage du SDK — embarque du code natif WebRTC : l'app ne peut donc plus
+// tourner sous Expo Go, une vraie build de développement (EAS) est requise
+// pour tester sur un appareil (voir mobile/README.md).
+registerGlobals();
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
 // It also ensures that whether you load the app in Expo Go or in a native build,

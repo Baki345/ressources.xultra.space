@@ -62,7 +62,7 @@ describe('loadMyServers', () => {
 });
 
 describe('loadServerChannels', () => {
-  test('keeps text/announcement/forum channels, drops voice/stage, sorted by position', async () => {
+  test('keeps text/announcement/forum/voice channels, drops stage, sorted by position', async () => {
     const channels: ServerChannel[] = [
       { $id: 'c1', serverId: 's1', name: 'annonces', type: 'announcement', position: 2 },
       { $id: 'c2', serverId: 's1', name: 'général', type: 'text', position: 0 },
@@ -76,7 +76,7 @@ describe('loadServerChannels', () => {
     const result = await loadServerChannels('s1');
 
     expect(mockApiPost).toHaveBeenCalledWith('/api/servers/channels/list', { serverId: 's1' });
-    expect(result.map((c: ServerChannel) => c.$id)).toEqual(['c2', 'c5', 'c1', 'c4']);
+    expect(result.map((c: ServerChannel) => c.$id)).toEqual(['c2', 'c3', 'c5', 'c1', 'c4']);
   });
 });
 

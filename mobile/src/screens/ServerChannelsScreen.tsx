@@ -7,11 +7,13 @@ export default function ServerChannelsScreen({
   server,
   onOpenChannel,
   onOpenForum,
+  onOpenVoice,
   onBack,
 }: {
   server: Server;
   onOpenChannel: (channel: ServerChannel) => void;
   onOpenForum: (channel: ServerChannel) => void;
+  onOpenVoice: (channel: ServerChannel) => void;
   onBack: () => void;
 }) {
   const [channels, setChannels] = useState<ServerChannel[]>([]);
@@ -68,10 +70,14 @@ export default function ServerChannelsScreen({
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.row}
-              onPress={() => (item.type === 'forum' ? onOpenForum(item) : onOpenChannel(item))}
+              onPress={() =>
+                item.type === 'forum' ? onOpenForum(item) : item.type === 'voice' ? onOpenVoice(item) : onOpenChannel(item)
+              }
               testID={`channel-row-${item.$id}`}
             >
-              <Text style={styles.hash}>{item.type === 'announcement' ? '📣' : item.type === 'forum' ? '📋' : '#'}</Text>
+              <Text style={styles.hash}>
+                {item.type === 'announcement' ? '📣' : item.type === 'forum' ? '📋' : item.type === 'voice' ? '🔊' : '#'}
+              </Text>
               <Text style={styles.rowTitle} numberOfLines={1}>
                 {item.name}
               </Text>

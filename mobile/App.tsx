@@ -13,6 +13,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import ServerChannelScreen from './src/screens/ServerChannelScreen';
 import ServerChannelsScreen from './src/screens/ServerChannelsScreen';
 import ServerForumScreen from './src/screens/ServerForumScreen';
+import ServerVoiceScreen from './src/screens/ServerVoiceScreen';
 import ServersScreen from './src/screens/ServersScreen';
 
 type Tab = 'dms' | 'servers' | 'friends' | 'notifications';
@@ -24,6 +25,7 @@ function AuthenticatedApp() {
   const [openChannel, setOpenChannel] = useState<ServerChannel | null>(null);
   const [openForumChannel, setOpenForumChannel] = useState<ServerChannel | null>(null);
   const [openForumThread, setOpenForumThread] = useState<ServerThread | null>(null);
+  const [openVoiceChannel, setOpenVoiceChannel] = useState<ServerChannel | null>(null);
 
   if (openThread) {
     return <DmConversationScreen dm={openThread} onBack={() => setOpenThread(null)} />;
@@ -55,12 +57,19 @@ function AuthenticatedApp() {
     );
   }
 
+  if (openServer && openVoiceChannel) {
+    return (
+      <ServerVoiceScreen server={openServer} channel={openVoiceChannel} onBack={() => setOpenVoiceChannel(null)} />
+    );
+  }
+
   if (openServer) {
     return (
       <ServerChannelsScreen
         server={openServer}
         onOpenChannel={setOpenChannel}
         onOpenForum={setOpenForumChannel}
+        onOpenVoice={setOpenVoiceChannel}
         onBack={() => setOpenServer(null)}
       />
     );

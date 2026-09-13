@@ -22,10 +22,14 @@
  * texte) en leur passant un `threadId`, plutôt que d'inventer un chemin
  * séparé pour les réponses à un post.
  *
+ * Salons VOCAUX : la connexion réelle (jeton LiveKit, audio, présence) vit
+ * dans src/voice.ts + src/screens/ServerVoiceScreen.tsx, pas ici — ce
+ * fichier ne fait que les lister comme n'importe quel autre salon.
+ *
  * Portée volontairement limitée à cette première version : salons TEXTE,
- * ANNONCES et FORUM (lecture + envoi de texte simple, pas de pièces
- * jointes). Vocal/scène (LiveKit) restent hors scope — voir
- * mobile/README.md, "Ce qu'il reste".
+ * ANNONCES, FORUM (texte simple, pas de pièces jointes) et VOCAUX (audio
+ * seul). Scène (LiveKit, avec demandes de parole et modération des
+ * orateurs) reste hors scope — voir mobile/README.md, "Ce qu'il reste".
  */
 import { Query } from 'react-native-appwrite';
 
@@ -109,13 +113,14 @@ export async function loadMyServers(myUid: string): Promise<Server[]> {
   return servers;
 }
 
-const VISIBLE_TYPES: ChannelType[] = ['text', 'announcement', 'forum'];
+const VISIBLE_TYPES: ChannelType[] = ['text', 'announcement', 'forum', 'voice'];
 
-/** Salons TEXTE/ANNONCES/FORUM que je peux VOIR sur ce serveur, triés par
- * position — le Worker filtre déjà par visibilité (voir
+/** Salons TEXTE/ANNONCES/FORUM/VOCAUX que je peux VOIR sur ce serveur, triés
+ * par position — le Worker filtre déjà par visibilité (voir
  * /api/servers/channels/list côté worker.js), donc tout salon renvoyé ici
- * est légitimement affichable. Vocal/scène sont exclus (hors scope, voir
- * l'en-tête de ce fichier). */
+ * est légitimement affichable. Scène (`stage`) est exclue (hors scope, voir
+ * l'en-tête de ce fichier — c'est une fonctionnalité à part entière côté web,
+ * avec demandes de parole et modération des orateurs). */
 export async function loadServerChannels(serverId: string): Promise<ServerChannel[]> {
   const r = await apiPost<{ channels: ServerChannel[] }>('/api/servers/channels/list', { serverId });
   return r.channels

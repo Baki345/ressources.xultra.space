@@ -3,8 +3,14 @@
 **Statut : auth de bout en bout, DM 1:1 et de groupe chiffrés de bout en
 bout (E2E, texte ET pièces jointes), fiche de profil, gestion des amis
 (dont bloquer/débloquer), notifications et serveurs (salons
-texte/annonces/forum) — premières fonctionnalités X1 portées. Salons
-vocaux, appels, notifications push... à venir.**
+texte/annonces/forum/vocaux) — premières fonctionnalités X1 portées.
+Salons de scène, appels, notifications push... à venir.**
+
+⚠️ **Depuis les salons vocaux (LiveKit), l'app ne tourne plus sous Expo
+Go** — voir "Démarrer" ci-dessous : une vraie build de développement EAS
+est requise pour un test sur appareil réel ou simulateur. `typecheck`/
+`test`/`expo export` restent inchangés (aucun de ces trois n'exécute de
+code natif).
 
 Base React Native (Expo, TypeScript) pour la vraie application native
 iOS/Android de X1 — même philosophie que `desktop/` (Electron) : un seul
@@ -19,6 +25,7 @@ réécrire le backend.
 | Framework | React Native + Expo (TypeScript) | Une seule base de code pour iOS et Android, cohérent avec le choix React déjà fait pour `app/` (web) |
 | Backend | Le même Appwrite + Cloudflare Worker que le site — aucun changement | Les routes `/api/*` sont déjà des routes JSON découplées, consommables telles quelles par un client mobile |
 | Auth | `react-native-appwrite` (SDK officiel Appwrite pour React Native) | Gestion de session identique au web (email/mot de passe pour l'instant) |
+| Vocal | `@livekit/react-native` (même SFU LiveKit auto-hébergé que le site) | Salons vocaux de serveur — seule brique du projet nécessitant du code natif (WebRTC), donc une build de développement EAS plutôt qu'Expo Go |
 | Tests | Jest (`jest-expo`) + `@testing-library/react-native` | Composants et logique d'auth vérifiés avant tout envoi — même exigence que pour `worker.js` |
 
 ## Démarrer
@@ -30,12 +37,30 @@ npm run typecheck   # tsc --noEmit
 npm test            # Jest
 npx expo export --platform android   # vérifie que Metro bundle sans erreur (pas besoin d'émulateur)
 npx expo export --platform ios       # idem pour iOS
-npm start           # serveur de dev Expo (scanner le QR code avec l'app Expo Go pour tester sur un vrai téléphone)
 ```
 
-Aucun outil natif (Xcode, Android Studio) n'est nécessaire pour développer,
-typer, tester ou bundler — seulement pour produire un vrai binaire iOS/APK
-installable (voir "Ce qu'il reste" plus bas).
+Ces quatre commandes ne nécessitent toujours aucun outil natif (Xcode,
+Android Studio) — elles n'exécutent jamais le code natif LiveKit, seulement
+du JS (bundlé ou typé/testé avec des mocks, voir
+`__mocks__/@livekit/react-native.tsx`).
+
+**Tester sur un appareil réel ou un simulateur, en revanche, ne passe plus
+par `npm start` + Expo Go** depuis l'ajout des salons vocaux
+(`@livekit/react-native` embarque du code natif WebRTC, qu'Expo Go ne peut
+pas charger) :
+
+```bash
+npx eas build --profile development --platform android   # ou ios
+# une fois la build installée sur l'appareil/simulateur :
+npx expo start --dev-client
+```
+
+Nécessite un compte Expo/EAS (gratuit) — voir
+[EAS Build](https://docs.expo.dev/build/introduction/). Une fois la build de
+développement installée, elle reste valable pour tout le reste du
+développement (Fast Refresh fonctionne normalement) ; seule une build
+de PRODUCTION (voir "Ce qu'il reste" plus bas) nécessite de repasser par
+EAS.
 
 ## Ce qui existe déjà
 
@@ -137,8 +162,9 @@ installable (voir "Ce qu'il reste" plus bas).
   timeout...) reste calculée côté Worker via les routes
   `/api/servers/channels/*`, jamais dupliquée côté mobile. Portée
   volontairement limitée à cette première version : salons TEXTE,
-  ANNONCES et FORUM (texte simple, pas de pièces jointes) — vocal/scène
-  (LiveKit) restent hors scope. Nouvel onglet "🗂️ Serveurs" à côté de
+  ANNONCES, FORUM (texte simple, pas de pièces jointes) et VOCAUX (audio
+  seul) — scène (LiveKit avec demandes de parole et modération des
+  orateurs) reste hors scope. Nouvel onglet "🗂️ Serveurs" à côté de
   "Messages".
   - **Salons forum** (`ServerForumScreen.tsx`) : liste des posts d'un
     salon 📋 (les plus récents en premier), bouton "+ Post" pour en publier
@@ -153,6 +179,28 @@ installable (voir "Ce qu'il reste" plus bas).
     assumée : le corps du post s'affiche comme un message normal dans le
     fil (premier de la liste) plutôt que dans un bandeau séparé façon
     Discord — suffisant pour une première version.
+  - **Salons vocaux** (`src/voice.ts` + `ServerVoiceScreen.tsx`, 🔊) :
+    connexion réelle au SFU LiveKit auto-hébergé de X1 via
+    `@livekit/react-native` (audio seul — pas de caméra/partage d'écran).
+    Rejoindre un salon 🔊 dans la liste des salons s'y connecte
+    immédiatement : jeton LiveKit (`/api/servers/voice-token`), création
+    d'un document de présence (`/api/servers/channels/voice-presence/join`,
+    lu ensuite en direct via Appwrite pour afficher qui est connecté —
+    présences non rafraîchies depuis plus de 2 min traitées comme
+    abandonnées, comme côté web), heartbeat toutes les 60s tant qu'on reste
+    connecté. Quitter (bouton, ou perte de connexion) supprime le document
+    de présence et coupe la session audio (`AudioSession.stopAudioSession`)
+    — un seul chemin de sortie (`onDisconnected` de `<LiveKitRoom>`), que
+    le départ soit volontaire ou subi. **Nécessite une vraie build de
+    développement EAS** (voir "Démarrer" plus haut) : `@livekit/react-native`
+    embarque du code natif WebRTC absent d'Expo Go — `registerGlobals()`
+    (obligatoire avant tout usage du SDK) est appelé une fois dans
+    `index.ts`. Simplification assumée : la liste des participants vient
+    des documents de présence Appwrite (comme le fait déjà le web pour
+    afficher qui est connecté sans avoir rejoint soi-même), pas des
+    participants LiveKit en temps réel — pas d'indicateur "qui parle en ce
+    moment" ni de caméra/main levée pour les autres, juste soi-même
+    (micro) pour cette première version.
 - Deux "Platforms" Appwrite dédiées (`space.xultra.mobile`, une par OS)
   déclarées côté projet Appwrite — nécessaires pour que le SDK React
   Native soit accepté par l'API.
@@ -161,15 +209,17 @@ installable (voir "Ce qu'il reste" plus bas).
 
 Une section à la fois, jamais tout reconstruit d'un coup : DM 1:1 d'abord
 (la fonctionnalité la plus utilisée), puis DM de groupe, fiche de profil,
-amis et notifications, puis serveurs (fait, y compris forum), puis
-appels... Chaque section vérifiée (tests + `expo export` propre) avant de
+amis et notifications, puis serveurs (fait, y compris forum et vocal),
+puis appels... Chaque section vérifiée (tests + `expo export` propre, plus
+une vraie build de développement EAS pour les salons vocaux) avant de
 passer à la suivante.
 
 ## Ce qu'il reste avant un vrai lancement
 
-1. **Fonctionnalités** : salons vocaux/scène de serveur (LiveKit — nécessite
-   un client natif WebRTC, donc un build de développement personnalisé via
-   EAS, incompatible avec le flux 100% Expo Go suivi jusqu'ici), appels,
+1. **Fonctionnalités** : salons de scène de serveur (demandes de parole,
+   modération des orateurs — LiveKit déjà en place pour le vocal simple,
+   "juste" une UI et une logique de permissions en plus), appels (1:1 et
+   groupe DM — même SDK LiveKit que les salons vocaux, déjà installé),
    notifications push.
 2. **Comptes développeur** : Apple Developer Program (99 $ US/an) pour
    l'App Store, compte Google Play Console (25 $ US une fois) pour le

@@ -34,6 +34,19 @@
           "cameraPermission": false,
           "microphonePermission": false
         }
+      ],
+      [
+        "@livekit/react-native-expo-plugin",
+        {
+          "android": { "audioType": "communication" }
+        }
+      ],
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "microphonePermission": "XULTRA a besoin d'accéder à votre microphone pour vous permettre de parler dans les salons vocaux.",
+          "cameraPermission": "XULTRA n'utilise pas encore la caméra — cette permission est déclarée par la bibliothèque d'appel vocal mais n'est pas encore branchée à une fonctionnalité vidéo."
+        }
       ]
     ]
   }
