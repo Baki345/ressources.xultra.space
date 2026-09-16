@@ -1,0 +1,44 @@
+{
+  "app_icons": {
+    "name": "app_icons",
+    "permissions": ["read(\"any\")"],
+    "fileSecurity": false,
+    "maximumFileSize": 10485760,
+    "note": "Icônes PWA/apple-touch-icon servies en direct dans le HTML. Jamais d'upload utilisateur observé dans le code (asAdmin uniquement) : lecture publique, écriture admin (clé API) seulement."
+  },
+  "desktop_builds": {
+    "name": "desktop_builds",
+    "permissions": ["read(\"any\")"],
+    "fileSecurity": false,
+    "maximumFileSize": 524288000,
+    "note": "Installeurs de l'app desktop (APP_STORAGE_BASE). Lecture publique, écriture admin seulement (mêmes constats que app_icons)."
+  },
+  "hotel_assets": {
+    "name": "hotel_assets",
+    "permissions": ["read(\"any\")"],
+    "fileSecurity": false,
+    "maximumFileSize": 10485760,
+    "note": "Assets visuels de la fonctionnalité hôtel/salons. Lecture publique, écriture admin seulement."
+  },
+  "ultravoc_media": {
+    "name": "ultravoc_media",
+    "permissions": ["read(\"any\")", "create(\"users\")"],
+    "fileSecurity": true,
+    "maximumFileSize": 52428800,
+    "note": "Pièces jointes DM (potentiellement chiffrées AES-GCM côté client). Lecture publique confirmée par un commentaire du code mobile ; fileSecurity activé pour permettre des permissions par fichier si le code en pose (create/delete par le propriétaire, deletion admin en fallback)."
+  },
+  "xultra_drive": {
+    "name": "xultra_drive",
+    "permissions": [],
+    "fileSecurity": true,
+    "maximumFileSize": 524288000,
+    "note": "SUPPOSITION LA MOINS FIABLE DE TOUT CE PACK : stockage personnel (\"drive\"). Aucune permission de bucket par défaut, fileSecurity ON — l'app doit poser les permissions par fichier à l'upload (elle passe déjà par un proxy worker avec clé admin). Vérifie absolument ce bucket en premier après la mise en prod : teste un upload + partage + qu'un autre compte NE PEUT PAS lire un fichier privé."
+  },
+  "xultra_music": {
+    "name": "xultra_music",
+    "permissions": ["read(\"any\")", "create(\"users\")"],
+    "fileSecurity": true,
+    "maximumFileSize": 104857600,
+    "note": "Pistes/covers partagées publiquement (fonctionnalité sociale xm_tracks/xm_comments). Lecture publique probable, upload par utilisateurs connectés."
+  }
+}

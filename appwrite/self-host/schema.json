@@ -1,0 +1,5406 @@
+{
+ "6a888afbce317cc9e408": {
+  "attributes": [
+   {
+    "key": "event",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "data",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "ua",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "account_recovery": {
+  "attributes": [
+   {
+    "key": "method",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "authUserId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keyHash",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keySalt",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "recoveryHash",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "recoverySalt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "admin_logs": {
+  "attributes": [
+   {
+    "key": "action",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "detail",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "by",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "byId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "at",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "admin_notes": {
+  "attributes": [
+   {
+    "key": "note",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "updatedBy",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "updatedAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "bans": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "reason",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "by",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "until",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "bot_apps": {
+  "attributes": [
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "avatar",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "publicId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "botToken",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "interactionsUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "commandsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "online",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "firstSuccessAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "installCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_publicId",
+    "type": "unique",
+    "attributes": [
+     "publicId"
+    ]
+   },
+   {
+    "key": "idx_ownerId",
+    "type": "key",
+    "attributes": [
+     "ownerId"
+    ]
+   },
+   {
+    "key": "idx_botToken",
+    "type": "key",
+    "attributes": [
+     "botToken"
+    ]
+   }
+  ]
+ },
+ "bug_reports": {
+  "attributes": [
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "upvotes",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "screenshot",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "attachmentsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "bug_upvotes": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "reportId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": []
+ },
+ "channel_follows": {
+  "attributes": [
+   {
+    "key": "sourceChannelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "sourceServerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "targetChannelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "targetServerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "followerUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_sourceChannelId",
+    "type": "key",
+    "attributes": [
+     "sourceChannelId"
+    ]
+   },
+   {
+    "key": "idx_targetServerId",
+    "type": "key",
+    "attributes": [
+     "targetServerId"
+    ]
+   }
+  ]
+ },
+ "chatroulette_messages": {
+  "attributes": [
+   {
+    "key": "sessionId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_sessionId",
+    "type": "key",
+    "attributes": [
+     "sessionId"
+    ]
+   }
+  ]
+ },
+ "chatroulette_queue": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "chatroulette_sessions": {
+  "attributes": [
+   {
+    "key": "uid1",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid2",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "endedReason",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "callRequestedByJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "lastReactionJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   },
+   {
+    "key": "idx_uid1",
+    "type": "key",
+    "attributes": [
+     "uid1"
+    ]
+   },
+   {
+    "key": "idx_uid2",
+    "type": "key",
+    "attributes": [
+     "uid2"
+    ]
+   }
+  ]
+ },
+ "creator_post_comments": {
+  "attributes": [
+   {
+    "key": "postId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatar",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_postId",
+    "type": "key",
+    "attributes": [
+     "postId"
+    ]
+   }
+  ]
+ },
+ "creator_post_likes": {
+  "attributes": [
+   {
+    "key": "postId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_postId",
+    "type": "key",
+    "attributes": [
+     "postId"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "creator_posts": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatar",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "mediaUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mediaType",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "thumbnailUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "viewCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "likeCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "commentCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "reactionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "custom_badges": {
+  "attributes": [
+   {
+    "key": "key",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "icon",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "label",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "color",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "grantsPlus",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "createdBy",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "permissionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "bannerImageUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_key",
+    "type": "key",
+    "attributes": [
+     "key"
+    ]
+   }
+  ]
+ },
+ "direct_call_ice": {
+  "attributes": [
+   {
+    "key": "callId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "fromUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "candidate",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_callId",
+    "type": "key",
+    "attributes": [
+     "callId"
+    ]
+   }
+  ]
+ },
+ "direct_calls": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "provider",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "externalId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "externalUsername",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "externalAvatar",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "externalUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "accessToken",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "refreshToken",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "connectedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "callerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "calleeId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "callerName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "callerAvatar",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "offer",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "answer",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "dmId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   },
+   {
+    "key": "idx_calleeId",
+    "type": "key",
+    "attributes": [
+     "calleeId"
+    ]
+   }
+  ]
+ },
+ "dms": {
+  "attributes": [
+   {
+    "key": "lastMessage",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "members",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "streakJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "sharedWallpaperUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "sharedWallpaperPosX",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "sharedWallpaperPosY",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "sharedWallpaperScale",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "unreadJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "typingJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "viewingJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "dms_messages": {
+  "attributes": [
+   {
+    "key": "threadId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mediaUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "enc",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "isBot",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "botAppId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "componentsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "embedJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "mime",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "keysJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "replyToId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "mediaMode",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "snapDurationSec",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "noScreenshot",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "edited",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "viewedByJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "reactionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "pinned",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "hiddenFor",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_threadId",
+    "type": "key",
+    "attributes": [
+     "threadId"
+    ]
+   },
+   {
+    "key": "idx_pinned",
+    "type": "key",
+    "attributes": [
+     "pinned"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_type",
+    "type": "key",
+    "attributes": [
+     "type"
+    ]
+   }
+  ]
+ },
+ "expo_push_tokens": {
+  "attributes": [
+   {
+    "key": "platform",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "token",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "group_call_presence": {
+  "attributes": [
+   {
+    "key": "dmId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_dmId",
+    "type": "key",
+    "attributes": [
+     "dmId"
+    ]
+   }
+  ]
+ },
+ "hotel_avatars": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "lookJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "credits",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "hotel_room_chat": {
+  "attributes": [
+   {
+    "key": "roomId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_roomId",
+    "type": "key",
+    "attributes": [
+     "roomId"
+    ]
+   }
+  ]
+ },
+ "hotel_room_presence": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "roomId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "x",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "y",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "facing",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatarLookJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_roomId",
+    "type": "key",
+    "attributes": [
+     "roomId"
+    ]
+   }
+  ]
+ },
+ "hotel_rooms": {
+  "attributes": [],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "location_shares": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "sharing",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "visibleToJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "sharingExpiresAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "lat",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "lng",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "moderation_evidence": {
+  "attributes": [
+   {
+    "key": "reportId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "source",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "messageId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "contextId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "originalText",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "originalMediaUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "originalMime",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "authorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "authorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "recipientUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_reportId",
+    "type": "key",
+    "attributes": [
+     "reportId"
+    ]
+   }
+  ]
+ },
+ "notifications": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "fromUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "fromName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "refId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "read",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "oauth_apps": {
+  "attributes": [
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "clientId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "clientSecret",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "redirectUrisJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "logoEmoji",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_clientId",
+    "type": "unique",
+    "attributes": [
+     "clientId"
+    ]
+   },
+   {
+    "key": "idx_ownerId",
+    "type": "key",
+    "attributes": [
+     "ownerId"
+    ]
+   }
+  ]
+ },
+ "oauth_codes": {
+  "attributes": [
+   {
+    "key": "code",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "clientId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "redirectUri",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "scope",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "used",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_code",
+    "type": "unique",
+    "attributes": [
+     "code"
+    ]
+   }
+  ]
+ },
+ "oauth_tokens": {
+  "attributes": [
+   {
+    "key": "token",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "clientId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "scope",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_token",
+    "type": "unique",
+    "attributes": [
+     "token"
+    ]
+   },
+   {
+    "key": "idx_clientId",
+    "type": "unique",
+    "attributes": [
+     "clientId"
+    ]
+   }
+  ]
+ },
+ "passkeys": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "credentialId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "publicKeyJwk",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "signCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "label",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "push_subs": {
+  "attributes": [
+   {
+    "key": "p256dh",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "auth",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "ua",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "endpoint",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "qr_login_sessions": {
+  "attributes": [
+   {
+    "key": "token",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_token",
+    "type": "unique",
+    "attributes": [
+     "token"
+    ]
+   }
+  ]
+ },
+ "reports": {
+  "attributes": [
+   {
+    "key": "reporterUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "reporterName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "targetUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "targetName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "reason",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "details",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "at",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "source",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "messageId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "messageText",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "contextId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "severity",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "reporterIp",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "targetIp",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "resolutionNote",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "lawEnforcementNotified",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_severity",
+    "type": "key",
+    "attributes": [
+     "severity"
+    ]
+   },
+   {
+    "key": "idx_reporterUid",
+    "type": "key",
+    "attributes": [
+     "reporterUid"
+    ]
+   }
+  ]
+ },
+ "server_audit_log": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "actorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "actorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "action",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "targetName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "detailsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_categories": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "position",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_channel_messages": {
+  "attributes": [
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "replyToId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "pollJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "threadId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "stickerUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatarUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mediaUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mime",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "isBot",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "componentsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "embedJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "contentFlag",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "edited",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "reactionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "pinned",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_channelId",
+    "type": "key",
+    "attributes": [
+     "channelId"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_pinned",
+    "type": "key",
+    "attributes": [
+     "pinned"
+    ]
+   },
+   {
+    "key": "idx_threadId",
+    "type": "key",
+    "attributes": [
+     "threadId"
+    ]
+   },
+   {
+    "key": "idx_type",
+    "type": "key",
+    "attributes": [
+     "type"
+    ]
+   }
+  ]
+ },
+ "server_channels": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "categoryId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "position",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "visibleRoleIds",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "overwritesJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   },
+   {
+    "key": "idx_categoryId",
+    "type": "key",
+    "attributes": [
+     "categoryId"
+    ]
+   }
+  ]
+ },
+ "server_emojis": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "imageUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_events": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "creatorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "location",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "coverImage",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "interestedUidsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "startAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "endAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_guild_pages": {
+  "attributes": [
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "themeKey",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "customCss",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "titleColor",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "textColor",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "particles",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "server_members": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "roleIds",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "isBot",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "botAppId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "botPermsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "botVoiceEnabled",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "timeoutUntil",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "rulesAcceptedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "nickname",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   },
+   {
+    "key": "idx_botAppId",
+    "type": "key",
+    "attributes": [
+     "botAppId"
+    ]
+   },
+   {
+    "key": "idx_isBot",
+    "type": "key",
+    "attributes": [
+     "isBot"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "server_roles": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "color",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "permissionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "position",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mentionable",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_stage_state": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "topic",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "speakersJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "requestsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "server_stickers": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "imageUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "server_threads": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "private",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "archived",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "memberUids",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": true
+   },
+   {
+    "key": "originMessageId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_channelId",
+    "type": "key",
+    "attributes": [
+     "channelId"
+    ]
+   }
+  ]
+ },
+ "server_voice_presence": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "cameraOn",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "speaking",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "handRaised",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_channelId",
+    "type": "key",
+    "attributes": [
+     "channelId"
+    ]
+   }
+  ]
+ },
+ "server_webhooks": {
+  "attributes": [
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "channelId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatarUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "token",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_serverId",
+    "type": "key",
+    "attributes": [
+     "serverId"
+    ]
+   }
+  ]
+ },
+ "servers": {
+  "attributes": [
+   {
+    "key": "bannedUidsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "icon",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "banner",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "inviteCode",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "audioQualityKey",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "screenQualityKey",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "boostedByJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "discoverable",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "category",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "communityMode",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "rulesText",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "welcomeMessage",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "widgetEnabled",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "tagText",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "tagColor",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "welcomeScreenChannelsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_inviteCode",
+    "type": "unique",
+    "attributes": [
+     "inviteCode"
+    ]
+   },
+   {
+    "key": "idx_ownerId",
+    "type": "key",
+    "attributes": [
+     "ownerId"
+    ]
+   }
+  ]
+ },
+ "shop_decorations": {
+  "attributes": [
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "creatorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "kind",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "recipeJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "priceCoins",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "rejectReason",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "salesCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   },
+   {
+    "key": "idx_creatorUid",
+    "type": "key",
+    "attributes": [
+     "creatorUid"
+    ]
+   }
+  ]
+ },
+ "shop_purchases": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "decorationId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "creatorUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "priceCoins",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "creatorEarnedCoins",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "social_connections": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "provider",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "externalId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "externalUsername",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "externalAvatar",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "externalUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "accessToken",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "refreshToken",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "connectedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_provider",
+    "type": "key",
+    "attributes": [
+     "provider"
+    ]
+   }
+  ]
+ },
+ "stories": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mediaUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "mediaType",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "visibility",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "caption",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "viewerUidsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_visibility",
+    "type": "key",
+    "attributes": [
+     "visibility"
+    ]
+   }
+  ]
+ },
+ "stripe_events": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "kind",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "suggestions": {
+  "attributes": [
+   {
+    "key": "likedByJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "dislikedByJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "description",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "category",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "support_messages": {
+  "attributes": [
+   {
+    "key": "ticketId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "senderUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "senderName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "senderRole",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_ticketId",
+    "type": "key",
+    "attributes": [
+     "ticketId"
+    ]
+   }
+  ]
+ },
+ "support_tickets": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "openerName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "subject",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "category",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "assignedTo",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "assignedToName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "escalatedNote",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "lastMessageAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "lastMessagePreview",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "team_applications": {
+  "attributes": [
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "resolvedBy",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "resolvedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "role",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "message",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "ultravoc_friends": {
+  "attributes": [
+   {
+    "key": "userId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "friendId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_userId",
+    "type": "key",
+    "attributes": [
+     "userId"
+    ]
+   },
+   {
+    "key": "idx_friendId",
+    "type": "key",
+    "attributes": [
+     "friendId"
+    ]
+   },
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   }
+  ]
+ },
+ "user_meta": {
+  "attributes": [
+   {
+    "key": "badgesJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "plan",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "planAssignedBy",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "planAssignedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "geoCountry",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "vpnDetected",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "isMod",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "teamRole",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "diskUsed",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "driveSuspended",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "globalPermissionsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "tutorialDone",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "profileExtraJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "planInterest",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "planInterestAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "walletAddress",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": []
+ },
+ "users": {
+  "attributes": [
+   {
+    "key": "authUserId",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "email",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "baseUsername",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "tag",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "bio",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "avatar",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "bg",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "bgType",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "bgColor",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "btnColor",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "statusManual",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "lastSeen",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "notifPreview",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "bioPos",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "theme",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "btnTextColor",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "textColor",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "btnStyle",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "btnShape",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "headerLayout",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "titleSize",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "particles",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "font",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "spotify",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_authUserId",
+    "type": "unique",
+    "attributes": [
+     "authUserId"
+    ]
+   },
+   {
+    "key": "idx_username",
+    "type": "key",
+    "attributes": [
+     "username"
+    ]
+   },
+   {
+    "key": "idx_tag",
+    "type": "key",
+    "attributes": [
+     "tag"
+    ]
+   }
+  ]
+ },
+ "x1coins_locks": {
+  "attributes": [
+   {
+    "key": "tag",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "x1coins_tx": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "otherUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "otherName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "direction",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "amount",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "kind",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "note",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "x1coins_wallets": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "balance",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "xbin_comments": {
+  "attributes": [
+   {
+    "key": "pasteId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "authorId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "authorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "content",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_pasteId",
+    "type": "key",
+    "attributes": [
+     "pasteId"
+    ]
+   }
+  ]
+ },
+ "xbin_pastes": {
+  "attributes": [
+   {
+    "key": "views",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "authorId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "authorName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "content",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "language",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "visibility",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_visibility",
+    "type": "key",
+    "attributes": [
+     "visibility"
+    ]
+   },
+   {
+    "key": "idx_authorId",
+    "type": "key",
+    "attributes": [
+     "authorId"
+    ]
+   }
+  ]
+ },
+ "xbin_views": {
+  "attributes": [
+   {
+    "key": "pasteId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": []
+ },
+ "xdrive_folder_members": {
+  "attributes": [
+   {
+    "key": "sharedFolderId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "rootItemId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "ownerName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "role",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "folderKeyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "folderKeyIv",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "acceptedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_sharedFolderId",
+    "type": "key",
+    "attributes": [
+     "sharedFolderId"
+    ]
+   },
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_status",
+    "type": "key",
+    "attributes": [
+     "status"
+    ]
+   }
+  ]
+ },
+ "xdrive_items": {
+  "attributes": [
+   {
+    "key": "size",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "sharedFolderId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "permOverridesJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "parentId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "encName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "nameIv",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "fileId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "mime",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "keyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keyIv",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "visibility",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "starred",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "trashed",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "plainName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "trashedAt",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_ownerId",
+    "type": "key",
+    "attributes": [
+     "ownerId"
+    ]
+   },
+   {
+    "key": "idx_trashed",
+    "type": "key",
+    "attributes": [
+     "trashed"
+    ]
+   },
+   {
+    "key": "idx_type",
+    "type": "key",
+    "attributes": [
+     "type"
+    ]
+   },
+   {
+    "key": "idx_sharedFolderId",
+    "type": "key",
+    "attributes": [
+     "sharedFolderId"
+    ]
+   },
+   {
+    "key": "idx_visibility",
+    "type": "key",
+    "attributes": [
+     "visibility"
+    ]
+   }
+  ]
+ },
+ "xdrive_presence": {
+  "attributes": [
+   {
+    "key": "sharedFolderId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "username",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "itemId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_sharedFolderId",
+    "type": "key",
+    "attributes": [
+     "sharedFolderId"
+    ]
+   }
+  ]
+ },
+ "xdrive_shared_folders": {
+  "attributes": [
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "rootItemId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "folderKeyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "folderKeyIv",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": []
+ },
+ "xdrive_shares": {
+  "attributes": [
+   {
+    "key": "itemId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "token",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "passwordProtected",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "revoked",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "views",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "fileId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "type",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "encName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "nameIv",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_revoked",
+    "type": "key",
+    "attributes": [
+     "revoked"
+    ]
+   },
+   {
+    "key": "idx_token",
+    "type": "unique",
+    "attributes": [
+     "token"
+    ]
+   },
+   {
+    "key": "idx_ownerId",
+    "type": "key",
+    "attributes": [
+     "ownerId"
+    ]
+   }
+  ]
+ },
+ "xdrive_versions": {
+  "attributes": [
+   {
+    "key": "itemId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "ownerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "fileId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keyIv",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "size",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_itemId",
+    "type": "key",
+    "attributes": [
+     "itemId"
+    ]
+   }
+  ]
+ },
+ "xm_comments": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "displayName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "avatar",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "trackId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "text",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "atSec",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_trackId",
+    "type": "key",
+    "attributes": [
+     "trackId"
+    ]
+   }
+  ]
+ },
+ "xm_likes": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "trackId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "xm_listen_sessions": {
+  "attributes": [
+   {
+    "key": "hostUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "contextType",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "contextId",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "trackId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "positionSec",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "isPlaying",
+    "required": false,
+    "type": "boolean",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_contextType",
+    "type": "key",
+    "attributes": [
+     "contextType"
+    ]
+   },
+   {
+    "key": "idx_contextId",
+    "type": "key",
+    "attributes": [
+     "contextId"
+    ]
+   }
+  ]
+ },
+ "xm_official_artists": {
+  "attributes": [
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "normalizedName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "photoUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "deezerId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "trackCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_normalizedName",
+    "type": "key",
+    "attributes": [
+     "normalizedName"
+    ]
+   }
+  ]
+ },
+ "xm_reposts": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "trackId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": []
+ },
+ "xm_tracks": {
+  "attributes": [
+   {
+    "key": "milestonesJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "title",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "artistName",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "coverUrl",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "audioUrl",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "mime",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "durationSec",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "playsCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "likesCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "commentsCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "genre",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "tagsJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "lyricsLrc",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "channel",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "waveformJson",
+    "required": false,
+    "type": "string",
+    "size": 100000,
+    "array": false
+   },
+   {
+    "key": "album",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "year",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "audioHash",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "dedupKey",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "contentType",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   },
+   {
+    "key": "officialArtistId",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "officialArtistPhoto",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
+   },
+   {
+    "key": "repostsCount",
+    "required": false,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_audioHash",
+    "type": "unique",
+    "attributes": [
+     "audioHash"
+    ]
+   },
+   {
+    "key": "idx_dedupKey",
+    "type": "unique",
+    "attributes": [
+     "dedupKey"
+    ]
+   },
+   {
+    "key": "idx_officialArtistId",
+    "type": "key",
+    "attributes": [
+     "officialArtistId"
+    ]
+   }
+  ]
+ }
+}

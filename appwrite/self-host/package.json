@@ -1,0 +1,11 @@
+{
+  "name": "xultra-appwrite-selfhost",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "recreate": "node recreate.mjs"
+  },
+  "dependencies": {
+    "node-appwrite": "^14.1.0"
+  }
+}
