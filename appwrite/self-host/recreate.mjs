@@ -60,6 +60,21 @@ async function ignore409(promise, label) {
   }
 }
 
+// Appwrite valide la limite de largeur de ligne d'une collection AVANT de
+// vérifier si un attribut du même nom existe déjà : sur une collection déjà
+// pleine, ré-essayer de créer un attribut existant échoue avec
+// attribute_limit_exceeded au lieu d'un 409 propre. On ne peut donc pas se
+// fier au catch-409 pour l'idempotence des attributs/index/buckets — il
+// faut lister l'existant d'abord et sauter ce qui y est déjà.
+async function getOr404(promise) {
+  try {
+    return await promise;
+  } catch (e) {
+    if (e?.code === 404) return null;
+    throw e;
+  }
+}
+
 function patchPermissions(perms) {
   if (!OWNER_USER_ID) return perms;
   // schema.json ne contient normalement pas d'ID utilisateur figé (les
@@ -85,9 +100,13 @@ async function waitAttributesReady(collectionId, expectedCount, timeoutMs = 6000
   return databases.listAttributes(DATABASE_ID, collectionId).then((r) => r.attributes);
 }
 
-async function createAttribute(collectionId, attr) {
+async function createAttribute(collectionId, attr, existingKeys) {
   const { key, type, required, array, size, min, max } = attr;
   const label = `${collectionId}.${key} (${type})`;
+  if (existingKeys.has(key)) {
+    console.log(`  (déjà présent) ${label}`);
+    return null;
+  }
   if (type === "string") {
     return ignore409(
       databases.createStringAttribute(DATABASE_ID, collectionId, key, size || 255, required, undefined, array || false),
@@ -166,19 +185,33 @@ async function main() {
       return p;
     });
 
-    await ignore409(
-      databases.createCollection(DATABASE_ID, cid, cid, permissions, def.documentSecurity || false, true),
-      `createCollection(${cid})`,
-    );
+    const existingCollection = await getOr404(databases.getCollection(DATABASE_ID, cid));
+    if (!existingCollection) {
+      await ignore409(
+        databases.createCollection(DATABASE_ID, cid, cid, permissions, def.documentSecurity || false, true),
+        `createCollection(${cid})`,
+      );
+    } else {
+      console.log(`  (déjà présent) createCollection(${cid})`);
+    }
+
+    const existingAttrs = await databases.listAttributes(DATABASE_ID, cid);
+    const existingKeys = new Set(existingAttrs.attributes.map((a) => a.key));
 
     for (const attr of def.attributes) {
-      await createAttribute(cid, attr);
+      await createAttribute(cid, attr, existingKeys);
       await sleep(150); // évite de saturer la queue de traitement sur une petite instance
     }
 
     await waitAttributesReady(cid, def.attributes.length);
 
+    const existingIdx = await databases.listIndexes(DATABASE_ID, cid);
+    const existingIdxKeys = new Set(existingIdx.indexes.map((i) => i.key));
     for (const idx of def.indexes) {
+      if (existingIdxKeys.has(idx.key)) {
+        console.log(`  (déjà présent) createIndex(${cid}.${idx.key})`);
+        continue;
+      }
       await ignore409(
         databases.createIndex(DATABASE_ID, cid, idx.key, idx.type, idx.attributes, idx.orders || []),
         `createIndex(${cid}.${idx.key})`,
@@ -190,6 +223,11 @@ async function main() {
   console.log("\n== Buckets de stockage ==");
   for (const [bucketId, def] of Object.entries(buckets)) {
     console.log(`Bucket "${bucketId}" — ${def.note}`);
+    const existingBucket = await getOr404(storage.getBucket(bucketId));
+    if (existingBucket) {
+      console.log(`  (déjà présent) createBucket(${bucketId})`);
+      continue;
+    }
     await ignore409(
       storage.createBucket(
         bucketId,
