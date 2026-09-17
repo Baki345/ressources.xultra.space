@@ -4,8 +4,8 @@ import { Account, Client, Databases, Storage } from 'react-native-appwrite';
 // secrets — l'endpoint et l'ID de projet Appwrite sont déjà visibles dans le
 // JS servi au navigateur) : une seule et même base Appwrite pour le web, le
 // desktop (qui charge le site tel quel) et ce client mobile.
-export const APPWRITE_ENDPOINT = 'https://fra.cloud.appwrite.io/v1';
-export const APPWRITE_PROJECT_ID = '6a73b975002f14dc6b91';
+export const APPWRITE_ENDPOINT = 'https://appwrite.xultra.space/v1';
+export const APPWRITE_PROJECT_ID = '6aab2f4a00243807fa77';
 // Doit correspondre à un Platform "React Native" (Android/iOS) déclaré côté
 // Appwrite (project settings), sans quoi les requêtes sont rejetées.
 export const APPWRITE_PLATFORM = 'space.xultra.mobile';

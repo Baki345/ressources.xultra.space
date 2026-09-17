@@ -29,8 +29,8 @@ const CSP_HEADER = "default-src 'self'; " +
   "frame-ancestors 'none'";
 
 /* ===== Server brain (no VPS) — secrets stay on Worker only ===== */
-const AW_EP = "https://fra.cloud.appwrite.io/v1";
-const AW_PID = "6a73b975002f14dc6b91";
+const AW_EP = "https://appwrite.xultra.space/v1";
+const AW_PID = "6aab2f4a00243807fa77";
 const AW_DB = "xultra";
 // API key: Worker-only (never sent to browser), read from a Cloudflare
 // Worker secret binding (set via `wrangler secret put AW_ADMIN_KEY` or the
@@ -849,8 +849,8 @@ const SW_JS = "self.addEventListener('install',function(e){self.skipWaiting();})
   // change à chaque notification selon qui l'a déclenchée.
   "  var options={\n" +
   "    body:data.body||'',\n" +
-  "    icon:data.icon||'https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6a73b975002f14dc6b91',\n" +
-  "    badge:'https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6a73b975002f14dc6b91',\n" +
+  "    icon:data.icon||'https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6aab2f4a00243807fa77',\n" +
+  "    badge:'https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_icon_192/view?project=6aab2f4a00243807fa77',\n" +
   "    tag:data.tag||undefined,\n" +
   "    renotify:!!data.tag,\n" +
   "    requireInteraction:data.type==='call',\n" +
@@ -2010,7 +2010,7 @@ const APP = `<!DOCTYPE html>
 <title>X1</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2048%2048%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20offset%3D%220%25%22%20stop-color%3D%22%237c3aed%22%2F%3E%3Cstop%20offset%3D%2250%25%22%20stop-color%3D%22%23a855f7%22%2F%3E%3Cstop%20offset%3D%22100%25%22%20stop-color%3D%22%23ec4899%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%2244%22%20height%3D%2244%22%20rx%3D%2213%22%20fill%3D%22url(%23g)%22%2F%3E%3Cpath%20d%3D%22M14%2014l20%2020M34%2014L14%2034%22%20stroke%3D%22%23fff%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%2F%3E%3Ccircle%20cx%3D%2236%22%20cy%3D%2212%22%20r%3D%223%22%20fill%3D%22%23fff%22%2F%3E%3C%2Fsvg%3E"/>
 <link rel="manifest" href="/manifest.webmanifest"/>
-<link rel="apple-touch-icon" href="https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/xultra_apple_touch_icon/view?project=6a73b975002f14dc6b91"/>
+<link rel="apple-touch-icon" href="https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_apple_touch_icon/view?project=6aab2f4a00243807fa77"/>
 <meta name="mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
@@ -6316,7 +6316,7 @@ async function isUsernameTagTaken(uname,tag,excludeId){
     return (r.documents||[]).some(function(d){return d.\$id!==excludeId});
   }catch(e){return false}
 }
-const EP='https://fra.cloud.appwrite.io/v1', PID='6a73b975002f14dc6b91', DB='xultra', BUCKET='ultravoc_media';
+const EP='https://appwrite.xultra.space/v1', PID='6aab2f4a00243807fa77', DB='xultra', BUCKET='ultravoc_media';
 const PROXY_EP=location.origin+'/api/aw';
 let client=null, account=null, db=null, storage=null, sdkReady=false;
 function ensureSdk(){
@@ -6616,8 +6616,8 @@ function openChromeosInstallSheet(dlHref){
 // version consiste à re-uploader sous le même ID, jamais besoin de
 // retoucher cette liste. Partagée entre le bouton de téléchargement et la
 // bannière d'installation (même liste, même détection de plateforme).
-const APP_STORAGE_BASE='https://fra.cloud.appwrite.io/v1/storage/buckets/desktop_builds/files/';
-const APP_STORAGE_PROJECT='6a73b975002f14dc6b91';
+const APP_STORAGE_BASE='https://appwrite.xultra.space/v1/storage/buckets/desktop_builds/files/';
+const APP_STORAGE_PROJECT='6aab2f4a00243807fa77';
 // iOS n'a pas de fichier à télécharger (Apple ne permet pas d'installer une
 // app hors App Store) : fileId vaut null pour cette entrée, et le clic ouvre
 // les instructions "Ajouter à l'écran d'accueil" à la place — notifications
@@ -35002,7 +35002,7 @@ async function handle(request, event) {
   }
 
   // === Reverse proxy transparent vers Appwrite Cloud (contourne les réseaux qui ===
-  // === bloquent les appels directs du navigateur vers fra.cloud.appwrite.io)   ===
+  // === bloquent les appels directs du navigateur vers appwrite.xultra.space)   ===
   if (path === "/api/aw" || path.startsWith("/api/aw/")) {
     const sub = path.slice("/api/aw".length) || "/";
     const targetUrl = AW_EP + sub + url.search;
@@ -35072,9 +35072,9 @@ async function handle(request, event) {
       const r = await fetch(AW_EP + "/health", { headers: { "X-Appwrite-Project": AW_PID } });
       const ms = Date.now() - t0;
       const ok = r.status === 200 || r.status === 401;
-      services.push({ name: "Appwrite API", desc: "fra.cloud.appwrite.io · " + ms + " ms", state: ok ? "ok" : "bad", label: ok ? "OK" : "DOWN" });
+      services.push({ name: "Appwrite API", desc: "appwrite.xultra.space · " + ms + " ms", state: ok ? "ok" : "bad", label: ok ? "OK" : "DOWN" });
     } catch (e) {
-      services.push({ name: "Appwrite API", desc: "fra.cloud.appwrite.io", state: "bad", label: "DOWN" });
+      services.push({ name: "Appwrite API", desc: "appwrite.xultra.space", state: "bad", label: "DOWN" });
     }
     try {
       const t0 = Date.now();
@@ -44628,8 +44628,8 @@ async function handle(request, event) {
   // à "Ajouter à l'écran d'accueil" sur iOS (Safari n'a pas de vraie notion
   // d'installabilité, il utilise juste ce qu'il trouve).
   if (path === "/manifest.webmanifest" || path === "/manifest.json") {
-    const iconBase = "https://fra.cloud.appwrite.io/v1/storage/buckets/app_icons/files/";
-    const iconProj = "?project=6a73b975002f14dc6b91";
+    const iconBase = "https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/";
+    const iconProj = "?project=6aab2f4a00243807fa77";
     const manifest = {
       name: "X1", short_name: "X1",
       description: "Messages, amis, serveurs et appels — chiffrés de bout en bout.",
