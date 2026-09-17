@@ -118,7 +118,34 @@ async function createAttribute(collectionId, attr) {
   console.warn(`  Type inconnu ignoré: ${label}`);
 }
 
+async function resetDatabase() {
+  console.log(`== RESET : suppression de "${DATABASE_ID}" avant recréation ==`);
+  try {
+    await databases.delete(DATABASE_ID);
+  } catch (e) {
+    if (e?.code !== 404) throw e;
+  }
+  // La suppression est traitée en arrière-plan (worker-deletes) : on
+  // attend que la base ait vraiment disparu avant de la recréer, sinon
+  // le create() suivant tombe sur une base "en cours de suppression".
+  const start = Date.now();
+  while (Date.now() - start < 60000) {
+    try {
+      await databases.get(DATABASE_ID);
+      await sleep(1500);
+    } catch (e) {
+      if (e?.code === 404) return;
+      throw e;
+    }
+  }
+  console.warn("  Timeout en attendant la suppression complète (on continue quand même)");
+}
+
 async function main() {
+  if (process.env.RESET === "1") {
+    await resetDatabase();
+  }
+
   console.log(`== Base de données "${DATABASE_ID}" ==`);
   await ignore409(databases.create(DATABASE_ID, DATABASE_ID, true), DATABASE_ID);
 
