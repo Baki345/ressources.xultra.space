@@ -123,7 +123,7 @@
     "key": "note",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -172,7 +172,7 @@
     "key": "reason",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -221,14 +221,14 @@
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "avatar",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -249,14 +249,14 @@
     "key": "interactionsUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
     "key": "commandsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
@@ -338,14 +338,14 @@
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -359,7 +359,7 @@
     "key": "attachmentsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    }
   ],
@@ -482,7 +482,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -526,14 +526,14 @@
     "key": "uid1",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    },
    {
     "key": "uid2",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    },
    {
@@ -547,21 +547,21 @@
     "key": "endedReason",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "callRequestedByJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
     "key": "lastReactionJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    }
   ],
@@ -618,14 +618,14 @@
     "key": "avatar",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -697,28 +697,28 @@
     "key": "avatar",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "mediaUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -732,7 +732,7 @@
     "key": "thumbnailUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -757,7 +757,7 @@
     "key": "reactionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    }
   ],
@@ -778,7 +778,7 @@
     "key": "icon",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -799,7 +799,7 @@
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -820,14 +820,14 @@
     "key": "permissionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
     "key": "bannerImageUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    }
   ],
@@ -863,7 +863,7 @@
     "key": "candidate",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    }
   ],
@@ -892,7 +892,7 @@
     "key": "provider",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    },
    {
@@ -913,14 +913,14 @@
     "key": "externalAvatar",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
     "key": "externalUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -975,7 +975,7 @@
     "key": "callerAvatar",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -996,7 +996,7 @@
     "key": "answer",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -1032,7 +1032,7 @@
     "key": "lastMessage",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -1053,14 +1053,14 @@
     "key": "streakJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
     "key": "sharedWallpaperUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -1088,21 +1088,21 @@
     "key": "unreadJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
     "key": "typingJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
     "key": "viewingJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    }
   ],
@@ -1137,7 +1137,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -1151,7 +1151,7 @@
     "key": "mediaUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -1178,14 +1178,14 @@
     "key": "componentsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
     "key": "embedJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -1199,7 +1199,7 @@
     "key": "keysJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -1238,14 +1238,14 @@
     "key": "viewedByJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
     "key": "reactionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -1258,7 +1258,7 @@
     "key": "hiddenFor",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    }
   ],
@@ -1372,7 +1372,7 @@
     "key": "lookJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -1413,7 +1413,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -1479,7 +1479,7 @@
     "key": "avatarLookJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    }
   ],
@@ -1521,7 +1521,7 @@
     "key": "visibleToJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -1570,28 +1570,28 @@
     "key": "messageId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    },
    {
     "key": "contextId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    },
    {
     "key": "originalText",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "originalMediaUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -1669,7 +1669,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -1732,7 +1732,7 @@
     "key": "redirectUrisJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -2040,7 +2040,7 @@
     "key": "reason",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -2074,21 +2074,21 @@
     "key": "messageId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    },
    {
     "key": "messageText",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "contextId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    },
    {
@@ -2116,7 +2116,7 @@
     "key": "resolutionNote",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -2187,7 +2187,7 @@
     "key": "detailsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    }
   ],
@@ -2273,7 +2273,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -2287,7 +2287,7 @@
     "key": "pollJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -2301,14 +2301,14 @@
     "key": "stickerUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
     "key": "avatarUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -2322,7 +2322,7 @@
     "key": "mediaUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -2342,21 +2342,21 @@
     "key": "componentsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
     "key": "embedJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
     "key": "contentFlag",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -2369,7 +2369,7 @@
     "key": "reactionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -2467,7 +2467,7 @@
     "key": "overwritesJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    }
   ],
@@ -2510,7 +2510,7 @@
     "key": "imageUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -2560,14 +2560,14 @@
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -2602,7 +2602,7 @@
     "key": "interestedUidsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
@@ -2637,7 +2637,7 @@
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -2658,14 +2658,14 @@
     "key": "titleColor",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "textColor",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -2734,7 +2734,7 @@
     "key": "botPermsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -2825,7 +2825,7 @@
     "key": "permissionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -2882,14 +2882,14 @@
     "key": "speakersJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
     "key": "requestsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    }
   ],
@@ -2917,7 +2917,7 @@
     "key": "imageUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -2993,7 +2993,7 @@
     "key": "originMessageId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    }
   ],
@@ -3097,7 +3097,7 @@
     "key": "avatarUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -3133,7 +3133,7 @@
     "key": "bannedUidsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -3147,21 +3147,21 @@
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 750,
     "array": false
    },
    {
     "key": "icon",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
     "key": "banner",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -3196,7 +3196,7 @@
     "key": "boostedByJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -3224,28 +3224,28 @@
     "key": "rulesText",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
     "key": "welcomeMessage",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
     "key": "widgetEnabled",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    },
    {
     "key": "tagText",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -3259,7 +3259,7 @@
     "key": "welcomeScreenChannelsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    }
   ],
@@ -3316,7 +3316,7 @@
     "key": "recipeJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
@@ -3336,7 +3336,7 @@
     "key": "rejectReason",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -3426,7 +3426,7 @@
     "key": "provider",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 255,
     "array": false
    },
    {
@@ -3447,14 +3447,14 @@
     "key": "externalAvatar",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
     "key": "externalUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -3524,7 +3524,7 @@
     "key": "mediaUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -3558,7 +3558,7 @@
     "key": "viewerUidsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    }
   ],
@@ -3615,14 +3615,14 @@
     "key": "likedByJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
     "key": "dislikedByJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -3650,14 +3650,14 @@
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "description",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -3706,7 +3706,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -3777,7 +3777,7 @@
     "key": "escalatedNote",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -3790,7 +3790,7 @@
     "key": "lastMessagePreview",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -3853,7 +3853,7 @@
     "key": "message",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -3932,7 +3932,7 @@
     "key": "badgesJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -4000,7 +4000,7 @@
     "key": "globalPermissionsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -4013,7 +4013,7 @@
     "key": "profileExtraJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 5000,
     "array": false
    },
    {
@@ -4091,14 +4091,14 @@
     "key": "bio",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
     "key": "avatar",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -4153,7 +4153,7 @@
     "key": "bioPos",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -4167,14 +4167,14 @@
     "key": "btnTextColor",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
     "key": "textColor",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -4314,7 +4314,7 @@
     "key": "note",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -4386,7 +4386,7 @@
     "key": "content",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    }
   ],
@@ -4428,14 +4428,14 @@
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
     "key": "content",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -4603,7 +4603,7 @@
     "key": "permOverridesJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 10000,
     "array": false
    },
    {
@@ -4699,8 +4699,7 @@
    {
     "key": "trashedAt",
     "required": false,
-    "type": "string",
-    "size": 255,
+    "type": "boolean",
     "array": false
    }
   ],
@@ -4994,7 +4993,7 @@
     "key": "avatar",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -5008,7 +5007,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 3000,
     "array": false
    },
    {
@@ -5077,14 +5076,14 @@
     "key": "contextType",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 255,
     "array": false
    },
    {
     "key": "contextId",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 128,
     "array": false
    },
    {
@@ -5147,7 +5146,7 @@
     "key": "photoUrl",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    },
    {
@@ -5207,7 +5206,7 @@
     "key": "milestonesJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -5221,7 +5220,7 @@
     "key": "title",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
@@ -5235,14 +5234,14 @@
     "key": "coverUrl",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
     "key": "audioUrl",
     "required": false,
     "type": "string",
-    "size": 2000,
+    "size": 1000,
     "array": false
    },
    {
@@ -5288,7 +5287,7 @@
     "key": "tagsJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 1250,
     "array": false
    },
    {
@@ -5309,7 +5308,7 @@
     "key": "waveformJson",
     "required": false,
     "type": "string",
-    "size": 100000,
+    "size": 2500,
     "array": false
    },
    {
@@ -5344,7 +5343,7 @@
     "key": "contentType",
     "required": false,
     "type": "string",
-    "size": 5000,
+    "size": 1500,
     "array": false
    },
    {
