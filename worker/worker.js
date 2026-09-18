@@ -1388,7 +1388,7 @@ async function resolveStaffRole(acc, profile) {
   } catch (e) {}
   return "member";
 }
-const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate"];
+const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate", "server_create"];
 async function requireStaff(request, capability) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
@@ -5235,7 +5235,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
     <button type="button" class="rail-btn" id="nav-hotel" data-i18n-skip title="X1 Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="HUB VOCAL"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn changelog-staff-only hidden" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
     <button type="button" class="rail-btn" id="nav-suggestions" data-i18n-title="nav_suggestions" title="Boîte à idées"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18h5M10.3 21h3.4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5.9 1.2.9 2.1h5.2c0-.9.3-1.6.9-2.1A6 6 0 0 0 12 3z"/></svg></button>
@@ -5252,7 +5252,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-xdrive-mobile" data-i18n-skip title="X1 Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop-mobile" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
     <button type="button" class="rail-btn" id="nav-hotel-mobile" data-i18n-skip title="X1 Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
-    <button type="button" class="rail-btn" data-view="servers" title="Serveurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
+    <button type="button" class="rail-btn" data-view="servers" title="HUB VOCAL"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
   <aside class="list-col">
@@ -5265,9 +5265,9 @@ a.bug-att-item{display:block}
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
         <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico">👥</span>Groupe+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un serveur">🏘️+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un serveur">🔗</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-discover" title="Découvrir des serveurs">🧭</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un HUB VOCAL">🏘️+</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un HUB VOCAL">🔗</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-discover" title="Découvrir HUB VOCAL">🧭</button>
         <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico">👤</span>Ami+</button>
       </div>
     </div>
@@ -5980,10 +5980,10 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-server-create">
   <div class="modal-box">
     <button type="button" class="modal-close" id="srv-create-close">✕</button>
-    <h3>Créer un serveur</h3>
+    <h3>Créer un HUB VOCAL</h3>
     <div class="set-row"><label>Nom</label><input type="text" id="srv-create-name" class="field-input" maxlength="100" placeholder="Ma communauté"></div>
     <div class="set-row"><label>Description (optionnel)</label><textarea id="srv-create-desc" class="field-input" maxlength="500" rows="3" placeholder="De quoi ça parle ?"></textarea></div>
-    <button type="button" class="btn-main" id="srv-create-submit">Créer mon serveur</button>
+    <button type="button" class="btn-main" id="srv-create-submit">Créer mon HUB VOCAL</button>
     <div class="err" id="srv-create-err"></div>
   </div>
 </div>
@@ -7539,7 +7539,7 @@ function invalidateE2EPeerCache(peerUid){
 const TUTORIAL_STEPS=[
   {desktopSel:'#nav-dms',mobileSel:'.tabbar [data-view="dms"]',placement:'right',icon:'💬',title:'Messages',text:'Tes conversations privées et de groupe — c\\'est l\\'écran d\\'accueil.'},
   {desktopSel:'#nav-friends',mobileSel:'.tabbar [data-view="friends"]',placement:'right',icon:'👥',title:'Amis',text:'Envoie des demandes d\\'ami et gère celles que tu reçois.'},
-  {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'Serveurs',text:'Rejoins ou crée des communautés avec salons textuels et vocaux.'},
+  {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'HUB VOCAL',text:'Rejoins les salons textuels et vocaux gérés par le staff de X1.'},
   {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
   {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
@@ -8548,10 +8548,10 @@ function showView(v){
     return;
   }
   \$('admin-active').classList.add('hidden');
-  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'Serveurs':'Membres'));
-  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Tes communautés':'Membres'));
+  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'HUB VOCAL':'Membres'));
+  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Géré par le staff de X1':'Membres'));
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
-  if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
+  if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers'||!(staffRole==='owner'||staffRole==='mod'));
   if(\$('btn-server-join'))\$('btn-server-join').classList.toggle('hidden',v!=='servers');
   if(\$('btn-server-discover'))\$('btn-server-discover').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
@@ -8565,7 +8565,7 @@ function showView(v){
     }else{
       \$('server-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      renderEmptyState('🏘️','Sélectionne un serveur','Ou crée le tien avec le bouton 🏘️+ ci-dessus.');
+      renderEmptyState('🏘️','Sélectionne un HUB VOCAL','Utilise un code d\\'invitation pour le rejoindre.');
       app.classList.remove('chat-open');
     }
     showSectionLoading();
@@ -10060,42 +10060,42 @@ let appPrefs=loadAppPrefs();
 function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
 const I18N={
   fr:{
-    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'Serveurs',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
+    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
     auth_tagline:'Messages · Amis · Profils',auth_tab_login:'Connexion',auth_tab_register:'Inscription',auth_email_or_tag:'Email ou pseudo#tag',auth_email_or_tag_ph:'toi@exemple.com ou pseudo#1234',auth_password:'Mot de passe',auth_forgot_password:'Mot de passe oublié ?',auth_remember_me:'Rester connecté',auth_enter:'Entrer',auth_create_account:'Créer mon compte',
     set_account:'Mon compte',set_subscription:'Abonnement',set_profiles:'Profils',set_privacy:'Confidentialité et sécurité',set_blocked:'Utilisateurs bloqués',set_myreports:'Mes signalements',set_devices:'Appareils',set_connections:'Connexions',set_apps:'Applications autorisées',set_family:'Coffre-fort / Family Center',set_appearance:'Apparence',set_accessibility:'Accessibilité',set_voice:'Voix et vidéo',set_notifications:'Notifications',set_shortcuts:'Raccourcis clavier',set_language:'Langue',set_os:'Paramètres du système',set_advanced:'Avancé',set_activity:'Activité',set_developers:'Se connecter avec X1',set_changelog:'Notes de version',set_support:'Support',set_testers:'Rejoindre X1 Testers',set_logout:'Se déconnecter',
     setgrp_account:'Compte',setgrp_application:'Application',setgrp_developers:'Développeurs',
     common_send:'Envoyer',common_cancel:'Annuler',common_save:'Enregistrer',common_close:'Fermer',common_delete:'Supprimer'
   },
   en:{
-    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_music:'Music',nav_creators:'Creators',nav_servers:'Servers',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
+    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_music:'Music',nav_creators:'Creators',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
     auth_tagline:'Messages · Friends · Profiles',auth_tab_login:'Log In',auth_tab_register:'Sign Up',auth_email_or_tag:'Email or username#tag',auth_email_or_tag_ph:'you@example.com or username#1234',auth_password:'Password',auth_forgot_password:'Forgot password?',auth_remember_me:'Stay signed in',auth_enter:'Log In',auth_create_account:'Create my account',
     set_account:'My account',set_subscription:'Subscription',set_profiles:'Profiles',set_privacy:'Privacy & security',set_blocked:'Blocked users',set_myreports:'My reports',set_devices:'Devices',set_connections:'Connections',set_apps:'Authorized apps',set_family:'Vault / Family Center',set_appearance:'Appearance',set_accessibility:'Accessibility',set_voice:'Voice & video',set_notifications:'Notifications',set_shortcuts:'Keyboard shortcuts',set_language:'Language',set_os:'System settings',set_advanced:'Advanced',set_activity:'Activity',set_developers:'Sign in with X1',set_changelog:'Release notes',set_support:'Support',set_testers:'Join X1 Testers',set_logout:'Log out',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Developers',
     common_send:'Send',common_cancel:'Cancel',common_save:'Save',common_close:'Close',common_delete:'Delete'
   },
   es:{
-    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Creadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
+    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Creadores',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
     auth_tagline:'Mensajes · Amigos · Perfiles',auth_tab_login:'Iniciar sesión',auth_tab_register:'Registrarse',auth_email_or_tag:'Correo o usuario#etiqueta',auth_email_or_tag_ph:'tu@ejemplo.com o usuario#1234',auth_password:'Contraseña',auth_forgot_password:'¿Olvidaste tu contraseña?',auth_remember_me:'Mantener sesión iniciada',auth_enter:'Entrar',auth_create_account:'Crear mi cuenta',
     set_account:'Mi cuenta',set_subscription:'Suscripción',set_profiles:'Perfiles',set_privacy:'Privacidad y seguridad',set_blocked:'Usuarios bloqueados',set_myreports:'Mis reportes',set_devices:'Dispositivos',set_connections:'Conexiones',set_apps:'Aplicaciones autorizadas',set_family:'Bóveda / Centro familiar',set_appearance:'Apariencia',set_accessibility:'Accesibilidad',set_voice:'Voz y video',set_notifications:'Notificaciones',set_shortcuts:'Atajos de teclado',set_language:'Idioma',set_os:'Ajustes del sistema',set_advanced:'Avanzado',set_activity:'Actividad',set_developers:'Iniciar sesión con X1',set_changelog:'Notas de versión',set_support:'Soporte',set_testers:'Unirse a X1 Testers',set_logout:'Cerrar sesión',
     setgrp_account:'Cuenta',setgrp_application:'Aplicación',setgrp_developers:'Desarrolladores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Guardar',common_close:'Cerrar',common_delete:'Eliminar'
   },
   pt:{
-    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Criadores',nav_servers:'Servidores',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
+    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Criadores',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
     auth_tagline:'Mensagens · Amigos · Perfis',auth_tab_login:'Entrar',auth_tab_register:'Cadastrar',auth_email_or_tag:'Email ou usuário#tag',auth_email_or_tag_ph:'voce@exemplo.com ou usuario#1234',auth_password:'Senha',auth_forgot_password:'Esqueceu a senha?',auth_remember_me:'Manter conectado',auth_enter:'Entrar',auth_create_account:'Criar minha conta',
     set_account:'Minha conta',set_subscription:'Assinatura',set_profiles:'Perfis',set_privacy:'Privacidade e segurança',set_blocked:'Usuários bloqueados',set_myreports:'Minhas denúncias',set_devices:'Dispositivos',set_connections:'Conexões',set_apps:'Aplicativos autorizados',set_family:'Cofre / Central da família',set_appearance:'Aparência',set_accessibility:'Acessibilidade',set_voice:'Voz e vídeo',set_notifications:'Notificações',set_shortcuts:'Atalhos de teclado',set_language:'Idioma',set_os:'Configurações do sistema',set_advanced:'Avançado',set_activity:'Atividade',set_developers:'Entrar com X1',set_changelog:'Notas de versão',set_support:'Suporte',set_testers:'Entrar para X1 Testers',set_logout:'Sair',
     setgrp_account:'Conta',setgrp_application:'Aplicativo',setgrp_developers:'Desenvolvedores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Salvar',common_close:'Fechar',common_delete:'Excluir'
   },
   de:{
-    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_music:'Musik',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
+    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_music:'Musik',nav_creators:'Creator',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
     auth_tagline:'Nachrichten · Freunde · Profile',auth_tab_login:'Anmelden',auth_tab_register:'Registrieren',auth_email_or_tag:'E-Mail oder Nutzername#Tag',auth_email_or_tag_ph:'du@beispiel.com oder nutzer#1234',auth_password:'Passwort',auth_forgot_password:'Passwort vergessen?',auth_remember_me:'Angemeldet bleiben',auth_enter:'Anmelden',auth_create_account:'Konto erstellen',
     set_account:'Mein Konto',set_subscription:'Abonnement',set_profiles:'Profile',set_privacy:'Datenschutz & Sicherheit',set_blocked:'Blockierte Nutzer',set_myreports:'Meine Meldungen',set_devices:'Geräte',set_connections:'Verbindungen',set_apps:'Autorisierte Apps',set_family:'Tresor / Familiencenter',set_appearance:'Erscheinungsbild',set_accessibility:'Barrierefreiheit',set_voice:'Sprache & Video',set_notifications:'Benachrichtigungen',set_shortcuts:'Tastenkürzel',set_language:'Sprache',set_os:'Systemeinstellungen',set_advanced:'Erweitert',set_activity:'Aktivität',set_developers:'Mit X1 anmelden',set_changelog:'Versionshinweise',set_support:'Support',set_testers:'X1 Testers beitreten',set_logout:'Abmelden',
     setgrp_account:'Konto',setgrp_application:'App',setgrp_developers:'Entwickler',
     common_send:'Senden',common_cancel:'Abbrechen',common_save:'Speichern',common_close:'Schließen',common_delete:'Löschen'
   },
   it:{
-    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_music:'Musica',nav_creators:'Creator',nav_servers:'Server',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
+    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_music:'Musica',nav_creators:'Creator',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
     auth_tagline:'Messaggi · Amici · Profili',auth_tab_login:'Accedi',auth_tab_register:'Registrati',auth_email_or_tag:'Email o nome utente#tag',auth_email_or_tag_ph:'tu@esempio.com o utente#1234',auth_password:'Password',auth_forgot_password:'Password dimenticata?',auth_remember_me:'Resta connesso',auth_enter:'Accedi',auth_create_account:'Crea il mio account',
     set_account:'Il mio account',set_subscription:'Abbonamento',set_profiles:'Profili',set_privacy:'Privacy e sicurezza',set_blocked:'Utenti bloccati',set_myreports:'Le mie segnalazioni',set_devices:'Dispositivi',set_connections:'Connessioni',set_apps:'App autorizzate',set_family:'Cassaforte / Family Center',set_appearance:'Aspetto',set_accessibility:'Accessibilità',set_voice:'Voce e video',set_notifications:'Notifiche',set_shortcuts:'Scorciatoie da tastiera',set_language:'Lingua',set_os:'Impostazioni di sistema',set_advanced:'Avanzate',set_activity:'Attività',set_developers:'Accedi con X1',set_changelog:'Note di rilascio',set_support:'Supporto',set_testers:'Unisciti a X1 Testers',set_logout:'Esci',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Sviluppatori',
@@ -12437,10 +12437,10 @@ const SECTION_GUIDES={
     "Les demandes reçues apparaissent avec Accepter/Refuser directement dans la liste et dans 🔔 Notifications.",
     "Bloquer quelqu'un coupe messages et appels dans les deux sens, discrètement."
   ]},
-  servers:{icon:'🖥️',title:'Serveurs',tips:[
-    "🏘️ crée ton propre serveur (nom, icône, bannière) ; un code d'invitation permet à d'autres de le rejoindre.",
-    "Organise des salons texte et vocaux en catégories, avec des rôles aux permissions précises (gérer, expulser, bannir…).",
-    "N'importe quel membre peut booster un serveur gratuitement — plus il y a de boosts actifs, plus tout le monde débloque d'avantages (qualité audio/vidéo, code d'invitation personnalisable).",
+  servers:{icon:'🖥️',title:'HUB VOCAL',tips:[
+    "🏘️ Le HUB VOCAL est géré par le staff de X1 — un code d'invitation permet de le rejoindre.",
+    "Des salons texte et vocaux organisés en catégories, avec des rôles aux permissions précises (gérer, expulser, bannir…).",
+    "N'importe quel membre peut booster le HUB VOCAL gratuitement — plus il y a de boosts actifs, plus tout le monde débloque d'avantages (qualité audio/vidéo, code d'invitation personnalisable).",
     "Chaque salon vocal a sa propre grille de participants façon visioconférence, avec caméra et partage d'écran."
   ]},
   chatroulette:{icon:'🎲',title:'Chatroulette',tips:[
@@ -30805,7 +30805,7 @@ function closeServerDetail(){
   document.getElementById('app').classList.remove('chat-open');
   \$('server-active').classList.add('hidden');
   \$('chat-empty').classList.remove('hidden');
-  renderEmptyState('🏘️','Sélectionne un serveur','Ou crée le tien avec le bouton 🏘️+ ci-dessus.');
+  renderEmptyState('🏘️','Sélectionne un HUB VOCAL','Utilise un code d\\'invitation pour le rejoindre.');
   renderServersListView();
   repositionCallPanel();
 }
@@ -30828,7 +30828,7 @@ if(\$('srv-create-submit'))\$('srv-create-submit').addEventListener('click',asyn
     await loadMyServers();
     openServerDetail(res.server.\$id);
   }catch(e){\$('srv-create-err').textContent=(e&&e.message)||'Erreur';}
-  this.disabled=false;this.textContent='Créer mon serveur';
+  this.disabled=false;this.textContent='Créer mon HUB VOCAL';
 });
 
 function openServerJoinModal(prefillCode){
@@ -41405,8 +41405,18 @@ async function handle(request, event) {
   }
 
   if (path === "/api/servers/create" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    // HUB VOCAL (ex-"serveurs") : création réservée au staff de la
+    // plateforme (owner + mod) depuis le passage de X1 en communauté privée
+    // — un membre normal ne peut plus créer son propre espace public, il ne
+    // peut que rejoindre un HUB VOCAL existant via code d'invitation.
+    const staffGate = await requireStaff(request, "server_create");
+    if (!staffGate.ok) {
+      return new Response(JSON.stringify({ ok: false, error: staffGate.error === "auth_required" ? "auth_required" : "Réservé au staff de la plateforme" }), {
+        status: staffGate.status,
+        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    const acc = staffGate.acc;
     try {
       const body = await request.json();
       const name = String((body && body.name) || "").trim().slice(0, 100);
