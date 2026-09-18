@@ -48,7 +48,7 @@ const AW_KEY = typeof AW_ADMIN_KEY !== "undefined" ? AW_ADMIN_KEY : "";
 // aucune restriction technique intermédiaire entre "compte normal" et
 // "accès owner total" — ce niveau d'accès suppose une confiance totale
 // dans la personne, pas un bac à sable limité.
-const SHAMAN_UIDS = new Set(["dkahm37xjb122f3150"]);
+const SHAMAN_UIDS = new Set(["dk14r90g686vx6m91g"]);
 // Same reasoning as AW_KEY above: read from a Cloudflare secret binding
 // rather than a literal, since this file is mirrored to a public repo.
 const MAINT_GATE = typeof MAINTENANCE_GATE_SECRET !== "undefined" ? MAINTENANCE_GATE_SECRET : "";
