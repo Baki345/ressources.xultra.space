@@ -39660,7 +39660,24 @@ async function handle(request, event) {
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "status", values: ["ringing", "accepted"] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "$createdAt", values: [recentCutoff] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
-      const pending = pendingQ.documents || [];
+      // Un "ringing" qu'on ne décroche/refuse/annule jamais explicitement
+      // (celui qui appelle abandonne sans raccrocher, l'autre ignore
+      // l'écran d'appel entrant) ne repasse par AUCUN des trois seuls
+      // endroits qui referment le document (endCall/declineIncomingCall/
+      // clearPendingRejoin) — il reste "ringing" pour de vrai jusqu'à la
+      // coupure de 2h ci-dessus, bloquant silencieusement tout nouvel appel
+      // entre les deux comptes en attendant (bug remonté : "Tu appelles déjà
+      // cette personne" alors que le dernier appel n'a jamais été décroché).
+      // Une vraie sonnerie se résout toujours (décroché/refusé/annulé) en
+      // moins de 65s côté client (voir callTimeoutId) : passé 90s sans
+      // transition, c'est forcément abandonné, pas un appel qui sonne
+      // encore — "accepted" garde la fenêtre de 2h (un appel décroché peut
+      // durer des heures sans jamais retoucher ce document).
+      const ringingCutoff = Date.now() - 90 * 1000;
+      const pending = (pendingQ.documents || []).filter(function (d) {
+        if (d.status === "ringing") return new Date(d.$updatedAt).getTime() > ringingCutoff;
+        return true;
+      });
       const reverseCall = pending.find(function (d) { return String(d.callerId) === calleeId && String(d.calleeId) === acc.$id; });
       if (reverseCall) throw new Error("Cette personne vous appelle déjà — décroche son appel !");
       if (pending.some(function (d) { return String(d.callerId) === acc.$id && String(d.calleeId) === calleeId; })) throw new Error("Tu appelles déjà cette personne.");
