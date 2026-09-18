@@ -192,7 +192,20 @@ async function main() {
         `createCollection(${cid})`,
       );
     } else {
-      console.log(`  (déjà présent) createCollection(${cid})`);
+      // Une collection existante n'est jamais recréée, mais ses permissions
+      // ET son documentSecurity peuvent avoir divergé de schema.json (ex.
+      // schema.json corrigé après coup pour restaurer une permission
+      // manquante à la reconstruction initiale) — on les réaligne toujours,
+      // plutôt que de se contenter de sauter la collection.
+      const wantDocSec = def.documentSecurity || false;
+      const samePerms = JSON.stringify((existingCollection.$permissions || []).slice().sort()) === JSON.stringify(permissions.slice().sort());
+      const sameDocSec = existingCollection.documentSecurity === wantDocSec;
+      if (!samePerms || !sameDocSec) {
+        await databases.updateCollection(DATABASE_ID, cid, cid, permissions, wantDocSec, true);
+        console.log(`  (permissions réalignées) ${cid}: ${JSON.stringify(permissions)}, documentSecurity=${wantDocSec}`);
+      } else {
+        console.log(`  (déjà présent) createCollection(${cid})`);
+      }
     }
 
     const existingAttrs = await databases.listAttributes(DATABASE_ID, cid);

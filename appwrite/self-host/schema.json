@@ -4227,7 +4227,7 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": ["read(\"users\")"],
   "indexes": [
    {
     "key": "idx_authUserId",
