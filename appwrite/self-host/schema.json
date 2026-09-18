@@ -863,7 +863,7 @@
     "key": "candidate",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 1000,
     "array": false
    }
   ],
@@ -989,14 +989,14 @@
     "key": "offer",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 3000,
     "array": false
    },
    {
     "key": "answer",
     "required": false,
     "type": "string",
-    "size": 3000,
+    "size": 8000,
     "array": false
    },
    {
@@ -1137,7 +1137,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 1500,
+    "size": 4000,
     "array": false
    },
    {
@@ -1907,7 +1907,7 @@
     "key": "publicKeyJwk",
     "required": false,
     "type": "string",
-    "size": 128,
+    "size": 1000,
     "array": false
    },
    {
@@ -2287,7 +2287,7 @@
     "key": "text",
     "required": false,
     "type": "string",
-    "size": 1500,
+    "size": 3000,
     "array": false
    },
    {
@@ -2329,7 +2329,7 @@
     "key": "type",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 20,
     "array": false
    },
    {
@@ -2343,7 +2343,7 @@
     "key": "mime",
     "required": false,
     "type": "string",
-    "size": 255,
+    "size": 100,
     "array": false
    },
    {
@@ -2370,7 +2370,7 @@
     "key": "contentFlag",
     "required": false,
     "type": "string",
-    "size": 1500,
+    "size": 20,
     "array": false
    },
    {
