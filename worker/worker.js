@@ -5092,20 +5092,29 @@ a.bug-att-item{display:block}
       <button type="button" data-tab="register" data-i18n="auth_tab_register">Inscription</button>
     </div>
     <form id="pane-login" autocomplete="on">
-      <div class="field"><label data-i18n="auth_email_or_tag">Email ou pseudo#tag</label><input id="in-email" type="text" name="username" autocomplete="username" data-i18n-placeholder="auth_email_or_tag_ph" placeholder="toi@exemple.com ou pseudo#1234"/></div>
-      <div class="field"><label data-i18n="auth_password">Mot de passe</label><div class="field-pw-wrap"><input id="in-pass" type="password" name="password" autocomplete="current-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
-      <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0" data-i18n="auth_forgot_password">Mot de passe oublié ?</button>
-      <label class="remember-row" for="in-remember">
-        <input type="checkbox" id="in-remember" checked/>
-        <span data-i18n="auth_remember_me">Rester connecté</span>
-      </label>
-      <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
-      <button type="submit" class="btn-main" id="btn-login" data-i18n="auth_enter">Entrer</button>
-      <button type="button" id="btn-login-passkey" class="hidden" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🪪 Se connecter avec une passkey</button>
-      <button type="button" id="btn-show-devicekey-login" style="margin-top:8px;width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:12px;padding:12px;color:#f2ebff;font-weight:700;font-size:.88rem">🔒 Se connecter avec une clé secrète</button>
-      <div class="hidden" id="devicekey-login-block" style="margin-top:8px">
+      <div class="seg-group" id="login-auth-mode" style="margin-bottom:10px">
+        <button type="button" class="seg-btn on" data-login-mode="devicekey">🔒 Clé secrète</button>
+        <button type="button" class="seg-btn hidden" id="login-mode-passkey-btn" data-login-mode="passkey">🪪 Passkey</button>
+        <button type="button" class="seg-btn" data-login-mode="email">✉️ E-mail</button>
+      </div>
+      <div id="login-devicekey-block">
         <div class="field"><label>Clé secrète</label><input id="in-devicekey" type="text" placeholder="X1-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"/></div>
         <button type="button" class="btn-main" id="btn-devicekey-login" style="width:100%">Se connecter</button>
+      </div>
+      <div class="hidden" id="login-passkey-block">
+        <div class="field"><label>Pseudo#tag</label><input id="in-login-identifier" type="text" name="username" autocomplete="username" placeholder="pseudo#1234"/></div>
+        <button type="button" class="btn-main" id="btn-login-passkey" style="width:100%">🪪 Se connecter avec une passkey</button>
+      </div>
+      <div class="hidden" id="login-email-block">
+        <div class="field"><label data-i18n="auth_email">Email</label><input id="in-email" type="text" name="username" autocomplete="username" placeholder="toi@exemple.com"/></div>
+        <div class="field"><label data-i18n="auth_password">Mot de passe</label><div class="field-pw-wrap"><input id="in-pass" type="password" name="password" autocomplete="current-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
+        <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0" data-i18n="auth_forgot_password">Mot de passe oublié ?</button>
+        <label class="remember-row" for="in-remember">
+          <input type="checkbox" id="in-remember" checked/>
+          <span data-i18n="auth_remember_me">Rester connecté</span>
+        </label>
+        <div class="turnstile-wrap" id="turnstile-wrap-login"></div>
+        <button type="submit" class="btn-main" id="btn-login" data-i18n="auth_enter">Entrer</button>
       </div>
       <button type="button" id="btn-show-recover-account" style="margin-top:8px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0;display:block">Compte perdu ? Récupérer avec un code de secours</button>
       <div class="hidden" id="recover-account-block" style="margin-top:8px">
@@ -8122,10 +8131,26 @@ async function doLogin(){
   }
   \$('btn-login').disabled=false;\$('btn-login').textContent='Entrer';
 }
-if(passkeysSupported()&&\$('btn-login-passkey'))\$('btn-login-passkey').classList.remove('hidden');
+let loginAuthMode='devicekey';
+function applyLoginMode(mode){
+  loginAuthMode=mode;
+  document.querySelectorAll('#login-auth-mode [data-login-mode]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-login-mode')===mode);});
+  if(\$('login-devicekey-block'))\$('login-devicekey-block').classList.toggle('hidden',mode!=='devicekey');
+  if(\$('login-passkey-block'))\$('login-passkey-block').classList.toggle('hidden',mode!=='passkey');
+  if(\$('login-email-block'))\$('login-email-block').classList.toggle('hidden',mode!=='email');
+  if(\$('recover-account-block'))\$('recover-account-block').classList.add('hidden');
+}
+document.querySelectorAll('#login-auth-mode [data-login-mode]').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    applyLoginMode(btn.getAttribute('data-login-mode'));
+    const focusId=loginAuthMode==='devicekey'?'in-devicekey':(loginAuthMode==='passkey'?'in-login-identifier':'in-email');
+    setTimeout(function(){if(\$(focusId))\$(focusId).focus();},50);
+  });
+});
+if(passkeysSupported()&&\$('login-mode-passkey-btn'))\$('login-mode-passkey-btn').classList.remove('hidden');
 if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',async function(){
-  const identifier=((\$('in-email')&&\$('in-email').value)||'').trim();
-  if(!identifier){showErrTxt('Entre ton e-mail ou pseudo#tag ci-dessus, puis réessaie.');return}
+  const identifier=((\$('in-login-identifier')&&\$('in-login-identifier').value)||'').trim();
+  if(!identifier){showErrTxt('Entre ton pseudo#tag ci-dessus, puis réessaie.');return}
   showErrTxt('');
   const btn=\$('btn-login-passkey');
   btn.disabled=true;btn.textContent='🪪 Vérification…';
@@ -8143,11 +8168,6 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
     showErrTxt((e&&e.message)||'Connexion impossible avec cette passkey.');
   }
   btn.disabled=false;btn.textContent='🪪 Se connecter avec une passkey';
-});
-if(\$('btn-show-devicekey-login'))\$('btn-show-devicekey-login').addEventListener('click',function(){
-  \$('devicekey-login-block').classList.toggle('hidden');
-  \$('recover-account-block').classList.add('hidden');
-  if(!\$('devicekey-login-block').classList.contains('hidden'))setTimeout(function(){\$('in-devicekey').focus();},50);
 });
 if(\$('btn-devicekey-login'))\$('btn-devicekey-login').addEventListener('click',async function(){
   const key=(\$('in-devicekey').value||'').trim();
@@ -8169,9 +8189,15 @@ if(\$('btn-devicekey-login'))\$('btn-devicekey-login').addEventListener('click',
   btn.disabled=false;btn.textContent='Se connecter';
 });
 if(\$('btn-show-recover-account'))\$('btn-show-recover-account').addEventListener('click',function(){
-  \$('recover-account-block').classList.toggle('hidden');
-  \$('devicekey-login-block').classList.add('hidden');
-  if(!\$('recover-account-block').classList.contains('hidden'))setTimeout(function(){\$('in-recovery-code').focus();},50);
+  const willOpen=\$('recover-account-block').classList.contains('hidden');
+  if(willOpen){
+    ['login-devicekey-block','login-passkey-block','login-email-block'].forEach(function(id){if(\$(id))\$(id).classList.add('hidden');});
+    \$('recover-account-block').classList.remove('hidden');
+    setTimeout(function(){\$('in-recovery-code').focus();},50);
+  }else{
+    \$('recover-account-block').classList.add('hidden');
+    applyLoginMode(loginAuthMode);
+  }
 });
 if(\$('btn-recover-account'))\$('btn-recover-account').addEventListener('click',async function(){
   const code=(\$('in-recovery-code').value||'').trim();
@@ -8345,7 +8371,12 @@ async function doRegister(){
   if(regAuthMode==='passkey')return doRegisterPasskeyAnon(name);
   return doRegisterDeviceKey(name);
 }
-if(\$('pane-login'))\$('pane-login').addEventListener('submit',function(e){e.preventDefault();doLogin();});
+if(\$('pane-login'))\$('pane-login').addEventListener('submit',function(e){
+  e.preventDefault();
+  if(loginAuthMode==='devicekey'){if(\$('btn-devicekey-login'))\$('btn-devicekey-login').click();return}
+  if(loginAuthMode==='passkey'){if(\$('btn-login-passkey'))\$('btn-login-passkey').click();return}
+  doLogin();
+});
 // Demandé : conditions d'utilisation à l'inscription, à faire défiler
 // jusqu'en bas pour pouvoir accepter et poursuivre — le bouton reste
 // désactivé tant que le bas du texte n'a pas été atteint.
