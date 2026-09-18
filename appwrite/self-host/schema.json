@@ -1157,8 +1157,7 @@
    {
     "key": "enc",
     "required": false,
-    "type": "string",
-    "size": 255,
+    "type": "boolean",
     "array": false
    },
    {
@@ -1259,6 +1258,13 @@
     "required": false,
     "type": "string",
     "size": 255,
+    "array": true
+   },
+   {
+    "key": "contentFlag",
+    "required": false,
+    "type": "string",
+    "size": 20,
     "array": false
    }
   ],
