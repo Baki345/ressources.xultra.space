@@ -2164,7 +2164,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .stage-inner{position:relative;z-index:1;width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;align-items:center;gap:26px;padding:20px 0}
 .card{
   position:relative;z-index:1;width:min(380px,100%);max-height:92dvh;overflow-y:auto;
-  background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
+  background:rgba(17,17,17,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);
   border:1px solid rgba(196,196,204,.22);border-radius:20px;padding:18px 22px 20px;
   box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(245,245,247,.08) inset;
 }
@@ -2186,7 +2186,7 @@ html.xultra-restoring #stage{visibility:hidden}
 
 /* ===== Showcase / présentation du site (sous la carte de connexion) ===== */
 .showcase{
-  width:100%;background:rgba(17,10,26,.55);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
+  width:100%;background:rgba(17,17,17,.55);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);
   border:1px solid rgba(196,196,204,.18);border-radius:22px;overflow:hidden;
   box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(245,245,247,.06) inset;
 }
@@ -2326,7 +2326,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .ge-av-wrap{position:relative;width:88px;height:88px;margin:0 auto;cursor:pointer;border-radius:50%}
 .ge-av{width:88px;height:88px;border-radius:50%;overflow:hidden;display:grid;place-items:center;font-size:2rem;color:#fff;background:linear-gradient(135deg,#1f1f22,#1c1c1f);box-shadow:0 6px 20px rgba(245,245,247,.35)}
 .ge-av img{width:100%;height:100%;object-fit:cover}
-.ge-av-edit{position:absolute;inset:0;border-radius:50%;background:rgba(5,2,12,.72);color:#fff;font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;opacity:0;transition:opacity .15s ease}
+.ge-av-edit{position:absolute;inset:0;border-radius:50%;background:rgba(6,6,6,.72);color:#fff;font-size:.66rem;font-weight:700;display:flex;align-items:center;justify-content:center;text-align:center;padding:8px;opacity:0;transition:opacity .15s ease}
 .ge-av-wrap:hover .ge-av-edit{opacity:1}
 @media (hover:none){.ge-av-edit{opacity:.85}}
 .reg-preview .rp-av img{width:100%;height:100%;object-fit:cover}
@@ -2342,7 +2342,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .turnstile-wrap.hidden{display:none}
 
 /* Post-login confirmation dashboard (Phase 1) */
-.dash{position:relative;z-index:1;width:min(420px,100%);background:rgba(17,10,26,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(196,196,204,.22);border-radius:20px;padding:28px 24px;box-shadow:0 26px 70px rgba(0,0,0,.5)}
+.dash{position:relative;z-index:1;width:min(420px,100%);background:rgba(17,17,17,.72);backdrop-filter:blur(20px) saturate(150%);-webkit-backdrop-filter:blur(20px) saturate(150%);border:1px solid rgba(196,196,204,.22);border-radius:20px;padding:28px 24px;box-shadow:0 26px 70px rgba(0,0,0,.5)}
 .dash .av{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:1.6rem;color:#fff;background:linear-gradient(135deg,#1f1f22,#1c1c1f)}
 .dash .av img{width:100%;height:100%;object-fit:cover}
 .dash h2{text-align:center;font-size:1.15rem;font-weight:900}
@@ -2511,7 +2511,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .xbin-toolbar-select{flex:1;min-width:150px}
 .xbin-loading{display:flex;justify-content:center;padding:60px 0}
 .xbin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;padding-bottom:20px}
-.xbin-card{background:linear-gradient(165deg,rgba(245,245,247,.1),rgba(20,12,32,.6));border:1px solid rgba(196,196,204,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
+.xbin-card{background:linear-gradient(165deg,rgba(245,245,247,.1),rgba(20,20,20,.6));border:1px solid rgba(196,196,204,.18);border-radius:16px;padding:16px;cursor:pointer;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;animation:xbinCardIn .35s ease both;display:flex;flex-direction:column;gap:8px}
 @keyframes xbinCardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .xbin-card:hover{transform:translateY(-3px);border-color:rgba(196,196,204,.5);box-shadow:0 12px 30px rgba(245,245,247,.25)}
 /* ===== Boutique de décorations de profil ===== */
@@ -3165,7 +3165,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .xultra-map-friend-avatar svg{width:100%;height:100%}
 .leaflet-control-zoom a{background:var(--elev)!important;color:#d8d8dd!important;border-color:var(--line)!important}
 .leaflet-control-zoom a:hover{background:var(--hover)!important}
-.leaflet-control-attribution{background:rgba(19,12,28,.85)!important;color:var(--muted)!important}
+.leaflet-control-attribution{background:rgba(19,19,19,.85)!important;color:var(--muted)!important}
 .leaflet-control-attribution a{color:#d8d8dd!important}
 .cr-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;height:100%;padding:20px}
 .cr-spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);border-top-color:#c4c4cc;animation:crSpin .8s linear infinite}
@@ -3192,7 +3192,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .cr-vbox-hint{font-size:.74rem;color:var(--muted)}
 .cr-vbox-label{position:absolute;left:10px;bottom:8px;font-size:.76rem;font-weight:700;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7);background:rgba(0,0,0,.35);padding:2px 8px;border-radius:8px;z-index:1;pointer-events:none}
 .cr-side-rail{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px;z-index:2}
-.cr-rail-btn{width:44px;height:44px;border-radius:50%;border:none;background:rgba(10,6,18,.55);backdrop-filter:blur(6px);color:#fff;font-size:1.05rem;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.35)}
+.cr-rail-btn{width:44px;height:44px;border-radius:50%;border:none;background:rgba(10,10,10,.55);backdrop-filter:blur(6px);color:#fff;font-size:1.05rem;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.35)}
 .cr-rail-btn:hover{background:rgba(245,245,247,.55)}
 .cr-rail-btn.danger{background:rgba(239,68,68,.85)}
 .cr-rail-btn.danger:hover{background:#dc2626}
@@ -3252,7 +3252,7 @@ html.xultra-restoring #stage{visibility:hidden}
   .row-swipe:hover .row-del-action{opacity:1;pointer-events:auto}
   .row-swipe:hover .row{transform:translateX(-64px)}
 }
-.userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(245,245,247,.14),rgba(20,13,32,.6));border:1px solid rgba(196,196,204,.16)}
+.userbar{position:relative;flex-shrink:0;display:flex;align-items:center;gap:9px;margin:8px;padding:8px 9px;border-radius:14px;background:linear-gradient(135deg,rgba(245,245,247,.14),rgba(20,20,20,.6));border:1px solid rgba(196,196,204,.16)}
 .ub-presence-btn{display:flex;align-items:center;gap:5px;background:transparent;padding:0;font-size:.66rem;color:var(--muted);font-weight:600;cursor:pointer}
 .ub-presence-btn:hover{color:#f0f0f3}
 .ub-static-dot{position:static;width:8px;height:8px;border:0;flex-shrink:0}
@@ -3336,7 +3336,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .msg-spoiler-gate{position:relative;display:inline-block;min-width:170px;min-height:48px;max-width:100%;border-radius:12px;overflow:hidden;vertical-align:top}
 .msg-spoiler-gate .msg-spoiler-content{display:block;filter:blur(18px) saturate(.6);transform:scale(1.03);transition:filter .35s ease,transform .35s ease;pointer-events:none;user-select:none}
 .msg-spoiler-gate.revealed .msg-spoiler-content{filter:none;transform:none;pointer-events:auto;user-select:auto}
-.msg-spoiler-veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(10,6,20,.6);backdrop-filter:blur(2px);border:0;border-radius:12px;color:#f2f2f5;cursor:pointer;text-align:center;padding:10px;opacity:1;visibility:visible;transition:opacity .25s ease,visibility 0s linear 0s}
+.msg-spoiler-veil{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(10,10,10,.6);backdrop-filter:blur(2px);border:0;border-radius:12px;color:#f2f2f5;cursor:pointer;text-align:center;padding:10px;opacity:1;visibility:visible;transition:opacity .25s ease,visibility 0s linear 0s}
 .msg-spoiler-gate.nsfw .msg-spoiler-veil{background:rgba(76,10,24,.65)}
 .msg-spoiler-gate.revealed .msg-spoiler-veil{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility 0s linear .25s}
 .msg-spoiler-ico{font-size:1.4rem;line-height:1}
@@ -3488,7 +3488,7 @@ body.theme-oled .pe-frame-inner{background:#050505}
 .msg-snap-placeholder.tappable{cursor:pointer}
 .msg-snap-placeholder.tappable:active{transform:scale(.97)}
 .msg-snap-noshot{font-size:.85em;opacity:.9}
-.media-lightbox-overlay{position:fixed;inset:0;z-index:8900;background:rgba(4,2,10,.92);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
+.media-lightbox-overlay{position:fixed;inset:0;z-index:8900;background:rgba(6,6,6,.92);display:none;align-items:center;justify-content:center;padding:24px;cursor:zoom-out}
 .media-lightbox-overlay.show{display:flex}
 .media-lightbox-overlay img,.media-lightbox-overlay video{max-width:100%;max-height:100%;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:default}
 .media-lightbox-close{position:absolute;top:calc(16px + env(safe-area-inset-top));right:16px;width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;z-index:2}
@@ -3623,7 +3623,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .loc-share-indicator-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25);flex-shrink:0;animation:locSharePulse 2s ease-in-out infinite}
 @keyframes locSharePulse{0%,100%{opacity:1}50%{opacity:.4}}
 .loc-share-indicator button{background:rgba(239,68,68,.18);color:#fca5a5;border-radius:999px;padding:4px 10px;font-size:.72rem;font-weight:700;flex-shrink:0}
-.slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(5,3,10,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(24px + env(safe-area-inset-bottom));animation:scFade .15s ease}
+.slide-confirm-overlay{position:fixed;inset:0;z-index:5500;background:rgba(6,6,6,.7);backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;padding:0 14px calc(24px + env(safe-area-inset-bottom));animation:scFade .15s ease}
 @keyframes scFade{from{opacity:0}to{opacity:1}}
 .slide-confirm-card{width:100%;max-width:400px;background:#141416;border:1px solid rgba(239,68,68,.35);border-radius:16px;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .sc-label{font-size:.88rem;font-weight:700;color:#f2f2f5;margin-bottom:14px;text-align:center;line-height:1.4}
@@ -3635,7 +3635,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .sc-handle:active{cursor:grabbing}
 .sc-cancel{width:100%;margin-top:12px;height:38px;border-radius:10px;background:rgba(255,255,255,.06);color:#f2f2f5;font-weight:700;font-size:.82rem}
 .sc-cancel:hover{background:rgba(255,255,255,.12)}
-.action-sheet-overlay{position:fixed;inset:0;z-index:5400;background:rgba(5,3,10,.6);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(12px + env(safe-area-inset-bottom));opacity:0;transition:opacity .16s ease}
+.action-sheet-overlay{position:fixed;inset:0;z-index:5400;background:rgba(6,6,6,.6);display:flex;align-items:flex-end;justify-content:center;padding:0 12px calc(12px + env(safe-area-inset-bottom));opacity:0;transition:opacity .16s ease}
 .action-sheet-overlay.show{opacity:1}
 .action-sheet-card{width:100%;max-width:400px;background:#141416;border:1px solid rgba(196,196,204,.25);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:2px;transform:translateY(12px);transition:transform .16s ease;box-shadow:0 20px 60px rgba(0,0,0,.6)}
 .action-sheet-overlay.show .action-sheet-card{transform:translateY(0)}
@@ -3648,7 +3648,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    qui s'adapte à n'importe quelle forme de bouton) et pointe une bulle
    d'explication vers le bouton concerné. */
 .tut-overlay{position:fixed;inset:0;z-index:9000}
-.tut-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(4,2,10,.8);transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;pointer-events:none}
+.tut-spot{position:fixed;border-radius:14px;box-shadow:0 0 0 9999px rgba(6,6,6,.8);transition:top .25s ease,left .25s ease,width .25s ease,height .25s ease;pointer-events:none}
 .tut-card{position:fixed;background:linear-gradient(165deg,#232326,#131315);border:1px solid rgba(196,196,204,.4);border-radius:16px;padding:16px 18px;box-shadow:0 20px 60px rgba(0,0,0,.55);transition:top .25s ease,left .25s ease;animation:tutPop .18s ease}
 @keyframes tutPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 .tut-arrow{position:absolute;width:14px;height:14px;background:#232326;border:1px solid rgba(196,196,204,.4);transform:rotate(45deg);border-radius:3px}
@@ -3703,7 +3703,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    avec un écran trop étroit qui laissait Paramètres visible tout autour). */
 .codehub-modal{width:min(920px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden;background:linear-gradient(165deg,#141416 0%,#0a0a0c 100%);border:1px solid rgba(196,196,204,.35);box-shadow:0 30px 100px rgba(0,0,0,.65),0 0 60px rgba(245,245,247,.15);animation:codehubPop .32s cubic-bezier(.2,.9,.25,1.1)}
 @keyframes codehubPop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
-.codehub-head{padding:24px 46px 16px 26px;border-bottom:1px solid rgba(42,31,61,.9);position:relative;background:radial-gradient(600px 200px at 15% -30%,rgba(245,245,247,.3),transparent 65%);overflow:hidden}
+.codehub-head{padding:24px 46px 16px 26px;border-bottom:1px solid rgba(40,40,40,.9);position:relative;background:radial-gradient(600px 200px at 15% -30%,rgba(245,245,247,.3),transparent 65%);overflow:hidden}
 .codehub-head::after{content:'';position:absolute;top:0;left:-40%;width:40%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);animation:codehubSheen 2.6s ease-in-out .3s 1}
 @keyframes codehubSheen{to{left:120%}}
 .codehub-logo{font-size:1.35rem;font-weight:900;background:linear-gradient(135deg,#f0f0f3,#c4c4cc,#f5f5f7);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:.02em;display:flex;align-items:center;gap:9px;position:relative}
@@ -3713,7 +3713,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .codehub-badge:nth-child(1){animation-delay:.08s}.codehub-badge:nth-child(2){animation-delay:.18s}.codehub-badge:nth-child(3){animation-delay:.28s}
 @keyframes codehubBadgeIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
 .codehub-body{display:flex;flex:1;min-height:0}
-.codehub-files{width:230px;flex-shrink:0;border-right:1px solid rgba(42,31,61,.9);overflow-y:auto;padding:10px}
+.codehub-files{width:230px;flex-shrink:0;border-right:1px solid rgba(40,40,40,.9);overflow-y:auto;padding:10px}
 .codehub-file-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.82rem;color:#d1c4e9;opacity:0;animation:codehubRowIn .32s ease forwards;transition:background .15s ease,transform .15s ease}
 @keyframes codehubRowIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
 .codehub-file-row:hover{background:rgba(196,196,204,.1);transform:translateX(2px)}
@@ -3722,7 +3722,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .codehub-file-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .codehub-file-size{font-size:.63rem;color:var(--muted);flex-shrink:0}
 .codehub-viewer{flex:1;display:flex;flex-direction:column;min-width:0}
-.codehub-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(42,31,61,.9);background:rgba(255,255,255,.02)}
+.codehub-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(40,40,40,.9);background:rgba(255,255,255,.02)}
 .codehub-file-path{font-size:.76rem;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .codehub-copy-btn{font-size:.7rem;font-weight:700;padding:5px 11px;border-radius:8px;border:1px solid rgba(196,196,204,.3);background:rgba(196,196,204,.1);color:#f0f0f3;cursor:pointer;transition:background .15s ease,transform .1s ease;flex-shrink:0}
 .codehub-copy-btn:hover{background:rgba(196,196,204,.22)}
@@ -3733,11 +3733,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .tok-str{color:#86efac}
 .tok-com{color:#7b7690;font-style:italic}
 .tok-num{color:#fbbf24}
-.codehub-foot{padding:12px 20px;font-size:.68rem;color:#6b7280;text-align:center;border-top:1px solid rgba(42,31,61,.9)}
+.codehub-foot{padding:12px 20px;font-size:.68rem;color:#6b7280;text-align:center;border-top:1px solid rgba(40,40,40,.9)}
 .codehub-loading{padding:24px;text-align:center;color:var(--muted);font-size:.82rem}
 @media (max-width:640px){
   .codehub-body{flex-direction:column}
-  .codehub-files{width:100%;max-height:150px;border-right:none;border-bottom:1px solid rgba(42,31,61,.9)}
+  .codehub-files{width:100%;max-height:150px;border-right:none;border-bottom:1px solid rgba(40,40,40,.9)}
   .codehub-head{padding-right:26px}
 }
 .discover-modal-box{width:min(640px,100%)}
@@ -4328,9 +4328,9 @@ a.bug-att-item{display:block}
 /* + var(--music-bar-h,0px) : évite que la barre de lecture persistante (voir
    plus haut) ne chevauche cette pastille d'appel quand les deux sont actives
    en même temps (typiquement en écoute synchronisée pendant un appel). */
-.call-bar{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom) + var(--music-bar-h,0px));z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
-.call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(245,245,247,.85),rgba(75,75,82,.95),rgba(15,9,25,.98));animation:moodShift 7s ease infinite;border-color:rgba(196,196,204,.4)}
-.call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(75,75,82,.9),rgba(15,9,25,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
+.call-bar{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));bottom:calc(12px + env(safe-area-inset-bottom) + var(--music-bar-h,0px));z-index:3000;padding:12px 14px;border-radius:16px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.25);box-shadow:0 12px 40px rgba(0,0,0,.5);max-width:420px;margin:0 auto;background-size:300% 300%;transition:border-color .4s ease}
+.call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(245,245,247,.85),rgba(75,75,82,.95),rgba(15,15,15,.98));animation:moodShift 7s ease infinite;border-color:rgba(196,196,204,.4)}
+.call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(75,75,82,.9),rgba(15,15,15,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .call-bar.embedded{position:static;max-width:none;margin:20px 14px 8px;box-shadow:none}
 .cb-top{display:flex;align-items:center;gap:10px}
@@ -4341,7 +4341,7 @@ a.bug-att-item{display:block}
 .cb-av-mute{position:absolute;z-index:2;bottom:-2px;right:-2px;width:16px;height:16px;border-radius:50%;background:#ef4444;border:2px solid #141416;display:grid;place-items:center;font-size:8px;line-height:1}
 .cb-av-mute.hidden{display:none}
 .group-call-bar{max-width:520px;padding-top:14px}
-.call-mini-pill{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:3100;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 8px 26px rgba(0,0,0,.45);width:min(240px,calc(100vw - 20px));box-sizing:border-box}
+.call-mini-pill{position:fixed;top:calc(10px + env(safe-area-inset-top));right:calc(10px + env(safe-area-inset-right));z-index:3100;display:flex;align-items:center;gap:6px;padding:6px;border-radius:999px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 8px 26px rgba(0,0,0,.45);width:min(240px,calc(100vw - 20px));box-sizing:border-box}
 .call-mini-pill.hidden{display:none}
 .cmp-body{display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden;padding:2px 4px 2px 2px;flex:1 1 0}
 .cmp-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;background:var(--elev);display:grid;place-items:center;font-size:.9rem;overflow:hidden;color:#f2f2f5;font-weight:800}
@@ -4417,7 +4417,7 @@ a.bug-att-item{display:block}
 .cvs-tile-screen{background:#000;aspect-ratio:16/10}
 .cvs-tile-screen video{width:100%;height:100%;object-fit:contain;display:block}
 /* Barre de contrôle : pilule flottante centrée, façon Zoom/Meet */
-.chan-voice-stage-controls{display:flex;justify-content:center;align-items:center;gap:10px;padding:16px 20px;flex-shrink:0;margin:14px auto 0;background:rgba(20,12,32,.72);backdrop-filter:blur(16px);border:1px solid rgba(196,196,204,.18);border-radius:999px;box-shadow:0 16px 40px rgba(0,0,0,.45)}
+.chan-voice-stage-controls{display:flex;justify-content:center;align-items:center;gap:10px;padding:16px 20px;flex-shrink:0;margin:14px auto 0;background:rgba(20,20,20,.72);backdrop-filter:blur(16px);border:1px solid rgba(196,196,204,.18);border-radius:999px;box-shadow:0 16px 40px rgba(0,0,0,.45)}
 .cvs-ctrl-btn{width:52px;height:52px;border-radius:50%;border:none;background:rgba(255,255,255,.07);color:#f2f2f5;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s ease,transform .1s ease}
 .cvs-ctrl-btn:hover{background:rgba(255,255,255,.16);transform:translateY(-1px)}
 .cvs-ctrl-btn:active{transform:scale(.94)}
@@ -4430,12 +4430,12 @@ a.bug-att-item{display:block}
 .cvs-settings-row label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:6px;font-weight:600}
 .cvs-settings-row select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0a0a0c;color:#f0f0f3;font-size:.85rem}
 .cvs-settings-row.hidden{display:none}
-.e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 /* Invitation à une écoute synchronisée démarrée par quelqu'un d'autre dans le
    même salon vocal (voir musicShowListenInviteBanner) — même famille visuelle
    que .e2e-backup-banner, positionnée juste en dessous pour ne jamais se
    superposer si les deux sont visibles en même temps. */
-.music-listen-invite{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));z-index:3100;max-width:480px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,18,48,.97),rgba(15,9,25,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px}
+.music-listen-invite{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));z-index:3100;max-width:480px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 12px 40px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px}
 .music-listen-invite.hidden{display:none}
 .mli-icon{font-size:1.3rem;flex-shrink:0}
 .mli-text{flex:1;min-width:0;font-size:.82rem;line-height:1.4}
@@ -4452,7 +4452,7 @@ a.bug-att-item{display:block}
 .e2e-bb-input:focus{border-color:#f5f5f7}
 .srv-list-actions{display:flex;gap:8px;margin:0 0 14px}
 .srv-list-actions .btn-main{flex:1}
-.srv-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(42,31,61,.8);margin-bottom:8px;cursor:pointer;transition:background .15s ease}
+.srv-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:rgba(255,255,255,.03);border:1px solid rgba(40,40,40,.8);margin-bottom:8px;cursor:pointer;transition:background .15s ease}
 .srv-item:hover{background:rgba(245,245,247,.1)}
 .srv-item.on{background:rgba(245,245,247,.16);border-color:rgba(196,196,204,.4)}
 .srv-item-icon{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#1f1f22,#1c1c1f);display:grid;place-items:center;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;font-size:1.1rem}
@@ -4473,11 +4473,11 @@ a.bug-att-item{display:block}
 .srv-detail-icon img{width:100%;height:100%;object-fit:cover}
 .srv-detail-icon-sm{width:32px;height:32px;border-radius:9px;font-size:.85rem}
 .srv-detail-desc{font-size:.78rem;color:var(--muted);padding:10px 20px 0;flex-shrink:0}
-.srv-tabs{display:flex;gap:4px;padding:14px 20px 0;border-bottom:1px solid rgba(42,31,61,.9);overflow-x:auto;flex-shrink:0}
+.srv-tabs{display:flex;gap:4px;padding:14px 20px 0;border-bottom:1px solid rgba(40,40,40,.9);overflow-x:auto;flex-shrink:0}
 .srv-tab{padding:9px 4px;font-size:.8rem;font-weight:700;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;margin-right:14px}
 .srv-tab.on{color:#f0f0f3;border-color:#f5f5f7}
 .srv-tab.hidden{display:none}
-.srv-invite-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(42,31,61,.8);border-radius:12px;padding:10px 12px;margin-bottom:14px}
+.srv-invite-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.04);border:1px solid rgba(40,40,40,.8);border-radius:12px;padding:10px 12px;margin-bottom:14px}
 .srv-section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .srv-cat-label{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
 .srv-channel-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:.86rem;font-weight:600}
@@ -4554,7 +4554,7 @@ a.bug-att-item{display:block}
 .srv-stage-topic{font-weight:800;font-size:1rem}
 .srv-stage-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
 .srv-stage-list .set-card-row{border-radius:10px;padding:8px 10px;border-bottom:none;background:rgba(255,255,255,.03)}
-.srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(42,31,61,.6)}
+.srv-member-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(40,40,40,.6)}
 .srv-event-card{margin-bottom:10px}
 .srv-event-card.srv-event-past{opacity:.55}
 .srv-webhook-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(245,245,247,.25);color:#d8d8dd;font-size:.6rem;font-weight:800;letter-spacing:.02em;vertical-align:middle}
@@ -4872,12 +4872,12 @@ a.bug-att-item{display:block}
 .tw-status.progress{background:rgba(245,158,11,.18);color:#fbbf24}
 .status-panel{width:min(460px,100%);max-height:88dvh;padding:0;overflow:hidden;position:relative;background:#050505;border:1px solid rgba(196,196,204,.3)}
 .status-rain{position:absolute;inset:0;filter:blur(2px) brightness(.7);opacity:.55}
-.status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(5,3,10,.4),rgba(5,3,10,.88) 30%)}
+.status-panel-inner{position:relative;z-index:1;padding:22px;max-height:88dvh;overflow-y:auto;background:linear-gradient(180deg,rgba(6,6,6,.4),rgba(6,6,6,.88) 30%)}
 .status-panel-inner h3{display:flex;align-items:center;gap:8px;font-size:1.05rem}
 .status-live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:cbPulse 1.4s ease-in-out infinite}
 .status-sub{font-size:.72rem;color:var(--muted);margin:4px 0 16px;font-family:monospace}
 .status-rows{display:flex;flex-direction:column;gap:8px}
-.status-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(20,12,35,.75);border:1px solid rgba(196,196,204,.15);font-family:monospace;font-size:.78rem}
+.status-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(20,20,20,.75);border:1px solid rgba(196,196,204,.15);font-family:monospace;font-size:.78rem}
 .status-row .sr-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;background:#6b7280}
 .status-row.ok .sr-dot{background:#22c55e;box-shadow:0 0 6px #22c55e}
 .status-row.fail .sr-dot{background:#ef4444;box-shadow:0 0 6px #ef4444}
@@ -5126,47 +5126,21 @@ a.bug-att-item{display:block}
       </div>
     </div>
     <form id="pane-register" class="hidden" autocomplete="on">
-      <div class="reg-preview">
-        <div class="rp-banner" id="rp-banner" title="Ajouter une bannière (optionnel)">
-          <span class="rp-banner-btn">📷 Bannière</span>
-        </div>
-        <div class="rp-row">
-          <div class="rp-av-wrap" id="rp-av-wrap" title="Choisir un avatar (optionnel)">
-            <div class="rp-av" id="rp-av">?</div>
-            <span class="rp-av-cam">📷</span>
-          </div>
-          <div class="rp-meta">
-            <div class="rp-name" id="rp-name">Nouveau membre</div>
-            <div class="rp-tag" id="rp-tag">@pseudo#····</div>
-            <div class="rp-hint">Photo et bannière optionnelles</div>
-          </div>
-        </div>
-      </div>
-      <input type="file" id="reg-file-av" accept="image/*" class="hidden"/>
-      <input type="file" id="reg-file-banner" accept="image/*" class="hidden"/>
+      <div class="scr-sub" style="margin-bottom:12px">Photo et bannière se personnalisent après l'inscription, depuis ton profil.</div>
       <div class="field-row">
         <div class="field field-grow"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
         <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
       </div>
       <div class="reg-section-div"><span>Méthode de connexion</span></div>
       <div class="seg-group" id="reg-auth-mode" style="margin-bottom:12px">
-        <button type="button" class="seg-btn on" data-reg-mode="email">📧 Email</button>
-        <button type="button" class="seg-btn" data-reg-mode="devicekey">🔒 Clé secrète</button>
+        <button type="button" class="seg-btn on" data-reg-mode="devicekey">🔒 Clé secrète</button>
         <button type="button" class="seg-btn hidden" id="reg-mode-passkey-btn" data-reg-mode="passkey">🪪 Passkey (biométrie)</button>
       </div>
-      <div id="reg-email-fields">
-        <div class="field"><label>Email</label><input id="in-email2" type="email" name="email" autocomplete="username"/></div>
-        <div class="field"><label>Mot de passe</label><div class="field-pw-wrap"><input id="in-pass2" type="password" name="new-password" minlength="8" autocomplete="new-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass2" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
-        <div class="pw-strength" id="pw-strength">
-          <div class="pw-strength-track"><div class="pw-strength-fill" id="pw-strength-fill"></div></div>
-          <div class="pw-strength-row"><span class="pw-strength-emoji" id="pw-strength-emoji">😐</span><span class="pw-strength-label" id="pw-strength-label">Mot de passe</span></div>
-        </div>
-      </div>
-      <div class="scr-sub hidden" id="reg-devicekey-note">🔒 Une clé secrète unique s'affichera une seule fois juste après l'inscription — elle remplace l'email et le mot de passe pour te reconnecter. Un code de secours séparé te permettra de récupérer ton compte si tu la perds.</div>
-      <div class="scr-sub hidden" id="reg-passkey-note">🪪 Utilise Face ID, Windows Hello, ton empreinte ou une clé de sécurité pour t'inscrire sans mot de passe. Un code de secours te sera aussi fourni pour récupérer ton compte si tu perds l'accès à cet appareil.</div>
+      <div class="scr-sub" id="reg-devicekey-note">🔒 Une clé secrète unique s'affichera une seule fois juste après l'inscription — elle remplace l'email et le mot de passe pour te reconnecter. Un code de secours séparé te permettra de récupérer ton compte si tu la perds. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
+      <div class="scr-sub hidden" id="reg-passkey-note">🪪 Utilise Face ID, Windows Hello, ton empreinte ou une clé de sécurité pour t'inscrire sans mot de passe. Un code de secours te sera aussi fourni pour récupérer ton compte si tu perds l'accès à cet appareil. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
       <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
-      <button type="submit" class="btn-main" id="btn-register" data-i18n="auth_create_account">Créer mon compte</button>
+      <button type="submit" class="btn-main" id="btn-register">Créer ma clé secrète</button>
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
@@ -8355,10 +8329,9 @@ document.querySelectorAll('#reg-auth-mode [data-reg-mode]').forEach(function(btn
   btn.addEventListener('click',function(){
     regAuthMode=btn.getAttribute('data-reg-mode');
     document.querySelectorAll('#reg-auth-mode [data-reg-mode]').forEach(function(b){b.classList.toggle('on',b===btn);});
-    \$('reg-email-fields').classList.toggle('hidden',regAuthMode!=='email');
     \$('reg-devicekey-note').classList.toggle('hidden',regAuthMode!=='devicekey');
     \$('reg-passkey-note').classList.toggle('hidden',regAuthMode!=='passkey');
-    \$('btn-register').textContent=regAuthMode==='email'?'Créer mon compte':(regAuthMode==='devicekey'?'Créer ma clé secrète':'🪪 Créer avec une passkey');
+    \$('btn-register').textContent=regAuthMode==='devicekey'?'Créer ma clé secrète':'🪪 Créer avec une passkey';
   });
 });
 if(passkeysSupported()&&\$('reg-mode-passkey-btn'))\$('reg-mode-passkey-btn').classList.remove('hidden');
@@ -8369,70 +8342,9 @@ async function doRegister(){
   const name=((\$('in-user')&&\$('in-user').value)||'').trim().replace(/[^a-zA-Z0-9_.\\- ]/g,'').slice(0,24);
   showErrTxt('');
   if(!name||name.length<2){showErrTxt('Pseudo trop court');return}
-  if(regAuthMode==='devicekey')return doRegisterDeviceKey(name);
   if(regAuthMode==='passkey')return doRegisterPasskeyAnon(name);
-  const email=((\$('in-email2')&&\$('in-email2').value)||'').trim();
-  const pass=(\$('in-pass2')&&\$('in-pass2').value)||'';
-  const accent='#7c3aed';
-  if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(email)){showErrTxt('Email invalide');return}
-  if(pass.length<8){showErrTxt('Mot de passe : 8 caractères minimum');return}
-  if(!ensureSdk()){showErrTxt('SDK non chargé, réessaie dans un instant');return}
-  const regTsResult=await verifyTurnstile('register');
-  if(!regTsResult)return;
-  \$('btn-register').disabled=true;\$('btn-register').textContent='Création…';
-  let accountCreated=false;
-  try{
-    await account.create(Appwrite.ID.unique(),email,pass,name);
-    accountCreated=true;
-    const jj=await serverLogin(email,pass,typeof regTsResult==='string'?regTsResult:'');
-    applySession(jj.secret,jj.jwt);
-    xlog('register_session_ok',{});
-    account.createVerification(location.origin+'/').catch(function(e){xlog('verify_email_send_fail',{msg:(e&&e.message)||String(e)});});
-    authPost('/api/account/grant-early-badge',{}).catch(function(e){xlog('early_badge_grant_fail',{msg:(e&&e.message)||String(e)});});
-    let avatarUrl='',bannerUrl='';
-    if(regAvatarFile){
-      try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regAvatarFile,[Appwrite.Permission.read(Appwrite.Role.any())]);avatarUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
-    }
-    if(regBannerFile){
-      try{const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),regBannerFile,[Appwrite.Permission.read(Appwrite.Role.any())]);bannerUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;}catch(e){}
-    }
-    let acc;
-    try{
-      acc=await fetchMe();
-    }catch(eGet){
-      xlog('account_get_error_detail',{msg:(eGet&&eGet.message)||String(eGet)});
-      throw eGet;
-    }
-    const uname=slugUsername(name);
-    const chosenTag=(\$('in-tag')&&\$('in-tag').value)||'';
-    let tag=/^[0-9]{4}\$/.test(chosenTag)?chosenTag:'';
-    if(tag&&await isUsernameTagTaken(uname,tag,null))tag='';
-    if(!tag){
-      tag=String(Math.floor(1000+Math.random()*9000));
-      let tries=0;
-      while(tries<30&&await isUsernameTagTaken(uname,tag,null)){tag=String(Math.floor(1000+Math.random()*9000));tries++}
-    }
-    const doc={authUserId:acc.\$id,email:acc.email||email,username:uname,baseUsername:uname,tag:tag,displayName:name,bio:'',avatar:avatarUrl,bg:bannerUrl,bgType:bannerUrl?'image':'gradient',bgColor:accent,btnColor:accent,statusManual:'online'};
-    try{await db.createDocument(DB,'users',Appwrite.ID.unique(),doc);}
-    catch(e){await db.createDocument(DB,'users',Appwrite.ID.unique(),{authUserId:acc.\$id,email:acc.email||email,username:uname,displayName:name,tag:tag});}
-    xlog('register_success',{uid:acc.\$id});
-    await enterApp(pass);
-  }catch(e){
-    xlog('register_fail',{msg:(e&&e.message)||String(e)});
-    if(accountCreated){
-      /* Le compte Appwrite a été créé mais l'inscription n'a pas pu être finalisée
-         (profil, contrainte d'unicité, réseau...) : on nettoie tout de suite pour
-         qu'un nouvel essai ne laisse pas un compte fantôme sans profil derrière lui. */
-      try{await fetch('/api/account/rollback-registration',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,password:pass})});}catch(eRb){}
-      try{localStorage.clear();}catch(e2){}
-      clearCookieFallback();
-    }
-    showErrTxt(translateAuthError(e&&e.message)||'Inscription impossible, réessaie.');
-    if(typeof turnstile!=='undefined'&&turnstileWidgetIds.register!=null)turnstile.reset(turnstileWidgetIds.register);
-  }
-  \$('btn-register').disabled=false;\$('btn-register').textContent='Créer mon compte';
+  return doRegisterDeviceKey(name);
 }
-
 if(\$('pane-login'))\$('pane-login').addEventListener('submit',function(e){e.preventDefault();doLogin();});
 // Demandé : conditions d'utilisation à l'inscription, à faire défiler
 // jusqu'en bas pour pouvoir accepter et poursuivre — le bouton reste
@@ -10770,6 +10682,7 @@ function renderSetAccount(box){
       +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">Pseudo</div><div class="scr-sub">'+esc(name)+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-name">Modifier</button></div>'
       +(isPasswordless?
         '<div class="set-card-row"><div class="scr-info"><div class="scr-label">Connexion</div><div class="scr-sub">Ce compte n\\'a pas d\\'e-mail ni de mot de passe — tu te connectes avec une clé secrète ou une passkey (voir Sécurité ci-dessous).</div></div></div>'
+        +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">Aucun — optionnel, utile pour la récupération de compte et les notifications.</div></div><button type="button" class="set-mini-btn" id="acc-add-email-btn">Ajouter</button></div>'
         :
         ('<div class="set-card-row"><div class="scr-info"><div class="scr-label">E-mail</div><div class="scr-sub">'+esc(email)+' '+((me&&me.emailVerification)?'<span style="color:#22c55e">✓ vérifié</span>':'<span style="color:#f59e0b">⚠ non vérifié</span>')+'</div></div><button type="button" class="set-mini-btn" id="acc-edit-email">Modifier</button></div>'
         +(!(me&&me.emailVerification)?('<div class="set-card-row"><div class="scr-info"><div class="scr-label">Vérifie ton adresse e-mail</div><div class="scr-sub">Un lien de vérification t\\'a été envoyé par e-mail à l\\'inscription. Tu ne l\\'as pas reçu ?</div></div><button type="button" class="set-mini-btn" id="acc-resend-verify">Renvoyer</button></div>'):'')
@@ -10778,6 +10691,7 @@ function renderSetAccount(box){
     +'</div>'
     +'<div class="set-card hidden" id="acc-name-form"><div class="set-row"><label>Nouveau pseudo</label><input type="text" id="acc-name-input" class="field-input" maxlength="64"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-name-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-name-cancel">Annuler</button></div></div>'
     +'<div class="set-card hidden" id="acc-email-form"><div class="set-row"><label>Nouvel e-mail</label><input type="email" id="acc-email-input" class="field-input"></div><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-email-pass" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-email-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-email-cancel">Annuler</button></div><div class="err" id="acc-email-err" style="min-height:1em;margin-top:6px"></div></div>'
+    +'<div class="set-card hidden" id="acc-add-email-form"><div class="scr-sub" style="margin-bottom:8px">Un lien de vérification te sera envoyé à cette adresse. Tu pourras ensuite t\\'en servir en plus de ta clé secrète/passkey pour te connecter et récupérer ton compte.</div><div class="set-row"><label>Adresse e-mail</label><input type="email" id="acc-add-email-input" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-add-email-save">Ajouter</button><button type="button" class="set-mini-btn" id="acc-add-email-cancel">Annuler</button></div><div class="err" id="acc-add-email-err" style="min-height:1em;margin-top:6px"></div></div>'
     +'<div class="set-card hidden" id="acc-pass-form"><div class="set-row"><label>Mot de passe actuel</label><input type="password" id="acc-pass-old" class="field-input"></div><div class="set-row"><label>Nouveau mot de passe</label><input type="password" id="acc-pass-new" class="field-input"></div><div style="display:flex;gap:8px"><button type="button" class="set-mini-btn" id="acc-pass-save">Enregistrer</button><button type="button" class="set-mini-btn" id="acc-pass-cancel">Annuler</button></div><div class="err" id="acc-pass-err" style="min-height:1em;margin-top:6px"></div><button type="button" id="acc-forgot-pass" style="margin-top:10px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0">Tu ne te souviens plus de ton mot de passe actuel ?</button></div>'
     +'<div class="set-card">'
       +'<div class="set-section-label">Sécurité</div>'
@@ -10887,6 +10801,31 @@ function wireSetAccount(box,name){
       showToast('E-mail mis à jour ! Vérifie ta boîte de réception pour le confirmer.');
       renderSetAccount(box);
     }catch(e){err.textContent=(e&&e.message)||'Action impossible';emailSave.disabled=false;}
+  };
+  const addEmailBtn=\$('acc-add-email-btn');
+  if(addEmailBtn)addEmailBtn.onclick=function(){\$('acc-add-email-form').classList.remove('hidden');};
+  const addEmailCancel=\$('acc-add-email-cancel');
+  if(addEmailCancel)addEmailCancel.onclick=function(){\$('acc-add-email-form').classList.add('hidden');};
+  const addEmailSave=\$('acc-add-email-save');
+  if(addEmailSave)addEmailSave.onclick=async function(){
+    const newEmail=(\$('acc-add-email-input').value||'').trim();
+    const err=\$('acc-add-email-err');
+    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+\$/.test(newEmail)){err.textContent='E-mail invalide';return}
+    addEmailSave.disabled=true;err.textContent='';
+    try{
+      // Compte sans mot de passe (clé secrète/passkey) : pas de
+      // account.updateEmail côté client (exige le mot de passe actuel, qui
+      // n'existe pas ici) — un point d'API dédié pose l'e-mail côté serveur
+      // avec la clé admin, sur la base de la session déjà authentifiée.
+      await authPost('/api/account/add-email',{email:newEmail});
+      if(me){me.email=newEmail;me.emailVerification=false;}
+      if(meProfile&&meProfile.\$id){
+        try{await db.updateDocument(DB,'users',meProfile.\$id,{email:newEmail});meProfile.email=newEmail;}catch(e){}
+      }
+      account.createVerification(location.origin+'/').catch(function(e){});
+      showToast('E-mail ajouté ! Vérifie ta boîte de réception pour le confirmer.');
+      renderSetAccount(box);
+    }catch(e){err.textContent=(e&&e.message)||'Action impossible';addEmailSave.disabled=false;}
   };
   const resendBtn=\$('acc-resend-verify');
   if(resendBtn)resendBtn.onclick=async function(){
@@ -39919,6 +39858,38 @@ async function handle(request, event) {
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  if (path === "/api/account/add-email" && request.method === "POST") {
+    // Pose un e-mail sur un compte créé sans mot de passe (clé secrète ou
+    // passkey, voir /api/auth/devicekey/register et /api/auth/passkey/*) :
+    // account.updateEmail côté client exige le mot de passe ACTUEL du
+    // compte, qui n'existe pas ici — seule la clé API admin peut écrire
+    // /users/{id}/email sans cette vérification. La session déjà
+    // authentifiée (clé secrète ou passkey) tient lieu de preuve d'identité.
+    // Ne s'applique qu'aux comptes SANS e-mail existant : jamais une porte
+    // dérobée pour changer l'e-mail d'un compte qui a déjà un mot de passe.
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+    try {
+      if (!(await rateLimitCheck("add_email:" + acc.$id, 5))) throw new Error("Trop de tentatives, réessaie plus tard.");
+      await rateLimitBump("add_email:" + acc.$id, 3600);
+      const body = await request.json();
+      const email = String((body && body.email) || "").trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("E-mail invalide");
+      const fullAcc = await awFetch("/users/" + acc.$id, { asAdmin: true });
+      if (fullAcc.email) throw new Error("Ce compte a déjà un e-mail — utilise plutôt le formulaire de changement d'e-mail.");
+      await awFetch("/users/" + acc.$id + "/email", { method: "PATCH", asAdmin: true, body: { email: email } });
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
   }
