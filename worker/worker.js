@@ -5304,9 +5304,7 @@ a.bug-att-item{display:block}
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
         <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico">👥</span>Groupe+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un HUB VOCAL">🏘️+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-join" title="Rejoindre un HUB VOCAL">🔗</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-discover" title="Découvrir HUB VOCAL">🧭</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer le HUB VOCAL">🏘️+</button>
         <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico">👤</span>Ami+</button>
       </div>
     </div>
@@ -6035,19 +6033,6 @@ a.bug-att-item{display:block}
     <div id="srv-join-preview"></div>
     <button type="button" class="btn-main" id="srv-join-submit">Rejoindre</button>
     <div class="err" id="srv-join-err"></div>
-  </div>
-</div>
-
-<div class="overlay hidden" id="modal-server-discover">
-  <div class="modal-box discover-modal-box">
-    <button type="button" class="modal-close" id="srv-discover-close">✕</button>
-    <h3>🧭 Découvrir des serveurs</h3>
-    <div class="scr-sub" style="margin:-6px 0 12px">Le podium des serveurs les plus actifs, puis tous les autres classés par catégorie.</div>
-    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <input type="text" id="srv-discover-search" class="field-input" placeholder="Rechercher…" style="flex:1;min-width:140px">
-      <select id="srv-discover-category" class="field-input" style="width:auto"><option value="">Toutes catégories</option></select>
-    </div>
-    <div id="srv-discover-list" class="discover-scroll"></div>
   </div>
 </div>
 
@@ -8552,8 +8537,6 @@ function showView(v){
   \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Géré par le staff de X1':'Membres'));
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
   if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers'||!(staffRole==='owner'||staffRole==='mod'));
-  if(\$('btn-server-join'))\$('btn-server-join').classList.toggle('hidden',v!=='servers');
-  if(\$('btn-server-discover'))\$('btn-server-discover').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
   if(\$('stories-bar'))\$('stories-bar').classList.toggle('hidden',v!=='dms');
   if(v==='servers'){
@@ -30820,7 +30803,7 @@ function serverIsBoostedByMe(s){
 }
 function renderServersListView(){
   const box=\$('list-body');if(!box||view!=='servers')return;
-  if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu ne fais partie d\\'aucun serveur pour l\\'instant. Crée le tien ou rejoins-en un avec un code (boutons en haut) !</div>';return}
+  if(!myServers.length){box.innerHTML='<div class="empty-hint">Le HUB VOCAL n\\'a pas encore été créé. Un membre du staff doit le créer (bouton en haut) — tout le monde y sera ajouté automatiquement.</div>';return}
   box.innerHTML=myServers.map(function(s){
     const isOwner=me&&String(s.ownerId)===String(me.\$id);
     const isActive=activeServer&&activeServer.\$id===s.\$id;
@@ -30875,7 +30858,6 @@ function openServerJoinModal(prefillCode){
   \$('modal-server-join').classList.remove('hidden');
   if(prefillCode)\$('srv-join-code').dispatchEvent(new Event('input'));
 }
-if(\$('btn-server-join'))\$('btn-server-join').addEventListener('click',function(){openServerJoinModal('');});
 if(\$('srv-join-close'))\$('srv-join-close').addEventListener('click',function(){\$('modal-server-join').classList.add('hidden');});
 if(\$('modal-server-join'))\$('modal-server-join').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
 let srvJoinPreviewTimer=null;
@@ -30907,148 +30889,6 @@ if(\$('srv-join-submit'))\$('srv-join-submit').addEventListener('click',async fu
   }catch(e){\$('srv-join-err').textContent=(e&&e.message)||'Erreur';}
   this.disabled=false;this.textContent='Rejoindre';
 });
-
-let discoverServersCache=[];
-if(\$('btn-server-discover'))\$('btn-server-discover').addEventListener('click',function(){
-  \$('modal-server-discover').classList.remove('hidden');
-  \$('srv-discover-search').value='';
-  const catSel=\$('srv-discover-category');
-  if(catSel&&catSel.options.length<=1){
-    catSel.innerHTML='<option value="">Toutes catégories</option>'+SERVER_DISCOVERY_CATEGORIES.map(function(c){return '<option value="'+c+'">'+SERVER_CATEGORY_LABELS[c]+'</option>';}).join('');
-  }
-  loadDiscoverServers();
-});
-if(\$('srv-discover-close'))\$('srv-discover-close').addEventListener('click',function(){\$('modal-server-discover').classList.add('hidden');});
-if(\$('modal-server-discover'))\$('modal-server-discover').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden');});
-async function loadDiscoverServers(){
-  const list=\$('srv-discover-list');
-  list.innerHTML='<div class="scr-sub">Chargement…</div>';
-  try{
-    const category=(\$('srv-discover-category')&&\$('srv-discover-category').value)||'';
-    const j=await authGet('/api/servers/discovery/list'+(category?('?category='+encodeURIComponent(category)):''));
-    discoverServersCache=(j&&j.servers)||[];
-    renderDiscoverList();
-  }catch(e){list.innerHTML='<div class="scr-sub">Erreur de chargement.</div>';}
-}
-// Score de classement du podium : privilégie les serveurs avec beaucoup de
-// membres ET peu de signalements, sans laisser un seul signalement isolé
-// éliminer un gros serveur (division plutôt que soustraction sèche) — un
-// serveur de 1000 membres avec 2 signalements reste devant un serveur de
-// 50 membres sans aucun signalement, ce qui correspond à l'intuition
-// "le plus gros ET le plus propre", pas juste "le plus propre".
-function computeDiscoveryScore(s){
-  return (s.memberCount||0)/(1+(s.reportCount||0));
-}
-function renderDiscoverList(){
-  const list=\$('srv-discover-list');if(!list)return;
-  const q=((\$('srv-discover-search')&&\$('srv-discover-search').value)||'').trim().toLowerCase();
-  const category=(\$('srv-discover-category')&&\$('srv-discover-category').value)||'';
-  if(q||category){
-    const filtered=discoverServersCache.filter(function(s){return !q||s.name.toLowerCase().indexOf(q)>=0;});
-    renderDiscoverFlatList(filtered);
-  }else{
-    renderDiscoverBrowse(discoverServersCache);
-  }
-}
-function renderDiscoverFlatList(filtered){
-  const list=\$('srv-discover-list');if(!list)return;
-  const myIds=(myServers||[]).map(function(s){return String(s.\$id);});
-  if(!filtered.length){list.innerHTML='<div class="scr-sub">Aucun serveur trouvé.</div>';return}
-  list.innerHTML=filtered.map(function(s){
-    const already=myIds.indexOf(String(s.\$id))>=0;
-    return '<div class="srv-item" style="cursor:default"><div class="srv-item-icon">'+serverIconHtml(s)+'</div><div class="srv-item-info"><div class="srv-item-name">'+esc(s.name)+(s.category?(' <span class="soon-badge" style="font-size:10px">'+esc(SERVER_CATEGORY_LABELS[s.category]||s.category)+'</span>'):'')+'</div><div class="srv-item-sub">'+(s.memberCount||0)+' membre(s)'+(s.description?(' · '+esc(s.description.slice(0,60))):'')+'</div></div>'
-      +'<button type="button" class="set-mini-btn" data-discover-join="'+esc(s.\$id)+'"'+(already?' disabled':'')+'>'+(already?'Déjà membre':'Rejoindre')+'</button></div>';
-  }).join('');
-  list.querySelectorAll('[data-discover-join]').forEach(function(b){
-    b.addEventListener('click',function(){joinDiscoveredServer(b.getAttribute('data-discover-join'),b);});
-  });
-}
-// Vue par défaut (ni recherche, ni catégorie choisie) : un podium des 3
-// meilleurs serveurs (computeDiscoveryScore), puis tout le reste regroupé
-// par catégorie et trié du plus petit au plus grand — pour donner sa chance
-// aux petits/nouveaux serveurs plutôt que de toujours pousser les mêmes
-// gros serveurs en tête de chaque catégorie.
-function renderDiscoverBrowse(all){
-  const list=\$('srv-discover-list');if(!list)return;
-  if(!all.length){list.innerHTML='<div class="scr-sub">Aucun serveur découvrable pour l\\'instant. Sois le premier à en publier un !</div>';return}
-  const ranked=all.slice().sort(function(a,b){return computeDiscoveryScore(b)-computeDiscoveryScore(a);});
-  const top3=ranked.slice(0,3);
-  const top3Ids=top3.map(function(s){return String(s.\$id);});
-  const rest=all.filter(function(s){return top3Ids.indexOf(String(s.\$id))<0;});
-  const byCat={};
-  rest.forEach(function(s){
-    const cat=s.category||'autre';
-    (byCat[cat]=byCat[cat]||[]).push(s);
-  });
-  Object.keys(byCat).forEach(function(cat){byCat[cat].sort(function(a,b){return (a.memberCount||0)-(b.memberCount||0);});});
-  let html='';
-  if(top3.length){
-    html+='<div class="discover-podium">'+top3.map(function(s,idx){
-      const rank=idx+1;
-      const medal=rank===1?'🥇':rank===2?'🥈':'🥉';
-      return '<div class="discover-podium-card rank-'+rank+'" data-discover-open="'+esc(s.\$id)+'" style="animation-delay:'+(idx*90)+'ms">'
-        +'<div class="discover-podium-medal">'+medal+'</div>'
-        +'<div class="discover-podium-icon">'+serverIconHtml(s)+'</div>'
-        +'<div class="discover-podium-name">'+esc(s.name)+'</div>'
-        +'<div class="discover-podium-stats">👥 '+(s.memberCount||0)+'</div>'
-        +'</div>';
-    }).join('')+'</div>';
-  }
-  const catKeys=Object.keys(byCat).sort(function(a,b){return SERVER_DISCOVERY_CATEGORIES.indexOf(a)-SERVER_DISCOVERY_CATEGORIES.indexOf(b);});
-  html+=catKeys.map(function(cat,ci){
-    const items=byCat[cat];
-    return '<div class="discover-cat-section" style="animation-delay:'+(120+ci*70)+'ms">'
-      +'<div class="discover-cat-header"><span>'+esc(SERVER_CATEGORY_LABELS[cat]||cat)+'</span><span class="discover-cat-count">'+items.length+'</span></div>'
-      +'<div class="discover-cat-row">'+items.map(function(s){
-        return '<div class="discover-mini-card" data-discover-open="'+esc(s.\$id)+'">'
-          +'<div class="discover-mini-icon">'+serverIconHtml(s)+'</div>'
-          +'<div class="discover-mini-name">'+esc(s.name)+'</div>'
-          +'<div class="discover-mini-sub">👥 '+(s.memberCount||0)+'</div>'
-          +'</div>';
-      }).join('')+'</div>'
-      +'</div>';
-  }).join('');
-  if(!top3.length&&!catKeys.length){html='<div class="scr-sub">Aucun serveur découvrable pour l\\'instant.</div>';}
-  list.innerHTML=html;
-  list.querySelectorAll('[data-discover-open]').forEach(function(el){
-    el.addEventListener('click',function(){
-      const s=all.find(function(x){return String(x.\$id)===el.getAttribute('data-discover-open');});
-      if(s)openDiscoverServerPreview(s);
-    });
-  });
-}
-function joinDiscoveredServer(serverId,btn){
-  if(btn){btn.disabled=true;btn.textContent='…';}
-  return authPost('/api/servers/discovery/join',{serverId:serverId}).then(async function(res){
-    \$('modal-server-discover').classList.add('hidden');
-    showToast(res.alreadyMember?'Tu es déjà membre de ce serveur !':'Bienvenue dans le serveur ! 🎉');
-    await loadMyServers();
-    openServerDetail(res.server.\$id);
-  }).catch(function(e){
-    showToast((e&&e.message)||'Erreur','error');
-    if(btn){btn.disabled=false;btn.textContent='Rejoindre';}
-  });
-}
-function openDiscoverServerPreview(s){
-  const already=(myServers||[]).map(function(x){return String(x.\$id);}).indexOf(String(s.\$id))>=0;
-  const overlay=document.createElement('div');
-  overlay.className='action-sheet-overlay show';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:center">'
-    +'<div class="discover-podium-icon" style="width:64px;height:64px;font-size:1.4rem;margin-bottom:12px">'+serverIconHtml(s)+'</div>'
-    +'<div style="font-weight:800;font-size:1.05rem;margin-bottom:4px">'+esc(s.name)+'</div>'
-    +'<div class="scr-sub" style="margin-bottom:10px">'+esc(s.description||'Aucune description')+'</div>'
-    +'<div class="scr-sub" style="margin-bottom:14px">👥 '+(s.memberCount||0)+' membre(s)'+(s.category?(' · '+esc(SERVER_CATEGORY_LABELS[s.category]||s.category)):'')+'</div>'
-    +'<button type="button" class="btn-main" id="discover-preview-join" style="width:100%"'+(already?' disabled':'')+'>'+(already?'Déjà membre':'Rejoindre')+'</button>'
-    +'</div>';
-  document.body.appendChild(overlay);
-  requestAnimationFrame(function(){overlay.classList.add('show')});
-  function close(){overlay.classList.remove('show');setTimeout(function(){overlay.remove();},160);}
-  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
-  const joinBtn=overlay.querySelector('#discover-preview-join');
-  if(joinBtn&&!already)joinBtn.onclick=function(){joinDiscoveredServer(s.\$id,joinBtn);};
-}
-if(\$('srv-discover-search'))\$('srv-discover-search').addEventListener('input',renderDiscoverList);
-if(\$('srv-discover-category'))\$('srv-discover-category').addEventListener('change',loadDiscoverServers);
 
 async function openServerDetail(serverId){
   try{
