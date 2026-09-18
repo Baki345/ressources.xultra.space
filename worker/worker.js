@@ -2352,7 +2352,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .dash .btn-out{width:100%;height:42px;border-radius:12px;font-weight:700;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#f2f2f5;margin-top:18px}
 
 /* Phase 2: app shell */
-:root{--rail-w:64px;--list-w:280px;--elev:#141416;--hover:#1c1c1f;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px;--music-bar-h:0px}
+:root{--rail-w:58px;--list-w:264px;--elev:#141416;--hover:#1c1c1f;--line:rgba(255,255,255,.06);--muted:#9a8fb0;--online:#22c55e;--banner-h:0px;--music-bar-h:0px}
 /* Barres de défilement aux couleurs de X1 (dégradé violet du bouton
    principal) partout sur le site, au lieu de la barre native du
    navigateur — une seule règle globale (pas de sélecteur devant
@@ -2382,7 +2382,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .mobile-menu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle}
 .mobile-menu-dot.hidden{display:none}
 .list-col{width:var(--list-w);background:#0e0e10;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
-.list-head{padding:16px 14px 10px}
+.list-head{padding:12px 12px 8px}
 .list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
 .list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px}
 .list-sub .dot{width:5px;height:5px;border-radius:50%;background:var(--online);display:inline-block}
@@ -3218,9 +3218,9 @@ html.xultra-restoring #stage{visibility:hidden}
 .section-enter{animation:sectionEnter .26s cubic-bezier(.16,1,.3,1) both}
 @media (prefers-reduced-motion:reduce){.section-enter{animation:none}}
 .list-body .empty-hint{padding:16px;color:var(--muted);font-size:.82rem;line-height:1.5}
-.row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;cursor:pointer}
+.row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;cursor:pointer}
 .row:hover,.row.active{background:rgba(196,196,204,.1)}
-.row .av{width:36px;height:36px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.85rem;overflow:hidden;position:relative}
+.row .av{width:32px;height:32px;border-radius:50%;background:var(--elev);flex-shrink:0;display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden;position:relative}
 .pr-dot{position:absolute;right:0;bottom:0;width:11px;height:11px;border-radius:50%;border:2.5px solid var(--bg,#0b0614);z-index:1}
 .pr-label{font-size:.68rem !important;opacity:.7}
 .row .av img{width:100%;height:100%;object-fit:cover}
@@ -3298,7 +3298,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
 .chat-active.chat-dragover:after{content:'📎 Dépose le fichier ici';position:absolute;inset:8px;border:2px dashed #f5f5f7;border-radius:14px;background:rgba(245,245,247,.12);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#d8d8dd;pointer-events:none;z-index:50}
-.chat-top{min-height:52px;padding:calc(8px + env(safe-area-inset-top)) 16px 8px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.chat-top{min-height:46px;padding:calc(6px + env(safe-area-inset-top)) 14px 6px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);flex-shrink:0}
 .chat-top .av{position:relative;width:30px;height:30px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-weight:800;font-size:.8rem;overflow:hidden}
 @keyframes dmPresencePop{0%{transform:scale(0)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
 @keyframes dmPresenceRing{0%,100%{box-shadow:0 0 0 0 rgba(255,107,107,.55)}50%{box-shadow:0 0 0 4px rgba(255,107,107,0)}}
@@ -3315,7 +3315,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .ch-typing{font-size:.66rem;color:#c4c4cc;font-weight:700}
 .ch-typing.hidden{display:none}
 .chat-back{display:none;flex-shrink:0}
-.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:var(--msg-gap,10px)}
+.msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:var(--msg-gap,10px)}
 .msg{display:flex;gap:10px;max-width:80%}
 /* Empilement à l'ouverture d'une conversation (voir buildMsgsHtml/
    loadMessages) : chaque bulle "tombe" en place, décalée par
@@ -10046,7 +10046,7 @@ function loadAppPrefs(){
   try{p=JSON.parse(localStorage.getItem('xultra_app_prefs')||'{}')||{};}catch(e){p={};}
   appPrefsLanguageWasSet=('language' in p);
   const merged=Object.assign({
-    displayMode:'modern',msgFontSize:15,zoomScale:100,msgSpacing:'comfortable',
+    displayMode:'compact',msgFontSize:15,zoomScale:100,msgSpacing:'compact',
     animateEmoji:true,reduceMotion:false,gifHoverPlay:false,nsfwBlur:true,
     highContrast:false,devMode:false,notifPreview:true,notifBadge:true,
     soundMessage:true,soundCall:true,soundMention:true,vibrate:true,readReceipts:true,
