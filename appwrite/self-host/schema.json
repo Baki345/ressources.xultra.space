@@ -1040,7 +1040,7 @@
     "required": false,
     "type": "string",
     "size": 255,
-    "array": false
+    "array": true
    },
    {
     "key": "displayName",
@@ -2225,6 +2225,20 @@
     "type": "string",
     "size": 255,
     "array": false
+   },
+   {
+    "key": "visibleRoleIds",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": true
+   },
+   {
+    "key": "overwritesJson",
+    "required": false,
+    "type": "string",
+    "size": 10000,
+    "array": false
    }
   ],
   "documentSecurity": true,
@@ -2461,7 +2475,7 @@
     "required": false,
     "type": "string",
     "size": 128,
-    "array": false
+    "array": true
    },
    {
     "key": "overwritesJson",
@@ -2715,7 +2729,7 @@
     "required": false,
     "type": "string",
     "size": 128,
-    "array": false
+    "array": true
    },
    {
     "key": "isBot",
