@@ -499,6 +499,43 @@ async function serverExpressionSlots(server, baseCap, plusCap) {
 function isServerOwnerOrShaman(server, uid) {
   return String(server.ownerId) === String(uid) || SHAMAN_UIDS.has(String(uid));
 }
+// X1 n'a plus qu'un seul espace communautaire ("HUB VOCAL", voir la refonte
+// de /api/servers/create réservée au staff) — jamais choisi par le compte,
+// donc jamais un $id à retenir en dur : le HUB est simplement le tout
+// premier serveur créé (le staff n'en crée qu'un, mais si un second existait
+// par accident, on ignore volontairement le reste plutôt que de deviner).
+let hubServerCache = null, hubServerCacheAt = 0;
+async function resolveHubServer() {
+  if (hubServerCache && Date.now() - hubServerCacheAt < 30000) return hubServerCache;
+  const q = "/databases/" + AW_DB + "/collections/servers/documents?" +
+    "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
+    "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] }));
+  const data = await awFetch(q, { asAdmin: true });
+  hubServerCache = (data.documents || [])[0] || null;
+  hubServerCacheAt = Date.now();
+  return hubServerCache;
+}
+// Appelé à chaque connexion (finishLoginSession) et à chaque reprise de
+// session (/api/auth/me) : garantit que tout compte X1 est membre du HUB
+// VOCAL sans jamais passer par un code d'invitation — c'est l'espace
+// communautaire par défaut de la plateforme, pas un serveur qu'on rejoint.
+// bgTask() partout où c'est appelé : ne doit jamais ralentir ni faire
+// échouer une connexion si l'écriture Appwrite a un pépin.
+async function ensureHubMembership(uid) {
+  try {
+    const hub = await resolveHubServer();
+    if (!hub) return;
+    if (String(hub.ownerId) === String(uid)) return;
+    const existing = await getServerMembership(hub.$id, uid);
+    if (existing) return;
+    const profile = await resolveProfile(uid).catch(function () { return null; });
+    const uname = (profile && (profile.displayName || profile.username)) || "Membre";
+    await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
+      method: "POST", asAdmin: true,
+      body: { documentId: "unique()", data: { serverId: hub.$id, uid: String(uid), username: uname, roleIds: [] }, permissions: ["read(\"any\")", "delete(\"user:" + uid + "\")"] }
+    });
+  } catch (e) {}
+}
 async function getServerMembership(serverId, uid) {
   const q = "/databases/" + AW_DB + "/collections/server_members/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
@@ -3287,6 +3324,13 @@ html.xultra-restoring #stage{visibility:hidden}
 .ub-btn:hover{background:var(--elev);color:#f2f2f5}
 .ub-btn.on{color:#d8d8dd;background:rgba(245,245,247,.18)}
 .chat-col{flex:1;display:flex;flex-direction:column;min-width:0;background:#0a0a0c}
+/* X1 n'a plus qu'un seul espace communautaire (HUB VOCAL) — plus besoin
+   d'un panneau pour CHOISIR un serveur parmi plusieurs : on le masque pour
+   rendre sa place (largeur fixe --list-w) au salon+chat déjà affichés dans
+   .chat-col (voir .srv-overview-split), au lieu de la gâcher sur une liste
+   à un seul élément. Sans effet sur mobile, où .list-col est déjà masqué
+   par #app.chat-open plus bas. */
+#app.hub-fullwidth .list-col{display:none}
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--muted);padding:36px 20px;overflow-y:auto;background:linear-gradient(120deg,#121214,#141416,#18181b,#1c1c1f);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
 @keyframes emptyGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .empty-head{flex-shrink:0}
@@ -8490,6 +8534,7 @@ function showView(v){
   }catch(e){}
   document.querySelectorAll('.rail-btn').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-view')===v)});
   const app=document.getElementById('app');
+  app.classList.toggle('hub-fullwidth',v==='servers'&&!!activeServer);
   requestAnimationFrame(function(){app.style.height='';void app.offsetHeight;});
   if(v==='admin'){
     \$('list-title').textContent='Admin';
@@ -8520,11 +8565,22 @@ function showView(v){
     }else{
       \$('server-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      renderEmptyState('🏘️','Sélectionne un HUB VOCAL','Utilise un code d\\'invitation pour le rejoindre.');
+      renderEmptyState('🏘️','HUB VOCAL','Le staff de X1 n\\'a pas encore créé le HUB VOCAL.');
       app.classList.remove('chat-open');
     }
     showSectionLoading();
-    loadMyServers().then(renderServersListView).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);
+    loadMyServers().then(function(list){
+      // Un seul espace communautaire dédié à X1 : jamais de liste à choisir
+      // — ton compte y est ajouté automatiquement à la connexion (voir
+      // ensureHubMembership côté Worker), donc on l'ouvre directement. On ne
+      // retombe sur l'ancien sélecteur (renderServersListView, avec ses
+      // boutons Créer/Rejoindre) que si le HUB n'existe pas encore du tout.
+      if(list.length){
+        if(!activeServer||activeServer.\$id!==list[0].\$id)openServerDetail(list[0].\$id);
+      }else{
+        renderServersListView();
+      }
+    }).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);
     repositionCallPanel();
     return;
   }
@@ -30785,9 +30841,10 @@ function closeServerDetail(){
   if(serverStructureUnsub){try{serverStructureUnsub();}catch(e){}serverStructureUnsub=null;}
   activeServer=null;activeChannel=null;
   document.getElementById('app').classList.remove('chat-open');
+  document.getElementById('app').classList.remove('hub-fullwidth');
   \$('server-active').classList.add('hidden');
   \$('chat-empty').classList.remove('hidden');
-  renderEmptyState('🏘️','Sélectionne un HUB VOCAL','Utilise un code d\\'invitation pour le rejoindre.');
+  renderEmptyState('🏘️','HUB VOCAL','Le staff de X1 n\\'a pas encore créé le HUB VOCAL.');
   renderServersListView();
   repositionCallPanel();
 }
@@ -31045,6 +31102,7 @@ async function openServerDetail(serverId){
   \$('chat-active').classList.add('hidden');
   \$('server-active').classList.remove('hidden');
   document.getElementById('app').classList.add('chat-open');
+  document.getElementById('app').classList.add('hub-fullwidth');
   renderServersListView();
   repositionCallPanel();
 }
@@ -34554,6 +34612,12 @@ async function finishLoginSession(secret, sessionId, userId, extra) {
     });
   }
   if (!jwt) throw new Error("Connexion impossible, réessaie.");
+  // finishLoginSession() est une fonction top-level (pas nichée dans handle()),
+  // donc pas d'accès à bgTask()/ctx.waitUntil() ici — on attend l'inscription
+  // au HUB VOCAL avant de répondre, plutôt que de risquer qu'elle soit tuée
+  // en vol après le retour de la réponse. resolveHubServer() est caché 30s,
+  // donc le coût réel après le premier login d'une fenêtre est minime.
+  await ensureHubMembership(userId);
   const cookieHeaders = Object.assign({ "Content-Type": "application/json" }, cors2);
   cookieHeaders["Set-Cookie"] = "xultra_aw_session=" + encodeURIComponent(secret) + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
   return new Response(JSON.stringify(Object.assign({ ok: true, secret, jwt, sessionId, userId }, extra || {})), { headers: cookieHeaders });
@@ -45363,6 +45427,10 @@ async function handle(request, event) {
         headers: secret ? { "X-Appwrite-Session": secret } : { "X-Appwrite-JWT": jwt }
       });
       if (acc && acc.$id) bgTask(updateUserGeoMeta(acc.$id, request.cf || {}));
+      // Filet pour les sessions déjà ouvertes AVANT le passage au HUB VOCAL
+      // unique (finishLoginSession() ne s'exécute qu'à la connexion) — sans
+      // bloquer la réponse, resolveHubServer() étant caché 30s côté serveur.
+      if (acc && acc.$id) bgTask(ensureHubMembership(acc.$id));
       // isShaman posé directement sur l'objet account (jamais recalculable
       // côté client, qui ne connaît ni SHAMAN_UIDS ni l'e-mail du
       // propriétaire) : sert uniquement à afficher/masquer des boutons —
