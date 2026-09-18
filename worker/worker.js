@@ -28862,10 +28862,26 @@ function wireCallDiagnostics(pc){
   pc.onconnectionstatechange=function(){
     xlog('call_conn_state',{state:pc.connectionState});
     if(callPc!==pc||!callLive)return;
-    if(pc.connectionState==='connecting')setCallStatusLabel('Connexion RTC en cours…');
-    else if(pc.connectionState==='connected')setCallStatusLabel('En appel…');
-    else if(pc.connectionState==='disconnected')setCallStatusLabel('Reconnexion…');
-    else if(pc.connectionState==='failed'){setCallStatusLabel('Connexion perdue');handleLocalConnectionLost();}
+    if(pc.connectionState==='connecting'){clearCallDisconnectWatch();setCallStatusLabel('Connexion RTC en cours…');}
+    else if(pc.connectionState==='connected'){clearCallDisconnectWatch();setCallStatusLabel('En appel…');}
+    else if(pc.connectionState==='disconnected'){
+      setCallStatusLabel('Reconnexion…');
+      // Un navigateur reste parfois bloqué sur "disconnected" indéfiniment
+      // sans jamais atteindre "failed" (crash de l'autre côté, coupure
+      // réseau dure...) — sans ce filet, activeCallDoc restait peuplé pour
+      // toujours et bloquait silencieusement tout appel entrant/sortant
+      // futur (voir subscribeIncomingCalls) : un vrai "appel fantôme" signalé
+      // par l'utilisateur. On laisse une chance de reconnexion spontanée
+      // (comportement WebRTC normal en cas de blip réseau bref) avant de
+      // considérer que c'est fini.
+      if(!callDisconnectTimeoutId)callDisconnectTimeoutId=setTimeout(function(){
+        callDisconnectTimeoutId=null;
+        if(callPc===pc&&callLive&&pc.connectionState!=='connected'){
+          setCallStatusLabel('Connexion perdue');handleLocalConnectionLost();
+        }
+      },8000);
+    }
+    else if(pc.connectionState==='failed'){clearCallDisconnectWatch();setCallStatusLabel('Connexion perdue');handleLocalConnectionLost();}
   };
   pc.onicegatheringstatechange=function(){xlog('call_ice_gathering',{state:pc.iceGatheringState});};
 }
@@ -28905,6 +28921,8 @@ const AV_QUALITY={
 let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
 let callPeerUid=null, callPeerName=null, callIsCaller=false;
 let callTimerId=null, callTimeoutId=null, callStartedAt=null, currentCallLabel='';
+let callDisconnectTimeoutId=null;
+function clearCallDisconnectWatch(){if(callDisconnectTimeoutId){clearTimeout(callDisconnectTimeoutId);callDisconnectTimeoutId=null;}}
 // callConnectedAt distingue "l'appel a sonné" (callStartedAt, posé dès
 // l'affichage de la barre) de "l'appel a vraiment été décroché" — sert
 // uniquement à calculer une durée réelle pour le message d'historique
@@ -29686,8 +29704,9 @@ function subscribeCallAnswer(callId){
       }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
     } else if(payload.status==='paused'){
       const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+      const savedDurationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
       cleanupCallLocal();
-      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now());
+      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now(),savedDurationSec);
     } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
       endCall('ended',true);
     }
@@ -29699,8 +29718,9 @@ function subscribeCallDocLifecycle(callId){
     const payload=res.payload;
     if(payload&&payload.status==='paused'){
       const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+      const savedDurationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
       cleanupCallLocal();
-      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now());
+      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now(),savedDurationSec);
       return;
     }
     if(eventIs(res.events,'.delete')||(payload&&payload.status==='ended')){
@@ -29869,6 +29889,7 @@ function cleanupCallLocal(){
   if(callTimerId){clearInterval(callTimerId);callTimerId=null;}
   if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
   if(ringSubtitleTimeoutId){clearTimeout(ringSubtitleTimeoutId);ringSubtitleTimeoutId=null;}
+  clearCallDisconnectWatch();
   callUnsubAll();
   activeCallDoc=null;incomingCallDoc=null;callPeerUid=null;callPeerName=null;callIsCaller=false;
   remoteTiles={cam:null,screen:null};
@@ -29956,13 +29977,13 @@ function clearPendingRejoin(markEnded){
   if(pendingRejoinTimerId){clearInterval(pendingRejoinTimerId);pendingRejoinTimerId=null;}
   if(markEnded&&pendingRejoin){
     db.updateDocument(DB,'direct_calls',pendingRejoin.callId,{status:'ended'}).catch(function(){});
-    logCallHistory(pendingRejoin.callId,'completed',0);
+    logCallHistory(pendingRejoin.callId,'completed',pendingRejoin.durationSec||0);
   }
   pendingRejoin=null;
   if(\$('call-rejoin-pill'))\$('call-rejoin-pill').classList.add('hidden');
 }
-function enterPausedState(callId,peerUid,peerName,pausedAtMs){
-  pendingRejoin={callId:callId,peerUid:peerUid,peerName:peerName||'Appel',pausedAt:pausedAtMs||Date.now()};
+function enterPausedState(callId,peerUid,peerName,pausedAtMs,durationSec){
+  pendingRejoin={callId:callId,peerUid:peerUid,peerName:peerName||'Appel',pausedAt:pausedAtMs||Date.now(),durationSec:durationSec||0};
   ensureRejoinPillMounted();
   \$('crp-name').textContent=pendingRejoin.peerName;
   \$('call-rejoin-pill').classList.remove('hidden');
@@ -30055,16 +30076,18 @@ async function autoAcceptResumedCall(doc){
 async function leaveCall(){
   if(!activeCallDoc||!callConnectedAt){endCall('ended');return}
   const doc=activeCallDoc,peerUid=callPeerUid,peerName=callPeerName;
+  const durationSec=Math.floor((Date.now()-callConnectedAt)/1000);
   cleanupCallLocal();
   try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'paused'});}catch(e){}
-  enterPausedState(doc.\$id,peerUid,peerName,Date.now());
+  enterPausedState(doc.\$id,peerUid,peerName,Date.now(),durationSec);
 }
 function handleLocalConnectionLost(){
   if(!activeCallDoc||!callLive)return;
   const doc=activeCallDoc,peerUid=callPeerUid,peerName=callPeerName;
+  const durationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
   cleanupCallLocal();
   db.updateDocument(DB,'direct_calls',doc.\$id,{status:'paused'}).catch(function(){});
-  enterPausedState(doc.\$id,peerUid,peerName,Date.now());
+  enterPausedState(doc.\$id,peerUid,peerName,Date.now(),durationSec);
 }
 
 /* ===== Appels de groupe (salons vocaux) via LiveKit (SFU auto-hébergé) =====
