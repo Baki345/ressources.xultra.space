@@ -4388,6 +4388,19 @@ a.bug-att-item{display:block}
 .call-bar.mood-ringing{background-image:linear-gradient(120deg,rgba(46,16,101,.97),rgba(245,245,247,.85),rgba(75,75,82,.95),rgba(15,15,15,.98));animation:moodShift 7s ease infinite;border-color:rgba(196,196,204,.4)}
 .call-bar.mood-live{background-image:linear-gradient(120deg,rgba(20,83,45,.9),rgba(34,197,94,.55),rgba(75,75,82,.9),rgba(15,15,15,.98));animation:moodShift 9s ease infinite;border-color:rgba(134,239,172,.4)}
 @keyframes moodShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+/* Pastille "Rejoindre" (idée demandée explicitement) : après un raccroché
+   volontaire ou une coupure pendant un appel 1:1 déjà connecté, l'appel
+   reste "en pause" 60s côté serveur plutôt que de finir tout de suite —
+   cette pastille reste affichée pendant cette fenêtre pour rejoindre en un
+   clic, des deux côtés (celui qui est parti ET celui qui est resté). */
+.call-rejoin-pill{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:3001;display:flex;align-items:center;gap:10px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);border-radius:999px;padding:8px 10px 8px 16px;box-shadow:0 12px 36px rgba(0,0,0,.5)}
+.call-rejoin-pill.hidden{display:none}
+.crp-info{display:flex;flex-direction:column;line-height:1.25}
+.crp-name{font-weight:700;font-size:.82rem;color:#f2f2f5}
+.crp-sub{font-size:.7rem;color:var(--muted)}
+.crp-btn{background:linear-gradient(135deg,#f5f5f7,#e4e4e7);color:#0a0a0c;border:0;border-radius:999px;padding:7px 16px;font-weight:700;font-size:.8rem;cursor:pointer;flex-shrink:0}
+.crp-close{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.9rem;padding:4px 6px;flex-shrink:0}
+.crp-close:hover{color:#d8d8dd}
 .call-bar.embedded{position:static;max-width:none;margin:20px 14px 8px;box-shadow:none}
 .cb-top{display:flex;align-items:center;gap:10px}
 .cb-av-wrap{position:relative;width:38px;height:38px;flex-shrink:0}
@@ -28852,7 +28865,7 @@ function wireCallDiagnostics(pc){
     if(pc.connectionState==='connecting')setCallStatusLabel('Connexion RTC en cours…');
     else if(pc.connectionState==='connected')setCallStatusLabel('En appel…');
     else if(pc.connectionState==='disconnected')setCallStatusLabel('Reconnexion…');
-    else if(pc.connectionState==='failed')setCallStatusLabel('Connexion perdue');
+    else if(pc.connectionState==='failed'){setCallStatusLabel('Connexion perdue');handleLocalConnectionLost();}
   };
   pc.onicegatheringstatechange=function(){xlog('call_ice_gathering',{state:pc.iceGatheringState});};
 }
@@ -29462,9 +29475,30 @@ async function checkPendingIncomingCall(){
       Appwrite.Query.limit(5)
     ]);
     const docs=r.documents||[];
-    if(!docs.length)return;
-    showIncomingCall(docs[0]);
+    if(docs.length){showIncomingCall(docs[0]);return}
   }catch(e){xlog('call_pending_check_fail',{msg:(e&&e.message)||String(e)});}
+  // Reprise automatique (idée demandée explicitement) : au chargement de
+  // l'appli (ou au sondage périodique), si un appel dans lequel je suis
+  // impliqué est encore "en pause" et pas trop vieux (60s, même fenêtre que
+  // enterPausedState côté client), on rejoint tout seul plutôt que d'exiger
+  // un clic — utile en particulier quand on a fermé puis rouvert l'appli
+  // pendant que l'autre est resté en attente.
+  if(pendingRejoin)return;
+  try{
+    const [asCallee,asCaller]=await Promise.all([
+      db.listDocuments(DB,'direct_calls',[Appwrite.Query.equal('calleeId',me.\$id),Appwrite.Query.equal('status','paused'),Appwrite.Query.orderDesc('\$updatedAt'),Appwrite.Query.limit(1)]),
+      db.listDocuments(DB,'direct_calls',[Appwrite.Query.equal('callerId',me.\$id),Appwrite.Query.equal('status','paused'),Appwrite.Query.orderDesc('\$updatedAt'),Appwrite.Query.limit(1)])
+    ]);
+    const candidates=[].concat(asCallee.documents||[],asCaller.documents||[]).filter(function(d){return Date.now()-new Date(d.\$updatedAt).getTime()<60000;});
+    if(!candidates.length)return;
+    candidates.sort(function(a,b){return new Date(b.\$updatedAt)-new Date(a.\$updatedAt);});
+    const doc=candidates[0];
+    const peerUid=String(doc.callerId)===String(me.\$id)?doc.calleeId:doc.callerId;
+    if(!membersCache.length)try{await loadMembers();}catch(e){}
+    const peerProfile=membersCache.find(function(p){return String(p.authUserId||p.\$id)===String(peerUid)});
+    const peerName=(peerProfile&&(peerProfile.displayName||peerProfile.username))||doc.callerName||'Appel';
+    rejoinPausedCall(doc.\$id,peerUid,peerName);
+  }catch(e){xlog('call_resume_check_fail',{msg:(e&&e.message)||String(e)});}
 }
 // Filet de sécurité (bug remonté par 1e : "quand quelqu'un m'appelle je ne
 // reçois pas l'appel") : la souscription temps réel (subscribeIncomingCalls)
@@ -29532,6 +29566,7 @@ async function acceptIncomingCall(){
   const doc=incomingCallDoc;
   if(!doc)return;
   dismissIncomingCall();
+  clearPendingRejoin(false);
   callPeerUid=doc.callerId;callPeerName=doc.callerName||'Appel';callIsCaller=false;
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
@@ -29580,6 +29615,7 @@ async function startCall(peerUid,peerName){
   if(!me||!peerUid||peerUid===me.\$id)return;
   if(activeCallDoc||incomingCallDoc){alert('Un appel est déjà en cours.');return}
   if(groupRoom){showToast('Quitte d\\'abord le salon vocal en cours.','error');return}
+  clearPendingRejoin(false);
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
   pendingLocalIce=[];
   try{
@@ -29648,6 +29684,10 @@ function subscribeCallAnswer(callId){
         if(camSender||screenSender)onNegotiationNeeded();
         broadcastCallState();
       }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
+    } else if(payload.status==='paused'){
+      const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+      cleanupCallLocal();
+      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now());
     } else if(['declined','ended','missed'].indexOf(payload.status)>=0||eventIs(res.events,'.delete')){
       endCall('ended',true);
     }
@@ -29657,6 +29697,12 @@ function subscribeCallAnswer(callId){
 function subscribeCallDocLifecycle(callId){
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,function(res){
     const payload=res.payload;
+    if(payload&&payload.status==='paused'){
+      const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+      cleanupCallLocal();
+      if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now());
+      return;
+    }
     if(eventIs(res.events,'.delete')||(payload&&payload.status==='ended')){
       endCall('ended',true);
     }
@@ -29873,6 +29919,152 @@ async function endCall(finalStatus,skipRemoteUpdate){
     try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:finalStatus||'ended'});}catch(e){}
     logCallHistory(doc.\$id,wasConnected?'completed':(wasCaller?'cancelled':'missed'),durationSec);
   }
+}
+
+/* ===== Reprise d'appel 1:1 (idée demandée explicitement) : raccrocher un
+   appel déjà connecté, ou le perdre (onglet fermé, crash, réseau coupé), ne
+   met plus fin à l'appel pour l'autre personne — direct_calls passe par un
+   statut intermédiaire "paused" pendant 60s au lieu de "ended", le temps
+   que l'un des deux revienne. Passé ce délai sans personne, le premier
+   client encore ouvert à le remarquer (souscription temps réel sur le doc)
+   referme vraiment l'appel. Une coupure "propre" (onglet fermé) prévient
+   l'autre tout de suite via sendBeacon ; une coupure brutale (crash, wifi
+   perdu) est détectée par pc.connectionState==='failed' de son côté à lui —
+   jamais besoin d'un cron serveur (Cloudflare Worker sans Durable Objects),
+   toujours un client encore ouvert qui fait foi. */
+let pendingRejoin=null,pendingRejoinUnsub=null,pendingRejoinTimerId=null;
+function callRejoinPillHtml(){
+  return '<div class="call-rejoin-pill hidden" id="call-rejoin-pill">'
+    +'<div class="crp-info"><span class="crp-name" id="crp-name"></span><span class="crp-sub" id="crp-sub"></span></div>'
+    +'<button type="button" class="crp-btn" id="crp-rejoin">Rejoindre</button>'
+    +'<button type="button" class="crp-close" id="crp-dismiss" title="Ignorer">✕</button>'
+    +'</div>';
+}
+function ensureRejoinPillMounted(){
+  if(\$('call-rejoin-pill'))return;
+  const holder=document.createElement('div');
+  holder.innerHTML=callRejoinPillHtml();
+  document.body.appendChild(holder.firstChild);
+  \$('crp-rejoin').addEventListener('click',function(){
+    if(!pendingRejoin)return;
+    rejoinPausedCall(pendingRejoin.callId,pendingRejoin.peerUid,pendingRejoin.peerName);
+  });
+  \$('crp-dismiss').addEventListener('click',function(){clearPendingRejoin(true)});
+}
+function clearPendingRejoin(markEnded){
+  if(pendingRejoinUnsub){try{pendingRejoinUnsub();}catch(e){}pendingRejoinUnsub=null;}
+  if(pendingRejoinTimerId){clearInterval(pendingRejoinTimerId);pendingRejoinTimerId=null;}
+  if(markEnded&&pendingRejoin){
+    db.updateDocument(DB,'direct_calls',pendingRejoin.callId,{status:'ended'}).catch(function(){});
+    logCallHistory(pendingRejoin.callId,'completed',0);
+  }
+  pendingRejoin=null;
+  if(\$('call-rejoin-pill'))\$('call-rejoin-pill').classList.add('hidden');
+}
+function enterPausedState(callId,peerUid,peerName,pausedAtMs){
+  pendingRejoin={callId:callId,peerUid:peerUid,peerName:peerName||'Appel',pausedAt:pausedAtMs||Date.now()};
+  ensureRejoinPillMounted();
+  \$('crp-name').textContent=pendingRejoin.peerName;
+  \$('call-rejoin-pill').classList.remove('hidden');
+  if(pendingRejoinUnsub){try{pendingRejoinUnsub();}catch(e){}}
+  pendingRejoinUnsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,function(res){
+    const payload=res.payload;
+    if(eventIs(res.events,'.delete')||(payload&&['ended','declined','missed','cancelled'].indexOf(payload.status)>=0)){
+      clearPendingRejoin(false);return;
+    }
+    if(payload&&payload.status==='ringing'&&payload.offer&&!activeCallDoc){
+      autoAcceptResumedCall(payload);
+    }
+  });
+  if(pendingRejoinTimerId)clearInterval(pendingRejoinTimerId);
+  pendingRejoinTimerId=setInterval(function(){
+    if(!pendingRejoin)return;
+    const remaining=Math.max(0,60-Math.floor((Date.now()-pendingRejoin.pausedAt)/1000));
+    if(\$('crp-sub'))\$('crp-sub').textContent='Appel en pause · '+remaining+'s';
+    if(remaining<=0)clearPendingRejoin(true);
+  },1000);
+  if(\$('crp-sub'))\$('crp-sub').textContent='Appel en pause · 60s';
+}
+async function rejoinPausedCall(callId,peerUid,peerName){
+  if(activeCallDoc||incomingCallDoc){showToast('Un appel est déjà en cours.','error');return}
+  let doc;
+  try{doc=await db.getDocument(DB,'direct_calls',callId);}catch(e){showToast('Cet appel n\\'existe plus.','error');clearPendingRejoin(false);return}
+  if(doc.status!=='paused'){showToast('Cet appel n\\'est plus disponible.','error');clearPendingRejoin(false);return}
+  clearPendingRejoin(false);
+  callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=(String(doc.callerId)===String(me.\$id));
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
+  }catch(e){alert('Micro refusé ou indisponible');return}
+  try{
+    const pc=new RTCPeerConnection(await getIceServers());
+    callPc=pc;
+    localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream)});
+    pc.ontrack=onRemoteTrack;
+    pc.onicecandidate=function(e){if(e.candidate)sendSignal(callId,'ice',e.candidate)};
+    pc.onnegotiationneeded=onNegotiationNeeded;
+    wireCallDiagnostics(pc);
+    const offer=await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    activeCallDoc=await db.updateDocument(DB,'direct_calls',callId,{status:'ringing',offer:JSON.stringify(offer),answer:''});
+    rebuildMicChain();
+    showCallBar(callPeerName,'Reconnexion…',Date.now());
+    subscribeCallAnswer(callId);
+    subscribeIceForCall(callId);
+    callTimeoutId=setTimeout(function(){
+      if(activeCallDoc&&activeCallDoc.\$id===callId){callTimeoutId=null;setCallStatusLabel('En attente…');}
+    },60000);
+    xlog('call_rejoin',{peer:peerUid});
+  }catch(e){
+    xlog('call_rejoin_fail',{msg:(e&&e.message)||String(e)});
+    endCall('ended');
+  }
+}
+async function autoAcceptResumedCall(doc){
+  if(activeCallDoc||incomingCallDoc)return;
+  const peerUid=pendingRejoin?pendingRejoin.peerUid:(String(doc.callerId)===String(me.\$id)?doc.calleeId:doc.callerId);
+  const peerName=pendingRejoin?pendingRejoin.peerName:'Appel';
+  clearPendingRejoin(false);
+  callPeerUid=peerUid;callPeerName=peerName;callIsCaller=false;
+  try{
+    localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
+  }catch(e){return}
+  try{
+    const pc=new RTCPeerConnection(await getIceServers());
+    callPc=pc;
+    localStream.getTracks().forEach(function(t){pc.addTrack(t,localStream)});
+    pc.ontrack=onRemoteTrack;
+    pc.onicecandidate=function(e){if(e.candidate)sendSignal(doc.\$id,'ice',e.candidate)};
+    pc.onnegotiationneeded=onNegotiationNeeded;
+    wireCallDiagnostics(pc);
+    await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(doc.offer)));
+    const answer=await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    activeCallDoc=await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'accepted',answer:JSON.stringify(answer)});
+    subscribeIceForCall(doc.\$id);
+    subscribeCallDocLifecycle(doc.\$id);
+    callLive=true;callConnectedAt=Date.now();
+    rebuildMicChain();
+    showCallBar(callPeerName,'En appel…',Date.now());
+    broadcastCallState();
+    xlog('call_resume_accept',{});
+  }catch(e){
+    xlog('call_resume_accept_fail',{msg:(e&&e.message)||String(e)});
+    endCall('ended');
+  }
+}
+async function leaveCall(){
+  if(!activeCallDoc||!callConnectedAt){endCall('ended');return}
+  const doc=activeCallDoc,peerUid=callPeerUid,peerName=callPeerName;
+  cleanupCallLocal();
+  try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'paused'});}catch(e){}
+  enterPausedState(doc.\$id,peerUid,peerName,Date.now());
+}
+function handleLocalConnectionLost(){
+  if(!activeCallDoc||!callLive)return;
+  const doc=activeCallDoc,peerUid=callPeerUid,peerName=callPeerName;
+  cleanupCallLocal();
+  db.updateDocument(DB,'direct_calls',doc.\$id,{status:'paused'}).catch(function(){});
+  enterPausedState(doc.\$id,peerUid,peerName,Date.now());
 }
 
 /* ===== Appels de groupe (salons vocaux) via LiveKit (SFU auto-hébergé) =====
@@ -30725,6 +30917,14 @@ window.addEventListener('pagehide',function(){
      (crash, coupure réseau, batterie à plat…). */
   if(groupPresenceDocId&&navigator.sendBeacon){
     try{navigator.sendBeacon('/api/call/group-leave-beacon',new Blob([JSON.stringify({docId:groupPresenceDocId})],{type:'application/json'}));}catch(e){}
+  }
+  // Même filet pour un appel 1:1 déjà connecté (voir leaveCall/
+  // handleLocalConnectionLost) : prévient l'autre tout de suite plutôt que
+  // de le laisser découvrir la coupure seulement via son propre
+  // connectionState WebRTC, potentiellement bien plus lent voire jamais si
+  // le réseau part en même temps que l'onglet se ferme.
+  if(activeCallDoc&&callConnectedAt&&navigator.sendBeacon){
+    try{navigator.sendBeacon('/api/calls/leave-beacon',new Blob([JSON.stringify({callId:activeCallDoc.\$id,uid:me&&me.\$id})],{type:'application/json'}));}catch(e){}
   }
 });
 
@@ -33999,7 +34199,7 @@ if(\$('ic-accept'))\$('ic-accept').addEventListener('click',function(){
   acceptIncomingCall();
 });
 if(\$('ic-decline'))\$('ic-decline').addEventListener('click',declineIncomingCall);
-if(\$('cb-hangup'))\$('cb-hangup').addEventListener('click',function(){endCall('ended')});
+if(\$('cb-hangup'))\$('cb-hangup').addEventListener('click',function(){leaveCall()});
 if(\$('cb-mute'))\$('cb-mute').addEventListener('click',function(){
   if(!localStream)return;
   const tracks=localStream.getAudioTracks();
@@ -39549,6 +39749,33 @@ async function handle(request, event) {
         status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
+  }
+
+  if (path === "/api/calls/leave-beacon" && request.method === "POST") {
+    // Même contrat que /api/call/group-leave-beacon (voir ce commentaire) :
+    // envoyé via navigator.sendBeacon() à la fermeture d'un onglet pendant
+    // un appel 1:1 déjà connecté, donc sans en-tête Authorization possible —
+    // pas de session ici, seulement une vérification que l'uid fourni est
+    // bien un des deux participants de CET appel avant de le marquer "en
+    // pause" (voir leaveCall() côté client pour le cas propre équivalent,
+    // et handleLocalConnectionLost() pour le filet en cas de coupure
+    // brutale sans pagehide). Passe le statut à "paused" plutôt que de le
+    // supprimer : contrairement à group_call_presence (un document par
+    // participant, jetable), direct_calls est LE document de l'appel — le
+    // supprimer mettrait fin à l'appel pour l'autre aussi, exactement ce
+    // qu'on essaie d'éviter.
+    try {
+      const body = await request.json().catch(function () { return {}; });
+      const callId = String((body && body.callId) || "").slice(0, 64);
+      const uid = String((body && body.uid) || "").slice(0, 64);
+      if (callId && uid) {
+        const call = await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents/" + callId, { asAdmin: true }).catch(function () { return null; });
+        if (call && call.status === "accepted" && (String(call.callerId) === uid || String(call.calleeId) === uid)) {
+          await awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents/" + callId, { method: "PATCH", asAdmin: true, body: { data: { status: "paused" } } }).catch(function () {});
+        }
+      }
+    } catch (e) {}
+    return new Response("ok", { headers: cors });
   }
 
   if (path === "/api/account/delete" && request.method === "POST") {
