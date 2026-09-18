@@ -104,7 +104,7 @@ const XCODEHUB_FILES = [
 // secret lui-même n'est envoyé au navigateur, seulement un username/credential
 // dérivés et expirables.
 const TURN_HOST = "169.58.159.89";
-const TURN_SHARED_SECRET = "c59e5de56df5dbb2d928b6f2347a0ac2479ae88471fcaf0454de87bcae849926";
+const TURN_SHARED_SECRET = "9824a18e14ec7e5494bc4f58fce8ca26853af43a15735f982adb0328d61cf4a3";
 // Workers AI (correction de texte ✨) appelée en simple HTTPS via l'API REST
 // Cloudflare, PAS via le binding natif "ai" — ce binding exige un Worker au
 // format ES module, alors que ce fichier est en syntaxe service-worker
