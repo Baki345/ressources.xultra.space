@@ -671,6 +671,18 @@ async function computeChannelViewerReadPermissions(serverId, channel) {
     return [];
   }
 }
+// Permissions d'un message DM (systeme, bot, appel...) pour tous les membres
+// du fil — même règle que /api/dms/messages/send (msgPerms), à réutiliser
+// partout où un message est inséré dans dms_messages hors de cet endpoint
+// (sinon ce message-là reste illisible par tout le monde, y compris ses
+// propres destinataires, une fois documentSecurity honoré sur la collection).
+function dmMsgPermsFor(members) {
+  const perms = [];
+  (members || []).map(String).forEach(function (uid) {
+    perms.push("read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")");
+  });
+  return perms;
+}
 async function getOrCreateStageState(serverId, channel) {
   const channelId = channel.$id;
   try {
@@ -36525,7 +36537,7 @@ async function handle(request, event) {
       if (dm) {
         msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
           method: "POST", asAdmin: true,
-          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: JSON.stringify(components), embedJson: embed ? JSON.stringify(embed) : "" } }
+          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: JSON.stringify(components), embedJson: embed ? JSON.stringify(embed) : "" }, permissions: dmMsgPermsFor(dm.members) }
         });
         await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { method: "PATCH", asAdmin: true, body: { data: { lastMessage: (content || "📎 Embed").slice(0, 100) } } }).catch(function () {});
       } else {
@@ -36596,7 +36608,7 @@ async function handle(request, event) {
         if (members.indexOf("bot_" + bot.publicId) < 0) throw new Error("Ce bot n'est pas dans cette conversation privée");
         const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
           method: "POST", asAdmin: true,
-          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: "[]", embedJson: embed ? JSON.stringify(embed) : "" } }
+          body: { documentId: "unique()", data: { threadId: dmThreadId, uid: "bot_" + bot.publicId, displayName: bot.name, text: content, type: "", mediaUrl: "", enc: false, isBot: true, botAppId: bot.$id, componentsJson: "[]", embedJson: embed ? JSON.stringify(embed) : "" }, permissions: dmMsgPermsFor(dm.members) }
         });
         await awFetch("/databases/" + AW_DB + "/collections/dms/documents/" + dmThreadId, { method: "PATCH", asAdmin: true, body: { data: { lastMessage: (content || "📎 Embed").slice(0, 100) } } }).catch(function () {});
         await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { online: true } } }).catch(function () {});
@@ -39583,7 +39595,8 @@ async function handle(request, event) {
             threadId: dmId, uid: String(call.callerId), displayName: call.callerName || "",
             type: "syscall", mediaUrl: "",
             text: JSON.stringify({ callerId: call.callerId, calleeId: call.calleeId, outcome, durationSec, startedAt: call.$createdAt })
-          }
+          },
+          permissions: dmMsgPermsFor([call.callerId, call.calleeId])
         }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -44546,7 +44559,7 @@ async function handle(request, event) {
       const text = isEphem ? (displayName + " a peut-être capturé ton Ephem 👻") : (displayName + " a pris une capture d'écran");
       const msg = await awFetch("/databases/" + AW_DB + "/collections/dms_messages/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { threadId: dmId, uid: String(acc.$id), displayName: displayName, type: "sysshot", text: text, mediaUrl: "" } }
+        body: { documentId: "unique()", data: { threadId: dmId, uid: String(acc.$id), displayName: displayName, type: "sysshot", text: text, mediaUrl: "" }, permissions: dmMsgPermsFor(members) }
       });
       return new Response(JSON.stringify({ ok: true, message: msg }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {

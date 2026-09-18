@@ -363,7 +363,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -486,7 +486,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -565,7 +565,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -867,7 +867,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -1007,7 +1007,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -1106,7 +1106,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -1262,7 +1262,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -1319,7 +1319,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -1347,7 +1347,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -1546,7 +1546,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -1966,7 +1966,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -2227,7 +2227,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -2379,7 +2379,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -2471,7 +2471,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -2844,7 +2844,9 @@
    }
   ],
   "documentSecurity": false,
-  "permissions": [],
+  "permissions": [
+   "read(\"any\")"
+  ],
   "indexes": [
    {
     "key": "idx_serverId",
@@ -2893,7 +2895,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -3058,7 +3060,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -3562,7 +3564,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -3668,7 +3670,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": []
  },
@@ -3857,7 +3859,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -3901,7 +3903,12 @@
    }
   ],
   "documentSecurity": false,
-  "permissions": [],
+  "permissions": [
+   "read(\"any\")",
+   "create(\"users\")",
+   "update(\"users\")",
+   "delete(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_userId",
@@ -4227,7 +4234,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": ["read(\"users\")"],
+  "permissions": [
+   "read(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_authUserId",
@@ -4390,7 +4399,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -4453,7 +4462,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -4703,7 +4712,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -4774,7 +4783,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -4891,7 +4900,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -4961,7 +4970,7 @@
     "array": false
    }
   ],
-  "documentSecurity": false,
+  "documentSecurity": true,
   "permissions": [],
   "indexes": [
    {
@@ -5398,6 +5407,205 @@
     "type": "key",
     "attributes": [
      "officialArtistId"
+    ]
+   }
+  ]
+ },
+ "e2e_keys": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "pubKey",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
+    "key": "encPrivB64",
+    "required": false,
+    "type": "string",
+    "size": 8000,
+    "array": false
+   },
+   {
+    "key": "saltB64",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "ivB64",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
+ "dm_personalization": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "threadId",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "nickname",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "bubbleMine",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "bubbleTheirs",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "textColor",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "wallpaper",
+    "required": false,
+    "type": "string",
+    "size": 500,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_threadId",
+    "type": "key",
+    "attributes": [
+     "threadId"
+    ]
+   }
+  ]
+ },
+ "xm_follows": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "artistUid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   },
+   {
+    "key": "idx_artistUid",
+    "type": "key",
+    "attributes": [
+     "artistUid"
+    ]
+   }
+  ]
+ },
+ "xm_playlists": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "name",
+    "required": false,
+    "type": "string",
+    "size": 100,
+    "array": false
+   },
+   {
+    "key": "trackIdsJson",
+    "required": false,
+    "type": "string",
+    "size": 5000,
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
     ]
    }
   ]
