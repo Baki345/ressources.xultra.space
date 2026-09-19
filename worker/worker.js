@@ -28919,6 +28919,19 @@ const AV_QUALITY={
 };
 
 let callPc=null, localStream=null, activeCallDoc=null, incomingCallDoc=null;
+// Verrou synchrone anti-double-création de RTCPeerConnection (bug remonté :
+// connexion RTC bloquée pour toujours alors que tout — TURN, pare-feu,
+// identifiants — fonctionne). Constaté en conditions réelles : le même appel
+// avait DEUX générations ICE (ufrag) distinctes côté receveur, preuve que
+// acceptIncomingCall()/startCall()/etc. avaient tourné deux fois pour un seul
+// appel — la 2e RTCPeerConnection écrasait "callPc" en silence, orpheline
+// la 1re (que l'autre côté avait pourtant déjà acceptée), et plus aucune des
+// deux ne pouvait jamais se connecter. Vérifier seulement "callPc" ou
+// "activeCallDoc" ne suffit pas : ces variables ne sont posées qu'APRÈS le
+// premier "await" (getUserMedia), laissant une fenêtre où un second appel
+// concurrent de la même fonction passerait le test. Ce verrou est posé de
+// façon strictement synchrone, avant tout "await", pour fermer cette fenêtre.
+let callSetupBusy=false;
 let callPeerUid=null, callPeerName=null, callIsCaller=false;
 let callTimerId=null, callTimeoutId=null, callStartedAt=null, currentCallLabel='';
 let callDisconnectTimeoutId=null;
@@ -29582,13 +29595,14 @@ function micAudioConstraints(){
 }
 async function acceptIncomingCall(){
   const doc=incomingCallDoc;
-  if(!doc)return;
+  if(!doc||callPc||callSetupBusy)return;
+  callSetupBusy=true;
   dismissIncomingCall();
   clearPendingRejoin(false);
   callPeerUid=doc.callerId;callPeerName=doc.callerName||'Appel';callIsCaller=false;
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
-  }catch(e){alert('Micro refusé ou indisponible');try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e2){}return}
+  }catch(e){alert('Micro refusé ou indisponible');callSetupBusy=false;try{await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'declined'});}catch(e2){}return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
     callPc=pc;
@@ -29631,14 +29645,15 @@ function logCallHistory(callId,outcome,durationSec){
 
 async function startCall(peerUid,peerName){
   if(!me||!peerUid||peerUid===me.\$id)return;
-  if(activeCallDoc||incomingCallDoc){alert('Un appel est déjà en cours.');return}
+  if(activeCallDoc||incomingCallDoc||callPc||callSetupBusy){alert('Un appel est déjà en cours.');return}
   if(groupRoom){showToast('Quitte d\\'abord le salon vocal en cours.','error');return}
+  callSetupBusy=true;
   clearPendingRejoin(false);
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=true;
   pendingLocalIce=[];
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
-  }catch(e){alert('Micro refusé ou indisponible sur cet appareil');return}
+  }catch(e){alert('Micro refusé ou indisponible sur cet appareil');callSetupBusy=false;return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
     callPc=pc;
@@ -29879,6 +29894,7 @@ function renderCallStatus(){
   updateCallMiniPill();
 }
 function cleanupCallLocal(){
+  callSetupBusy=false;
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
   if(localStream){localStream.getTracks().forEach(function(t){t.stop()});localStream=null;}
   if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
@@ -30007,15 +30023,16 @@ function enterPausedState(callId,peerUid,peerName,pausedAtMs,durationSec){
   if(\$('crp-sub'))\$('crp-sub').textContent='Appel en pause · 60s';
 }
 async function rejoinPausedCall(callId,peerUid,peerName){
-  if(activeCallDoc||incomingCallDoc){showToast('Un appel est déjà en cours.','error');return}
+  if(activeCallDoc||incomingCallDoc||callPc||callSetupBusy){showToast('Un appel est déjà en cours.','error');return}
+  callSetupBusy=true;
   let doc;
-  try{doc=await db.getDocument(DB,'direct_calls',callId);}catch(e){showToast('Cet appel n\\'existe plus.','error');clearPendingRejoin(false);return}
-  if(doc.status!=='paused'){showToast('Cet appel n\\'est plus disponible.','error');clearPendingRejoin(false);return}
+  try{doc=await db.getDocument(DB,'direct_calls',callId);}catch(e){showToast('Cet appel n\\'existe plus.','error');clearPendingRejoin(false);callSetupBusy=false;return}
+  if(doc.status!=='paused'){showToast('Cet appel n\\'est plus disponible.','error');clearPendingRejoin(false);callSetupBusy=false;return}
   clearPendingRejoin(false);
   callPeerUid=peerUid;callPeerName=peerName||'Appel';callIsCaller=(String(doc.callerId)===String(me.\$id));
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
-  }catch(e){alert('Micro refusé ou indisponible');return}
+  }catch(e){alert('Micro refusé ou indisponible');callSetupBusy=false;return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
     callPc=pc;
@@ -30041,14 +30058,15 @@ async function rejoinPausedCall(callId,peerUid,peerName){
   }
 }
 async function autoAcceptResumedCall(doc){
-  if(activeCallDoc||incomingCallDoc)return;
+  if(activeCallDoc||incomingCallDoc||callPc||callSetupBusy)return;
+  callSetupBusy=true;
   const peerUid=pendingRejoin?pendingRejoin.peerUid:(String(doc.callerId)===String(me.\$id)?doc.calleeId:doc.callerId);
   const peerName=pendingRejoin?pendingRejoin.peerName:'Appel';
   clearPendingRejoin(false);
   callPeerUid=peerUid;callPeerName=peerName;callIsCaller=false;
   try{
     localStream=await navigator.mediaDevices.getUserMedia({audio:micAudioConstraints()});
-  }catch(e){return}
+  }catch(e){callSetupBusy=false;return}
   try{
     const pc=new RTCPeerConnection(await getIceServers());
     callPc=pc;
