@@ -2480,7 +2480,7 @@ html.xultra-restoring #stage{visibility:hidden}
    (.nav-hub-toggle), maintenant en position fixe à cet endroit précis
    puisque .list-col démarre tout à gauche de l'écran (le rail ne réserve
    plus de largeur). */
-.list-head{padding:12px 12px 8px 68px}
+.list-head{padding:12px 12px 8px 84px}
 .list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
 .list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px}
 .list-sub .dot{width:5px;height:5px;border-radius:50%;background:var(--online);display:inline-block}
