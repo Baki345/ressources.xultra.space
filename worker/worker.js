@@ -39674,13 +39674,32 @@ async function handle(request, event) {
       // encore — "accepted" garde la fenêtre de 2h (un appel décroché peut
       // durer des heures sans jamais retoucher ce document).
       const ringingCutoff = Date.now() - 90 * 1000;
-      const pending = (pendingQ.documents || []).filter(function (d) {
+      let pending = (pendingQ.documents || []).filter(function (d) {
         if (d.status === "ringing") return new Date(d.$updatedAt).getTime() > ringingCutoff;
         return true;
       });
       const reverseCall = pending.find(function (d) { return String(d.callerId) === calleeId && String(d.calleeId) === acc.$id; });
       if (reverseCall) throw new Error("Cette personne vous appelle déjà — décroche son appel !");
-      if (pending.some(function (d) { return String(d.callerId) === acc.$id && String(d.calleeId) === calleeId; })) throw new Error("Tu appelles déjà cette personne.");
+      // Un doc "accepted" où LE DEMANDEUR est déjà l'appelant vers cette même
+      // personne ne peut être qu'orphelin : cette toute nouvelle tentative
+      // d'appel prouve que son propre client ne le croit PAS déjà en
+      // communication (sinon le garde-fou côté client — activeCallDoc —
+      // l'aurait bloqué avant même d'atteindre ce endpoint). Typiquement un
+      // appel abandonné par un crash sans jamais repasser par endCall/
+      // leaveCall (bug remonté : "Tu appelles déjà cette personne" bloqué
+      // pour de bon après un crash pendant une communication, l'ancien doc
+      // 'accepted' n'ayant aucune fenêtre de péremption plus courte que 2h
+      // faute de heartbeat). On le referme au lieu de bloquer.
+      const myStaleCalls = pending.filter(function (d) { return String(d.callerId) === acc.$id && String(d.calleeId) === calleeId; });
+      if (myStaleCalls.length) {
+        await Promise.all(myStaleCalls.map(function (d) {
+          return awFetch("/databases/" + AW_DB + "/collections/direct_calls/documents/" + d.$id, {
+            method: "PATCH", asAdmin: true, body: { data: { status: "ended" } }
+          }).catch(function () {});
+        }));
+        const staleIds = myStaleCalls.map(function (d) { return d.$id; });
+        pending = pending.filter(function (d) { return staleIds.indexOf(d.$id) === -1; });
+      }
       if (pending.some(function (d) { return String(d.callerId) === calleeId || String(d.calleeId) === calleeId; })) throw new Error("Cette personne est déjà en appel.");
       const perms = [
         "read(\"user:" + acc.$id + "\")", "read(\"user:" + calleeId + "\")",
