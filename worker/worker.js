@@ -4103,10 +4103,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-presence-dot{position:absolute;right:1px;bottom:1px;width:18px;height:18px;border-radius:50%;border:3px solid #131315;z-index:2}
 .pc-edit-btn{position:absolute;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);color:#fff;font-size:.78rem;display:grid;place-items:center;opacity:0;transition:opacity .15s ease,transform .15s ease;z-index:3;backdrop-filter:blur(3px)}
 .pc-edit-btn:hover{transform:scale(1.1);background:rgba(0,0,0,.75)}
-.pc-banner:hover .pc-edit-banner-btn,.pc-av-frame:hover .pc-edit-avatar-btn{opacity:1}
+.pc-banner:hover .pc-edit-banner-btn,.pc-av-frame:hover .pc-edit-avatar-btn,.pc-banner:hover .pc-edit-overlay,.pc-av-frame:hover .pc-edit-overlay{opacity:1;pointer-events:auto}
 @media (hover:none){.pc-edit-btn{opacity:.85}}
 .pc-edit-banner-btn{top:8px;right:8px}
 .pc-edit-avatar-btn{right:-2px;bottom:-2px;width:24px;height:24px}
+/* Icône seule pas assez explicite (signalé : on ne comprend pas qu'on peut
+   changer la bannière/l'avatar) — un calque texte couvrant toute la zone
+   rend l'action évidente au survol, en plus du bouton icône déjà présent. */
+.pc-edit-overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;background:rgba(8,6,14,.6);color:#fff;font-weight:800;letter-spacing:.01em;opacity:0;pointer-events:none;transition:opacity .15s ease;cursor:pointer}
+.pc-edit-banner-overlay{border-radius:inherit;font-size:.82rem}
+.pc-edit-banner-overlay::before{content:'📷';font-size:1.1rem}
+.pc-av-frame .pc-edit-overlay{border-radius:50%;font-size:.6rem;line-height:1.15;padding:6px}
+@media (hover:none){.pc-edit-overlay{display:none}}
 .pc-geo-badge{position:absolute;top:8px;left:8px;min-width:30px;height:30px;padding:0 6px;border-radius:15px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;gap:2px;font-size:1rem;line-height:1;z-index:3;backdrop-filter:blur(3px);color:#fff}
 .pc-geo-badge.pc-geo-vpn{cursor:pointer;border-color:rgba(34,197,94,.55);background:rgba(6,40,20,.7)}
 .pc-geo-badge.pc-geo-vpn:hover{background:rgba(6,60,28,.85)}
@@ -14764,6 +14772,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
   }
   const bannerInnerHtml='<div class="pc-particles" data-particles="'+esc(p.particles||'none')+'"></div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-banner-btn" data-edit="banner" title="Changer la bannière" data-tip="Changer la bannière">📷</button>':'')
+      +(opts.editable?'<div class="pc-edit-overlay pc-edit-banner-overlay" data-edit="banner">Modifier la bannière</div>':'')
       +geoBadgeHtml;
   // Bannière en cover plein cadre (bug remonté : "contain" laissait des
   // bandes floutées type miroir sur les côtés — la bannière était censée
@@ -14802,6 +14811,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const dotDef=opts.headerOnly?pillDef:(p.statusManual&&p.statusManual!=='invisible'?presence:null);
   const avatarHtml='<div class="pc-avwrap"><div class="pc-av-frame frame-'+frame+'"'+(frame==='shop'?' style="'+shopFrameCss+'"':'')+'><div class="pc-av">'+avatarInner+'</div>'
       +(opts.editable?'<button type="button" class="pc-edit-btn pc-edit-avatar-btn" data-edit="avatar" title="Changer la photo" data-tip="Changer la photo">📷</button>':'')
+      +(opts.editable?'<div class="pc-edit-overlay pc-edit-avatar-overlay" data-edit="avatar">📷 Modifier</div>':'')
       +(dotDef?'<span class="pc-presence-dot" style="background:'+dotDef.dot+'" title="'+esc(dotDef.label)+'"></span>':'')
     +'</div></div>';
   if(opts.headerOnly){
@@ -15664,7 +15674,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
        même quand ces champs précis n'avaient PAS été sauvegardés — signalé
        par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
        qu'aucune erreur ne soit jamais visible. */
-    let extraSaveFailed=false;
+    let extraSaveFailed=false,extraSaveErrMsg='';
     const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges});
     try{
       await authPost('/api/account/update-meta',{
@@ -15672,10 +15682,14 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
         profileExtraJson:newExtraJson
       });
       if(me)memberMetaByUid[String(me.\$id)]=Object.assign({},memberMetaByUid[String(me.\$id)],{profileExtraJson:newExtraJson});
-    }catch(e){extraSaveFailed=true;xlog('profile_extra_save_fail',{msg:(e&&e.message)||String(e)});}
+    }catch(e){extraSaveFailed=true;extraSaveErrMsg=(e&&e.message)||String(e);xlog('profile_extra_save_fail',{msg:extraSaveErrMsg});}
     refreshSelfBar();
     if(extraSaveFailed){
-      \$('pe-err').textContent='Pseudo, bio et couleurs enregistrés, mais pronoms/statut/effets n\\'ont pas pu être sauvegardés (réseau). Réessaie.';
+      // Le message affichait "(réseau)" quelle que soit la vraie cause —
+      // ça masquait l'erreur réelle renvoyée par le serveur (ex. un souci de
+      // schéma côté base) et rendait le bug impossible à diagnostiquer depuis
+      // un simple retour utilisateur. On affiche maintenant le message exact.
+      \$('pe-err').textContent='Pseudo, bio et couleurs enregistrés, mais pronoms/statut/effets n\\'ont pas pu être sauvegardés : '+extraSaveErrMsg+'. Réessaie.';
       showToast('Sauvegarde partielle — réessaie pour les effets de profil.','error');
     }else{
       showToast('Profil mis à jour !');
