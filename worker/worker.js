@@ -2480,9 +2480,15 @@ html.xultra-restoring #stage{visibility:hidden}
    (.nav-hub-toggle), maintenant en position fixe à cet endroit précis
    puisque .list-col démarre tout à gauche de l'écran (le rail ne réserve
    plus de largeur). */
-.list-head{padding:12px 12px 8px 84px}
-.list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
-.list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px}
+.list-head{padding:12px 12px 8px}
+/* Le bouton flottant (.nav-hub-toggle) ne couvre que les ~58 premiers
+   pixels de hauteur — seuls le titre et le sous-titre, qui démarrent à
+   cette même hauteur, ont besoin d'être décalés pour ne pas passer
+   dessous. La barre de recherche vient plus bas (hors de portée du
+   bouton) : lui donner le même padding-left que le titre l'écrasait
+   inutilement (bug remonté : recherche devenue minuscule). */
+.list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px;padding-left:72px}
+.list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px;padding-left:72px}
 .list-sub .dot{width:5px;height:5px;border-radius:50%;background:var(--online);display:inline-block}
 .search-row{display:flex;gap:6px}
 .search-wrap{position:relative;flex:1;min-width:0}
