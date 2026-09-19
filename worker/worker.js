@@ -29825,6 +29825,59 @@ function subscribeCallDocLifecycle(callId){
   });
   callUnsubs.push(unsub);
 }
+async function processIceSignalMsg(msg,callId){
+  if(!callPc||!msg||!msg.kind)return;
+  try{
+    if(msg.kind==='ice'){
+      try{await callPc.addIceCandidate(new RTCIceCandidate(msg.data));}catch(e){if(!ignoreOffer)throw e}
+    } else if(msg.kind==='reneg-offer'){
+      const offerCollision=(callPc.signalingState!=='stable')||makingOffer;
+      ignoreOffer=!isPolite()&&offerCollision;
+      xlog('reneg_offer_received',{signalingState:callPc.signalingState,offerCollision:offerCollision,ignored:ignoreOffer});
+      if(ignoreOffer)return;
+      if(offerCollision){
+        await Promise.all([
+          callPc.setLocalDescription({type:'rollback'}),
+          callPc.setRemoteDescription(new RTCSessionDescription(msg.data))
+        ]);
+      } else {
+        await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
+      }
+      const answer=await callPc.createAnswer();
+      await callPc.setLocalDescription(answer);
+      sendSignal(callId,'reneg-answer',answer);
+      xlog('reneg_answer_sent',{});
+    } else if(msg.kind==='reneg-answer'){
+      xlog('reneg_answer_received',{signalingState:callPc.signalingState});
+      if(callPc.signalingState==='have-local-offer'){
+        await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
+      }
+      flushLocalMetaQueue();
+    } else if(msg.kind==='video-meta'){
+      const mid=msg.data&&msg.data.mid,type=msg.data&&msg.data.type;
+      if(mid==null||!type)return;
+      remoteMetaByMid[mid]=type;
+      const pend=pendingRemoteTracksByMid[mid];
+      if(pend){
+        Object.keys(remoteTiles).forEach(function(k){if(remoteTiles[k]&&remoteTiles[k].track===pend.track)remoteTiles[k]=null;});
+        remoteTiles[type]={stream:pend.stream,track:pend.track,mid:mid};
+        delete pendingRemoteTracksByMid[mid];
+        renderVideoGrid();
+      }
+    } else if(msg.kind==='video-off'){
+      const type=msg.data&&msg.data.type;
+      if(type&&remoteTiles[type]){
+        remoteTiles[type]=null;
+        if(type==='screen')screenShareRevealed=false;
+        renderVideoGrid();
+      }
+    } else if(msg.kind==='call-state'){
+      remoteMicMuted=!!(msg.data&&msg.data.muted);
+      remoteDeafened=!!(msg.data&&msg.data.deafened);
+      renderPeerCallState();
+    }
+  }catch(e){xlog('call_signal_fail',{kind:msg.kind,msg:(e&&e.message)||String(e)});}
+}
 function subscribeIceForCall(callId){
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_call_ice.documents',async function(res){
     if(!eventIs(res.events,'.create'))return;
@@ -29834,57 +29887,8 @@ function subscribeIceForCall(callId){
     if(!callPc)return;
     let msg=null;
     try{msg=JSON.parse(payload.candidate);}catch(e){return}
-    if(!msg||!msg.kind)return;
-    try{
-      if(msg.kind==='ice'){
-        try{await callPc.addIceCandidate(new RTCIceCandidate(msg.data));}catch(e){if(!ignoreOffer)throw e}
-      } else if(msg.kind==='reneg-offer'){
-        const offerCollision=(callPc.signalingState!=='stable')||makingOffer;
-        ignoreOffer=!isPolite()&&offerCollision;
-        xlog('reneg_offer_received',{signalingState:callPc.signalingState,offerCollision:offerCollision,ignored:ignoreOffer});
-        if(ignoreOffer)return;
-        if(offerCollision){
-          await Promise.all([
-            callPc.setLocalDescription({type:'rollback'}),
-            callPc.setRemoteDescription(new RTCSessionDescription(msg.data))
-          ]);
-        } else {
-          await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
-        }
-        const answer=await callPc.createAnswer();
-        await callPc.setLocalDescription(answer);
-        sendSignal(callId,'reneg-answer',answer);
-        xlog('reneg_answer_sent',{});
-      } else if(msg.kind==='reneg-answer'){
-        xlog('reneg_answer_received',{signalingState:callPc.signalingState});
-        if(callPc.signalingState==='have-local-offer'){
-          await callPc.setRemoteDescription(new RTCSessionDescription(msg.data));
-        }
-        flushLocalMetaQueue();
-      } else if(msg.kind==='video-meta'){
-        const mid=msg.data&&msg.data.mid,type=msg.data&&msg.data.type;
-        if(mid==null||!type)return;
-        remoteMetaByMid[mid]=type;
-        const pend=pendingRemoteTracksByMid[mid];
-        if(pend){
-          Object.keys(remoteTiles).forEach(function(k){if(remoteTiles[k]&&remoteTiles[k].track===pend.track)remoteTiles[k]=null;});
-          remoteTiles[type]={stream:pend.stream,track:pend.track,mid:mid};
-          delete pendingRemoteTracksByMid[mid];
-          renderVideoGrid();
-        }
-      } else if(msg.kind==='video-off'){
-        const type=msg.data&&msg.data.type;
-        if(type&&remoteTiles[type]){
-          remoteTiles[type]=null;
-          if(type==='screen')screenShareRevealed=false;
-          renderVideoGrid();
-        }
-      } else if(msg.kind==='call-state'){
-        remoteMicMuted=!!(msg.data&&msg.data.muted);
-        remoteDeafened=!!(msg.data&&msg.data.deafened);
-        renderPeerCallState();
-      }
-    }catch(e){xlog('call_signal_fail',{kind:msg.kind,msg:(e&&e.message)||String(e)});}
+    lastSeenIceMsgAt=payload.\$createdAt;
+    await processIceSignalMsg(msg,callId);
   });
   callUnsubs.push(unsub);
   /* Rattrape les candidats ICE déjà écrits AVANT que cet abonnement temps
@@ -29895,11 +29899,13 @@ function subscribeIceForCall(callId){
      candidats (souvent les plus rapides à établir une connexion directe)
      étaient donc perdus pour de bon, ce qui pouvait laisser la connexion
      ICE bloquée en "checking" indéfiniment jusqu'à l'échec. */
+  lastSeenIceMsgAt=null;
   (async function(){
     try{
       const r=await db.listDocuments(DB,'direct_call_ice',[Appwrite.Query.equal('callId',callId),Appwrite.Query.orderAsc('\$createdAt'),Appwrite.Query.limit(100)]);
       let found=0,added=0;
       for(const doc of (r.documents||[])){
+        if(doc.\$createdAt&&(!lastSeenIceMsgAt||doc.\$createdAt>lastSeenIceMsgAt))lastSeenIceMsgAt=doc.\$createdAt;
         if(String(doc.fromUid)===String(me.\$id))continue;
         found++;
         if(!callPc)break;
@@ -29911,6 +29917,42 @@ function subscribeIceForCall(callId){
       xlog('ice_catchup',{found:found,added:added});
     }catch(e){xlog('ice_catchup_fail',{msg:(e&&e.message)||String(e)});}
   })();
+  startIceSignalPolling(callId);
+}
+// Même filet de sécurité que pour l'acceptation/le cycle de vie de l'appel
+// (voir startCallAcceptPolling/startCalleeLifecyclePolling plus haut) :
+// bug remonté et confirmé en conditions réelles — activer la caméra
+// s'affichait bien en local des deux côtés, mais jamais chez l'autre. Preuve
+// dans les logs : les deux côtés envoyaient bien leur "reneg-offer", mais
+// AUCUN des deux n'a jamais logué "reneg_offer_received" — le WebSocket de
+// la souscription temps réel était mort depuis un moment (établi bien avant
+// l'activation caméra, en toute fin d'appel), sans qu'aucun mécanisme ne
+// rattrape les messages ICE/renégociation manqués après le démarrage de
+// l'appel (seul un rattrapage ponctuel existait, une fois, juste au moment
+// de s'abonner). Sondage périodique de la collection direct_call_ice tant
+// que l'appel est actif, au-delà de ce rattrapage initial.
+let iceSignalPollId=null, lastSeenIceMsgAt=null;
+function startIceSignalPolling(callId){
+  if(iceSignalPollId)clearInterval(iceSignalPollId);
+  iceSignalPollId=setInterval(async function(){
+    if(!callPc||!activeCallDoc||activeCallDoc.\$id!==callId){stopIceSignalPolling();return}
+    try{
+      const queries=[Appwrite.Query.equal('callId',callId),Appwrite.Query.orderAsc('\$createdAt'),Appwrite.Query.limit(50)];
+      if(lastSeenIceMsgAt)queries.push(Appwrite.Query.greaterThan('\$createdAt',lastSeenIceMsgAt));
+      const r=await db.listDocuments(DB,'direct_call_ice',queries);
+      for(const doc of (r.documents||[])){
+        lastSeenIceMsgAt=doc.\$createdAt;
+        if(String(doc.fromUid)===String(me.\$id))continue;
+        let msg=null;
+        try{msg=JSON.parse(doc.candidate);}catch(e){continue}
+        await processIceSignalMsg(msg,callId);
+      }
+    }catch(e){}
+  },4000);
+}
+function stopIceSignalPolling(){
+  if(iceSignalPollId){clearInterval(iceSignalPollId);iceSignalPollId=null;}
+  lastSeenIceMsgAt=null;
 }
 async function sendSignal(callId,kind,data){
   if(!callPeerUid||!me)return;
@@ -29977,6 +30019,7 @@ function renderCallStatus(){
 function cleanupCallLocal(){
   callSetupBusy=false;
   stopCallAcceptPolling();
+  stopIceSignalPolling();
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
   if(localStream){localStream.getTracks().forEach(function(t){t.stop()});localStream=null;}
   if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
