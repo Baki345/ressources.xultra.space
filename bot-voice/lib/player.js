@@ -3,7 +3,7 @@
 // meilleur flux audio, ffmpeg le transcode en PCM brut (48kHz stéréo, le
 // format attendu par AudioSource), et on pousse ce PCM frame par frame dans
 // la piste locale déjà publiée par voice.js. Rien de tout ça n'est fourni
-// par X1 — c'est exactement pour cette raison que ce bot doit tourner comme
+// par IXin — c'est exactement pour cette raison que ce bot doit tourner comme
 // process externe (voir le portail développeur).
 const { spawn, execFile } = require('child_process');
 const { AudioFrame } = require('@livekit/rtc-node');

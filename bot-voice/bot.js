@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 'use strict';
-// ===== Bot X1 : voix (musique YouTube + enregistrement) + auto-mod =====
+// ===== Bot IXin : voix (musique YouTube + enregistrement) + auto-mod =====
 // Basé sur le kit de démarrage bot-x1.js (mêmes principes : HTTP minimal,
-// signature HMAC, aucune dépendance à un compte X1), étendu avec une vraie
+// signature HMAC, aucune dépendance à un compte IXin), étendu avec une vraie
 // connexion LiveKit (@livekit/rtc-node) pour la voix — la seule partie que
-// X1 ne peut pas fournir depuis un Worker Cloudflare (pas de connexion
-// persistante possible côté serveur X1, voir le portail développeur) — et
+// IXin ne peut pas fournir depuis un Worker Cloudflare (pas de connexion
+// persistante possible côté serveur IXin, voir le portail développeur) — et
 // un auto-mod + sanctions + logs qui tourne sur la "gateway" événementielle
-// de X1 (POST /events à chaque message, voir le portail développeur).
+// de IXin (POST /events à chaque message, voir le portail développeur).
 //
 // Dépendances système à installer sur le VPS AVANT de lancer ce bot :
 //   - Node.js 18+
@@ -245,7 +245,7 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
         else if (type === 'kick') await api.kick(serverId, uid);
         else if (type === 'ban') await api.ban(serverId, uid, false);
         else if (type === 'unban') await api.ban(serverId, uid, true);
-        // "warn" n'a pas d'équivalent côté X1 (aucun concept natif) — uniquement suivi par ce bot.
+        // "warn" n'a pas d'équivalent côté IXin (aucun concept natif) — uniquement suivi par ce bot.
         store.addSanction(serverId, uid, { type: type, reason: raison, moderator: modName });
         postModLog(serverId, { type: type, uid: uid, username: membreRaw, reason: raison, moderator: modName });
         api.sendMessage({ serverId: serverId, channelId: channelId }, '✅ ' + SANCTION_LABELS[type] + ' appliqué à **' + membreRaw + '** — ' + raison).catch(function () {});
@@ -365,7 +365,7 @@ async function handleModCommand(name, serverId, channelId, args, payload) {
     return { content: 'Utilise `action:profil`, `action:classement` ou `action:daily`.', ephemeral: true };
   }
 
-  // Tickets de support : X1 ne connaît la visibilité d'un salon QUE par rôle
+  // Tickets de support : IXin ne connaît la visibilité d'un salon QUE par rôle
   // (jamais par utilisateur individuel — voir /api/bot/v1/channels/create),
   // donc un salon privé pour une seule personne + le staff passe par un
   // rôle jetable créé et attribué à la volée, supprimé à la fermeture.
@@ -699,7 +699,7 @@ function readBody(req) {
 const server = http.createServer(function (req, res) {
   if (req.method === 'GET' && req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('Bot X1 en ligne. Endpoints : POST /interactions, POST /events');
+    res.end('Bot IXin en ligne. Endpoints : POST /interactions, POST /events');
     return;
   }
 
@@ -727,7 +727,7 @@ const server = http.createServer(function (req, res) {
     readBody(req).then(function (raw) {
       const signature = req.headers['x-x1-signature'];
       if (!verifySignature(raw, signature, env.BOT_TOKEN)) { res.writeHead(401); res.end(); return; }
-      res.writeHead(200); res.end(); // X1 n'attend aucune réponse (fire-and-forget) — on traite après coup.
+      res.writeHead(200); res.end(); // IXin n'attend aucune réponse (fire-and-forget) — on traite après coup.
       let payload;
       try { payload = JSON.parse(raw); } catch (e) { return; }
       handleEvent(payload).catch(function (e) { console.error('[bot-voice] erreur événement:', e); });

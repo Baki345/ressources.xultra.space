@@ -115,7 +115,7 @@ export default function ProfileScreen({ uid, onBack }: Props) {
         <TouchableOpacity onPress={onBack} testID="profile-back-button">
           <Text style={styles.back}>‹ Retour</Text>
         </TouchableOpacity>
-        <Text style={styles.eyebrow}>Profil X1</Text>
+        <Text style={styles.eyebrow}>Profil IXin</Text>
         <View style={styles.backSpacer} />
       </View>
 
@@ -138,7 +138,7 @@ export default function ProfileScreen({ uid, onBack }: Props) {
               <View style={[styles.presenceDot, { backgroundColor: presenceDotColor(profile.presence) }]} />
             </View>
             <View style={styles.headerText}>
-              <Text style={styles.memberEyebrow}>Membre X1</Text>
+              <Text style={styles.memberEyebrow}>Membre IXin</Text>
               <Text style={styles.name} testID="profile-name">
                 {name}
               </Text>
@@ -155,7 +155,7 @@ export default function ProfileScreen({ uid, onBack }: Props) {
               <Text style={styles.cardTitle}>À PROPOS</Text>
               {profile.plan === 'plus' ? (
                 <View style={styles.xplusPill}>
-                  <Text style={styles.xplusPillText}>★ X1+ à vie</Text>
+                  <Text style={styles.xplusPillText}>★ IXin+ à vie</Text>
                 </View>
               ) : null}
             </View>

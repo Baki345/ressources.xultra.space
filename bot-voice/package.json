@@ -2,7 +2,7 @@
   "name": "x1-bot-voice",
   "version": "1.0.0",
   "private": true,
-  "description": "Bot X1 avec voix LiveKit : lecture de musique YouTube en appel + enregistrement du vocal.",
+  "description": "Bot IXin avec voix LiveKit : lecture de musique YouTube en appel + enregistrement du vocal.",
   "main": "bot.js",
   "type": "commonjs",
   "scripts": {

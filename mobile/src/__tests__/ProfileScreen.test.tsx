@@ -47,7 +47,7 @@ test('renders name, tag, presence, badges and bio once loaded', async () => {
   expect(getByText('#7777')).toBeTruthy();
   expect(getByText('Hello there')).toBeTruthy();
   expect(getByText('Hors ligne')).toBeTruthy();
-  expect(getByText('★ X1+ à vie')).toBeTruthy();
+  expect(getByText('★ IXin+ à vie')).toBeTruthy();
   expect(getByTestId('profile-badge-base')).toBeTruthy();
   expect(getByTestId('profile-badge-dev')).toBeTruthy();
   expect(getByText('2 distinctions')).toBeTruthy();

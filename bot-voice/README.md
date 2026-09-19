@@ -1,4 +1,4 @@
-# Bot X1 — voix (musique YouTube + enregistrement) + auto-mod
+# Bot IXin — voix (musique YouTube + enregistrement) + auto-mod
 
 Étend le [kit de démarrage officiel](https://xultra.space) (`bot-x1.js`) avec
 une vraie connexion vocale [LiveKit](https://livekit.io) (`@livekit/rtc-node`) :
@@ -7,18 +7,18 @@ y jouer de l'audio YouTube, et enregistrer les personnes qui parlent (un
 fichier `.wav` par personne) — plus un socle de modération (filtre de mots,
 anti-liens, anti-spam, sanctions, casier, logs).
 
-C'est un **process externe** — X1 (Cloudflare Worker) ne peut pas tenir une
+C'est un **process externe** — IXin (Cloudflare Worker) ne peut pas tenir une
 connexion vocale persistante lui-même, voir le portail développeur (Mes bots
-→ docs). Ce dossier tourne sur **ton propre VPS**, jamais sur l'infra X1.
+→ docs). Ce dossier tourne sur **ton propre VPS**, jamais sur l'infra IXin.
 
-## Pourquoi ça ne peut pas tourner "dans X1"
+## Pourquoi ça ne peut pas tourner "dans IXin"
 
-- X1 fournit uniquement l'**accès** au salon vocal (un jeton LiveKit via
+- IXin fournit uniquement l'**accès** au salon vocal (un jeton LiveKit via
   `/api/bot/v1/voice/token` ou `/dm-token`) — jamais de traitement audio
   (lecture, mixage, enregistrement, reconnaissance vocale). C'est le bot
   (ce projet) qui héberge toute cette logique, avec le SDK serveur LiveKit.
 - La lecture YouTube (extraction audio) et l'enregistrement (écriture des
-  pistes sur disque) n'existent nulle part côté X1 — ce projet les implémente
+  pistes sur disque) n'existent nulle part côté IXin — ce projet les implémente
   lui-même avec `yt-dlp` + `ffmpeg` + `@livekit/rtc-node`.
 
 ## Prérequis sur le VPS
@@ -70,7 +70,7 @@ mon-bot.exemple.com {
 }
 ```
 
-## Configurer le bot sur X1
+## Configurer le bot sur IXin
 
 1. **Mes bots** → "Bot Vocal" → colle `https://mon-bot.exemple.com/interactions`
    dans "URL d'interactions" **et** dans "URL d'événements" (coche
@@ -113,7 +113,7 @@ mon-bot.exemple.com {
    comptent elles jamais dans ce total puisqu'elles ne sont pas déclarées
    comme de vraies commandes /slash.
 
-   **Important** : un salon vocal n'a pas sa propre zone de saisie sur X1 —
+   **Important** : un salon vocal n'a pas sa propre zone de saisie sur IXin —
    toute commande se tape depuis un salon **texte** du serveur, jamais depuis
    le salon vocal lui-même. C'est pour ça que `salon` existe sur les
    commandes de voix : c'est ainsi que le bot sait quel salon vocal tu vises
@@ -163,9 +163,9 @@ comme un vrai salon de serveur, donc `/join` y fonctionne normalement.
 ## Modération
 
 Tout est stocké dans un fichier JSON par serveur (`data/servers/<id>.json` —
-aucune base de données, X1 n'en fournit pas au bot) : config auto-mod,
+aucune base de données, IXin n'en fournit pas au bot) : config auto-mod,
 casier de sanctions, et un annuaire pseudo→uid appris au fil des messages
-reçus (X1 n'a pas de route bot pour chercher un membre par pseudo — le bot
+reçus (IXin n'a pas de route bot pour chercher un membre par pseudo — le bot
 apprend donc lui-même "qui est qui" à partir des événements `message_create`
 qu'il reçoit).
 
@@ -181,10 +181,10 @@ qu'il reçoit).
   (`/api/bot/v1/moderation/delete-message`) + une note est postée dans le
   salon + une entrée "automod" est ajoutée au casier de l'auteur.
 - `/sanction type:warn membre:<pseudo> raison:<texte>` — un avertissement
-  n'a pas d'équivalent côté X1 (aucun concept natif) : uniquement suivi par
+  n'a pas d'équivalent côté IXin (aucun concept natif) : uniquement suivi par
   ce bot, dans le casier.
 - `/sanction type:mute membre:<pseudo> minutes:10 raison:<texte>` — timeout
-  réel côté X1 (nécessite la permission `moderate_members` accordée au bot).
+  réel côté IXin (nécessite la permission `moderate_members` accordée au bot).
 - `/sanction type:kick|ban|unban membre:<pseudo> raison:<texte>` — nécessite
   `kick_members`/`ban_members`.
 - `/casier membre:<pseudo>` — historique complet (avertissements + sanctions
@@ -194,7 +194,7 @@ qu'il reçoit).
   coupe les logs.
 - `membre:` accepte un pseudo **seulement si le bot l'a déjà vu écrire** au
   moins un message depuis son démarrage (c'est comme ça qu'il apprend
-  pseudo→uid) — sinon, donne directement l'uid X1 de la personne.
+  pseudo→uid) — sinon, donne directement l'uid IXin de la personne.
 
 ## Rôles & bienvenue
 
@@ -245,20 +245,20 @@ l'installation.
   zone de saisie normale, c'est un salon texte comme un autre) : ferme et
   supprime définitivement le salon.
 
-**Comment la confidentialité est obtenue** — X1 ne connaît la visibilité
+**Comment la confidentialité est obtenue** — IXin ne connaît la visibilité
 d'un salon *que* par rôle, jamais par utilisateur individuel. Ouvrir un
 ticket crée donc un **rôle jetable** (`ticket-<numéro>`, sans aucune
 permission, jamais mentionnable), l'attribue à l'auteur, puis crée le salon
 avec `visibleRoleIds: [rôleStaff, rôleJetable]`. Fermer le ticket supprime
 le salon puis ce rôle jetable — rien ne traîne. Exception : le
-**propriétaire du serveur** ne peut jamais recevoir de rôle d'un bot (X1 le
+**propriétaire du serveur** ne peut jamais recevoir de rôle d'un bot (IXin le
 protège spécifiquement) — sans conséquence puisqu'il voit de toute façon
 tous les salons, avec ou sans rôle.
 
-**Limites** : pas de transcription archivée à la fermeture (X1 n'a pas de
+**Limites** : pas de transcription archivée à la fermeture (IXin n'a pas de
 route bot pour lire l'historique d'un salon) — les messages sont juste
 perdus avec le salon. Pas de formulaire de candidature/recrutement ni de
-suggestions avec vote pour l'instant (X1 n'a pas de fenêtre modale pour un
+suggestions avec vote pour l'instant (IXin n'a pas de fenêtre modale pour un
 bot, contrairement à Discord).
 
 ## Niveaux XP & économie
@@ -311,15 +311,15 @@ aléatoire à l'expiration du délai.
 
 Une page `/dashboard?serverId=<id>` pour configurer l'auto-mod et le message
 de bienvenue sans passer par des commandes — connexion via **"Se connecter
-avec X1"** (OAuth2 officiel, voir le portail développeur), jamais de mot de
+avec IXin"** (OAuth2 officiel, voir le portail développeur), jamais de mot de
 passe géré par ce bot. Entièrement facultatif : si les variables ci-dessous
 sont vides, `/dashboard` répond juste "non configuré" et tout le reste du
 bot (commandes, voix, auto-mod...) continue de fonctionner normalement.
 
 **Mise en place :**
 
-1. **Paramètres → 👨‍💻 Se connecter avec X1 → + Créer une application** sur
-   ton compte X1 (celui qui possède le bot). URL de redirection à renseigner :
+1. **Paramètres → 👨‍💻 Se connecter avec IXin → + Créer une application** sur
+   ton compte IXin (celui qui possède le bot). URL de redirection à renseigner :
    `https://mon-bot.exemple.com/oauth/callback` (remplace par ton vrai domaine).
 2. Complète `.env` :
    ```
@@ -330,13 +330,13 @@ bot (commandes, voix, auto-mod...) continue de fonctionner normalement.
    ```
 3. `pm2 restart bot-voice`, puis ouvre `https://mon-bot.exemple.com/dashboard?serverId=<id du serveur>`.
 
-**Comment ça vérifie les droits** : après la connexion X1, le bot appelle
+**Comment ça vérifie les droits** : après la connexion IXin, le bot appelle
 `/api/bot/v1/servers/member-permissions` (routes publiques de l'API bot) pour
 savoir si CE visiteur a `manage_server` sur CE serveur précis — impossible de
-configurer un serveur qui n'est pas le sien, quel que soit son compte X1.
+configurer un serveur qui n'est pas le sien, quel que soit son compte IXin.
 
 **Limites** : pas de sélecteur de salon pour le message de bienvenue ou les
-logs de modération (X1 n'a pas de route bot pour lister les salons texte,
+logs de modération (IXin n'a pas de route bot pour lister les salons texte,
 contrairement aux salons vocaux) — ces deux-là restent à définir via
 `/bienvenue` et `/modlogs`, tapées dans le salon voulu ; le dashboard ne fait
 qu'afficher s'ils sont déjà définis. Session en cookie signé (12h), pas de
@@ -377,14 +377,14 @@ bot-voice/
   bot.js               serveur HTTP (/interactions, /events) + dispatch des commandes
   lib/env.js           chargement .env + config
   lib/signature.js      vérification HMAC (identique au kit de démarrage)
-  lib/api.js            appels aux routes /api/bot/v1/* de X1
+  lib/api.js            appels aux routes /api/bot/v1/* de IXin
   lib/voice.js          connexion/déconnexion LiveKit + piste audio publiée
   lib/player.js         yt-dlp + ffmpeg → PCM → AudioSource (lecture)
   lib/recorder.js        abonnement aux pistes distantes → fichiers .wav (enregistrement)
   lib/session.js        état en mémoire par salon/DM (file, connexion, enregistreur)
   lib/serverStore.js     config auto-mod + casier + annuaire pseudo→uid, persistés en JSON
   lib/automod.js         détection (filtre de mots, liens, anti-spam)
-  lib/dashboard.js       dashboard web facultatif ("Se connecter avec X1" + pages HTML)
+  lib/dashboard.js       dashboard web facultatif ("Se connecter avec IXin" + pages HTML)
 ```
 
 `handleCommand()` (commandes) et `handleEvent()` (auto-mod, sur les

@@ -1,5 +1,5 @@
 'use strict';
-// Stockage local par serveur (X1 ne fournit aucune base de données au bot —
+// Stockage local par serveur (IXin ne fournit aucune base de données au bot —
 // tout vit dans un fichier JSON par serveur sur le disque du VPS). Couvre :
 // config auto-mod, salon de logs, casier de sanctions, et un cache
 // pseudo→uid (voir README : pas de route bot pour chercher un membre par
@@ -65,7 +65,7 @@ function resolveMember(serverId, nameOrUid) {
   if (byName) return byName;
   // Pas trouvé par pseudo (le bot ne l'a jamais vu poster depuis son
   // démarrage) — on tente le texte tel quel comme uid direct (usage avancé) ;
-  // si ce n'est pas un vrai membre, la route X1 appelée ensuite le dira.
+  // si ce n'est pas un vrai membre, la route IXin appelée ensuite le dira.
   return raw;
 }
 
@@ -213,7 +213,7 @@ function setAutorole(serverId, roleId) {
 }
 
 // ===== Commandes personnalisées (façon MEE6 "custom commands") — pas des
-// vraies commandes /slash de X1 (ça consommerait vite le quota déclaré par
+// vraies commandes /slash de IXin (ça consommerait vite le quota déclaré par
 // bot), mais du texte préfixé par "!" détecté dans les messages reçus, voir
 // bot.js/handleMessageCreate. =====
 function addCustomCommand(serverId, trigger, response) {

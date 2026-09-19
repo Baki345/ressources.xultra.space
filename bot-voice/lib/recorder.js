@@ -1,7 +1,7 @@
 'use strict';
 // Enregistrement du vocal : un fichier .wav séparé par personne (pas de
 // mixage — plus simple, plus fiable, et ça laisse le montage à qui en a
-// besoin). X1 ne fournit aucune brique d'enregistrement (pas d'Egress
+// besoin). IXin ne fournit aucune brique d'enregistrement (pas d'Egress
 // LiveKit exposé) : ce module s'abonne lui-même aux pistes audio des autres
 // participants du salon et les écrit sur disque au fil de l'eau.
 const fs = require('fs');

@@ -40,7 +40,7 @@ module.exports = {
   YTDLP_PATH: process.env.YTDLP_PATH || 'yt-dlp',
   FFMPEG_PATH: process.env.FFMPEG_PATH || 'ffmpeg',
   DATA_DIR: process.env.DATA_DIR || path.join(__dirname, '..', 'data'),
-  // Dashboard web ("Se connecter avec X1") — absent = dashboard désactivé,
+  // Dashboard web ("Se connecter avec IXin") — absent = dashboard désactivé,
   // le bot fonctionne très bien sans (commandes uniquement).
   PUBLIC_URL: process.env.PUBLIC_URL || '',
   OAUTH_CLIENT_ID: process.env.OAUTH_CLIENT_ID || '',

@@ -1,5 +1,5 @@
 'use strict';
-// Fine couche au-dessus des routes publiques /api/bot/v1/* de X1 — voir le
+// Fine couche au-dessus des routes publiques /api/bot/v1/* de IXin — voir le
 // portail développeur ("Mes bots" → docs) pour le contrat complet. Rien ici
 // n'est un accès privé/interne : ce sont exactement les mêmes routes que
 // n'importe quel développeur tiers peut appeler avec le token de son bot.
@@ -82,7 +82,7 @@ function deleteChannel(serverId, channelId) {
 }
 
 // Pour le dashboard web : vérifie qu'un visiteur (identifié via "Se
-// connecter avec X1") a bien le droit d'administrer ce serveur avant de le
+// connecter avec IXin") a bien le droit d'administrer ce serveur avant de le
 // laisser toucher à la config du bot.
 function memberPermissions(serverId, uid) {
   return botFetch('/api/bot/v1/servers/member-permissions', { serverId: serverId, uid: uid }).then(function (r) { return r.permissions || []; });

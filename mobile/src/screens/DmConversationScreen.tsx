@@ -39,7 +39,7 @@ interface Props {
   onOpenGroupCall?: (dm: DmThread) => void;
 }
 
-// Palier gratuit uniquement (X1+ n'est pas encore branché côté mobile, voir
+// Palier gratuit uniquement (IXin+ n'est pas encore branché côté mobile, voir
 // mobile/README.md) — le Worker revalide de toute façon la taille réelle
 // côté serveur, ce garde-fou côté client n'existe que pour éviter un envoi
 // voué à l'échec après un long upload.

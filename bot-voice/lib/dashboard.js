@@ -1,7 +1,7 @@
 'use strict';
 // Dashboard web minimal : configurer l'auto-mod et le message de bienvenue
 // depuis une page plutôt que par commande. Authentification via "Se
-// connecter avec X1" (OAuth2, voir le portail développeur) — jamais de mot
+// connecter avec IXin" (OAuth2, voir le portail développeur) — jamais de mot
 // de passe géré par ce bot. Optionnel : si OAUTH_CLIENT_ID/SECRET ne sont
 // pas renseignés, le dashboard répond juste "non configuré" et le reste du
 // bot fonctionne normalement (commandes uniquement).
@@ -56,7 +56,7 @@ function parseCookies(req) {
   return out;
 }
 
-// ===== Flux OAuth "Se connecter avec X1" =====
+// ===== Flux OAuth "Se connecter avec IXin" =====
 function buildAuthorizeUrl(serverId) {
   const params = querystring.stringify({
     client_id: env.OAUTH_CLIENT_ID,
@@ -123,8 +123,8 @@ function page(title, body) {
 function renderLogin(serverId, error) {
   return page('Connexion — Dashboard', '<h1>⚙️ Dashboard du bot</h1>'
     + (error ? '<p class="err">' + escapeHtml(error) + '</p>' : '')
-    + '<p class="muted">Connecte-toi avec ton compte X1 pour configurer le bot sur ce serveur.</p>'
-    + '<a class="btn" href="' + escapeHtml(buildAuthorizeUrl(serverId)) + '">Se connecter avec X1</a>');
+    + '<p class="muted">Connecte-toi avec ton compte IXin pour configurer le bot sur ce serveur.</p>'
+    + '<a class="btn" href="' + escapeHtml(buildAuthorizeUrl(serverId)) + '">Se connecter avec IXin</a>');
 }
 
 function renderNoAccess(username) {

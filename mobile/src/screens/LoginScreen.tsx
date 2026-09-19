@@ -38,7 +38,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text style={styles.title}>XULTRA</Text>
-      <Text style={styles.subtitle}>Connecte-toi avec ton compte X1</Text>
+      <Text style={styles.subtitle}>Connecte-toi avec ton compte IXin</Text>
 
       <TextInput
         style={styles.input}
