@@ -2418,7 +2418,13 @@ html.xultra-restoring #stage{visibility:hidden}
 ::-webkit-scrollbar-corner{background:transparent}
 #app{display:none;height:calc((var(--app-vh, 100dvh) - var(--banner-h,0px) - var(--music-bar-h,0px)) / var(--zoom-factor,1));position:relative;z-index:1}
 #app:not(.hidden){display:flex}
-.rail{width:var(--rail-w);background:#08080a;display:flex;flex-direction:column;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 0 calc(12px + env(safe-area-inset-bottom));gap:8px;flex-shrink:0}
+/* Demandé explicitement : le rail ne réserve plus de largeur du tout — le
+   bouton unique flotte en position fixe par-dessus le reste (voir
+   .nav-hub-toggle plus bas), et .list-col récupère tout l'espace laissé
+   libre. "display:contents" fait disparaître la boîte du <nav> lui-même
+   (plus de fond, plus de padding, plus de largeur réservée) sans toucher au
+   reste de sa structure/son contenu (les boutons d'origine, déjà cachés). */
+.rail{display:contents}
 .rail-btn{position:relative;width:44px;height:44px;border-radius:50%;background:var(--elev);display:grid;place-items:center;font-size:1.15rem;transition:border-radius .15s,background .15s}
 .rail-btn:hover,.rail-btn.on{border-radius:14px;background:#1c1c1f}
 .rail-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.62rem;font-weight:800;display:grid;place-items:center;border:2px solid #08080a;line-height:1}
@@ -2438,8 +2444,13 @@ html.xultra-restoring #stage{visibility:hidden}
    clone dynamiquement chaque bouton caché ici (icône, titre, badge, pastille)
    plutôt que de dupliquer 15 SVG à la main — jamais désynchronisé. */
 .rail .rail-btn{display:none}
-.nav-hub-toggle{position:relative;display:grid!important;width:44px;height:44px;border-radius:14px;background:var(--elev);place-items:center;color:#e7e7ea;flex-shrink:0;transition:background .15s}
-.nav-hub-toggle:hover{background:#1c1c1f}
+/* Flotte par-dessus le reste (voir .rail{display:contents} ci-dessus) au
+   lieu d'occuper une colonne dédiée — reste visible sur toutes les vues
+   (DMs, serveur, admin...) puisqu'il n'est jamais démonté par showView().
+   z-index sous les .overlay (2000) : un modal ouvert (dont le panneau du
+   bouton lui-même) l'assombrit normalement au lieu de flotter par-dessus. */
+.nav-hub-toggle{position:fixed!important;top:calc(14px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:900;display:grid!important;width:44px;height:44px;border-radius:14px;background:#1c1c1f;place-items:center;color:#e7e7ea;box-shadow:0 6px 20px rgba(0,0,0,.4);border:1px solid rgba(196,196,204,.16);transition:background .15s}
+.nav-hub-toggle:hover{background:#242428}
 .nav-hub-toggle.has-alert::after{content:'';position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid #08080a}
 .nav-hub-modal{width:min(420px,100%);padding:0;display:flex;flex-direction:column;max-height:min(640px,88dvh)}
 .nav-hub-head{padding:20px 20px 4px}
@@ -2465,7 +2476,11 @@ html.xultra-restoring #stage{visibility:hidden}
 .mobile-menu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle}
 .mobile-menu-dot.hidden{display:none}
 .list-col{width:var(--list-w);background:#0e0e10;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
-.list-head{padding:12px 12px 8px}
+/* padding-left élargi : dégage la place du bouton de menu flottant
+   (.nav-hub-toggle), maintenant en position fixe à cet endroit précis
+   puisque .list-col démarre tout à gauche de l'écran (le rail ne réserve
+   plus de largeur). */
+.list-head{padding:12px 12px 8px 68px}
 .list-head h1{font-size:1.15rem;font-weight:900;letter-spacing:-.01em;margin-bottom:2px}
 .list-sub{font-size:.72rem;color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:5px}
 .list-sub .dot{width:5px;height:5px;border-radius:50%;background:var(--online);display:inline-block}
