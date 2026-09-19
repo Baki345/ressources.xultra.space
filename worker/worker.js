@@ -42505,7 +42505,7 @@ async function handle(request, event) {
       const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "expiresAt", values: [nowIso] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
-      const list = (q.documents || []).map(function (d) { return { uid: d.uid, wgPublicKey: d.wgPublicKey || "" }; });
+      const list = (q.documents || []).map(function (d) { return { uid: d.uid, wgPublicKey: d.wgPublicKey || "", wgAssignedIp: d.wgAssignedIp || "" }; });
       return new Response(JSON.stringify({ ok: true, entitlements: list }), { headers: { "Content-Type": "application/json" } });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "invalid_signature") ? 401 : 400, headers: { "Content-Type": "application/json" } });

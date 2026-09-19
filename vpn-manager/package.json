@@ -1,0 +1,12 @@
+{
+  "name": "ixin-vpn-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Service compagnon qui gère le vrai serveur WireGuard pour le compte de IXin (worker.js ne peut pas exécuter de commandes shell depuis le réseau Cloudflare).",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {}
+}
