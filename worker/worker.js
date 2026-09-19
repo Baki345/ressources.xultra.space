@@ -29540,10 +29540,19 @@ async function checkPendingIncomingCall(){
 // pas la page. Un sondage périodique complète la souscription plutôt que de
 // s'y substituer : coût négligeable (une requête filtrée, docs vides la
 // quasi-totalité du temps), et rattrape exactement ce cas de figure.
+// Intervalle mesuré et confirmé en conditions réelles (voir ws_longevity
+// test) : le WebSocket temps réel (proxifié par le Worker vers Appwrite) se
+// coupe systématiquement après ~60s d'inactivité, une limite côté
+// Cloudflare — nginx/Appwrite sont déjà configurés avec des timeouts bien
+// plus larges (86400s), ce n'est donc pas eux. Sans trafic realtime en
+// continu (typiquement le cas hors appel), la souscription est morte la
+// quasi-totalité du temps — d'où le délai remonté ("la notification met
+// beaucoup de temps à arriver") avec l'ancien intervalle de 25s. Descendu à
+// 6s : reste largement sous le seuil de coupure, perçu comme quasi-instantané.
 let callPollIntervalId=null;
 function startCallPolling(){
   if(callPollIntervalId)return;
-  callPollIntervalId=setInterval(function(){checkPendingIncomingCall();},25000);
+  callPollIntervalId=setInterval(function(){checkPendingIncomingCall();},6000);
 }
 
 let ringSubtitleTimeoutId=null;

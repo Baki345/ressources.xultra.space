@@ -863,7 +863,7 @@
     "key": "candidate",
     "required": false,
     "type": "string",
-    "size": 1000,
+    "size": 8000,
     "array": false
    }
   ],
