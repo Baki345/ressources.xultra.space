@@ -29617,6 +29617,7 @@ async function acceptIncomingCall(){
     activeCallDoc=await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'accepted',answer:JSON.stringify(answer)});
     subscribeIceForCall(doc.\$id);
     subscribeCallDocLifecycle(doc.\$id);
+    startCalleeLifecyclePolling(doc.\$id);
     callLive=true;callConnectedAt=Date.now();
     rebuildMicChain();
     showCallBar(callPeerName,'En appel…',new Date(doc.\$createdAt).getTime());
@@ -29733,23 +29734,29 @@ function subscribeCallAnswer(callId){
   callUnsubs.push(unsub);
 }
 // Filet de sécurité côté APPELANT (même principe que checkPendingIncomingCall
-// pour les appels entrants, cf plus haut) : la souscription temps réel
-// ci-dessus est le chemin normal, mais si le WebSocket de l'appelant meurt
-// silencieusement pendant la sonnerie (bug remonté : "connexion RTC en
-// cours" à l'infini alors que l'autre a bel et bien décroché — confirmé en
-// conditions réelles par un aucun changement de connectionState côté
-// appelant malgré un decroché confirmé côté receveur), l'appelant n'apprend
-// jamais que l'appel a été accepté et reste bloqué pour toujours : rien
-// jusqu'ici ne rattrapait ce cas précis côté sortant. Sondage direct du
-// document (vérité serveur, contourne le WebSocket) tant que l'appel sonne.
-let callAcceptPollId=null;
+// pour les appels entrants, cf plus haut) : les souscriptions temps réel
+// sont le chemin normal, mais le WebSocket peut mourir silencieusement à
+// N'IMPORTE QUEL moment de l'appel, pas seulement pendant la sonnerie — bug
+// remonté et confirmé en conditions réelles en DEUX temps : (1) "connexion
+// RTC en cours" à l'infini alors que l'autre avait bel et bien décroché
+// (l'appelant n'apprenait jamais l'acceptation) — corrigé une première fois
+// ci-dessous (voir call_answer_poll_recovered dans les logs, la preuve que
+// ce filet fonctionne) ; (2) juste après, la connexion a ensuite vraiment
+// échoué côté receveur, mais l'appelant est resté affiché "En appel" avec
+// le chrono qui tourne indéfiniment, faute d'avoir reçu la notification de
+// pause/fin — même cause, ailleurs dans le cycle de vie de l'appel. Ce
+// sondage tourne donc maintenant pour TOUTE la durée de l'appel (sonnerie
+// ET en cours), pas seulement jusqu'au décroché.
+let callAcceptPollId=null, callPollFailCount=0;
 function startCallAcceptPolling(callId){
   stopCallAcceptPolling();
+  callPollFailCount=0;
   callAcceptPollId=setInterval(async function(){
-    if(!activeCallDoc||activeCallDoc.\$id!==callId||callLive||!callPc){stopCallAcceptPolling();return}
+    if(!activeCallDoc||activeCallDoc.\$id!==callId||!callPc){stopCallAcceptPolling();return}
     try{
       const doc=await db.getDocument(DB,'direct_calls',callId);
-      if(doc.status==='accepted'&&doc.answer&&callPc&&!callPc.currentRemoteDescription){
+      callPollFailCount=0;
+      if(!callLive&&doc.status==='accepted'&&doc.answer&&callPc&&!callPc.currentRemoteDescription){
         try{
           if(await applyCallAcceptedAnswer(doc.answer))xlog('call_answer_poll_recovered',{});
         }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
@@ -29762,12 +29769,45 @@ function startCallAcceptPolling(callId){
         endCall('ended',true);
       }
     }catch(e){
-      if(activeCallDoc&&activeCallDoc.\$id===callId)endCall('ended',true);
+      // Un raté réseau passager (mobile — déjà observé en conditions réelles,
+      // "Failed to fetch") ne doit pas terminer un appel bien vivant : on
+      // attend plusieurs échecs consécutifs avant de conclure que le
+      // document est vraiment inaccessible/supprimé.
+      callPollFailCount++;
+      if(callPollFailCount>=4&&activeCallDoc&&activeCallDoc.\$id===callId)endCall('ended',true);
     }
   },4000);
 }
 function stopCallAcceptPolling(){
   if(callAcceptPollId){clearInterval(callAcceptPollId);callAcceptPollId=null;}
+  callPollFailCount=0;
+}
+// Même filet de sécurité que startCallAcceptPolling ci-dessus, côté RECEVEUR
+// cette fois (subscribeCallDocLifecycle est son seul chemin temps réel pour
+// apprendre une pause/fin décidée par l'appelant — même risque de WebSocket
+// silencieux, symétrique). Le receveur n'a jamais de réponse à appliquer
+// (c'est lui qui l'a créée), donc pas de branche "accepted" ici.
+function startCalleeLifecyclePolling(callId){
+  stopCallAcceptPolling();
+  callPollFailCount=0;
+  callAcceptPollId=setInterval(async function(){
+    if(!activeCallDoc||activeCallDoc.\$id!==callId||!callPc){stopCallAcceptPolling();return}
+    try{
+      const doc=await db.getDocument(DB,'direct_calls',callId);
+      callPollFailCount=0;
+      if(doc.status==='paused'){
+        const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+        const savedDurationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
+        cleanupCallLocal();
+        if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now(),savedDurationSec);
+      } else if(['declined','ended','missed'].indexOf(doc.status)>=0){
+        endCall('ended',true);
+      }
+    }catch(e){
+      callPollFailCount++;
+      if(callPollFailCount>=4&&activeCallDoc&&activeCallDoc.\$id===callId)endCall('ended',true);
+    }
+  },4000);
 }
 function subscribeCallDocLifecycle(callId){
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,function(res){
@@ -30124,6 +30164,7 @@ async function autoAcceptResumedCall(doc){
     activeCallDoc=await db.updateDocument(DB,'direct_calls',doc.\$id,{status:'accepted',answer:JSON.stringify(answer)});
     subscribeIceForCall(doc.\$id);
     subscribeCallDocLifecycle(doc.\$id);
+    startCalleeLifecyclePolling(doc.\$id);
     callLive=true;callConnectedAt=Date.now();
     rebuildMicChain();
     showCallBar(callPeerName,'En appel…',Date.now());
