@@ -3414,11 +3414,25 @@ html.xultra-restoring #stage{visibility:hidden}
    chevauchait le nom du serveur. Décalage identique à celui déjà appliqué à
    .list-head pour la même raison. */
 #app.hub-fullwidth .chat-top{padding-left:72px}
-.empty{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--muted);padding:36px 20px;overflow-y:auto;background:linear-gradient(120deg,#121214,#141416,#18181b,#1c1c1f);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
+.empty{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:#8a7a58;padding:36px 20px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(120deg,#fffaf0,#fdf1d6,#fff8ec,#f6e3ae);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
 @keyframes emptyGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+/* Ambiance "lofi" : quelques halos flous dorés/blancs qui dérivent très
+   lentement derrière le contenu (voir les .empty-lofi-blob posés en tout
+   premier dans renderEmptyState). */
+.empty-lofi-blob{position:absolute;border-radius:50%;filter:blur(50px);pointer-events:none;z-index:0;opacity:.55;animation:emptyLofiDrift linear infinite}
+.empty-lofi-blob:nth-child(1){top:-60px;left:-40px;width:260px;height:260px;background:radial-gradient(circle,#fde68a,transparent 70%);animation-duration:26s}
+.empty-lofi-blob:nth-child(2){bottom:-80px;right:-60px;width:320px;height:320px;background:radial-gradient(circle,#fff,transparent 70%);animation-duration:32s;animation-direction:reverse}
+.empty-lofi-blob:nth-child(3){top:35%;right:10%;width:200px;height:200px;background:radial-gradient(circle,#facc15,transparent 70%);animation-duration:22s}
+@keyframes emptyLofiDrift{0%{transform:translate(0,0)}50%{transform:translate(24px,-18px)}100%{transform:translate(0,0)}}
+.empty>.empty-head,.empty>.empty-dash{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){.empty-lofi-blob{animation:none!important}}
 .empty-head{flex-shrink:0}
 .empty-dash{width:100%;max-width:640px;display:flex;flex-direction:column;gap:14px;margin-top:26px;text-align:left}
-.empty-widget{background:rgba(255,255,255,.045);border:1px solid rgba(196,196,204,.16);border-radius:16px;padding:16px;backdrop-filter:blur(6px)}
+/* Cartes volontairement sombres/vitrées : tout le texte à l'intérieur des
+   widgets (température, noms de membres...) est prévu clair-sur-sombre —
+   plus simple et cohérent de garder les cartes sombres que de réécrire
+   chaque couleur de texte pour le nouveau fond clair "lofi" de .empty. */
+.empty-widget{position:relative;background:rgba(20,14,8,.6);border:1px solid rgba(253,230,138,.18);border-radius:16px;padding:16px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.18)}
 .empty-widget-title{font-size:.76rem;font-weight:800;color:#d8d8dd;margin-bottom:12px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
 .ew-weather{display:flex;align-items:center;gap:14px}
 .ew-weather-icon{font-size:2.4rem;line-height:1}
@@ -3433,8 +3447,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .ew-member-av img{width:100%;height:100%;object-fit:cover}
 .ew-member-name{font-size:.84rem;font-weight:700;color:#f2f2f5}
 .ew-member-time{font-size:.68rem;color:var(--muted);margin-left:auto;flex-shrink:0}
-.empty h3{color:#f2f2f5;margin:8px 0 4px;font-size:1rem}
-.empty p{font-size:.82rem}
+.empty h3{color:#4a3a1a;margin:8px 0 4px;font-size:1rem}
+.empty p{font-size:.82rem;color:#8a7654}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
 .chat-active.chat-dragover:after{content:'📎 Dépose le fichier ici';position:absolute;inset:8px;border:2px dashed #f5f5f7;border-radius:14px;background:rgba(245,245,247,.12);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#d8d8dd;pointer-events:none;z-index:50}
 .chat-top{min-height:46px;padding:calc(6px + env(safe-area-inset-top)) 14px 6px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);flex-shrink:0}
@@ -4225,6 +4239,22 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .wx-sun,.wx-cloud,.wx-fog-band,.wx-drop,.wx-flake,.wx-flash{animation:none!important}
   .wx-flash{opacity:0!important}
 }
+/* ===== Widget "Story à la une" : planète cyber tournant en fond flouté ===== */
+.ew-story-widget{position:relative;overflow:hidden}
+.ew-story-anim{position:absolute;inset:0;filter:blur(2px);opacity:.8;pointer-events:none}
+.ew-story-fg{position:relative;z-index:1}
+.wx-planet{position:absolute;top:50%;right:8%;width:110px;height:110px;margin-top:-55px;border-radius:50%;
+  background:conic-gradient(from 0deg,#22d3ee,#a78bfa,#f472b6,#38bdf8,#22d3ee);
+  box-shadow:0 0 40px 10px rgba(167,139,250,.4),inset -18px -14px 26px rgba(0,0,0,.55);
+  animation:wxPlanetSpin 9s linear infinite}
+.wx-planet::after{content:'';position:absolute;inset:-16px;border:2px solid rgba(34,211,238,.5);border-radius:50%;transform:scaleY(.32) rotate(-16deg);box-shadow:0 0 16px rgba(34,211,238,.35)}
+@keyframes wxPlanetSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* ===== Widget "Derniers membres inscrits" : pluie de code façon Matrix,
+   verte sur noir, en fond flouté (mountMatrixBg → mountCodeRain). ===== */
+.ew-members-widget{position:relative;overflow:hidden}
+.ew-members-anim{position:absolute;inset:0;background:#050308;filter:blur(1.5px);opacity:.6;pointer-events:none}
+.ew-members-fg{position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){.wx-planet{animation:none!important}}
 .profile-card-view{width:min(720px,96vw)}
 .pc2-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 44px 0 18px}
 .pc2-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
@@ -19447,11 +19477,12 @@ function openHighlightsViewer(items,startIndex){
    derniers membres inscrits. ===== */
 function renderEmptyState(icon,title,sub){
   const el=\$('chat-empty');if(!el)return;
-  el.innerHTML='<div class="empty-head"><div style="font-size:2rem">'+icon+'</div><h3>'+esc(title)+'</h3><p>'+esc(sub)+'</p></div>'
+  el.innerHTML='<div class="empty-lofi-blob"></div><div class="empty-lofi-blob"></div><div class="empty-lofi-blob"></div>'
+    +'<div class="empty-head"><div style="font-size:2rem">'+icon+'</div><h3>'+esc(title)+'</h3><p>'+esc(sub)+'</p></div>'
     +'<div class="empty-dash">'
       +'<div class="empty-widget ew-weather-widget"><div class="ew-weather-anim" id="ew-weather-anim"></div><div class="ew-weather-fg"><div class="empty-widget-title">🌤️ Météo locale</div><div id="ew-weather"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
-      +'<div class="empty-widget"><div class="empty-widget-title">⭐ Story à la une</div><div id="ew-stories"><span class="ew-empty-hint">Chargement…</span></div></div>'
-      +'<div class="empty-widget"><div class="empty-widget-title">🆕 Derniers membres inscrits</div><div id="ew-members"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget ew-story-widget"><div class="ew-story-anim" id="ew-story-anim"></div><div class="ew-story-fg"><div class="empty-widget-title">⭐ Story à la une</div><div id="ew-stories"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
+      +'<div class="empty-widget ew-members-widget"><div class="ew-members-anim" id="ew-members-anim"></div><div class="ew-members-fg"><div class="empty-widget-title">🆕 Derniers membres inscrits</div><div id="ew-members"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
     +'</div>';
   loadWeatherWidget();
   loadFeaturedStoriesWidget();
@@ -19538,6 +19569,26 @@ function mountWeatherAnim(el,group){
     const flash=document.createElement('span');flash.className='wx-flash';el.appendChild(flash);
   }
 }
+// Planète cyber tournant lentement en fond flouté du widget "Story à la
+// une" — juste décoratif, aucune donnée réelle derrière (contrairement à la
+// météo). mountParticles('stars') pose d'abord un champ d'étoiles, la
+// planète est ajoutée par-dessus sans repasser par son nettoyage interne.
+function mountCyberPlanet(el){
+  if(!el||el.getAttribute('data-mounted'))return;
+  el.setAttribute('data-mounted','1');
+  mountParticles(el,'stars');
+  const planet=document.createElement('span');
+  planet.className='wx-planet';
+  el.appendChild(planet);
+}
+// Pluie de code façon Matrix, verte sur noir, floutée en fond du widget
+// "Derniers membres inscrits" — réutilise mountCodeRain() (déjà utilisée pour
+// le rideau de particules 'matrix' et le logo de la page de maintenance).
+function mountMatrixBg(el){
+  if(!el||el.getAttribute('data-mounted'))return;
+  el.setAttribute('data-mounted','1');
+  mountCodeRain(el,{density:.3,fontSize:12,color:'rgba(74,222,128,.65)'});
+}
 async function loadWeatherWidget(){
   if(!\$('ew-weather'))return;
   try{
@@ -19552,6 +19603,7 @@ async function loadWeatherWidget(){
 }
 async function loadFeaturedStoriesWidget(){
   if(!\$('ew-stories'))return;
+  mountCyberPlanet(\$('ew-story-anim'));
   try{
     const r=await db.listDocuments(DB,'stories',[Appwrite.Query.equal('featured',true),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(12)]);
     const items=r.documents||[];
@@ -19570,6 +19622,7 @@ async function loadFeaturedStoriesWidget(){
 }
 async function loadLatestMembersWidget(){
   if(!\$('ew-members'))return;
+  mountMatrixBg(\$('ew-members-anim'));
   try{
     const r=await db.listDocuments(DB,'users',[Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(6)]);
     const items=r.documents||[];
