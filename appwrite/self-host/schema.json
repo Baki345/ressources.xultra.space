@@ -277,6 +277,20 @@
     "required": false,
     "type": "integer",
     "array": false
+   },
+   {
+    "key": "eventsUrl",
+    "required": false,
+    "type": "string",
+    "size": 500,
+    "array": false
+   },
+   {
+    "key": "eventTypesJson",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
    }
   ],
   "documentSecurity": true,
@@ -1265,6 +1279,18 @@
     "required": false,
     "type": "string",
     "size": 20,
+    "array": false
+   },
+   {
+    "key": "viewedAt",
+    "required": false,
+    "type": "datetime",
+    "array": false
+   },
+   {
+    "key": "moderationHidden",
+    "required": false,
+    "type": "boolean",
     "array": false
    }
   ],
@@ -2397,6 +2423,12 @@
     "required": false,
     "type": "boolean",
     "array": false
+   },
+   {
+    "key": "moderationHidden",
+    "required": false,
+    "type": "boolean",
+    "array": false
    }
   ],
   "documentSecurity": true,
@@ -3283,6 +3315,13 @@
     "type": "string",
     "size": 1250,
     "array": false
+   },
+   {
+    "key": "autoModWordsJson",
+    "required": false,
+    "type": "string",
+    "size": 2500,
+    "array": false
    }
   ],
   "documentSecurity": true,
@@ -3581,6 +3620,18 @@
     "required": false,
     "type": "string",
     "size": 10000,
+    "array": false
+   },
+   {
+    "key": "lat",
+    "required": false,
+    "type": "double",
+    "array": false
+   },
+   {
+    "key": "lng",
+    "required": false,
+    "type": "double",
     "array": false
    }
   ],
@@ -4068,6 +4119,47 @@
     "required": false,
     "type": "string",
     "size": 255,
+    "array": false
+   },
+   {
+    "key": "driveMasterKeyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 500,
+    "array": false
+   },
+   {
+    "key": "driveMasterKeySalt",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "driveMasterKeyIv",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "driveRecoveryWrapped",
+    "required": false,
+    "type": "string",
+    "size": 500,
+    "array": false
+   },
+   {
+    "key": "driveRecoveryIv",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "driveSetupDone",
+    "required": false,
+    "type": "boolean",
     "array": false
    }
   ],
@@ -5401,6 +5493,19 @@
     "key": "repostsCount",
     "required": false,
     "type": "integer",
+    "array": false
+   },
+   {
+    "key": "trackNumber",
+    "required": false,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "commentMarkersJson",
+    "required": false,
+    "type": "string",
+    "size": 2000,
     "array": false
    }
   ],

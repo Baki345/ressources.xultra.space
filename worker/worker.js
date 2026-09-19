@@ -42175,7 +42175,12 @@ async function handle(request, event) {
       if (typeof body.icon === "string") data.icon = body.icon.slice(0, 500);
       if (typeof body.banner === "string") data.banner = body.banner.slice(0, 500);
       if (Array.isArray(body.autoModWords)) {
-        const words = body.autoModWords.map(function (w) { return String(w).trim().slice(0, 40); }).filter(Boolean).slice(0, 100);
+        // servers.autoModWordsJson est plafonné à 2500 caractères côté
+        // Appwrite (la collection servers est déjà proche de la limite de
+        // largeur de ligne MariaDB avec ses nombreux autres champs JSON —
+        // impossible de lui donner une taille plus généreuse) — 50 mots à 40
+        // caractères tient large dans cette limite, même en Unicode.
+        const words = body.autoModWords.map(function (w) { return String(w).trim().slice(0, 40); }).filter(Boolean).slice(0, 50);
         data.autoModWordsJson = JSON.stringify(words);
       }
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
