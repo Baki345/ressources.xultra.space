@@ -4196,6 +4196,35 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @keyframes pcpFall{from{transform:translateY(-10px)}to{transform:translateY(140px)}}
 .pcp-confetti{top:-10px;width:6px;height:10px;animation:pcpConfetti linear infinite}
 @keyframes pcpConfetti{from{transform:translateY(-10px) rotate(0deg)}to{transform:translateY(140px) rotate(360deg)}}
+/* ===== Widget météo (tableau de bord vide) : fond animé selon la condition
+   réelle (soleil qui pulse, nuages qui dérivent, pluie qui tombe, neige,
+   brouillard, éclairs d'orage) plutôt qu'un simple encart texte — voir
+   mountWeatherAnim() + weatherCodeInfo(). ===== */
+.ew-weather-widget{position:relative;overflow:hidden}
+.ew-weather-anim{position:absolute;inset:0;transition:background 1.4s ease;overflow:hidden}
+.ew-weather-fg{position:relative;z-index:1}
+.ew-weather-anim.wx-clear{background:linear-gradient(160deg,rgba(56,189,248,.16),rgba(245,158,11,.10) 65%,transparent)}
+.ew-weather-anim.wx-cloudy{background:linear-gradient(160deg,rgba(148,163,184,.16),rgba(100,116,139,.10) 65%,transparent)}
+.ew-weather-anim.wx-fog{background:linear-gradient(160deg,rgba(203,213,225,.14),rgba(148,163,184,.08) 65%,transparent)}
+.ew-weather-anim.wx-rain{background:linear-gradient(160deg,rgba(56,102,189,.20),rgba(30,41,59,.12) 65%,transparent)}
+.ew-weather-anim.wx-snow{background:linear-gradient(160deg,rgba(224,242,254,.18),rgba(148,197,253,.10) 65%,transparent)}
+.ew-weather-anim.wx-storm{background:linear-gradient(160deg,rgba(76,29,149,.22),rgba(15,23,42,.16) 65%,transparent)}
+.wx-sun{position:absolute;top:-18px;right:-14px;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle,#fde68a,#f59e0b 60%,transparent 72%);box-shadow:0 0 30px 6px rgba(245,158,11,.35);animation:wxSunPulse 4.5s ease-in-out infinite}
+@keyframes wxSunPulse{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:1}}
+.wx-cloud{position:absolute;border-radius:50%;background:rgba(226,232,240,.4);filter:blur(2px);animation:wxCloudDrift linear infinite}
+@keyframes wxCloudDrift{from{transform:translateX(-40px)}to{transform:translateX(calc(100% + 40px))}}
+.wx-fog-band{position:absolute;left:-30%;width:160%;height:22px;background:linear-gradient(90deg,transparent,rgba(226,232,240,.28),transparent);filter:blur(3px);animation:wxFogDrift linear infinite}
+@keyframes wxFogDrift{from{transform:translateX(-6%)}to{transform:translateX(6%)}}
+.wx-drop{position:absolute;top:-16px;width:2px;height:16px;border-radius:2px;background:linear-gradient(rgba(191,219,254,0),rgba(191,219,254,.85));animation:wxRainFall linear infinite;transform:rotate(12deg)}
+@keyframes wxRainFall{from{transform:translateY(-16px) rotate(12deg)}to{transform:translateY(150px) rotate(12deg)}}
+.wx-flake{position:absolute;top:-10px;border-radius:50%;background:rgba(255,255,255,.9);animation:wxSnowFall linear infinite}
+@keyframes wxSnowFall{0%{transform:translate(0,-10px)}50%{transform:translate(8px,70px)}100%{transform:translate(-4px,150px)}}
+.wx-flash{position:absolute;inset:0;background:#e9d5ff;opacity:0;animation:wxLightning 7s ease-in-out infinite}
+@keyframes wxLightning{0%,92%,100%{opacity:0}93%{opacity:.55}94%{opacity:.05}95%{opacity:.4}96%{opacity:0}}
+@media (prefers-reduced-motion:reduce){
+  .wx-sun,.wx-cloud,.wx-fog-band,.wx-drop,.wx-flake,.wx-flash{animation:none!important}
+  .wx-flash{opacity:0!important}
+}
 .profile-card-view{width:min(720px,96vw)}
 .pc2-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 44px 0 18px}
 .pc2-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
@@ -19420,7 +19449,7 @@ function renderEmptyState(icon,title,sub){
   const el=\$('chat-empty');if(!el)return;
   el.innerHTML='<div class="empty-head"><div style="font-size:2rem">'+icon+'</div><h3>'+esc(title)+'</h3><p>'+esc(sub)+'</p></div>'
     +'<div class="empty-dash">'
-      +'<div class="empty-widget"><div class="empty-widget-title">🌤️ Météo locale</div><div id="ew-weather"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget ew-weather-widget"><div class="ew-weather-anim" id="ew-weather-anim"></div><div class="ew-weather-fg"><div class="empty-widget-title">🌤️ Météo locale</div><div id="ew-weather"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
       +'<div class="empty-widget"><div class="empty-widget-title">⭐ Story à la une</div><div id="ew-stories"><span class="ew-empty-hint">Chargement…</span></div></div>'
       +'<div class="empty-widget"><div class="empty-widget-title">🆕 Derniers membres inscrits</div><div id="ew-members"><span class="ew-empty-hint">Chargement…</span></div></div>'
     +'</div>';
@@ -19430,15 +19459,84 @@ function renderEmptyState(icon,title,sub){
 }
 function weatherCodeInfo(code){
   const map={
-    0:{icon:'☀️',label:'Ciel dégagé'},1:{icon:'🌤️',label:'Plutôt dégagé'},2:{icon:'⛅',label:'Partiellement nuageux'},3:{icon:'☁️',label:'Couvert'},
-    45:{icon:'🌫️',label:'Brouillard'},48:{icon:'🌫️',label:'Brouillard givrant'},
-    51:{icon:'🌦️',label:'Bruine légère'},53:{icon:'🌦️',label:'Bruine'},55:{icon:'🌦️',label:'Bruine dense'},
-    61:{icon:'🌧️',label:'Pluie légère'},63:{icon:'🌧️',label:'Pluie'},65:{icon:'🌧️',label:'Forte pluie'},
-    71:{icon:'🌨️',label:'Neige légère'},73:{icon:'🌨️',label:'Neige'},75:{icon:'❄️',label:'Forte neige'},
-    80:{icon:'🌦️',label:'Averses'},81:{icon:'🌧️',label:'Fortes averses'},82:{icon:'⛈️',label:'Averses violentes'},
-    95:{icon:'⛈️',label:'Orage'},96:{icon:'⛈️',label:'Orage avec grêle'},99:{icon:'⛈️',label:'Orage violent'}
+    0:{icon:'☀️',label:'Ciel dégagé',group:'clear'},1:{icon:'🌤️',label:'Plutôt dégagé',group:'clear'},2:{icon:'⛅',label:'Partiellement nuageux',group:'cloudy'},3:{icon:'☁️',label:'Couvert',group:'cloudy'},
+    45:{icon:'🌫️',label:'Brouillard',group:'fog'},48:{icon:'🌫️',label:'Brouillard givrant',group:'fog'},
+    51:{icon:'🌦️',label:'Bruine légère',group:'rain'},53:{icon:'🌦️',label:'Bruine',group:'rain'},55:{icon:'🌦️',label:'Bruine dense',group:'rain'},
+    61:{icon:'🌧️',label:'Pluie légère',group:'rain'},63:{icon:'🌧️',label:'Pluie',group:'rain'},65:{icon:'🌧️',label:'Forte pluie',group:'rain'},
+    71:{icon:'🌨️',label:'Neige légère',group:'snow'},73:{icon:'🌨️',label:'Neige',group:'snow'},75:{icon:'❄️',label:'Forte neige',group:'snow'},
+    80:{icon:'🌦️',label:'Averses',group:'rain'},81:{icon:'🌧️',label:'Fortes averses',group:'rain'},82:{icon:'⛈️',label:'Averses violentes',group:'storm'},
+    95:{icon:'⛈️',label:'Orage',group:'storm'},96:{icon:'⛈️',label:'Orage avec grêle',group:'storm'},99:{icon:'⛈️',label:'Orage violent',group:'storm'}
   };
-  return map[code]||{icon:'🌡️',label:'Météo'};
+  return map[code]||{icon:'🌡️',label:'Météo',group:'cloudy'};
+}
+// Fond animé du widget météo — une variante par grande famille de temps
+// (clear/cloudy/fog/rain/snow/storm), rejouée à chaque code reçu de
+// /api/weather. Éléments générés en DOM (comme mountParticles) plutôt qu'en
+// CSS pur : le nombre/la position/le tempo varient légèrement à chaque
+// montage pour ne pas paraître trop mécanique sur un petit encart.
+function mountWeatherAnim(el,group){
+  if(!el)return;
+  el.className='ew-weather-anim wx-'+group;
+  el.innerHTML='';
+  function addClouds(n,opacity){
+    for(let i=0;i<n;i++){
+      const c=document.createElement('span');
+      c.className='wx-cloud';
+      const w=34+Math.random()*38;
+      c.style.width=w+'px';c.style.height=(w*0.55)+'px';
+      c.style.top=(6+Math.random()*40)+'%';
+      c.style.opacity=opacity;
+      c.style.animationDuration=(14+Math.random()*10)+'s';
+      c.style.animationDelay=(-Math.random()*20)+'s';
+      el.appendChild(c);
+    }
+  }
+  function addRain(n){
+    for(let i=0;i<n;i++){
+      const d=document.createElement('span');
+      d.className='wx-drop';
+      d.style.left=(Math.random()*100)+'%';
+      d.style.animationDuration=(0.5+Math.random()*0.4)+'s';
+      d.style.animationDelay=(-Math.random()*1)+'s';
+      el.appendChild(d);
+    }
+  }
+  function addSnow(n){
+    for(let i=0;i<n;i++){
+      const f=document.createElement('span');
+      f.className='wx-flake';
+      const s=3+Math.random()*3;
+      f.style.width=s+'px';f.style.height=s+'px';
+      f.style.left=(Math.random()*100)+'%';
+      f.style.animationDuration=(5+Math.random()*4)+'s';
+      f.style.animationDelay=(-Math.random()*8)+'s';
+      el.appendChild(f);
+    }
+  }
+  if(group==='clear'){
+    const sun=document.createElement('span');sun.className='wx-sun';el.appendChild(sun);
+  }else if(group==='cloudy'){
+    addClouds(4,.55);
+  }else if(group==='fog'){
+    for(let i=0;i<3;i++){
+      const b=document.createElement('span');
+      b.className='wx-fog-band';
+      b.style.top=(15+i*30)+'%';
+      b.style.animationDuration=(6+i*2)+'s';
+      b.style.animationDirection=i%2?'alternate-reverse':'alternate';
+      el.appendChild(b);
+    }
+  }else if(group==='rain'){
+    addClouds(2,.35);
+    addRain(16);
+  }else if(group==='snow'){
+    addClouds(2,.3);
+    addSnow(18);
+  }else if(group==='storm'){
+    addClouds(3,.5);
+    addRain(20);
+    const flash=document.createElement('span');flash.className='wx-flash';el.appendChild(flash);
+  }
 }
 async function loadWeatherWidget(){
   if(!\$('ew-weather'))return;
@@ -19449,6 +19547,7 @@ async function loadWeatherWidget(){
     if(!j.ok||j.temp==null){el.innerHTML='<span class="ew-empty-hint">Météo indisponible pour le moment.</span>';return}
     const w=weatherCodeInfo(j.code);
     el.innerHTML='<div class="ew-weather-icon">'+w.icon+'</div><div><div class="ew-weather-temp">'+Math.round(j.temp)+'°C</div><div class="ew-weather-sub">'+esc(w.label)+(j.city?' · '+esc(j.city):'')+'</div></div>';
+    mountWeatherAnim(\$('ew-weather-anim'),w.group);
   }catch(e){const el=\$('ew-weather');if(el)el.innerHTML='<span class="ew-empty-hint">Météo indisponible pour le moment.</span>';}
 }
 async function loadFeaturedStoriesWidget(){
