@@ -1102,6 +1102,12 @@ const COIN_PACKS = {
 };
 const XPLUS_PRICE_CAD_CENTS = 5499;
 const XPLUS_PRICE_COINS = 4500;
+// Abonnement VPN (WireGuard, auto-hébergé) — bloc de 30 jours rachetable,
+// paiement unique (voir grantTimeboxedAccess ci-dessous) : contrairement à
+// IXin+, cette fonctionnalité EXPIRE bel et bien, donc jamais réutiliser
+// grantPlus/plan (conçu explicitement comme permanent, sans expiration).
+const VPN_PRICE_CAD_CENTS = 499;
+const VPN_SUBSCRIPTION_DAYS = 30;
 // Verrou distribué par compte pour toute mutation de solde IXin Coins.
 // Un simple "lire le solde puis écrire solde-montant" (comme avant) n'est
 // PAS atomique : deux requêtes concurrentes (double-clic, retry client,
@@ -1273,6 +1279,52 @@ async function grantPlus(uid, assignedBy) {
     } else throw e;
   }
   await syncPlusBadge(uid);
+}
+// ===== Accès à durée limitée (générique) — premier système payant de cet
+// appli qui EXPIRE réellement (le VPN, voir plus bas), donc jamais retomber
+// sur le champ "plan" de grantPlus (délibérément permanent). Un simple champ
+// expiresAt ISO comparé à Date.now() à la lecture, même idiome déjà utilisé
+// pour stories.expiresAt/sharingExpiresAt/customStatusExpiresAt — pas de
+// nouveau système de scheduling, juste une comparaison au moment de lire. =====
+async function grantTimeboxedAccess(uid, collection, days, extraData) {
+  const existing = await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
+  // Un renouvellement acheté AVANT expiration prolonge le temps restant au
+  // lieu de le perdre — repartir de Date.now() gaspillerait les jours déjà
+  // payés et non consommés à chaque renouvellement anticipé.
+  const base = Math.max(Date.now(), existing && existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0);
+  const expiresAt = new Date(base + days * 86400000).toISOString();
+  const data = Object.assign({ uid: String(uid), status: "active", expiresAt: expiresAt }, extraData || {});
+  const perms = ["read(\"user:" + uid + "\")"];
+  if (existing) {
+    await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents/" + uid, {
+      method: "PATCH", asAdmin: true, body: { data: data }
+    });
+  } else {
+    await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents", {
+      method: "POST", asAdmin: true, body: { documentId: uid, data: data, permissions: perms }
+    });
+  }
+  return expiresAt;
+}
+function isTimeboxedAccessActive(doc) {
+  return !!(doc && doc.expiresAt && new Date(doc.expiresAt).getTime() > Date.now());
+}
+// Signature HMAC-SHA256 générique (hex) — même calcul que dispatchBotEvents
+// pour X-IXin-Signature, factorisé ici pour la double liaison signée avec
+// vpn-manager (le petit service compagnon qui gère le WireGuard réel sur le
+// VPS, hors de portée de ce Worker — voir les routes /api/internal/vpn/*).
+async function computeHmacSignatureHex(secret, body) {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(body));
+  return Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+}
+async function verifyVpnManagerSignature(request, rawBody) {
+  if (typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) return false;
+  const sig = request.headers.get("X-IXin-Signature");
+  if (!sig) return false;
+  const expected = await computeHmacSignatureHex(VPN_MANAGER_SECRET, rawBody);
+  return constantTimeEqualHex(expected, sig);
 }
 // ===== Boutique de décorations de profil (cadres d'avatar créés par des
 // créateurs, vendus en IXin Coins) =====
@@ -10848,6 +10900,7 @@ const SETTINGS_GROUPS=[
   {label:'Compte',items:[
     {key:'account',icon:'👤',title:'Mon compte'},
     {key:'subscription',icon:'⭐',title:'Abonnement'},
+    {key:'vpn',icon:'🔒',title:'VPN'},
     {key:'wallet',icon:'💰',title:'Portefeuille'},
     {key:'profiles',icon:'🎨',title:'Profils'},
     {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
@@ -10989,6 +11042,7 @@ function renderSettingsSection(key){
     voice:renderSetVoice,notifications:renderSetNotifications,shortcuts:renderSetShortcuts,
     language:renderSetLanguage,os:renderSetOs,advanced:renderSetAdvanced,activity:renderSetActivity,
     myreports:renderSetMyReports,developers:renderSetDevelopers,bots:renderSetBots,wallet:renderSetWallet,
+    vpn:renderSetVpn,
     helpdesk:renderSetHelpdesk,legal:renderSetLegal,legalnotice:renderSetLegalNotice,privacypolicy:renderSetPrivacyPolicy
   };
   (renderers[key]||renderSetAccount)(box);
@@ -11350,6 +11404,7 @@ function showMfaRecoveryCodes(box,codes,justEnabled){
 
 const XPLUS_PRICE_CAD=5499;
 const XPLUS_PRICE_COINS_CLIENT=4500;
+const VPN_PRICE_CAD_CLIENT=499;
 const COIN_PACKS_CLIENT={small:{coins:500,cadCents:699,label:'500 IXin Coins'},medium:{coins:1200,cadCents:1399,label:'1 200 IXin Coins'},large:{coins:3000,cadCents:2799,label:'3 000 IXin Coins'}};
 const XPLUS_PERKS_HTML='<div class="set-card"><div class="set-section-label">Avantages IXin+</div>'
   +'<div class="scr-sub">⭐ Badge de présentation IXin+, visible sur ton profil et à côté de ton pseudo dans tous les serveurs.</div>'
@@ -11406,6 +11461,92 @@ function wireSetSubscription(box){
         renderSetSubscription(box);
       }catch(e){\$('sub-buy-err').textContent=(e&&e.message)||'Erreur';coinsBtn.disabled=false;coinsBtn.textContent='Payer';}
     };
+  }
+}
+// ===== VPN (WireGuard auto-hébergé) — délibérément une section À PART
+// (jamais fusionnée avec Abonnement/IXin+ ci-dessus) : achat séparé, sans
+// lien avec IXin+. Statut lu directement via le SDK Appwrite (permission
+// read(user) posée côté serveur par grantTimeboxedAccess), jamais un aller-
+// retour worker.js dédié pour un simple affichage. =====
+function fmtVpnDate(iso){
+  try{return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'});}catch(e){return iso||'';}
+}
+function downloadTextFile(filename,text){
+  const blob=new Blob([text],{type:'text/plain'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+async function renderSetVpn(box){
+  box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div><div class="set-card"><div class="scr-sub">Chargement…</div></div>';
+  let sub=null;
+  try{sub=await db.getDocument(DB,'vpn_subscriptions',me.\$id);}catch(e){sub=null;}
+  const active=!!(sub&&sub.expiresAt&&new Date(sub.expiresAt).getTime()>Date.now());
+  box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div>'
+    +(active?
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div></div>'
+        +'<div id="vpn-config-box"></div>'
+        +'<div class="set-card"><div class="set-section-label">Clé perdue ?</div><div class="scr-sub" style="margin-bottom:10px">Révoque ta clé actuelle si tu as perdu ton appareil ou ton fichier de configuration. Une nouvelle clé sera générée automatiquement (à récupérer ici) — l\\'ancienne ne fonctionnera plus.</div><button type="button" class="set-mini-btn" id="vpn-revoke-btn" style="color:#f87171">Révoquer cette clé</button><div class="err" id="vpn-revoke-err" style="min-height:1em;margin-top:6px"></div></div>')
+      :
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Pas d\\'abonnement actif</div><div class="scr-sub">Débloque l\\'accès à ton VPN IXin pour 30 jours.</div></div></div></div>'
+        +'<div class="set-card"><div class="set-section-label">S\\'abonner</div>'
+          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 Payer par carte</div><div class="scr-sub">'+(VPN_PRICE_CAD_CLIENT/100).toFixed(2).replace('.',',')+' $ CA · bloc de 30 jours, rachetable</div></div><button type="button" class="btn-main" id="vpn-buy-btn">Acheter</button></div>'
+          +'<div class="err" id="vpn-buy-err" style="min-height:1em;margin-top:6px"></div>'
+        +'</div>'));
+  wireSetVpn(box,sub,active);
+}
+function wireSetVpn(box,sub,active){
+  const buyBtn=\$('vpn-buy-btn');
+  if(buyBtn)buyBtn.onclick=async function(){
+    buyBtn.disabled=true;buyBtn.textContent='...';
+    try{
+      const r=await authPost('/api/payments/checkout',{kind:'vpn'});
+      window.location.href=r.url;
+    }catch(e){\$('vpn-buy-err').textContent=(e&&e.message)||'Erreur';buyBtn.disabled=false;buyBtn.textContent='Acheter';}
+  };
+  const renewBtn=\$('vpn-renew-btn');
+  if(renewBtn)renewBtn.onclick=async function(){
+    renewBtn.disabled=true;renewBtn.textContent='...';
+    try{
+      const r=await authPost('/api/payments/checkout',{kind:'vpn'});
+      window.location.href=r.url;
+    }catch(e){showToast((e&&e.message)||'Erreur','error');renewBtn.disabled=false;renewBtn.textContent='Renouveler';}
+  };
+  const revokeBtn=\$('vpn-revoke-btn');
+  if(revokeBtn)revokeBtn.onclick=function(){
+    showSlideConfirm('Révoquer ta clé VPN actuelle ? Elle cessera de fonctionner immédiatement — une nouvelle sera générée automatiquement.',async function(){
+      try{
+        await authPost('/api/vpn/revoke',{});
+        showToast('Clé révoquée — une nouvelle sera prête sous peu.');
+        renderSetVpn(box);
+      }catch(e){\$('vpn-revoke-err').textContent=(e&&e.message)||'Erreur';}
+    });
+  };
+  if(active)vpnTryClaimConfig(box);
+}
+// Récupère la config WireGuard en attente (voir /api/vpn/config/claim côté
+// Worker) — ne renvoie quelque chose qu'UNE seule fois par clé provisionnée,
+// donc rien à afficher la plupart du temps (déjà récupérée, ou pas encore
+// générée par vpn-manager). Un léger délai + une seconde tentative couvre le
+// cas "achat tout juste terminé, vpn-manager n'a pas encore eu le temps de
+// provisionner" sans avoir besoin d'un vrai mécanisme de sondage.
+async function vpnTryClaimConfig(box,attempt){
+  attempt=attempt||0;
+  let r;
+  try{r=await authPost('/api/vpn/config/claim',{});}catch(e){r=null;}
+  if(r&&r.ok&&r.config){
+    const configBox=\$('vpn-config-box');if(!configBox)return;
+    configBox.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Ta configuration VPN — à sauvegarder maintenant</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">Cette clé ne sera plus jamais affichée. Scanne le QR avec l\\'appli WireGuard, ou télécharge le fichier .conf. Si tu la perds, révoque et une nouvelle sera générée.</div>'
+      +'<div id="vpn-qr" style="width:fit-content;margin:0 auto 12px"></div>'
+      +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn-main" id="vpn-download-btn">⬇️ Télécharger le .conf</button></div>'
+    +'</div>';
+    renderQrCodeSvg(\$('vpn-qr'),r.config);
+    const dlBtn=\$('vpn-download-btn');
+    if(dlBtn)dlBtn.onclick=function(){downloadTextFile('ixin-vpn.conf',r.config);};
+  }else if(attempt<1){
+    setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},4000);
   }
 }
 const CHAIN_EXPLORERS={'0x1':'https://etherscan.io/tx/','0x89':'https://polygonscan.com/tx/','0xa4b1':'https://arbiscan.io/tx/','0xa':'https://optimistic.etherscan.io/tx/','0x38':'https://bscscan.com/tx/'};
@@ -42153,6 +42294,11 @@ async function handle(request, event) {
         const p = COIN_PACKS[pack];
         if (!p) throw new Error("Pack de IXin Coins invalide.");
         productName = p.label; cadCents = p.cadCents;
+      } else if (kind === "vpn") {
+        // Pas de garde "déjà possédé" ici contrairement à xplus : racheter
+        // un bloc de 30 jours (renouvellement, y compris avant expiration)
+        // est le chemin normal, pas une erreur.
+        productName = "Abonnement VPN — 30 jours"; cadCents = VPN_PRICE_CAD_CENTS;
       } else {
         throw new Error("Achat inconnu.");
       }
@@ -42231,6 +42377,24 @@ async function handle(request, event) {
           if (uid) {
             if (meta.kind === "xplus") {
               await grantPlus(uid, "stripe_purchase");
+            } else if (meta.kind === "vpn") {
+              await grantTimeboxedAccess(uid, "vpn_subscriptions", VPN_SUBSCRIPTION_DAYS, { lastStripeEventId: eventDocId });
+              // Best-effort, jamais bloquant : vpn-manager (sur le VPS, hors
+              // de portée de ce Worker) tourne de toute façon sa propre
+              // ronde de réconciliation périodique — ce "sync now" n'est
+              // qu'un raccourci pour provisionner quasi immédiatement au
+              // lieu d'attendre jusqu'à 15 minutes.
+              if (typeof VPN_MANAGER_URL !== "undefined" && VPN_MANAGER_URL && typeof VPN_MANAGER_SECRET !== "undefined" && VPN_MANAGER_SECRET) {
+                const syncPromise = (async function () {
+                  try {
+                    const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
+                    await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", {
+                      method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000)
+                    });
+                  } catch (e) {}
+                })();
+                if (event && event.waitUntil) event.waitUntil(syncPromise);
+              }
             } else if (meta.kind === "coins") {
               const p = COIN_PACKS[meta.pack];
               if (p) {
@@ -42259,6 +42423,107 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
+  // ===== VPN (WireGuard auto-hébergé, voir vpn-manager/ hors de ce dépôt
+  // Worker — ce Worker tourne à la périphérie Cloudflare et n'a lui-même
+  // aucun accès shell/filesystem sur le VPS qui héberge le vrai serveur
+  // WireGuard). Le statut (actif/expire le...) se lit directement côté
+  // client via le SDK Appwrite (permission read(user) posée par
+  // grantTimeboxedAccess) — seules les actions qui doivent rester
+  // server-only vivent ici. =====
+  if (path === "/api/vpn/config/claim" && request.method === "POST") {
+    // Le fichier .conf/clé privée n'est écrit qu'UNE fois par vpn-manager
+    // (voir /api/internal/vpn/provision-result) puis effacé dès la première
+    // lecture réussie ici — jamais réaffiché après coup, même précédent que
+    // les codes de secours/clés secrètes déjà en place ailleurs sur ce
+    // compte : perdu = à régénérer, jamais à re-consulter.
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (!doc || !doc.pendingConfig) throw new Error("Aucune configuration en attente.");
+      if (doc.pendingConfigExpiresAt && new Date(doc.pendingConfigExpiresAt).getTime() <= Date.now()) {
+        await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true, body: { data: { pendingConfig: "", pendingConfigExpiresAt: "" } }
+        }).catch(function () {});
+        throw new Error("Configuration expirée, régénère une clé.");
+      }
+      const config = doc.pendingConfig;
+      await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { pendingConfig: "", pendingConfigExpiresAt: "" } }
+      });
+      return new Response(JSON.stringify({ ok: true, config: config }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/vpn/revoke" && request.method === "POST") {
+    // Perte d'appareil : révoque la clé actuelle (vpn-manager la retirera de
+    // wg0 à la prochaine synchro, immédiate au mieux via l'appel ci-dessous,
+    // garantie sous 15 min sinon). Ne provisionne PAS de nouvelle clé —
+    // celle-ci sera générée au prochain passage de réconciliation si
+    // l'abonnement est toujours actif, exactement comme un code de secours
+    // perdu ne peut être que régénéré, jamais restauré.
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
+        method: "PATCH", asAdmin: true, body: { data: { wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
+      });
+      if (typeof VPN_MANAGER_URL !== "undefined" && VPN_MANAGER_URL && typeof VPN_MANAGER_SECRET !== "undefined" && VPN_MANAGER_SECRET) {
+        const syncPromise = (async function () {
+          try {
+            const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
+            await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
+          } catch (e) {}
+        })();
+        if (event && event.waitUntil) event.waitUntil(syncPromise);
+      }
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ----- Routes machine-à-machine pour vpn-manager (signature
+  // X-IXin-Signature, jamais une session utilisateur) -----
+  if (path === "/api/internal/vpn/entitlements" && request.method === "GET") {
+    try {
+      const rawBody = await request.text();
+      if (!(await verifyVpnManagerSignature(request, rawBody))) throw new Error("invalid_signature");
+      const nowIso = new Date().toISOString();
+      const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "expiresAt", values: [nowIso] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+      const list = (q.documents || []).map(function (d) { return { uid: d.uid, wgPublicKey: d.wgPublicKey || "" }; });
+      return new Response(JSON.stringify({ ok: true, entitlements: list }), { headers: { "Content-Type": "application/json" } });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "invalid_signature") ? 401 : 400, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
+  if (path === "/api/internal/vpn/provision-result" && request.method === "POST") {
+    try {
+      const rawBody = await request.text();
+      if (!(await verifyVpnManagerSignature(request, rawBody))) throw new Error("invalid_signature");
+      const body = JSON.parse(rawBody || "{}");
+      const uid = String(body.uid || "");
+      if (!uid) throw new Error("uid requis");
+      const wgPublicKey = String(body.wgPublicKey || "").slice(0, 64);
+      const wgAssignedIp = String(body.wgAssignedIp || "").slice(0, 32);
+      const clientConfig = String(body.clientConfig || "").slice(0, 4000);
+      const data = { wgPublicKey: wgPublicKey, wgAssignedIp: wgAssignedIp };
+      if (clientConfig) {
+        data.pendingConfig = clientConfig;
+        data.pendingConfigExpiresAt = new Date(Date.now() + 15 * 60000).toISOString();
+      }
+      await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { method: "PATCH", asAdmin: true, body: { data: data } });
+      return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "invalid_signature") ? 401 : 400, headers: { "Content-Type": "application/json" } });
     }
   }
 

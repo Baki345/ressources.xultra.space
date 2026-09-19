@@ -4558,6 +4558,77 @@
    }
   ]
  },
+ "vpn_subscriptions": {
+  "attributes": [
+   {
+    "key": "uid",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "status",
+    "required": true,
+    "type": "string",
+    "size": 24,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "string",
+    "size": 40,
+    "array": false
+   },
+   {
+    "key": "wgPublicKey",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "wgAssignedIp",
+    "required": false,
+    "type": "string",
+    "size": 32,
+    "array": false
+   },
+   {
+    "key": "pendingConfig",
+    "required": false,
+    "type": "string",
+    "size": 4000,
+    "array": false
+   },
+   {
+    "key": "pendingConfigExpiresAt",
+    "required": false,
+    "type": "string",
+    "size": 40,
+    "array": false
+   },
+   {
+    "key": "lastStripeEventId",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   }
+  ],
+  "documentSecurity": true,
+  "permissions": [],
+  "indexes": [
+   {
+    "key": "idx_uid",
+    "type": "key",
+    "attributes": [
+     "uid"
+    ]
+   }
+  ]
+ },
  "x1coins_locks": {
   "attributes": [
    {
