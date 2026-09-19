@@ -3447,6 +3447,26 @@ html.xultra-restoring #stage{visibility:hidden}
 .ew-member-av img{width:100%;height:100%;object-fit:cover}
 .ew-member-name{font-size:.84rem;font-weight:700;color:#f2f2f5}
 .ew-member-time{font-size:.68rem;color:var(--muted);margin-left:auto;flex-shrink:0}
+/* ===== Widgets "Notifications récentes" / "Demandes d'ami" ===== */
+.ew-notif-rows{display:flex;flex-direction:column;gap:10px;cursor:pointer}
+.ew-notif-row{display:flex;align-items:center;gap:10px}
+.ew-notif-ico{font-size:1.1rem;flex-shrink:0}
+.ew-notif-body{min-width:0}
+.ew-notif-text{font-size:.8rem;color:#f2f2f5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ew-notif-time{font-size:.68rem;color:var(--muted);margin-top:1px}
+.ew-fr-item{cursor:default}
+.ew-fr-btn{width:26px;height:26px;border-radius:50%;border:1px solid rgba(196,196,204,.2);background:rgba(255,255,255,.05);color:#f2f2f5;font-weight:800;font-size:.78rem;cursor:pointer;flex-shrink:0;transition:background .15s ease,transform .15s ease}
+.ew-fr-btn:hover{transform:scale(1.08)}
+.ew-fr-accept{margin-left:auto;color:#4ade80;border-color:rgba(74,222,128,.35)}
+.ew-fr-accept:hover{background:rgba(74,222,128,.15)}
+.ew-fr-decline{color:#f87171;border-color:rgba(248,113,113,.35)}
+.ew-fr-decline:hover{background:rgba(248,113,113,.15)}
+/* ===== Widgets "IXin Drive" (stockage) / "Emojis & stickers" — réutilisent
+   la même barre de progression que le panneau de quota IXin Drive
+   (.xd-quota-bar/.xd-quota-fill), voir xdRenderQuotaBox(). ===== */
+.ew-expr-row{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:#f2f2f5;margin-bottom:6px}
+.ew-expr-row b{font-weight:800}
+#ew-storage{cursor:pointer}
 .empty h3{color:#f2f2f5;margin:8px 0 4px;font-size:1rem}
 .empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
@@ -5428,6 +5448,7 @@ a.bug-att-item{display:block}
   <div id="section-loading-ov" class="hidden" aria-hidden="true"><div class="bs-ring"></div></div>
   <nav class="rail">
     <button type="button" class="nav-hub-toggle" id="nav-hub-toggle" title="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button type="button" class="rail-btn" id="nav-home" title="Accueil"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/></svg></button>
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
@@ -8797,6 +8818,16 @@ document.querySelectorAll('.rail-btn[data-view]').forEach(function(b){
     catch(e){xlog('nav_error',{msg:(e&&e.message)||String(e)});}
   });
 });
+// Bouton "Accueil" (demandé explicitement) : retrouver le tableau de bord
+// avec ses widgets (météo, story à la une, notifs...) en un clic depuis
+// n'importe où — même en pleine conversation, dans un serveur ou dans le
+// panneau admin — plutôt que devoir d'abord fermer/quitter ce qu'on regarde.
+function openHomeDashboard(){
+  try{if(activeServer)closeServerDetail();}catch(e){}
+  activeDm=null;
+  showView('dms');
+}
+if(\$('nav-home'))\$('nav-home').addEventListener('click',openHomeDashboard);
 let statusRainStop=null,statusRefreshId=null;
 async function openStatusPanel(){
   \$('modal-status').classList.remove('hidden');
@@ -19483,10 +19514,18 @@ function renderEmptyState(icon,title,sub){
       +'<div class="empty-widget ew-weather-widget"><div class="ew-weather-anim" id="ew-weather-anim"></div><div class="ew-weather-fg"><div class="empty-widget-title">🌤️ Météo locale</div><div id="ew-weather"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
       +'<div class="empty-widget ew-story-widget"><div class="ew-story-anim" id="ew-story-anim"></div><div class="ew-story-fg"><div class="empty-widget-title">⭐ Story à la une</div><div id="ew-stories"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
       +'<div class="empty-widget ew-members-widget"><div class="ew-members-anim" id="ew-members-anim"></div><div class="ew-members-fg"><div class="empty-widget-title">🆕 Derniers membres inscrits</div><div id="ew-members"><span class="ew-empty-hint">Chargement…</span></div></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">🔔 Notifications récentes</div><div id="ew-notifs"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">👋 Demandes d\\'ami</div><div id="ew-friendreqs"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">☁️ IXin Drive</div><div id="ew-storage"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="empty-widget"><div class="empty-widget-title">🎭 Emojis & stickers</div><div id="ew-expr"><span class="ew-empty-hint">Chargement…</span></div></div>'
     +'</div>';
   loadWeatherWidget();
   loadFeaturedStoriesWidget();
   loadLatestMembersWidget();
+  loadNotifWidget();
+  loadFriendReqWidget();
+  loadStorageWidget();
+  loadExpressionWidget();
 }
 function weatherCodeInfo(code){
   const map={
@@ -19638,6 +19677,65 @@ async function loadLatestMembersWidget(){
       item.onclick=function(){openProfileModal(item.getAttribute('data-ewm-uid'));};
     });
   }catch(e){const el=\$('ew-members');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
+async function loadNotifWidget(){
+  if(!\$('ew-notifs'))return;
+  try{
+    await loadNotifications();
+    const el=\$('ew-notifs');if(!el)return;
+    // Les demandes d'ami ont déjà leur propre widget juste à côté — jamais
+    // les compter deux fois (même filtre que renderNotifications()).
+    const items=notifCache.filter(function(n){return n.type!=='friend_request';}).slice(0,10);
+    if(!items.length){el.innerHTML='<span class="ew-empty-hint">Aucune notification pour l\\'instant.</span>';return}
+    el.innerHTML='<div class="ew-notif-rows">'+items.map(function(n){
+      return '<div class="ew-notif-row"><span class="ew-notif-ico">'+(NOTIF_ICONS[n.type]||'🔔')+'</span><div class="ew-notif-body"><div class="ew-notif-text">'+esc(n.text||n.fromName||'Notification')+'</div><div class="ew-notif-time">'+esc(fmtRelTime(n.\$createdAt))+'</div></div></div>';
+    }).join('')+'</div>';
+    el.onclick=openNotificationsPanel;
+  }catch(e){const el=\$('ew-notifs');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
+async function loadFriendReqWidget(){
+  if(!\$('ew-friendreqs'))return;
+  try{
+    await loadFriends();
+    const el=\$('ew-friendreqs');if(!el)return;
+    const reqs=friendsCache.filter(function(f){return f.status==='pending_in';});
+    if(!reqs.length){el.innerHTML='<span class="ew-empty-hint">Aucune demande en attente.</span>';return}
+    el.innerHTML='<div class="ew-members-row">'+reqs.slice(0,8).map(function(f){
+      return '<div class="ew-member-item ew-fr-item"><div class="ew-member-av">'+esc(ini(f.name))+'</div><span class="ew-member-name">'+esc(f.name||'Quelqu\\'un')+'</span>'
+        +'<button type="button" class="ew-fr-btn ew-fr-accept" data-ewfr-accept="'+esc(f.\$id)+'" data-ewfr-from="'+esc(f.friendId)+'" title="Accepter">✓</button>'
+        +'<button type="button" class="ew-fr-btn ew-fr-decline" data-ewfr-decline="'+esc(f.\$id)+'" data-ewfr-from="'+esc(f.friendId)+'" title="Refuser">✕</button></div>';
+    }).join('')+'</div>';
+    el.querySelectorAll('[data-ewfr-accept]').forEach(function(b){b.onclick=function(e){e.stopPropagation();acceptFriendRequest(b.getAttribute('data-ewfr-accept'),b.getAttribute('data-ewfr-from')).then(loadFriendReqWidget);};});
+    el.querySelectorAll('[data-ewfr-decline]').forEach(function(b){b.onclick=function(e){e.stopPropagation();rejectFriendRequest(b.getAttribute('data-ewfr-decline'),b.getAttribute('data-ewfr-from')).then(loadFriendReqWidget);};});
+  }catch(e){const el=\$('ew-friendreqs');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
+async function loadStorageWidget(){
+  if(!\$('ew-storage'))return;
+  try{
+    const r=await authPost('/api/xdrive/quota',{});
+    const el=\$('ew-storage');if(!el)return;
+    const used=r.used||0,quota=r.quota||1073741824;
+    const pct=Math.min(100,Math.round(used/quota*100));
+    el.innerHTML='<div class="xd-quota-txt">'+xdFmtBytes(used)+' / '+xdFmtBytes(quota)+'</div>'
+      +'<div class="xd-quota-bar"><div class="xd-quota-fill'+(pct>=90?' xd-quota-warn':'')+'" style="width:'+pct+'%"></div></div>'
+      +'<div class="xd-quota-txt">'+pct+'% utilisé'+(pct>=90?' — presque plein !':'')+'</div>';
+    el.onclick=function(){if(\$('nav-xdrive'))\$('nav-xdrive').click();};
+  }catch(e){const el=\$('ew-storage');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
+}
+async function loadExpressionWidget(){
+  if(!\$('ew-expr'))return;
+  try{
+    const r=await authGet('/api/servers/expression-usage');
+    const el=\$('ew-expr');if(!el)return;
+    const emojiCap=r.emojiCap||50,stickerCap=r.stickerCap||20;
+    const emojiPct=Math.min(100,Math.round((r.emojiCount||0)/emojiCap*100));
+    const stickerPct=Math.min(100,Math.round((r.stickerCount||0)/stickerCap*100));
+    el.innerHTML='<div class="ew-expr-row"><span>😀 Emojis</span><b>'+(r.emojiCount||0)+' / '+emojiCap+'</b></div>'
+      +'<div class="xd-quota-bar"><div class="xd-quota-fill'+(emojiPct>=90?' xd-quota-warn':'')+'" style="width:'+emojiPct+'%"></div></div>'
+      +'<div class="ew-expr-row" style="margin-top:10px"><span>🖼️ Stickers</span><b>'+(r.stickerCount||0)+' / '+stickerCap+'</b></div>'
+      +'<div class="xd-quota-bar"><div class="xd-quota-fill'+(stickerPct>=90?' xd-quota-warn':'')+'" style="width:'+stickerPct+'%"></div></div>'
+      +(emojiCap<150?'<div class="ew-empty-hint" style="display:block;margin-top:10px">Jusqu\\'à 150 emojis avec IXin+ (ou palier de boost 2) sur le HUB.</div>':'');
+  }catch(e){const el=\$('ew-expr');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
 }
 function closeStoryViewer(){
   if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
@@ -42883,6 +42981,32 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: true, id: msg.$id }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // Widget "Emojis & stickers" du tableau de bord vide : un seul aller-retour
+  // pour les deux compteurs + leurs limites réelles (celles qu'appliquent
+  // déjà emojis/create et stickers/create ci-dessous), plutôt que de
+  // dupliquer la logique de palier IXin+/boost côté client ou de faire
+  // télécharger les listes complètes juste pour les compter.
+  if (path === "/api/servers/expression-usage" && request.method === "GET") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const server = await resolveHubServer();
+      if (!server) return new Response(JSON.stringify({ ok: true, emojiCount: 0, emojiCap: 50, stickerCount: 0, stickerCap: 20 }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const countOnly = async function (coll) {
+        const r = await awFetch("/databases/" + AW_DB + "/collections/" + coll + "/documents?" +
+          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [server.$id] })) +
+          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
+        return r.total || 0;
+      };
+      const [emojiCount, stickerCount, emojiCap] = await Promise.all([
+        countOnly("server_emojis"), countOnly("server_stickers"), serverExpressionSlots(server, 50, 150)
+      ]);
+      return new Response(JSON.stringify({ ok: true, emojiCount: emojiCount, emojiCap: emojiCap, stickerCount: stickerCount, stickerCap: 20 }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
