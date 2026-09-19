@@ -4044,6 +4044,13 @@
     "array": false
    },
    {
+    "key": "socialLinksJson",
+    "required": false,
+    "type": "string",
+    "size": 2000,
+    "array": false
+   },
+   {
     "key": "planInterest",
     "required": false,
     "type": "string",
