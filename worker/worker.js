@@ -2428,6 +2428,40 @@ html.xultra-restoring #stage{visibility:hidden}
    gens à cliquer dès qu'une entrée qu'ils n'ont pas encore vue existe. */
 .rail-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#ef4444;border:2px solid #08080a}
 .rail-dot.hidden{display:none}
+/* Refonte demandée explicitement : la pile de boutons du rail (Messages,
+   Amis, Musique, Boutique...) reste en place dans le DOM, intacte — tout le
+   JS existant qui les cible par id/classe (badges, état "actif" via
+   showView, visibilité admin/staff) continue de fonctionner sans y
+   toucher — mais ne s'affiche plus : le rail ne montre plus qu'UN SEUL
+   bouton, qui ouvre un panneau dédié (#modal-nav-hub) listant les mêmes
+   actions en grille, plus un coin profil. Voir renderNavHubPanel(), qui
+   clone dynamiquement chaque bouton caché ici (icône, titre, badge, pastille)
+   plutôt que de dupliquer 15 SVG à la main — jamais désynchronisé. */
+.rail .rail-btn{display:none}
+.nav-hub-toggle{position:relative;display:grid!important;width:44px;height:44px;border-radius:14px;background:var(--elev);place-items:center;color:#e7e7ea;flex-shrink:0;transition:background .15s}
+.nav-hub-toggle:hover{background:#1c1c1f}
+.nav-hub-toggle.has-alert::after{content:'';position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid #08080a}
+.nav-hub-modal{width:min(420px,100%);padding:0;display:flex;flex-direction:column;max-height:min(640px,88dvh)}
+.nav-hub-head{padding:20px 20px 4px}
+.nav-hub-head h2{margin:0;font-size:1.05rem}
+.nav-hub-profile{display:flex;align-items:center;gap:11px;margin:14px 20px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(245,245,247,.14),rgba(20,20,20,.6));border:1px solid rgba(196,196,204,.16)}
+.nav-hub-profile .av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:700;overflow:hidden;background:var(--elev)}
+.nav-hub-profile .av img{width:100%;height:100%;object-fit:cover}
+.nav-hub-profile-info{flex:1;min-width:0}
+.nav-hub-profile-name{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-hub-profile-status{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-hub-profile-settings{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);flex-shrink:0;color:#e7e7ea}
+.nav-hub-profile-settings:hover{background:rgba(255,255,255,.12)}
+.nav-hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 20px 20px;overflow-y:auto}
+.nav-hub-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;background:var(--elev);position:relative;text-align:center;color:#e7e7ea}
+.nav-hub-item:hover{background:#1c1c1f}
+.nav-hub-item .nhi-ico{width:22px;height:22px;display:grid;place-items:center}
+.nav-hub-item .nhi-ico svg{width:22px;height:22px}
+.nav-hub-item .nhi-label{font-size:.68rem;line-height:1.15}
+.nav-hub-item.hidden{display:none}
+.nav-hub-item .nhi-badge{position:absolute;top:6px;right:14px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:800;display:grid;place-items:center;line-height:1}
+.nav-hub-item .nhi-dot{position:absolute;top:8px;right:16px;width:9px;height:9px;border-radius:50%;background:#ef4444}
+@media (max-width:640px){.nav-hub-grid{grid-template-columns:repeat(2,1fr)}}
 .mobile-menu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle}
 .mobile-menu-dot.hidden{display:none}
 .list-col{width:var(--list-w);background:#0e0e10;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
@@ -5277,6 +5311,7 @@ a.bug-att-item{display:block}
 <div id="app" class="hidden">
   <div id="section-loading-ov" class="hidden" aria-hidden="true"><div class="bs-ring"></div></div>
   <nav class="rail">
+    <button type="button" class="nav-hub-toggle" id="nav-hub-toggle" title="Menu"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
     <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
@@ -5307,6 +5342,21 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" data-view="servers" title="HUB VOCAL"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
+  <div class="overlay hidden" id="modal-nav-hub">
+    <div class="modal-box nav-hub-modal">
+      <button type="button" class="modal-close" id="nav-hub-close">✕</button>
+      <div class="nav-hub-head"><h2>Menu</h2></div>
+      <div class="nav-hub-profile" id="nav-hub-profile">
+        <div class="av" id="nav-hub-av">?</div>
+        <div class="nav-hub-profile-info">
+          <div class="nav-hub-profile-name" id="nav-hub-profile-name">—</div>
+          <div class="nav-hub-profile-status" id="nav-hub-profile-status">En ligne</div>
+        </div>
+        <button type="button" class="nav-hub-profile-settings" id="nav-hub-profile-settings" title="Paramètres"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      </div>
+      <div class="nav-hub-grid" id="nav-hub-grid"></div>
+    </div>
+  </div>
   <aside class="list-col">
     <div class="list-head">
       <h1 id="list-title">Messages</h1>
@@ -12574,6 +12624,68 @@ if(\$('ub-suggestions-mobile'))\$('ub-suggestions-mobile').addEventListener('cli
 if(\$('ub-team-mobile'))\$('ub-team-mobile').addEventListener('click',function(){closeUbPopovers();openTeamPanel();});
 if(\$('set-close'))\$('set-close').addEventListener('click',closeSettingsPanel);
 if(\$('modal-settings'))\$('modal-settings').addEventListener('click',function(e){if(e.target===this)closeSettingsPanel();});
+
+/* ===== Panneau de navigation unique (refonte demandée explicitement) =====
+   Le rail garde tous ses boutons d'origine dans le DOM (cachés en CSS) —
+   ce panneau les CLONE dynamiquement à chaque ouverture plutôt que de
+   dupliquer leur icône/titre/badge en dur ici, pour ne jamais désynchroniser
+   ce qui s'affiche (visibilité admin/staff, badge amis, pastille nouveautés). */
+function renderNavHubPanel(){
+  const grid=\$('nav-hub-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  document.querySelectorAll('.rail .rail-btn').forEach(function(btn){
+    const item=document.createElement('button');
+    item.type='button';
+    item.className='nav-hub-item'+(btn.classList.contains('hidden')?' hidden':'');
+    const icoWrap=document.createElement('span');
+    icoWrap.className='nhi-ico';
+    const svg=btn.querySelector('svg');
+    if(svg)icoWrap.appendChild(svg.cloneNode(true));
+    const label=document.createElement('span');
+    label.className='nhi-label';
+    label.textContent=btn.getAttribute('title')||'';
+    item.appendChild(icoWrap);
+    item.appendChild(label);
+    const badge=btn.querySelector('.rail-badge');
+    if(badge&&!badge.classList.contains('hidden')&&badge.textContent!=='0'){
+      const b=document.createElement('span');
+      b.className='nhi-badge';
+      b.textContent=badge.textContent;
+      item.appendChild(b);
+    }
+    const dot=btn.querySelector('.rail-dot');
+    if(dot&&!dot.classList.contains('hidden')){
+      const d=document.createElement('span');
+      d.className='nhi-dot';
+      item.appendChild(d);
+    }
+    item.addEventListener('click',function(){closeNavHubPanel();btn.click();});
+    grid.appendChild(item);
+  });
+}
+function openNavHubPanel(){
+  renderNavHubPanel();
+  const avSrc=\$('ub-av'),nameSrc=\$('ub-name'),statusSrc=\$('ub-status');
+  if(avSrc&&\$('nav-hub-av'))\$('nav-hub-av').innerHTML=avSrc.innerHTML;
+  if(nameSrc&&\$('nav-hub-profile-name'))\$('nav-hub-profile-name').textContent=nameSrc.textContent;
+  if(statusSrc&&\$('nav-hub-profile-status'))\$('nav-hub-profile-status').textContent=statusSrc.textContent;
+  \$('modal-nav-hub').classList.remove('hidden');
+}
+function closeNavHubPanel(){if(\$('modal-nav-hub'))\$('modal-nav-hub').classList.add('hidden');}
+function updateNavHubToggleBadge(){
+  const toggle=\$('nav-hub-toggle');
+  if(!toggle)return;
+  const hasBadge=Array.prototype.some.call(document.querySelectorAll('.rail .rail-badge'),function(b){return !b.classList.contains('hidden')&&b.textContent!=='0'});
+  const hasDot=Array.prototype.some.call(document.querySelectorAll('.rail .rail-dot'),function(d){return !d.classList.contains('hidden')});
+  toggle.classList.toggle('has-alert',hasBadge||hasDot);
+}
+if(\$('nav-hub-toggle'))\$('nav-hub-toggle').addEventListener('click',openNavHubPanel);
+if(\$('nav-hub-close'))\$('nav-hub-close').addEventListener('click',closeNavHubPanel);
+if(\$('modal-nav-hub'))\$('modal-nav-hub').addEventListener('click',function(e){if(e.target===this)closeNavHubPanel();});
+if(\$('nav-hub-profile-settings'))\$('nav-hub-profile-settings').addEventListener('click',function(){closeNavHubPanel();openSettingsPanel();});
+setInterval(updateNavHubToggleBadge,3000);
+updateNavHubToggleBadge();
 
 /* ===== Raccourcis clavier globaux ===== */
 function closeTopmostOverlay(){
