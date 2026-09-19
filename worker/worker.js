@@ -7840,6 +7840,15 @@ async function enterApp(e2ePassword){
        ne le transporte jamais), on propose de confirmer son mot de passe pour
        l'activer, plutôt que de laisser le risque silencieux de perdre l'accès
        aux messages en cas de changement d'appareil. */
+    /* Ce bandeau demande le MOT DE PASSE du compte (ensureE2EKeys/serverLogin
+       en dépendent tous les deux) — un compte connecté par clé secrète ou
+       passkey (voir /api/auth/devicekey/register, /api/auth/passkey/*) n'en a
+       tout simplement pas. Sans ce garde-fou, ces comptes voyaient un bandeau
+       qu'aucune saisie ne pouvait jamais satisfaire ni faire disparaître
+       définitivement (la clé secrète tapée dans le champ mot de passe
+       échouait toujours, et "Plus tard" ne mémorise le rejet que pour la
+       session en cours). */
+    if(!me.email)return;
     if(status&&status.needsRestore&&!e2eBackupPromptDismissed){
       showE2EBanner('restore');
     }else if(status&&status.hasKey&&!status.backedUp&&!e2eBackupPromptDismissed){
