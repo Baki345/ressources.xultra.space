@@ -2449,30 +2449,52 @@ html.xultra-restoring #stage{visibility:hidden}
    (DMs, serveur, admin...) puisqu'il n'est jamais démonté par showView().
    z-index sous les .overlay (2000) : un modal ouvert (dont le panneau du
    bouton lui-même) l'assombrit normalement au lieu de flotter par-dessus. */
-.nav-hub-toggle{position:fixed!important;top:calc(14px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:900;display:grid!important;width:44px;height:44px;border-radius:14px;background:#1c1c1f;place-items:center;color:#e7e7ea;box-shadow:0 6px 20px rgba(0,0,0,.4);border:1px solid rgba(196,196,204,.16);transition:background .15s}
-.nav-hub-toggle:hover{background:#242428}
+.nav-hub-toggle{position:fixed!important;top:calc(14px + env(safe-area-inset-top));left:calc(14px + env(safe-area-inset-left));z-index:900;display:grid!important;width:44px;height:44px;border-radius:14px;background:#1c1c1f;place-items:center;color:#e7e7ea;box-shadow:0 6px 20px rgba(0,0,0,.4);border:1px solid rgba(196,196,204,.16);transition:background .15s,transform .15s}
+.nav-hub-toggle:hover{background:#242428;transform:translateY(-1px)}
+.nav-hub-toggle:active{transform:translateY(0) scale(.92);transition-duration:.05s}
 .nav-hub-toggle.has-alert::after{content:'';position:absolute;top:6px;right:6px;width:9px;height:9px;border-radius:50%;background:#ef4444;border:2px solid #08080a}
-.nav-hub-modal{width:min(420px,100%);padding:0;display:flex;flex-direction:column;max-height:min(640px,88dvh)}
+/* Petite entrée en douceur (demandée explicitement : "animation discrète")
+   plutôt qu'un simple pop — respecte prefers-reduced-motion. */
+@keyframes navHubIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+#modal-nav-hub .nav-hub-modal{animation:navHubIn .18s cubic-bezier(.2,.9,.3,1.2)}
+@media (prefers-reduced-motion:reduce){#modal-nav-hub .nav-hub-modal{animation:none}}
+.nav-hub-modal{width:min(420px,100%);padding:0;display:flex;flex-direction:column;max-height:min(640px,88dvh);overflow:hidden}
 .nav-hub-head{padding:20px 20px 4px}
 .nav-hub-head h2{margin:0;font-size:1.05rem}
-.nav-hub-profile{display:flex;align-items:center;gap:11px;margin:14px 20px;padding:10px 12px;border-radius:14px;background:linear-gradient(135deg,rgba(245,245,247,.14),rgba(20,20,20,.6));border:1px solid rgba(196,196,204,.16)}
-.nav-hub-profile .av{width:40px;height:40px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:700;overflow:hidden;background:var(--elev)}
+.nav-hub-profile{margin:14px 20px;border-radius:16px;background:linear-gradient(135deg,rgba(245,245,247,.14),rgba(20,20,20,.6));border:1px solid rgba(196,196,204,.16);overflow:hidden}
+.nav-hub-banner{height:56px;background:linear-gradient(135deg,#6d28d9,#0b0614)}
+.nav-hub-profile-row{display:flex;align-items:center;gap:11px;padding:0 12px;margin-top:-20px}
+.nav-hub-profile .av{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;font-weight:700;overflow:hidden;background:var(--elev);border:3px solid #131315}
 .nav-hub-profile .av img{width:100%;height:100%;object-fit:cover}
-.nav-hub-profile-info{flex:1;min-width:0}
+.nav-hub-profile-info{flex:1;min-width:0;padding-top:20px}
 .nav-hub-profile-name{font-weight:700;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav-hub-profile-status{font-size:.74rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nav-hub-profile-settings{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);flex-shrink:0;color:#e7e7ea}
-.nav-hub-profile-settings:hover{background:rgba(255,255,255,.12)}
+.nav-hub-presence-row{display:flex;align-items:center;gap:5px;margin-top:3px}
+.nav-hub-pres-dot{width:14px;height:14px;border-radius:50%;background:var(--dot);border:2px solid transparent;transition:transform .12s,border-color .12s;padding:0}
+.nav-hub-pres-dot:hover{transform:scale(1.22)}
+.nav-hub-pres-dot:active{transform:scale(.95)}
+.nav-hub-pres-dot.on{border-color:rgba(255,255,255,.55)}
+.nav-hub-profile-settings{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.06);flex-shrink:0;color:#e7e7ea;margin-top:20px;transition:background .12s,transform .12s}
+.nav-hub-profile-settings:hover{background:rgba(255,255,255,.12);transform:rotate(28deg)}
+.nav-hub-profile-settings:active{transform:rotate(28deg) scale(.9)}
+.nav-hub-mood-input{width:calc(100% - 24px);margin:8px 12px 12px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(196,196,204,.16);color:#e7e7ea;font-size:.76rem;transition:background .12s,border-color .12s}
+.nav-hub-mood-input::placeholder{color:var(--muted)}
+.nav-hub-mood-input:hover{background:rgba(255,255,255,.09)}
+.nav-hub-mood-input:focus{outline:none;background:rgba(255,255,255,.1);border-color:rgba(196,196,204,.32)}
 .nav-hub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:4px 20px 20px;overflow-y:auto}
-.nav-hub-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;background:var(--elev);position:relative;text-align:center;color:#e7e7ea}
-.nav-hub-item:hover{background:#1c1c1f}
-.nav-hub-item .nhi-ico{width:22px;height:22px;display:grid;place-items:center}
+.nav-hub-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px;border-radius:14px;background:var(--elev);position:relative;text-align:center;color:#e7e7ea;transition:background .12s,transform .12s}
+.nav-hub-item:hover{background:#1c1c1f;transform:translateY(-2px)}
+.nav-hub-item:active{transform:translateY(0) scale(.96);transition-duration:.05s}
+.nav-hub-item .nhi-ico{width:22px;height:22px;display:grid;place-items:center;transition:transform .15s}
+.nav-hub-item:hover .nhi-ico{transform:scale(1.1)}
 .nav-hub-item .nhi-ico svg{width:22px;height:22px}
 .nav-hub-item .nhi-label{font-size:.68rem;line-height:1.15}
 .nav-hub-item.hidden{display:none}
 .nav-hub-item .nhi-badge{position:absolute;top:6px;right:14px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef4444;color:#fff;font-size:.6rem;font-weight:800;display:grid;place-items:center;line-height:1}
 .nav-hub-item .nhi-dot{position:absolute;top:8px;right:16px;width:9px;height:9px;border-radius:50%;background:#ef4444}
+#nav-hub-close{transition:background .12s,transform .12s}
+#nav-hub-close:hover{transform:rotate(90deg)}
 @media (max-width:640px){.nav-hub-grid{grid-template-columns:repeat(2,1fr)}}
+@media (prefers-reduced-motion:reduce){.nav-hub-toggle,.nav-hub-item,.nav-hub-pres-dot,.nav-hub-profile-settings,#nav-hub-close{transition:none}}
 .mobile-menu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-left:6px;vertical-align:middle}
 .mobile-menu-dot.hidden{display:none}
 .list-col{width:var(--list-w);background:#0e0e10;display:flex;flex-direction:column;flex-shrink:0;min-width:0;border-right:1px solid var(--line)}
@@ -5368,12 +5390,16 @@ a.bug-att-item{display:block}
       <button type="button" class="modal-close" id="nav-hub-close">✕</button>
       <div class="nav-hub-head"><h2>Menu</h2></div>
       <div class="nav-hub-profile" id="nav-hub-profile">
-        <div class="av" id="nav-hub-av">?</div>
-        <div class="nav-hub-profile-info">
-          <div class="nav-hub-profile-name" id="nav-hub-profile-name">—</div>
-          <div class="nav-hub-profile-status" id="nav-hub-profile-status">En ligne</div>
+        <div class="nav-hub-banner" id="nav-hub-banner"></div>
+        <div class="nav-hub-profile-row">
+          <div class="av" id="nav-hub-av">?</div>
+          <div class="nav-hub-profile-info">
+            <div class="nav-hub-profile-name" id="nav-hub-profile-name">—</div>
+            <div class="nav-hub-presence-row" id="nav-hub-presence-row"></div>
+          </div>
+          <button type="button" class="nav-hub-profile-settings" id="nav-hub-profile-settings" title="Paramètres"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         </div>
-        <button type="button" class="nav-hub-profile-settings" id="nav-hub-profile-settings" title="Paramètres"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+        <input type="text" class="nav-hub-mood-input" id="nav-hub-mood-input" maxlength="60" placeholder="Ajoute un statut d'humeur…">
       </div>
       <div class="nav-hub-grid" id="nav-hub-grid"></div>
     </div>
@@ -12685,15 +12711,84 @@ function renderNavHubPanel(){
     grid.appendChild(item);
   });
 }
+/* Bannière + sélecteur de présence + statut d'humeur en accès direct
+   (demandé explicitement) : réutilise exactement les mêmes données/
+   endpoints que le reste de l'app (PRESENCE_DEFS + /users pour le statut,
+   THEME_PRESETS + bg/bgType/bgColor pour la bannière, /api/account/update-meta
+   pour l'humeur, déjà tous utilisés par le userbar/l'éditeur de profil) —
+   jamais un second système parallèle. */
+function renderNavHubProfile(){
+  if(!meProfile)return;
+  const name=meProfile.displayName||meProfile.username||(me&&me.name)||'Compte';
+  const nameEl=\$('nav-hub-profile-name');if(nameEl)nameEl.textContent=name;
+  const avSrc=\$('ub-av');
+  if(avSrc&&\$('nav-hub-av'))\$('nav-hub-av').innerHTML=avSrc.innerHTML;
+  const banner=\$('nav-hub-banner');
+  if(banner){
+    const themeColor=(THEME_PRESETS[meProfile.theme]||THEME_PRESETS.violet);
+    const bgType=meProfile.bgType||'gradient';
+    const bgColor=meProfile.bgColor||themeColor;
+    const bannerImg=safeUrl(meProfile.bg);
+    if(bgType==='image'&&bannerImg)banner.style.cssText='background-image:url(\\''+bannerImg.replace(/'/g,'%27')+'\\');background-size:cover;background-position:center';
+    else if(bgType==='color')banner.style.cssText='background:'+bgColor;
+    else banner.style.cssText='background:linear-gradient(135deg,'+bgColor+',#0b0614)';
+  }
+  const presRow=\$('nav-hub-presence-row');
+  if(presRow){
+    const current=meProfile.statusManual||'online';
+    presRow.innerHTML=Object.keys(PRESENCE_DEFS).map(function(k){
+      const d=PRESENCE_DEFS[k];
+      return '<button type="button" class="nav-hub-pres-dot'+(k===current?' on':'')+'" data-set-presence="'+k+'" style="--dot:'+d.dot+'" title="'+esc(d.label)+'"></button>';
+    }).join('');
+    presRow.querySelectorAll('[data-set-presence]').forEach(function(btn){
+      btn.addEventListener('click',async function(){
+        const st=btn.getAttribute('data-set-presence');
+        if(!meProfile)return;
+        try{
+          await db.updateDocument(DB,'users',meProfile.\$id,{statusManual:st});
+          meProfile.statusManual=st;
+          refreshSelfBar();
+          renderNavHubProfile();
+          showToast('Statut : '+(PRESENCE_DEFS[st]&&PRESENCE_DEFS[st].label));
+        }catch(e){showToast('Changement de statut impossible','error');}
+      });
+    });
+  }
+  const moodInput=\$('nav-hub-mood-input');
+  if(moodInput&&document.activeElement!==moodInput){
+    const extra=me?parseProfileExtra(memberMetaByUid[String(me.\$id)]&&memberMetaByUid[String(me.\$id)].profileExtraJson):{};
+    moodInput.value=extra.customStatus||'';
+  }
+}
+async function saveNavHubMood(text){
+  if(!me)return;
+  const meta=memberMetaByUid[String(me.\$id)]||{};
+  const extra=parseProfileExtra(meta.profileExtraJson);
+  extra.customStatus=(text||'').slice(0,60);
+  const newExtraJson=JSON.stringify(extra);
+  try{
+    await authPost('/api/account/update-meta',{profileExtraJson:newExtraJson});
+    memberMetaByUid[String(me.\$id)]=Object.assign({},meta,{profileExtraJson:newExtraJson});
+  }catch(e){showToast('Statut d\\'humeur non enregistré','error');}
+}
 function openNavHubPanel(){
   renderNavHubPanel();
-  const avSrc=\$('ub-av'),nameSrc=\$('ub-name'),statusSrc=\$('ub-status');
-  if(avSrc&&\$('nav-hub-av'))\$('nav-hub-av').innerHTML=avSrc.innerHTML;
-  if(nameSrc&&\$('nav-hub-profile-name'))\$('nav-hub-profile-name').textContent=nameSrc.textContent;
-  if(statusSrc&&\$('nav-hub-profile-status'))\$('nav-hub-profile-status').textContent=statusSrc.textContent;
+  renderNavHubProfile();
   \$('modal-nav-hub').classList.remove('hidden');
 }
 function closeNavHubPanel(){if(\$('modal-nav-hub'))\$('modal-nav-hub').classList.add('hidden');}
+(function(){
+  const moodInput=\$('nav-hub-mood-input');
+  if(!moodInput)return;
+  let lastSaved=null;
+  moodInput.addEventListener('focus',function(){lastSaved=moodInput.value;});
+  moodInput.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();moodInput.blur();}});
+  moodInput.addEventListener('blur',function(){
+    if(moodInput.value===lastSaved)return;
+    lastSaved=moodInput.value;
+    saveNavHubMood(moodInput.value);
+  });
+})();
 function updateNavHubToggleBadge(){
   const toggle=\$('nav-hub-toggle');
   if(!toggle)return;
