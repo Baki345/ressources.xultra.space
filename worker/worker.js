@@ -3408,6 +3408,12 @@ html.xultra-restoring #stage{visibility:hidden}
    à un seul élément. Sans effet sur mobile, où .list-col est déjà masqué
    par #app.chat-open plus bas. */
 #app.hub-fullwidth .list-col{display:none}
+/* .list-col caché ici (ci-dessus) => le bandeau .chat-top de #server-active
+   démarre au tout bord gauche de l'écran, pile sous le bouton de navigation
+   flottant (position:fixed, voir .nav-hub-toggle) — signalé : le bouton
+   chevauchait le nom du serveur. Décalage identique à celui déjà appliqué à
+   .list-head pour la même raison. */
+#app.hub-fullwidth .chat-top{padding-left:72px}
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--muted);padding:36px 20px;overflow-y:auto;background:linear-gradient(120deg,#121214,#141416,#18181b,#1c1c1f);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
 @keyframes emptyGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 .empty-head{flex-shrink:0}
