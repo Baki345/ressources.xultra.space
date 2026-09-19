@@ -10996,8 +10996,15 @@ function renderSettingsSidebar(){
     // "Notes de version" (changelog) : réservé équipe (owner/mod/support/dev),
     // voir canSeeChangelog / checkAdmin() — un membre normal ne doit même pas
     // voir l'entrée dans le menu, pas seulement se la faire refuser au clic.
+    // "VPN" : même garde-fou temporaire — le paiement Stripe est déjà réel
+    // (même clé que IXin+), mais rien ne le provisionne encore côté serveur
+    // (vpn-manager + le vrai WireGuard sur le VPS restent à déployer) ; le
+    // cacher au public évite qu'un membre paie pour un accès qui ne peut pas
+    // encore être livré. Retirer ce filtre une fois le VPN réellement en
+    // service de bout en bout.
     const items=g.items.filter(function(it){
       if(it.key==='changelog'&&!canSeeChangelog)return false;
+      if(it.key==='vpn'&&!canSeeChangelog)return false;
       if(!q)return true;
       const label=t('set_'+it.key,it.title).toLowerCase();
       if(label.indexOf(q)>=0||it.key.toLowerCase().indexOf(q)>=0)return true;
