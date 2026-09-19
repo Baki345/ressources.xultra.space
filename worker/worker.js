@@ -29678,6 +29678,7 @@ async function startCall(peerUid,peerName){
     rebuildMicChain();
     showCallBar(peerName,'Sonne…',new Date(doc.\$createdAt).getTime());
     subscribeCallAnswer(doc.\$id);
+    startCallAcceptPolling(doc.\$id);
     subscribeIceForCall(doc.\$id);
     callTimeoutId=setTimeout(function(){
       // Personne n'a décroché après 1 min : on ne raccroche pas, l'appelant
@@ -29701,22 +29702,25 @@ async function startCall(peerUid,peerName){
   }
 }
 
+async function applyCallAcceptedAnswer(answer){
+  if(!callPc||callPc.currentRemoteDescription)return false;
+  await callPc.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
+  if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
+  callLive=true;callConnectedAt=Date.now();
+  setCallStatusLabel('En appel…');
+  /* Caméra/partage activés pendant la sonnerie (avant que l'appel soit
+     "live") n'ont pas pu être renégociés à ce moment-là (callPc n'avait
+     pas encore de description distante) : on rattrape maintenant. */
+  if(camSender||screenSender)onNegotiationNeeded();
+  broadcastCallState();
+  return true;
+}
 function subscribeCallAnswer(callId){
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,async function(res){
     const payload=res.payload;
     if(!payload)return;
     if(eventIs(res.events,'.update')&&payload.status==='accepted'&&payload.answer&&callPc&&!callPc.currentRemoteDescription){
-      try{
-        await callPc.setRemoteDescription(new RTCSessionDescription(JSON.parse(payload.answer)));
-        if(callTimeoutId){clearTimeout(callTimeoutId);callTimeoutId=null;}
-        callLive=true;callConnectedAt=Date.now();
-        setCallStatusLabel('En appel…');
-        /* Caméra/partage activés pendant la sonnerie (avant que l'appel soit
-           "live") n'ont pas pu être renégociés à ce moment-là (callPc n'avait
-           pas encore de description distante) : on rattrape maintenant. */
-        if(camSender||screenSender)onNegotiationNeeded();
-        broadcastCallState();
-      }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
+      try{await applyCallAcceptedAnswer(payload.answer);}catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
     } else if(payload.status==='paused'){
       const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
       const savedDurationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
@@ -29727,6 +29731,43 @@ function subscribeCallAnswer(callId){
     }
   });
   callUnsubs.push(unsub);
+}
+// Filet de sécurité côté APPELANT (même principe que checkPendingIncomingCall
+// pour les appels entrants, cf plus haut) : la souscription temps réel
+// ci-dessus est le chemin normal, mais si le WebSocket de l'appelant meurt
+// silencieusement pendant la sonnerie (bug remonté : "connexion RTC en
+// cours" à l'infini alors que l'autre a bel et bien décroché — confirmé en
+// conditions réelles par un aucun changement de connectionState côté
+// appelant malgré un decroché confirmé côté receveur), l'appelant n'apprend
+// jamais que l'appel a été accepté et reste bloqué pour toujours : rien
+// jusqu'ici ne rattrapait ce cas précis côté sortant. Sondage direct du
+// document (vérité serveur, contourne le WebSocket) tant que l'appel sonne.
+let callAcceptPollId=null;
+function startCallAcceptPolling(callId){
+  stopCallAcceptPolling();
+  callAcceptPollId=setInterval(async function(){
+    if(!activeCallDoc||activeCallDoc.\$id!==callId||callLive||!callPc){stopCallAcceptPolling();return}
+    try{
+      const doc=await db.getDocument(DB,'direct_calls',callId);
+      if(doc.status==='accepted'&&doc.answer&&callPc&&!callPc.currentRemoteDescription){
+        try{
+          if(await applyCallAcceptedAnswer(doc.answer))xlog('call_answer_poll_recovered',{});
+        }catch(e){xlog('call_setremote_fail',{msg:(e&&e.message)||String(e)});}
+      } else if(doc.status==='paused'){
+        const savedPeerUid=callPeerUid,savedPeerName=callPeerName,savedDoc=activeCallDoc;
+        const savedDurationSec=callConnectedAt?Math.floor((Date.now()-callConnectedAt)/1000):0;
+        cleanupCallLocal();
+        if(savedDoc)enterPausedState(savedDoc.\$id,savedPeerUid,savedPeerName,Date.now(),savedDurationSec);
+      } else if(['declined','ended','missed'].indexOf(doc.status)>=0){
+        endCall('ended',true);
+      }
+    }catch(e){
+      if(activeCallDoc&&activeCallDoc.\$id===callId)endCall('ended',true);
+    }
+  },4000);
+}
+function stopCallAcceptPolling(){
+  if(callAcceptPollId){clearInterval(callAcceptPollId);callAcceptPollId=null;}
 }
 function subscribeCallDocLifecycle(callId){
   const unsub=client.subscribe('databases.'+DB+'.collections.direct_calls.documents.'+callId,function(res){
@@ -29895,6 +29936,7 @@ function renderCallStatus(){
 }
 function cleanupCallLocal(){
   callSetupBusy=false;
+  stopCallAcceptPolling();
   if(callPc){try{callPc.close();}catch(e){}callPc=null;}
   if(localStream){localStream.getTracks().forEach(function(t){t.stop()});localStream=null;}
   if(camStream){camStream.getTracks().forEach(function(t){t.stop()});camStream=null;}
@@ -30047,6 +30089,7 @@ async function rejoinPausedCall(callId,peerUid,peerName){
     rebuildMicChain();
     showCallBar(callPeerName,'Reconnexion…',Date.now());
     subscribeCallAnswer(callId);
+    startCallAcceptPolling(callId);
     subscribeIceForCall(callId);
     callTimeoutId=setTimeout(function(){
       if(activeCallDoc&&activeCallDoc.\$id===callId){callTimeoutId=null;setCallStatusLabel('En attente…');}
