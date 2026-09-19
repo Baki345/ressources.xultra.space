@@ -7453,7 +7453,7 @@ function renderQrCodeSvg(targetEl,text){
       }
     }
     targetEl.innerHTML='<svg viewBox="0 0 '+size+' '+size+'" xmlns="http://www.w3.org/2000/svg"><rect width="'+size+'" height="'+size+'" fill="#fff8f0"/><path d="'+path+'" fill="#1a1030"/></svg>';
-  }catch(e){}
+  }catch(e){console.error('renderQrCodeSvg failed:',e);}
 }
 async function qrLoginCreateToken(){
   try{
