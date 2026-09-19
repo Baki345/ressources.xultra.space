@@ -3467,6 +3467,28 @@ html.xultra-restoring #stage{visibility:hidden}
 .ew-expr-row{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:#f2f2f5;margin-bottom:6px}
 .ew-expr-row b{font-weight:800}
 #ew-storage{cursor:pointer}
+/* ===== Notes autocollantes : couche libre par-dessus .empty-dash, voir
+   loadStickyNotes()/renderStickyNote(). pointer-events:none sur la couche
+   pour laisser les clics traverser vers les cartes en dessous entre deux
+   notes ; auto sur chaque note pour la rendre interactive. ===== */
+.sticky-notes-layer{position:absolute;inset:0;pointer-events:none;z-index:5}
+.sticky-note{position:absolute;width:180px;min-height:150px;background:var(--sticky-color,#fde68a);border-radius:4px 4px 12px 12px;box-shadow:0 10px 24px rgba(0,0,0,.35),0 2px 0 rgba(0,0,0,.12);display:flex;flex-direction:column;pointer-events:auto;transform:rotate(-1.1deg);transition:box-shadow .15s ease}
+.sticky-note:nth-child(even){transform:rotate(1.1deg)}
+.sticky-note:hover{box-shadow:0 16px 34px rgba(0,0,0,.45),0 2px 0 rgba(0,0,0,.12)}
+.sticky-note-head{display:flex;align-items:center;gap:6px;padding:6px 8px 2px}
+.sticky-note-drag{cursor:grab;color:rgba(0,0,0,.45);font-size:.9rem;touch-action:none;user-select:none}
+.sticky-note-drag:active{cursor:grabbing}
+.sticky-note-color{width:18px;height:18px;padding:0;border:none;border-radius:50%;background:none;cursor:pointer;margin-left:auto}
+.sticky-note-color::-webkit-color-swatch-wrapper{padding:0;border-radius:50%}
+.sticky-note-color::-webkit-color-swatch{border:1px solid rgba(0,0,0,.25);border-radius:50%}
+.sticky-note-del{width:18px;height:18px;border:none;background:none;color:rgba(0,0,0,.45);font-weight:800;font-size:.72rem;cursor:pointer;border-radius:50%;flex-shrink:0}
+.sticky-note-del:hover{background:rgba(0,0,0,.12);color:rgba(0,0,0,.8)}
+.sticky-note-text{flex:1;resize:none;border:none;background:none;padding:2px 10px 10px;font-family:inherit;font-size:.82rem;color:#2b2410;line-height:1.4;outline:none}
+.sticky-note-text::placeholder{color:rgba(0,0,0,.4)}
+.sticky-note-add-btn{align-self:flex-start;margin-top:4px;padding:9px 16px;border-radius:12px;border:1.5px dashed rgba(196,196,204,.3);background:rgba(255,255,255,.03);color:var(--muted);font-size:.78rem;font-weight:700;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+.sticky-note-add-btn:hover{background:rgba(255,255,255,.07);border-color:rgba(196,196,204,.5)}
+@media (hover:none){.sticky-note-drag{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.sticky-note{transition:none}}
 .empty h3{color:#f2f2f5;margin:8px 0 4px;font-size:1rem}
 .empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
@@ -19518,6 +19540,8 @@ function renderEmptyState(icon,title,sub){
       +'<div class="empty-widget"><div class="empty-widget-title">👋 Demandes d\\'ami</div><div id="ew-friendreqs"><span class="ew-empty-hint">Chargement…</span></div></div>'
       +'<div class="empty-widget"><div class="empty-widget-title">☁️ IXin Drive</div><div id="ew-storage"><span class="ew-empty-hint">Chargement…</span></div></div>'
       +'<div class="empty-widget"><div class="empty-widget-title">🎭 Emojis & stickers</div><div id="ew-expr"><span class="ew-empty-hint">Chargement…</span></div></div>'
+      +'<div class="sticky-notes-layer" id="sticky-notes-layer"></div>'
+      +'<button type="button" class="sticky-note-add-btn" id="sticky-note-add-btn">🗒️ Nouvelle note</button>'
     +'</div>';
   loadWeatherWidget();
   loadFeaturedStoriesWidget();
@@ -19526,6 +19550,7 @@ function renderEmptyState(icon,title,sub){
   loadFriendReqWidget();
   loadStorageWidget();
   loadExpressionWidget();
+  loadStickyNotes();
 }
 function weatherCodeInfo(code){
   const map={
@@ -19737,6 +19762,120 @@ async function loadExpressionWidget(){
       +(emojiCap<150?'<div class="ew-empty-hint" style="display:block;margin-top:10px">Jusqu\\'à 150 emojis avec IXin+ (ou palier de boost 2) sur le HUB.</div>':'');
   }catch(e){const el=\$('ew-expr');if(el)el.innerHTML='<span class="ew-empty-hint">Indisponible pour le moment.</span>';}
 }
+/* ===== Notes autocollantes du tableau de bord vide (demandé explicitement) :
+   perso, librement déplaçables PARTOUT sur la zone des widgets (une couche
+   .sticky-notes-layer en position:absolute par-dessus .empty-dash, pas des
+   cartes dans la grille) — jamais publiques : sticky_notes a
+   documentSecurity activé et chaque document n'accorde lecture/écriture
+   qu'à son propriétaire (même schéma que dm_personalization), contrairement
+   à user_meta qui est lisible par n'importe qui. Déplacement au pointeur
+   uniquement pour pointerType==='mouse' (demandé : "déplacement uniquement
+   sur desktop") — la couleur et le texte restent modifiables partout,
+   seul le glisser-déposer est gardé côté souris. ===== */
+let stickyNotesCache=[],stickyNoteMaxZ=1;
+const STICKY_NOTE_MAX=12,STICKY_NOTE_W=180,STICKY_NOTE_H=150;
+const STICKY_DEFAULT_COLORS=['#fde68a','#fca5a5','#a7f3d0','#93c5fd','#d8b4fe','#fdba74'];
+async function loadStickyNotes(){
+  const layer=\$('sticky-notes-layer');if(!layer||!me)return;
+  try{
+    const r=await db.listDocuments(DB,'sticky_notes',[Appwrite.Query.equal('uid',me.\$id),Appwrite.Query.limit(STICKY_NOTE_MAX)]);
+    stickyNotesCache=r.documents||[];
+    stickyNoteMaxZ=stickyNotesCache.reduce(function(m,n){return Math.max(m,n.z||1)},1);
+    layer.innerHTML='';
+    stickyNotesCache.forEach(renderStickyNote);
+  }catch(e){xlog('sticky_notes_load_fail',{msg:(e&&e.message)||String(e)});}
+}
+function stickyNoteBounds(){
+  const dash=document.querySelector('.empty-dash');
+  const w=(dash&&dash.clientWidth)||320,h=(dash&&dash.clientHeight)||400;
+  return {maxX:Math.max(0,w-STICKY_NOTE_W),maxY:Math.max(0,h-STICKY_NOTE_H)};
+}
+function renderStickyNote(note){
+  const layer=\$('sticky-notes-layer');if(!layer)return;
+  const el=document.createElement('div');
+  el.className='sticky-note';
+  el.setAttribute('data-note-id',note.\$id);
+  el.style.left=(note.x||0)+'px';el.style.top=(note.y||0)+'px';el.style.zIndex=note.z||1;
+  el.style.setProperty('--sticky-color',note.color||STICKY_DEFAULT_COLORS[0]);
+  el.innerHTML='<div class="sticky-note-head">'
+    +'<span class="sticky-note-drag" title="Déplacer (souris uniquement)">⠿</span>'
+    +'<input type="color" class="sticky-note-color" value="'+esc(note.color||STICKY_DEFAULT_COLORS[0])+'" title="Couleur">'
+    +'<button type="button" class="sticky-note-del" title="Supprimer">✕</button>'
+    +'</div>'
+    +'<textarea class="sticky-note-text" placeholder="Écris quelque chose…" maxlength="500">'+esc(note.text||'')+'</textarea>';
+  layer.appendChild(el);
+  function bringToFront(){
+    stickyNoteMaxZ++;el.style.zIndex=stickyNoteMaxZ;
+    db.updateDocument(DB,'sticky_notes',note.\$id,{z:stickyNoteMaxZ}).catch(function(){});
+  }
+  const textEl=el.querySelector('.sticky-note-text');
+  let lastSavedText=note.text||'';
+  let saveTextTimer=null;
+  function saveText(){
+    const val=textEl.value;
+    if(val===lastSavedText)return;
+    lastSavedText=val;
+    db.updateDocument(DB,'sticky_notes',note.\$id,{text:val}).catch(function(){});
+  }
+  textEl.addEventListener('input',function(){clearTimeout(saveTextTimer);saveTextTimer=setTimeout(saveText,800);});
+  textEl.addEventListener('blur',function(){clearTimeout(saveTextTimer);saveText();});
+  textEl.addEventListener('focus',bringToFront);
+  const colorEl=el.querySelector('.sticky-note-color');
+  colorEl.addEventListener('input',function(){el.style.setProperty('--sticky-color',colorEl.value);});
+  colorEl.addEventListener('change',function(){db.updateDocument(DB,'sticky_notes',note.\$id,{color:colorEl.value}).catch(function(){});});
+  el.querySelector('.sticky-note-del').addEventListener('click',function(){
+    db.deleteDocument(DB,'sticky_notes',note.\$id).catch(function(){});
+    stickyNotesCache=stickyNotesCache.filter(function(n){return n.\$id!==note.\$id});
+    el.remove();
+  });
+  const dragHandle=el.querySelector('.sticky-note-drag');
+  let dragState=null;
+  dragHandle.addEventListener('pointerdown',function(e){
+    if(e.pointerType!=='mouse')return; // "déplacement uniquement sur desktop" : jamais au doigt/stylet
+    e.preventDefault();
+    bringToFront();
+    dragState={startX:e.clientX,startY:e.clientY,origLeft:el.offsetLeft,origTop:el.offsetTop};
+    dragHandle.setPointerCapture(e.pointerId);
+  });
+  dragHandle.addEventListener('pointermove',function(e){
+    if(!dragState)return;
+    const b=stickyNoteBounds();
+    const nx=Math.min(b.maxX,Math.max(0,dragState.origLeft+(e.clientX-dragState.startX)));
+    const ny=Math.min(b.maxY,Math.max(0,dragState.origTop+(e.clientY-dragState.startY)));
+    el.style.left=nx+'px';el.style.top=ny+'px';
+  });
+  function endDrag(){
+    if(!dragState)return;
+    dragState=null;
+    db.updateDocument(DB,'sticky_notes',note.\$id,{x:el.offsetLeft,y:el.offsetTop}).catch(function(){});
+  }
+  dragHandle.addEventListener('pointerup',endDrag);
+  dragHandle.addEventListener('pointercancel',endDrag);
+}
+if(\$('sticky-note-add-btn'))\$('sticky-note-add-btn').addEventListener('click',async function(){
+  if(!me)return;
+  if(stickyNotesCache.length>=STICKY_NOTE_MAX){showToast('Maximum de '+STICKY_NOTE_MAX+' notes atteint — supprimes-en une avant d\\'en ajouter une nouvelle.','error');return}
+  const b=stickyNoteBounds();
+  // Cascade légère pour que les nouvelles notes ne s'empilent pas toutes au
+  // même endroit, sans avoir besoin d'un vrai algorithme de placement.
+  const idx=stickyNotesCache.length;
+  const x=Math.min(b.maxX,20+(idx%4)*36);
+  const y=Math.min(b.maxY,20+(idx%4)*30);
+  const color=STICKY_DEFAULT_COLORS[idx%STICKY_DEFAULT_COLORS.length];
+  stickyNoteMaxZ++;
+  try{
+    const created=await db.createDocument(DB,'sticky_notes',Appwrite.ID.unique(),{uid:me.\$id,text:'',color:color,x:x,y:y,z:stickyNoteMaxZ},[
+      Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),
+      Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))
+    ]);
+    stickyNotesCache.push(created);
+    renderStickyNote(created);
+    const layer=\$('sticky-notes-layer');
+    const newEl=layer&&layer.querySelector('[data-note-id="'+created.\$id+'"] .sticky-note-text');
+    if(newEl)newEl.focus();
+  }catch(e){showToast('Impossible de créer la note.','error');}
+});
 function closeStoryViewer(){
   if(storyViewerState&&storyViewerState.raf)cancelAnimationFrame(storyViewerState.raf);
   storyViewerState=null;
