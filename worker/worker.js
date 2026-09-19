@@ -3414,15 +3414,15 @@ html.xultra-restoring #stage{visibility:hidden}
    chevauchait le nom du serveur. Décalage identique à celui déjà appliqué à
    .list-head pour la même raison. */
 #app.hub-fullwidth .chat-top{padding-left:72px}
-.empty{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:#8a7a58;padding:36px 20px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(120deg,#fffaf0,#fdf1d6,#fff8ec,#f6e3ae);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
+.empty{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;color:var(--muted);padding:36px 20px;overflow-y:auto;overflow-x:hidden;background:linear-gradient(120deg,#0a0512,#120a1f,#0d0818,#160d24);background-size:320% 320%;animation:emptyGradientShift 22s ease infinite}
 @keyframes emptyGradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 /* Ambiance "lofi" : quelques halos flous dorés/blancs qui dérivent très
    lentement derrière le contenu (voir les .empty-lofi-blob posés en tout
    premier dans renderEmptyState). */
 .empty-lofi-blob{position:absolute;border-radius:50%;filter:blur(50px);pointer-events:none;z-index:0;opacity:.55;animation:emptyLofiDrift linear infinite}
-.empty-lofi-blob:nth-child(1){top:-60px;left:-40px;width:260px;height:260px;background:radial-gradient(circle,#fde68a,transparent 70%);animation-duration:26s}
-.empty-lofi-blob:nth-child(2){bottom:-80px;right:-60px;width:320px;height:320px;background:radial-gradient(circle,#fff,transparent 70%);animation-duration:32s;animation-direction:reverse}
-.empty-lofi-blob:nth-child(3){top:35%;right:10%;width:200px;height:200px;background:radial-gradient(circle,#facc15,transparent 70%);animation-duration:22s}
+.empty-lofi-blob:nth-child(1){top:-60px;left:-40px;width:260px;height:260px;background:radial-gradient(circle,#fff,transparent 70%);opacity:.16;animation-duration:26s}
+.empty-lofi-blob:nth-child(2){bottom:-80px;right:-60px;width:320px;height:320px;background:radial-gradient(circle,#a78bfa,transparent 70%);opacity:.28;animation-duration:32s;animation-direction:reverse}
+.empty-lofi-blob:nth-child(3){top:35%;right:10%;width:220px;height:220px;background:radial-gradient(circle,#fff,transparent 70%);opacity:.13;animation-duration:22s}
 @keyframes emptyLofiDrift{0%{transform:translate(0,0)}50%{transform:translate(24px,-18px)}100%{transform:translate(0,0)}}
 .empty>.empty-head,.empty>.empty-dash{position:relative;z-index:1}
 @media (prefers-reduced-motion:reduce){.empty-lofi-blob{animation:none!important}}
@@ -3432,7 +3432,7 @@ html.xultra-restoring #stage{visibility:hidden}
    widgets (température, noms de membres...) est prévu clair-sur-sombre —
    plus simple et cohérent de garder les cartes sombres que de réécrire
    chaque couleur de texte pour le nouveau fond clair "lofi" de .empty. */
-.empty-widget{position:relative;background:rgba(20,14,8,.6);border:1px solid rgba(253,230,138,.18);border-radius:16px;padding:16px;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.empty-widget{position:relative;background:rgba(255,255,255,.045);border:1px solid rgba(196,196,204,.16);border-radius:16px;padding:16px;backdrop-filter:blur(6px);box-shadow:0 0 26px rgba(167,139,250,.06)}
 .empty-widget-title{font-size:.76rem;font-weight:800;color:#d8d8dd;margin-bottom:12px;display:flex;align-items:center;gap:6px;letter-spacing:.02em}
 .ew-weather{display:flex;align-items:center;gap:14px}
 .ew-weather-icon{font-size:2.4rem;line-height:1}
@@ -3447,8 +3447,8 @@ html.xultra-restoring #stage{visibility:hidden}
 .ew-member-av img{width:100%;height:100%;object-fit:cover}
 .ew-member-name{font-size:.84rem;font-weight:700;color:#f2f2f5}
 .ew-member-time{font-size:.68rem;color:var(--muted);margin-left:auto;flex-shrink:0}
-.empty h3{color:#4a3a1a;margin:8px 0 4px;font-size:1rem}
-.empty p{font-size:.82rem;color:#8a7654}
+.empty h3{color:#f2f2f5;margin:8px 0 4px;font-size:1rem}
+.empty p{font-size:.82rem}
 .chat-active{flex:1;display:flex;flex-direction:column;min-height:0;position:relative}
 .chat-active.chat-dragover:after{content:'📎 Dépose le fichier ici';position:absolute;inset:8px;border:2px dashed #f5f5f7;border-radius:14px;background:rgba(245,245,247,.12);display:flex;align-items:center;justify-content:center;font-size:.95rem;color:#d8d8dd;pointer-events:none;z-index:50}
 .chat-top{min-height:46px;padding:calc(6px + env(safe-area-inset-top)) 14px 6px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line);flex-shrink:0}
