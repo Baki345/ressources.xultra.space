@@ -18,6 +18,7 @@ if (expoModulesCorePlugin.exists()) {
 
 android {
   namespace "space.xultra.vpn"
+  compileSdkVersion safeExtGet("compileSdkVersion", 36)
   defaultConfig {
     minSdkVersion safeExtGet("minSdkVersion", 24)
     targetSdkVersion safeExtGet("targetSdkVersion", 34)
