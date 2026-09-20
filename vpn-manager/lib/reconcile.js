@@ -11,8 +11,15 @@ const ixin = require('./ixinClient');
 // Stripe d'IXin juste après un achat) — toujours le même code, jamais deux
 // chemins qui pourraient diverger.
 async function reconcile() {
+  console.log('[vpn-manager] === Reconciliation started ===');
   const entitlements = await ixin.getEntitlements();
+  console.log('[vpn-manager] Got entitlements:', entitlements.length);
+  entitlements.forEach(function(e) {
+    console.log('[vpn-manager]   uid:', e.uid, '| wgPublicKey:', e.wgPublicKey ? 'SET' : 'EMPTY', '| wgAssignedIp:', e.wgAssignedIp || 'none');
+  });
+
   const localPeers = wg.listPeers();
+  console.log('[vpn-manager] Local peers:', localPeers.length);
   const localByKey = new Map(localPeers.map(function (p) { return [p.publicKey, p]; }));
 
   const usedIps = new Set();
