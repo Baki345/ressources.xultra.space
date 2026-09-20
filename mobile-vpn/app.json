@@ -30,7 +30,7 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_NEW_EAS_PROJECT_ID"
+        "projectId": "ee25e0ff-8ed3-4ff7-9d3c-d6d576a55848"
       }
     },
     "owner": "ciscodev7"

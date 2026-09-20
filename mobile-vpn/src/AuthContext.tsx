@@ -5,7 +5,7 @@ import { account } from './appwrite';
 
 type XUser = Models.User<Models.Preferences>;
 
-type AuthContextValue = {
+export type AuthContextValue = {
   user: XUser | null;
   loading: boolean;
   error: string | null;
@@ -24,7 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     account
       .get()
       .then(setUser)
-      .catch(() => setUser(null))
+      .catch((e) => {
+        console.error('[AuthContext] Error getting user:', e);
+        setUser(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
