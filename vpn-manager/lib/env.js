@@ -33,6 +33,18 @@ if (!WG_SERVER_PUBLIC_KEY) {
   console.error('[vpn-manager] WG_SERVER_PUBLIC_KEY manquant — contenu de /etc/wireguard/server_public.key généré à l\'installation de WireGuard (voir README).');
   process.exit(1);
 }
+// Identifiant de CE VPS (le "slug" de son document dans la collection
+// Appwrite vpn_servers, ex. "main") — passé sur chaque appel à
+// /api/internal/vpn/entitlements pour que ce process ne voie jamais les
+// abonnements provisionnés sur un AUTRE serveur (sinon deux vpn-manager se
+// marcheraient dessus, chacun retirant les pairs de l'autre). Un seul VPS
+// aujourd'hui, mais déjà obligatoire pour que l'ajout d'un 2e serveur plus
+// tard n'exige aucun changement de code ici.
+const VPN_SERVER_ID = process.env.VPN_SERVER_ID || '';
+if (!VPN_SERVER_ID) {
+  console.error('[vpn-manager] VPN_SERVER_ID manquant — doit correspondre au "slug" du document de ce serveur dans la collection Appwrite vpn_servers (ex. "main" pour le VPS de lancement).');
+  process.exit(1);
+}
 
 module.exports = {
   VPN_MANAGER_SECRET: VPN_MANAGER_SECRET,
@@ -49,6 +61,7 @@ module.exports = {
   // README) : conflit sinon avec le réseau Docker d'Appwrite déjà en place.
   WG_SUBNET_CIDR: process.env.WG_SUBNET_CIDR || '10.66.0.0/24',
   WG_SERVER_PUBLIC_KEY: WG_SERVER_PUBLIC_KEY,
+  VPN_SERVER_ID: VPN_SERVER_ID,
   // host:port public que les clients WireGuard doivent joindre — le VPS lui-
   // même, PAS forcément vpn.xultra.space (ce nom peut n'exister que pour une
   // page de statut humaine, voir README).

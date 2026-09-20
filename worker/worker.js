@@ -1108,6 +1108,12 @@ const XPLUS_PRICE_COINS = 4500;
 // grantPlus/plan (conçu explicitement comme permanent, sans expiration).
 const VPN_PRICE_CAD_CENTS = 499;
 const VPN_SUBSCRIPTION_DAYS = 30;
+// Slug du serveur unique du lancement multi-serveur (voir vpn_servers) — tout
+// abonnement créé sans serverId explicite (checkout, octroi admin) atterrit
+// ici plutôt que sur un serverId vide, qui ferait rater le scoping par
+// ?serverId= côté /api/internal/vpn/entitlements le jour où un 2e serveur
+// existera.
+const DEFAULT_VPN_SERVER_SLUG = "main";
 // Verrou distribué par compte pour toute mutation de solde IXin Coins.
 // Un simple "lire le solde puis écrire solde-montant" (comme avant) n'est
 // PAS atomique : deux requêtes concurrentes (double-clic, retry client,
@@ -42565,6 +42571,10 @@ async function handle(request, event) {
       } else {
         throw new Error("Achat inconnu.");
       }
+      // serverId choisi côté client (sélecteur de serveur, encore un seul
+      // serveur actif au lancement) — repli sur DEFAULT_VPN_SERVER_SLUG si
+      // absent (vieux client, ou achat autre que "vpn").
+      const serverId = kind === "vpn" ? String((body && body.serverId) || DEFAULT_VPN_SERVER_SLUG) : "";
       const params = new URLSearchParams();
       params.set("mode", "payment");
       params.set("success_url", "https://xultra.space/?checkout=success");
@@ -42577,6 +42587,7 @@ async function handle(request, event) {
       params.set("metadata[uid]", acc.$id);
       params.set("metadata[kind]", kind);
       if (pack) params.set("metadata[pack]", pack);
+      if (serverId) params.set("metadata[serverId]", serverId);
       const stripeRes = await fetch("https://api.stripe.com/v1/checkout/sessions", {
         method: "POST",
         headers: { "Authorization": "Bearer " + STRIPE_SECRET_KEY, "Content-Type": "application/x-www-form-urlencoded" },
@@ -42641,7 +42652,7 @@ async function handle(request, event) {
             if (meta.kind === "xplus") {
               await grantPlus(uid, "stripe_purchase");
             } else if (meta.kind === "vpn") {
-              await grantTimeboxedAccess(uid, "vpn_subscriptions", VPN_SUBSCRIPTION_DAYS, { lastStripeEventId: eventDocId });
+              await grantTimeboxedAccess(uid, "vpn_subscriptions", VPN_SUBSCRIPTION_DAYS, { lastStripeEventId: eventDocId, serverId: meta.serverId || DEFAULT_VPN_SERVER_SLUG });
               triggerVpnManagerSync(event);
             } else if (meta.kind === "coins") {
               const p = COIN_PACKS[meta.pack];
@@ -42681,6 +42692,26 @@ async function handle(request, event) {
   // client via le SDK Appwrite (permission read(user) posée par
   // grantTimeboxedAccess) — seules les actions qui doivent rester
   // server-only vivent ici. =====
+  if (path === "/api/vpn/servers" && request.method === "GET") {
+    // Liste publique (pas de session requise — utile même avant connexion,
+    // ex. une future page marketing "choisis ta région"). Ne renvoie jamais
+    // wgServerPublicKey/endpointHost/wstunnelPathPrefix : le client ne
+    // construit jamais lui-même son .conf, il ne reçoit que le texte déjà
+    // rendu par vpn-manager via pendingConfig — ces champs resteraient une
+    // fuite inutile côté serveur pour zéro bénéfice client.
+    try {
+      const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "active", values: [true] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "sortOrder" })), { asAdmin: true });
+      const servers = (q.documents || []).map(function (d) {
+        return { id: d.slug || d.$id, label: d.label || d.slug || d.$id, flagEmoji: d.flagEmoji || "", stealthSupported: !!d.wstunnelWssUrl };
+      });
+      return new Response(JSON.stringify({ ok: true, servers: servers }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   if (path === "/api/vpn/config/claim" && request.method === "POST") {
     // Le fichier .conf/clé privée n'est écrit qu'UNE fois par vpn-manager
     // (voir /api/internal/vpn/provision-result) puis effacé dès la première
@@ -42690,7 +42721,21 @@ async function handle(request, event) {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
+      const body = await request.json().catch(function () { return {}; });
+      const requestedServerId = String((body && body.serverId) || "");
       const doc = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (doc && !doc.pendingConfig && requestedServerId && requestedServerId !== (doc.serverId || DEFAULT_VPN_SERVER_SLUG)) {
+        // Changement de serveur demandé : l'ancien vpn-manager (scopé sur
+        // son propre serverId) verra cet uid disparaître de ses entitlements
+        // au prochain passage et retirera le pair (voir reconcile.js) ; le
+        // nouveau le provisionnera de zéro puisque wgPublicKey est vidé ici.
+        await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
+          method: "PATCH", asAdmin: true,
+          body: { data: { serverId: requestedServerId, wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
+        });
+        triggerVpnManagerSync(event);
+        throw new Error("Changement de serveur en cours, réessaie dans un instant.");
+      }
       if (!doc || !doc.pendingConfig) throw new Error("Aucune configuration en attente.");
       if (doc.pendingConfigExpiresAt && new Date(doc.pendingConfigExpiresAt).getTime() <= Date.now()) {
         await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
@@ -42769,7 +42814,11 @@ async function handle(request, event) {
       const days = Math.max(1, Math.min(3650, parseInt((body && body.days) || VPN_SUBSCRIPTION_DAYS, 10) || VPN_SUBSCRIPTION_DAYS));
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       const targetProfile = await resolveProfile(uid);
-      const expiresAt = await grantTimeboxedAccess(uid, "vpn_subscriptions", days, { lastStripeEventId: "admin_grant" });
+      // Comme pour /lifetime : ne bascule pas un serverId déjà choisi vers le
+      // défaut si l'admin n'en précise pas un explicitement.
+      const existingSub = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
+      const serverId = String((body && body.serverId) || (existingSub && existingSub.serverId) || DEFAULT_VPN_SERVER_SLUG);
+      const expiresAt = await grantTimeboxedAccess(uid, "vpn_subscriptions", days, { lastStripeEventId: "admin_grant", serverId: serverId });
       triggerVpnManagerSync(event);
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
         method: "POST", asAdmin: true,
@@ -42798,7 +42847,11 @@ async function handle(request, event) {
       // l'activation (voir isTimeboxedAccessActive) — juste plus clair à
       // lire pour un futur admin qui consulterait ce document.
       const existing = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
-      const data = { uid: uid, status: "lifetime", expiresAt: "2999-01-01T00:00:00.000Z", lastStripeEventId: "admin_grant_lifetime" };
+      // Ne bascule PAS un serverId déjà choisi vers le défaut si l'admin n'en
+      // précise pas un explicitement — sinon un octroi "à vie" sans serverId
+      // renverrait silencieusement quelqu'un déjà sur un autre serveur.
+      const serverId = String((body && body.serverId) || (existing && existing.serverId) || DEFAULT_VPN_SERVER_SLUG);
+      const data = { uid: uid, status: "lifetime", expiresAt: "2999-01-01T00:00:00.000Z", lastStripeEventId: "admin_grant_lifetime", serverId: serverId };
       if (existing) {
         await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { method: "PATCH", asAdmin: true, body: { data: data } });
       } else {
@@ -42851,9 +42904,17 @@ async function handle(request, event) {
     try {
       const rawBody = await request.text();
       if (!(await verifyVpnManagerSignature(request, rawBody))) throw new Error("invalid_signature");
+      // Chaque process vpn-manager (un par VPS) ne doit jamais voir les
+      // entitlements d'un AUTRE serveur, sinon deux instances se
+      // marcheraient dessus (provisionnant/retirant les pairs l'une de
+      // l'autre) — obligatoire dès qu'un 2e serveur existera, sans effet
+      // tant qu'il n'y en a qu'un.
+      const serverId = url.searchParams.get("serverId") || "";
+      if (!serverId) throw new Error("serverId requis");
       const nowIso = new Date().toISOString();
       const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "expiresAt", values: [nowIso] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
       const list = (q.documents || []).map(function (d) { return { uid: d.uid, wgPublicKey: d.wgPublicKey || "", wgAssignedIp: d.wgAssignedIp || "" }; });
       return new Response(JSON.stringify({ ok: true, entitlements: list }), { headers: { "Content-Type": "application/json" } });

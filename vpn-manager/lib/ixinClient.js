@@ -10,7 +10,7 @@ const { sign } = require('./signature');
 async function getEntitlements() {
   const rawBody = ''; // GET sans corps — le Worker signe/vérifie sur cette même chaîne vide
   const sig = sign(env.VPN_MANAGER_SECRET, rawBody);
-  const res = await fetch(env.IXIN_BASE_URL.replace(/\/$/, '') + '/api/internal/vpn/entitlements', {
+  const res = await fetch(env.IXIN_BASE_URL.replace(/\/$/, '') + '/api/internal/vpn/entitlements?serverId=' + encodeURIComponent(env.VPN_SERVER_ID), {
     method: 'GET',
     headers: { 'X-IXin-Signature': sig }
   });

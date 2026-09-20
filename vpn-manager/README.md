@@ -33,8 +33,13 @@ est un compagnon similaire pour la voix Discord-like de la plateforme).
 # sur le VPS, dans le dossier où tu as copié vpn-manager/
 npm install
 cp .env.example .env
-nano .env   # renseigne VPN_MANAGER_SECRET, WG_SERVER_PUBLIC_KEY, WG_ENDPOINT au minimum
+nano .env   # renseigne VPN_MANAGER_SECRET, WG_SERVER_PUBLIC_KEY, WG_ENDPOINT, VPN_SERVER_ID au minimum
 ```
+
+`VPN_SERVER_ID` doit correspondre au `slug` du document que ce VPS
+représente dans la collection Appwrite `vpn_servers` (`"main"` pour le
+VPS de lancement — voir § Multi-serveur plus bas). Sans cette variable,
+ce service refuse de démarrer.
 
 `VPN_MANAGER_SECRET` doit être **exactement** la même valeur que le
 secret Cloudflare Worker `VPN_MANAGER_SECRET` (Workers → le worker IXin →
@@ -89,6 +94,41 @@ C'est un compromis assumé (réutiliser ce VPS plutôt qu'un VPS dédié était
 un choix délibéré). À garder en tête : vérifier de temps en temps la
 réputation de cette IP, et avoir "migrer le VPN vers un second petit VPS"
 comme plan de repli si elle finit par être signalée.
+
+## Multi-serveur
+
+`GET /api/internal/vpn/entitlements` est maintenant scopé par
+`?serverId=<VPN_SERVER_ID>` — chaque VPS ne voit et ne gère jamais que
+ses propres abonnés. Le principe retenu : **un process vpn-manager par
+VPS**, jamais un vpn-manager unique multi-serveur — `lib/reconcile.js`
+reste inchangé ("un wg0, une boucle"), seul `ixinClient.js` transmet
+maintenant `VPN_SERVER_ID` dans l'appel.
+
+### Ajouter un 2e serveur (procédure sans nouveau code)
+
+1. Provisionner un nouveau VPS, y refaire exactement cette installation
+   (WireGuard + ce service + wstunnel/nginx si Stealth voulu sur ce
+   serveur aussi).
+2. `.env` de ce nouveau VPS : ses propres `WG_SERVER_PUBLIC_KEY`/
+   `WG_ENDPOINT`, un `VPN_SERVER_ID` DIFFÉRENT du premier (ex. `"eu2"`),
+   et — voir risque ci-dessous — idéalement son propre
+   `VPN_MANAGER_SECRET`.
+3. Insérer **un seul document** dans la collection Appwrite
+   `vpn_servers` (même `slug` que `VPN_SERVER_ID`) — via le panel admin
+   IXin ou directement l'API Appwrite. Aucun redéploiement de
+   `worker.js` n'est nécessaire.
+4. `pm2 start server.js --name vpn-manager-<slug>` sur le nouveau VPS.
+
+### ⚠️ Risque à traiter avant d'ajouter un vrai 2e serveur
+
+Aujourd'hui, un seul `VPN_MANAGER_SECRET` existe (partagé avec le
+Worker). Le réutiliser tel quel sur un 2e VPS permettrait à ce serveur
+(s'il était compromis) de forger des requêtes signées valides pour les
+abonnés d'un AUTRE serveur — la signature prouve "un vpn-manager
+légitime", pas "lequel". Pas bloquant tant qu'il n'y a qu'un serveur ;
+avant d'en ajouter un second, passer à un secret par serveur
+(`VPN_MANAGER_SECRET_<slug>` côté Worker, vérifié en cross-référençant
+le `serverId` de la requête avec le secret qui l'a signée).
 
 ## Structure
 

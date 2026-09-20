@@ -4615,6 +4615,13 @@
     "type": "string",
     "size": 64,
     "array": false
+   },
+   {
+    "key": "serverId",
+    "required": false,
+    "type": "string",
+    "size": 32,
+    "array": false
    }
   ],
   "documentSecurity": true,
@@ -4625,6 +4632,90 @@
     "type": "key",
     "attributes": [
      "uid"
+    ]
+   }
+  ]
+ },
+ "vpn_servers": {
+  "attributes": [
+   {
+    "key": "slug",
+    "required": true,
+    "type": "string",
+    "size": 32,
+    "array": false
+   },
+   {
+    "key": "label",
+    "required": true,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "flagEmoji",
+    "required": false,
+    "type": "string",
+    "size": 8,
+    "array": false
+   },
+   {
+    "key": "wgServerPublicKey",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "endpointHost",
+    "required": true,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "endpointPort",
+    "required": true,
+    "type": "integer",
+    "array": false
+   },
+   {
+    "key": "wstunnelPathPrefix",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "wstunnelWssUrl",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "active",
+    "required": true,
+    "type": "boolean",
+    "array": false
+   },
+   {
+    "key": "sortOrder",
+    "required": true,
+    "type": "integer",
+    "array": false
+   }
+  ],
+  "documentSecurity": false,
+  "permissions": [
+   "read(\"any\")"
+  ],
+  "indexes": [
+   {
+    "key": "idx_slug",
+    "type": "unique",
+    "attributes": [
+     "slug"
     ]
    }
   ]
