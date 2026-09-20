@@ -1,2 +1,7 @@
 node_modules/
 dist/
+
+# Binaires wireguard-go par plateforme — jamais commités (blobs compilés,
+# un par OS/arch). Voir resources/wireguard-go/README.md pour comment les
+# obtenir/reconstruire avant `npm run dist:*`.
+resources/wireguard-go/*/

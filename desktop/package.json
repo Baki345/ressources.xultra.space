@@ -69,5 +69,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     }
+  },
+  "dependencies": {
+    "@vscode/sudo-prompt": "^9.3.2"
   }
 }
