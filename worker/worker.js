@@ -11870,6 +11870,15 @@ async function vpnTryClaimConfig(box,attempt){
     if(window.xultraDesktop&&window.xultraDesktop.vpn){
       window.xultraDesktop.vpn.connect(r.config,{stealth:vpnUiChoice.stealth,killSwitch:vpnUiChoice.killSwitch,serverId:vpnUiChoice.serverId}).catch(function(e){showToast((e&&e.message)||'Connexion VPN automatique échouée','error');});
     }
+  }else if(r&&r.error){
+    // Erreur explicite du serveur (non-retriable) — affiche le message
+    const configBox=\$('vpn-config-box');if(!configBox)return;
+    const errMsg=r.error==='subscription_expired'?'Ton abonnement a expiré':'Impossible de récupérer ta configuration';
+    const hint=r.hint?'<div class="scr-sub" style="margin-top:8px">'+esc(r.hint)+'</div>':'';
+    configBox.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Erreur VPN</div>'
+      +'<div class="scr-sub">'+esc(errMsg)+'</div>'
+      +hint
+    +'</div>';
   }else if(attempt<1){
     setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},4000);
   }
