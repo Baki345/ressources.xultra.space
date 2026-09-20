@@ -11493,6 +11493,7 @@ async function renderSetVpn(box){
   box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div>'
     +(active?
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div></div>'
+        +'<div id="vpn-desktop-box"></div>'
         +'<div id="vpn-config-box"></div>'
         +'<div class="set-card"><div class="set-section-label">Clé perdue ?</div><div class="scr-sub" style="margin-bottom:10px">Révoque ta clé actuelle si tu as perdu ton appareil ou ton fichier de configuration. Une nouvelle clé sera générée automatiquement (à récupérer ici) — l\\'ancienne ne fonctionnera plus.</div><button type="button" class="set-mini-btn" id="vpn-revoke-btn" style="color:#f87171">Révoquer cette clé</button><div class="err" id="vpn-revoke-err" style="min-height:1em;margin-top:6px"></div></div>')
       :
@@ -11525,12 +11526,83 @@ function wireSetVpn(box,sub,active){
     showSlideConfirm('Révoquer ta clé VPN actuelle ? Elle cessera de fonctionner immédiatement — une nouvelle sera générée automatiquement.',async function(){
       try{
         await authPost('/api/vpn/revoke',{});
+        // Dans l'appli desktop, la config locale (et le tunnel s'il tourne)
+        // ne vaudraient plus rien une fois la clé révoquée côté serveur —
+        // on les efface dans le même geste plutôt que de laisser un tunnel
+        // fantôme actif avec une clé déjà invalide.
+        if(window.xultraDesktop&&window.xultraDesktop.vpn)await window.xultraDesktop.vpn.forget().catch(function(){});
         showToast('Clé révoquée — une nouvelle sera prête sous peu.');
         renderSetVpn(box);
       }catch(e){\$('vpn-revoke-err').textContent=(e&&e.message)||'Erreur';}
     });
   };
-  if(active)vpnTryClaimConfig(box);
+  if(active){
+    vpnTryClaimConfig(box);
+    if(window.xultraDesktop&&window.xultraDesktop.vpn)wireDesktopVpnToggle(box);
+  }
+}
+// Appli desktop (Electron) uniquement : un vrai tunnel WireGuard tourne
+// dans le process principal (voir desktop/src/vpn/manager.js), piloté ici
+// via le pont IPC window.xultraDesktop.vpn — jamais accessible depuis un
+// simple onglet de navigateur, d'où le repli QR/.conf déjà en place
+// (vpnTryClaimConfig) qui reste affiché dans tous les cas.
+function wireDesktopVpnToggle(box){
+  const desktopBox=\$('vpn-desktop-box');
+  if(!desktopBox)return;
+  const vpn=window.xultraDesktop.vpn;
+  let unsubscribe=null;
+
+  function fmtBytes(n){
+    n=Number(n)||0;
+    if(n<1024)return n+' o';
+    if(n<1024*1024)return (n/1024).toFixed(1)+' Ko';
+    if(n<1024*1024*1024)return (n/1024/1024).toFixed(1)+' Mo';
+    return (n/1024/1024/1024).toFixed(2)+' Go';
+  }
+
+  async function render(hasStored){
+    const status=await vpn.getStatus();
+    const state=(status&&status.state)||'disconnected';
+    let label,sub,btnLabel,btnAction,btnDisabled=false;
+    if(state==='connected'){
+      label='🟢 Connecté';
+      sub='Adresse '+esc(status.addressCidr||'')+' · ⬇️ '+fmtBytes(status.rxBytes)+' · ⬆️ '+fmtBytes(status.txBytes);
+      btnLabel='Déconnecter';btnAction='disconnect';
+    }else if(state==='connecting'){
+      label='🟡 Connexion en cours…';sub='';btnLabel='...';btnAction=null;btnDisabled=true;
+    }else if(state==='error'){
+      label='🔴 Erreur';sub=esc(status.error||'');btnLabel='Réessayer';btnAction='connect';
+    }else if(hasStored){
+      label='⚪ Déconnecté';sub='';btnLabel='Connecter';btnAction='connect';
+    }else{
+      label='⚪ En attente de la clé…';sub='Revient automatiquement une fois la config récupérée.';btnLabel='Connecter';btnAction='connect';btnDisabled=true;
+    }
+    desktopBox.innerHTML='<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">'+label+'</div>'+(sub?'<div class="scr-sub">'+sub+'</div>':'')+'</div>'
+      +'<button type="button" class="set-mini-btn" id="vpn-desktop-toggle-btn"'+(btnDisabled?' disabled':'')+'>'+btnLabel+'</button></div>'
+      +'<div class="err" id="vpn-desktop-err" style="min-height:1em;margin-top:6px"></div></div>';
+    const btn=\$('vpn-desktop-toggle-btn');
+    if(btn&&btnAction)btn.onclick=async function(){
+      btn.disabled=true;
+      try{
+        if(btnAction==='connect')await vpn.reconnectStored();
+        else await vpn.disconnect();
+      }catch(e){\$('vpn-desktop-err').textContent=(e&&e.message)||'Erreur';btn.disabled=false;}
+    };
+  }
+
+  vpn.hasStoredConfig().then(function(hasStored){
+    render(hasStored);
+    unsubscribe=vpn.onStatusChange(function(){render(hasStored);});
+  });
+  // Si ce card est retiré du DOM (rerender de renderSetVpn), on n'écoute
+  // plus indéfiniment un abonnement devenu orphelin.
+  const observer=new MutationObserver(function(){
+    if(!document.body.contains(desktopBox)){
+      if(unsubscribe)unsubscribe();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body,{childList:true,subtree:true});
 }
 // Récupère la config WireGuard en attente (voir /api/vpn/config/claim côté
 // Worker) — ne renvoie quelque chose qu'UNE seule fois par clé provisionnée,
@@ -11552,6 +11624,12 @@ async function vpnTryClaimConfig(box,attempt){
     renderQrCodeSvg(\$('vpn-qr'),r.config);
     const dlBtn=\$('vpn-download-btn');
     if(dlBtn)dlBtn.onclick=function(){downloadTextFile('ixin-vpn.conf',r.config);};
+    // Appli desktop : connecte tout de suite avec la config qu'on vient de
+    // récupérer (elle ne sera plus jamais réaffichée) — le QR/.conf
+    // ci-dessus reste disponible en repli pour un autre appareil.
+    if(window.xultraDesktop&&window.xultraDesktop.vpn){
+      window.xultraDesktop.vpn.connect(r.config).catch(function(e){showToast((e&&e.message)||'Connexion VPN automatique échouée','error');});
+    }
   }else if(attempt<1){
     setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},4000);
   }
