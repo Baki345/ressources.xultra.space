@@ -992,7 +992,7 @@ function buildMaintHtml(message) {
 }
 
 async function getMaintState() {
-  let enabled = true, message = "";
+  let enabled = false, message = "";
   try {
     if (typeof SITE_KV !== "undefined" && SITE_KV) {
       const e = await SITE_KV.get("maint_enabled");
