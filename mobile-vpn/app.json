@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "IXin VPN",
+    "slug": "ixin-vpn-mobile",
+    "scheme": "ixinvpn",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "android": {
+      "package": "space.xultra.vpn",
+      "adaptiveIcon": {
+        "backgroundColor": "#0b0710",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.INTERNET",
+        "android.permission.FOREGROUND_SERVICE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "./modules/ixin-vpn/plugin/withIxinVpn"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_NEW_EAS_PROJECT_ID"
+      }
+    },
+    "owner": "ciscodev7"
+  }
+}

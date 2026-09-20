@@ -42903,6 +42903,21 @@ async function handle(request, event) {
     }
   }
 
+  if (path === "/api/vpn/status" && request.method === "GET") {
+    // Pour l'appli Android dédiée (mobile-vpn/) : évite d'y embarquer tout le
+    // SDK Appwrite Databases juste pour lire un seul document — le web/
+    // desktop, eux, continuent de lire vpn_subscriptions/<uid> directement
+    // via ce SDK (aucun changement de leur côté).
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const sub = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      return new Response(JSON.stringify({ ok: true, active: isTimeboxedAccessActive(sub), expiresAt: (sub && sub.expiresAt) || "", serverId: (sub && sub.serverId) || "" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // ===== Gestion admin des abonnements VPN (propriétaire uniquement — un
   // abonnement gratuit accordé/révoqué à la main a un vrai coût réel,
   // même logique de garde que /api/admin/badges) =====

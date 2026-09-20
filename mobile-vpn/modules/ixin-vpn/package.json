@@ -1,0 +1,9 @@
+{
+  "name": "ixin-vpn",
+  "version": "1.0.0",
+  "description": "Module natif Expo — tunnel WireGuard réel via com.wireguard.android:tunnel (Android uniquement).",
+  "main": "index.ts",
+  "types": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}

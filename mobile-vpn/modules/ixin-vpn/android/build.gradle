@@ -1,0 +1,36 @@
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+def safeExtGet(prop, fallback) {
+  rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+}
+
+group = 'space.xultra.vpn'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+if (expoModulesCorePlugin.exists()) {
+  apply from: expoModulesCorePlugin
+  applyKotlinExpoModulesCorePlugin()
+  useCoreDependencies()
+  useExpoPublishing()
+}
+
+android {
+  namespace "space.xultra.vpn"
+  defaultConfig {
+    minSdkVersion safeExtGet("minSdkVersion", 24)
+    targetSdkVersion safeExtGet("targetSdkVersion", 34)
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation project(':expo-modules-core')
+  // Bibliothèque officielle WireGuard-for-Android — même trust boundary que
+  // le desktop, qui embarque le binaire officiel wireguard-go plutôt que
+  // réimplémenter WireGuard soi-même (voir IxinVpnModule.kt).
+  implementation "com.wireguard.android:tunnel:1.0.20230706"
+}
