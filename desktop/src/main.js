@@ -279,13 +279,14 @@ if (!gotLock) {
         mainWindow.webContents.send('xultra:vpn-status-changed', status);
       }
     });
-    ipcMain.handle('xultra:vpn-connect', async (e, confText) => {
+    ipcMain.handle('xultra:vpn-connect', async (e, confText, opts) => {
       try {
-        await vpnManager.connect(confText);
+        await vpnManager.connect(confText, opts);
         // Persisté seulement après une connexion réussie : un .conf qui ne
         // marche même pas ne mérite pas d'être gardé pour un futur
-        // reconnectStored().
-        vpnSecureStore.save(app, confText);
+        // reconnectStored(). Le mode (Stealth ou non) est gardé avec, pour
+        // que ce futur reconnectStored() rejoue le même choix.
+        vpnSecureStore.save(app, confText, opts && opts.stealth);
         return { ok: true, status: vpnManager.getStatus() };
       } catch (err) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };
@@ -295,7 +296,7 @@ if (!gotLock) {
       const stored = vpnSecureStore.load(app);
       if (!stored) return { ok: false, error: 'Aucune configuration VPN enregistrée sur cet appareil.' };
       try {
-        await vpnManager.connect(stored);
+        await vpnManager.connect(stored.config, { stealth: stored.stealth });
         return { ok: true, status: vpnManager.getStatus() };
       } catch (err) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };

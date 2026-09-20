@@ -3,7 +3,10 @@
 // (/api/vpn/config/claim ne le renvoie jamais deux fois) — sans ça,
 // l'appli devrait redemander une nouvelle clé à chaque redémarrage.
 // Suit la même convention "petit fichier dans userData" que
-// app-settings.js, chiffré au lieu de JSON en clair.
+// app-settings.js, chiffré au lieu de JSON en clair. Stocke un petit objet
+// {config, stealth} (pas juste le texte du .conf) pour que
+// reconnectStored() rejoue aussi le dernier mode choisi (direct/Stealth)
+// plutôt que de silencieusement retomber en direct à chaque redémarrage.
 'use strict';
 const { safeStorage } = require('electron');
 const fs = require('fs');
@@ -27,20 +30,27 @@ function isReallyEncrypted() {
   try { return safeStorage.getSelectedStorageBackend() !== 'basic_text'; } catch (e) { return true; }
 }
 
-function save(app, plainText) {
+function save(app, confText, stealth) {
   if (!isReallyEncrypted()) return false;
   try {
-    const encrypted = safeStorage.encryptString(String(plainText || ''));
+    const payload = JSON.stringify({ config: String(confText || ''), stealth: !!stealth });
+    const encrypted = safeStorage.encryptString(payload);
     fs.writeFileSync(storeFilePath(app), encrypted);
     return true;
   } catch (e) { return false; }
 }
 
+// Renvoie {config, stealth} ou null — jamais le texte brut directement, pour
+// que main.js n'ait jamais à se souvenir séparément de deux façons de lire
+// ce fichier.
 function load(app) {
   if (!isAvailable()) return null;
   try {
     const encrypted = fs.readFileSync(storeFilePath(app));
-    return safeStorage.decryptString(encrypted);
+    const payload = safeStorage.decryptString(encrypted);
+    const parsed = JSON.parse(payload);
+    if (!parsed || typeof parsed.config !== 'string') return null;
+    return { config: parsed.config, stealth: !!parsed.stealth };
   } catch (e) { return null; }
 }
 

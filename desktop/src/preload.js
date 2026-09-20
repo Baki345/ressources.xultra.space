@@ -20,7 +20,10 @@ contextBridge.exposeInMainWorld('xultraDesktop', {
   // que reconnectStored() puisse la réutiliser sans repasser par un claim
   // serveur, qui ne renvoie jamais deux fois la même clé.
   vpn: {
-    connect: (confText) => ipcRenderer.invoke('xultra:vpn-connect', confText),
+    // opts: {stealth: true/false} — enveloppe le tunnel dans wstunnel
+    // (WebSocket-sur-TLS) au lieu de s'y connecter en direct, voir
+    // src/vpn/stealth.js.
+    connect: (confText, opts) => ipcRenderer.invoke('xultra:vpn-connect', confText, opts),
     reconnectStored: () => ipcRenderer.invoke('xultra:vpn-reconnect-stored'),
     disconnect: () => ipcRenderer.invoke('xultra:vpn-disconnect'),
     getStatus: () => ipcRenderer.invoke('xultra:vpn-status'),

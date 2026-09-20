@@ -12,6 +12,7 @@ const EventEmitter = require('events');
 const confParser = require('./confParser');
 const uapi = require('./uapiClient');
 const binaries = require('./binaries');
+const stealth = require('./stealth');
 
 // Nom d'interface dédié (pas "wg0") pour ne jamais entrer en conflit avec
 // une éventuelle installation WireGuard manuelle déjà présente chez
@@ -35,6 +36,7 @@ class VpnManager extends EventEmitter {
     this.app = app;
     this.platform = PLATFORMS[process.platform] || null;
     this.tunnelHandle = null;
+    this.stealthHandle = null;
     this.pollTimer = null;
     this.currentOpts = null;
     this.status = { state: 'disconnected' };
@@ -56,9 +58,16 @@ class VpnManager extends EventEmitter {
 
   async cleanupTunnel() {
     this.stopPolling();
+    // WireGuard d'abord (libère proprement l'adaptateur TUN), wstunnel
+    // ensuite (ferme la connexion WSS/TLS) — ordre inverse du démarrage.
     if (this.tunnelHandle) {
       const handle = this.tunnelHandle;
       this.tunnelHandle = null;
+      try { await handle.stop(); } catch (e) {}
+    }
+    if (this.stealthHandle) {
+      const handle = this.stealthHandle;
+      this.stealthHandle = null;
       try { await handle.stop(); } catch (e) {}
     }
   }
@@ -90,16 +99,31 @@ class VpnManager extends EventEmitter {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
   }
 
-  async connect(confText) {
+  async connect(confText, opts) {
+    opts = opts || {};
     if (this.status.state === 'connected' || this.status.state === 'connecting') {
       throw new Error('Déjà connecté ou connexion en cours.');
     }
     if (!this.platform) {
       throw new Error('Plateforme non prise en charge pour le moment : ' + process.platform);
     }
-    this.setStatus({ state: 'connecting', error: null });
+    this.setStatus({ state: 'connecting', error: null, stealth: !!opts.stealth });
     try {
       const parsed = confParser.parseConf(confText);
+
+      // Stealth EN PREMIER, avant tout accès privilégié : une panne réseau/
+      // wstunnel doit se manifester avant que l'utilisateur ne soit invité
+      // à élever ses privilèges pour rien.
+      if (opts.stealth) {
+        if (!binaries.wstunnelExists(this.app)) {
+          throw new Error("wstunnel n'est pas embarqué pour cette plateforme (" + process.platform + '/' + process.arch + ').');
+        }
+        this.stealthHandle = await stealth.start(binaries.wstunnelPath(this.app));
+        // Le pair pointe désormais sur le tunnel local plutôt que l'IP
+        // réelle du VPS — c'est tout le principe du mode Stealth.
+        parsed.endpoint = '127.0.0.1:' + this.stealthHandle.localPort;
+      }
+
       if (!binaries.wireguardGoExists(this.app)) {
         throw new Error("wireguard-go n'est pas embarqué pour cette plateforme (" + process.platform + '/' + process.arch + ').');
       }
@@ -159,7 +183,7 @@ class VpnManager extends EventEmitter {
     } finally {
       await this.cleanupTunnel();
       this.currentOpts = null;
-      this.setStatus({ state: 'disconnected', rxBytes: 0, txBytes: 0, lastHandshakeSec: 0 });
+      this.setStatus({ state: 'disconnected', stealth: false, rxBytes: 0, txBytes: 0, lastHandshakeSec: 0 });
     }
   }
 
