@@ -11847,9 +11847,10 @@ function wireDesktopVpnToggle(box){
 // Récupère la config WireGuard en attente (voir /api/vpn/config/claim côté
 // Worker) — ne renvoie quelque chose qu'UNE seule fois par clé provisionnée,
 // donc rien à afficher la plupart du temps (déjà récupérée, ou pas encore
-// générée par vpn-manager). Un léger délai + une seconde tentative couvre le
-// cas "achat tout juste terminé, vpn-manager n'a pas encore eu le temps de
-// provisionner" sans avoir besoin d'un vrai mécanisme de sondage.
+// générée par vpn-manager). Un délai + retries couvre:
+// - "achat tout juste terminé, vpn-manager n'a pas encore provisionné"
+// - "revocation, vpn-manager en attente de prochaine réconciliation (jusqu'à 15min)"
+// Retries toutes les 5-10 secondes pendant ~2 minutes pour couvrir la plupart des cas.
 async function vpnTryClaimConfig(box,attempt){
   attempt=attempt||0;
   let r;
@@ -11879,8 +11880,19 @@ async function vpnTryClaimConfig(box,attempt){
       +'<div class="scr-sub">'+esc(errMsg)+'</div>'
       +hint
     +'</div>';
-  }else if(attempt<1){
-    setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},4000);
+  }else if(attempt<10){
+    // En attente — affiche un message après quelques tentatives
+    if(attempt===3){
+      const configBox=\$('vpn-config-box');if(!configBox)return;
+      configBox.innerHTML='<div class="set-card"><div class="set-section-label">⏳ Configuration en attente</div>'
+        +'<div class="scr-sub" style="margin-bottom:10px">La nouvelle clé est en cours de génération. Ça peut prendre quelques secondes à quelques minutes si le système vient de redémarrer.</div>'
+        +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn-main" id="vpn-refresh-btn">🔄 Vérifier maintenant</button></div>'
+        +'</div>';
+      const refreshBtn=\$('vpn-refresh-btn');
+      if(refreshBtn)refreshBtn.onclick=function(){vpnTryClaimConfig(box,0);};
+    }
+    const delay=attempt<3?4000:(5000+Math.random()*5000);
+    setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},delay);
   }
 }
 const CHAIN_EXPLORERS={'0x1':'https://etherscan.io/tx/','0x89':'https://polygonscan.com/tx/','0xa4b1':'https://arbiscan.io/tx/','0xa':'https://optimistic.etherscan.io/tx/','0x38':'https://bscscan.com/tx/'};
