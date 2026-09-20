@@ -292,11 +292,16 @@ if (!gotLock) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };
       }
     });
-    ipcMain.handle('xultra:vpn-reconnect-stored', async () => {
+    ipcMain.handle('xultra:vpn-reconnect-stored', async (e, stealthOverride) => {
       const stored = vpnSecureStore.load(app);
       if (!stored) return { ok: false, error: 'Aucune configuration VPN enregistrée sur cet appareil.' };
+      const stealth = typeof stealthOverride === 'boolean' ? stealthOverride : stored.stealth;
       try {
-        await vpnManager.connect(stored.config, { stealth: stored.stealth });
+        await vpnManager.connect(stored.config, { stealth: stealth });
+        // Re-persiste si l'utilisateur a changé de mode depuis le dernier
+        // connect() — sinon un futur reconnectStored() sans argument
+        // reviendrait silencieusement à l'ancien choix.
+        vpnSecureStore.save(app, stored.config, stealth);
         return { ok: true, status: vpnManager.getStatus() };
       } catch (err) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };

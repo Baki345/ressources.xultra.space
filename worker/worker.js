@@ -11618,6 +11618,10 @@ function wireSetVpn(box,sub,active){
 // via le pont IPC window.xultraDesktop.vpn — jamais accessible depuis un
 // simple onglet de navigateur, d'où le repli QR/.conf déjà en place
 // (vpnTryClaimConfig) qui reste affiché dans tous les cas.
+// Partagé avec vpnTryClaimConfig : les deux cartes peuvent être visibles en
+// même temps juste après une nouvelle clé (QR/.conf + statut desktop), donc
+// une seule case à cocher fait foi plutôt que d'en dupliquer une par carte.
+let vpnStealthChoice=false;
 function wireDesktopVpnToggle(box){
   const desktopBox=\$('vpn-desktop-box');
   if(!desktopBox)return;
@@ -11637,7 +11641,8 @@ function wireDesktopVpnToggle(box){
     const state=(status&&status.state)||'disconnected';
     let label,sub,btnLabel,btnAction,btnDisabled=false;
     if(state==='connected'){
-      label='🟢 Connecté';
+      vpnStealthChoice=!!status.stealth;
+      label=(status.stealth?'🥷 ':'🟢 ')+'Connecté'+(status.stealth?' (Stealth)':'');
       sub='Adresse '+esc(status.addressCidr||'')+' · ⬇️ '+fmtBytes(status.rxBytes)+' · ⬆️ '+fmtBytes(status.txBytes);
       btnLabel='Déconnecter';btnAction='disconnect';
     }else if(state==='connecting'){
@@ -11649,16 +11654,25 @@ function wireDesktopVpnToggle(box){
     }else{
       label='⚪ En attente de la clé…';sub='Revient automatiquement une fois la config récupérée.';btnLabel='Connecter';btnAction='connect';btnDisabled=true;
     }
+    const stealthLocked=(state==='connected'||state==='connecting');
     desktopBox.innerHTML='<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">'+label+'</div>'+(sub?'<div class="scr-sub">'+sub+'</div>':'')+'</div>'
       +'<button type="button" class="set-mini-btn" id="vpn-desktop-toggle-btn"'+(btnDisabled?' disabled':'')+'>'+btnLabel+'</button></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">🥷 Mode Stealth</div><div class="scr-sub">Déjoue les pare-feux qui bloquent les VPN par port ou signature (WireGuard enveloppé en HTTPS). Plus lent que le mode direct, et ne déjoue pas un filtrage étatique avancé.</div></div>'
+        +'<div class="set-switch'+(vpnStealthChoice?' on':'')+'" id="vpn-stealth-switch" data-on="'+(vpnStealthChoice?'1':'0')+'"'+(stealthLocked?' style="opacity:.45;pointer-events:none"':'')+'></div></div>'
       +'<div class="err" id="vpn-desktop-err" style="min-height:1em;margin-top:6px"></div></div>';
     const btn=\$('vpn-desktop-toggle-btn');
     if(btn&&btnAction)btn.onclick=async function(){
       btn.disabled=true;
       try{
-        if(btnAction==='connect')await vpn.reconnectStored();
+        if(btnAction==='connect')await vpn.reconnectStored(vpnStealthChoice);
         else await vpn.disconnect();
       }catch(e){\$('vpn-desktop-err').textContent=(e&&e.message)||'Erreur';btn.disabled=false;}
+    };
+    const stealthSwitch=\$('vpn-stealth-switch');
+    if(stealthSwitch&&!stealthLocked)stealthSwitch.onclick=function(){
+      vpnStealthChoice=stealthSwitch.getAttribute('data-on')!=='1';
+      stealthSwitch.setAttribute('data-on',vpnStealthChoice?'1':'0');
+      stealthSwitch.classList.toggle('on',vpnStealthChoice);
     };
   }
 
@@ -11700,7 +11714,7 @@ async function vpnTryClaimConfig(box,attempt){
     // récupérer (elle ne sera plus jamais réaffichée) — le QR/.conf
     // ci-dessus reste disponible en repli pour un autre appareil.
     if(window.xultraDesktop&&window.xultraDesktop.vpn){
-      window.xultraDesktop.vpn.connect(r.config).catch(function(e){showToast((e&&e.message)||'Connexion VPN automatique échouée','error');});
+      window.xultraDesktop.vpn.connect(r.config,{stealth:vpnStealthChoice}).catch(function(e){showToast((e&&e.message)||'Connexion VPN automatique échouée','error');});
     }
   }else if(attempt<1){
     setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},4000);
