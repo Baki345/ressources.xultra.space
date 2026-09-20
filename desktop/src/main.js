@@ -2,6 +2,8 @@ const { app, BrowserWindow, Menu, Tray, shell, session, nativeImage, ipcMain } =
 const path = require('path');
 const windowState = require('./window-state');
 const appSettings = require('./app-settings');
+const { VpnManager } = require('./vpn/manager');
+const vpnSecureStore = require('./vpn/secureStore');
 
 const APP_URL = 'https://xultra.space/';
 const ALLOWED_HOST = 'xultra.space';
@@ -16,6 +18,7 @@ const HIDDEN_LAUNCH_ARG = '--xultra-hidden-launch';
 let mainWindow = null;
 let tray = null;
 let settings = appSettings.DEFAULTS;
+let vpnManager = null;
 app.isQuitting = false;
 
 function wasLaunchedHidden() {
@@ -262,6 +265,57 @@ if (!gotLock) {
       return true;
     });
 
+    // VPN IXin (WireGuard) : le statut/achat/révocation vivent déjà dans la
+    // page web (xultra.space, voir renderSetVpn/vpnTryClaimConfig côté
+    // worker.js) — ce process ne fait que gérer le VRAI tunnel réseau, que
+    // la page ne peut pas toucher elle-même (sandbox du renderer). Un seul
+    // VpnManager pour toute la durée de vie de l'appli ; ses évènements de
+    // statut sont relayés à la fenêtre active, pas seulement retournés à
+    // l'appel qui a déclenché le changement (le statut peut aussi changer
+    // tout seul — process wireguard-go qui meurt, poll périodique).
+    vpnManager = new VpnManager(app);
+    vpnManager.on('status', (status) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('xultra:vpn-status-changed', status);
+      }
+    });
+    ipcMain.handle('xultra:vpn-connect', async (e, confText) => {
+      try {
+        await vpnManager.connect(confText);
+        // Persisté seulement après une connexion réussie : un .conf qui ne
+        // marche même pas ne mérite pas d'être gardé pour un futur
+        // reconnectStored().
+        vpnSecureStore.save(app, confText);
+        return { ok: true, status: vpnManager.getStatus() };
+      } catch (err) {
+        return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };
+      }
+    });
+    ipcMain.handle('xultra:vpn-reconnect-stored', async () => {
+      const stored = vpnSecureStore.load(app);
+      if (!stored) return { ok: false, error: 'Aucune configuration VPN enregistrée sur cet appareil.' };
+      try {
+        await vpnManager.connect(stored);
+        return { ok: true, status: vpnManager.getStatus() };
+      } catch (err) {
+        return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };
+      }
+    });
+    ipcMain.handle('xultra:vpn-disconnect', async () => {
+      await vpnManager.disconnect();
+      return { ok: true, status: vpnManager.getStatus() };
+    });
+    ipcMain.handle('xultra:vpn-status', () => vpnManager.getStatus());
+    ipcMain.handle('xultra:vpn-has-stored-config', () => vpnSecureStore.has(app));
+    // Appelé quand la page révoque la clé côté serveur (/api/vpn/revoke) —
+    // la config locale ne vaudrait plus rien de toute façon, autant couper
+    // le tunnel et oublier le .conf périmé dans le même geste.
+    ipcMain.handle('xultra:vpn-forget', async () => {
+      await vpnManager.disconnect();
+      vpnSecureStore.clear(app);
+      return { ok: true };
+    });
+
     buildAppMenu();
     createMainWindow();
     createTray();
@@ -286,7 +340,14 @@ if (!gotLock) {
     // que l'utilisateur n'a pas explicitement choisi "Quitter".
   });
 
-  app.on('before-quit', () => {
+  app.on('before-quit', (e) => {
     app.isQuitting = true;
+    // Sans ça, wireguard-go et les routes qu'il a posées survivraient à la
+    // fermeture de l'appli — un tunnel fantôme que rien ne permettrait
+    // plus d'éteindre proprement depuis l'UI.
+    if (vpnManager && vpnManager.getStatus().state !== 'disconnected') {
+      e.preventDefault();
+      vpnManager.disconnect().finally(() => app.quit());
+    }
   });
 }

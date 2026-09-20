@@ -68,7 +68,16 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
-    }
+    },
+    "extraResources": [
+      {
+        "from": "resources/wireguard-go/${platform}-${arch}",
+        "to": "wireguard-go",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ]
   },
   "dependencies": {
     "@vscode/sudo-prompt": "^9.3.2"

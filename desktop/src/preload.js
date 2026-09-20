@@ -14,4 +14,22 @@ contextBridge.exposeInMainWorld('xultraDesktop', {
   setMinimizeToTray: (value) => ipcRenderer.invoke('xultra:set-minimize-to-tray', value),
   setBadgeCount: (count) => ipcRenderer.invoke('xultra:set-badge-count', count),
   showWindow: () => ipcRenderer.invoke('xultra:show-window'),
+  // VPN IXin — le vrai tunnel WireGuard tourne dans le process principal
+  // (voir src/vpn/manager.js), jamais accessible directement depuis la page
+  // sandboxée. connect() persiste aussi la config localement (chiffrée) pour
+  // que reconnectStored() puisse la réutiliser sans repasser par un claim
+  // serveur, qui ne renvoie jamais deux fois la même clé.
+  vpn: {
+    connect: (confText) => ipcRenderer.invoke('xultra:vpn-connect', confText),
+    reconnectStored: () => ipcRenderer.invoke('xultra:vpn-reconnect-stored'),
+    disconnect: () => ipcRenderer.invoke('xultra:vpn-disconnect'),
+    getStatus: () => ipcRenderer.invoke('xultra:vpn-status'),
+    hasStoredConfig: () => ipcRenderer.invoke('xultra:vpn-has-stored-config'),
+    forget: () => ipcRenderer.invoke('xultra:vpn-forget'),
+    onStatusChange: (cb) => {
+      const listener = (_e, status) => cb(status);
+      ipcRenderer.on('xultra:vpn-status-changed', listener);
+      return () => ipcRenderer.removeListener('xultra:vpn-status-changed', listener);
+    },
+  },
 });
