@@ -27,12 +27,16 @@ async function reconcile() {
       // et livre la config complète (une seule fois, voir provision-result
       // côté worker.js) : le seul moment où la clé privée existe HORS de ce
       // process, c'est dans cet appel réseau signé.
+      console.log('[vpn-manager] Provisioning new key for uid:', ent.uid);
       const { privateKey, publicKey } = wg.generateKeypair();
       const assignedIp = wg.nextFreeIp(usedIps);
       usedIps.add(assignedIp);
+      console.log('[vpn-manager]   Generated keypair, assigned IP:', assignedIp);
       wg.addPeer(publicKey, assignedIp);
       const clientConfig = wg.buildClientConfig({ privateKey: privateKey, assignedIp: assignedIp });
+      console.log('[vpn-manager]   Calling postProvisionResult for uid:', ent.uid);
       await ixin.postProvisionResult({ uid: ent.uid, wgPublicKey: publicKey, wgAssignedIp: assignedIp, clientConfig: clientConfig });
+      console.log('[vpn-manager]   Config stored in Appwrite for uid:', ent.uid);
       added++;
     } else if (!localByKey.has(ent.wgPublicKey)) {
       // Une clé existe déjà côté IXin mais pas localement (réinstallation de
@@ -40,6 +44,7 @@ async function reconcile() {
       // quelle : jamais une nouvelle paire de clés ici, l'abonné a déjà sa
       // config d'origine et n'a besoin de rien recevoir de nouveau.
       if (ent.wgAssignedIp) {
+        console.log('[vpn-manager] Re-attaching key for uid:', ent.uid);
         wg.addPeer(ent.wgPublicKey, ent.wgAssignedIp);
         reattached++;
       }
