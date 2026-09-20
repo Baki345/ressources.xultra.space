@@ -5,6 +5,13 @@ const appSettings = require('./app-settings');
 const { VpnManager } = require('./vpn/manager');
 const vpnSecureStore = require('./vpn/secureStore');
 
+// 'vpn-only' pour le build séparé "IXin VPN" (voir electron-builder-vpn.json,
+// dist:vpn) — injecté UNIQUEMENT dans le package.json empaqueté pour cette
+// cible via `extraMetadata`, jamais dans ce dépôt lui-même : un seul arbre de
+// sources pour les deux applis, pas de duplication de desktop/src/vpn/*.
+const BUILD_TARGET = (() => {
+  try { return require('../package.json').buildTarget || 'full'; } catch (e) { return 'full'; }
+})();
 const APP_URL = 'https://xultra.space/';
 const ALLOWED_HOST = 'xultra.space';
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
@@ -202,7 +209,7 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
-    if (process.platform === 'win32') app.setAppUserModelId('space.xultra.desktop');
+    if (process.platform === 'win32') app.setAppUserModelId(BUILD_TARGET === 'vpn-only' ? 'space.xultra.vpn' : 'space.xultra.desktop');
 
     settings = appSettings.loadSettings(app);
 
@@ -251,19 +258,25 @@ if (!gotLock) {
     // showMainWindow() directement sur la vraie fenêtre — deux chemins pour
     // le même résultat, dont un fiable à coup sûr.
     ipcMain.handle('xultra:show-window', () => { showMainWindow(); return true; });
-    ipcMain.handle('xultra:set-badge-count', (e, count) => {
-      const n = Math.max(0, Number(count) || 0);
-      if (process.platform === 'win32') {
-        if (!mainWindow || mainWindow.isDestroyed()) return true;
-        if (n === 0) { mainWindow.setOverlayIcon(null, ''); return true; }
-        const label = n > 9 ? '9plus' : String(n);
-        const img = nativeImage.createFromPath(path.join(BADGES_DIR, label + '.png'));
-        mainWindow.setOverlayIcon(img, n > 9 ? '9+ notifications non lues' : n + ' notification(s) non lue(s)');
-      } else {
-        app.setBadgeCount(n);
-      }
-      return true;
-    });
+    ipcMain.handle('xultra:get-build-target', () => BUILD_TARGET);
+    // Un compteur de messages non lus n'a aucun sens dans le build VPN
+    // uniquement (aucune UI de chat n'y est jamais montée côté page) — pas
+    // enregistré du tout plutôt que de laisser un handler mort.
+    if (BUILD_TARGET !== 'vpn-only') {
+      ipcMain.handle('xultra:set-badge-count', (e, count) => {
+        const n = Math.max(0, Number(count) || 0);
+        if (process.platform === 'win32') {
+          if (!mainWindow || mainWindow.isDestroyed()) return true;
+          if (n === 0) { mainWindow.setOverlayIcon(null, ''); return true; }
+          const label = n > 9 ? '9plus' : String(n);
+          const img = nativeImage.createFromPath(path.join(BADGES_DIR, label + '.png'));
+          mainWindow.setOverlayIcon(img, n > 9 ? '9+ notifications non lues' : n + ' notification(s) non lue(s)');
+        } else {
+          app.setBadgeCount(n);
+        }
+        return true;
+      });
+    }
 
     // VPN IXin (WireGuard) : le statut/achat/révocation vivent déjà dans la
     // page web (xultra.space, voir renderSetVpn/vpnTryClaimConfig côté
@@ -329,7 +342,11 @@ if (!gotLock) {
 
     buildAppMenu();
     createMainWindow();
-    createTray();
+    // Pas de zone de notification dans le build VPN uniquement : une seule
+    // fenêtre simple, fermer l'appli la quitte vraiment (voir window-all-
+    // closed ci-dessous, qui ignore minimizeToTray dans ce cas précis —
+    // sinon rien ne permettrait de la rouvrir, faute de tray où cliquer).
+    if (BUILD_TARGET !== 'vpn-only') createTray();
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -338,11 +355,12 @@ if (!gotLock) {
   });
 
   app.on('window-all-closed', () => {
-    // "Minimiser dans la barre des tâches" désactivé : une fenêtre fermée
-    // est réellement fermée, donc quitter l'application comme n'importe
-    // quel logiciel de bureau classique, plutôt que de rester en tâche de
-    // fond sans fenêtre ni moyen évident de la rouvrir.
-    if (!settings.minimizeToTray) {
+    // "Minimiser dans la barre des tâches" désactivé (ou build VPN
+    // uniquement, qui n'a pas de tray du tout — voir createTray() plus haut) :
+    // une fenêtre fermée est réellement fermée, donc quitter l'application
+    // comme n'importe quel logiciel de bureau classique, plutôt que de
+    // rester en tâche de fond sans fenêtre ni moyen évident de la rouvrir.
+    if (!settings.minimizeToTray || BUILD_TARGET === 'vpn-only') {
       app.isQuitting = true;
       app.quit();
       return;

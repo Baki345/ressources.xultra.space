@@ -1,0 +1,65 @@
+{
+  "appId": "space.xultra.vpn",
+  "productName": "IXin VPN",
+  "extraMetadata": {
+    "name": "ixin-vpn",
+    "buildTarget": "vpn-only"
+  },
+  "directories": {
+    "output": "dist-vpn",
+    "buildResources": "build"
+  },
+  "files": [
+    "src/**/*",
+    "build/icon.png",
+    "build/tray.png",
+    "build/tray@16.png",
+    "build/badges/**/*"
+  ],
+  "mac": {
+    "icon": "build/icon.png",
+    "category": "public.app-category.utilities",
+    "target": [
+      "dmg",
+      "zip"
+    ]
+  },
+  "win": {
+    "icon": "build/icon.png",
+    "target": [
+      "nsis",
+      "portable"
+    ]
+  },
+  "linux": {
+    "icon": "build/icon.png",
+    "category": "Network;",
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "maintainer": "contact@xultra.space"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "extraResources": [
+    {
+      "from": "resources/wireguard-go/${platform}-${arch}",
+      "to": "wireguard-go",
+      "filter": [
+        "**/*"
+      ]
+    },
+    {
+      "from": "resources/wstunnel/${platform}-${arch}",
+      "to": "wstunnel",
+      "filter": [
+        "**/*"
+      ]
+    }
+  ]
+}

@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('xultraDesktop', {
   setMinimizeToTray: (value) => ipcRenderer.invoke('xultra:set-minimize-to-tray', value),
   setBadgeCount: (count) => ipcRenderer.invoke('xultra:set-badge-count', count),
   showWindow: () => ipcRenderer.invoke('xultra:show-window'),
+  // 'full' (appli IXin complète) ou 'vpn-only' (build electron-builder-vpn.json,
+  // dist:vpn) — la page décide elle-même de monter le shell complet ou une
+  // vue minimale VPN uniquement à partir de cette seule valeur (voir
+  // enterApp()/enterVpnOnlyApp() côté worker.js) ; ce process ne change
+  // jamais l'URL chargée, seule la page se comporte différemment.
+  getBuildTarget: () => ipcRenderer.invoke('xultra:get-build-target'),
   // VPN IXin — le vrai tunnel WireGuard tourne dans le process principal
   // (voir src/vpn/manager.js), jamais accessible directement depuis la page
   // sandboxée. connect() persiste aussi la config localement (chiffrée) pour

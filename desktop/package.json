@@ -19,7 +19,8 @@
     "dist:win": "electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
-    "dist": "electron-builder -mwl"
+    "dist": "electron-builder -mwl",
+    "dist:vpn": "electron-builder --config electron-builder-vpn.json -mwl"
   },
   "devDependencies": {
     "electron": "^32.0.0",
