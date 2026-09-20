@@ -10,12 +10,19 @@ function sign(secret, rawBody) {
 }
 
 function verify(rawBody, signatureHeader, secret) {
-  if (!signatureHeader || !secret) return false;
+  if (!signatureHeader || !secret) {
+    console.log('[signature] Missing signatureHeader or secret:', { hasHeader: !!signatureHeader, hasSecret: !!secret });
+    return false;
+  }
   const expected = sign(secret, rawBody);
+  console.log('[signature] Verifying - expected:', expected, 'received:', signatureHeader, 'body length:', rawBody.length, 'body:', rawBody.substring(0, 100));
   const a = Buffer.from(expected, 'utf8');
   const b = Buffer.from(String(signatureHeader), 'utf8');
-  if (a.length !== b.length) return false;
-  try { return crypto.timingSafeEqual(a, b); } catch (e) { return false; }
+  if (a.length !== b.length) {
+    console.log('[signature] Length mismatch:', a.length, 'vs', b.length);
+    return false;
+  }
+  try { return crypto.timingSafeEqual(a, b); } catch (e) { console.log('[signature] timingSafeEqual error:', e.message); return false; }
 }
 
 module.exports = { sign, verify };

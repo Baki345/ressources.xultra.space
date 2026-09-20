@@ -76,6 +76,7 @@ const server = http.createServer(function (req, res) {
 
 server.listen(env.PORT, '0.0.0.0', function () {
   console.log('[vpn-manager] à l\'écoute sur le port ' + env.PORT + ' (interface WireGuard : ' + env.WG_INTERFACE + ')');
+  console.log('[vpn-manager] VPN_MANAGER_SECRET loaded:', env.VPN_MANAGER_SECRET);
 });
 
 // Ronde de réconciliation périodique, en plus du "maintenant" déclenché par

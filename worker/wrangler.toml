@@ -1,8 +1,9 @@
 name = "ressources-xultra-space"
+type = "service"
+account_id = "d69428d83fd24b06b7ddc68bf7c48ca1"
 workers_dev = true
 route = {pattern = "*.xultra.space/*", zone_name = "xultra.space"}
 main = "worker.js"
-account_id = "d69428d83fd24b06b7ddc68bf7c48ca1"
 compatibility_date = "2026-09-20"
 
 [env.production]

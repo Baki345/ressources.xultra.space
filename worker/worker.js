@@ -1380,11 +1380,20 @@ async function computeHmacSignatureHex(secret, body) {
   return Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
 }
 async function verifyVpnManagerSignature(request, rawBody) {
-  if (typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) return false;
+  if (typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) {
+    console.log('[vpn-sig] Missing VPN_MANAGER_SECRET');
+    return false;
+  }
   const sig = request.headers.get("X-IXin-Signature");
-  if (!sig) return false;
+  if (!sig) {
+    console.log('[vpn-sig] Missing X-IXin-Signature header');
+    return false;
+  }
   const expected = await computeHmacSignatureHex(VPN_MANAGER_SECRET, rawBody);
-  return constantTimeEqualHex(expected, sig);
+  console.log('[vpn-sig] Verifying - expected:', expected, 'received:', sig, 'secret:', VPN_MANAGER_SECRET, 'body length:', rawBody.length);
+  const result = constantTimeEqualHex(expected, sig);
+  console.log('[vpn-sig] Result:', result);
+  return result;
 }
 // Best-effort, jamais bloquant : vpn-manager (sur le VPS, hors de portée de
 // ce Worker) tourne de toute façon sa propre ronde de réconciliation
