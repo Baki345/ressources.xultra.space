@@ -1,9 +1,9 @@
 name = "ressources-xultra-space"
-type = "service"
-account_id = "d4a3bcf29e2ff8cf2ef53fd7f34e002b"
 workers_dev = true
 route = {pattern = "*.xultra.space/*", zone_name = "xultra.space"}
 main = "worker.js"
+account_id = "d69428d83fd24b06b7ddc68bf7c48ca1"
+compatibility_date = "2026-09-20"
 
 [env.production]
 vars = { VPN_MANAGER_URL = "http://34.72.215.172:3100", VPN_MANAGER_SECRET = "caa6f9fd61bf3d7394cde7aedcd6a574c4f67e4f5e761c68f2064c453717ee01" }
