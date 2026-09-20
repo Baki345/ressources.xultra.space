@@ -8951,6 +8951,8 @@ if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if
    mise à jour, ajouter une entrée ici : ton simple, chaleureux, pour
    quelqu'un qui ne connaît rien à la technique derrière. */
 const CHANGELOG=[
+  {version:'4.55.78',category:'feature',date:'6 septembre 2026',time:'06:00',title:'🔒 VPN IXin — un vrai WireGuard auto-hébergé, indépendant de IXin+',
+    body:'Nouvelle entrée "VPN" dans les Paramètres : abonnement à 4,99 $ CA pour un bloc de 30 jours (rachetable, indépendant de IXin+), qui te donne accès à un serveur WireGuard fait maison. Une fois abonné, récupère ta configuration (QR code ou fichier .conf, affichée une seule fois pour ta sécurité) et importe-la dans l\\'appli WireGuard officielle — Windows, macOS, Linux, Chromebook, Android et iPhone/iPad sont tous couverts par un tuto pas-à-pas directement dans la page. Sur Linux, l\\'appli desktop IXin peut même se connecter automatiquement en un clic, sans passer par une appli tierce — Windows et macOS suivront.'},
   {version:'4.55.77',category:'feature',date:'6 septembre 2026',time:'05:00',title:'📂 Code source ouvert, pour qui veut vérifier',
     body:'Les sections de téléchargement (page de connexion et Paramètres → Télécharger l\\'application) proposent désormais un lien direct vers le code source complet du site et de l\\'application desktop sur GitHub, en plus de l\\'empreinte SHA-256 et du scan VirusTotal déjà disponibles pour chaque fichier. De quoi vérifier par toi-même qu\\'un fichier téléchargé ne contient rien de caché — le lire, l\\'auditer, ou le recompiler et comparer l\\'empreinte obtenue à celle publiée.'},
   {version:'4.55.76',category:'feature',date:'6 septembre 2026',time:'04:00',title:'📤 Partager un XBin ou un titre IXin Music en message',
@@ -10996,15 +10998,8 @@ function renderSettingsSidebar(){
     // "Notes de version" (changelog) : réservé équipe (owner/mod/support/dev),
     // voir canSeeChangelog / checkAdmin() — un membre normal ne doit même pas
     // voir l'entrée dans le menu, pas seulement se la faire refuser au clic.
-    // "VPN" : même garde-fou temporaire — le paiement Stripe est déjà réel
-    // (même clé que IXin+), mais rien ne le provisionne encore côté serveur
-    // (vpn-manager + le vrai WireGuard sur le VPS restent à déployer) ; le
-    // cacher au public évite qu'un membre paie pour un accès qui ne peut pas
-    // encore être livré. Retirer ce filtre une fois le VPN réellement en
-    // service de bout en bout.
     const items=g.items.filter(function(it){
       if(it.key==='changelog'&&!canSeeChangelog)return false;
-      if(it.key==='vpn'&&!canSeeChangelog)return false;
       if(!q)return true;
       const label=t('set_'+it.key,it.title).toLowerCase();
       if(label.indexOf(q)>=0||it.key.toLowerCase().indexOf(q)>=0)return true;
@@ -11485,6 +11480,70 @@ function downloadTextFile(filename,text){
   a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
   setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
+// Tuto d'installation par plateforme — même schéma d'onglets que le tuto
+// d'hébergement de bot (botdev-os-tabs/-tab-btn/-panel, voir renderBotdevDoc),
+// réutilisé tel quel. Couvre le chemin manuel (QR/.conf importé dans l'appli
+// WireGuard officielle), qui marche partout dès aujourd'hui — l'appli
+// desktop IXin (connexion automatique en un clic) n'existe pour l'instant
+// que sur Linux, Windows/macOS suivront.
+function vpnTutoHtml(){
+  return '<div class="set-card"><div class="set-section-label">📲 Comment se connecter</div>'
+    +'<div class="scr-sub" style="margin-bottom:14px">La configuration ci-dessus ne s\\'affiche qu\\'UNE seule fois — si tu l\\'as déjà récupérée, clique « Révoquer cette clé » plus bas pour en obtenir une nouvelle et refaire ces étapes. Choisis ta plateforme :</div>'
+    +'<div class="botdev-os-tabs">'
+      +'<button type="button" class="botdev-os-tab-btn on" data-vpn-os-tab="windows">🪟 Windows</button>'
+      +'<button type="button" class="botdev-os-tab-btn" data-vpn-os-tab="mac">🍎 macOS</button>'
+      +'<button type="button" class="botdev-os-tab-btn" data-vpn-os-tab="linux">🐧 Linux</button>'
+      +'<button type="button" class="botdev-os-tab-btn" data-vpn-os-tab="chromeos">💻 Chromebook</button>'
+      +'<button type="button" class="botdev-os-tab-btn" data-vpn-os-tab="android">🤖 Android</button>'
+      +'<button type="button" class="botdev-os-tab-btn" data-vpn-os-tab="ios">📱 iPhone/iPad</button>'
+    +'</div>'
+    +'<div class="botdev-os-panel" id="vpn-os-panel-windows">'
+      +'<div class="oauth-doc-step"><b>1. Installe l\\'appli officielle WireGuard</b> depuis <a href="https://www.wireguard.com/install/" target="_blank" rel="noopener">wireguard.com/install</a> (version Windows).</div>'
+      +'<div class="oauth-doc-step"><b>2. Récupère ta configuration</b> ci-dessus (QR ou bouton ⬇️ Télécharger le .conf) et enregistre le fichier <code>.conf</code> quelque part accessible.</div>'
+      +'<div class="oauth-doc-step"><b>3. Dans WireGuard</b>, clique <b>« Add Tunnel »</b> → <b>« Add from file »</b>, puis sélectionne le fichier <code>.conf</code> téléchargé.</div>'
+      +'<div class="oauth-doc-step"><b>4. Active le tunnel</b> avec l\\'interrupteur à côté de son nom.</div>'
+      +'<div class="oauth-doc-step"><b>5. Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+      +'<div class="oauth-doc-step">💡 Une connexion automatique en un clic depuis l\\'appli desktop IXin arrive bientôt pour Windows — pour l\\'instant, ce chemin manuel fonctionne dès aujourd\\'hui.</div>'
+    +'</div>'
+    +'<div class="botdev-os-panel hidden" id="vpn-os-panel-mac">'
+      +'<div class="oauth-doc-step"><b>1. Installe l\\'appli WireGuard</b> depuis le <a href="https://apps.apple.com/app/wireguard/id1451685025" target="_blank" rel="noopener">Mac App Store</a>.</div>'
+      +'<div class="oauth-doc-step"><b>2. Récupère ta configuration</b> ci-dessus (QR ou bouton ⬇️ Télécharger le .conf).</div>'
+      +'<div class="oauth-doc-step"><b>3. Dans WireGuard</b>, clique le <b>+</b> en bas de la liste des tunnels → <b>« Importer un tunnel depuis un fichier »</b> → sélectionne le <code>.conf</code>.</div>'
+      +'<div class="oauth-doc-step"><b>4. Active le tunnel</b> avec l\\'interrupteur.</div>'
+      +'<div class="oauth-doc-step"><b>5. Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+    +'</div>'
+    +'<div class="botdev-os-panel hidden" id="vpn-os-panel-linux">'
+      +'<div class="oauth-doc-step"><b>Option la plus simple — via NetworkManager</b> (GNOME/KDE/la plupart des distributions de bureau) : Paramètres réseau → <b>VPN</b> → <b>+</b> → <b>« Importer depuis un fichier… »</b> → sélectionne le <code>.conf</code> téléchargé ci-dessus, puis active-le comme n\\'importe quelle autre connexion réseau.</div>'
+      +'<div class="oauth-doc-step"><b>Option ligne de commande</b> — installe <code>wireguard-tools</code> puis monte directement le fichier téléchargé :</div>'
+      +oauthCodeBlockHtml('vpn-doc-lin-install','sudo apt install -y wireguard-tools   # ou : sudo dnf install wireguard-tools / sudo pacman -S wireguard-tools')
+      +oauthCodeBlockHtml('vpn-doc-lin-up','sudo wg-quick up ~/Téléchargements/ixin-vpn.conf')
+      +'<div class="oauth-doc-step">Pour couper : <code>sudo wg-quick down ~/Téléchargements/ixin-vpn.conf</code>.</div>'
+      +'<div class="oauth-doc-step"><b>Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+      +'<div class="oauth-doc-step">💡 L\\'appli desktop IXin (Paramètres → VPN → bouton « Connecter », zéro manipulation) est déjà disponible sur Linux — regarde « Télécharger l\\'application » dans les paramètres.</div>'
+    +'</div>'
+    +'<div class="botdev-os-panel hidden" id="vpn-os-panel-chromeos">'
+      +'<div class="oauth-doc-step"><b>1. Installe l\\'appli WireGuard</b> depuis le Play Store (fonctionne nativement sur Chromebook via le support des applis Android).</div>'
+      +'<div class="oauth-doc-step"><b>2. Récupère ta configuration</b> ci-dessus — le bouton ⬇️ Télécharger le .conf est le plus simple ici (il atterrit dans <b>Fichiers → Téléchargements</b>).</div>'
+      +'<div class="oauth-doc-step"><b>3. Dans WireGuard</b>, touche le <b>+</b> en bas à droite → <b>« Importer un fichier ou une archive »</b> → choisis <code>ixin-vpn.conf</code> dans Téléchargements.</div>'
+      +'<div class="oauth-doc-step"><b>4. Active le tunnel</b> avec l\\'interrupteur à côté de son nom.</div>'
+      +'<div class="oauth-doc-step"><b>5. Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+    +'</div>'
+    +'<div class="botdev-os-panel hidden" id="vpn-os-panel-android">'
+      +'<div class="oauth-doc-step"><b>1. Installe l\\'appli WireGuard</b> depuis le Play Store.</div>'
+      +'<div class="oauth-doc-step"><b>2. Récupère ta configuration</b> ci-dessus — le <b>QR code</b> est le plus rapide sur mobile.</div>'
+      +'<div class="oauth-doc-step"><b>3. Dans WireGuard</b>, touche le <b>+</b> → <b>« Scanner à partir d\\'un code QR »</b> et scanne-le (ou « Importer un fichier » si tu as téléchargé le .conf à la place).</div>'
+      +'<div class="oauth-doc-step"><b>4. Active le tunnel</b> avec l\\'interrupteur.</div>'
+      +'<div class="oauth-doc-step"><b>5. Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+    +'</div>'
+    +'<div class="botdev-os-panel hidden" id="vpn-os-panel-ios">'
+      +'<div class="oauth-doc-step"><b>1. Installe l\\'appli WireGuard</b> depuis l\\'<a href="https://apps.apple.com/app/wireguard/id1441195209" target="_blank" rel="noopener">App Store</a>.</div>'
+      +'<div class="oauth-doc-step"><b>2. Récupère ta configuration</b> ci-dessus — le <b>QR code</b> est le plus rapide sur mobile.</div>'
+      +'<div class="oauth-doc-step"><b>3. Dans WireGuard</b>, touche le <b>+</b> en haut à droite → <b>« Créer à partir d\\'un scan QR code »</b> et scanne-le (ou « Créer à partir d\\'un fichier ou d\\'une archive » via l\\'appli Fichiers si tu as téléchargé le .conf).</div>'
+      +'<div class="oauth-doc-step"><b>4. Active le tunnel</b> avec l\\'interrupteur.</div>'
+      +'<div class="oauth-doc-step"><b>5. Vérifie</b> sur <a href="https://whatismyip.com" target="_blank" rel="noopener">whatismyip.com</a> que ton IP publique a changé.</div>'
+    +'</div>'
+  +'</div>';
+}
 async function renderSetVpn(box){
   box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div><div class="set-card"><div class="scr-sub">Chargement…</div></div>';
   let sub=null;
@@ -11495,6 +11554,7 @@ async function renderSetVpn(box){
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div></div>'
         +'<div id="vpn-desktop-box"></div>'
         +'<div id="vpn-config-box"></div>'
+        +vpnTutoHtml()
         +'<div class="set-card"><div class="set-section-label">Clé perdue ?</div><div class="scr-sub" style="margin-bottom:10px">Révoque ta clé actuelle si tu as perdu ton appareil ou ton fichier de configuration. Une nouvelle clé sera générée automatiquement (à récupérer ici) — l\\'ancienne ne fonctionnera plus.</div><button type="button" class="set-mini-btn" id="vpn-revoke-btn" style="color:#f87171">Révoquer cette clé</button><div class="err" id="vpn-revoke-err" style="min-height:1em;margin-top:6px"></div></div>')
       :
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Pas d\\'abonnement actif</div><div class="scr-sub">Débloque l\\'accès à ton VPN IXin pour 30 jours.</div></div></div></div>'
@@ -11539,6 +11599,18 @@ function wireSetVpn(box,sub,active){
   if(active){
     vpnTryClaimConfig(box);
     if(window.xultraDesktop&&window.xultraDesktop.vpn)wireDesktopVpnToggle(box);
+    wireOauthCodeBlocks(box);
+    const vpnOsTabs=['windows','mac','linux','chromeos','android','ios'];
+    box.querySelectorAll('[data-vpn-os-tab]').forEach(function(btn){
+      btn.addEventListener('click',function(){
+        box.querySelectorAll('[data-vpn-os-tab]').forEach(function(b){b.classList.toggle('on',b===btn);});
+        const target=btn.getAttribute('data-vpn-os-tab');
+        vpnOsTabs.forEach(function(k){
+          const p=box.querySelector('#vpn-os-panel-'+k);
+          if(p)p.classList.toggle('hidden',k!==target);
+        });
+      });
+    });
   }
 }
 // Appli desktop (Electron) uniquement : un vrai tunnel WireGuard tourne
