@@ -11899,6 +11899,15 @@ async function vpnTryClaimConfig(box,attempt){
     }
     const delay=attempt<3?4000:(5000+Math.random()*5000);
     setTimeout(function(){vpnTryClaimConfig(box,attempt+1);},delay);
+  }else{
+    // Retries exhausted — configuration still not available
+    const configBox=\$('vpn-config-box');if(!configBox)return;
+    configBox.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Configuration indisponible</div>'
+      +'<div class="scr-sub" style="margin-bottom:10px">La génération de la configuration prend plus longtemps que prévu. Le service vpn-manager peut être en maintenance ou indisponible.</div>'
+      +'<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn-main" id="vpn-retry-btn">🔄 Réessayer</button></div>'
+      +'</div>';
+    const retryBtn=\$('vpn-retry-btn');
+    if(retryBtn)retryBtn.onclick=function(){vpnTryClaimConfig(box,0);};
   }
 }
 const CHAIN_EXPLORERS={'0x1':'https://etherscan.io/tx/','0x89':'https://polygonscan.com/tx/','0xa4b1':'https://arbiscan.io/tx/','0xa':'https://optimistic.etherscan.io/tx/','0x38':'https://bscscan.com/tx/'};
