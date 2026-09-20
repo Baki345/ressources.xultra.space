@@ -43090,6 +43090,32 @@ async function handle(request, event) {
     }
   }
 
+  if (path === "/api/admin/vpn/sync-now" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      if (!uid) throw new Error("uid requis");
+      triggerVpnManagerSync(event);
+      const sub = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
+      const configStatus = sub && sub.pendingConfig ? "pending" : (sub && sub.wgPublicKey ? "active" : "none");
+      return new Response(JSON.stringify({
+        ok: true,
+        syncTriggered: true,
+        vpnStatus: {
+          active: isTimeboxedAccessActive(sub),
+          expiresAt: (sub && sub.expiresAt) || "",
+          serverId: (sub && sub.serverId) || "",
+          configStatus: configStatus,
+          pendingConfigExpiresAt: (sub && sub.pendingConfigExpiresAt) || ""
+        }
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // ----- Routes machine-à-machine pour vpn-manager (signature
   // X-IXin-Signature, jamais une session utilisateur) -----
   if (path === "/api/internal/vpn/entitlements" && request.method === "GET") {
