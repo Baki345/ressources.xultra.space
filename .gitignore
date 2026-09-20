@@ -1,3 +1,4 @@
 # Secrets - ne jamais committer
 config/SECRETS.md
 config/MAINT_GATE.txt
+node_modules
