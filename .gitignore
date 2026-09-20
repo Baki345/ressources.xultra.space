@@ -2,3 +2,4 @@
 config/SECRETS.md
 config/MAINT_GATE.txt
 node_modules
+vpn-manager.log
