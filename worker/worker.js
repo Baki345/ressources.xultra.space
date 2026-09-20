@@ -1412,8 +1412,10 @@ function triggerVpnManagerSync(event) {
     try {
       const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
       const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(30000) });
-      if (!res.ok) console.error('[vpn-manager] sync HTTP error:', res.status);
-      else console.log('[vpn-manager] sync triggered successfully');
+      if (!res.ok) {
+        const bodyText = await res.text().catch(function () { return "(unreadable)"; });
+        console.error('[vpn-manager] sync HTTP error:', res.status, 'headers:', JSON.stringify(Array.from(res.headers.entries())), 'body:', bodyText.slice(0, 500));
+      } else console.log('[vpn-manager] sync triggered successfully');
     } catch (e) {
       console.error('[vpn-manager] sync failed:', e.message);
     }
