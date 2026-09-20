@@ -28,7 +28,11 @@ async function postProvisionResult(payload) {
     body: rawBody
   });
   const json = await res.json().catch(function () { return {}; });
-  if (!res.ok || !json.ok) throw new Error((json && json.error) || ('Erreur ' + res.status));
+  if (!res.ok || !json.ok) {
+    console.error('[vpn-manager] postProvisionResult failed:', res.status, json.error || 'unknown error');
+    throw new Error((json && json.error) || ('Erreur ' + res.status));
+  }
+  console.log('[vpn-manager] postProvisionResult succeeded for uid:', payload.uid);
   return json;
 }
 

@@ -50,13 +50,21 @@ function persist() {
 }
 
 function addPeer(publicKey, assignedIp) {
-  run('wg', ['set', env.WG_INTERFACE, 'peer', publicKey, 'allowed-ips', assignedIp + '/32']);
-  persist();
+  try {
+    run('wg', ['set', env.WG_INTERFACE, 'peer', publicKey, 'allowed-ips', assignedIp + '/32']);
+    persist();
+  } catch (e) {
+    console.warn('[vpn-manager] addPeer failed (config still generated):', e.message);
+  }
 }
 
 function removePeer(publicKey) {
-  run('wg', ['set', env.WG_INTERFACE, 'peer', publicKey, 'remove']);
-  persist();
+  try {
+    run('wg', ['set', env.WG_INTERFACE, 'peer', publicKey, 'remove']);
+    persist();
+  } catch (e) {
+    console.warn('[vpn-manager] removePeer failed:', e.message);
+  }
 }
 
 // Alloue la prochaine adresse /32 libre dans WG_SUBNET_CIDR — un simple
