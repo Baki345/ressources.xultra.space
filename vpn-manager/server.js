@@ -74,7 +74,7 @@ const server = http.createServer(function (req, res) {
   res.end('Not found');
 });
 
-server.listen(env.PORT, function () {
+server.listen(env.PORT, '0.0.0.0', function () {
   console.log('[vpn-manager] à l\'écoute sur le port ' + env.PORT + ' (interface WireGuard : ' + env.WG_INTERFACE + ')');
 });
 
