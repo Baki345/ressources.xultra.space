@@ -11874,7 +11874,8 @@ function wireDesktopVpnToggle(box){
 async function vpnTryClaimConfig(box,attempt){
   attempt=attempt||0;
   let r;
-  try{r=await authPost('/api/vpn/config/claim',{serverId:vpnUiChoice.serverId});}catch(e){r=null;}
+  try{r=await authPost('/api/vpn/config/claim',{serverId:vpnUiChoice.serverId});}catch(e){r={ok:false,error:(e&&e.message)||'network_error'};}
+  const VPN_CLAIM_TERMINAL_ERRORS=['already_claimed','subscription_expired','Configuration expirée, régénère une clé.'];
   if(r&&r.ok&&r.config){
     const configBox=\$('vpn-config-box');if(!configBox)return;
     configBox.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Ta configuration VPN — à sauvegarder maintenant</div>'
@@ -11891,10 +11892,12 @@ async function vpnTryClaimConfig(box,attempt){
     if(window.xultraDesktop&&window.xultraDesktop.vpn){
       window.xultraDesktop.vpn.connect(r.config,{stealth:vpnUiChoice.stealth,killSwitch:vpnUiChoice.killSwitch,serverId:vpnUiChoice.serverId}).catch(function(e){showToast((e&&e.message)||'Connexion VPN automatique échouée','error');});
     }
-  }else if(r&&r.error){
-    // Erreur explicite du serveur (non-retriable) — affiche le message
+  }else if(r&&r.error&&VPN_CLAIM_TERMINAL_ERRORS.indexOf(r.error)!==-1){
+    // Erreur explicite et définitive du serveur (non-retriable, ex. déjà
+    // récupérée une fois) — affiche le message au lieu de tourner en boucle
+    // dans le retry ci-dessous (voir already_claimed côté /api/vpn/config/claim).
     const configBox=\$('vpn-config-box');if(!configBox)return;
-    const errMsg=r.error==='subscription_expired'?'Ton abonnement a expiré':'Impossible de récupérer ta configuration';
+    const errMsg=r.error==='subscription_expired'?'Ton abonnement a expiré':(r.error==='already_claimed'?'Tu as déjà récupéré cette configuration (elle ne s\\'affiche qu\\'une seule fois). Révoque ta clé ci-dessous pour en générer une nouvelle.':'Configuration expirée, révoque ta clé ci-dessous pour en générer une nouvelle.');
     const hint=r.hint?'<div class="scr-sub" style="margin-top:8px">'+esc(r.hint)+'</div>':'';
     configBox.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Erreur VPN</div>'
       +'<div class="scr-sub">'+esc(errMsg)+'</div>'
@@ -42916,7 +42919,14 @@ async function handle(request, event) {
         triggerVpnManagerSync(event);
         throw new Error("Changement de serveur en cours, réessaie dans un instant.");
       }
-      if (!doc || !doc.pendingConfig) throw new Error("Aucune configuration en attente.");
+      if (!doc || !doc.pendingConfig) {
+        // wgPublicKey déjà posé mais plus de pendingConfig = cette clé a déjà
+        // été récupérée une fois (comportement voulu, voir commentaire plus
+        // haut) — à distinguer de "pas encore générée" pour que le client
+        // n'entre pas dans sa boucle de retry pour rien (voir vpnTryClaimConfig).
+        if (doc && doc.wgPublicKey) throw new Error("already_claimed");
+        throw new Error("Aucune configuration en attente.");
+      }
       if (doc.pendingConfigExpiresAt && new Date(doc.pendingConfigExpiresAt).getTime() <= Date.now()) {
         await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
           method: "PATCH", asAdmin: true, body: { data: { pendingConfig: "", pendingConfigExpiresAt: "" } }
