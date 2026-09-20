@@ -1393,15 +1393,18 @@ async function verifyVpnManagerSignature(request, rawBody) {
 // ici (webhook Stripe, /api/vpn/revoke, et les routes d'admin VPN partagent
 // tous exactement cet appel).
 function triggerVpnManagerSync(event) {
+  console.log('[vpn-manager] triggerVpnManagerSync called');
   if (typeof VPN_MANAGER_URL === "undefined" || !VPN_MANAGER_URL || typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) {
     console.warn('[vpn-manager] sync not available: missing VPN_MANAGER_URL or VPN_MANAGER_SECRET');
     return;
   }
+  console.log('[vpn-manager] sending sync request to:', VPN_MANAGER_URL);
   const syncPromise = (async function () {
     try {
       const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
+      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(30000) });
       if (!res.ok) console.error('[vpn-manager] sync HTTP error:', res.status);
+      else console.log('[vpn-manager] sync triggered successfully');
     } catch (e) {
       console.error('[vpn-manager] sync failed:', e.message);
     }
