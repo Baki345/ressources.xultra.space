@@ -1,5 +1,5 @@
-// Résolution du chemin du binaire wireguard-go embarqué — packagé
-// (process.resourcesPath, via l'entrée extraResources de
+// Résolution des chemins des binaires embarqués (wireguard-go, wstunnel) —
+// packagé (process.resourcesPath, via les entrées extraResources de
 // desktop/package.json) ou en dev (repo-relative). Un seul point de vérité
 // pour cette branche, sinon chaque appelant réinvente le if(app.isPackaged).
 'use strict';
@@ -10,12 +10,14 @@ function platformArchDir() {
   return process.platform + '-' + process.arch;
 }
 
-function wireguardGoDir(app) {
+function resourceDir(app, name) {
   if (app && app.isPackaged) {
-    return path.join(process.resourcesPath, 'wireguard-go');
+    return path.join(process.resourcesPath, name);
   }
-  return path.join(__dirname, '..', '..', 'resources', 'wireguard-go', platformArchDir());
+  return path.join(__dirname, '..', '..', 'resources', name, platformArchDir());
 }
+
+function wireguardGoDir(app) { return resourceDir(app, 'wireguard-go'); }
 
 function wireguardGoPath(app) {
   const dir = wireguardGoDir(app);
@@ -27,4 +29,20 @@ function wireguardGoExists(app) {
   try { return fs.existsSync(wireguardGoPath(app)); } catch (e) { return false; }
 }
 
-module.exports = { wireguardGoDir, wireguardGoPath, wireguardGoExists, platformArchDir };
+function wstunnelDir(app) { return resourceDir(app, 'wstunnel'); }
+
+function wstunnelPath(app) {
+  const dir = wstunnelDir(app);
+  const name = process.platform === 'win32' ? 'wstunnel.exe' : 'wstunnel';
+  return path.join(dir, name);
+}
+
+function wstunnelExists(app) {
+  try { return fs.existsSync(wstunnelPath(app)); } catch (e) { return false; }
+}
+
+module.exports = {
+  wireguardGoDir, wireguardGoPath, wireguardGoExists,
+  wstunnelDir, wstunnelPath, wstunnelExists,
+  platformArchDir
+};

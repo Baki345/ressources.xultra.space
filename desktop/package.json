@@ -76,6 +76,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "resources/wstunnel/${platform}-${arch}",
+        "to": "wstunnel",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },
