@@ -1326,6 +1326,22 @@ async function verifyVpnManagerSignature(request, rawBody) {
   const expected = await computeHmacSignatureHex(VPN_MANAGER_SECRET, rawBody);
   return constantTimeEqualHex(expected, sig);
 }
+// Best-effort, jamais bloquant : vpn-manager (sur le VPS, hors de portée de
+// ce Worker) tourne de toute façon sa propre ronde de réconciliation
+// périodique — ce "sync now" n'est qu'un raccourci pour provisionner/retirer
+// un pair quasi immédiatement au lieu d'attendre jusqu'à 15 minutes. Factorisé
+// ici (webhook Stripe, /api/vpn/revoke, et les routes d'admin VPN partagent
+// tous exactement cet appel).
+function triggerVpnManagerSync(event) {
+  if (typeof VPN_MANAGER_URL === "undefined" || !VPN_MANAGER_URL || typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) return;
+  const syncPromise = (async function () {
+    try {
+      const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
+      await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
+    } catch (e) {}
+  })();
+  if (event && event.waitUntil) event.waitUntil(syncPromise);
+}
 // ===== Boutique de décorations de profil (cadres d'avatar créés par des
 // créateurs, vendus en IXin Coins) =====
 // Choix délibéré de scope pour la V1 : parametrique, pas d'upload de
@@ -5685,6 +5701,7 @@ a.bug-att-item{display:block}
         </div>
         <div class="admin-subtab-group">
         <button type="button" class="admin-subtab owner-only hidden" data-atab="servers"><span class="admin-subtab-ic">🖥️</span>Serveurs</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="vpn"><span class="admin-subtab-ic">🔒</span>VPN</button>
         <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance"><span class="admin-subtab-ic">🛠️</span>Maintenance</button>
         </div>
       </div>
@@ -28636,6 +28653,7 @@ function showAdminTab(tab){
   else if(tab==='calls')loadAdminCalls().then(renderAdminCalls).catch(adminErr);
   else if(tab==='logs')loadAdminLogs().then(renderAdminLogs).catch(adminErr);
   else if(tab==='servers')loadAdminServers().then(renderAdminServers).catch(adminErr);
+  else if(tab==='vpn')loadAdminVpn().then(renderAdminVpn).catch(adminErr);
   else if(tab==='maintenance')loadAdminMaintenance().then(renderAdminMaintenance).catch(adminErr);
   else if(tab==='xdrive')loadAdminXDrive().then(renderAdminXDrive).catch(adminErr);
 }
@@ -29186,6 +29204,79 @@ function renderAdminBans(list){
 // y accéder sans en être membre. La collection "servers" est en lecture
 // publique (read("any")), un simple listDocuments suffit, pas besoin d'une
 // route admin dédiée.
+// Pas une vraie liste à précharger (contrairement aux autres onglets admin)
+// — un outil de recherche par pseudo#tag/uid, donc loadAdminVpn() ne fait
+// rien ; gardé quand même pour respecter le même schéma load→render que
+// tous les autres onglets (showAdminTab appelle systématiquement les deux).
+async function loadAdminVpn(){return null}
+function fmtVpnAdminDate(iso){
+  if(!iso)return '—';
+  try{return new Date(iso).toLocaleString('fr-FR',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return iso}
+}
+function renderAdminVpn(){
+  const box=\$('admin-body');if(!box)return;
+  box.innerHTML='<div class="set-card"><div class="set-section-label">🔒 Abonnement VPN d\\'un membre</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Cherche par pseudo#tag (ex. soso121#1833) ou identifiant de compte.</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="admin-vpn-handle" class="field-input" placeholder="pseudo#tag ou uid" style="flex:1;min-width:200px"><button type="button" class="set-mini-btn" id="admin-vpn-search-btn">Rechercher</button></div>'
+    +'<div class="err" id="admin-vpn-search-err" style="min-height:1em;margin-top:6px"></div>'
+  +'</div><div id="admin-vpn-result"></div>';
+
+  async function search(){
+    const handle=(\$('admin-vpn-handle').value||'').trim();
+    const errEl=\$('admin-vpn-search-err');
+    const resultEl=\$('admin-vpn-result');
+    errEl.textContent='';
+    if(!handle){errEl.textContent='Pseudo ou identifiant requis';return}
+    const btn=\$('admin-vpn-search-btn');
+    btn.disabled=true;btn.textContent='…';
+    try{
+      const r=await authPost('/api/admin/vpn/lookup',{handle:handle});
+      renderResult(r);
+    }catch(e){errEl.textContent=(e&&e.message)||'Erreur';resultEl.innerHTML=''}
+    btn.disabled=false;btn.textContent='Rechercher';
+  }
+
+  function renderResult(r){
+    const resultEl=\$('admin-vpn-result');
+    const sub=r.subscription;
+    let statusLabel,statusSub;
+    if(!sub){statusLabel='⚪ Aucun abonnement';statusSub='';}
+    else if(sub.status==='lifetime'&&r.active){statusLabel='♾️ Accès à vie';statusSub='';}
+    else if(r.active){statusLabel='✅ Actif';statusSub='Expire le '+esc(fmtVpnAdminDate(sub.expiresAt));}
+    else{statusLabel='🔴 Inactif/expiré';statusSub=sub.expiresAt?('Expiré le '+esc(fmtVpnAdminDate(sub.expiresAt))):'';}
+    resultEl.innerHTML='<div class="set-card">'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+esc(r.displayName||r.username||r.uid)+(r.tag?' <span style="color:var(--muted)">#'+esc(r.tag)+'</span>':'')+'</div><div class="scr-sub">uid : '+esc(r.uid)+'</div></div></div>'
+      +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">'+statusLabel+'</div>'+(statusSub?'<div class="scr-sub">'+statusSub+'</div>':'')+'</div></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'
+        +'<button type="button" class="set-mini-btn" id="admin-vpn-grant-btn">➕ Prolonger de 30 jours</button>'
+        +'<button type="button" class="set-mini-btn" id="admin-vpn-lifetime-btn">♾️ Accès à vie</button>'
+        +'<button type="button" class="set-mini-btn danger" id="admin-vpn-revoke-btn">Révoquer</button>'
+      +'</div>'
+      +'<div class="err" id="admin-vpn-action-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>';
+    const actErr=\$('admin-vpn-action-err');
+    \$('admin-vpn-grant-btn').onclick=async function(){
+      const btn=this;btn.disabled=true;
+      try{await authPost('/api/admin/vpn/grant',{uid:r.uid,days:30});showToast('Abonnement prolongé de 30 jours.');await search();}
+      catch(e){actErr.textContent=(e&&e.message)||'Erreur';btn.disabled=false;}
+    };
+    \$('admin-vpn-lifetime-btn').onclick=function(){
+      showSlideConfirm('Donner l\\'accès VPN à vie à '+esc(r.displayName||r.username||r.uid)+' ? Cet accès ne sera jamais facturé et ne s\\'expire jamais tant qu\\'il n\\'est pas révoqué manuellement.',async function(){
+        try{await authPost('/api/admin/vpn/lifetime',{uid:r.uid});showToast('Accès à vie accordé.');await search();}
+        catch(e){actErr.textContent=(e&&e.message)||'Erreur';}
+      });
+    };
+    \$('admin-vpn-revoke-btn').onclick=function(){
+      showSlideConfirm('Révoquer l\\'accès VPN de '+esc(r.displayName||r.username||r.uid)+' ? Sa clé actuelle cessera de fonctionner.',async function(){
+        try{await authPost('/api/admin/vpn/revoke',{uid:r.uid});showToast('Accès VPN révoqué.');await search();}
+        catch(e){actErr.textContent=(e&&e.message)||'Erreur';}
+      });
+    };
+  }
+
+  \$('admin-vpn-search-btn').onclick=search;
+  \$('admin-vpn-handle').addEventListener('keydown',function(ev){if(ev.key==='Enter')search();});
+}
 async function loadAdminServers(){
   const r=await db.listDocuments(DB,'servers',[Appwrite.Query.limit(100),Appwrite.Query.orderDesc('\$createdAt')]);
   return r.documents||[];
@@ -42550,22 +42641,7 @@ async function handle(request, event) {
               await grantPlus(uid, "stripe_purchase");
             } else if (meta.kind === "vpn") {
               await grantTimeboxedAccess(uid, "vpn_subscriptions", VPN_SUBSCRIPTION_DAYS, { lastStripeEventId: eventDocId });
-              // Best-effort, jamais bloquant : vpn-manager (sur le VPS, hors
-              // de portée de ce Worker) tourne de toute façon sa propre
-              // ronde de réconciliation périodique — ce "sync now" n'est
-              // qu'un raccourci pour provisionner quasi immédiatement au
-              // lieu d'attendre jusqu'à 15 minutes.
-              if (typeof VPN_MANAGER_URL !== "undefined" && VPN_MANAGER_URL && typeof VPN_MANAGER_SECRET !== "undefined" && VPN_MANAGER_SECRET) {
-                const syncPromise = (async function () {
-                  try {
-                    const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-                    await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", {
-                      method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000)
-                    });
-                  } catch (e) {}
-                })();
-                if (event && event.waitUntil) event.waitUntil(syncPromise);
-              }
+              triggerVpnManagerSync(event);
             } else if (meta.kind === "coins") {
               const p = COIN_PACKS[meta.pack];
               if (p) {
@@ -42644,15 +42720,124 @@ async function handle(request, event) {
       await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
         method: "PATCH", asAdmin: true, body: { data: { wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
       });
-      if (typeof VPN_MANAGER_URL !== "undefined" && VPN_MANAGER_URL && typeof VPN_MANAGER_SECRET !== "undefined" && VPN_MANAGER_SECRET) {
-        const syncPromise = (async function () {
-          try {
-            const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-            await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
-          } catch (e) {}
-        })();
-        if (event && event.waitUntil) event.waitUntil(syncPromise);
+      triggerVpnManagerSync(event);
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  // ===== Gestion admin des abonnements VPN (propriétaire uniquement — un
+  // abonnement gratuit accordé/révoqué à la main a un vrai coût réel,
+  // même logique de garde que /api/admin/badges) =====
+  if (path === "/api/admin/vpn/lookup" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const profileDoc = await resolveHandleToUser(String((body && body.handle) || ""));
+      const uid = profileDoc.authUserId || profileDoc.$id;
+      const sub = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
+      return new Response(JSON.stringify({
+        ok: true,
+        uid: uid,
+        username: profileDoc.username || "",
+        tag: profileDoc.tag || "",
+        displayName: profileDoc.displayName || profileDoc.username || "",
+        subscription: sub,
+        active: isTimeboxedAccessActive(sub)
+      }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/admin/vpn/grant" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      // Prend directement un uid déjà résolu (par /api/admin/vpn/lookup),
+      // jamais un handle à re-résoudre ici : resolveHandleToUser identifie
+      // un pseudo#tag, pas un uid — son repli "par id brut" cherche par
+      // l'ID du DOCUMENT profil (users/$id), qui diffère de authUserId
+      // (confirmé : deux valeurs différentes pour le même compte). Lui
+      // repasser un uid casserait donc silencieusement la résolution.
+      const uid = String((body && body.uid) || "");
+      if (!uid) throw new Error("uid requis");
+      const days = Math.max(1, Math.min(3650, parseInt((body && body.days) || VPN_SUBSCRIPTION_DAYS, 10) || VPN_SUBSCRIPTION_DAYS));
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const targetProfile = await resolveProfile(uid);
+      const expiresAt = await grantTimeboxedAccess(uid, "vpn_subscriptions", days, { lastStripeEventId: "admin_grant" });
+      triggerVpnManagerSync(event);
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "vpn_grant", detail: ((targetProfile && targetProfile.username) || uid) + " (+" + days + "j)", by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, expiresAt: expiresAt }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/admin/vpn/lifetime" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      if (!uid) throw new Error("uid requis");
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const targetProfile = await resolveProfile(uid);
+      // Pas un vrai champ "sans expiration" dans le schéma — une date très
+      // lointaine suffit et reste compatible tel quel avec
+      // isTimeboxedAccessActive() et la requête greaterThan côté
+      // /api/internal/vpn/entitlements, sans avoir à leur ajouter un cas
+      // spécial. "status" reste un simple libellé, jamais vérifié pour
+      // l'activation (voir isTimeboxedAccessActive) — juste plus clair à
+      // lire pour un futur admin qui consulterait ce document.
+      const existing = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { asAdmin: true }).catch(function () { return null; });
+      const data = { uid: uid, status: "lifetime", expiresAt: "2999-01-01T00:00:00.000Z", lastStripeEventId: "admin_grant_lifetime" };
+      if (existing) {
+        await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, { method: "PATCH", asAdmin: true, body: { data: data } });
+      } else {
+        await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents", {
+          method: "POST", asAdmin: true, body: { documentId: uid, data: data, permissions: ["read(\"user:" + uid + "\")"] }
+        });
       }
+      triggerVpnManagerSync(event);
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "vpn_lifetime", detail: (targetProfile && targetProfile.username) || uid, by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/admin/vpn/revoke" && request.method === "POST") {
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const uid = String((body && body.uid) || "");
+      if (!uid) throw new Error("uid requis");
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const targetProfile = await resolveProfile(uid);
+      await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + uid, {
+        method: "PATCH", asAdmin: true,
+        // expiresAt dans le passé plutôt que vide : isTimeboxedAccessActive
+        // exige un expiresAt PRÉSENT et dépassé (une chaîne vide serait
+        // juste falsy et donc déjà traitée comme inactif, mais autant
+        // rester explicite plutôt que de dépendre de ce comportement).
+        body: { data: { status: "revoked_by_admin", expiresAt: new Date(Date.now() - 60000).toISOString(), wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
+      });
+      triggerVpnManagerSync(event);
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "vpn_revoke", detail: (targetProfile && targetProfile.username) || uid, by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
