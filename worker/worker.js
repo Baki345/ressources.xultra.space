@@ -42893,6 +42893,10 @@ async function handle(request, event) {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
+      const doc = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
+      if (!doc || !isTimeboxedAccessActive(doc)) {
+        return new Response(JSON.stringify({ ok: false, error: "subscription_expired", hint: "Renouvelle ton abonnement pour continuer — tu pourras ensuite révoquer ta clé et en générer une nouvelle." }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
       await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, {
         method: "PATCH", asAdmin: true, body: { data: { wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
       });
