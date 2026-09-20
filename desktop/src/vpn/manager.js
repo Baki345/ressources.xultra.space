@@ -107,9 +107,15 @@ class VpnManager extends EventEmitter {
     if (!this.platform) {
       throw new Error('Plateforme non prise en charge pour le moment : ' + process.platform);
     }
-    this.setStatus({ state: 'connecting', error: null, stealth: !!opts.stealth });
+    this.setStatus({ state: 'connecting', error: null, stealth: !!opts.stealth, killSwitch: !!opts.killSwitch, serverId: opts.serverId || '' });
     try {
       const parsed = confParser.parseConf(confText);
+      // Copié sur `parsed` (pas juste gardé dans `opts`) pour atteindre
+      // platform.bringUp()/tearDown() via this.currentOpts, exactement comme
+      // `stealth` réécrit déjà parsed.endpoint plus bas — un seul objet
+      // transporte tout ce dont bringUp/tearDown ont besoin.
+      parsed.killSwitch = !!opts.killSwitch;
+      parsed.serverId = opts.serverId || '';
 
       // Stealth EN PREMIER, avant tout accès privilégié : une panne réseau/
       // wstunnel doit se manifester avant que l'utilisateur ne soit invité
@@ -161,6 +167,8 @@ class VpnManager extends EventEmitter {
         state: 'connected',
         addressCidr: parsed.addressCidr,
         endpoint: parsed.endpoint,
+        killSwitch: parsed.killSwitch,
+        serverId: parsed.serverId,
         connectedAt: Date.now(),
         rxBytes: 0,
         txBytes: 0,
@@ -183,7 +191,7 @@ class VpnManager extends EventEmitter {
     } finally {
       await this.cleanupTunnel();
       this.currentOpts = null;
-      this.setStatus({ state: 'disconnected', stealth: false, rxBytes: 0, txBytes: 0, lastHandshakeSec: 0 });
+      this.setStatus({ state: 'disconnected', stealth: false, killSwitch: false, serverId: '', rxBytes: 0, txBytes: 0, lastHandshakeSec: 0 });
     }
   }
 

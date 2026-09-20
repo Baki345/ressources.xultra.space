@@ -71,6 +71,45 @@ async function startTunnelProcess(wgPath, iface) {
   };
 }
 
+function splitEndpoint(endpoint) {
+  const s = String(endpoint || '');
+  const idx = s.lastIndexOf(':');
+  if (idx === -1) return { host: '', port: '' };
+  return { host: s.slice(0, idx), port: s.slice(idx + 1) };
+}
+
+const KS_RULE_PREFIX = 'IXin Kill Switch';
+
+// ⚠️ BÊTA : la précédence des règles Windows Firewall n'est PAS "la
+// dernière créée gagne" — un Allow et un Block sur le même trafic à la même
+// spécificité peuvent donner un résultat non garanti selon la
+// configuration du profil réseau actif. Codé à partir de la documentation
+// New-NetFirewallRule, jamais validé sur une vraie machine Windows (même
+// réserve que le reste de ce fichier) : afficher clairement "bêta" dans
+// l'UI plutôt que promettre un kill switch garanti tant que ça n'a pas été
+// vérifié sur du vrai matériel. Une version WFP (ce que wireguard-windows
+// utilise lui-même) serait la suite logique une fois ce test possible.
+function killSwitchScript(iface, endpointHost, endpointPort) {
+  const lines = [];
+  lines.push('New-NetFirewallRule -DisplayName ' + JSON.stringify(KS_RULE_PREFIX + ' - Allow Tunnel') + ' -Direction Outbound -InterfaceAlias ' + JSON.stringify(iface) + ' -Action Allow -ErrorAction SilentlyContinue | Out-Null');
+  lines.push('New-NetFirewallRule -DisplayName ' + JSON.stringify(KS_RULE_PREFIX + ' - Allow Handshake') + ' -Direction Outbound -RemoteAddress ' + JSON.stringify(endpointHost) + ' -RemotePort ' + JSON.stringify(endpointPort) + ' -Protocol UDP -Action Allow -ErrorAction SilentlyContinue | Out-Null');
+  lines.push('New-NetFirewallRule -DisplayName ' + JSON.stringify(KS_RULE_PREFIX + ' - Block All') + ' -Direction Outbound -Action Block -ErrorAction SilentlyContinue | Out-Null');
+  return lines.join('\r\n');
+}
+
+async function enableKillSwitch(iface, endpoint) {
+  const { host, port } = splitEndpoint(endpoint);
+  if (!host || !port) throw new Error('Kill switch : endpoint invalide (' + endpoint + ').');
+  await runElevatedPowerShell(killSwitchScript(iface, host, port) + '\r\n');
+}
+
+// Contrairement à Linux (nft delete table = un seul appel), Windows exige de
+// retirer chaque règle individuellement — le joker sur le préfixe de nom
+// évite d'avoir à retenir les trois noms exacts ici aussi.
+async function disableKillSwitch() {
+  await runElevatedPowerShell('Remove-NetFirewallRule -DisplayName ' + JSON.stringify(KS_RULE_PREFIX + '*') + ' -ErrorAction SilentlyContinue | Out-Null\r\n');
+}
+
 // À appeler APRÈS setInterface() (uapiClient, communication directe avec le
 // named pipe — n'a PAS besoin d'élévation côté appelant, seul le process
 // wireguard-go qui répond de l'autre côté du pipe est élevé). PowerShell
@@ -89,13 +128,22 @@ async function bringUp(iface, socketPathIgnored, opts) {
   // au mode "sans kill-switch" de wireguard-windows (docs/netquirk.md).
   lines.push('New-NetRoute -InterfaceAlias ' + JSON.stringify(iface) + ' -DestinationPrefix "0.0.0.0/1" -NextHop "0.0.0.0" -ErrorAction SilentlyContinue | Out-Null');
   lines.push('New-NetRoute -InterfaceAlias ' + JSON.stringify(iface) + ' -DestinationPrefix "128.0.0.0/1" -NextHop "0.0.0.0" -ErrorAction SilentlyContinue | Out-Null');
+  if (opts.killSwitch) {
+    const { host, port } = splitEndpoint(opts.endpoint);
+    if (host && port) lines.push(killSwitchScript(iface, host, port));
+  }
   await runElevatedPowerShell(lines.join('\r\n') + '\r\n');
 }
 
-// Rien à défaire explicitement : tuer wireguard-go.exe (voir stop() dans
-// startTunnelProcess) détruit l'adaptateur Wintun qu'il possédait, ce qui
-// emporte avec lui l'adresse IP et les routes posées par bringUp() — même
-// raisonnement que Linux ("pas de ip link del nécessaire").
-async function tearDown() {}
+// Tuer wireguard-go.exe (voir stop() dans startTunnelProcess) détruit
+// l'adaptateur Wintun qu'il possédait, ce qui emporte avec lui l'adresse IP
+// et les routes posées par bringUp() — même raisonnement que Linux ("pas de
+// ip link del nécessaire"). Les règles de pare-feu du kill switch, elles,
+// NE partent PAS avec l'adaptateur : à retirer explicitement ici, et
+// UNIQUEMENT ici (jamais sur une sortie inattendue de wireguard-go.exe —
+// c'est tout le principe du kill switch).
+async function tearDown(iface, opts) {
+  if (opts && opts.killSwitch) await disableKillSwitch().catch(function () {});
+}
 
-module.exports = { socketPath, ensurePrivileges, startTunnelProcess, bringUp, tearDown };
+module.exports = { socketPath, ensurePrivileges, startTunnelProcess, bringUp, tearDown, enableKillSwitch, disableKillSwitch };

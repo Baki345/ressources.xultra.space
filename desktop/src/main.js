@@ -284,24 +284,29 @@ if (!gotLock) {
         await vpnManager.connect(confText, opts);
         // Persisté seulement après une connexion réussie : un .conf qui ne
         // marche même pas ne mérite pas d'être gardé pour un futur
-        // reconnectStored(). Le mode (Stealth ou non) est gardé avec, pour
-        // que ce futur reconnectStored() rejoue le même choix.
-        vpnSecureStore.save(app, confText, opts && opts.stealth);
+        // reconnectStored(). Les choix (Stealth, kill switch, serveur) sont
+        // gardés avec, pour que ce futur reconnectStored() les rejoue.
+        vpnSecureStore.save(app, confText, opts);
         return { ok: true, status: vpnManager.getStatus() };
       } catch (err) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };
       }
     });
-    ipcMain.handle('xultra:vpn-reconnect-stored', async (e, stealthOverride) => {
+    ipcMain.handle('xultra:vpn-reconnect-stored', async (e, overrides) => {
       const stored = vpnSecureStore.load(app);
       if (!stored) return { ok: false, error: 'Aucune configuration VPN enregistrée sur cet appareil.' };
-      const stealth = typeof stealthOverride === 'boolean' ? stealthOverride : stored.stealth;
+      overrides = overrides || {};
+      const opts = {
+        stealth: typeof overrides.stealth === 'boolean' ? overrides.stealth : stored.stealth,
+        killSwitch: typeof overrides.killSwitch === 'boolean' ? overrides.killSwitch : stored.killSwitch,
+        serverId: overrides.serverId || stored.serverId
+      };
       try {
-        await vpnManager.connect(stored.config, { stealth: stealth });
-        // Re-persiste si l'utilisateur a changé de mode depuis le dernier
+        await vpnManager.connect(stored.config, opts);
+        // Re-persiste si l'utilisateur a changé un choix depuis le dernier
         // connect() — sinon un futur reconnectStored() sans argument
         // reviendrait silencieusement à l'ancien choix.
-        vpnSecureStore.save(app, stored.config, stealth);
+        vpnSecureStore.save(app, stored.config, opts);
         return { ok: true, status: vpnManager.getStatus() };
       } catch (err) {
         return { ok: false, error: (err && err.message) || 'Erreur de connexion VPN' };

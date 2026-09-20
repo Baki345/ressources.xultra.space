@@ -4,9 +4,10 @@
 // l'appli devrait redemander une nouvelle clé à chaque redémarrage.
 // Suit la même convention "petit fichier dans userData" que
 // app-settings.js, chiffré au lieu de JSON en clair. Stocke un petit objet
-// {config, stealth} (pas juste le texte du .conf) pour que
-// reconnectStored() rejoue aussi le dernier mode choisi (direct/Stealth)
-// plutôt que de silencieusement retomber en direct à chaque redémarrage.
+// {config, stealth, killSwitch, serverId} (pas juste le texte du .conf) pour
+// que reconnectStored() rejoue aussi les derniers choix (protocole, kill
+// switch, serveur) plutôt que de silencieusement y revenir à chaque
+// redémarrage.
 'use strict';
 const { safeStorage } = require('electron');
 const fs = require('fs');
@@ -30,19 +31,21 @@ function isReallyEncrypted() {
   try { return safeStorage.getSelectedStorageBackend() !== 'basic_text'; } catch (e) { return true; }
 }
 
-function save(app, confText, stealth) {
+function save(app, confText, opts) {
+  opts = opts || {};
   if (!isReallyEncrypted()) return false;
   try {
-    const payload = JSON.stringify({ config: String(confText || ''), stealth: !!stealth });
+    const payload = JSON.stringify({ config: String(confText || ''), stealth: !!opts.stealth, killSwitch: !!opts.killSwitch, serverId: opts.serverId || '' });
     const encrypted = safeStorage.encryptString(payload);
     fs.writeFileSync(storeFilePath(app), encrypted);
     return true;
   } catch (e) { return false; }
 }
 
-// Renvoie {config, stealth} ou null — jamais le texte brut directement, pour
-// que main.js n'ait jamais à se souvenir séparément de deux façons de lire
-// ce fichier.
+// Renvoie {config, stealth, killSwitch, serverId} ou null — jamais le texte
+// brut directement, pour que main.js n'ait jamais à se souvenir
+// séparément de plusieurs façons de lire ce fichier. `killSwitch`/`serverId`
+// par défaut à false/'' pour un fichier écrit avant leur existence.
 function load(app) {
   if (!isAvailable()) return null;
   try {
@@ -50,7 +53,7 @@ function load(app) {
     const payload = safeStorage.decryptString(encrypted);
     const parsed = JSON.parse(payload);
     if (!parsed || typeof parsed.config !== 'string') return null;
-    return { config: parsed.config, stealth: !!parsed.stealth };
+    return { config: parsed.config, stealth: !!parsed.stealth, killSwitch: !!parsed.killSwitch, serverId: parsed.serverId || '' };
   } catch (e) { return null; }
 }
 

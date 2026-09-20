@@ -24,10 +24,11 @@ contextBridge.exposeInMainWorld('xultraDesktop', {
     // (WebSocket-sur-TLS) au lieu de s'y connecter en direct, voir
     // src/vpn/stealth.js.
     connect: (confText, opts) => ipcRenderer.invoke('xultra:vpn-connect', confText, opts),
-    // stealthOverride (booléen optionnel) : remplace le mode enregistré pour
-    // cette reconnexion (et le re-persiste) — omis, rejoue tel quel le
-    // dernier choix connu.
-    reconnectStored: (stealthOverride) => ipcRenderer.invoke('xultra:vpn-reconnect-stored', stealthOverride),
+    // overrides ({stealth, killSwitch, serverId}, tous optionnels) :
+    // remplace pour cette reconnexion les choix enregistrés qui y figurent
+    // (et les re-persiste) — un champ omis rejoue tel quel le dernier choix
+    // connu pour ce champ précis.
+    reconnectStored: (overrides) => ipcRenderer.invoke('xultra:vpn-reconnect-stored', overrides),
     disconnect: () => ipcRenderer.invoke('xultra:vpn-disconnect'),
     getStatus: () => ipcRenderer.invoke('xultra:vpn-status'),
     hasStoredConfig: () => ipcRenderer.invoke('xultra:vpn-has-stored-config'),
