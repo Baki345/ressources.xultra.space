@@ -1393,12 +1393,18 @@ async function verifyVpnManagerSignature(request, rawBody) {
 // ici (webhook Stripe, /api/vpn/revoke, et les routes d'admin VPN partagent
 // tous exactement cet appel).
 function triggerVpnManagerSync(event) {
-  if (typeof VPN_MANAGER_URL === "undefined" || !VPN_MANAGER_URL || typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) return;
+  if (typeof VPN_MANAGER_URL === "undefined" || !VPN_MANAGER_URL || typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) {
+    console.warn('[vpn-manager] sync not available: missing VPN_MANAGER_URL or VPN_MANAGER_SECRET');
+    return;
+  }
   const syncPromise = (async function () {
     try {
       const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-      await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
-    } catch (e) {}
+      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(8000) });
+      if (!res.ok) console.error('[vpn-manager] sync HTTP error:', res.status);
+    } catch (e) {
+      console.error('[vpn-manager] sync failed:', e.message);
+    }
   })();
   if (event && event.waitUntil) event.waitUntil(syncPromise);
 }
@@ -42937,6 +42943,25 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: true, active: isTimeboxedAccessActive(sub), expiresAt: (sub && sub.expiresAt) || "", serverId: (sub && sub.serverId) || "", hasPendingConfig: hasPendingConfig }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/vpn/diagnostics" && request.method === "GET") {
+    // Diagnostic endpoint pour admin — vérifie si vpn-manager est accessible
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const hasUrl = typeof VPN_MANAGER_URL !== "undefined" && !!VPN_MANAGER_URL;
+      const hasSecret = typeof VPN_MANAGER_SECRET !== "undefined" && !!VPN_MANAGER_SECRET;
+      if (!hasUrl || !hasSecret) {
+        return new Response(JSON.stringify({ ok: true, configured: false, missingUrl: !hasUrl, missingSecret: !hasSecret }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      }
+      const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
+      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/", { method: "GET", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(5000) });
+      const healthy = res && res.ok;
+      return new Response(JSON.stringify({ ok: true, configured: true, vpnManagerReachable: healthy, status: healthy ? "connected" : "unreachable", httpStatus: res && res.status }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: true, configured: true, vpnManagerReachable: false, status: "error", error: e.message }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
