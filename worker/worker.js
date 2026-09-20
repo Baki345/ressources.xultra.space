@@ -42921,7 +42921,8 @@ async function handle(request, event) {
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
       const sub = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      return new Response(JSON.stringify({ ok: true, active: isTimeboxedAccessActive(sub), expiresAt: (sub && sub.expiresAt) || "", serverId: (sub && sub.serverId) || "" }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const hasPendingConfig = !!(sub && sub.pendingConfig);
+      return new Response(JSON.stringify({ ok: true, active: isTimeboxedAccessActive(sub), expiresAt: (sub && sub.expiresAt) || "", serverId: (sub && sub.serverId) || "", hasPendingConfig: hasPendingConfig }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
