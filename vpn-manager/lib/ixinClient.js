@@ -20,7 +20,11 @@ async function getEntitlements() {
 }
 
 async function postProvisionResult(payload) {
-  const rawBody = JSON.stringify(payload);
+  // serverId ajouté ici (jamais par l'appelant, voir reconcile.js) : sert au
+  // Worker à choisir le bon secret par serveur pour vérifier la signature
+  // (voir getVpnManagerSecretForServer côté worker.js) — nécessaire dès
+  // qu'un 2e serveur existera, sans effet tant qu'il n'y en a qu'un.
+  const rawBody = JSON.stringify(Object.assign({ serverId: env.VPN_SERVER_ID }, payload));
   const sig = sign(env.VPN_MANAGER_SECRET, rawBody);
   const res = await fetch(env.IXIN_BASE_URL.replace(/\/$/, '') + '/api/internal/vpn/provision-result', {
     method: 'POST',

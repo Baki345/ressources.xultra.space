@@ -4715,6 +4715,13 @@
     "required": true,
     "type": "integer",
     "array": false
+   },
+   {
+    "key": "syncUrl",
+    "required": false,
+    "type": "string",
+    "size": 255,
+    "array": false
    }
   ],
   "documentSecurity": false,

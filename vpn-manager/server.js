@@ -36,14 +36,28 @@ function sendJson(res, status, obj) {
 }
 
 let reconciling = false;
+// État exposé par GET /health (voir plus bas) — pour du monitoring externe
+// (UptimeRobot, un check-in planifié...) sans avoir à parser les logs.
+const startedAt = Date.now();
+let lastReconcileAt = null;
+let lastReconcileOk = null;
+let lastReconcileSummary = null;
+let lastReconcileError = null;
 async function runReconcileSafely() {
   if (reconciling) return { ok: false, error: 'déjà en cours' };
   reconciling = true;
   try {
     const result = await reconcile();
+    lastReconcileAt = new Date().toISOString();
+    lastReconcileOk = true;
+    lastReconcileSummary = result;
+    lastReconcileError = null;
     return { ok: true, result: result };
   } catch (e) {
     console.error('[vpn-manager] échec de la réconciliation :', e.message);
+    lastReconcileAt = new Date().toISOString();
+    lastReconcileOk = false;
+    lastReconcileError = e.message;
     return { ok: false, error: e.message };
   } finally {
     reconciling = false;
@@ -54,6 +68,25 @@ const server = http.createServer(function (req, res) {
   if (req.method === 'GET' && req.url === '/') {
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
     res.end('vpn-manager en ligne. Endpoint : POST /sync');
+    return;
+  }
+
+  // Route de monitoring, sans authentification (aucune info sensible —
+  // pas de clé, pas de secret) : uniquement de quoi vérifier que ce
+  // process tourne encore et que sa dernière réconciliation a réussi.
+  // Pensée pour un check externe (UptimeRobot, curl planifié...), pas
+  // seulement pour du debug manuel.
+  if (req.method === 'GET' && req.url === '/health') {
+    sendJson(res, 200, {
+      ok: true,
+      serverId: env.VPN_SERVER_ID,
+      uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
+      reconciling: reconciling,
+      lastReconcileAt: lastReconcileAt,
+      lastReconcileOk: lastReconcileOk,
+      lastReconcileSummary: lastReconcileSummary,
+      lastReconcileError: lastReconcileError
+    });
     return;
   }
 
@@ -75,8 +108,7 @@ const server = http.createServer(function (req, res) {
 });
 
 server.listen(env.PORT, '0.0.0.0', function () {
-  console.log('[vpn-manager] à l\'écoute sur le port ' + env.PORT + ' (interface WireGuard : ' + env.WG_INTERFACE + ')');
-  console.log('[vpn-manager] VPN_MANAGER_SECRET loaded:', env.VPN_MANAGER_SECRET);
+  console.log('[vpn-manager] à l\'écoute sur le port ' + env.PORT + ' (interface WireGuard : ' + env.WG_INTERFACE + ', serveur : ' + env.VPN_SERVER_ID + ')');
 });
 
 // Ronde de réconciliation périodique, en plus du "maintenant" déclenché par

@@ -1379,9 +1379,26 @@ async function computeHmacSignatureHex(secret, body) {
   const sigBuf = await crypto.subtle.sign("HMAC", key, enc.encode(body));
   return Array.from(new Uint8Array(sigBuf)).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
 }
-async function verifyVpnManagerSignature(request, rawBody) {
-  if (typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) {
-    console.log('[vpn-sig] Missing VPN_MANAGER_SECRET');
+// Un secret PAR serveur (VPN_MANAGER_SECRET_<SLUG>, Worker secret binding),
+// avec repli sur l'unique VPN_MANAGER_SECRET historique tant qu'aucun
+// secret dédié n'a été posé pour ce serveur — comportement inchangé pour
+// "main" tant qu'un seul VPS existe. Nécessaire avant un vrai 2e serveur :
+// un secret unique partagé permettrait à un VPS compromis de forger des
+// requêtes valides pour les abonnés d'un AUTRE serveur (voir
+// vpn-manager/README.md § Risque à traiter avant d'ajouter un vrai 2e serveur).
+function getVpnManagerSecretForServer(serverId) {
+  const slug = String(serverId || DEFAULT_VPN_SERVER_SLUG).toUpperCase().replace(/[^A-Z0-9]/g, "_");
+  const varName = "VPN_MANAGER_SECRET_" + slug;
+  try {
+    const perServer = globalThis[varName];
+    if (perServer) return perServer;
+  } catch (e) {}
+  return typeof VPN_MANAGER_SECRET !== "undefined" ? VPN_MANAGER_SECRET : "";
+}
+async function verifyVpnManagerSignature(request, rawBody, serverId) {
+  const secret = getVpnManagerSecretForServer(serverId);
+  if (!secret) {
+    console.log('[vpn-sig] Missing secret for server', serverId || DEFAULT_VPN_SERVER_SLUG);
     return false;
   }
   const sig = request.headers.get("X-IXin-Signature");
@@ -1389,10 +1406,9 @@ async function verifyVpnManagerSignature(request, rawBody) {
     console.log('[vpn-sig] Missing X-IXin-Signature header');
     return false;
   }
-  const expected = await computeHmacSignatureHex(VPN_MANAGER_SECRET, rawBody);
-  console.log('[vpn-sig] Verifying - expected:', expected, 'received:', sig, 'secret:', VPN_MANAGER_SECRET, 'body length:', rawBody.length);
+  const expected = await computeHmacSignatureHex(secret, rawBody);
   const result = constantTimeEqualHex(expected, sig);
-  console.log('[vpn-sig] Result:', result);
+  if (!result) console.log('[vpn-sig] Signature mismatch for server', serverId || DEFAULT_VPN_SERVER_SLUG);
   return result;
 }
 // Best-effort, jamais bloquant : vpn-manager (sur le VPS, hors de portée de
@@ -1401,24 +1417,45 @@ async function verifyVpnManagerSignature(request, rawBody) {
 // un pair quasi immédiatement au lieu d'attendre jusqu'à 15 minutes. Factorisé
 // ici (webhook Stripe, /api/vpn/revoke, et les routes d'admin VPN partagent
 // tous exactement cet appel).
+// Synchronise TOUS les serveurs VPN actifs (collection vpn_servers), pas
+// seulement celui de l'abonné qui a déclenché l'appel — plus simple et sûr
+// que de faire remonter le bon serverId depuis chacun des nombreux appelants
+// (webhook Stripe, /api/vpn/revoke, routes d'admin...), et le coût
+// supplémentaire est négligeable tant que le nombre de serveurs reste petit.
+// syncUrl vient du document vpn_servers ; à défaut (migration), repli sur
+// l'ancien VPN_MANAGER_URL global pour ne pas casser "main" en transition.
 function triggerVpnManagerSync(event) {
   console.log('[vpn-manager] triggerVpnManagerSync called');
-  if (typeof VPN_MANAGER_URL === "undefined" || !VPN_MANAGER_URL || typeof VPN_MANAGER_SECRET === "undefined" || !VPN_MANAGER_SECRET) {
-    console.warn('[vpn-manager] sync not available: missing VPN_MANAGER_URL or VPN_MANAGER_SECRET');
-    return;
-  }
-  console.log('[vpn-manager] sending sync request to:', VPN_MANAGER_URL);
   const syncPromise = (async function () {
+    let servers;
     try {
-      const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(30000) });
-      if (!res.ok) {
-        const bodyText = await res.text().catch(function () { return "(unreadable)"; });
-        console.error('[vpn-manager] sync HTTP error:', res.status, 'headers:', JSON.stringify(Array.from(res.headers.entries())), 'body:', bodyText.slice(0, 500));
-      } else console.log('[vpn-manager] sync triggered successfully');
+      const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "active", values: [true] })), { asAdmin: true });
+      servers = q.documents || [];
     } catch (e) {
-      console.error('[vpn-manager] sync failed:', e.message);
+      console.error('[vpn-manager] sync failed: could not list vpn_servers:', e.message);
+      return;
     }
+    if (!servers.length) { console.warn('[vpn-manager] sync not available: no active vpn_servers configured'); return; }
+    await Promise.all(servers.map(async function (srv) {
+      const syncUrl = srv.syncUrl || (typeof VPN_MANAGER_URL !== "undefined" ? VPN_MANAGER_URL : "");
+      const secret = getVpnManagerSecretForServer(srv.slug);
+      if (!syncUrl || !secret) {
+        console.warn('[vpn-manager] sync skipped for', srv.slug, ': missing syncUrl or secret');
+        return;
+      }
+      console.log('[vpn-manager] sending sync request to:', syncUrl, 'for server', srv.slug);
+      try {
+        const sig = await computeHmacSignatureHex(secret, "");
+        const res = await fetch(syncUrl.replace(/\/$/, "") + "/sync", { method: "POST", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(30000) });
+        if (!res.ok) {
+          const bodyText = await res.text().catch(function () { return "(unreadable)"; });
+          console.error('[vpn-manager] sync HTTP error for', srv.slug, ':', res.status, 'body:', bodyText.slice(0, 500));
+        } else console.log('[vpn-manager] sync triggered successfully for', srv.slug);
+      } catch (e) {
+        console.error('[vpn-manager] sync failed for', srv.slug, ':', e.message);
+      }
+    }));
   })();
   if (event && event.waitUntil) event.waitUntil(syncPromise);
 }
@@ -42980,21 +43017,30 @@ async function handle(request, event) {
   }
 
   if (path === "/api/vpn/diagnostics" && request.method === "GET") {
-    // Diagnostic endpoint pour admin — vérifie si vpn-manager est accessible
+    // Diagnostic endpoint pour admin — interroge GET /health (public, sans
+    // secret ni info sensible) de CHAQUE serveur vpn-manager actif, plutôt
+    // qu'un seul VPN_MANAGER_URL codé en dur — un serveur en panne ne doit
+    // jamais faire croire que tous les autres le sont aussi.
     const gate = await requireShaman(request);
     if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     try {
-      const hasUrl = typeof VPN_MANAGER_URL !== "undefined" && !!VPN_MANAGER_URL;
-      const hasSecret = typeof VPN_MANAGER_SECRET !== "undefined" && !!VPN_MANAGER_SECRET;
-      if (!hasUrl || !hasSecret) {
-        return new Response(JSON.stringify({ ok: true, configured: false, missingUrl: !hasUrl, missingSecret: !hasSecret }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-      }
-      const sig = await computeHmacSignatureHex(VPN_MANAGER_SECRET, "");
-      const res = await fetch(VPN_MANAGER_URL.replace(/\/$/, "") + "/", { method: "GET", headers: { "X-IXin-Signature": sig }, signal: AbortSignal.timeout(5000) });
-      const healthy = res && res.ok;
-      return new Response(JSON.stringify({ ok: true, configured: true, vpnManagerReachable: healthy, status: healthy ? "connected" : "unreachable", httpStatus: res && res.status }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_servers/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true });
+      const servers = q.documents || [];
+      const results = await Promise.all(servers.map(async function (srv) {
+        const syncUrl = srv.syncUrl || (typeof VPN_MANAGER_URL !== "undefined" ? VPN_MANAGER_URL : "");
+        if (!syncUrl) return { slug: srv.slug, active: !!srv.active, configured: false };
+        try {
+          const res = await fetch(syncUrl.replace(/\/$/, "") + "/health", { method: "GET", signal: AbortSignal.timeout(5000) });
+          const health = await res.json().catch(function () { return null; });
+          return { slug: srv.slug, active: !!srv.active, configured: true, reachable: res.ok, httpStatus: res.status, health: health };
+        } catch (e) {
+          return { slug: srv.slug, active: !!srv.active, configured: true, reachable: false, error: e.message };
+        }
+      }));
+      return new Response(JSON.stringify({ ok: true, servers: results }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
-      return new Response(JSON.stringify({ ok: true, configured: true, vpnManagerReachable: false, status: "error", error: e.message }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
 
@@ -43154,13 +43200,14 @@ async function handle(request, event) {
   if (path === "/api/internal/vpn/entitlements" && request.method === "GET") {
     try {
       const rawBody = await request.text();
-      if (!(await verifyVpnManagerSignature(request, rawBody))) throw new Error("invalid_signature");
       // Chaque process vpn-manager (un par VPS) ne doit jamais voir les
       // entitlements d'un AUTRE serveur, sinon deux instances se
       // marcheraient dessus (provisionnant/retirant les pairs l'une de
       // l'autre) — obligatoire dès qu'un 2e serveur existera, sans effet
-      // tant qu'il n'y en a qu'un.
+      // tant qu'il n'y en a qu'un. serverId sert aussi à choisir le bon
+      // secret pour vérifier la signature (voir getVpnManagerSecretForServer).
       const serverId = url.searchParams.get("serverId") || "";
+      if (!(await verifyVpnManagerSignature(request, rawBody, serverId))) throw new Error("invalid_signature");
       if (!serverId) throw new Error("serverId requis");
       const nowIso = new Date().toISOString();
       const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents?" +
@@ -43177,8 +43224,11 @@ async function handle(request, event) {
   if (path === "/api/internal/vpn/provision-result" && request.method === "POST") {
     try {
       const rawBody = await request.text();
-      if (!(await verifyVpnManagerSignature(request, rawBody))) throw new Error("invalid_signature");
       const body = JSON.parse(rawBody || "{}");
+      // serverId choisit uniquement le secret à vérifier — un serverId menti
+      // sans le bon secret derrière échoue simplement la vérification
+      // ci-dessous, jamais un moyen de forger une requête à moindre coût.
+      if (!(await verifyVpnManagerSignature(request, rawBody, String(body.serverId || "")))) throw new Error("invalid_signature");
       const uid = String(body.uid || "");
       if (!uid) throw new Error("uid requis");
       const wgPublicKey = String(body.wgPublicKey || "").slice(0, 64);

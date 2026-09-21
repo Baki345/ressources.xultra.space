@@ -57,9 +57,19 @@ pm2 save
 pm2 startup   # relance automatique au redémarrage du VPS
 ```
 
+## Monitoring
+
+`GET /health` (sans authentification — aucune info sensible dedans)
+renvoie l'état de ce process : depuis quand il tourne, l'heure et le
+résultat de la dernière réconciliation, et si une réconciliation est en
+cours. Pensé pour un check externe (UptimeRobot ou équivalent) ou pour
+`/api/vpn/diagnostics` côté IXin (admin uniquement), qui interroge cette
+route pour chaque serveur `vpn_servers` actif.
+
 ## Fonctionnement
 
-Un seul endpoint HTTP, `POST /sync`, protégé par la même signature
+Un seul endpoint HTTP protégé par signature, `POST /sync` (voir aussi
+`GET /health` ci-dessus, public) — protégé par la même signature
 `X-IXin-Signature` que le reste de cette infrastructure (HMAC-SHA256 du
 corps brut, `VPN_MANAGER_SECRET` comme clé). Aucune route publique non
 authentifiée — ce service peut exécuter de vraies commandes `wg`.
@@ -111,24 +121,47 @@ maintenant `VPN_SERVER_ID` dans l'appel.
    serveur aussi).
 2. `.env` de ce nouveau VPS : ses propres `WG_SERVER_PUBLIC_KEY`/
    `WG_ENDPOINT`, un `VPN_SERVER_ID` DIFFÉRENT du premier (ex. `"eu2"`),
-   et — voir risque ci-dessous — idéalement son propre
-   `VPN_MANAGER_SECRET`.
+   et son propre `VPN_MANAGER_SECRET` — voir § secret par serveur
+   ci-dessous, à poser aussi côté Worker sous
+   `VPN_MANAGER_SECRET_<SLUG>` AVANT de démarrer ce VPS.
 3. Insérer **un seul document** dans la collection Appwrite
-   `vpn_servers` (même `slug` que `VPN_SERVER_ID`) — via le panel admin
-   IXin ou directement l'API Appwrite. Aucun redéploiement de
-   `worker.js` n'est nécessaire.
-4. `pm2 start server.js --name vpn-manager-<slug>` sur le nouveau VPS.
+   `vpn_servers` (même `slug` que `VPN_SERVER_ID`, `active: true`, et
+   `syncUrl` pointant vers ce vpn-manager, ex.
+   `"http://vpn-eu2.xultra.space:8080"` — même contrainte que "main" :
+   un nom de domaine, jamais une IP brute, voir § IP brute impossible
+   plus bas) — via le panel admin IXin ou directement l'API Appwrite.
+   Aucun redéploiement de `worker.js` n'est nécessaire.
+4. `pm2 start server.js --name vpn-manager-<slug>` sur le nouveau VPS
+   (voir § Lancer avec pm2 plus haut).
 
-### ⚠️ Risque à traiter avant d'ajouter un vrai 2e serveur
+### ⚠️ Une IP brute ne marche pas comme `VPN_MANAGER_URL`/`syncUrl`
 
-Aujourd'hui, un seul `VPN_MANAGER_SECRET` existe (partagé avec le
-Worker). Le réutiliser tel quel sur un 2e VPS permettrait à ce serveur
-(s'il était compromis) de forger des requêtes signées valides pour les
-abonnés d'un AUTRE serveur — la signature prouve "un vpn-manager
-légitime", pas "lequel". Pas bloquant tant qu'il n'y a qu'un serveur ;
-avant d'en ajouter un second, passer à un secret par serveur
-(`VPN_MANAGER_SECRET_<slug>` côté Worker, vérifié en cross-référençant
-le `serverId` de la requête avec le secret qui l'a signée).
+Cloudflare Workers refuse les `fetch()` sortants vers une adresse IP
+brute (erreur Cloudflare 1003, "Direct IP Access Not Allowed") — vécu
+concrètement sur "main". `syncUrl` (et l'ancien `VPN_MANAGER_URL`) doit
+toujours être un nom de domaine, même en DNS-only/gris (pas besoin du
+proxy Cloudflare orange) pointant vers l'IP réelle du VPS.
+
+### ⚠️ Risque déjà traité, à utiliser pour tout nouveau serveur
+
+Réglé : le Worker vérifie maintenant chaque requête signée avec le secret
+propre au serveur concerné (`getVpnManagerSecretForServer()` dans
+`worker.js`), jamais un seul secret partagé pour tous. Pour un nouveau
+VPS, poser un secret Cloudflare Worker nommé `VPN_MANAGER_SECRET_<SLUG>`
+(`<SLUG>` = le `VPN_SERVER_ID` de ce VPS, en MAJUSCULES — ex. `eu2` →
+`VPN_MANAGER_SECRET_EU2`) avec une valeur **différente** du
+`VPN_MANAGER_SECRET` historique, et mettre cette même valeur dans le
+`.env` de ce VPS (`VPN_MANAGER_SECRET=...`, toujours sous ce nom-là côté
+vpn-manager — seul le nom de la variable change côté Worker). Tant
+qu'aucun `VPN_MANAGER_SECRET_<SLUG>` n'existe pour un serveur donné (cas
+de "main" aujourd'hui), le Worker retombe sur l'unique
+`VPN_MANAGER_SECRET` historique — aucune migration requise pour "main".
+
+Le déclenchement "sync maintenant" (`triggerVpnManagerSync` côté Worker)
+interroge maintenant la collection `vpn_servers` et synchronise TOUS les
+serveurs `active: true` trouvés (via leur champ `syncUrl`), plutôt qu'une
+seule URL codée en dur — ajouter un document `vpn_servers` suffit donc à
+l'inclure, sans toucher `worker.js`.
 
 ## Structure
 
