@@ -378,7 +378,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_status",
@@ -1093,7 +1095,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_uid",
@@ -1438,6 +1442,7 @@
   ],
   "documentSecurity": false,
   "permissions": [
+   "create(\"users\")",
    "read(\"any\")"
   ],
   "indexes": [
@@ -3731,7 +3736,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_uid",
@@ -3919,7 +3926,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": []
  },
  "support_messages": {
@@ -4108,7 +4117,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_uid",
@@ -4859,7 +4870,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_pasteId",
@@ -4903,7 +4916,7 @@
     "key": "content",
     "required": false,
     "type": "string",
-    "size": 3000,
+    "size": 500000,
     "array": false
    },
    {
@@ -4922,7 +4935,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_visibility",
@@ -5172,7 +5187,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_ownerId",
@@ -5357,10 +5374,40 @@
     "type": "string",
     "size": 255,
     "array": false
+   },
+   {
+    "key": "keyWrapped",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "keySalt",
+    "required": false,
+    "type": "string",
+    "size": 64,
+    "array": false
+   },
+   {
+    "key": "keyIv",
+    "required": false,
+    "type": "string",
+    "size": 128,
+    "array": false
+   },
+   {
+    "key": "expiresAt",
+    "required": false,
+    "type": "string",
+    "size": 40,
+    "array": false
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_revoked",
@@ -5430,7 +5477,9 @@
    }
   ],
   "documentSecurity": true,
-  "permissions": [],
+  "permissions": [
+   "create(\"users\")"
+  ],
   "indexes": [
    {
     "key": "idx_itemId",
@@ -5519,6 +5568,7 @@
   ],
   "documentSecurity": false,
   "permissions": [
+   "create(\"users\")",
    "read(\"any\")"
   ],
   "indexes": [
@@ -5709,6 +5759,7 @@
   ],
   "documentSecurity": false,
   "permissions": [
+   "create(\"users\")",
    "read(\"any\")"
   ],
   "indexes": [
