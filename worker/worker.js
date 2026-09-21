@@ -5443,6 +5443,26 @@ a.bug-att-item{display:block}
 .set-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px 18px;margin-bottom:16px}
 .set-card-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
 .set-card-row:last-child{border-bottom:0}
+/* Page de vente IXin VPN (état "pas d'abonnement" de renderSetVpn) — même
+   langage visuel que le splash de bienvenue (dégradé mauve/noir, bouclier
+   qui scanne), pour vendre le produit plutôt que de se contenter d'un
+   bouton "Acheter" nu. */
+.vpn-pitch-hero{position:relative;overflow:hidden;text-align:center;padding:28px 20px;border-radius:18px;margin-bottom:16px;
+  background:radial-gradient(500px 260px at 50% -20%,rgba(168,85,247,.35),transparent 60%),linear-gradient(160deg,#160c24,#0a0a0c 70%);
+  border:1px solid rgba(196,181,253,.18)}
+.vpn-pitch-hero::before{content:'';position:absolute;inset:-2px;background-image:linear-gradient(rgba(196,132,252,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(196,132,252,.06) 1px,transparent 1px);background-size:34px 34px;-webkit-mask-image:radial-gradient(ellipse at 50% 30%,#000 40%,transparent 75%);mask-image:radial-gradient(ellipse at 50% 30%,#000 40%,transparent 75%)}
+.vpn-pitch-shield{position:relative;width:56px;height:64px;margin:0 auto 12px}
+.vpn-pitch-shield svg{width:100%;height:100%;filter:drop-shadow(0 0 18px rgba(168,85,247,.6))}
+.vpn-pitch-shield-scan{position:absolute;left:8%;right:8%;height:3px;background:linear-gradient(90deg,transparent,#f5d0fe,transparent);animation:ws-shield-scan 1.8s ease-in-out infinite}
+.vpn-pitch-title{position:relative;font-size:1.3rem;font-weight:900;color:#f5f0ff;margin-bottom:6px}
+.vpn-pitch-sub{position:relative;font-size:.86rem;line-height:1.5;color:#d8cef0;opacity:.9;max-width:400px;margin:0 auto}
+.vpn-pitch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+@media (max-width:480px){.vpn-pitch-grid{grid-template-columns:1fr}}
+.vpn-pitch-item{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:13px 14px;display:flex;gap:10px;align-items:flex-start}
+.vpn-pitch-item-ic{font-size:1.25rem;line-height:1;flex-shrink:0}
+.vpn-pitch-item-title{font-size:.86rem;font-weight:800;color:#f0f0f3;margin-bottom:2px}
+.vpn-pitch-item-desc{font-size:.76rem;line-height:1.4;color:var(--muted)}
+.vpn-pitch-buy{border:1px solid rgba(196,181,253,.25);background:linear-gradient(160deg,rgba(124,58,237,.14),rgba(255,255,255,.02))}
 .oauth-doc-step{font-size:.85rem;line-height:1.55;color:var(--muted);margin-bottom:10px}
 .oauth-doc-step code{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 5px;font-size:.85em;color:#f0f0f3}
 .oauth-code-block{position:relative;margin-bottom:14px}
@@ -11844,6 +11864,45 @@ function vpnTutoHtml(){
     +'</div>'
   +'</div>';
 }
+// Page de vente affichée quand aucun abonnement n'est actif — remplace un
+// simple "Pas d'abonnement actif" + bouton par une vraie mise en avant du
+// produit (même esthétique que le splash de bienvenue), pour donner envie
+// d'acheter plutôt que de simplement permettre de le faire.
+const VPN_PITCH_FEATURES=[
+  {ic:'🕶️',title:'No-log',desc:'Aucun journal de ta navigation, jamais. Ce que tu fais derrière le tunnel ne regarde que toi.'},
+  {ic:'🔐',title:'Chiffrement de bout en bout',desc:'WireGuard, le protocole VPN le plus rapide et le plus audité du moment.'},
+  {ic:'🥷',title:'Brouilleur Stealth',desc:'Déguise ta connexion en trafic normal — utile derrière un réseau qui bloque les VPN classiques.'},
+  {ic:'🛑',title:'Kill Switch',desc:'Coupe internet automatiquement si le tunnel tombe. Jamais une fuite accidentelle de ton IP réelle.'},
+  {ic:'⚡',title:'WireGuard natif',desc:'Un protocole moderne, léger, pensé pour la vitesse — pas un vieux tunnel OpenVPN qui rame.'},
+  {ic:'🌍',title:'Multi-serveurs',desc:'Choisis ton serveur depuis les paramètres — d\\'autres régions arrivent au fil du temps.'}
+];
+function vpnPitchHtml(){
+  return '<div class="vpn-pitch-hero">'
+      +'<div class="vpn-pitch-shield"><svg viewBox="0 0 48 56"><defs><linearGradient id="vpnPitchShieldGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5d0fe"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><path d="M24 2l20 8v16c0 14-8.5 22.5-20 28C12.5 48.5 4 40 4 26V10z" fill="url(#vpnPitchShieldGrad)"/><path d="M15 27l6 6 12-13" stroke="#0a0a0c" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="vpn-pitch-shield-scan"></div></div>'
+      +'<div class="vpn-pitch-title">Ton bouclier réseau, prêt en 30 secondes</div>'
+      +'<div class="vpn-pitch-sub">No-log. Chiffré de bout en bout. Un brouilleur qui fait passer ta connexion pour du trafic normal. Le contrôle total de ta sécurité réseau, sans les frais d\\'un abonnement à vie.</div>'
+    +'</div>'
+    +'<div class="vpn-pitch-grid">'+VPN_PITCH_FEATURES.map(function(f){
+      return '<div class="vpn-pitch-item"><div class="vpn-pitch-item-ic">'+f.ic+'</div><div><div class="vpn-pitch-item-title">'+esc(f.title)+'</div><div class="vpn-pitch-item-desc">'+esc(f.desc)+'</div></div></div>';
+    }).join('')+'</div>'
+    +'<div class="set-card vpn-pitch-buy"><div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 '+(VPN_PRICE_CAD_CLIENT/100).toFixed(2).replace('.',',')+' $ CA · 30 jours</div><div class="scr-sub">Rachetable à tout moment, sans engagement. Configuration prête immédiatement après paiement.</div></div><button type="button" class="btn-main" id="vpn-buy-btn">Débloquer mon VPN</button></div>'
+      +'<div class="err" id="vpn-buy-err" style="min-height:1em;margin-top:6px"></div>'
+    +'</div>';
+}
+// Bannière d'urgence sous le statut "Actif" — pousse discrètement au
+// renouvellement avant expiration plutôt que de laisser l'abonné découvrir
+// la coupure a posteriori (voir "Renouveler" déjà présent juste au-dessus,
+// que cette bannière rend simplement plus visible quand ça presse).
+function vpnDaysLeftBannerHtml(expiresAtIso){
+  const ms=new Date(expiresAtIso).getTime()-Date.now();
+  const days=Math.ceil(ms/86400000);
+  if(days>7)return '';
+  const urgent=days<=2;
+  const label=days<=0?'Expire aujourd\\'hui !':days===1?'Expire demain !':'Expire dans '+days+' jours';
+  return '<div class="set-card-row" style="border-bottom:0;padding-top:0">'
+    +'<div class="scr-sub" style="color:'+(urgent?'#fca5a5':'#fcd34d')+';font-weight:700">'+(urgent?'🔴':'⚠️')+' '+esc(label)+' — renouvelle pour ne pas perdre ta config.</div>'
+  +'</div>';
+}
 async function renderSetVpn(box){
   box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div><div class="set-card"><div class="scr-sub">Chargement…</div></div>';
   let sub=null;
@@ -11851,17 +11910,15 @@ async function renderSetVpn(box){
   const active=!!(sub&&sub.expiresAt&&new Date(sub.expiresAt).getTime()>Date.now());
   box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div>'
     +(active?
-      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div></div>'
+      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div>'
+        +vpnDaysLeftBannerHtml(sub.expiresAt)
+      +'</div>'
         +'<div id="vpn-desktop-box"></div>'
         +'<div id="vpn-config-box"></div>'
         +vpnTutoHtml()
         +'<div class="set-card"><div class="set-section-label">Clé perdue ?</div><div class="scr-sub" style="margin-bottom:10px">Révoque ta clé actuelle si tu as perdu ton appareil ou ton fichier de configuration. Une nouvelle clé sera générée automatiquement (à récupérer ici) — l\\'ancienne ne fonctionnera plus.</div><button type="button" class="set-mini-btn" id="vpn-revoke-btn" style="color:#f87171">Révoquer cette clé</button><div class="err" id="vpn-revoke-err" style="min-height:1em;margin-top:6px"></div></div>')
       :
-      ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Pas d\\'abonnement actif</div><div class="scr-sub">Débloque l\\'accès à ton VPN IXin pour 30 jours.</div></div></div></div>'
-        +'<div class="set-card"><div class="set-section-label">S\\'abonner</div>'
-          +'<div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 Payer par carte</div><div class="scr-sub">'+(VPN_PRICE_CAD_CLIENT/100).toFixed(2).replace('.',',')+' $ CA · bloc de 30 jours, rachetable</div></div><button type="button" class="btn-main" id="vpn-buy-btn">Acheter</button></div>'
-          +'<div class="err" id="vpn-buy-err" style="min-height:1em;margin-top:6px"></div>'
-        +'</div>'));
+      (vpnPitchHtml()));
   wireSetVpn(box,sub,active);
 }
 function wireSetVpn(box,sub,active){
