@@ -8385,6 +8385,7 @@ async function enterApp(e2ePassword){
   try{subscribeCustomBadgesWatcher();}catch(e){}
   try{subscribeXBinFeedWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
+  try{startResyncAfterGapWatcher();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
@@ -14505,6 +14506,36 @@ function subscribeNotifWatcher(){
       }
     });
   }catch(e){}
+}
+// Filet de sécurité AU-DESSUS du temps réel (jamais à sa place) : la
+// reconnexion WebSocket d'Appwrite après une coupure (veille du
+// téléphone/ordinateur, wifi qui lâche, onglet resté en arrière-plan
+// longtemps) ne rejoue jamais les évènements manqués pendant la coupure —
+// un DM ou une notification arrivés pendant ce trou ne s'affichaient donc
+// qu'au prochain rechargement complet de la page, malgré tous les
+// client.subscribe() déjà en place. On resynchronise ce qui peut l'être
+// dès que l'app redevient visible ou que le réseau revient — même logique
+// que startCallPolling() (déjà un filet de sécurité par sondage pour les
+// appels), étendue aux notifs/amis/conversation ouverte.
+let lastResyncAt=0;
+function resyncAfterGap(){
+  const now=Date.now();
+  if(now-lastResyncAt<2000)return;
+  lastResyncAt=now;
+  xlog('resync_after_gap',{visible:document.visibilityState,online:navigator.onLine});
+  try{loadNotifications().then(function(){updateNotifBadge();if(\$('modal-notifications')&&!\$('modal-notifications').classList.contains('hidden'))renderNotifications();}).catch(function(){});}catch(e){}
+  try{loadFriends().then(function(){if(view==='friends')renderFriends();}).catch(function(){});}catch(e){}
+  if(activeDm){try{loadMessages(activeDm);}catch(e){}}
+  try{checkPendingIncomingCall();}catch(e){}
+}
+function startResyncAfterGapWatcher(){
+  document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')resyncAfterGap();});
+  window.addEventListener('online',resyncAfterGap);
+  // bfcache (retour arrière/avant du navigateur, surtout mobile) : la page
+  // est restaurée telle quelle sans jamais repasser par boot(), donc sans
+  // ce hook explicite un retour après plusieurs minutes ailleurs resterait
+  // figé sur l'état d'avant.
+  window.addEventListener('pageshow',function(e){if(e.persisted)resyncAfterGap();});
 }
 function subscribeUserMetaWatcher(){
   /* Sans ça, un changement sur user_meta (badge accordé par un admin, plan
