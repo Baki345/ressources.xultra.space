@@ -29632,7 +29632,12 @@ function fmtVpnAdminDate(iso){
 }
 function renderAdminVpn(){
   const box=\$('admin-body');if(!box)return;
-  box.innerHTML='<div class="set-card"><div class="set-section-label">🔒 Abonnement VPN d\\'un membre</div>'
+  box.innerHTML='<div class="set-card"><div class="set-section-label">⚠️ Zone dangereuse</div>'
+    +'<div class="scr-sub" style="margin-bottom:10px">Révoque immédiatement TOUS les abonnements VPN actifs (y compris les accès à vie) — chaque clé cesse de fonctionner, aucun jour restant n\\'est conservé.</div>'
+    +'<button type="button" class="set-mini-btn danger" id="admin-vpn-revoke-all-btn">🔴 Révoquer tous les abonnements actifs</button>'
+    +'<div class="err" id="admin-vpn-revoke-all-err" style="min-height:1em;margin-top:6px"></div>'
+  +'</div>'
+  +'<div class="set-card"><div class="set-section-label">🔒 Abonnement VPN d\\'un membre</div>'
     +'<div class="scr-sub" style="margin-bottom:10px">Cherche par pseudo#tag (ex. soso121#1833) ou identifiant de compte.</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="admin-vpn-handle" class="field-input" placeholder="pseudo#tag ou uid" style="flex:1;min-width:200px"><button type="button" class="set-mini-btn" id="admin-vpn-search-btn">Rechercher</button></div>'
     +'<div class="err" id="admin-vpn-search-err" style="min-height:1em;margin-top:6px"></div>'
@@ -29691,6 +29696,18 @@ function renderAdminVpn(){
     };
   }
 
+  \$('admin-vpn-revoke-all-btn').onclick=function(){
+    const btn=\$('admin-vpn-revoke-all-btn');
+    const errEl=\$('admin-vpn-revoke-all-err');
+    showSlideConfirm('Révoquer TOUS les abonnements VPN actifs, sans exception (y compris les accès à vie) ? Chaque abonné perd sa clé immédiatement et le temps déjà payé n\\'est pas restitué. Cette action est irréversible.',async function(){
+      btn.disabled=true;btn.textContent='…';errEl.textContent='';
+      try{
+        const r=await authPost('/api/admin/vpn/revoke-all',{});
+        showToast(r.count+' abonnement(s) VPN révoqué(s).');
+      }catch(e){errEl.textContent=(e&&e.message)||'Erreur';}
+      btn.disabled=false;btn.textContent='🔴 Révoquer tous les abonnements actifs';
+    });
+  };
   \$('admin-vpn-search-btn').onclick=search;
   \$('admin-vpn-handle').addEventListener('keydown',function(ev){if(ev.key==='Enter')search();});
 }
@@ -43378,6 +43395,40 @@ async function handle(request, event) {
         body: { documentId: "unique()", data: { action: "vpn_revoke", detail: (targetProfile && targetProfile.username) || uid, by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
       }).catch(function () {});
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
+  if (path === "/api/admin/vpn/revoke-all" && request.method === "POST") {
+    // Coupe-circuit global (fermeture du service, incident de sécurité...) —
+    // même effet que /api/admin/vpn/revoke mais sur TOUS les abonnements
+    // encore actifs d'un coup, y compris les accès à vie (expiresAt très
+    // lointain, donc "greaterThan now" les inclut déjà naturellement). Un
+    // seul appel à triggerVpnManagerSync() à la fin plutôt qu'un par
+    // abonné : l'appel liste de toute façon TOUS les serveurs actifs à
+    // chaque fois, le répéter N fois n'apporterait rien.
+    const gate = await requireShaman(request);
+    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
+      const nowIso = new Date().toISOString();
+      const q = await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents?" +
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "greaterThan", attribute: "expiresAt", values: [nowIso] })) +
+        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
+      const active = q.documents || [];
+      for (const doc of active) {
+        await awFetch("/databases/" + AW_DB + "/collections/vpn_subscriptions/documents/" + doc.uid, {
+          method: "PATCH", asAdmin: true,
+          body: { data: { status: "revoked_by_admin", expiresAt: new Date(Date.now() - 60000).toISOString(), wgPublicKey: "", wgAssignedIp: "", pendingConfig: "", pendingConfigExpiresAt: "" } }
+        }).catch(function () {});
+      }
+      if (active.length) triggerVpnManagerSync(event);
+      await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
+        method: "POST", asAdmin: true,
+        body: { documentId: "unique()", data: { action: "vpn_revoke_all", detail: active.length + " abonnement(s)", by: by, byId: gate.acc.$id, at: new Date().toISOString() } }
+      }).catch(function () {});
+      return new Response(JSON.stringify({ ok: true, count: active.length }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
