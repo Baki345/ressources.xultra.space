@@ -4,3 +4,7 @@ compatibility_date = "2024-01-01"
 main = "worker/worker.js"
 # Secrets (VPN_MANAGER_URL, VPN_MANAGER_SECRET) are set via `wrangler secret put`
 # and automatically available as globals in the Worker
+
+[[kv_namespaces]]
+binding = "SITE_KV"
+id = "f59753be79e44608ae7e3553f11b2f71"
