@@ -2350,67 +2350,80 @@ button{cursor:pointer;border:0;background:0}
    cohérente avec la dernière slide (IXin VPN). z-index juste sous
    #boot-splash pour un fondu continu de l'un vers l'autre. ===== */
 #welcome-splash{position:fixed;inset:0;z-index:99997;overflow:hidden;
-  background:radial-gradient(1100px 700px at 15% -10%,rgba(124,58,237,.35),transparent 55%),
-    radial-gradient(900px 600px at 100% 110%,rgba(236,72,153,.16),transparent 55%),
-    linear-gradient(160deg,#0a0a0c 0%,#160c24 45%,#0a0a0c 100%);
+  --ws-accent:#a855f7;--ws-accent2:#ec4899;--ws-accent-rgb:168,85,247;--ws-accent2-rgb:236,72,153;
+  background:#07050b;
   display:flex;flex-direction:column;align-items:center;justify-content:space-between;
   padding:max(28px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));
   transition:opacity .5s ease;}
 #welcome-splash.ws-out{opacity:0;pointer-events:none}
 #welcome-splash.hidden{display:none!important}
-.ws-grid{position:absolute;inset:-2px;background-image:linear-gradient(rgba(196,132,252,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(196,132,252,.08) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse at 50% 40%,#000 40%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 40%,#000 40%,transparent 78%);animation:ws-grid-drift 16s linear infinite}
+/* Aurora en fond : 3 taches floues dont la couleur suit l'accent de la
+   slide en cours (transition douce), pour un fond vivant et coloré plutôt
+   qu'un dégradé statique. */
+.ws-aurora{position:absolute;inset:0;overflow:hidden}
+.ws-blob{position:absolute;border-radius:50%;filter:blur(64px);will-change:transform}
+.ws-blob.b1{width:66vmax;height:66vmax;left:-24vmax;top:-28vmax;background:radial-gradient(circle,rgba(var(--ws-accent-rgb),.55),transparent 68%);transition:background 1.3s ease;animation:ws-blob-1 20s ease-in-out infinite}
+.ws-blob.b2{width:58vmax;height:58vmax;right:-22vmax;bottom:-22vmax;background:radial-gradient(circle,rgba(var(--ws-accent2-rgb),.4),transparent 68%);transition:background 1.3s ease;animation:ws-blob-2 24s ease-in-out infinite}
+.ws-blob.b3{width:42vmax;height:42vmax;left:50%;top:46%;margin-left:-21vmax;margin-top:-21vmax;background:radial-gradient(circle,rgba(124,58,237,.32),transparent 70%);animation:ws-blob-3 28s ease-in-out infinite}
+@keyframes ws-blob-1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(9vmax,7vmax) scale(1.15)}}
+@keyframes ws-blob-2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-8vmax,-7vmax) scale(1.1)}}
+@keyframes ws-blob-3{0%,100%{transform:translate(-5vmax,4vmax) scale(.9)}50%{transform:translate(6vmax,-5vmax) scale(1.08)}}
+.ws-particles{position:absolute;inset:0;pointer-events:none}
+.ws-grid{position:absolute;inset:-2px;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse at 50% 40%,#000 40%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 40%,#000 40%,transparent 78%);animation:ws-grid-drift 16s linear infinite}
 @keyframes ws-grid-drift{from{background-position:0 0,0 0}to{background-position:42px 84px,84px 42px}}
-.ws-scan{position:absolute;left:0;right:0;height:140px;background:linear-gradient(180deg,transparent,rgba(196,132,252,.16),transparent);animation:ws-scan-move 5.2s linear infinite;pointer-events:none}
+.ws-scan{position:absolute;left:0;right:0;height:140px;background:linear-gradient(180deg,transparent,rgba(255,255,255,.1),transparent);animation:ws-scan-move 5.2s linear infinite;pointer-events:none}
 @keyframes ws-scan-move{0%{top:-140px}100%{top:100%}}
 .ws-brand{position:relative;z-index:2;text-align:center;margin-top:8px}
-.ws-brand-logo{font-size:clamp(2.4rem,9vw,4rem);font-weight:900;letter-spacing:.05em;background:linear-gradient(135deg,#e9d5ff,#a855f7 45%,#f5d0fe 75%,#e9d5ff);background-size:220% 220%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ws-logo-shine 3.2s ease-in-out infinite;filter:drop-shadow(0 0 26px rgba(168,85,247,.55))}
+.ws-brand-logo{font-size:clamp(2.6rem,10vw,4.4rem);font-weight:900;letter-spacing:.04em;background:linear-gradient(135deg,#fff,var(--ws-accent2) 35%,var(--ws-accent) 65%,#fff);background-size:260% 260%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:ws-logo-shine 3.2s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(var(--ws-accent-rgb),.6));transition:filter 1.2s ease}
 @keyframes ws-logo-shine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.ws-brand-sub{margin-top:2px;font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;color:#c4b5fd;opacity:.8}
-.ws-slide-wrap{position:relative;z-index:2;flex:1;width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
-.ws-slide{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;animation:ws-slide-in .5s ease both}
-@keyframes ws-slide-in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.ws-icon{width:80px;height:64px;display:flex;align-items:center;justify-content:center;position:relative}
-.ws-slide-title{font-size:clamp(1.15rem,4vw,1.5rem);font-weight:900;color:#f5f0ff;text-wrap:balance;padding:0 8px}
-.ws-slide-desc{font-size:.88rem;line-height:1.55;color:#d8cef0;max-width:420px;opacity:.9;padding:0 10px}
-.ws-dots{position:relative;z-index:2;display:flex;gap:7px;margin:6px 0}
-.ws-dot{width:6px;height:6px;border-radius:50%;background:rgba(196,181,253,.3);transition:all .3s ease}
-.ws-dot.on{width:20px;border-radius:4px;background:linear-gradient(90deg,#a855f7,#ec4899)}
-.ws-login-btn{position:relative;z-index:3;margin-top:4px;padding:15px 34px;border-radius:999px;font-size:.98rem;font-weight:800;color:#0a0a0c;background:linear-gradient(135deg,#f5d0fe,#c4b5fd,#f5d0fe);box-shadow:0 0 0 1px rgba(255,255,255,.4) inset,0 10px 34px rgba(168,85,247,.5);animation:ws-btn-pulse 2.6s ease-in-out infinite;transition:transform .15s ease}
-.ws-login-btn:hover{transform:translateY(-2px)}
-@keyframes ws-btn-pulse{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.4) inset,0 10px 34px rgba(168,85,247,.45)}50%{box-shadow:0 0 0 1px rgba(255,255,255,.55) inset,0 10px 46px rgba(236,72,153,.6)}}
-/* Icônes de slide, thématiques par section — CSS pur, aucune image externe */
-.ws-ic-eq{display:flex;align-items:flex-end;gap:5px;height:52px}
-.ws-ic-eq span{width:8px;border-radius:4px;background:linear-gradient(180deg,#f5d0fe,#a855f7);animation:ws-eq 1s ease-in-out infinite}
+.ws-brand-sub{margin-top:3px;font-size:.72rem;letter-spacing:.26em;text-transform:uppercase;color:#e9d5ff;opacity:.75}
+.ws-slide-wrap{position:relative;z-index:2;flex:1;width:100%;max-width:540px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ws-slide{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;animation:ws-slide-in .6s cubic-bezier(.2,.9,.25,1) both}
+@keyframes ws-slide-in{from{opacity:0;transform:translateY(22px) scale(.92);filter:blur(6px)}to{opacity:1;transform:none;filter:blur(0)}}
+.ws-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 15px;border-radius:999px;font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(var(--ws-accent-rgb),.55);color:#fff;background:rgba(var(--ws-accent-rgb),.18);box-shadow:0 0 20px rgba(var(--ws-accent-rgb),.35);margin-bottom:2px}
+.ws-icon{width:88px;height:70px;display:flex;align-items:center;justify-content:center;position:relative}
+.ws-slide-title{font-size:clamp(1.2rem,4.2vw,1.6rem);font-weight:900;color:#fff;text-wrap:balance;padding:0 8px}
+.ws-slide-desc{font-size:.9rem;line-height:1.6;color:#e4dbf5;max-width:440px;opacity:.92;padding:0 10px}
+.ws-dots{position:relative;z-index:2;display:flex;gap:7px;margin:8px 0}
+.ws-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:all .3s ease}
+.ws-dot.on{width:22px;border-radius:4px;background:linear-gradient(90deg,var(--ws-accent),var(--ws-accent2))}
+.ws-login-btn{position:relative;z-index:3;margin-top:6px;padding:16px 38px;border-radius:999px;font-size:1rem;font-weight:800;color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--ws-accent2) 40%,var(--ws-accent) 60%,#fff);background-size:260% 260%;animation:ws-logo-shine 4s ease-in-out infinite,ws-btn-pulse 2.6s ease-in-out infinite;box-shadow:0 0 0 1px rgba(255,255,255,.45) inset,0 12px 38px rgba(var(--ws-accent-rgb),.55);transition:transform .15s ease,box-shadow 1.2s ease}
+.ws-login-btn:hover{transform:translateY(-2px) scale(1.03)}
+@keyframes ws-btn-pulse{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.45) inset,0 12px 38px rgba(var(--ws-accent-rgb),.45)}50%{box-shadow:0 0 0 1px rgba(255,255,255,.6) inset,0 14px 50px rgba(var(--ws-accent2-rgb),.65)}}
+/* Icônes de slide, thématiques par section — CSS pur, aucune image externe,
+   toutes teintées par l'accent de la slide en cours. */
+.ws-ic-eq{display:flex;align-items:flex-end;gap:6px;height:58px}
+.ws-ic-eq span{width:9px;border-radius:4px;background:linear-gradient(180deg,#fff,var(--ws-accent));box-shadow:0 0 14px rgba(var(--ws-accent-rgb),.6);animation:ws-eq 1s ease-in-out infinite}
 .ws-ic-eq span:nth-child(1){height:30%;animation-delay:0s}
 .ws-ic-eq span:nth-child(2){height:70%;animation-delay:.12s}
 .ws-ic-eq span:nth-child(3){height:100%;animation-delay:.24s}
 .ws-ic-eq span:nth-child(4){height:55%;animation-delay:.36s}
 .ws-ic-eq span:nth-child(5){height:80%;animation-delay:.48s}
 @keyframes ws-eq{0%,100%{transform:scaleY(.4)}50%{transform:scaleY(1)}}
-.ws-ic-ring{width:60px;height:60px;border-radius:50%;border:3px solid rgba(196,181,253,.25);display:flex;align-items:center;justify-content:center;position:relative}
-.ws-ic-ring::before,.ws-ic-ring::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(168,85,247,.35);animation:ws-ripple 1.8s ease-out infinite}
+.ws-ic-ring{width:66px;height:66px;border-radius:50%;border:3px solid rgba(var(--ws-accent-rgb),.35);display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 0 24px rgba(var(--ws-accent-rgb),.35)}
+.ws-ic-ring::before,.ws-ic-ring::after{content:'';position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(var(--ws-accent-rgb),.45);animation:ws-ripple 1.8s ease-out infinite}
 .ws-ic-ring::after{animation-delay:.6s}
-@keyframes ws-ripple{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.5);opacity:0}}
-.ws-ic-ring span{font-size:1.5rem}
-.ws-ic-timer{width:56px;height:56px;border-radius:50%;background:conic-gradient(#ec4899 var(--p,65%),rgba(255,255,255,.08) 0);display:flex;align-items:center;justify-content:center;animation:ws-timer-spin 3s linear infinite}
-.ws-ic-timer i{width:42px;height:42px;border-radius:50%;background:#160c24;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:1.25rem}
+@keyframes ws-ripple{0%{transform:scale(.7);opacity:1}100%{transform:scale(1.55);opacity:0}}
+.ws-ic-ring span{font-size:1.6rem}
+.ws-ic-timer{width:60px;height:60px;border-radius:50%;background:conic-gradient(var(--ws-accent2) var(--p,65%),rgba(255,255,255,.08) 0);display:flex;align-items:center;justify-content:center;animation:ws-timer-spin 3s linear infinite;box-shadow:0 0 24px rgba(var(--ws-accent2-rgb),.4)}
+.ws-ic-timer i{width:46px;height:46px;border-radius:50%;background:#0d0714;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:1.3rem}
 @keyframes ws-timer-spin{to{transform:rotate(360deg)}}
-.ws-ic-code{display:flex;align-items:center;gap:4px;font-family:ui-monospace,Menlo,monospace;font-size:1.7rem;font-weight:800;color:#c4b5fd}
+.ws-ic-code{display:flex;align-items:center;gap:4px;font-family:ui-monospace,Menlo,monospace;font-size:1.8rem;font-weight:800;color:var(--ws-accent);text-shadow:0 0 18px rgba(var(--ws-accent-rgb),.6)}
 .ws-ic-code span{animation:ws-code-blink 1.6s ease-in-out infinite}
 .ws-ic-code span:nth-child(2){animation-delay:.2s}
 .ws-ic-code span:nth-child(3){animation-delay:.4s}
 @keyframes ws-code-blink{0%,100%{opacity:.35}50%{opacity:1}}
-.ws-ic-cloud{position:relative;width:68px;height:44px}
-.ws-ic-cloud svg{width:100%;height:100%;filter:drop-shadow(0 0 14px rgba(168,85,247,.5))}
-.ws-ic-cloud .ws-cloud-arrow{position:absolute;left:50%;top:34%;transform:translateX(-50%);font-size:1.05rem;animation:ws-cloud-up 1.4s ease-in-out infinite}
+.ws-ic-cloud{position:relative;width:74px;height:48px}
+.ws-ic-cloud svg{width:100%;height:100%;filter:drop-shadow(0 0 16px rgba(var(--ws-accent-rgb),.55))}
+.ws-ic-cloud .ws-cloud-arrow{position:absolute;left:50%;top:32%;transform:translateX(-50%);font-size:1.1rem;animation:ws-cloud-up 1.4s ease-in-out infinite}
 @keyframes ws-cloud-up{0%,100%{transform:translate(-50%,4px);opacity:.5}50%{transform:translate(-50%,-4px);opacity:1}}
-.ws-ic-shield{position:relative;width:54px;height:62px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.ws-ic-shield svg{width:100%;height:100%;filter:drop-shadow(0 0 18px rgba(168,85,247,.65))}
-.ws-ic-shield .ws-shield-scan{position:absolute;left:8%;right:8%;height:3px;background:linear-gradient(90deg,transparent,#f5d0fe,transparent);animation:ws-shield-scan 1.8s ease-in-out infinite}
+.ws-ic-shield{position:relative;width:58px;height:66px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ws-ic-shield svg{width:100%;height:100%;filter:drop-shadow(0 0 20px rgba(var(--ws-accent-rgb),.65))}
+.ws-ic-shield .ws-shield-scan{position:absolute;left:8%;right:8%;height:3px;background:linear-gradient(90deg,transparent,#fff,transparent);animation:ws-shield-scan 1.8s ease-in-out infinite}
 @keyframes ws-shield-scan{0%{top:6%}100%{top:90%}}
-.ws-ic-hero{font-size:2.8rem;filter:drop-shadow(0 0 20px rgba(168,85,247,.6));display:block;animation:ws-hero-pulse 2.2s ease-in-out infinite}
-@keyframes ws-hero-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-@media (max-width:420px){.ws-brand-logo{font-size:2.2rem}.ws-slide-title{font-size:1.1rem}.ws-slide-desc{font-size:.82rem}.ws-login-btn{padding:13px 26px;font-size:.9rem}}
+.ws-ic-hero{font-size:3rem;filter:drop-shadow(0 0 24px rgba(var(--ws-accent-rgb),.65));display:block;animation:ws-hero-pulse 2.2s ease-in-out infinite}
+@keyframes ws-hero-pulse{0%,100%{transform:scale(1) rotate(0deg)}50%{transform:scale(1.15) rotate(-4deg)}}
+@media (max-width:420px){.ws-brand-logo{font-size:2.3rem}.ws-slide-title{font-size:1.12rem}.ws-slide-desc{font-size:.83rem}.ws-login-btn{padding:14px 28px;font-size:.92rem}}
 
 /* Écran de chargement de section (changement de vue DMs/Amis/Membres/
    Serveurs quand ça implique un vrai appel réseau) — voir
@@ -5607,6 +5620,8 @@ a.bug-att-item{display:block}
   <div class="bs-ring"></div>
 </div>
 <div id="welcome-splash" class="hidden">
+  <div class="ws-aurora"><span class="ws-blob b1"></span><span class="ws-blob b2"></span><span class="ws-blob b3"></span></div>
+  <canvas class="ws-particles" id="ws-particles"></canvas>
   <div class="ws-grid"></div>
   <div class="ws-scan"></div>
   <div class="ws-brand">
@@ -6998,40 +7013,87 @@ function translateAuthError(msg){
    un oubli. ===== */
 const WS_SEEN_KEY='xultra_welcome_seen';
 const WS_SLIDES=[
-  {ic:'hero',emoji:'🛡️',title:'Tout ce que les autres font payer.',desc:'Ici, c\\'est inclus dès le premier compte. Ce qui se paie chez nous : uniquement l\\'espace cloud en plus, et le VPN.'},
-  {ic:'eq',title:'Hub Vocal IXin',desc:'Salons vocaux et textuels, bots d\\'interaction, bot musique, webcam et partage d\\'écran en HD. Le QG de ta communauté.'},
-  {ic:'ring',emoji:'📞',title:'Appels HD, privés ou en groupe',desc:'Invite le bot musique. Webcam et écran en haute qualité, loin du bruit du hub — comme sur Disc*rd, en mieux.'},
-  {ic:'timer',emoji:'⏳',title:'Stories · Éphém · Streaks',desc:'Des médias et des textes qui expirent au délai que tu choisis. Le snap façon IXin — sans option payante pour sauver ton streak, contrairement à Sn*pchat+.'},
-  {ic:'eq',title:'IXin Music',desc:'Upload et partage ta musique, directement dans l\\'écosystème IXin — ton coin façon S*undCloud, sans jamais quitter l\\'app.'},
-  {ic:'code',title:'IXbin · Chatroulette',desc:'Un pastebin natif à intégrer dans tes messages. Et une rencontre aléatoire, sans jamais quitter la plateforme.'},
-  {ic:'cloud',title:'IXinDrive',desc:'5 Go offerts d\\'entrée de jeu. Plus d\\'espace uniquement si tu en as vraiment besoin.'},
-  {ic:'shield',title:'IXin VPN',desc:'No-log. Chiffrement de bout en bout. Brouilleur qui déguise ta connexion en trafic normal. Protocoles avancés. Le contrôle total de ta sécurité réseau.'},
-  {ic:'hero',emoji:'🚀',title:'Arrête de payer pour exister.',desc:'Le Nitro, le Plus, le Premium des autres ? Ici, c\\'est le compte de base. Crée ton compte IXin.'}
+  {ic:'hero',emoji:'🛡️',chip:'✦ Tout inclus',a:'#a855f7',a2:'#ec4899',title:'Tout ce que les autres font payer.',desc:'Ici, c\\'est inclus dès le premier compte. Ce qui se paie chez nous : uniquement l\\'espace cloud en plus, et le VPN.'},
+  {ic:'eq',chip:'🎙️ Communauté',a:'#22d3ee',a2:'#3b82f6',title:'Hub Vocal IXin',desc:'Salons vocaux et textuels, bots d\\'interaction, bot musique, webcam et partage d\\'écran en HD. Le QG de ta communauté.'},
+  {ic:'ring',emoji:'📞',chip:'📞 HD gratuit',a:'#34d399',a2:'#06b6d4',title:'Appels HD, privés ou en groupe',desc:'Invite le bot musique. Webcam et écran en haute qualité, loin du bruit du hub — comme sur Disc*rd, en mieux.'},
+  {ic:'timer',emoji:'⏳',chip:'⏳ Éphémère',a:'#fb923c',a2:'#f43f5e',title:'Stories · Éphém · Streaks',desc:'Des médias et des textes qui expirent au délai que tu choisis. Le snap façon IXin — sans option payante pour sauver ton streak, contrairement à Sn*pchat+.'},
+  {ic:'eq',chip:'🎵 Gratuit',a:'#e879f9',a2:'#a855f7',title:'IXin Music',desc:'Upload et partage ta musique, directement dans l\\'écosystème IXin — ton coin façon S*undCloud, sans jamais quitter l\\'app.'},
+  {ic:'code',chip:'🔀 Aléatoire',a:'#2dd4bf',a2:'#6366f1',title:'IXbin · Chatroulette',desc:'Un pastebin natif à intégrer dans tes messages. Et une rencontre aléatoire, sans jamais quitter la plateforme.'},
+  {ic:'cloud',chip:'☁️ 5 Go offerts',a:'#38bdf8',a2:'#818cf8',title:'IXinDrive',desc:'5 Go offerts d\\'entrée de jeu. Plus d\\'espace uniquement si tu en as vraiment besoin.'},
+  {ic:'shield',chip:'🛡️ Sécurisé',a:'#a78bfa',a2:'#7c3aed',title:'IXin VPN',desc:'No-log. Chiffrement de bout en bout. Brouilleur qui déguise ta connexion en trafic normal. Protocoles avancés. Le contrôle total de ta sécurité réseau.'},
+  {ic:'hero',emoji:'🚀',chip:'🚀 Rejoins-nous',a:'#fbbf24',a2:'#ec4899',title:'Arrête de payer pour exister.',desc:'Le Nitro, le Plus, le Premium des autres ? Ici, c\\'est le compte de base. Crée ton compte IXin.'}
 ];
+function wsHexToRgb(hex){
+  const m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex||'');
+  if(!m)return '168,85,247';
+  return parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16);
+}
 function wsIconHtml(s){
   if(s.ic==='eq')return '<div class="ws-icon"><div class="ws-ic-eq"><span></span><span></span><span></span><span></span><span></span></div></div>';
   if(s.ic==='ring')return '<div class="ws-icon"><div class="ws-ic-ring"><span>'+(s.emoji||'')+'</span></div></div>';
   if(s.ic==='timer')return '<div class="ws-icon"><div class="ws-ic-timer" style="--p:65%"><i>'+(s.emoji||'')+'</i></div></div>';
   if(s.ic==='code')return '<div class="ws-icon"><div class="ws-ic-code"><span>&lt;</span><span>/</span><span>&gt;</span></div></div>';
-  if(s.ic==='cloud')return '<div class="ws-icon"><div class="ws-ic-cloud"><svg viewBox="0 0 64 44"><defs><linearGradient id="wsCloudGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs><path d="M18 34a12 12 0 010-24 14 14 0 0126 4 10 10 0 01-2 20H18z" fill="url(#wsCloudGrad)"/></svg><span class="ws-cloud-arrow">⬆️</span></div></div>';
-  if(s.ic==='shield')return '<div class="ws-icon"><div class="ws-ic-shield"><svg viewBox="0 0 48 56"><defs><linearGradient id="wsShieldGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5d0fe"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><path d="M24 2l20 8v16c0 14-8.5 22.5-20 28C12.5 48.5 4 40 4 26V10z" fill="url(#wsShieldGrad)"/><path d="M15 27l6 6 12-13" stroke="#0a0a0c" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="ws-shield-scan"></div></div></div>';
+  if(s.ic==='cloud')return '<div class="ws-icon"><div class="ws-ic-cloud"><svg viewBox="0 0 64 44"><defs><linearGradient id="wsCloudGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" style="stop-color:var(--ws-accent)"/><stop offset="100%" style="stop-color:var(--ws-accent2)"/></linearGradient></defs><path d="M18 34a12 12 0 010-24 14 14 0 0126 4 10 10 0 01-2 20H18z" fill="url(#wsCloudGrad)"/></svg><span class="ws-cloud-arrow">⬆️</span></div></div>';
+  if(s.ic==='shield')return '<div class="ws-icon"><div class="ws-ic-shield"><svg viewBox="0 0 48 56"><defs><linearGradient id="wsShieldGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" style="stop-color:var(--ws-accent)"/><stop offset="100%" style="stop-color:var(--ws-accent2)"/></linearGradient></defs><path d="M24 2l20 8v16c0 14-8.5 22.5-20 28C12.5 48.5 4 40 4 26V10z" fill="url(#wsShieldGrad)"/><path d="M15 27l6 6 12-13" stroke="#0a0a0c" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="ws-shield-scan"></div></div></div>';
   return '<div class="ws-icon"><span class="ws-ic-hero">'+(s.emoji||'🛡️')+'</span></div>';
 }
-let wsIndex=0,wsTimer=null;
+let wsIndex=0,wsTimer=null,wsParticleColor=[168,85,247];
 function wsRenderSlide(i){
   const wrap=\$('ws-slide-wrap');if(!wrap)return;
   const s=WS_SLIDES[i];
-  wrap.innerHTML='<div class="ws-slide">'+wsIconHtml(s)+'<div class="ws-slide-title">'+esc(s.title)+'</div><div class="ws-slide-desc">'+esc(s.desc)+'</div></div>';
+  const root=\$('welcome-splash');
+  if(root){
+    root.style.setProperty('--ws-accent',s.a||'#a855f7');
+    root.style.setProperty('--ws-accent2',s.a2||'#ec4899');
+    root.style.setProperty('--ws-accent-rgb',wsHexToRgb(s.a));
+    root.style.setProperty('--ws-accent2-rgb',wsHexToRgb(s.a2));
+  }
+  wsParticleColor=wsHexToRgb(s.a).split(',').map(Number);
+  wrap.innerHTML='<div class="ws-slide">'+(s.chip?'<div class="ws-chip">'+esc(s.chip)+'</div>':'')+wsIconHtml(s)+'<div class="ws-slide-title">'+esc(s.title)+'</div><div class="ws-slide-desc">'+esc(s.desc)+'</div></div>';
   const dots=\$('ws-dots');
   if(dots)dots.innerHTML=WS_SLIDES.map(function(_,idx){return '<span class="ws-dot'+(idx===i?' on':'')+'"></span>';}).join('');
 }
+// Particules colorées flottantes, teinte alignée sur l'accent de la slide
+// en cours (wsParticleColor, mis à jour par wsRenderSlide) — juste de quoi
+// donner une sensation de fond "vivant", pas un effet lourd.
+function wsInitParticles(){
+  const cv=\$('ws-particles');if(!cv)return;
+  const ctx=cv.getContext('2d');
+  let parts=[];
+  function resize(){cv.width=innerWidth;cv.height=innerHeight;}
+  resize();
+  window.addEventListener('resize',resize);
+  const N=42;
+  for(let i=0;i<N;i++){
+    parts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:1+Math.random()*2.2,vy:.15+Math.random()*.35,vx:(Math.random()-.5)*.2,a:.15+Math.random()*.4,ph:Math.random()*Math.PI*2});
+  }
+  function frame(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const c=wsParticleColor;
+    for(let i=0;i<parts.length;i++){
+      const p=parts[i];
+      p.y-=p.vy;p.x+=p.vx+Math.sin((Date.now()/1800)+p.ph)*.15;
+      if(p.y<-10){p.y=cv.height+10;p.x=Math.random()*cv.width;}
+      if(p.x<-10)p.x=cv.width+10;if(p.x>cv.width+10)p.x=-10;
+      ctx.beginPath();
+      ctx.fillStyle='rgba('+c[0]+','+c[1]+','+c[2]+','+p.a+')';
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+    }
+    wsParticlesRaf=requestAnimationFrame(frame);
+  }
+  frame();
+}
+let wsParticlesRaf=null;
 function wsStart(){
   wsIndex=0;wsRenderSlide(0);
+  wsInitParticles();
   clearInterval(wsTimer);
   wsTimer=setInterval(function(){wsIndex=(wsIndex+1)%WS_SLIDES.length;wsRenderSlide(wsIndex);},4200);
 }
 function wsDismiss(){
   clearInterval(wsTimer);
+  if(wsParticlesRaf)cancelAnimationFrame(wsParticlesRaf);
   try{localStorage.setItem(WS_SEEN_KEY,'1');}catch(e){}
   const el=\$('welcome-splash');
   if(!el)return;
