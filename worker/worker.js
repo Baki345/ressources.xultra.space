@@ -15033,6 +15033,12 @@ function openSharedWallpaperModal(){
   // un clic, le cadrage/zoom enregistré est le même dans les deux cas.
   setSwpPreviewRatio(window.innerWidth<700?'9:16':'16:9');
   renderSwpPreview();
+  // Tous les .overlay partagent le même z-index (voir CSS) — l'ordre
+  // d'empilement dépend donc uniquement de l'ordre dans le DOM. Cette modale
+  // est déclenchée DEPUIS celle de personnalisation (déjà ouverte), qui la
+  // précède dans le HTML, donc sans ce ré-attachement elle s'ouvrirait
+  // derrière au lieu de par-dessus.
+  document.body.appendChild(\$('modal-shared-wallpaper'));
   \$('modal-shared-wallpaper').classList.remove('hidden');
 }
 if(\$('dmp-open-shared-wallpaper'))\$('dmp-open-shared-wallpaper').addEventListener('click',openSharedWallpaperModal);
