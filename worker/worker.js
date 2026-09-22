@@ -39267,6 +39267,12 @@ async function handle(request, event) {
       const event = String((body && body.event) || "unknown").slice(0, 64);
       const data = JSON.stringify((body && body.data) || {}).slice(0, 2000);
       const ua = (request.headers.get("User-Agent") || "").slice(0, 300);
+      // xlog() côté client (voir APP) écrivait déjà ici, mais restait invisible
+      // depuis `wrangler tail` (juste une écriture Appwrite silencieuse) —
+      // un console.log ici les rend visibles en direct, utile pour tout debug
+      // client en conditions réelles (reneg_offer_sent/received, cam_toggled_on...)
+      // sans avoir besoin d'interroger la collection à côté.
+      console.log("[note]", event, data);
       await awFetch("/databases/" + AW_DB + "/collections/6a888afbce317cc9e408/documents", {
         method: "POST",
         body: { documentId: "unique()", data: { event: event, data: data, ua: ua } },
