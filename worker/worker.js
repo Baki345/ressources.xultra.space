@@ -5506,6 +5506,16 @@ a.bug-att-item{display:block}
 .vpn-pitch-item-title{font-size:.86rem;font-weight:800;color:#f0f0f3;margin-bottom:2px}
 .vpn-pitch-item-desc{font-size:.76rem;line-height:1.4;color:var(--muted)}
 .vpn-pitch-buy{border:1px solid rgba(196,181,253,.25);background:linear-gradient(160deg,rgba(124,58,237,.14),rgba(255,255,255,.02))}
+/* .btn-main est width:100% par défaut (pensé pour un formulaire seul dans sa
+   carte) — à l'intérieur d'un .set-card-row en flex, ça le fait s'étirer sur
+   toute la largeur de la rangée et écraser .scr-info à côté (chaque mot du
+   prix se retrouve seul sur sa ligne). Même correctif déjà appliqué ailleurs
+   dans ce fichier pour .btn-main utilisé en flex (.pm-btn-row, .srv-list-actions,
+   .ticket-chat-composer) — celui-ci manquait ici. flex-wrap en plus : sur un
+   panneau de réglages étroit, le bouton passe proprement à la ligne suivante
+   plutôt que de forcer une largeur minimale illisible sur .scr-info. */
+.vpn-pitch-buy .set-card-row{flex-wrap:wrap}
+.vpn-pitch-buy .btn-main{width:auto;flex-shrink:0}
 .vpn-pitch-price-tag{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:800;color:#e9d5ff;background:rgba(168,85,247,.16);border:1px solid rgba(196,181,253,.3);border-radius:999px;padding:2px 9px;margin-left:8px;white-space:nowrap;vertical-align:middle}
 .vpn-pitch-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin-bottom:16px;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.02)}
 .vpn-pitch-compare-col{padding:12px 12px}
