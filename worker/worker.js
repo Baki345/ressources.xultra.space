@@ -522,7 +522,6 @@ function randomInviteCode() {
 // avantages pour TOUT le serveur (contrairement à IXin+ qui reste un
 // avantage personnel du propriétaire).
 const SERVER_DISCOVERY_CATEGORIES = ["gaming", "musique", "art", "education", "technologie", "communaute", "autre"];
-const CREATOR_QUICK_REACTIONS = ["❤️", "😂", "😮", "😢", "👏", "🔥"];
 const SERVER_BOOST_THRESHOLDS = [2, 5, 10];
 function serverBoostLevel(server) {
   let boosters = [];
@@ -1242,9 +1241,9 @@ function coinsNum(v) {
   return Number.isFinite(n) ? n : 0;
 }
 // Alias générique de coinsNum() pour les autres champs numériques stockés en
-// string côté Appwrite (location_shares.lat/lng, hotel_room_presence.x/y,
-// xm_tracks.durationSec, xm_listen_sessions.positionSec, xm_comments.atSec) —
-// même logique, nom plus parlant hors contexte portefeuille.
+// string côté Appwrite (location_shares.lat/lng, xm_tracks.durationSec,
+// xm_listen_sessions.positionSec, xm_comments.atSec) — même logique, nom
+// plus parlant hors contexte portefeuille.
 const toNum = coinsNum;
 // Même souci que balance/amount ci-dessus, mais pour des booléens écrits dans
 // des attributs Appwrite déclarés "string" (server_roles.mentionable,
@@ -3537,71 +3536,10 @@ html.xultra-restoring #stage{visibility:hidden}
 .mfp-ctrls2 button{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:4px}
 .mfp-ctrls2 #mfp-like{font-size:1rem;padding:6px 14px}
 .music-queue-row.on{background:rgba(245,245,247,.14)}
-/* ===== IXin Hotel — lobby social rétro pixel-art, inspiré de l'ambiance
-   "hôtel virtuel" mais graphismes et nom 100% originaux IXin (aucun asset ni
-   marque tiers) : le mobilier/sol vient d'un pack Kenney.nl sous licence
-   CC0 (domaine public, kenney.nl/assets/furniture-kit), hébergé dans notre
-   propre bucket Appwrite hotel_assets. Rendu isométrique en pur CSS/SVG,
-   pas de moteur 3D/canvas — voir hotelProject()/renderHotelRoom() côté JS
-   pour la formule de projection, calibrée visuellement (Playwright) sur les
-   dimensions réelles des sprites. */
-.hotel-credits{margin-left:auto;display:flex;align-items:center;gap:6px;font-weight:700;color:#fbbf24;background:rgba(251,191,36,.12);padding:6px 12px;border-radius:999px;font-size:.85rem;flex-shrink:0}
-.hotel-layout{flex:1;display:flex;min-height:0;overflow:hidden}
-.hotel-stage{flex:1;position:relative;overflow:auto;background:radial-gradient(circle at 50% 20%,#1c1c1f,#08080a 70%)}
-.hotel-room-canvas{position:relative;margin:40px auto}
-.hotel-tile-img{position:absolute;pointer-events:none;user-select:none}
-.hotel-floor-hit{position:absolute;cursor:pointer}
-.hotel-avatar{position:absolute;display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .35s ease,top .35s ease}
-.hotel-avatar-body{width:26px;height:34px;border-radius:13px 13px 8px 8px;box-shadow:0 4px 10px rgba(0,0,0,.4);position:relative;background:var(--hotel-body,#1c1c1f)}
-.hotel-avatar-body::before{content:'';position:absolute;left:50%;top:-11px;transform:translateX(-50%);width:18px;height:18px;border-radius:50%;background:var(--hotel-skin,#f2c9a0);box-shadow:0 2px 6px rgba(0,0,0,.3)}
-.hotel-avatar-body::after{content:'';position:absolute;left:50%;top:-15px;transform:translateX(-50%);width:20px;height:11px;border-radius:10px 10px 0 0;background:var(--hotel-hair,#3a2317)}
-.hotel-avatar-name{margin-top:4px;font-size:.65rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;white-space:nowrap}
-.hotel-avatar-name.me{background:rgba(245,245,247,.85)}
-.hotel-bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;background:#fff;color:#141416;padding:6px 10px;border-radius:12px;font-size:.72rem;font-weight:600;max-width:160px;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,.3);animation:hotelBubbleIn .18s ease;z-index:99}
-.hotel-bubble::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
-@keyframes hotelBubbleIn{from{opacity:0;transform:translateX(-50%) translateY(4px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-.hotel-chat-panel{width:280px;flex-shrink:0;display:flex;flex-direction:column;border-left:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.02)}
-.hotel-chat-head{padding:10px 14px;font-weight:700;font-size:.72rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,.08)}
-.hotel-chat-log{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
-.hotel-chat-msg{font-size:.78rem;line-height:1.4}
-.hotel-chat-msg b{color:#d8d8dd}
-.hotel-chat-input-row{display:flex;gap:6px;padding:10px;border-top:1px solid rgba(255,255,255,.08)}
-.hotel-chat-input-row input{flex:1}
-.hotel-avatar-edit-btn{margin:10px 10px 0}
-@media (max-width:860px){.hotel-chat-panel{width:220px}}
-@media (max-width:680px){.hotel-layout{flex-direction:column}.hotel-chat-panel{width:100%;height:180px;border-left:none;border-top:1px solid rgba(255,255,255,.08)}}
 .discover-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px}
 .discover-grid-item{aspect-ratio:9/16;border-radius:12px;overflow:hidden;position:relative;cursor:pointer;background:var(--elev)}
 .discover-grid-item img,.discover-grid-item video{width:100%;height:100%;object-fit:cover}
 .discover-grid-item .n{position:absolute;bottom:0;left:0;right:0;padding:6px 8px;background:linear-gradient(0deg,rgba(0,0,0,.75),transparent);color:#fff;font-size:.7rem;font-weight:700}
-.crt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:4px}
-.crt-card{cursor:pointer;border-radius:12px;overflow:hidden;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);transition:transform .15s}
-.crt-card:hover{transform:translateY(-2px)}
-.crt-card-media{position:relative;aspect-ratio:9/13;background:#000;overflow:hidden}
-.crt-card-media img,.crt-card-media video{width:100%;height:100%;object-fit:cover}
-.crt-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.6rem;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);pointer-events:none}
-.crt-card-info{padding:8px 10px}
-.crt-card-title{font-weight:700;font-size:.82rem;line-height:1.3;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.crt-card-meta{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);margin-bottom:3px;cursor:pointer}
-.crt-card-av{width:18px;height:18px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--elev);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700}
-.crt-card-av img{width:100%;height:100%;object-fit:cover}
-.crt-card-stats{font-size:.68rem;color:var(--muted)}
-.crt-detail-media{border-radius:14px;overflow:hidden;background:#000;margin-bottom:12px}
-.crt-detail-media img,.crt-detail-media video{width:100%;max-height:60vh;display:block;object-fit:contain;background:#000}
-.crt-detail-title{font-size:1.1rem;font-weight:800;margin-bottom:8px}
-.crt-detail-author{display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:10px}
-.crt-detail-author .crt-card-av{width:28px;height:28px;font-size:.75rem}
-.crt-detail-desc{font-size:.85rem;line-height:1.5;color:var(--muted);margin-bottom:10px;white-space:pre-wrap}
-.crt-detail-stats{font-size:.78rem;color:var(--muted);margin-bottom:10px}
-.crt-detail-actions{display:flex;gap:8px;margin-bottom:12px}
-.crt-quick-reacts{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
-.crt-quick-react{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:999px;padding:5px 10px;font-size:.85rem;display:flex;align-items:center;gap:4px;transition:transform .1s}
-.crt-quick-react:active{transform:scale(1.1)}
-.crt-quick-react.on{background:rgba(196,196,204,.25);border-color:rgba(196,196,204,.5)}
-.crt-comment{display:flex;gap:8px;padding:8px 0;border-top:1px solid rgba(255,255,255,.06)}
-.crt-comment:first-child{border-top:none}
-.crt-comment-body{flex:1;font-size:.82rem;line-height:1.4}
-.crt-comment-body b{display:block;font-size:.76rem;margin-bottom:2px}
 #discover-map{width:100%;height:100%;border-radius:12px;overflow:hidden;background:#08080a}
 .leaflet-popup-content-wrapper{background:var(--elev);color:#f2f2f5;border-radius:12px}
 .leaflet-popup-content-wrapper a{color:#d8d8dd;font-weight:700}
@@ -5897,11 +5835,9 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette" data-i18n-title="nav_chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-creators" data-i18n-title="nav_creators" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive" data-i18n-skip title="IXin Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-hotel" data-i18n-skip title="IXin Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
     <button type="button" class="rail-btn" id="nav-servers" data-view="servers" data-i18n-title="nav_servers" title="HUB VOCAL"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" id="nav-admin" data-view="admin" data-i18n-title="nav_admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
     <button type="button" class="rail-btn changelog-staff-only hidden" id="nav-changelog" data-i18n-title="nav_changelog" title="Nouveautés"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/></svg><span class="rail-dot hidden" id="nav-changelog-dot"></span></button>
@@ -5914,11 +5850,9 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" data-view="members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette-mobile" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music-mobile" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-creators-mobile" title="Créateurs"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.4-4h14L20 9"/><rect x="3" y="9" width="18" height="10" rx="1.5"/><path d="M6 9l1-3M11 9l1-3M16 9l1-3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin-mobile" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xdrive-mobile" data-i18n-skip title="IXin Drive"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A5.5 5.5 0 0 1 17 8.05 4 4 0 0 1 17.5 16"/><path d="M9.5 15l2.5-2.5 2.5 2.5M12 12.5V19"/></svg></button>
     <button type="button" class="rail-btn" id="nav-shop-mobile" data-i18n-skip title="Boutique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l1.5-4h9L18 8"/><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 8z"/><path d="M9 11a3 3 0 0 0 6 0"/></svg></button>
-    <button type="button" class="rail-btn" id="nav-hotel-mobile" data-i18n-skip title="IXin Hotel"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V9l8-5 8 5v12"/><path d="M4 21h16"/><path d="M9 21v-6h6v6"/><path d="M9 12h.01M14.99 12h.01M9 15.5h.01M14.99 15.5h.01"/></svg></button>
     <button type="button" class="rail-btn" data-view="servers" title="HUB VOCAL"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/></svg></button>
     <button type="button" class="rail-btn hidden admin-nav-btn" data-view="admin" title="Admin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.8-3 8.4-7 9.5-4-1.1-7-4.7-7-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg></button>
   </nav>
@@ -6257,7 +6191,6 @@ a.bug-att-item{display:block}
       <div id="pm-dashboard"></div>
       <div class="pm-btn-row pc2-actions">
         <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
-        <button type="button" class="btn-main hidden" id="pm-creator">🎬 Voir la chaîne</button>
         <button type="button" class="btn-main hidden" id="pm-music">🎵 Musique</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
         <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
@@ -8334,7 +8267,6 @@ const TUTORIAL_STEPS=[
   {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
   {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'IXin Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
   {desktopSel:'#nav-shop',mobileSel:'#nav-shop-mobile',placement:'right',icon:'🛍️',title:'Boutique',text:'Achète des cadres d\\'avatar créés par la communauté, avec des IXin Coins.'},
-  {desktopSel:'#nav-hotel',mobileSel:'#nav-hotel-mobile',placement:'right',icon:'🏨',title:'IXin Hotel',text:'Un lobby rétro façon pixel-art : ton avatar se balade et discute en direct avec les autres membres présents.'},
   {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
   {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
   {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
@@ -8445,20 +8377,20 @@ function maybeStartTutorial(){
   setTimeout(function(){if(!tutState)startTutorial();},700);
 }
 
-// Chatroulette : en pause pour tout le monde sauf le compte propriétaire
-// (isShaman, posé côté serveur dans /api/auth/me — jamais recalculable
-// ici). Un simple masquage de bouton n'est PAS un contrôle d'accès réel :
-// Chatroulette est en plus verrouillée côté serveur sur chacune de ses
-// routes /api/chatroulette/*.
+// Chatroulette : en pause pour tout le monde, y compris le compte
+// propriétaire — masquée du menu, mais le code et les routes restent
+// intacts (rien n'est supprimé, juste rendu inaccessible). Un simple
+// masquage de bouton n'est PAS un contrôle d'accès réel : Chatroulette
+// est en plus verrouillée côté serveur sur chacune de ses routes
+// /api/chatroulette/*.
 // IXin Music, elle, est ouverte à tout le monde depuis toujours côté serveur
 // (aucune route /api/music/* n'a jamais vérifié isShamanAccount) — seul le
 // bouton de nav était encore masqué en attendant que la fonctionnalité soit
 // jugée prête, ce qui n'a plus lieu d'être : le bouton reste donc visible
 // pour tout compte connecté.
 function applyOwnerOnlyNav(){
-  const isOwner=!!(me&&me.isShaman);
   ['nav-chatroulette','nav-chatroulette-mobile'].forEach(function(id){
-    const b=\$(id);if(b)b.classList.toggle('hidden',!isOwner);
+    const b=\$(id);if(b)b.classList.add('hidden');
   });
 }
 // Build Electron "IXin VPN" (voir electron-builder-vpn.json / dist:vpn,
@@ -9455,8 +9387,6 @@ async function refreshStatusPanel(){
 }
 if(\$('nav-chatroulette'))\$('nav-chatroulette').addEventListener('click',openChatroulette);
 if(\$('nav-chatroulette-mobile'))\$('nav-chatroulette-mobile').addEventListener('click',openChatroulette);
-if(\$('nav-creators'))\$('nav-creators').addEventListener('click',function(){openCreators();});
-if(\$('nav-creators-mobile'))\$('nav-creators-mobile').addEventListener('click',function(){openCreators();});
 if(\$('nav-xbin'))\$('nav-xbin').addEventListener('click',function(){openXBin();});
 if(\$('nav-xbin-mobile'))\$('nav-xbin-mobile').addEventListener('click',function(){openXBin();});
 if(\$('nav-shop'))\$('nav-shop').addEventListener('click',function(){openShop();});
@@ -9464,8 +9394,6 @@ if(\$('nav-shop-mobile'))\$('nav-shop-mobile').addEventListener('click',function
 if(\$('beta-pill'))\$('beta-pill').addEventListener('click',function(){openBugModal(null);});
 if(\$('nav-xdrive'))\$('nav-xdrive').addEventListener('click',function(){openXDrive();});
 if(\$('nav-xdrive-mobile'))\$('nav-xdrive-mobile').addEventListener('click',function(){openXDrive();});
-if(\$('nav-hotel'))\$('nav-hotel').addEventListener('click',function(){openHotel();});
-if(\$('nav-hotel-mobile'))\$('nav-hotel-mobile').addEventListener('click',function(){openHotel();});
 if(\$('stp-close'))\$('stp-close').addEventListener('click',closeStatusPanel);
 if(\$('modal-status'))\$('modal-status').addEventListener('click',function(e){if(e.target===this)closeStatusPanel();});
 
@@ -10875,42 +10803,42 @@ let appPrefs=loadAppPrefs();
 function saveAppPrefs(){try{localStorage.setItem('xultra_app_prefs',JSON.stringify(appPrefs));}catch(e){}}
 const I18N={
   fr:{
-    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_music:'Musique',nav_creators:'Créateurs',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
+    nav_dms:'Messages',nav_friends:'Amis',nav_members:'Membres',nav_chatroulette:'Chatroulette',nav_music:'Musique',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'État du système',nav_changelog:'Nouveautés',nav_suggestions:'Boîte à idées',nav_team:'Équipe & Badges',
     auth_tagline:'Messages · Amis · Profils',auth_tab_login:'Connexion',auth_tab_register:'Inscription',auth_email_or_tag:'Email ou pseudo#tag',auth_email_or_tag_ph:'toi@exemple.com ou pseudo#1234',auth_password:'Mot de passe',auth_forgot_password:'Mot de passe oublié ?',auth_remember_me:'Rester connecté',auth_enter:'Entrer',auth_create_account:'Créer mon compte',
     set_account:'Mon compte',set_subscription:'Abonnement',set_profiles:'Profils',set_privacy:'Confidentialité et sécurité',set_blocked:'Utilisateurs bloqués',set_myreports:'Mes signalements',set_devices:'Appareils',set_connections:'Connexions',set_apps:'Applications autorisées',set_family:'Coffre-fort / Family Center',set_appearance:'Apparence',set_accessibility:'Accessibilité',set_voice:'Voix et vidéo',set_notifications:'Notifications',set_shortcuts:'Raccourcis clavier',set_language:'Langue',set_os:'Paramètres du système',set_advanced:'Avancé',set_activity:'Activité',set_developers:'Se connecter avec IXin',set_changelog:'Notes de version',set_support:'Support',set_testers:'Rejoindre IXin Testers',set_logout:'Se déconnecter',
     setgrp_account:'Compte',setgrp_application:'Application',setgrp_developers:'Développeurs',
     common_send:'Envoyer',common_cancel:'Annuler',common_save:'Enregistrer',common_close:'Fermer',common_delete:'Supprimer'
   },
   en:{
-    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_music:'Music',nav_creators:'Creators',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
+    nav_dms:'Messages',nav_friends:'Friends',nav_members:'Members',nav_chatroulette:'Chatroulette',nav_music:'Music',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'System Status',nav_changelog:"What's New",nav_suggestions:'Idea Box',nav_team:'Team & Badges',
     auth_tagline:'Messages · Friends · Profiles',auth_tab_login:'Log In',auth_tab_register:'Sign Up',auth_email_or_tag:'Email or username#tag',auth_email_or_tag_ph:'you@example.com or username#1234',auth_password:'Password',auth_forgot_password:'Forgot password?',auth_remember_me:'Stay signed in',auth_enter:'Log In',auth_create_account:'Create my account',
     set_account:'My account',set_subscription:'Subscription',set_profiles:'Profiles',set_privacy:'Privacy & security',set_blocked:'Blocked users',set_myreports:'My reports',set_devices:'Devices',set_connections:'Connections',set_apps:'Authorized apps',set_family:'Vault / Family Center',set_appearance:'Appearance',set_accessibility:'Accessibility',set_voice:'Voice & video',set_notifications:'Notifications',set_shortcuts:'Keyboard shortcuts',set_language:'Language',set_os:'System settings',set_advanced:'Advanced',set_activity:'Activity',set_developers:'Sign in with IXin',set_changelog:'Release notes',set_support:'Support',set_testers:'Join IXin Testers',set_logout:'Log out',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Developers',
     common_send:'Send',common_cancel:'Cancel',common_save:'Save',common_close:'Close',common_delete:'Delete'
   },
   es:{
-    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Creadores',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
+    nav_dms:'Mensajes',nav_friends:'Amigos',nav_members:'Miembros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Estado del sistema',nav_changelog:'Novedades',nav_suggestions:'Buzón de ideas',nav_team:'Equipo e insignias',
     auth_tagline:'Mensajes · Amigos · Perfiles',auth_tab_login:'Iniciar sesión',auth_tab_register:'Registrarse',auth_email_or_tag:'Correo o usuario#etiqueta',auth_email_or_tag_ph:'tu@ejemplo.com o usuario#1234',auth_password:'Contraseña',auth_forgot_password:'¿Olvidaste tu contraseña?',auth_remember_me:'Mantener sesión iniciada',auth_enter:'Entrar',auth_create_account:'Crear mi cuenta',
     set_account:'Mi cuenta',set_subscription:'Suscripción',set_profiles:'Perfiles',set_privacy:'Privacidad y seguridad',set_blocked:'Usuarios bloqueados',set_myreports:'Mis reportes',set_devices:'Dispositivos',set_connections:'Conexiones',set_apps:'Aplicaciones autorizadas',set_family:'Bóveda / Centro familiar',set_appearance:'Apariencia',set_accessibility:'Accesibilidad',set_voice:'Voz y video',set_notifications:'Notificaciones',set_shortcuts:'Atajos de teclado',set_language:'Idioma',set_os:'Ajustes del sistema',set_advanced:'Avanzado',set_activity:'Actividad',set_developers:'Iniciar sesión con IXin',set_changelog:'Notas de versión',set_support:'Soporte',set_testers:'Unirse a IXin Testers',set_logout:'Cerrar sesión',
     setgrp_account:'Cuenta',setgrp_application:'Aplicación',setgrp_developers:'Desarrolladores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Guardar',common_close:'Cerrar',common_delete:'Eliminar'
   },
   pt:{
-    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_creators:'Criadores',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
+    nav_dms:'Mensagens',nav_friends:'Amigos',nav_members:'Membros',nav_chatroulette:'Chatroulette',nav_music:'Música',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Status do sistema',nav_changelog:'Novidades',nav_suggestions:'Caixa de ideias',nav_team:'Equipe e emblemas',
     auth_tagline:'Mensagens · Amigos · Perfis',auth_tab_login:'Entrar',auth_tab_register:'Cadastrar',auth_email_or_tag:'Email ou usuário#tag',auth_email_or_tag_ph:'voce@exemplo.com ou usuario#1234',auth_password:'Senha',auth_forgot_password:'Esqueceu a senha?',auth_remember_me:'Manter conectado',auth_enter:'Entrar',auth_create_account:'Criar minha conta',
     set_account:'Minha conta',set_subscription:'Assinatura',set_profiles:'Perfis',set_privacy:'Privacidade e segurança',set_blocked:'Usuários bloqueados',set_myreports:'Minhas denúncias',set_devices:'Dispositivos',set_connections:'Conexões',set_apps:'Aplicativos autorizados',set_family:'Cofre / Central da família',set_appearance:'Aparência',set_accessibility:'Acessibilidade',set_voice:'Voz e vídeo',set_notifications:'Notificações',set_shortcuts:'Atalhos de teclado',set_language:'Idioma',set_os:'Configurações do sistema',set_advanced:'Avançado',set_activity:'Atividade',set_developers:'Entrar com IXin',set_changelog:'Notas de versão',set_support:'Suporte',set_testers:'Entrar para IXin Testers',set_logout:'Sair',
     setgrp_account:'Conta',setgrp_application:'Aplicativo',setgrp_developers:'Desenvolvedores',
     common_send:'Enviar',common_cancel:'Cancelar',common_save:'Salvar',common_close:'Fechar',common_delete:'Excluir'
   },
   de:{
-    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_music:'Musik',nav_creators:'Creator',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
+    nav_dms:'Nachrichten',nav_friends:'Freunde',nav_members:'Mitglieder',nav_chatroulette:'Chatroulette',nav_music:'Musik',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Systemstatus',nav_changelog:'Neuigkeiten',nav_suggestions:'Ideenbox',nav_team:'Team & Abzeichen',
     auth_tagline:'Nachrichten · Freunde · Profile',auth_tab_login:'Anmelden',auth_tab_register:'Registrieren',auth_email_or_tag:'E-Mail oder Nutzername#Tag',auth_email_or_tag_ph:'du@beispiel.com oder nutzer#1234',auth_password:'Passwort',auth_forgot_password:'Passwort vergessen?',auth_remember_me:'Angemeldet bleiben',auth_enter:'Anmelden',auth_create_account:'Konto erstellen',
     set_account:'Mein Konto',set_subscription:'Abonnement',set_profiles:'Profile',set_privacy:'Datenschutz & Sicherheit',set_blocked:'Blockierte Nutzer',set_myreports:'Meine Meldungen',set_devices:'Geräte',set_connections:'Verbindungen',set_apps:'Autorisierte Apps',set_family:'Tresor / Familiencenter',set_appearance:'Erscheinungsbild',set_accessibility:'Barrierefreiheit',set_voice:'Sprache & Video',set_notifications:'Benachrichtigungen',set_shortcuts:'Tastenkürzel',set_language:'Sprache',set_os:'Systemeinstellungen',set_advanced:'Erweitert',set_activity:'Aktivität',set_developers:'Mit IXin anmelden',set_changelog:'Versionshinweise',set_support:'Support',set_testers:'IXin Testers beitreten',set_logout:'Abmelden',
     setgrp_account:'Konto',setgrp_application:'App',setgrp_developers:'Entwickler',
     common_send:'Senden',common_cancel:'Abbrechen',common_save:'Speichern',common_close:'Schließen',common_delete:'Löschen'
   },
   it:{
-    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_music:'Musica',nav_creators:'Creator',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
+    nav_dms:'Messaggi',nav_friends:'Amici',nav_members:'Membri',nav_chatroulette:'Chatroulette',nav_music:'Musica',nav_servers:'HUB VOCAL',nav_admin:'Admin',nav_status:'Stato del sistema',nav_changelog:'Novità',nav_suggestions:'Scatola delle idee',nav_team:'Team e badge',
     auth_tagline:'Messaggi · Amici · Profili',auth_tab_login:'Accedi',auth_tab_register:'Registrati',auth_email_or_tag:'Email o nome utente#tag',auth_email_or_tag_ph:'tu@esempio.com o utente#1234',auth_password:'Password',auth_forgot_password:'Password dimenticata?',auth_remember_me:'Resta connesso',auth_enter:'Accedi',auth_create_account:'Crea il mio account',
     set_account:'Il mio account',set_subscription:'Abbonamento',set_profiles:'Profili',set_privacy:'Privacy e sicurezza',set_blocked:'Utenti bloccati',set_myreports:'Le mie segnalazioni',set_devices:'Dispositivi',set_connections:'Connessioni',set_apps:'App autorizzate',set_family:'Cassaforte / Family Center',set_appearance:'Aspetto',set_accessibility:'Accessibilità',set_voice:'Voce e video',set_notifications:'Notifiche',set_shortcuts:'Scorciatoie da tastiera',set_language:'Lingua',set_os:'Impostazioni di sistema',set_advanced:'Avanzate',set_activity:'Attività',set_developers:'Accedi con IXin',set_changelog:'Note di rilascio',set_support:'Supporto',set_testers:'Unisciti a IXin Testers',set_logout:'Esci',
     setgrp_account:'Account',setgrp_application:'App',setgrp_developers:'Sviluppatori',
@@ -14784,10 +14712,27 @@ function resyncAfterGap(){
 // donc un sondage discret par-dessus ne fait que rattraper ce que le temps
 // réel aurait dû livrer, jamais un remplacement.
 let dmMessagePollIntervalId=null;
+// Même filet de sécurité que le sondage messages ci-dessus, pour le document
+// dms lui-même (fond d'écran partagé notamment) : subscribeDmDeleteWatcher()
+// (mal nommée — elle gère aussi les .update, dont le fond partagé) déjà en
+// temps réel, mais un changement poussé pendant que le WebSocket est mort
+// (voir startCallPolling() plus bas) restait invisible pour l'interlocuteur
+// jusqu'à un rechargement complet — d'où ce sondage discret par-dessus.
+async function pollActiveDmDoc(){
+  if(!activeDm)return;
+  try{
+    const p=await db.getDocument(DB,'dms',activeDm);
+    const idx=dmsCache.findIndex(function(d){return d.\$id===p.\$id});
+    const prev=idx>=0?dmsCache[idx]:null;
+    const wallpaperChanged=prev&&(prev.sharedWallpaperUrl!==p.sharedWallpaperUrl||prev.sharedWallpaperPosX!==p.sharedWallpaperPosX||prev.sharedWallpaperPosY!==p.sharedWallpaperPosY||prev.sharedWallpaperScale!==p.sharedWallpaperScale);
+    if(idx>=0)dmsCache[idx]=p;else dmsCache.unshift(p);
+    if(wallpaperChanged)applyDmPersonalizationStyle(p.\$id);
+  }catch(e){}
+}
 function startDmMessagePolling(){
   if(dmMessagePollIntervalId)return;
   dmMessagePollIntervalId=setInterval(function(){
-    if(activeDm)appendNewMessages().catch(function(){});
+    if(activeDm){appendNewMessages().catch(function(){});pollActiveDmDoc();}
   },4000);
 }
 // Même filet de sécurité que startDmMessagePolling() ci-dessus, pour les
@@ -16263,11 +16208,6 @@ async function openProfileModal(uid){
   const msgBtn=\$('pm-message');
   msgBtn.classList.toggle('hidden',!!isSelf);
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
-  const creatorBtn=\$('pm-creator');
-  if(creatorBtn){
-    creatorBtn.classList.toggle('hidden',badges.indexOf('creator')<0);
-    creatorBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openCreators(uid,name);};
-  }
   const friendBtn=\$('pm-friend');
   if(friendBtn){
     const rel=isSelf?null:friendsCache.find(function(f){return String(f.friendId)===String(uid)});
@@ -28034,603 +27974,17 @@ async function openMusicOfficialArtistPage(artistId){
 if(\$('nav-music'))\$('nav-music').addEventListener('click',function(){openMusic();});
 if(\$('nav-music-mobile'))\$('nav-music-mobile').addEventListener('click',function(){openMusic();});
 
-/* ===== IXin Hotel — lobby social rétro pixel-art =====
-   Salle isométrique partagée : avatar qui se déplace au clic, chat en
-   direct, présence temps réel via Appwrite Realtime — même mécanisme que
-   les appels vocaux/l'écoute synchronisée (voir plus haut dans ce fichier).
-   Mobilier/sol : pack "Furniture Kit" de Kenney.nl, licence CC0 (domaine
-   public, kenney.nl/assets/furniture-kit), hébergé dans notre propre bucket
-   Appwrite hotel_assets — aucun asset ni nom de marque tiers. L'avatar est
-   pour l'instant une silhouette simple personnalisable (couleurs), en
-   attendant un jeu de sprites de personnage sous licence compatible.
-   Catalogue de mobilier achetable/déplaçable, plusieurs salles et chambres
-   personnelles : prévus pour une prochaine itération, pas dans cette v1. */
-const HOTEL_ASSETS={
-  floorFull:{id:'hotel_floorfull_sw',w:207,h:152},
-  wall:{id:'hotel_wall_sw',w:109,h:212},
-  wallCorner:{id:'hotel_wallcorner_sw',w:114,h:172},
-  wallWindow:{id:'hotel_wallwindow_sw',w:109,h:212},
-  wallDoorway:{id:'hotel_walldoorway_sw',w:109,h:212},
-  pottedPlant:{id:'hotel_pottedplant_sw',w:28,h:84},
-  loungeSofa:{id:'hotel_loungesofa_sw',w:142,h:142},
-  loungeSofaCorner:{id:'hotel_loungesofacorner_sw',w:142,h:186},
-  tableCoffee:{id:'hotel_tablecoffee_sw',w:110,h:102},
-  tableCoffeeGlass:{id:'hotel_tablecoffeeglass_sw',w:110,h:102},
-  rugRectangle:{id:'hotel_rugrectangle_sw',w:258,h:184},
-  rugRound:{id:'hotel_ruground_sw',w:135,h:98},
-  lampRoundFloor:{id:'hotel_lamproundfloor_sw',w:25,h:105},
-  lampSquareFloor:{id:'hotel_lampsquarefloor_sw',w:25,h:108},
-  bookcaseOpen:{id:'hotel_bookcaseopen_sw',w:67,h:140},
-  bookcaseClosed:{id:'hotel_bookcaseclosed_sw',w:67,h:137},
-  chair:{id:'hotel_chair_sw',w:41,h:79},
-  chairCushion:{id:'hotel_chaircushion_sw',w:41,h:78},
-  table:{id:'hotel_table_sw',w:134,h:130},
-  tableRound:{id:'hotel_tableround_sw',w:113,h:95},
-  bedSingle:{id:'hotel_bedsingle_sw',w:176,h:162},
-  bedDouble:{id:'hotel_beddouble_sw',w:216,h:190},
-  kitchenFridge:{id:'hotel_kitchenfridge_sw',w:72,h:146},
-  kitchenCabinet:{id:'hotel_kitchencabinet_sw',w:91,h:110},
-  kitchenStove:{id:'hotel_kitchenstove_sw',w:91,h:110},
-  televisionModern:{id:'hotel_televisionmodern_sw',w:74,h:94},
-  cabinetTelevision:{id:'hotel_cabinettelevision_sw',w:109,h:110},
-  sideTable:{id:'hotel_sidetable_sw',w:78,h:95},
-  stoolBar:{id:'hotel_stoolbar_sw',w:37,h:68},
-  benchCushion:{id:'hotel_benchcushion_sw',w:62,h:92},
-  pillow:{id:'hotel_pillow_sw',w:29,h:41},
-  cardboardBoxClosed:{id:'hotel_cardboardboxclosed_sw',w:44,h:54},
-  trashcan:{id:'hotel_trashcan_sw',w:33,h:64},
-  coatRackStanding:{id:'hotel_coatrackstanding_sw',w:32,h:100},
-  radio:{id:'hotel_radio_sw',w:41,h:51},
-  speaker:{id:'hotel_speaker_sw',w:31,h:89},
-  desk:{id:'hotel_desk_sw',w:117,h:121},
-  chairDesk:{id:'hotel_chairdesk_sw',w:60,h:97},
-  computerScreen:{id:'hotel_computerscreen_sw',w:47,h:59},
-  doorway:{id:'hotel_doorway_sw',w:60,h:148},
-  stairsOpen:{id:'hotel_stairsopen_sw',w:272,h:86}
-};
-function hotelAssetUrl(key){
-  const a=HOTEL_ASSETS[key];if(!a)return '';
-  return PROXY_EP+'/storage/buckets/hotel_assets/files/'+a.id+'/view?project='+PID;
-}
-// Décor fixe du Lobby (v1) : objets posés une fois pour toutes pour donner
-// vie à la salle avec de vrais assets — pas encore un mobilier
-// déplaçable/achetable (catalogue + inventaire prévus pour la suite).
-const HOTEL_LOBBY_DECOR=[
-  {key:'pottedPlant',tx:0,ty:0},
-  {key:'loungeSofa',tx:3,ty:1},
-  {key:'tableCoffee',tx:3,ty:2},
-  {key:'bookcaseOpen',tx:0,ty:3},
-  {key:'rugRound',tx:2,ty:2},
-  {key:'lampRoundFloor',tx:4,ty:0},
-  {key:'sideTable',tx:1,ty:4}
-];
-// Dimensions réelles des sprites (voir Isometric/floorFull_SW.png du pack) —
-// stepX/stepY calibrés visuellement (capture d'écran Playwright) pour un
-// carrelage sans trou ni chevauchement ; wallH choisi pour une hauteur de
-// mur cohérente avec le mobilier.
-const HOTEL_TILE_W=207,HOTEL_TILE_H=152,HOTEL_STEP_X=HOTEL_TILE_W/2,HOTEL_STEP_Y=HOTEL_TILE_H/4,HOTEL_WALL_H=180;
-function hotelProject(tx,ty,originX,originY){
-  return [originX+(tx-ty)*HOTEL_STEP_X, originY+(tx+ty)*HOTEL_STEP_Y];
-}
-let hotelRoomId=null,hotelRoom=null,hotelPresenceMap={},hotelChatMessages=[],hotelMyLook=null;
-let hotelPresenceUnsub=null,hotelChatUnsub=null,hotelHeartbeatId=null,hotelMoveThrottle=null,hotelPendingMove=null;
-function hotelDefaultLook(){
-  const palette=['#7c3aed','#0ea5e9','#ef4444','#22c55e','#f59e0b','#ec4899'];
-  return {body:palette[Math.floor(Math.random()*palette.length)],skin:'#f2c9a0',hair:'#3a2317'};
-}
-async function hotelLoadMyLook(){
-  if(!me){hotelMyLook=hotelDefaultLook();return}
-  try{
-    const doc=await db.getDocument(DB,'hotel_avatars',me.\$id);
-    hotelMyLook=JSON.parse(doc.lookJson||'{}');
-    if(!hotelMyLook.body)hotelMyLook=hotelDefaultLook();
-  }catch(e){hotelMyLook=hotelDefaultLook();}
-}
-async function openHotel(){
-  if(!me){showToast('Connecte-toi pour accéder à IXin Hotel.','error');return}
-  let overlay=\$('hotel-overlay');
-  if(!overlay){
-    overlay=document.createElement('div');
-    overlay.id='hotel-overlay';
-    overlay.className='discover-overlay';
-    document.body.appendChild(overlay);
-  }
-  overlay.classList.add('show');
-  if(!hotelMyLook)await hotelLoadMyLook();
-  renderHotelShell();
-  try{
-    hotelRoom=await db.getDocument(DB,'hotel_rooms','lobby');
-  }catch(e){hotelRoom={\$id:'lobby',name:'Lobby',widthTiles:5,heightTiles:5};}
-  hotelRoomId=hotelRoom.\$id;
-  try{
-    const r=await authPost('/api/hotel/room/join',{roomId:hotelRoomId});
-    hotelPresenceMap[me.\$id]={uid:me.\$id,roomId:hotelRoomId,x:r.x,y:r.y,facing:'s',displayName:(meProfile&&(meProfile.displayName||meProfile.username))||me.name||'Moi',avatarLookJson:JSON.stringify(hotelMyLook),\$updatedAt:new Date().toISOString()};
-  }catch(e){showToast('Impossible de rejoindre le Lobby.','error');}
-  await hotelLoadPresence();
-  await hotelLoadChat();
-  hotelSubscribePresence();
-  hotelSubscribeChat();
-  hotelStartHeartbeat();
-  renderHotelRoom();
-}
-function closeHotel(){
-  const overlay=\$('hotel-overlay');
-  if(overlay)overlay.classList.remove('show');
-  hotelStopHeartbeat();
-  hotelUnsubscribePresence();
-  hotelUnsubscribeChat();
-  if(hotelRoomId)authPost('/api/hotel/room/leave',{roomId:hotelRoomId}).catch(function(){});
-  hotelRoomId=null;hotelRoom=null;hotelPresenceMap={};hotelChatMessages=[];
-}
-function renderHotelShell(){
-  const overlay=\$('hotel-overlay');if(!overlay)return;
-  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="hotel-close">← Retour</button><h2>🏨 IXin Hotel</h2>'
-    +'<div class="hotel-credits" id="hotel-credits">🪙 —</div></div>'
-    +'<div class="hotel-layout">'
-      +'<div class="hotel-stage" id="hotel-stage"><div class="hotel-room-canvas" id="hotel-room-canvas"></div></div>'
-      +'<div class="hotel-chat-panel">'
-        +'<div class="hotel-chat-head">💬 Lobby</div>'
-        +'<div class="hotel-chat-log" id="hotel-chat-log"></div>'
-        +'<div class="hotel-chat-input-row"><input type="text" id="hotel-chat-input" class="field-input" maxlength="150" placeholder="Écrire un message…"><button type="button" class="set-mini-btn" id="hotel-chat-send">Envoyer</button></div>'
-        +'<button type="button" class="set-mini-btn hotel-avatar-edit-btn" id="hotel-edit-avatar">🎨 Personnaliser mon avatar</button>'
-      +'</div>'
-    +'</div>';
-  \$('hotel-close').onclick=closeHotel;
-  \$('hotel-chat-send').onclick=hotelSendChat;
-  \$('hotel-chat-input').addEventListener('keydown',function(e){if(e.key==='Enter')hotelSendChat();});
-  \$('hotel-edit-avatar').onclick=openHotelAvatarEditor;
-  db.getDocument(DB,'hotel_avatars',me.\$id).then(function(doc){
-    const c=\$('hotel-credits');if(c)c.textContent='🪙 '+(doc.credits||0);
-  }).catch(function(){
-    const c=\$('hotel-credits');if(c)c.textContent='🪙 1000';
-  });
-}
-async function hotelLoadPresence(){
-  try{
-    const r=await db.listDocuments(DB,'hotel_room_presence',[Appwrite.Query.equal('roomId',hotelRoomId),Appwrite.Query.limit(100)]);
-    (r.documents||[]).forEach(function(d){d.x=wpNum(d.x,0);d.y=wpNum(d.y,0);hotelPresenceMap[d.uid]=d;});
-  }catch(e){}
-}
-async function hotelLoadChat(){
-  try{
-    const r=await db.listDocuments(DB,'hotel_room_chat',[Appwrite.Query.equal('roomId',hotelRoomId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(30)]);
-    hotelChatMessages=(r.documents||[]).slice().reverse();
-    hotelRenderChatLog();
-  }catch(e){}
-}
-function hotelRenderChatLog(){
-  const log=\$('hotel-chat-log');if(!log)return;
-  log.innerHTML=hotelChatMessages.map(function(m){
-    return '<div class="hotel-chat-msg"><b>'+esc(m.displayName||'?')+'</b> '+esc(m.text)+'</div>';
-  }).join('')||'<div class="scr-sub">Personne n\\'a encore parlé ici.</div>';
-  log.scrollTop=log.scrollHeight;
-}
-function hotelSubscribePresence(){
-  hotelUnsubscribePresence();
-  if(typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
-  try{
-    hotelPresenceUnsub=client.subscribe('databases.'+DB+'.collections.hotel_room_presence.documents',function(res){
-      if(!res||!res.payload)return;
-      if(String(res.payload.roomId)!==String(hotelRoomId))return;
-      if(eventIs(res.events,'.delete')){delete hotelPresenceMap[res.payload.uid];}
-      else{res.payload.x=wpNum(res.payload.x,0);res.payload.y=wpNum(res.payload.y,0);hotelPresenceMap[res.payload.uid]=res.payload;}
-      hotelRenderAvatars();
-    });
-  }catch(e){}
-}
-function hotelUnsubscribePresence(){
-  if(hotelPresenceUnsub){try{hotelPresenceUnsub();}catch(e){}hotelPresenceUnsub=null;}
-}
-function hotelSubscribeChat(){
-  hotelUnsubscribeChat();
-  if(typeof client==='undefined'||!client||typeof client.subscribe!=='function')return;
-  try{
-    hotelChatUnsub=client.subscribe('databases.'+DB+'.collections.hotel_room_chat.documents',function(res){
-      if(!res||!res.payload||eventIs(res.events,'.delete'))return;
-      if(String(res.payload.roomId)!==String(hotelRoomId))return;
-      hotelChatMessages.push(res.payload);
-      if(hotelChatMessages.length>60)hotelChatMessages.shift();
-      hotelRenderChatLog();
-      hotelShowBubble(res.payload.uid,res.payload.text);
-    });
-  }catch(e){}
-}
-function hotelUnsubscribeChat(){
-  if(hotelChatUnsub){try{hotelChatUnsub();}catch(e){}hotelChatUnsub=null;}
-}
-function hotelStartHeartbeat(){
-  hotelStopHeartbeat();
-  // Rafraîchit périodiquement mon propre document de présence (même
-  // position) pour que \$updatedAt reste récent : les autres clients
-  // ignorent une présence trop ancienne (voir hotelRenderAvatars) — seul
-  // filet de sécurité contre un onglet fermé sans déclencher /room/leave.
-  hotelHeartbeatId=setInterval(function(){
-    const mine=hotelPresenceMap[me.\$id];if(!mine)return;
-    authPost('/api/hotel/room/move',{roomId:hotelRoomId,x:mine.x,y:mine.y,facing:mine.facing||'s'}).catch(function(){});
-  },20000);
-}
-function hotelStopHeartbeat(){
-  if(hotelHeartbeatId){clearInterval(hotelHeartbeatId);hotelHeartbeatId=null;}
-}
-function renderHotelRoom(){
-  const canvas=\$('hotel-room-canvas');if(!canvas||!hotelRoom)return;
-  const N=hotelRoom.widthTiles||5, M=hotelRoom.heightTiles||5;
-  const originX=Math.max(N,M)*HOTEL_STEP_X+40, originY=HOTEL_WALL_H+20;
-  const totalW=originX+N*HOTEL_STEP_X+40;
-  const totalH=originY+(N+M)*HOTEL_STEP_Y+60;
-  canvas.style.width=totalW+'px';
-  canvas.style.height=totalH+'px';
-  let html='';
-  // Murs (deux polygones SVG pleins) — dessinés en premier (z le plus bas),
-  // aucune image de mur à faire coïncider bord à bord (les sprites de mur du
-  // pack ont un profil en biais qui rend le carrelage bord-à-bord peu
-  // fiable ; un polygone plein reprenant exactement les mêmes coordonnées
-  // de projection que le sol est net et sans trou).
-  const back=hotelProject(-0.5,-0.5,originX,originY);
-  const right=hotelProject(N-0.5,-0.5,originX,originY);
-  const left=hotelProject(-0.5,M-0.5,originX,originY);
-  function wallPts(a,b){return [a,b,[b[0],b[1]+HOTEL_WALL_H],[a[0],a[1]+HOTEL_WALL_H]].map(function(p){return p.join(',');}).join(' ');}
-  html+='<svg width="'+totalW+'" height="'+totalH+'" style="position:absolute;left:0;top:0;z-index:0">'
-    +'<polygon points="'+wallPts(back,right)+'" fill="#efe6d8" stroke="rgba(0,0,0,.15)"></polygon>'
-    +'<polygon points="'+wallPts(back,left)+'" fill="#ded2bd" stroke="rgba(0,0,0,.15)"></polygon>'
-    +'</svg>';
-  // Sol
-  for(let tx=0;tx<N;tx++){
-    for(let ty=0;ty<M;ty++){
-      const xy=hotelProject(tx,ty,originX,originY);
-      html+='<div class="hotel-floor-hit" data-tx="'+tx+'" data-ty="'+ty+'" style="left:'+(xy[0]-HOTEL_TILE_W/2)+'px;top:'+xy[1]+'px;width:'+HOTEL_TILE_W+'px;height:'+HOTEL_TILE_H+'px;z-index:'+((tx+ty)*10+1)+'">'
-        +'<img class="hotel-tile-img" src="'+hotelAssetUrl('floorFull')+'" style="left:0;top:0;width:'+HOTEL_TILE_W+'px;height:'+HOTEL_TILE_H+'px" draggable="false">'
-      +'</div>';
-    }
-  }
-  // Décor fixe
-  HOTEL_LOBBY_DECOR.forEach(function(d){
-    const a=HOTEL_ASSETS[d.key];if(!a)return;
-    const xy=hotelProject(d.tx,d.ty,originX,originY);
-    const yOff=a.h-HOTEL_TILE_H/2+10;
-    html+='<img class="hotel-tile-img" src="'+hotelAssetUrl(d.key)+'" style="left:'+(xy[0]-a.w/2)+'px;top:'+(xy[1]-yOff)+'px;width:'+a.w+'px;height:'+a.h+'px;z-index:'+((d.tx+d.ty)*10+2)+'" draggable="false">';
-  });
-  canvas.innerHTML=html;
-  canvas.querySelectorAll('.hotel-floor-hit').forEach(function(el){
-    el.addEventListener('click',function(){
-      hotelMoveTo(parseInt(el.getAttribute('data-tx'),10),parseInt(el.getAttribute('data-ty'),10));
-    });
-  });
-  canvas.dataset.originX=originX;canvas.dataset.originY=originY;
-  hotelRenderAvatars();
-}
-function hotelRenderAvatars(){
-  const canvas=\$('hotel-room-canvas');if(!canvas||!hotelRoom)return;
-  canvas.querySelectorAll('.hotel-avatar').forEach(function(el){el.remove();});
-  const originX=parseFloat(canvas.dataset.originX||0), originY=parseFloat(canvas.dataset.originY||0);
-  const now=Date.now();
-  Object.keys(hotelPresenceMap).forEach(function(uid){
-    const p=hotelPresenceMap[uid];
-    // Présence considérée périmée après 45s sans rafraîchissement (onglet
-    // fermé sans /room/leave, voir hotelStartHeartbeat) : mieux vaut un
-    // avatar qui disparaît un peu tard qu'un fantôme permanent.
-    if(p.\$updatedAt&&(now-new Date(p.\$updatedAt).getTime())>45000)return;
-    let look={};try{look=JSON.parse(p.avatarLookJson||'{}');}catch(e){}
-    const xy=hotelProject(p.x||0,p.y||0,originX,originY);
-    const el=document.createElement('div');
-    el.className='hotel-avatar';
-    el.id='hotel-av-'+uid;
-    el.style.left=(xy[0]-16)+'px';
-    el.style.top=(xy[1]-46)+'px';
-    el.style.zIndex=Math.round((p.x||0)+(p.y||0))*10+5;
-    el.innerHTML='<div class="hotel-avatar-body" style="--hotel-body:'+esc(look.body||'#7c3aed')+';--hotel-skin:'+esc(look.skin||'#f2c9a0')+';--hotel-hair:'+esc(look.hair||'#3a2317')+'"></div>'
-      +'<div class="hotel-avatar-name'+(uid===me.\$id?' me':'')+'">'+esc(p.displayName||'?')+'</div>';
-    canvas.appendChild(el);
-  });
-}
-function hotelShowBubble(uid,text){
-  const av=\$('hotel-av-'+uid);if(!av)return;
-  const old=av.querySelector('.hotel-bubble');if(old)old.remove();
-  const b=document.createElement('div');
-  b.className='hotel-bubble';
-  b.textContent=text;
-  av.insertBefore(b,av.firstChild);
-  setTimeout(function(){if(b.parentElement)b.remove();},4500);
-}
-function hotelMoveTo(tx,ty){
-  if(!hotelRoom)return;
-  const N=hotelRoom.widthTiles||5, M=hotelRoom.heightTiles||5;
-  tx=Math.max(0,Math.min(N-1,tx));ty=Math.max(0,Math.min(M-1,ty));
-  const mine=hotelPresenceMap[me.\$id]||{};
-  mine.x=tx;mine.y=ty;mine.uid=me.\$id;mine.\$updatedAt=new Date().toISOString();
-  hotelPresenceMap[me.\$id]=mine;
-  hotelRenderAvatars();
-  hotelPendingMove={roomId:hotelRoomId,x:tx,y:ty,facing:'s'};
-  if(hotelMoveThrottle)clearTimeout(hotelMoveThrottle);
-  hotelMoveThrottle=setTimeout(function(){
-    if(!hotelPendingMove)return;
-    authPost('/api/hotel/room/move',hotelPendingMove).catch(function(){});
-    hotelPendingMove=null;
-  },150);
-}
-async function hotelSendChat(){
-  const input=\$('hotel-chat-input');if(!input)return;
-  const text=input.value.trim();if(!text)return;
-  input.value='';
-  try{await authPost('/api/hotel/chat/send',{roomId:hotelRoomId,text:text});}
-  catch(e){showToast('Message non envoyé.','error');}
-}
-function openHotelAvatarEditor(){
-  const look=hotelMyLook||hotelDefaultLook();
-  const overlay=document.createElement('div');
-  overlay.className='action-sheet-overlay show';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left">'
-    +'<div class="set-section-label">🎨 Personnaliser mon avatar</div>'
-    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur du corps<input type="color" id="hotel-look-body" value="'+esc(look.body||'#7c3aed')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
-    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur des cheveux<input type="color" id="hotel-look-hair" value="'+esc(look.hair||'#3a2317')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
-    +'<label class="scr-sub" style="display:block;margin-top:10px">Couleur de peau<input type="color" id="hotel-look-skin" value="'+esc(look.skin||'#f2c9a0')+'" style="display:block;margin-top:4px;width:100%;height:36px"></label>'
-    +'<button type="button" class="btn-main" id="hotel-look-save" style="margin-top:14px">Enregistrer</button>'
-    +'<button type="button" class="as-cancel" id="hotel-look-cancel">Annuler</button>'
-    +'</div>';
-  document.body.appendChild(overlay);
-  function close(){overlay.remove();}
-  \$('hotel-look-cancel').onclick=close;
-  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
-  \$('hotel-look-save').onclick=async function(){
-    const newLook={body:\$('hotel-look-body').value,hair:\$('hotel-look-hair').value,skin:\$('hotel-look-skin').value};
-    try{
-      await authPost('/api/hotel/avatar/save',{lookJson:JSON.stringify(newLook)});
-      hotelMyLook=newLook;
-      const mine=hotelPresenceMap[me.\$id];
-      if(mine){mine.avatarLookJson=JSON.stringify(newLook);hotelRenderAvatars();}
-      showToast('Avatar mis à jour.');
-      close();
-    }catch(e){showToast('Impossible d\\'enregistrer.','error');}
-  };
-}
-
-/* ===== Créateurs de contenu (fil public, vues/likes/commentaires/réactions) ===== */
-const CREATOR_QUICK_REACTIONS=['❤️','😂','😮','😢','👏','🔥'];
-let crtPosts=[],crtOffset=0,crtHasMore=true,crtViewUid=null,crtViewName='',crtLoading=false,crtDetailPost=null,crtDetailComments=[],crtMyBadges=null;
+// Déplacé ici depuis l'ancien hub "Créateurs" (supprimé) — utilisé ailleurs
+// (déblocage du contenu 18+, éligibilité streaming musique, Boutique,
+// changelog staff, limite de pièce jointe des rapports de bug), donc
+// conservé indépendamment de la fonctionnalité qui l'hébergeait.
 async function getMyBadges(){
   if(!me)return ['base'];
   let meta=memberMetaByUid[me.\$id];
   if(!meta){try{meta=await db.getDocument(DB,'user_meta',me.\$id);memberMetaByUid[me.\$id]=meta;}catch(e){meta=null}}
   return parseBadges(meta);
 }
-async function openCreators(uid,name){
-  let overlay=\$('creators-overlay');
-  if(!overlay){
-    overlay=document.createElement('div');
-    overlay.id='creators-overlay';
-    overlay.className='discover-overlay';
-    document.body.appendChild(overlay);
-  }
-  overlay.classList.add('show');
-  // Rouvrir Créateurs depuis le bouton de nav (sans uid précis) retrouve
-  // la publication ou le profil de créateur qu'on regardait juste avant
-  // de fermer (crtViewUid/crtDetailPost restent en mémoire, jamais
-  // réinitialisés à la fermeture) plutôt que de toujours repartir du flux
-  // général de tous les créateurs. Un appel avec un uid explicite (depuis
-  // un profil) garde la priorité et ouvre bien CE créateur.
-  const resumeDetail=(!uid&&!name)?crtDetailPost:null;
-  if(uid||name){crtViewUid=uid||null;crtViewName=name||'';crtDetailPost=null;}
-  crtMyBadges=await getMyBadges();
-  renderCreatorsShell();
-  if(resumeDetail){crtRenderDetail();return}
-  await crtLoadFeed(true);
-}
-function closeCreators(){
-  const overlay=\$('creators-overlay');
-  if(overlay)overlay.classList.remove('show');
-}
-function renderCreatorsShell(){
-  const overlay=\$('creators-overlay');if(!overlay)return;
-  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="creators-close">← Retour</button><h2>🎬 '+(crtViewUid?esc(crtViewName||'Créateur'):'Créateurs')+'</h2></div>'
-    +'<div class="discover-body" id="creators-body"></div>';
-  \$('creators-close').onclick=closeCreators;
-}
-function crtFmtCount(n){
-  n=Number(n)||0;
-  if(n>=1000000)return (n/1000000).toFixed(1).replace('.0','')+'M';
-  if(n>=1000)return (n/1000).toFixed(1).replace('.0','')+'k';
-  return String(n);
-}
-async function crtLoadFeed(reset){
-  if(crtLoading)return;
-  crtLoading=true;
-  if(reset){crtPosts=[];crtOffset=0;crtHasMore=true;}
-  const box=\$('creators-body');
-  if(box&&reset)box.innerHTML='<div class="scr-sub">Chargement…</div>';
-  try{
-    const qs='?offset='+crtOffset+(crtViewUid?('&uid='+encodeURIComponent(crtViewUid)):'');
-    const j=await authGet('/api/creators/posts/feed'+qs);
-    if(j.ok){
-      const batch=j.posts||[];
-      crtPosts=crtPosts.concat(batch);
-      crtOffset+=batch.length;
-      crtHasMore=batch.length>=24;
-    }
-  }catch(e){}
-  crtLoading=false;
-  renderCreatorsBody();
-}
-function crtPostCardHtml(p){
-  const isVideo=p.mediaType==='video';
-  const mediaSrc=safeUrl(p.mediaUrl);
-  return '<div class="crt-card" data-crt-open="'+esc(p.\$id)+'">'
-    +'<div class="crt-card-media">'+(isVideo?('<video src="'+esc(mediaSrc)+'" muted preload="metadata"></video><span class="crt-play">▶</span>'):('<img src="'+esc(mediaSrc)+'" alt="" loading="lazy">'))+'</div>'
-    +'<div class="crt-card-info">'
-      +'<div class="crt-card-title">'+esc(p.title)+'</div>'
-      +'<div class="crt-card-meta" data-crt-author="'+esc(p.uid)+'"><div class="crt-card-av">'+(safeUrl(p.avatar)?('<img src="'+esc(safeUrl(p.avatar))+'" alt="">'):esc(ini(p.username||'?')))+'</div><span>'+esc(p.username||'Créateur')+'</span></div>'
-      +'<div class="crt-card-stats">👁️ '+crtFmtCount(p.viewCount)+' · ❤️ '+crtFmtCount(p.likeCount)+' · 💬 '+crtFmtCount(p.commentCount)+'</div>'
-    +'</div></div>';
-}
-function renderCreatorsBody(){
-  const box=\$('creators-body');if(!box)return;
-  if(crtDetailPost){crtRenderDetail();return}
-  const canPublish=crtMyBadges&&crtMyBadges.indexOf('creator')>=0;
-  box.innerHTML=(crtViewUid?'<button type="button" class="set-mini-btn" id="crt-back-all" style="margin-bottom:10px">← Tous les créateurs</button>':'')
-    +(canPublish?'<button type="button" class="btn-main" id="crt-publish-btn" style="width:100%;margin-bottom:14px">+ Publier</button>':'')
-    +(crtPosts.length?('<div class="crt-grid">'+crtPosts.map(crtPostCardHtml).join('')+'</div>'):('<div class="scr-sub">'+(crtViewUid?'Ce créateur n\\'a encore rien publié.':'Aucune publication pour l\\'instant — reviens bientôt !')+'</div>'))
-    +(crtHasMore&&crtPosts.length?'<button type="button" class="set-mini-btn" id="crt-load-more" style="width:100%;margin-top:12px">Charger plus</button>':'');
-  const backBtn=\$('crt-back-all');if(backBtn)backBtn.onclick=function(){openCreators(null,'');};
-  const pubBtn=\$('crt-publish-btn');if(pubBtn)pubBtn.onclick=crtOpenPublishForm;
-  const moreBtn=\$('crt-load-more');if(moreBtn)moreBtn.onclick=function(){crtLoadFeed(false);};
-  box.querySelectorAll('[data-crt-author]').forEach(function(el){
-    el.addEventListener('click',function(e){
-      e.stopPropagation();
-      const uid=el.getAttribute('data-crt-author');
-      const p=crtPosts.find(function(x){return String(x.uid)===String(uid);});
-      openCreators(uid,(p&&p.username)||'Créateur');
-    });
-  });
-  box.querySelectorAll('[data-crt-open]').forEach(function(el){
-    el.addEventListener('click',function(){crtOpenPost(el.getAttribute('data-crt-open'));});
-  });
-}
-async function crtOpenPost(postId){
-  const post=crtPosts.find(function(p){return p.\$id===postId;});
-  if(!post)return;
-  crtDetailPost=post;
-  crtDetailComments=[];
-  renderCreatorsBody();
-  authPost('/api/creators/posts/view',{postId:postId}).then(function(r){
-    if(r&&r.viewCount!=null){
-      post.viewCount=r.viewCount;
-      const el=\$('crt-detail-views');
-      if(el)el.textContent='👁️ '+crtFmtCount(post.viewCount);
-    }
-  }).catch(function(){});
-  try{
-    const r=await db.listDocuments(DB,'creator_post_comments',[Appwrite.Query.equal('postId',postId),Appwrite.Query.orderDesc('\$createdAt'),Appwrite.Query.limit(100)]);
-    crtDetailComments=r.documents||[];
-  }catch(e){crtDetailComments=[];}
-  if(crtDetailPost&&crtDetailPost.\$id===postId)crtRenderDetail();
-}
-function crtCommentsHtml(){
-  if(!crtDetailComments.length)return '<div class="scr-sub">Aucun commentaire pour l\\'instant.</div>';
-  return crtDetailComments.map(function(c){
-    return '<div class="crt-comment"><div class="crt-card-av">'+(safeUrl(c.avatar)?('<img src="'+esc(safeUrl(c.avatar))+'" alt="">'):esc(ini(c.username||'?')))+'</div><div class="crt-comment-body"><b>'+esc(c.username||'Membre')+'</b><span>'+esc(c.text)+'</span></div></div>';
-  }).join('');
-}
-function crtRenderDetail(){
-  const box=\$('creators-body');if(!box)return;
-  const p=crtDetailPost;if(!p){renderCreatorsBody();return}
-  const isVideo=p.mediaType==='video';
-  const mediaSrc=safeUrl(p.mediaUrl);
-  let reactions={};try{reactions=JSON.parse(p.reactionsJson||'{}');}catch(e){}
-  box.innerHTML='<button type="button" class="set-mini-btn" id="crt-detail-back" style="margin-bottom:10px">← Retour</button>'
-    +'<div class="crt-detail-media">'+(isVideo?('<video src="'+esc(mediaSrc)+'" controls playsinline></video>'):('<img src="'+esc(mediaSrc)+'" alt="">'))+'</div>'
-    +'<h3 class="crt-detail-title">'+esc(p.title)+'</h3>'
-    +'<div class="crt-detail-author" data-crt-author="'+esc(p.uid)+'"><div class="crt-card-av">'+(safeUrl(p.avatar)?('<img src="'+esc(safeUrl(p.avatar))+'" alt="">'):esc(ini(p.username||'?')))+'</div><span>'+esc(p.username||'Créateur')+'</span></div>'
-    +(p.description?('<div class="crt-detail-desc">'+esc(p.description)+'</div>'):'')
-    +'<div class="crt-detail-stats" id="crt-detail-views">👁️ '+crtFmtCount(p.viewCount)+'</div>'
-    +'<div class="crt-detail-actions">'
-      +'<button type="button" class="set-mini-btn'+(p.likedByMe?' ok':'')+'" id="crt-like-btn">'+(p.likedByMe?'❤️':'🤍')+' <span id="crt-like-count">'+crtFmtCount(p.likeCount)+'</span></button>'
-      +(me&&String(p.uid)===String(me.\$id)?'<button type="button" class="set-mini-btn danger" id="crt-delete-btn">🗑 Supprimer</button>':'')
-    +'</div>'
-    +'<div class="crt-quick-reacts">'+CREATOR_QUICK_REACTIONS.map(function(r){
-      const mine=me&&Array.isArray(reactions[r])&&reactions[r].map(String).indexOf(String(me.\$id))>=0;
-      const count=Array.isArray(reactions[r])?reactions[r].length:0;
-      return '<button type="button" class="crt-quick-react'+(mine?' on':'')+'" data-crt-react="'+esc(r)+'">'+r+(count?(' '+count):'')+'</button>';
-    }).join('')+'</div>'
-    +'<div class="set-section-label">💬 Commentaires ('+(Number(p.commentCount)||0)+')</div>'
-    +'<div style="display:flex;gap:8px;margin-bottom:10px"><input type="text" id="crt-comment-input" class="field-input" maxlength="500" placeholder="Ajouter un commentaire…" style="flex:1"><button type="button" class="set-mini-btn" id="crt-comment-send">Envoyer</button></div>'
-    +'<div id="crt-comments-list">'+crtCommentsHtml()+'</div>';
-  \$('crt-detail-back').onclick=function(){crtDetailPost=null;renderCreatorsBody();};
-  box.querySelectorAll('[data-crt-author]').forEach(function(el){
-    el.addEventListener('click',function(){openCreators(el.getAttribute('data-crt-author'),p.username);});
-  });
-  \$('crt-like-btn').onclick=crtToggleLike;
-  const delBtn=\$('crt-delete-btn');if(delBtn)delBtn.onclick=crtDeletePost;
-  box.querySelectorAll('[data-crt-react]').forEach(function(el){
-    el.addEventListener('click',function(){crtToggleReaction(el.getAttribute('data-crt-react'));});
-  });
-  \$('crt-comment-send').onclick=crtSendComment;
-  \$('crt-comment-input').addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();crtSendComment();}});
-}
-async function crtToggleLike(){
-  const p=crtDetailPost;if(!p)return;
-  const btn=\$('crt-like-btn');if(btn)btn.disabled=true;
-  try{
-    const r=await authPost('/api/creators/posts/like/toggle',{postId:p.\$id});
-    p.likedByMe=r.liked;p.likeCount=r.likeCount;
-    crtRenderDetail();
-  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
-}
-async function crtToggleReaction(emoji){
-  const p=crtDetailPost;if(!p)return;
-  try{
-    const r=await authPost('/api/creators/posts/reaction/toggle',{postId:p.\$id,emoji:emoji});
-    p.reactionsJson=r.reactionsJson;
-    crtRenderDetail();
-  }catch(e){showToast((e&&e.message)||'Erreur','error');}
-}
-async function crtSendComment(){
-  const p=crtDetailPost;if(!p)return;
-  const input=\$('crt-comment-input');
-  const text=((input&&input.value)||'').trim();
-  if(!text)return;
-  const btn=\$('crt-comment-send');if(btn)btn.disabled=true;
-  try{
-    const r=await authPost('/api/creators/posts/comments/create',{postId:p.\$id,text:text});
-    crtDetailComments.unshift(r.comment);
-    p.commentCount=(Number(p.commentCount)||0)+1;
-    crtRenderDetail();
-  }catch(e){showToast((e&&e.message)||'Erreur','error');if(btn)btn.disabled=false;}
-}
-async function crtDeletePost(){
-  const p=crtDetailPost;if(!p)return;
-  if(!confirm('Supprimer définitivement cette publication ?'))return;
-  try{
-    await authPost('/api/creators/posts/delete',{postId:p.\$id});
-    crtPosts=crtPosts.filter(function(x){return x.\$id!==p.\$id;});
-    crtDetailPost=null;
-    showToast('Publication supprimée.');
-    renderCreatorsBody();
-  }catch(e){showToast((e&&e.message)||'Erreur','error');}
-}
-function crtOpenPublishForm(){
-  const overlay=document.createElement('div');
-  overlay.className='action-sheet-overlay show';
-  overlay.innerHTML='<div class="action-sheet-card" style="text-align:left;max-height:85vh;overflow-y:auto">'
-    +'<div class="set-section-label">🎬 Nouvelle publication</div>'
-    +'<div class="set-row"><label>Titre</label><input type="text" id="crt-pub-title" class="field-input" maxlength="200" placeholder="Le titre de ta création"></div>'
-    +'<div class="set-row"><label>Description (optionnel)</label><textarea id="crt-pub-desc" class="field-input" maxlength="2000" rows="3" placeholder="Raconte-en plus…"></textarea></div>'
-    +'<div class="set-row"><label>Fichier (vidéo ou image, 50 Mo max)</label><input type="file" id="crt-pub-file" accept="video/*,image/*"></div>'
-    +'<div id="crt-pub-preview"></div>'
-    +'<button type="button" class="btn-main" id="crt-pub-go" style="width:100%;margin-top:10px">Publier</button>'
-    +'<div class="err" id="crt-pub-err"></div>'
-    +'</div>';
-  document.body.appendChild(overlay);
-  function close(){overlay.remove();}
-  overlay.addEventListener('click',function(e){if(e.target===overlay)close();});
-  let pickedFile=null;
-  \$('crt-pub-file').addEventListener('change',function(){
-    const f=this.files&&this.files[0];
-    if(!f)return;
-    if(f.size>STORY_MAX_BYTES){\$('crt-pub-err').textContent='Fichier trop volumineux (max 50 Mo).';this.value='';return}
-    if(!/^(video|image)\\//.test(f.type)){\$('crt-pub-err').textContent='Format non supporté.';this.value='';return}
-    pickedFile=f;
-    \$('crt-pub-err').textContent='';
-    const previewUrl=URL.createObjectURL(f);
-    const isVideo=f.type.indexOf('video/')===0;
-    \$('crt-pub-preview').innerHTML=isVideo
-      ?('<video src="'+previewUrl+'" style="width:100%;max-height:200px;border-radius:10px;margin-top:8px" controls></video>')
-      :('<img src="'+previewUrl+'" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px">');
-  });
-  \$('crt-pub-go').onclick=async function(){
-    const title=(\$('crt-pub-title').value||'').trim();
-    if(!title){\$('crt-pub-err').textContent='Titre requis';return}
-    if(!pickedFile){\$('crt-pub-err').textContent='Choisis un fichier';return}
-    this.disabled=true;this.textContent='Publication…';\$('crt-pub-err').textContent='';
-    try{
-      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),pickedFile,[Appwrite.Permission.read(Appwrite.Role.any())]);
-      const mediaUrl=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
-      const mediaType=pickedFile.type.indexOf('video/')===0?'video':'image';
-      await authPost('/api/creators/posts/create',{title:title,description:(\$('crt-pub-desc').value||'').trim(),mediaUrl:mediaUrl,mediaType:mediaType});
-      close();
-      showToast('Publié ! 🎉');
-      openCreators(null,'');
-    }catch(e){\$('crt-pub-err').textContent=(e&&e.message)||'Erreur';this.disabled=false;this.textContent='Publier';}
-  };
-}
+
 
 /* ===== Boutique de décorations de profil — cadres d'avatar créés par des
    créateurs badgés 🎬, achetés en IXin Coins (70% créateur / 30% IXin, voir
@@ -37735,108 +37089,6 @@ async function handle(request, event) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
   }
-  if (path === "/api/hotel/avatar/save" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const lookJson = String((body && body.lookJson) || "").slice(0, 500);
-      if (!lookJson) throw new Error("lookJson requis");
-      JSON.parse(lookJson);
-      const data = { uid: acc.$id, lookJson: lookJson };
-      try {
-        await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
-      } catch (e2) {
-        await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ credits: 1000 }, data) } });
-      }
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "Look invalide" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-  if (path === "/api/hotel/room/join" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const roomId = String((body && body.roomId) || "");
-      if (!roomId) throw new Error("roomId requis");
-      const room = await awFetch("/databases/" + AW_DB + "/collections/hotel_rooms/documents/" + roomId, { asAdmin: true }).catch(function () { return null; });
-      if (!room) throw new Error("Salle introuvable.");
-      const profile = await resolveProfile(acc.$id);
-      const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      let avatarLookJson = "{}";
-      try {
-        const av = await awFetch("/databases/" + AW_DB + "/collections/hotel_avatars/documents/" + acc.$id, { asAdmin: true });
-        avatarLookJson = av.lookJson || "{}";
-      } catch (e2) {}
-      // Point d'arrivée déterministe (centre de la salle) : pas de position
-      // aléatoire à valider côté client, jamais de risque de spawn hors-grille.
-      const w = Number(room.widthTiles) || 5, h = Number(room.heightTiles) || 5;
-      const spawnX = Math.floor(w / 2), spawnY = Math.floor(h / 2);
-      const data = { uid: acc.$id, roomId: roomId, x: String(spawnX), y: String(spawnY), facing: "s", displayName: displayName, avatarLookJson: avatarLookJson };
-      try {
-        await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
-      } catch (e3) {
-        await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: data } });
-      }
-      return new Response(JSON.stringify({ ok: true, x: spawnX, y: spawnY }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-  if (path === "/api/hotel/room/move" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const roomId = String((body && body.roomId) || "");
-      const x = Number(body && body.x), y = Number(body && body.y);
-      const facing = String((body && body.facing) || "s").slice(0, 8);
-      if (!roomId || !isFinite(x) || !isFinite(y)) throw new Error("Paramètres invalides");
-      // Il faut déjà être dans CETTE salle (avoir appelé /room/join avant) —
-      // jamais fait confiance au roomId envoyé seul, sinon n'importe quel
-      // compte pourrait "apparaître" en train de bouger dans une salle qu'il
-      // n'a jamais rejointe.
-      const existing = await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      if (!existing || existing.roomId !== roomId) throw new Error("Rejoins la salle avant de t'y déplacer.");
-      const room = await awFetch("/databases/" + AW_DB + "/collections/hotel_rooms/documents/" + roomId, { asAdmin: true }).catch(function () { return null; });
-      const w = (room && Number(room.widthTiles)) || 5, h = (room && Number(room.heightTiles)) || 5;
-      const clampedX = Math.max(0, Math.min(w - 1, Math.round(x)));
-      const clampedY = Math.max(0, Math.min(h - 1, Math.round(y)));
-      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { x: String(clampedX), y: String(clampedY), facing: facing } } });
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-  if (path === "/api/hotel/room/leave" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-  if (path === "/api/hotel/chat/send" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const roomId = String((body && body.roomId) || "");
-      const text = String((body && body.text) || "").trim().slice(0, 150);
-      if (!roomId || !text) throw new Error("Message vide.");
-      const existing = await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      if (!existing || existing.roomId !== roomId) throw new Error("Rejoins la salle avant d'y écrire.");
-      const data = { roomId: roomId, uid: acc.$id, displayName: existing.displayName || acc.name || "Membre", text: text };
-      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_chat/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: data, permissions: ["read(\"any\")"] } });
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
   if (path === "/api/music/comments/send" && request.method === "POST") {
     const acc = await resolveSessionUser(request);
     if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -43096,183 +42348,6 @@ async function handle(request, event) {
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderAsc", attribute: "$createdAt" })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
       return new Response(JSON.stringify({ ok: true, messages: msgs.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/create" && request.method === "POST") {
-    const gate = await requireCreatorBadge(request);
-    if (!gate.ok) return new Response(JSON.stringify({ ok: false, error: gate.error }), { status: gate.status, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const title = String((body && body.title) || "").trim().slice(0, 200);
-      const description = String((body && body.description) || "").trim().slice(0, 2000);
-      const mediaUrl = String((body && body.mediaUrl) || "").trim().slice(0, 500);
-      const mediaType = ["video", "image"].indexOf(body && body.mediaType) >= 0 ? body.mediaType : "";
-      const thumbnailUrl = String((body && body.thumbnailUrl) || "").trim().slice(0, 500);
-      if (!title) throw new Error("Titre requis");
-      if (!mediaUrl || !mediaType) throw new Error("Fichier requis");
-      // Plafond de 50 Mo côté client uniquement jusqu'ici — revérification
-      // serveur de la taille RÉELLE du fichier déjà téléversé (même schéma
-      // que /api/stories/create et les pièces jointes de messages).
-      const creatorFileMatch = /\/files\/([^/]+)\/(view|download|preview)/.exec(mediaUrl);
-      if (creatorFileMatch) {
-        const creatorFileMeta = await awFetch("/storage/buckets/ultravoc_media/files/" + creatorFileMatch[1], { asAdmin: true }).catch(function () { return null; });
-        if (creatorFileMeta && (creatorFileMeta.sizeOriginal || 0) > 50 * 1024 * 1024) {
-          await awFetch("/storage/buckets/ultravoc_media/files/" + creatorFileMatch[1], { method: "DELETE", asAdmin: true }).catch(function () {});
-          throw new Error("Fichier trop volumineux (50 Mo max)");
-        }
-      }
-      const profile = await resolveProfile(gate.acc.$id);
-      const username = (profile && (profile.displayName || profile.username)) || gate.acc.name || "Créateur";
-      const avatar = (profile && profile.avatar) || "";
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents", {
-        method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { uid: String(gate.acc.$id), username: username, avatar: avatar, title: title, description: description, mediaUrl: mediaUrl, mediaType: mediaType, thumbnailUrl: thumbnailUrl, viewCount: 0, likeCount: 0, commentCount: 0, reactionsJson: "{}" } }
-      });
-      return new Response(JSON.stringify({ ok: true, post: post }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/delete" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const postId = String((body && body.postId) || "");
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
-      const profile = await resolveProfile(acc.$id);
-      if (String(post.uid) !== String(acc.$id) && !isShamanAccount(acc, profile)) throw new Error("Tu ne peux supprimer que tes propres publications");
-      await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "DELETE", asAdmin: true });
-      const likes = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
-      for (const l of (likes.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents/" + l.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
-      const comments = await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [500] })), { asAdmin: true });
-      for (const c of (comments.documents || [])) await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents/" + c.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
-      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/feed" && request.method === "GET") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const uidFilter = String(url.searchParams.get("uid") || "");
-      const offset = Math.max(0, parseInt(url.searchParams.get("offset") || "0", 10) || 0);
-      const queries = [
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })),
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [24] })),
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "offset", values: [offset] }))
-      ];
-      if (uidFilter) queries.push("queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [uidFilter] })));
-      const found = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents?" + queries.join("&"), { asAdmin: true });
-      const posts = found.documents || [];
-      let likedIds = [];
-      if (posts.length) {
-        const likes = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
-          "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
-          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: posts.map(function (p) { return p.$id; }) })) +
-          "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [100] })), { asAdmin: true }).catch(function () { return { documents: [] }; });
-        likedIds = (likes.documents || []).map(function (l) { return String(l.postId); });
-      }
-      const enriched = posts.map(function (p) { return Object.assign({}, p, { likedByMe: likedIds.indexOf(String(p.$id)) >= 0 }); });
-      return new Response(JSON.stringify({ ok: true, posts: enriched, total: found.total || 0 }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/view" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const postId = String((body && body.postId) || "");
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { viewCount: (Number(post.viewCount) || 0) + 1 } } });
-      return new Response(JSON.stringify({ ok: true, viewCount: updated.viewCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/like/toggle" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const postId = String((body && body.postId) || "");
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
-      const existing = await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents?" +
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "postId", values: [postId] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(acc.$id)] })) +
-        "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [1] })), { asAdmin: true });
-      const already = (existing.documents || [])[0];
-      let liked;
-      if (already) {
-        await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents/" + already.$id, { method: "DELETE", asAdmin: true });
-        liked = false;
-      } else {
-        await awFetch("/databases/" + AW_DB + "/collections/creator_post_likes/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { postId: postId, uid: String(acc.$id) } } });
-        liked = true;
-      }
-      const newCount = Math.max(0, (Number(post.likeCount) || 0) + (liked ? 1 : -1));
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { likeCount: newCount } } });
-      return new Response(JSON.stringify({ ok: true, liked: liked, likeCount: updated.likeCount }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/reaction/toggle" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const postId = String((body && body.postId) || "");
-      const emoji = String((body && body.emoji) || "").slice(0, 8);
-      if (CREATOR_QUICK_REACTIONS.indexOf(emoji) < 0) throw new Error("Réaction invalide");
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
-      let reactions = {};
-      try { reactions = JSON.parse(post.reactionsJson || "{}"); } catch (e) {}
-      const uid = String(acc.$id);
-      const list = Array.isArray(reactions[emoji]) ? reactions[emoji].map(String) : [];
-      const idx = list.indexOf(uid);
-      if (idx >= 0) list.splice(idx, 1); else list.push(uid);
-      if (list.length) reactions[emoji] = list; else delete reactions[emoji];
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { reactionsJson: JSON.stringify(reactions) } } });
-      return new Response(JSON.stringify({ ok: true, reactionsJson: updated.reactionsJson }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
-  if (path === "/api/creators/posts/comments/create" && request.method === "POST") {
-    const acc = await resolveSessionUser(request);
-    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    try {
-      const body = await request.json();
-      const postId = String((body && body.postId) || "");
-      const text = String((body && body.text) || "").trim().slice(0, 500);
-      if (!text) throw new Error("Commentaire vide");
-      const post = await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { asAdmin: true });
-      const profile = await resolveProfile(acc.$id);
-      const username = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
-      const avatar = (profile && profile.avatar) || "";
-      const comment = await awFetch("/databases/" + AW_DB + "/collections/creator_post_comments/documents", {
-        method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { postId: postId, uid: String(acc.$id), username: username, avatar: avatar, text: text } }
-      });
-      await awFetch("/databases/" + AW_DB + "/collections/creator_posts/documents/" + postId, { method: "PATCH", asAdmin: true, body: { data: { commentCount: (Number(post.commentCount) || 0) + 1 } } });
-      return new Response(JSON.stringify({ ok: true, comment: comment }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
