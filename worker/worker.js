@@ -1972,12 +1972,42 @@ async function pushToUidExpo(uid, payloadObj) {
 // signalement traité, candidature d'équipe tranchée, badge accordé, statut
 // de bug changé...). Alimente le même panneau 🔔 que les demandes d'ami,
 // sans dépendre du système de push (fonctionne même sans abonnement push).
+// Titre de la notification push pour chaque type — text (déjà une phrase
+// complète côté appelant, ex. "X a accepté ta demande d'ami") sert de corps.
+// Avant ce changement, TOUT ce qui passait par createInAppNotification()
+// (ami accepté/retiré, commentaire xbin, nouveau titre suivi, statut de
+// candidature/bug, invitation/suspension Drive, signalement traité, réponse
+// support, badge accordé...) n'apparaissait jamais que dans la cloche 🔔 —
+// appli fermée ou onglet non ouvert, la personne ne le voyait qu'à sa
+// prochaine visite. On branche donc ces mêmes évènements sur l'infra push déjà
+// en place pour les DM (pushToUid, VAPID + Expo), sans toucher au document
+// 'notifications' ni au panneau existant.
+const NOTIF_PUSH_TITLES = {
+  friend_accepted: "🤝 Nouvel ami", friend_removed: "👋 Ami retiré", friend_request: "👋 Demande d'ami",
+  xbin_comment: "💬 Nouveau commentaire", music_new_track: "🎵 Nouveau titre",
+  team_application_status: "📋 Candidature équipe", bug_status_changed: "🐛 Signalement de bug",
+  xdrive_folder_invite: "📁 IXin Drive", xdrive_file_removed: "📁 IXin Drive", xdrive_suspended: "📁 IXin Drive",
+  report_resolved: "🚩 Signalement traité", support_ticket_reply: "🎫 Support IXin",
+  support_ticket_escalated: "🎫 Support IXin", badge_granted: "🏅 Nouveau badge"
+};
+function notifPushUrl(type, uid, fromUid, refId) {
+  if (type === "xbin_comment") return "/?xbin=" + refId;
+  if (type === "support_ticket_reply" || type === "support_ticket_escalated") return "/?ticket=" + refId;
+  if (type === "friend_accepted" || type === "friend_removed" || type === "friend_request") return "/?profile=" + fromUid;
+  if (type === "badge_granted") return "/?profile=" + uid;
+  return "/";
+}
 async function createInAppNotification(uid, type, fromUid, fromName, text, refId) {
   try {
     await awFetch("/databases/" + AW_DB + "/collections/notifications/documents", {
       method: "POST", asAdmin: true,
       body: { documentId: "unique()", data: { uid: String(uid), type: type, fromUid: fromUid ? String(fromUid) : "", fromName: fromName || "", text: (text || "").slice(0, 200), refId: refId || "", read: false } }
     });
+  } catch (e) {}
+  try {
+    const recipientProfile = await resolveProfile(uid).catch(function () { return null; });
+    const body = (recipientProfile && recipientProfile.notifPreview === false) ? "" : (text || "").slice(0, 140);
+    pushToUid(uid, { type: type, title: NOTIF_PUSH_TITLES[type] || (fromName || "IXin"), body: body || "Nouvelle notification", tag: "notif-" + type, url: notifPushUrl(type, uid, fromUid, refId) }).catch(function () {});
   } catch (e) {}
 }
 
@@ -46963,11 +46993,25 @@ async function handle(request, event) {
       const body = await request.json();
       const uid = String((body && body.uid) || "");
       if (!uid) throw new Error("uid requis");
+      const type = String((body && body.type) || "").slice(0, 40);
+      // Seuls les types réellement envoyés par le client (voir sendNotification()
+      // côté APP) sont acceptés ici — sans cette liste, n'importe quel compte
+      // pourrait forger un type arbitraire vers n'importe quel uid. fromUid et
+      // fromName ne sont JAMAIS pris depuis le corps de la requête : toujours
+      // recalculés depuis la session (acc), sinon un compte pourrait usurper
+      // l'identité de quelqu'un d'autre dans la notif — désormais poussée en
+      // vraie alerte système (voir plus bas), l'usurpation serait autrement
+      // bien plus grave qu'une ligne trompeuse dans la cloche 🔔.
+      if (["friend_accepted", "friend_removed", "friend_request", "xbin_comment", "music_new_track"].indexOf(type) < 0) {
+        throw new Error("type de notification invalide");
+      }
+      const callerProfile = await resolveProfile(acc.$id).catch(function () { return null; });
+      const safeFromName = (callerProfile && (callerProfile.displayName || callerProfile.username)) || acc.name || "Quelqu'un";
       const data = {
         uid: uid,
-        type: String((body && body.type) || "").slice(0, 40),
-        fromUid: String((body && body.fromUid) || "").slice(0, 64),
-        fromName: String((body && body.fromName) || "").slice(0, 100),
+        type: type,
+        fromUid: acc.$id,
+        fromName: safeFromName,
         text: String((body && body.text) || "").slice(0, 200),
         refId: String((body && body.refId) || "").slice(0, 64),
         read: false
@@ -46976,6 +47020,20 @@ async function handle(request, event) {
         method: "POST", asAdmin: true,
         body: { documentId: "unique()", data: data, permissions: ["read(\"user:" + uid + "\")", "update(\"user:" + uid + "\")", "delete(\"user:" + uid + "\")"] }
       });
+      // friend_request a déjà son propre appel dédié à /api/push/notify côté
+      // client (juste après celui-ci, avec sa propre vérification que la
+      // demande existe bien) — le repousser ici en plus doublerait la
+      // notification système reçue. Tous les autres types envoyés par cette
+      // route générique (friend_accepted, friend_removed, xbin_comment,
+      // music_new_track...) n'avaient en revanche aucun chemin vers le push,
+      // même logique que createInAppNotification() côté serveur ci-dessus.
+      if (data.type !== "friend_request") {
+        (async function () {
+          const recipientProfile = await resolveProfile(uid).catch(function () { return null; });
+          const body = (recipientProfile && recipientProfile.notifPreview === false) ? "" : data.text;
+          pushToUid(uid, { type: data.type, title: NOTIF_PUSH_TITLES[data.type] || (data.fromName || "IXin"), body: body || "Nouvelle notification", tag: "notif-" + data.type, url: notifPushUrl(data.type, uid, data.fromUid, data.refId) }).catch(function () {});
+        })();
+      }
       return new Response(JSON.stringify({ ok: true, notification: notif }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
