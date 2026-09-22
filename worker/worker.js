@@ -41751,6 +41751,36 @@ async function handle(request, event) {
     }
   }
 
+  // TEMPORAIRE — à retirer après usage : crée un document jetable avec un
+  // champ numérique brut, pour vérifier empiriquement si Appwrite rejette
+  // vraiment un number envoyé à un attribut déclaré "string" (avant de
+  // corriger x1coins_wallets.balance etc. à l'aveugle sur la seule base de
+  // l'audit) — puis le supprime immédiatement, aucune donnée réelle touchée.
+  if (path === "/api/admin/__fix_probe_type" && request.method === "POST") {
+    if (url.searchParams.get("k") !== "ixin-fix-9f3a1c") {
+      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+    try {
+      const body = await request.json();
+      const collection = String((body && body.collection) || "");
+      const data = (body && body.data) || {};
+      if (!collection || !Object.keys(data).length) throw new Error("collection et data requis");
+      let created = null, createErr = null;
+      try {
+        created = await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents", {
+          method: "POST", asAdmin: true,
+          body: { documentId: "unique()", data }
+        });
+      } catch (e) { createErr = (e && e.message) || String(e); }
+      if (created && created.$id) {
+        await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/documents/" + created.$id, { method: "DELETE", asAdmin: true }).catch(function () {});
+      }
+      return new Response(JSON.stringify({ ok: true, accepted: !!(created && created.$id), error: createErr }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // TEMPORAIRE — à retirer après usage (voir conversation) : crée un attribut
   // string manquant sur une collection, via la clé admin Appwrite déjà
   // configurée sur ce Worker. Générique (collection/key/size en body) pour
