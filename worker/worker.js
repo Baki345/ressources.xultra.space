@@ -1229,6 +1229,18 @@ async function withWalletLock(uids, fn) {
     for (const lockId of held) await releaseWalletLock(lockId);
   }
 }
+// x1coins_wallets.balance et x1coins_tx.amount sont des attributs STRING
+// côté Appwrite (confirmé en conditions réelles : Appwrite rejette
+// franchement un number brut, "Invalid document structure... must be a
+// valid string") alors que tout ce fichier les traite comme des nombres —
+// chaque envoi/achat/transfert échouait donc silencieusement à l'écriture.
+// coinsNum() normalise à la lecture (qu'il s'agisse d'un ancien document
+// resté au format number ou d'un nouveau en string) ; String(...) à
+// l'écriture partout où un solde est recalculé, jamais un nombre brut.
+function coinsNum(v) {
+  const n = parseFloat(v);
+  return Number.isFinite(n) ? n : 0;
+}
 async function x1coinsGetOrCreateWallet(uid) {
   const q = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
@@ -1246,7 +1258,7 @@ async function x1coinsGetOrCreateWallet(uid) {
   const walletId = "w_" + String(uid).replace(/[^a-zA-Z0-9_.-]/g, "").slice(0, 50);
   try {
     return await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents", {
-      method: "POST", asAdmin: true, body: { documentId: walletId, data: { uid: String(uid), balance: 0 } }
+      method: "POST", asAdmin: true, body: { documentId: walletId, data: { uid: String(uid), balance: "0" } }
     });
   } catch (e) {
     if (e && e.status === 409) {
@@ -1263,7 +1275,7 @@ async function x1coinsGetOrCreateWallet(uid) {
 async function x1coinsLogTx(uid, otherUid, otherName, direction, amount, kind, note) {
   return awFetch("/databases/" + AW_DB + "/collections/x1coins_tx/documents", {
     method: "POST", asAdmin: true,
-    body: { documentId: "unique()", data: { uid: String(uid), otherUid: String(otherUid || ""), otherName: String(otherName || "").slice(0, 100), direction: direction, amount: amount, kind: kind, note: String(note || "").slice(0, 300) } }
+    body: { documentId: "unique()", data: { uid: String(uid), otherUid: String(otherUid || ""), otherName: String(otherName || "").slice(0, 100), direction: direction, amount: String(amount), kind: kind, note: String(note || "").slice(0, 300) } }
   });
 }
 // Résout un pseudo (avec ou sans #tag) ou un identifiant brut vers le compte
@@ -43269,7 +43281,7 @@ async function handle(request, event) {
         const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
         walletAddress = meta.walletAddress || "";
       } catch (e) {}
-      return new Response(JSON.stringify({ ok: true, balance: wallet.balance || 0, walletAddress: walletAddress, tx: txQ.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, balance: coinsNum(wallet.balance), walletAddress: walletAddress, tx: txQ.documents || [] }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -43287,14 +43299,14 @@ async function handle(request, event) {
       let newSenderBalance;
       await withWalletLock([acc.$id, target.$id], async function () {
         const senderWallet = await x1coinsGetOrCreateWallet(acc.$id);
-        if ((senderWallet.balance || 0) < amount) throw new Error("Solde insuffisant");
-        newSenderBalance = (senderWallet.balance || 0) - amount;
+        if (coinsNum(senderWallet.balance) < amount) throw new Error("Solde insuffisant");
+        newSenderBalance = coinsNum(senderWallet.balance) - amount;
         await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + senderWallet.$id, {
-          method: "PATCH", asAdmin: true, body: { data: { balance: newSenderBalance } }
+          method: "PATCH", asAdmin: true, body: { data: { balance: String(newSenderBalance) } }
         });
         const recipientWallet = await x1coinsGetOrCreateWallet(target.$id);
         await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + recipientWallet.$id, {
-          method: "PATCH", asAdmin: true, body: { data: { balance: (recipientWallet.balance || 0) + amount } }
+          method: "PATCH", asAdmin: true, body: { data: { balance: String(coinsNum(recipientWallet.balance) + amount) } }
         });
       });
       let senderProfile = null;
@@ -43316,9 +43328,9 @@ async function handle(request, event) {
         const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
         if (meta && meta.plan === "plus") throw new Error("Tu as déjà IXin+.");
         const wallet = await x1coinsGetOrCreateWallet(acc.$id);
-        if ((wallet.balance || 0) < XPLUS_PRICE_COINS) throw new Error("Solde insuffisant (" + XPLUS_PRICE_COINS + " IXin Coins requis)");
+        if (coinsNum(wallet.balance) < XPLUS_PRICE_COINS) throw new Error("Solde insuffisant (" + XPLUS_PRICE_COINS + " IXin Coins requis)");
         await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
-          method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) - XPLUS_PRICE_COINS } }
+          method: "PATCH", asAdmin: true, body: { data: { balance: String(coinsNum(wallet.balance) - XPLUS_PRICE_COINS) } }
         });
         await x1coinsLogTx(acc.$id, "", "IXin+", "out", XPLUS_PRICE_COINS, "spend_xplus", "Achat de IXin+ à vie avec des IXin Coins");
         await grantPlus(acc.$id, "coins_purchase");
@@ -43436,13 +43448,13 @@ async function handle(request, event) {
           if (!(e && e.status === 404)) throw e;
         }
         const buyerWallet = await x1coinsGetOrCreateWallet(acc.$id);
-        if ((buyerWallet.balance || 0) < priceCoins) throw new Error("Solde insuffisant (" + priceCoins + " IXin Coins requis)");
+        if (coinsNum(buyerWallet.balance) < priceCoins) throw new Error("Solde insuffisant (" + priceCoins + " IXin Coins requis)");
         await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + buyerWallet.$id, {
-          method: "PATCH", asAdmin: true, body: { data: { balance: (buyerWallet.balance || 0) - priceCoins } }
+          method: "PATCH", asAdmin: true, body: { data: { balance: String(coinsNum(buyerWallet.balance) - priceCoins) } }
         });
         const creatorWallet = await x1coinsGetOrCreateWallet(creatorUid);
         await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + creatorWallet.$id, {
-          method: "PATCH", asAdmin: true, body: { data: { balance: (creatorWallet.balance || 0) + creatorShare } }
+          method: "PATCH", asAdmin: true, body: { data: { balance: String(coinsNum(creatorWallet.balance) + creatorShare) } }
         });
         await awFetch("/databases/" + AW_DB + "/collections/shop_purchases/documents", {
           method: "POST", asAdmin: true,
@@ -43661,7 +43673,7 @@ async function handle(request, event) {
                   if (fresh && fresh.status === "done") { alreadyDone = true; return; }
                   const wallet = await x1coinsGetOrCreateWallet(uid);
                   await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents/" + wallet.$id, {
-                    method: "PATCH", asAdmin: true, body: { data: { balance: (wallet.balance || 0) + p.coins } }
+                    method: "PATCH", asAdmin: true, body: { data: { balance: String(coinsNum(wallet.balance) + p.coins) } }
                   });
                 });
                 if (!alreadyDone) await x1coinsLogTx(uid, "", "Achat par carte", "in", p.coins, "purchase", p.label);
