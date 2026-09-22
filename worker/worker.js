@@ -4910,7 +4910,7 @@ a.bug-att-item{display:block}
 .call-bar:not(.embedded).cb-dragging .cb-top{cursor:grabbing}
 .cb-minimize{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#d8d8dd;font-size:.95rem;display:grid;place-items:center;flex-shrink:0;align-self:flex-start}
 .call-bar.minimized{max-width:240px;padding:8px 10px}
-.call-bar.minimized .cb-controls,.call-bar.minimized .cb-video,.call-bar.minimized .live-pill,.call-bar.minimized .screen-pill,.call-bar.minimized .cb-gear{display:none!important}
+.call-bar.minimized .cb-controls,.call-bar.minimized .cb-video,.call-bar.minimized .live-pill,.call-bar.minimized .screen-pill,.call-bar.minimized .cb-gear,.call-bar.minimized .gcb-participants,.call-bar.minimized .gcb-video-grid{display:none!important}
 .call-bar.minimized .cb-status{display:none}
 .call-bar.minimized .cb-minimize svg{transform:rotate(180deg)}
 .cb-top{display:flex;align-items:center;gap:10px}
@@ -4948,9 +4948,12 @@ a.bug-att-item{display:block}
 .gcb-vtile video{object-fit:cover}
 .gcb-vtile.enlarged{grid-column:1/-1;aspect-ratio:auto;min-height:260px}
 .gcb-vtile-name{position:absolute;left:6px;bottom:6px;font-size:.64rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;z-index:1}
-.gcb-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
-.gcb-title{font-weight:800;font-size:.92rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gcb-count{font-size:.72rem;color:var(--muted);font-weight:700;background:rgba(255,255,255,.06);padding:3px 9px;border-radius:999px;flex-shrink:0}
+.gcb-vtile.pending-reveal{background:linear-gradient(160deg,rgba(76,10,24,.5),rgba(10,10,12,.9))}
+.gcb-vtile.pending-reveal .gcb-vtile-name{left:50%;bottom:auto;top:50%;transform:translate(-50%,-50%);white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.gcb-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.gcb-info{flex:1;min-width:0}
+.gcb-title{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gcb-count{font-size:.72rem;color:var(--muted);font-weight:700;background:rgba(255,255,255,.06);padding:1px 9px;border-radius:999px;flex-shrink:0}
 .gcb-participants{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;padding:4px 4px 6px}
 .gcb-p{display:flex;flex-direction:column;align-items:center;gap:6px;width:64px}
 .gcb-p .cb-av-wrap{width:52px;height:52px}
@@ -5005,11 +5008,6 @@ a.bug-att-item{display:block}
 .cvs-ctrl-btn.danger{background:#ef4444;width:60px}
 .cvs-ctrl-btn.danger:hover{background:#dc2626}
 .cvs-ctrl-btn.stage-listener{opacity:.35;cursor:not-allowed}
-.cvs-settings-modal{width:min(360px,100%)}
-.cvs-settings-row{margin-bottom:14px}
-.cvs-settings-row label{display:block;font-size:.76rem;color:var(--muted);margin-bottom:6px;font-weight:600}
-.cvs-settings-row select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#0a0a0c;color:#f0f0f3;font-size:.85rem}
-.cvs-settings-row.hidden{display:none}
 .e2e-backup-banner{position:fixed;left:calc(12px + env(safe-area-inset-left));right:calc(12px + env(safe-area-inset-right));top:calc(12px + env(safe-area-inset-top));z-index:3100;max-width:520px;margin:0 auto;padding:10px 12px;border-radius:14px;background:linear-gradient(160deg,rgba(30,30,30,.97),rgba(15,15,15,.98));backdrop-filter:blur(14px);border:1px solid rgba(196,196,204,.3);box-shadow:0 12px 40px rgba(0,0,0,.5)}
 /* Invitation à une écoute synchronisée démarrée par quelqu'un d'autre dans le
    même salon vocal (voir musicShowListenInviteBanner) — même famille visuelle
@@ -6607,8 +6605,11 @@ a.bug-att-item{display:block}
 
 <div class="call-bar group-call-bar hidden" id="group-call-bar">
   <div class="gcb-top">
-    <div class="gcb-title">🎙️ Salon vocal · <span id="gcb-group-name"></span></div>
-    <span class="gcb-count" id="gcb-count"></span>
+    <div class="gcb-info">
+      <div class="gcb-title">🎙️ Salon vocal · <span id="gcb-group-name"></span></div>
+      <div class="cb-status"><span class="cb-dot"></span><span id="gcb-status">00:00</span> · <span class="gcb-count" id="gcb-count"></span></div>
+    </div>
+    <button type="button" class="cb-minimize" id="gcb-minimize" title="Réduire"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
     <button type="button" class="cb-gear" id="gcb-settings" title="Paramètres d'appel"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="9" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg></button>
   </div>
   <div class="gcb-participants" id="gcb-participants"></div>
@@ -17324,8 +17325,12 @@ function repositionCallPanel(){
   if(gbar&&groupRoom&&groupCallContextType==='dm'){
     const viewingGroupDm=chatVisible&&view==='dms'&&activeDm===groupCallContextId;
     if(!viewingGroupDm&&gcbCinemaMode)exitGroupCinema();
+    // Même comportement que #call-bar (1:1) : reste flottante/déplaçable
+    // n'importe où dans l'appli quand on ne regarde pas sa conversation
+    // d'origine, plutôt que complètement cachée (avant, seule #call-mini-pill
+    // restait visible pour un appel de groupe hors de sa DM).
     if(viewingGroupDm&&anchor){anchor.appendChild(gbar);gbar.classList.remove('hidden');gbar.classList.add('embedded');gbar.style.left='';gbar.style.top='';gbar.style.right='';gbar.style.bottom='';gbar.style.margin='';}
-    else{gbar.classList.add('hidden');gbar.classList.remove('embedded');document.body.appendChild(gbar);}
+    else{document.body.appendChild(gbar);gbar.classList.remove('embedded');gbar.classList.remove('hidden');}
   }else if(gcbCinemaMode)exitGroupCinema();
   // Filet de sécurité : si on quitte le salon (retour à la liste, autre
   // serveur/canal) sans être passé par le bouton "Réduire", la grille en
@@ -30246,7 +30251,7 @@ function syncCallSettingsUi(){
   const scrSel=\$('cs-screen-quality');if(scrSel)scrSel.value=screenQualityKey;
 }
 let audioCtx=null;
-let micSourceNode=null, micGainNode=null, micDestNode=null, micAnalyser=null, micMeterRaf=null;
+let micSourceNode=null, micGainNode=null, micDestNode=null, micAnalyser=null, micMeterRaf=null, micMeterSourceNode=null;
 let outSourceNode=null, outGainNode=null, outPanner=null, outLfo=null, outLfoGain=null, outConnected=false;
 let outAnalyser=null, waveRaf=null;
 function isPolite(){return !callIsCaller}
@@ -30369,10 +30374,8 @@ function rebuildMicChain(){
   }catch(e){xlog('mic_chain_fail',{msg:(e&&e.message)||String(e)});}
 }
 async function applyChannelMode(){
-  if(localStream){
-    const t=localStream.getAudioTracks()[0];
-    if(t){try{await t.applyConstraints({channelCount:channelMode==='mono'?1:2});}catch(e){}}
-  }
+  const t=currentLocalAudioTrack();
+  if(t){try{await t.applyConstraints({channelCount:channelMode==='mono'?1:2});}catch(e){}}
   if(outPanner){
     if(channelMode==='spatial'){
       if(!outLfo&&audioCtx){
@@ -30390,14 +30393,28 @@ async function applyChannelMode(){
     }
   }
 }
+// callPc (1:1) réutilise le graphe de gain existant (micSourceNode, déjà là
+// pour le volume réglable) comme source du mètre. groupRoom (LiveKit, pas de
+// graphe de gain équivalent — voir currentLocalAudioTrack) branche un
+// analyser dédié, juste pour la visualisation, directement sur la piste
+// micro déjà publiée.
 function startMicMeter(){
-  if(!localStream)return;
-  if(!micSourceNode)rebuildMicChain();
-  const ctx=audioCtx;if(!ctx||!micSourceNode)return;
+  let sourceNode=null;
+  const ctx=ensureAudioCtx();if(!ctx)return;
+  if(callPc){
+    if(!localStream)return;
+    if(!micSourceNode)rebuildMicChain();
+    if(!micSourceNode)return;
+    sourceNode=micSourceNode;
+  }else{
+    const track=currentLocalAudioTrack();if(!track)return;
+    try{micMeterSourceNode=ctx.createMediaStreamSource(new MediaStream([track]));}catch(e){return}
+    sourceNode=micMeterSourceNode;
+  }
   if(!micAnalyser){
     micAnalyser=ctx.createAnalyser();
     micAnalyser.fftSize=256;
-    micSourceNode.connect(micAnalyser);
+    sourceNode.connect(micAnalyser);
   }
   const data=new Uint8Array(micAnalyser.frequencyBinCount);
   function loop(){
@@ -30419,6 +30436,8 @@ function startMicMeter(){
 }
 function stopMicMeter(){
   if(micMeterRaf){cancelAnimationFrame(micMeterRaf);micMeterRaf=null;}
+  if(micMeterSourceNode){try{micMeterSourceNode.disconnect();}catch(e){}micMeterSourceNode=null;}
+  if(micAnalyser){try{micAnalyser.disconnect();}catch(e){}micAnalyser=null;}
 }
 async function applyEncodingBitrate(sender,bitrate){
   if(!sender)return;
@@ -31485,6 +31504,51 @@ function handleLocalConnectionLost(){
    aux autres — contrairement aux appels privés en maillage direct, ça reste
    léger même à plusieurs. Voix uniquement pour cette première version. */
 let groupRoom=null, groupCallContextType=null, groupCallContextId=null, groupCallServerId=null, groupCallGroupName='', groupWaveRaf=null, stageCanPublish=true;
+// Chrono #gcb-status, même mécanique que callTimerId/callStartedAt (1:1) —
+// absent jusqu'ici, la barre de groupe n'affichait aucune durée d'appel.
+let gcbTimerId=null, gcbStartedAt=null;
+function renderGroupCallStatus(){
+  const timeEl=\$('gcb-status');if(!timeEl)return;
+  const elapsed=gcbStartedAt?Math.max(0,Math.floor((Date.now()-gcbStartedAt)/1000)):0;
+  const m=String(Math.floor(elapsed/60)).padStart(2,'0');
+  const s=String(elapsed%60).padStart(2,'0');
+  timeEl.textContent=m+':'+s;
+}
+// ===== Partage des réglages #modal-call-settings (xultra_call_prefs) entre
+// le 1:1 (callPc/localStream, WebRTC maillé) et les appels de groupe/serveur
+// (groupRoom, LiveKit SFU) — deux piles audio différentes, donc chaque
+// réglage doit savoir dans laquelle il agit. Ces helpers centralisent cette
+// bascule pour que les handlers du panneau (device, volume, bruit de fond...)
+// restent écrits une seule fois, pour les deux.
+function currentLocalAudioTrack(){
+  if(localStream)return localStream.getAudioTracks()[0]||null;
+  if(groupRoom){
+    try{
+      const pub=groupRoom.localParticipant.getTrackPublication(LivekitClient.Track.Source.Microphone);
+      return (pub&&pub.track&&pub.track.mediaStreamTrack)||null;
+    }catch(e){return null;}
+  }
+  return null;
+}
+// Volume sortie en appel de groupe : pas de graphe WebAudio dédié (contrairement
+// à outGainNode en 1:1) — chaque piste distante est un <audio> attaché
+// directement par LiveKit (voir wireGroupRoomEvents), donc on agit sur leur
+// propriété .volume native, plafonnée à 1 (limite native HTMLMediaElement —
+// contrairement au gain WebAudio du 1:1, une amplification au-delà de 100%
+// n'est pas disponible ici pour l'instant).
+function applyGroupOutputVolume(){
+  document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){
+    el.volume=Math.max(0,Math.min(1,outVolumePct/100));
+  });
+}
+function groupCamCaptureOptions(){
+  const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
+  return {resolution:{width:q.w,height:q.h,frameRate:q.fps}};
+}
+function groupScreenCaptureOptions(){
+  const q=AV_QUALITY[screenQualityKey]||AV_QUALITY['1080p60'];
+  return {audio:false,resolution:{width:q.w,height:q.h,frameRate:q.fps}};
+}
 let groupPresenceDocId=null, groupPresenceCollection='group_call_presence', groupHeartbeatId=null;
 function groupParticipantTileHtml(uid,name,avatarUrl){
   return '<div class="gcb-p" data-uid="'+esc(uid)+'">'
@@ -31608,6 +31672,7 @@ function wireGroupRoomEvents(room){
       el.dataset.participantIdentity=participant.identity;
       el.style.display='none';
       el.muted=cvsDeafened;
+      el.volume=Math.max(0,Math.min(1,outVolumePct/100));
       document.body.appendChild(el);
     }else if(track.kind==='video'){
       renderChannelVoiceStage();
@@ -31650,7 +31715,7 @@ function wireGroupRoomEvents(room){
 // de le réutiliser) ferait fuir la piste LiveKit précédente (jamais
 // détachée) et casserait le survol/agrandissement au clic à chaque
 // changement ailleurs dans le salon (nouveau participant, mute...).
-let gcbVideoEls={}, gcbEnlargedKey=null;
+let gcbVideoEls={}, gcbEnlargedKey=null, gcbScreenRevealed={};
 function renderGroupCallVideoGrid(){
   const grid=\$('gcb-video-grid');if(!grid||!groupRoom||!me||groupCallContextType!=='dm')return;
   const myUid=String(me.\$id);
@@ -31664,7 +31729,16 @@ function renderGroupCallVideoGrid(){
     try{camPub=lp.getTrackPublication(LivekitClient.Track.Source.Camera);}catch(e){}
     try{screenPub=lp.getTrackPublication(LivekitClient.Track.Source.ScreenShare);}catch(e){}
     if(camPub&&camPub.track)tiles.push({key:identity+':cam',track:camPub.track,label:baseName,mirror:isLocal});
-    if(screenPub&&screenPub.track)tiles.push({key:identity+':screen',track:screenPub.track,label:baseName+' · Écran',mirror:false});
+    if(screenPub&&screenPub.track){
+      // Même geste "pudeur" qu'en 1:1 (screenShareRevealed/#screen-reveal-pill,
+      // voir renderVideoGrid) : le partage d'écran de quelqu'un d'autre ne
+      // s'affiche jamais tout seul, il faut taper pour le révéler — plusieurs
+      // participants pouvant partager en même temps ici, révélé par identité
+      // plutôt qu'un simple booléen. Son propre partage (isLocal) reste lui
+      // toujours visible, comme en 1:1.
+      const revealed=isLocal||!!gcbScreenRevealed[identity];
+      tiles.push({key:identity+':screen',track:screenPub.track,label:baseName+' · Écran',mirror:false,pendingReveal:!revealed,revealIdentity:identity});
+    }
   }
   collect(myUid,true);
   groupRoom.remoteParticipants.forEach(function(p){collect(p.identity,false);});
@@ -31686,25 +31760,41 @@ function renderGroupCallVideoGrid(){
       const lbl=document.createElement('div');lbl.className='gcb-vtile-name';
       wrap.appendChild(lbl);
       wrap.addEventListener('click',function(){
+        if(wrap._pendingReveal){gcbScreenRevealed[wrap._revealIdentity]=true;renderGroupCallVideoGrid();return}
         gcbEnlargedKey=(gcbEnlargedKey===t.key)?null:t.key;
         renderGroupCallVideoGrid();
       });
       gcbVideoEls[t.key]=wrap;
     }
-    if(wrap._track!==t.track){
-      const oldVideo=wrap.querySelector('video');
-      if(oldVideo){if(wrap._track){try{wrap._track.detach(oldVideo);}catch(e){}}oldVideo.remove();}
-      const el=t.track.attach();
-      // object-fit vient de la CSS (.gcb-vtile video), pas d'ici : cover en
-      // mode barre flottante compacte, contain en plein écran cinéma — voir
-      // .gcb-video-grid.cinema .gcb-vtile video (résolution native, jamais
-      // recadrée, comme pour les salons de serveur).
-      el.style.cssText='width:100%;height:100%;display:block;position:absolute;inset:0';
-      if(t.mirror)el.style.transform='scaleX(-1)';
-      wrap.insertBefore(el,wrap.firstChild);
-      wrap._track=t.track;
+    wrap._pendingReveal=!!t.pendingReveal;
+    wrap._revealIdentity=t.revealIdentity;
+    wrap.classList.toggle('pending-reveal',!!t.pendingReveal);
+    if(t.pendingReveal){
+      // Ne jamais attacher la piste tant que ce n'est pas révélé — comme en
+      // 1:1, elle ne doit jamais être construite/décodée avant le geste
+      // explicite.
+      if(wrap._track){
+        const oldVideo=wrap.querySelector('video');
+        if(oldVideo){try{wrap._track.detach(oldVideo);}catch(e){}oldVideo.remove();}
+        wrap._track=null;
+      }
+      wrap.querySelector('.gcb-vtile-name').textContent=t.label+' · toucher pour afficher';
+    }else{
+      if(wrap._track!==t.track){
+        const oldVideo=wrap.querySelector('video');
+        if(oldVideo){if(wrap._track){try{wrap._track.detach(oldVideo);}catch(e){}}oldVideo.remove();}
+        const el=t.track.attach();
+        // object-fit vient de la CSS (.gcb-vtile video), pas d'ici : cover en
+        // mode barre flottante compacte, contain en plein écran cinéma — voir
+        // .gcb-video-grid.cinema .gcb-vtile video (résolution native, jamais
+        // recadrée, comme pour les salons de serveur).
+        el.style.cssText='width:100%;height:100%;display:block;position:absolute;inset:0';
+        if(t.mirror)el.style.transform='scaleX(-1)';
+        wrap.insertBefore(el,wrap.firstChild);
+        wrap._track=t.track;
+      }
+      wrap.querySelector('.gcb-vtile-name').textContent=t.label;
     }
-    wrap.querySelector('.gcb-vtile-name').textContent=t.label;
     wrap.classList.toggle('enlarged',gcbEnlargedKey===t.key);
     grid.appendChild(wrap);
   });
@@ -31746,14 +31836,24 @@ if(\$('gcb-cinema'))\$('gcb-cinema').addEventListener('click',function(){
 async function toggleGroupCamera(){
   if(!groupRoom)return;
   const enabledNow=!!groupRoom.localParticipant.isCameraEnabled;
-  try{await groupRoom.localParticipant.setCameraEnabled(!enabledNow);}
-  catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');}
+  try{
+    if(enabledNow)await groupRoom.localParticipant.setCameraEnabled(false);
+    // Qualité choisie dans #modal-call-settings (camQualityKey, partagée
+    // avec le 1:1) : repli sur l'appel sans options si LiveKit refuse la
+    // forme de l'objet resolution, pour ne jamais casser l'activation
+    // caméra elle-même à cause d'un réglage de qualité.
+    else try{await groupRoom.localParticipant.setCameraEnabled(true,groupCamCaptureOptions());}
+    catch(e2){await groupRoom.localParticipant.setCameraEnabled(true);}
+  }catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');}
 }
 async function toggleGroupScreenShare(){
   if(!groupRoom)return;
   const enabledNow=!!groupRoom.localParticipant.isScreenShareEnabled;
-  try{await groupRoom.localParticipant.setScreenShareEnabled(!enabledNow,{audio:false});}
-  catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
+  try{
+    if(enabledNow)await groupRoom.localParticipant.setScreenShareEnabled(false,{audio:false});
+    else try{await groupRoom.localParticipant.setScreenShareEnabled(true,groupScreenCaptureOptions());}
+    catch(e2){await groupRoom.localParticipant.setScreenShareEnabled(true,{audio:false});}
+  }catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
 }
 if(\$('gcb-cam'))\$('gcb-cam').addEventListener('click',toggleGroupCamera);
 if(\$('gcb-screen'))\$('gcb-screen').addEventListener('click',toggleGroupScreenShare);
@@ -31826,6 +31926,10 @@ async function joinVoiceRoom(contextType,contextId,roomLabel,autoMic){
       \$('gcb-mute').classList.remove('on');
       \$('gcb-cam').classList.remove('on');
       \$('gcb-screen').classList.remove('on');
+      \$('group-call-bar').classList.remove('minimized');
+      gcbStartedAt=Date.now();
+      renderGroupCallStatus();
+      if(!gcbTimerId)gcbTimerId=setInterval(renderGroupCallStatus,1000);
       renderGroupParticipants();
       renderGroupCallVideoGrid();
     }else{
@@ -32116,7 +32220,9 @@ async function toggleStageCamera(){
   if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir activer ta caméra.','error');return}
   const enabledNow=!!groupRoom.localParticipant.isCameraEnabled;
   try{
-    await groupRoom.localParticipant.setCameraEnabled(!enabledNow);
+    if(enabledNow)await groupRoom.localParticipant.setCameraEnabled(false);
+    else try{await groupRoom.localParticipant.setCameraEnabled(true,groupCamCaptureOptions());}
+    catch(e2){await groupRoom.localParticipant.setCameraEnabled(true);}
   }catch(e){showToast('Impossible d\\'activer la caméra : '+((e&&e.message)||'permission refusée'),'error');return}
   // Répercute l'état caméra sur le document de présence, pour que les
   // membres qui regardent juste la liste des salons (sans être eux-mêmes
@@ -32130,8 +32236,11 @@ async function toggleStageScreenShare(){
   if(!groupRoom)return;
   if(!stageCanPublish){showToast('Tu es dans le public de cette scène — demande la parole pour pouvoir partager ton écran.','error');return}
   const enabledNow=!!groupRoom.localParticipant.isScreenShareEnabled;
-  try{await groupRoom.localParticipant.setScreenShareEnabled(!enabledNow,{audio:false});}
-  catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
+  try{
+    if(enabledNow)await groupRoom.localParticipant.setScreenShareEnabled(false,{audio:false});
+    else try{await groupRoom.localParticipant.setScreenShareEnabled(true,groupScreenCaptureOptions());}
+    catch(e2){await groupRoom.localParticipant.setScreenShareEnabled(true,{audio:false});}
+  }catch(e){if(e&&e.name!=='NotAllowedError')showToast('Impossible de partager l\\'écran : '+((e&&e.message)||'erreur'),'error');}
 }
 // Lever la main — signal purement social (comme les "réactions" Discord),
 // répercuté sur le document de présence server_voice_presence pour que
@@ -32147,20 +32256,16 @@ function toggleStageHand(){
   }
   showToast(cvsHandRaised?'Main levée ✋':'Main baissée');
 }
-// Sourdine casque (façon Discord) : coupe l'AUDIO REÇU de tout le monde côté
-// client (mute des <audio> déjà attachés, voir wireGroupRoomEvents pour les
-// futurs) — LiveKit n'a pas besoin d'être informé, ça ne change rien à ce
-// qu'on publie. Se sourdine le casque coupe aussi le micro (comme Discord :
-// inutile de continuer à parler si on n'entend plus les réponses) ; ne le
-// réactive PAS en sens inverse, pour ne jamais réveiller un micro que la
-// personne avait volontairement coupé avant de se sourdine.
-async function toggleStageDeafen(){
+// Sourdine casque : coupe l'AUDIO REÇU de tout le monde côté client (mute
+// des <audio> déjà attachés, voir wireGroupRoomEvents pour les futurs) —
+// LiveKit n'a pas besoin d'être informé, ça ne change rien à ce qu'on
+// publie. Ne touche jamais le micro (même comportement que #cb-deafen en
+// 1:1 — auparavant coupait aussi le micro façon Discord, changé pour rester
+// identique entre les deux types d'appel).
+function toggleStageDeafen(){
   if(!groupRoom)return;
   cvsDeafened=!cvsDeafened;
   document.querySelectorAll('audio[data-participant-identity]').forEach(function(el){el.muted=cvsDeafened;});
-  if(cvsDeafened&&groupRoom.localParticipant.isMicrophoneEnabled){
-    try{await groupRoom.localParticipant.setMicrophoneEnabled(false);}catch(e){}
-  }
   updateStageControlsUi();
   refreshChannelVoiceStageIfVisible();
   if(groupPresenceDocId&&groupPresenceCollection==='server_voice_presence'){
@@ -32202,59 +32307,20 @@ document.addEventListener('fullscreenchange',function(){
   const btn=\$('cvs-realfs-btn');if(!btn)return;
   btn.innerHTML=icon(document.fullscreenElement?'minimize':'maximize',15);
 });
-// Paramètres d'appel (micro/caméra/sortie audio) : un simple choix de
-// périphérique, pas de réglage de qualité (déjà fixé au niveau du serveur
-// via audioQualityKey, pas un choix utilisateur par appel). switchActiveDevice
-// existe nativement dans le SDK LiveKit (vérifié dans le bundle chargé) : pas
-// besoin de recréer les pistes à la main.
-async function openCallSettingsPanel(){
+// Paramètres d'appel — même panneau riche que le 1:1 (#modal-call-settings :
+// volume, bruit de fond, écho, gain auto, qualité caméra/écran, réinitialiser),
+// désormais partagé avec les appels de groupe/serveur plutôt qu'une version
+// allégée séparée (#modal-cvs-call-settings, retirée). Chaque handler du
+// panneau distingue déjà lui-même callPc (1:1, WebRTC) de groupRoom (LiveKit)
+// — voir currentLocalAudioTrack()/groupCamCaptureOptions()/etc. plus haut.
+function openCallSettingsPanel(){
   if(!groupRoom)return;
-  // ID distinct de #modal-call-settings (déjà utilisé par les appels DM 1:1,
-  // branché sur callPc/localStream/outGainNode — une tout autre pile audio
-  // que LiveKit) : les deux modales servent le même besoin dans deux
-  // contextes techniques différents, jamais interchangeables sans réécrire
-  // l'un des deux systèmes d'appel.
-  let overlay=\$('modal-cvs-call-settings');
-  if(!overlay){
-    overlay=document.createElement('div');
-    overlay.id='modal-cvs-call-settings';
-    overlay.className='overlay';
-    overlay.innerHTML='<div class="modal-box cvs-settings-modal"><button type="button" class="modal-close" id="cvs-settings-close">✕</button>'
-      +'<div class="set-section-label" style="margin-bottom:14px">⚙️ Paramètres d\\'appel</div>'
-      +'<div class="cvs-settings-row"><label>🎤 Microphone</label><select id="cvs-set-mic"></select></div>'
-      +'<div class="cvs-settings-row"><label>📹 Caméra</label><select id="cvs-set-cam"></select></div>'
-      +'<div class="cvs-settings-row" id="cvs-settings-speaker-row"><label>🔊 Sortie audio</label><select id="cvs-set-speaker"></select></div>'
-      +'</div>';
-    document.body.appendChild(overlay);
-    \$('cvs-settings-close').onclick=function(){overlay.classList.add('hidden');};
-    overlay.addEventListener('click',function(e){if(e.target===overlay)overlay.classList.add('hidden');});
-  }
-  overlay.classList.remove('hidden');
-  let devices=[];
-  try{devices=await navigator.mediaDevices.enumerateDevices();}catch(e){}
-  function fillSelect(sel,kind,activeId,fallbackLabel){
-    const list=devices.filter(function(d){return d.kind===kind;});
-    if(!list.length){sel.innerHTML='<option value="">Aucun trouvé</option>';sel.disabled=true;return}
-    sel.disabled=false;
-    sel.innerHTML=list.map(function(d,i){return '<option value="'+esc(d.deviceId)+'">'+esc(d.label||(fallbackLabel+' '+(i+1)))+'</option>';}).join('');
-    if(activeId)sel.value=activeId;
-  }
-  // Le périphérique ACTIF (getActiveDevice) prime s'il existe déjà (LiveKit
-  // vient de l'appliquer), sinon on retombe sur le dernier choix mémorisé
-  // (preferredXDeviceId) — c'est ce qui fait que ce panneau reflète toujours
-  // ton choix précédent même avant que LiveKit n'ait publié quoi que ce soit.
-  let activeMic=null,activeCam=null,activeSpeaker=null;
-  try{activeMic=groupRoom.getActiveDevice('audioinput');}catch(e){}
-  try{activeCam=groupRoom.getActiveDevice('videoinput');}catch(e){}
-  try{activeSpeaker=groupRoom.getActiveDevice('audiooutput');}catch(e){}
-  fillSelect(\$('cvs-set-mic'),'audioinput',activeMic||preferredMicDeviceId,'Microphone');
-  fillSelect(\$('cvs-set-cam'),'videoinput',activeCam||preferredCamDeviceId,'Caméra');
-  const canSetSinkId=typeof HTMLMediaElement!=='undefined'&&HTMLMediaElement.prototype.setSinkId;
-  \$('cvs-settings-speaker-row').classList.toggle('hidden',!canSetSinkId);
-  if(canSetSinkId)fillSelect(\$('cvs-set-speaker'),'audiooutput',activeSpeaker||preferredSpeakerDeviceId,'Sortie');
-  \$('cvs-set-mic').onchange=function(){preferredMicDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('audioinput',this.value).catch(function(){});};
-  \$('cvs-set-cam').onchange=function(){preferredCamDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('videoinput',this.value).catch(function(){});};
-  if(canSetSinkId)\$('cvs-set-speaker').onchange=function(){preferredSpeakerDeviceId=this.value;saveCallPrefs();groupRoom.switchActiveDevice('audiooutput',this.value).catch(function(){});};
+  \$('modal-call-settings').classList.remove('hidden');
+  syncCallSettingsUi();
+  populateMicDevices();
+  populateCamDevices();
+  populateSpeakerDevices();
+  startMicMeter();
 }
 function refreshChannelVoiceStageIfVisible(){
   if(!activeChannel||activeChannel.type!=='voice')return;
@@ -32276,6 +32342,8 @@ function cleanupGroupCall(){
   if(gcbCinemaMode)exitGroupCinema();
   if(cvsCinemaMode)exitChannelCinema();
   if(groupWaveRaf){cancelAnimationFrame(groupWaveRaf);groupWaveRaf=null;}
+  if(gcbTimerId){clearInterval(gcbTimerId);gcbTimerId=null;}
+  gcbStartedAt=null;
   stopGroupHeartbeat();
   // Quitter le salon vocal (n'importe comment : raccrocher, fermer l'onglet,
   // navigation) doit toujours couper l'écoute synchronisée qui lui était
@@ -32293,7 +32361,7 @@ function cleanupGroupCall(){
   \$('group-call-bar').classList.add('hidden');
   \$('gcb-participants').innerHTML='';
   const gcbVGrid=\$('gcb-video-grid');if(gcbVGrid){gcbVGrid.innerHTML='';gcbVGrid.classList.add('hidden');gcbVGrid.classList.remove('n1');}
-  gcbVideoEls={};gcbEnlargedKey=null;cvsEnlargedUid=null;cvsHandRaised=false;cvsDeafened=false;
+  gcbVideoEls={};gcbEnlargedKey=null;gcbScreenRevealed={};cvsEnlargedUid=null;cvsHandRaised=false;cvsDeafened=false;
   const cvsBody=\$('cvs-cinema-body');if(cvsBody)cvsBody.remove();
   const cvStage=\$('call-video-stage');if(cvStage)delete cvStage.dataset.cvsChannelId;
   \$('gcb-cam').classList.remove('on');
@@ -35676,6 +35744,9 @@ if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMask
 if(\$('cb-minimize'))\$('cb-minimize').addEventListener('click',function(){
   const bar=\$('call-bar');if(bar)bar.classList.toggle('minimized');
 });
+if(\$('gcb-minimize'))\$('gcb-minimize').addEventListener('click',function(){
+  const bar=\$('group-call-bar');if(bar)bar.classList.toggle('minimized');
+});
 // Bulle flottante déplaçable (demandé explicitement) : glisser depuis l'en-tête
 // (.cb-top/.gcb-top) repositionne toute la bulle n'importe où sur l'écran,
 // tant qu'elle n'est pas .embedded (intégrée au fil de la conversation
@@ -35733,13 +35804,12 @@ if(\$('cs-reset'))\$('cs-reset').addEventListener('click',function(){
   preferredMicDeviceId='';preferredCamDeviceId='';preferredSpeakerDeviceId='';
   syncCallSettingsUi();
   populateMicDevices();populateCamDevices();populateSpeakerDevices();
-  if(localStream){
-    const t=localStream.getAudioTracks()[0];
-    if(t)t.applyConstraints({echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}).catch(function(){});
-  }
+  const resetTrack=currentLocalAudioTrack();
+  if(resetTrack)resetTrack.applyConstraints({echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}).catch(function(){});
   applyChannelMode();
   if(micGainNode)micGainNode.gain.value=1;
   if(outGainNode&&\$('cb-deafen')&&!\$('cb-deafen').classList.contains('on'))outGainNode.gain.value=1;
+  if(groupRoom)applyGroupOutputVolume();
   showToast('Réglages audio/vidéo réinitialisés.');
 });
 async function populateMicDevices(){
@@ -35781,6 +35851,7 @@ async function populateSpeakerDevices(){
 if(\$('cs-cam-device'))\$('cs-cam-device').addEventListener('change',async function(){
   const deviceId=this.value;if(!deviceId)return;
   preferredCamDeviceId=deviceId;saveCallPrefs();
+  if(groupRoom){groupRoom.switchActiveDevice('videoinput',deviceId).catch(function(){});return}
   if(!callPc||!camSender)return;
   try{
     const q=AV_QUALITY[camQualityKey]||AV_QUALITY['720p30'];
@@ -35796,12 +35867,14 @@ if(\$('cs-cam-device'))\$('cs-cam-device').addEventListener('change',async funct
 if(\$('cs-speaker-device'))\$('cs-speaker-device').addEventListener('change',async function(){
   const deviceId=this.value;if(!deviceId)return;
   preferredSpeakerDeviceId=deviceId;saveCallPrefs();
+  if(groupRoom){groupRoom.switchActiveDevice('audiooutput',deviceId).catch(function(){});return}
   const a=\$('call-remote-audio');
   if(a&&a.setSinkId)try{await a.setSinkId(deviceId);}catch(e){}
 });
 if(\$('cs-mic-device'))\$('cs-mic-device').addEventListener('change',async function(){
   const deviceId=this.value;if(!deviceId)return;
   preferredMicDeviceId=deviceId;saveCallPrefs();
+  if(groupRoom){groupRoom.switchActiveDevice('audioinput',deviceId).catch(function(){});return}
   if(!callPc||!localStream)return;
   try{
     const newStream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:{exact:deviceId},echoCancellation:echoCancellationOn,noiseSuppression:noiseSuppressionOn,autoGainControl:agcOn,channelCount:channelMode==='mono'?1:2}});
@@ -35822,6 +35895,7 @@ if(\$('cs-out-vol'))\$('cs-out-vol').addEventListener('input',function(){
   outVolumePct=parseInt(this.value,10)||0;
   \$('cs-out-vol-val').textContent=outVolumePct+'%';
   if(outGainNode&&!\$('cb-deafen').classList.contains('on'))outGainNode.gain.value=outVolumePct/100;
+  if(groupRoom)applyGroupOutputVolume();
   saveCallPrefs();
 });
 document.querySelectorAll('[data-chan]').forEach(function(btn){
@@ -35844,22 +35918,23 @@ function wireSetSwitch(id,setter){
 }
 wireSetSwitch('cs-noise',function(on){
   noiseSuppressionOn=on;
-  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({noiseSuppression:on}).catch(function(){});}
+  const t=currentLocalAudioTrack();if(t)t.applyConstraints({noiseSuppression:on}).catch(function(){});
 });
 wireSetSwitch('cs-echo',function(on){
   echoCancellationOn=on;
-  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({echoCancellation:on}).catch(function(){});}
+  const t=currentLocalAudioTrack();if(t)t.applyConstraints({echoCancellation:on}).catch(function(){});
 });
 wireSetSwitch('cs-agc',function(on){
   agcOn=on;
-  if(localStream){const t=localStream.getAudioTracks()[0];if(t)t.applyConstraints({autoGainControl:on}).catch(function(){});}
+  const t=currentLocalAudioTrack();if(t)t.applyConstraints({autoGainControl:on}).catch(function(){});
 });
 if(\$('cs-mic-record'))\$('cs-mic-record').addEventListener('click',function(){
-  if(!localStream){alert('Rejoins un appel pour tester ton micro.');return}
+  const track=currentLocalAudioTrack();
+  if(!track){alert('Rejoins un appel pour tester ton micro.');return}
   const btn=this;
   if(btn.disabled)return;
   try{
-    const rec=new MediaRecorder(localStream);
+    const rec=new MediaRecorder(new MediaStream([track]));
     const chunks=[];
     rec.ondataavailable=function(e){if(e.data&&e.data.size)chunks.push(e.data)};
     rec.onstop=function(){
