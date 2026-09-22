@@ -879,7 +879,7 @@
     "key": "candidate",
     "required": false,
     "type": "string",
-    "size": 8000,
+    "size": 20000,
     "array": false
    }
   ],
