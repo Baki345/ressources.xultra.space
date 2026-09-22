@@ -5475,8 +5475,29 @@ a.bug-att-item{display:block}
 .set-switch.on{background:rgba(245,245,247,.4);border-color:rgba(196,196,204,.5)}
 .set-switch.on::after{transform:translateX(18px);background:#1c1c1f}
 .mic-meter{height:8px;border-radius:999px;background:var(--elev);overflow:hidden;margin-top:8px}
-.mic-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#1c1c1f,#22c55e);transition:width .08s linear}
+.mic-meter-fill{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#4ade80);transition:width .08s linear}
+.mic-meter-fill.hot{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.mic-meter-fill.clip{background:linear-gradient(90deg,#ef4444,#f87171)}
 .mic-test-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+/* Panneau audio/vidéo — refonte visuelle demandée explicitement (les
+   réglages étaient déjà persistés dans localStorage et déjà appliqués en
+   direct via applyConstraints()/track.replaceTrack(), voir saveCallPrefs()/
+   loadCallPrefs() plus haut — ce qui manquait, c'était la présentation).
+   Un bouton "Réinitialiser" a été ajouté (#cs-reset) pour rendre cette
+   persistance visible/contrôlable plutôt qu'implicite. */
+.cs-modal{padding-top:6px}
+.cs-hero{text-align:center;padding:2px 4px 18px}
+.cs-hero-icon{width:52px;height:52px;border-radius:16px;margin:0 auto 10px;display:grid;place-items:center;font-size:1.4rem;background:linear-gradient(135deg,rgba(168,85,247,.22),rgba(236,72,153,.16));border:1px solid rgba(196,181,253,.25)}
+.cs-hero h3{font-size:1.05rem;font-weight:800;margin-bottom:4px}
+.cs-hero-sub{font-size:.76rem;line-height:1.4;color:var(--muted);max-width:300px;margin:0 auto}
+.cs-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.cs-card-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.cs-card-ic{font-size:1.05rem;line-height:1}
+.cs-card-title{font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cs-card .set-row:last-child{margin-bottom:0}
+.cs-reset-row{text-align:center;margin-top:2px}
+.cs-reset-btn{background:none;border:0;color:var(--muted);font-size:.74rem;text-decoration:underline;cursor:pointer;padding:6px}
+.cs-reset-btn:hover{color:#d8d8dd}
 .mic-test-row button{flex:1;height:36px;border-radius:8px;background:var(--elev);color:#f2f2f5;font-size:.78rem;font-weight:700;border:1px solid var(--line)}
 .seg-group{display:flex;gap:6px;margin-top:4px}
 .seg-btn{flex:1;height:34px;border-radius:8px;background:var(--elev);border:1px solid var(--line);color:var(--muted);font-size:.72rem;font-weight:700}
@@ -6452,11 +6473,15 @@ a.bug-att-item{display:block}
 </div>
 
 <div class="overlay hidden" id="modal-call-settings">
-  <div class="modal-box settings-modal">
+  <div class="modal-box settings-modal cs-modal">
     <button type="button" class="modal-close" id="cs-close">✕</button>
-    <h3>🎛️ Paramètres audio &amp; vidéo</h3>
-    <div class="set-section">
-      <div class="set-section-label">Micro</div>
+    <div class="cs-hero">
+      <div class="cs-hero-icon">🎛️</div>
+      <h3>Paramètres audio &amp; vidéo</h3>
+      <div class="cs-hero-sub">Enregistrés automatiquement et valables partout — DM, salons de groupe, appels de serveur.</div>
+    </div>
+    <div class="cs-card">
+      <div class="cs-card-head"><span class="cs-card-ic">🎙️</span><span class="cs-card-title">Micro</span></div>
       <div class="set-row">
         <label>Source</label>
         <select id="cs-mic-device"></select>
@@ -6476,14 +6501,16 @@ a.bug-att-item{display:block}
       <div class="set-toggle-row"><span>Réduction de bruit</span><div class="set-switch on" id="cs-noise" data-on="1"></div></div>
       <div class="set-toggle-row"><span>Annulation d'écho</span><div class="set-switch on" id="cs-echo" data-on="1"></div></div>
       <div class="set-toggle-row"><span>Gain automatique</span><div class="set-switch on" id="cs-agc" data-on="1"></div></div>
-      <div class="set-row">
+      <div class="set-row cs-mic-test">
         <label>Test micro</label>
-        <div class="mic-meter"><div class="mic-meter-fill" id="cs-mic-meter"></div></div>
+        <div class="cs-meter-wrap">
+          <div class="mic-meter"><div class="mic-meter-fill" id="cs-mic-meter"></div></div>
+        </div>
         <div class="mic-test-row"><button type="button" id="cs-mic-record">🔴 Écouter ma voix (3s)</button></div>
       </div>
     </div>
-    <div class="set-section">
-      <div class="set-section-label">Sortie audio</div>
+    <div class="cs-card">
+      <div class="cs-card-head"><span class="cs-card-ic">🔊</span><span class="cs-card-title">Sortie audio</span></div>
       <div class="set-row" id="cs-speaker-row">
         <label>Sortie</label>
         <select id="cs-speaker-device"></select>
@@ -6493,8 +6520,8 @@ a.bug-att-item{display:block}
         <input type="range" id="cs-out-vol" min="0" max="200" value="100"/>
       </div>
     </div>
-    <div class="set-section">
-      <div class="set-section-label">Caméra</div>
+    <div class="cs-card">
+      <div class="cs-card-head"><span class="cs-card-ic">📷</span><span class="cs-card-title">Caméra</span></div>
       <div class="set-row">
         <label>Source</label>
         <select id="cs-cam-device"></select>
@@ -6513,8 +6540,8 @@ a.bug-att-item{display:block}
         </select>
       </div>
     </div>
-    <div class="set-section">
-      <div class="set-section-label">Partage d'écran</div>
+    <div class="cs-card">
+      <div class="cs-card-head"><span class="cs-card-ic">🖥️</span><span class="cs-card-title">Partage d'écran</span></div>
       <div class="set-row">
         <label>Qualité</label>
         <select id="cs-screen-quality">
@@ -6527,6 +6554,7 @@ a.bug-att-item{display:block}
         </select>
       </div>
     </div>
+    <div class="cs-reset-row"><button type="button" class="cs-reset-btn" id="cs-reset">↺ Réinitialiser tous les réglages</button></div>
   </div>
 </div>
 
@@ -30910,7 +30938,12 @@ function startMicMeter(){
     let sum=0;for(let i=0;i<data.length;i++)sum+=data[i];
     const avg=sum/data.length;
     const pct=Math.min(100,Math.round((avg/140)*100));
-    const fill=\$('cs-mic-meter');if(fill)fill.style.width=pct+'%';
+    const fill=\$('cs-mic-meter');
+    if(fill){
+      fill.style.width=pct+'%';
+      fill.classList.toggle('hot',pct>=70&&pct<90);
+      fill.classList.toggle('clip',pct>=90);
+    }
     micMeterRaf=requestAnimationFrame(loop);
   }
   loop();
@@ -36212,6 +36245,22 @@ if(\$('cb-settings'))\$('cb-settings').addEventListener('click',function(){
 if(\$('cs-close'))\$('cs-close').addEventListener('click',function(){
   \$('modal-call-settings').classList.add('hidden');
   stopMicMeter();
+});
+if(\$('cs-reset'))\$('cs-reset').addEventListener('click',function(){
+  try{localStorage.removeItem('xultra_call_prefs');}catch(e){}
+  camQualityKey='720p30';screenQualityKey='1080p60';micVolumePct=100;outVolumePct=100;
+  noiseSuppressionOn=true;echoCancellationOn=true;agcOn=true;channelMode='mono';
+  preferredMicDeviceId='';preferredCamDeviceId='';preferredSpeakerDeviceId='';
+  syncCallSettingsUi();
+  populateMicDevices();populateCamDevices();populateSpeakerDevices();
+  if(localStream){
+    const t=localStream.getAudioTracks()[0];
+    if(t)t.applyConstraints({echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}).catch(function(){});
+  }
+  applyChannelMode();
+  if(micGainNode)micGainNode.gain.value=1;
+  if(outGainNode&&\$('cb-deafen')&&!\$('cb-deafen').classList.contains('on'))outGainNode.gain.value=1;
+  showToast('Réglages audio/vidéo réinitialisés.');
 });
 async function populateMicDevices(){
   const sel=\$('cs-mic-device');if(!sel)return;
