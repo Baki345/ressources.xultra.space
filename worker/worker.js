@@ -1046,6 +1046,49 @@ async function resolveSessionUser(request) {
   }
 }
 
+// Résout l'appelant d'un appel Appwrite SDK DIRECT (proxifié tel quel par
+// /api/aw, voir plus bas) — ces requêtes ne portent jamais le JWT applicatif
+// (X-Appwrite-JWT/Authorization, voir extractJwt) mais le SDK client
+// (client.setSession(secret), voir boot()) envoie systématiquement
+// X-Appwrite-Session, seul identifiant disponible ici.
+async function resolveSessionFromHeader(request) {
+  const sessionSecret = request.headers.get("x-appwrite-session") || "";
+  if (!sessionSecret) return null;
+  try {
+    return await awFetch("/account", { session: sessionSecret });
+  } catch (e) {
+    return null;
+  }
+}
+// Collections dont les documents peuvent porter contentFlag:"nsfw" et sont
+// lus par le client via un appel SDK Appwrite DIRECT (db.listDocuments/
+// getDocument), proxifié tel quel par /api/aw sans jamais passer par une
+// route /api/... dédiée — donc le SEUL endroit où le Worker peut encore
+// intervenir pour ce contenu. dms_messages est chiffré de bout en bout
+// (voir /api/dms/messages/send) : on ne lit jamais le texte en clair ici,
+// seulement contentFlag (métadonnée non chiffrée) pour décider de retenir
+// le champ chiffré lui-même — server_channel_messages n'est pas chiffré
+// mais suit exactement la même règle par cohérence.
+const NSFW_AGE_GATED_COLLECTIONS = ["dms_messages", "server_channel_messages"];
+function redactNsfwDoc(doc) {
+  if (!doc || doc.contentFlag !== "nsfw") return doc;
+  return Object.assign({}, doc, {
+    text: "", mediaUrl: "", mime: "", keysJson: "", stickerUrl: "",
+    ageRedacted: true
+  });
+}
+async function isAdult18Verified(request) {
+  const acc = await resolveSessionFromHeader(request);
+  if (!acc) return false;
+  try {
+    const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true });
+    const badges = JSON.parse((meta && meta.badgesJson) || "[]");
+    return Array.isArray(badges) && badges.indexOf("adult18") >= 0;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function resolveProfile(authUserId) {
   try {
     const url = "/databases/" + AW_DB + "/collections/users/documents?" +
@@ -17849,6 +17892,14 @@ function renderMsgBody(m,text,mediaUrl,mediaItems){
 function applySpoilerGate(m,innerHtml){
   if(!m||(m.contentFlag!=='spoiler'&&m.contentFlag!=='nsfw'))return innerHtml;
   if(m.mediaMode==='ephemeral')return innerHtml;
+  // Le serveur a déjà retenu le texte/média (voir /api/aw et
+  // NSFW_AGE_GATED_COLLECTIONS côté Worker) car ce compte n'a pas le badge
+  // adult18 — rien à révéler ici, jamais de bouton cliquable sur du vide.
+  if(m.ageRedacted){
+    return '<div class="msg-spoiler-gate nsfw" data-spoiler-mid="'+esc(m.\$id||'')+'">'
+      +'<button type="button" class="msg-spoiler-veil" disabled><span class="msg-spoiler-ico">🔞</span><span class="msg-spoiler-label">Contenu 18+</span><span class="msg-spoiler-hint">Vérifie ton âge dans Paramètres → Vérification d\\'âge pour y accéder</span></button>'
+    +'</div>';
+  }
   const isNsfw=m.contentFlag==='nsfw';
   const label=isNsfw?'Contenu 18+':'Contenu spoiler';
   return '<div class="msg-spoiler-gate'+(isNsfw?' nsfw':'')+'" data-spoiler-mid="'+esc(m.\$id||'')+'">'
@@ -36578,6 +36629,46 @@ async function handle(request, event) {
         if (dlRes.ok || dlRes.status === 206) awRes = dlRes;
       } catch (e) {}
     }
+    // Gate 18+ appliqué ICI, pas seulement côté client (voir le commentaire
+    // sur NSFW_AGE_GATED_COLLECTIONS) : ces deux collections sont lues par
+    // le client via un appel SDK Appwrite direct qui transite par CE proxy
+    // sans jamais passer par une route /api/... dédiée, donc c'est le seul
+    // point où le Worker peut encore retenir le contenu à un compte non
+    // vérifié. Court-circuite sur une simple recherche de sous-chaîne avant
+    // tout JSON.parse — la quasi-totalité des messages ne sont pas 18+, donc
+    // ce chemin ne doit rien coûter au cas courant.
+    // PATCH inclus : réactions/épinglage/masquage (voir db.updateDocument
+    // pour dms_messages) renvoient le document mis à jour EN ENTIER — sans
+    // ça, un compte non vérifié qui épingle ou réagit à un message 18+
+    // recevrait quand même son contenu complet dans la réponse de la PATCH.
+    const nsfwGateMatch = (request.method === "GET" || request.method === "PATCH") && /\/collections\/(dms_messages|server_channel_messages)\/documents(\/|\?|$)/.test(sub);
+    if (nsfwGateMatch && awRes.ok) {
+      const rawText = await awRes.text();
+      if (rawText.indexOf("\"nsfw\"") >= 0) {
+        try {
+          const data = JSON.parse(rawText);
+          const verified = await isAdult18Verified(request);
+          if (!verified) {
+            if (Array.isArray(data.documents)) data.documents = data.documents.map(redactNsfwDoc);
+            else if (data && data.$id) Object.assign(data, redactNsfwDoc(data));
+          }
+          const respHeaders = new Headers();
+          ["content-type", "cache-control"].forEach(function(h) {
+            const v = awRes.headers.get(h);
+            if (v) respHeaders.set(h, v);
+          });
+          Object.keys(cors).forEach(function(k) { respHeaders.set(k, cors[k]); });
+          return new Response(JSON.stringify(data), { status: awRes.status, headers: respHeaders });
+        } catch (e) {}
+      }
+      const respHeaders = new Headers();
+      ["content-type", "cache-control"].forEach(function(h) {
+        const v = awRes.headers.get(h);
+        if (v) respHeaders.set(h, v);
+      });
+      Object.keys(cors).forEach(function(k) { respHeaders.set(k, cors[k]); });
+      return new Response(rawText, { status: awRes.status, headers: respHeaders });
+    }
     const respHeaders = new Headers();
     ["content-type", "content-length", "cache-control", "content-disposition", "accept-ranges", "content-range"].forEach(function(h) {
       const v = awRes.headers.get(h);
@@ -45491,7 +45582,9 @@ async function handle(request, event) {
       const msgPerms = await computeChannelMessagePermissions(serverId, access.channel, thread && thread.private ? [thread.creatorUid].concat(thread.memberUids || []) : undefined);
       // Spoiler (flouté, révélable par n'importe qui) / 18+ (flouté, la
       // vérification d'âge — badge adult18 — est vérifiée côté client au
-      // moment de révéler).
+      // moment de révéler, ET retenue côté serveur pour un compte non
+      // vérifié : voir NSFW_AGE_GATED_COLLECTIONS/isAdult18Verified dans
+      // le proxy /api/aw, seul chemin par lequel ce contenu est lu).
       const contentFlag = ["", "spoiler", "nsfw"].indexOf(body && body.contentFlag) >= 0 ? body.contentFlag : "";
       const msg = await awFetch("/databases/" + AW_DB + "/collections/server_channel_messages/documents", {
         method: "POST", asAdmin: true,
@@ -46293,9 +46386,12 @@ async function handle(request, event) {
         noScreenshot: !!(body && body.noScreenshot),
         // Spoiler (flouté, révélable par n'importe qui) / 18+ (flouté, la
         // vérification d'âge — badge adult18 — est vérifiée côté CLIENT au
-        // moment de révéler, jamais ici : impossible de gater le contenu
-        // côté serveur puisque les DM sont chiffrés de bout en bout, le
-        // Worker ne voit jamais le texte/média en clair).
+        // moment de révéler). Le Worker ne voit jamais le texte/média en
+        // clair (DM chiffrés de bout en bout) donc ne peut pas juger du
+        // CONTENU — mais contentFlag lui-même n'est pas chiffré, ce qui
+        // suffit pour retenir le champ chiffré côté serveur pour un compte
+        // non vérifié : voir NSFW_AGE_GATED_COLLECTIONS/isAdult18Verified
+        // dans le proxy /api/aw, seul chemin par lequel ce contenu est lu.
         contentFlag: ["", "spoiler", "nsfw"].indexOf(body && body.contentFlag) >= 0 ? body.contentFlag : ""
       };
       if (!data.text && !data.mediaUrl && data.type !== "location") throw new Error("Message vide");
