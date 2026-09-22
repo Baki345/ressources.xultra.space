@@ -895,7 +895,7 @@ async function serverResolveChannelAccess(serverId, uid, channelId) {
 // non traduit ("rules_not_accepted") : le client le reconnaît pour ouvrir
 // l'écran d'acceptation des règles plutôt qu'un toast d'erreur générique.
 function assertRulesAccepted(server, member, hasManage) {
-  if (!server.communityMode || hasManage) return;
+  if (!boolTrue(server.communityMode) || hasManage) return;
   if (member && member.rulesAcceptedAt) return;
   throw new Error("rules_not_accepted");
 }
@@ -1241,6 +1241,22 @@ function coinsNum(v) {
   const n = parseFloat(v);
   return Number.isFinite(n) ? n : 0;
 }
+// Alias générique de coinsNum() pour les autres champs numériques stockés en
+// string côté Appwrite (location_shares.lat/lng, hotel_room_presence.x/y,
+// xm_tracks.durationSec, xm_listen_sessions.positionSec, xm_comments.atSec) —
+// même logique, nom plus parlant hors contexte portefeuille.
+const toNum = coinsNum;
+// Même souci que balance/amount ci-dessus, mais pour des booléens écrits dans
+// des attributs Appwrite déclarés "string" (server_roles.mentionable,
+// servers.discoverable/communityMode/widgetEnabled,
+// server_members.botVoiceEnabled, xdrive_items.starred,
+// reports.lawEnforcementNotified, custom_badges.grantsPlus,
+// user_meta.driveSuspended/vpnDetected, users.notifPreview) : un booléen JS
+// brut se fait rejeter à l'écriture, ET une fois stringifié en "false", la
+// chaîne "false" reste "truthy" en JS — un simple `if(x.field)` ou `!!x.field`
+// s'y ferait piéger. boolStr() à l'écriture, boolTrue() à la lecture.
+function boolStr(v) { return v ? "true" : "false"; }
+function boolTrue(v) { return v === true || v === "true"; }
 async function x1coinsGetOrCreateWallet(uid) {
   const q = await awFetch("/databases/" + AW_DB + "/collections/x1coins_wallets/documents?" +
     "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "uid", values: [String(uid)] })) +
@@ -2018,7 +2034,7 @@ async function createInAppNotification(uid, type, fromUid, fromName, text, refId
   } catch (e) {}
   try {
     const recipientProfile = await resolveProfile(uid).catch(function () { return null; });
-    const body = (recipientProfile && recipientProfile.notifPreview === false) ? "" : (text || "").slice(0, 140);
+    const body = (recipientProfile && (recipientProfile.notifPreview === false || recipientProfile.notifPreview === "false")) ? "" : (text || "").slice(0, 140);
     pushToUid(uid, { type: type, title: NOTIF_PUSH_TITLES[type] || (fromName || "IXin"), body: body || "Nouvelle notification", tag: "notif-" + type, url: notifPushUrl(type, uid, fromUid, refId) }).catch(function () {});
   } catch (e) {}
 }
@@ -6955,6 +6971,14 @@ function \$(id){return document.getElementById(id)}
 // sont délimités par des guillemets SIMPLES (style='...'), où esc() sans
 // cette dernière règle ne protégeait pas contre une évasion d'attribut.
 function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// Plusieurs attributs booléens (mentionable, botVoiceEnabled, discoverable,
+// communityMode, widgetEnabled, starred, lawEnforcementNotified, grantsPlus,
+// driveSuspended, vpnDetected, notifPreview) sont en réalité des attributs
+// STRING côté Appwrite — un document reçu du serveur les porte donc comme la
+// chaîne "true"/"false", jamais un vrai booléen JS. Un if(doc.field) ou
+// !!doc.field classique se ferait piéger (la chaîne "false" est "truthy").
+function bTrue(v){return v===true||v==='true';}
+function bStr(v){return v?'true':'false';}
 function ini(n){return String(n||'?').trim().charAt(0).toUpperCase()||'?'}
 // Icônes SVG (Lucide, licence ISC — https://lucide.dev) vendorisées à la
 // main plutôt que chargées depuis un CDN à l'exécution : cohérent avec le
@@ -11372,7 +11396,7 @@ function wireGenericToggles(box){
       // le profil (seul notifPreview en a besoin, les autres réglages ne
       // servent qu'en local sur cet appareil).
       if(key==='notifPreview'&&me&&meProfile){
-        db.updateDocument(DB,'users',meProfile.\$id,{notifPreview:on}).catch(function(){});
+        db.updateDocument(DB,'users',meProfile.\$id,{notifPreview:bStr(on)}).catch(function(){});
       }
     };
   });
@@ -14029,7 +14053,7 @@ async function loadCustomBadges(){
   try{
     const r=await authGet('/api/badges/custom');
     const next={};
-    (r.badges||[]).forEach(function(b){next[b.key]={icon:b.icon,label:b.label,color:b.color,desc:b.description,custom:true,docId:b.\$id,grantsPlus:!!b.grantsPlus,bannerImageUrl:b.bannerImageUrl||''};});
+    (r.badges||[]).forEach(function(b){next[b.key]={icon:b.icon,label:b.label,color:b.color,desc:b.description,custom:true,docId:b.\$id,grantsPlus:bTrue(b.grantsPlus),bannerImageUrl:b.bannerImageUrl||''};});
     CUSTOM_BADGES=next;
   }catch(e){CUSTOM_BADGES={};}
 }
@@ -14833,7 +14857,7 @@ function subscribeCustomBadgesWatcher(){
       if(eventIs(res.events,'.delete')){
         delete CUSTOM_BADGES[doc.key];
       }else{
-        CUSTOM_BADGES[doc.key]={icon:doc.icon,label:doc.label,color:doc.color,desc:doc.description,custom:true,docId:doc.\$id,grantsPlus:!!doc.grantsPlus,bannerImageUrl:doc.bannerImageUrl||''};
+        CUSTOM_BADGES[doc.key]={icon:doc.icon,label:doc.label,color:doc.color,desc:doc.description,custom:true,docId:doc.\$id,grantsPlus:bTrue(doc.grantsPlus),bannerImageUrl:doc.bannerImageUrl||''};
       }
       if(view==='members')renderMembers();
       if(activeProfileModalUid&&\$('modal-profile')&&!\$('modal-profile').classList.contains('hidden')){
@@ -15941,7 +15965,7 @@ function buildProfileCardHtml(p,meta,badges,opts){
   const vpnTipTxt='Cet utilisateur utilise un VPN, sa localisation est donc masquée';
   const geoFlag=countryFlagEmoji(meta.geoCountry);
   let geoBadgeHtml='';
-  if(meta.vpnDetected){
+  if(bTrue(meta.vpnDetected)){
     geoBadgeHtml='<button type="button" class="pc-geo-badge pc-geo-vpn" data-geo-vpn-tip="'+esc(vpnTipTxt)+'" title="'+esc(vpnTipTxt)+'">🛡️🔒</button>';
   }else if(geoFlag){
     geoBadgeHtml='<span class="pc-geo-badge" title="'+esc(meta.geoCountry.toUpperCase())+'">'+geoFlag+'</span>';
@@ -22648,7 +22672,7 @@ function xdSubscribeRealtime(){
     const relevant=(xdSection==='drive'&&!xdSearchQuery.trim()&&(p.parentId||'')===(xdCurrentFolder||''))
       ||xdCurrentListing.some(function(d){return d.\$id===p.\$id;})
       ||(xdSection==='trash'&&p.trashed)
-      ||(xdSection==='starred'&&p.starred);
+      ||(xdSection==='starred'&&bTrue(p.starred));
     if(relevant)xdScheduleRefresh();
   });
   xdMembersRealtimeUnsub=client.subscribe('databases.'+DB+'.collections.xdrive_folder_members.documents',function(res){
@@ -22988,7 +23012,7 @@ async function xdUploadOneFile(file){
         encName:metaEnc.data,nameIv:metaEnc.iv,
         fileId:up.\$id,mime:'',size:combined.byteLength,
         keyWrapped:xdBufToB64(wrappedKey.cipher),keyIv:xdBufToB64(wrappedKey.iv),
-        visibility:'private',starred:false,trashed:false,
+        visibility:'private',starred:'false',trashed:false,
         sharedFolderId:xdCurrentSharedFolderId||''
       };
       itemDoc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
@@ -23063,7 +23087,7 @@ async function xdHandleFolderUpload(fileList){
       const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
       const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
         ownerId:me.\$id,parentId:parentId,type:'folder',encName:metaEnc.data,nameIv:metaEnc.iv,
-        visibility:'private',starred:false,trashed:false,size:0
+        visibility:'private',starred:'false',trashed:false,size:0
       },perms);
       folderCache[pathKey]=doc.\$id;
       parentId=doc.\$id;
@@ -23244,7 +23268,7 @@ async function xdLoadTrash(){
   return docs;
 }
 async function xdLoadStarred(){
-  const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('starred',true),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
+  const r=await db.listDocuments(DB,'xdrive_items',[Appwrite.Query.equal('ownerId',me.\$id),Appwrite.Query.equal('starred','true'),Appwrite.Query.equal('trashed',false),Appwrite.Query.limit(500)]);
   const docs=r.documents||[];
   await Promise.all(docs.map(xdDecryptItemMeta));
   return docs;
@@ -23352,6 +23376,10 @@ async function xdRenderCurrentView(){
     if(xdSortBy==='date')return new Date(b.\$createdAt)-new Date(a.\$createdAt);
     return (a._name||'').localeCompare(b._name||'');
   });
+  // xdrive_items.starred est un attribut STRING côté Appwrite ("true"/"false"
+  // en toutes lettres) — normalisé en vrai booléen une seule fois ici, à
+  // l'entrée dans xdCurrentListing, plutôt qu'à chaque endroit qui l'affiche.
+  docs.forEach(function(d){d.starred=bTrue(d.starred);});
   xdCurrentListing=docs;
   xdRenderBreadcrumb(searching);
   if(!docs.length){
@@ -23735,7 +23763,7 @@ async function xdDuplicateItem(item){
       encName:metaEnc.data,nameIv:metaEnc.iv,
       fileId:up.\$id,mime:'',size:item.size||0,
       keyWrapped:item.keyWrapped||'',keyIv:item.keyIv||'',
-      visibility:'private',starred:false,trashed:false
+      visibility:'private',starred:'false',trashed:false
     };
     const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),itemData,perms);
     await authPost('/api/xdrive/commit-upload',{itemId:doc.\$id,fileId:up.\$id});
@@ -23779,7 +23807,7 @@ async function xdCreateFolder(){
     const perms=[Appwrite.Permission.read(Appwrite.Role.user(me.\$id)),Appwrite.Permission.update(Appwrite.Role.user(me.\$id)),Appwrite.Permission.delete(Appwrite.Role.user(me.\$id))];
     const doc=await db.createDocument(DB,'xdrive_items',Appwrite.ID.unique(),{
       ownerId:me.\$id,parentId:xdCurrentFolder||'',type:'folder',encName:metaEnc.data,nameIv:metaEnc.iv,
-      visibility:'private',starred:false,trashed:false,size:0,
+      visibility:'private',starred:'false',trashed:false,size:0,
       sharedFolderId:xdCurrentSharedFolderId||''
     },perms);
     if(xdCurrentSharedFolderId)await xdSyncSharedItemPerms(doc.\$id);
@@ -23806,21 +23834,26 @@ async function xdRenameItem(item){
 async function xdToggleStar(id){
   const item=xdItemById(id);if(!item)return;
   try{
-    await db.updateDocument(DB,'xdrive_items',id,{starred:!item.starred});
-    item.starred=!item.starred;
+    const next=!bTrue(item.starred);
+    await db.updateDocument(DB,'xdrive_items',id,{starred:bStr(next)});
+    item.starred=next;
     xdRenderCurrentView();
   }catch(e){}
 }
 async function xdMoveToTrash(item){
   try{
-    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:true,trashedAt:new Date().toISOString()});
+    // trashedAt est un attribut BOOLEAN côté Appwrite (pas un vrai horodatage
+    // malgré son nom) et n'est lu nulle part ailleurs dans le code — un ISO
+    // string s'y faisait rejeter à l'écriture, ce qui cassait "Déplacer dans
+    // la corbeille" à chaque fois.
+    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:true,trashedAt:true});
     showToast('Déplacé dans la corbeille.');
     xdRenderCurrentView();
   }catch(e){showToast('Suppression impossible','error');}
 }
 async function xdRestoreItem(item){
   try{
-    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:false,trashedAt:null});
+    await db.updateDocument(DB,'xdrive_items',item.\$id,{trashed:false,trashedAt:false});
     showToast('Restauré.');
     xdRenderCurrentView();
   }catch(e){showToast('Restauration impossible','error');}
@@ -28155,7 +28188,7 @@ function renderHotelShell(){
 async function hotelLoadPresence(){
   try{
     const r=await db.listDocuments(DB,'hotel_room_presence',[Appwrite.Query.equal('roomId',hotelRoomId),Appwrite.Query.limit(100)]);
-    (r.documents||[]).forEach(function(d){hotelPresenceMap[d.uid]=d;});
+    (r.documents||[]).forEach(function(d){d.x=wpNum(d.x,0);d.y=wpNum(d.y,0);hotelPresenceMap[d.uid]=d;});
   }catch(e){}
 }
 async function hotelLoadChat(){
@@ -28180,7 +28213,7 @@ function hotelSubscribePresence(){
       if(!res||!res.payload)return;
       if(String(res.payload.roomId)!==String(hotelRoomId))return;
       if(eventIs(res.events,'.delete')){delete hotelPresenceMap[res.payload.uid];}
-      else{hotelPresenceMap[res.payload.uid]=res.payload;}
+      else{res.payload.x=wpNum(res.payload.x,0);res.payload.y=wpNum(res.payload.y,0);hotelPresenceMap[res.payload.uid]=res.payload;}
       hotelRenderAvatars();
     });
   }catch(e){}
@@ -29716,7 +29749,7 @@ function renderCustomBadgeListHtml(){
     let perms=[];try{perms=JSON.parse(b.permissionsJson||'[]');}catch(e){}
     const permsHtml=perms.length?perms.map(function(p){return '<span class="tag-mod">'+esc(p)+'</span>';}).join(' '):'';
     return '<div class="admin-row"><span class="badge-chip" style="background-image:linear-gradient(125deg,'+esc(b.color)+',rgba(255,255,255,.3),'+esc(b.color)+')">'+esc(b.icon)+'</span>'
-      +'<div class="info"><div class="n">'+esc(b.label)+(b.grantsPlus?' <span class="tag-mod">IXin+</span>':'')+' '+permsHtml+'</div><div class="p">'+esc(b.description||'Pas de description')+'</div></div>'
+      +'<div class="info"><div class="n">'+esc(b.label)+(bTrue(b.grantsPlus)?' <span class="tag-mod">IXin+</span>':'')+' '+permsHtml+'</div><div class="p">'+esc(b.description||'Pas de description')+'</div></div>'
       +'<div class="acts"><button type="button" data-badge-edit="'+esc(b.\$id)+'">✏️</button><button type="button" data-badge-del="'+esc(b.\$id)+'" class="danger">🗑</button></div>'
       +'</div>';
   }).join('');
@@ -29757,7 +29790,7 @@ function renderCustomBadgeFormHtml(existing){
     +'<div class="set-row"><label>Couleur</label><input type="color" id="adm-badge-color" value="'+esc(b.color||'#a78bfa')+'"></div>'
     +'<div class="set-row"><label>Description</label><textarea id="adm-badge-desc" class="field-input" rows="2" maxlength="500">'+esc(b.description||'')+'</textarea></div>'
     +'<div class="set-row"><label>Bannière personnalisée (URL image, optionnel) <span class="scr-sub" style="display:block;font-weight:400">Affichée en fond de la fenêtre qui s\\'ouvre quand on clique sur ce badge — sinon un dégradé généré à partir de la couleur ci-dessus est utilisé.</span></label><input type="text" id="adm-badge-banner" class="field-input" placeholder="https://…" value="'+esc(b.bannerImageUrl||'')+'"></div>'
-    +'<label class="bot-perm-check"><input type="checkbox" id="adm-badge-grantsplus"'+(b.grantsPlus?' checked':'')+'>Accorde IXin+ à vie automatiquement dès que ce badge est attribué</label>'
+    +'<label class="bot-perm-check"><input type="checkbox" id="adm-badge-grantsplus"'+(bTrue(b.grantsPlus)?' checked':'')+'>Accorde IXin+ à vie automatiquement dès que ce badge est attribué</label>'
     +'<div class="set-row"><label>Permissions accordées <span class="scr-sub" style="display:block;font-weight:400">Basé sur les permissions globales dont dispose Shaman — jamais tout ce que Shaman peut faire, seulement ce qui est coché ici.</span></label>'
     +GLOBAL_BADGE_PERMISSIONS_CLIENT.map(function(p){
       return '<label class="bot-perm-check"><input type="checkbox" data-adm-badge-perm value="'+p.key+'"'+(perms.indexOf(p.key)>=0?' checked':'')+'>'+esc(p.label)+'</label>';
@@ -32925,6 +32958,17 @@ const SERVER_PERM_DEFS=[
 // toujours retiré même si l'installateur l'a lui-même).
 const BOT_GRANTABLE_PERM_KEYS=['kick_members','ban_members','moderate_members','manage_roles'];
 let myServers=[],activeServer=null,activeServerMembership=null,activeServerRoles=[],activeServerMembers=[],activeServerTab='overview';
+// discoverable/communityMode/widgetEnabled sont des attributs STRING côté
+// Appwrite (le document reçu porte donc "true"/"false" en toutes lettres) —
+// normalisé une seule fois ici, à l'entrée dans activeServer, plutôt que de
+// reparser bTrue(...) à chaque endroit du code qui les affiche.
+function normalizeServerDoc(doc){
+  if(!doc)return doc;
+  doc.discoverable=bTrue(doc.discoverable);
+  doc.communityMode=bTrue(doc.communityMode);
+  doc.widgetEnabled=bTrue(doc.widgetEnabled);
+  return doc;
+}
 let activeServerCategories=[],activeServerChannels=[],activeChannel=null,activeChannelMessages=[],channelMsgUnsub=null;
 let serverStructureUnsub=null;
 let stageState=null,stageStateUnsub=null,stageViewChannelId=null;
@@ -33067,7 +33111,7 @@ if(\$('srv-join-submit'))\$('srv-join-submit').addEventListener('click',async fu
 
 async function openServerDetail(serverId){
   try{
-    activeServer=await db.getDocument(DB,'servers',serverId);
+    activeServer=normalizeServerDoc(await db.getDocument(DB,'servers',serverId));
   }catch(e){showToast('Serveur introuvable','error');return}
   try{
     const rolesList=await db.listDocuments(DB,'server_roles',[Appwrite.Query.equal('serverId',serverId),Appwrite.Query.limit(100)]);
@@ -33340,7 +33384,7 @@ function subscribeServerStructureWatcher(){
       return;
     }
     if(!payload)return;
-    activeServer=payload;
+    activeServer=normalizeServerDoc(payload);
     if(\$('srv-detail-name'))\$('srv-detail-name').textContent=activeServer.name;
     if(\$('srv-detail-desc'))\$('srv-detail-desc').textContent=activeServer.description||'';
     if(\$('srv-detail-icon'))\$('srv-detail-icon').innerHTML=serverIconHtml(activeServer);
@@ -34505,7 +34549,7 @@ function serverRoleBadgesHtml(member){
   return roleIds.map(function(rid){
     const role=activeServerRoles.find(function(r){return r.\$id===rid});
     if(!role)return '';
-    return '<span class="srv-role-pill" style="background:'+esc(role.color||'#7c3aed')+'22;color:'+esc(role.color||'#a78bfa')+'">'+esc(role.name)+(role.mentionable?' @':'')+'</span>';
+    return '<span class="srv-role-pill" style="background:'+esc(role.color||'#7c3aed')+'22;color:'+esc(role.color||'#a78bfa')+'">'+esc(role.name)+(bTrue(role.mentionable)?' @':'')+'</span>';
   }).join('');
 }
 function serverTopRoleColor(member){
@@ -34520,7 +34564,7 @@ function serverTopRoleColor(member){
 // pour les rôles marqués "mentionnable". Effet visuel seulement pour l'instant —
 // pas encore de notification ciblée envoyée aux membres du rôle.
 function highlightRoleMentions(escapedText){
-  const mentionable=activeServerRoles.filter(function(r){return r.mentionable;});
+  const mentionable=activeServerRoles.filter(function(r){return bTrue(r.mentionable);});
   if(!mentionable.length)return escapedText;
   let out=escapedText;
   mentionable.forEach(function(r){
@@ -35187,7 +35231,7 @@ function renderServerRolesTab(){
     let perms=[];try{perms=JSON.parse(r.permissionsJson||'[]');}catch(e){}
     const memberCount=activeServerMembers.filter(function(m){return (m.roleIds||[]).indexOf(r.\$id)>=0;}).length;
     return '<div class="set-card" data-srv-role-id="'+esc(r.\$id)+'">'
-      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';flex-shrink:0"></span><b>'+esc(r.name)+'</b>'+(r.mentionable?' <span class="scr-sub">📣</span>':'')+'</div>'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="width:12px;height:12px;border-radius:50%;background:'+esc(r.color||'#7c3aed')+';flex-shrink:0"></span><b>'+esc(r.name)+'</b>'+(bTrue(r.mentionable)?' <span class="scr-sub">📣</span>':'')+'</div>'
       +'<div class="scr-sub" style="margin-bottom:10px">'+(perms.length?perms.map(function(p){const d=SERVER_PERM_DEFS.find(function(x){return x.key===p});return d?d.icon+' '+d.label:esc(p);}).join(', '):'Aucune permission')+'</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="set-mini-btn" data-srv-role-members="'+esc(r.\$id)+'">👥 '+memberCount+' membre'+(memberCount!==1?'s':'')+'</button>'
       +'<button type="button" class="set-mini-btn" data-srv-role-edit="'+esc(r.\$id)+'">Modifier</button>'
@@ -35489,7 +35533,7 @@ function openServerRoleEditor(role){
   box.innerHTML='<div class="set-card">'
     +'<div class="set-row"><label>Nom du rôle</label><input type="text" id="srv-role-name" class="field-input" maxlength="64" value="'+esc(role?role.name:'')+'"></div>'
     +'<div class="set-row"><label>Couleur</label><input type="color" id="srv-role-color" value="'+esc(role?(role.color||'#a78bfa'):'#a78bfa')+'" style="width:60px;height:36px;border-radius:8px;border:1px solid var(--line);background:transparent"></div>'
-    +'<label class="srv-perm-check"><input type="checkbox" id="srv-role-mentionable"'+(role&&role.mentionable?' checked':'')+'> 📣 <b>Mentionnable</b> — <span class="scr-sub">Ce rôle peut être cité avec @NomDuRôle dans les salons texte (surligné, sans notification pour le moment).</span></label>'
+    +'<label class="srv-perm-check"><input type="checkbox" id="srv-role-mentionable"'+(role&&bTrue(role.mentionable)?' checked':'')+'> 📣 <b>Mentionnable</b> — <span class="scr-sub">Ce rôle peut être cité avec @NomDuRôle dans les salons texte (surligné, sans notification pour le moment).</span></label>'
     +'<div class="set-section-label">Permissions</div>'
     +SERVER_PERM_DEFS.map(function(p){
       return '<label class="srv-perm-check"><input type="checkbox" data-srv-perm="'+p.key+'"'+(currentPerms.indexOf(p.key)>=0?' checked':'')+'> '+p.icon+' <b>'+esc(p.label)+'</b> — <span class="scr-sub">'+esc(p.desc)+'</span></label>';
@@ -36880,7 +36924,7 @@ async function updateUserGeoMeta(uid, cf) {
   try {
     const country = String((cf && cf.country) || "").slice(0, 8);
     if (!uid || !country) return;
-    const data = { geoCountry: country, vpnDetected: isLikelyVpnOrg(cf && cf.asOrganization) };
+    const data = { geoCountry: country, vpnDetected: boolStr(isLikelyVpnOrg(cf && cf.asOrganization)) };
     const perms = ["read(\"any\")"];
     try {
       await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + uid, {
@@ -37531,7 +37575,7 @@ async function handle(request, event) {
           }
         } catch (e) {}
       }
-      const data = { uid: acc.$id, title: title, artistName: finalArtistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: durationSec, playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year, audioHash: audioHash, dedupKey: dedupKey, contentType: contentType, officialArtistId: officialArtistId, officialArtistPhoto: officialArtistPhoto };
+      const data = { uid: acc.$id, title: title, artistName: finalArtistName, coverUrl: coverUrl, audioUrl: audioUrl, mime: mime, durationSec: String(durationSec), playsCount: 0, likesCount: 0, commentsCount: 0, genre: genre, tagsJson: JSON.stringify(tags), lyricsLrc: lyricsLrc, channel: channel, waveformJson: JSON.stringify(waveform), album: album, year: year, audioHash: audioHash, dedupKey: dedupKey, contentType: contentType, officialArtistId: officialArtistId, officialArtistPhoto: officialArtistPhoto };
       if (trackNumber) data.trackNumber = trackNumber;
       const doc = await awFetch("/databases/" + AW_DB + "/collections/xm_tracks/documents", {
         method: "POST", asAdmin: true,
@@ -37642,7 +37686,7 @@ async function handle(request, event) {
       // écoute dans le même salon met juste à jour la session existante au
       // lieu d'en créer une deuxième en double.
       const sessionId = "ls_" + await sha256HexShort(contextType + ":" + contextId, 24);
-      const data = { hostUid: acc.$id, contextType: contextType, contextId: contextId, trackId: trackId, positionSec: positionSec, isPlaying: true };
+      const data = { hostUid: acc.$id, contextType: contextType, contextId: contextId, trackId: trackId, positionSec: String(positionSec), isPlaying: true };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: data } });
       } catch (e2) {
@@ -37667,7 +37711,7 @@ async function handle(request, event) {
       if (existing.hostUid !== acc.$id) throw new Error("Seul l'hôte peut mettre à jour cette écoute synchronisée.");
       const data = {};
       if (typeof body.trackId === "string" && body.trackId) data.trackId = body.trackId.slice(0, 64);
-      if (typeof body.positionSec === "number" && isFinite(body.positionSec)) data.positionSec = Math.max(0, body.positionSec);
+      if (typeof body.positionSec === "number" && isFinite(body.positionSec)) data.positionSec = String(Math.max(0, body.positionSec));
       if (typeof body.isPlaying === "boolean") data.isPlaying = body.isPlaying;
       if (!Object.keys(data).length) throw new Error("Rien à mettre à jour");
       await awFetch("/databases/" + AW_DB + "/collections/xm_listen_sessions/documents/" + sessionId, { method: "PATCH", asAdmin: true, body: { data: data } });
@@ -37730,7 +37774,7 @@ async function handle(request, event) {
       // aléatoire à valider côté client, jamais de risque de spawn hors-grille.
       const w = Number(room.widthTiles) || 5, h = Number(room.heightTiles) || 5;
       const spawnX = Math.floor(w / 2), spawnY = Math.floor(h / 2);
-      const data = { uid: acc.$id, roomId: roomId, x: spawnX, y: spawnY, facing: "s", displayName: displayName, avatarLookJson: avatarLookJson };
+      const data = { uid: acc.$id, roomId: roomId, x: String(spawnX), y: String(spawnY), facing: "s", displayName: displayName, avatarLookJson: avatarLookJson };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data } });
       } catch (e3) {
@@ -37760,7 +37804,7 @@ async function handle(request, event) {
       const w = (room && Number(room.widthTiles)) || 5, h = (room && Number(room.heightTiles)) || 5;
       const clampedX = Math.max(0, Math.min(w - 1, Math.round(x)));
       const clampedY = Math.max(0, Math.min(h - 1, Math.round(y)));
-      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { x: clampedX, y: clampedY, facing: facing } } });
+      await awFetch("/databases/" + AW_DB + "/collections/hotel_room_presence/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { x: String(clampedX), y: String(clampedY), facing: facing } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -37810,7 +37854,7 @@ async function handle(request, event) {
       const profile = await resolveProfile(acc.$id);
       const displayName = (profile && (profile.displayName || profile.username)) || acc.name || "Membre";
       const avatar = (profile && profile.avatar) || "";
-      const comment = await awFetch("/databases/" + AW_DB + "/collections/xm_comments/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, displayName: displayName, avatar: avatar, trackId: trackId, text: text, atSec: atSec }, permissions: ["read(\"any\")"] } });
+      const comment = await awFetch("/databases/" + AW_DB + "/collections/xm_comments/documents", { method: "POST", asAdmin: true, body: { documentId: "unique()", data: { uid: acc.$id, displayName: displayName, avatar: avatar, trackId: trackId, text: text, atSec: String(atSec) }, permissions: ["read(\"any\")"] } });
       const commentsCount = (track.commentsCount || 0) + 1;
       const patchData = { commentsCount: commentsCount };
       if (atSec >= 0) {
@@ -38500,7 +38544,7 @@ async function handle(request, event) {
       const voiceEnabled = !!body.voiceEnabled && heldPerms.indexOf("manage_voice") >= 0;
       await awFetch("/databases/" + AW_DB + "/collections/server_members/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id, botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: voiceEnabled }, permissions: ["read(\"any\")"] }
+        body: { documentId: "unique()", data: { serverId: serverId, uid: "bot_" + bot.publicId, username: bot.name, roleIds: [], isBot: true, botAppId: bot.$id, botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: boolStr(voiceEnabled) }, permissions: ["read(\"any\")"] }
       });
       await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + bot.$id, { method: "PATCH", asAdmin: true, body: { data: { installCount: (Number(bot.installCount) || 0) + 1 } } }).catch(function () {});
       return new Response(JSON.stringify({ ok: true, bot: { name: bot.name, avatar: bot.avatar, publicId: bot.publicId, permissions: grantedPerms } }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -38526,7 +38570,7 @@ async function handle(request, event) {
       const heldPerms = await serverGetHeldPermissions(serverId, acc.$id);
       const grantedPerms = requestedPerms.filter(function (p) { return p !== "administrator" && SERVER_PERMISSIONS.indexOf(p) >= 0 && heldPerms.indexOf(p) >= 0; });
       const voiceEnabled = !!body.voiceEnabled && heldPerms.indexOf("manage_voice") >= 0;
-      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "PATCH", asAdmin: true, body: { data: { botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: voiceEnabled } } });
+      await awFetch("/databases/" + AW_DB + "/collections/server_members/documents/" + memberDocId, { method: "PATCH", asAdmin: true, body: { data: { botPermsJson: JSON.stringify(grantedPerms), botVoiceEnabled: boolStr(voiceEnabled) } } });
       return new Response(JSON.stringify({ ok: true, permissions: grantedPerms, voiceEnabled: voiceEnabled }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 400, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -38563,7 +38607,7 @@ async function handle(request, event) {
           const b = await awFetch("/databases/" + AW_DB + "/collections/bot_apps/documents/" + m.botAppId, { asAdmin: true });
           let commands = []; try { commands = JSON.parse(b.commandsJson || "[]"); } catch (e2) {}
           let permissions = []; try { permissions = JSON.parse(m.botPermsJson || "[]"); } catch (e3) {}
-          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online, permissions: permissions, voiceEnabled: !!m.botVoiceEnabled };
+          return { memberDocId: m.$id, botAppId: b.$id, publicId: b.publicId, name: b.name, avatar: b.avatar, description: b.description, commands: commands, online: b.online, permissions: permissions, voiceEnabled: boolTrue(m.botVoiceEnabled) };
         } catch (e2) { return null; }
       }));
       return new Response(JSON.stringify({ ok: true, bots: bots.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -39036,7 +39080,7 @@ async function handle(request, event) {
       const chanPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson });
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
+        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: String(Number(body.position) || 0), visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
       });
       await logServerAudit(serverId, "bot_" + bot.publicId, "🤖 " + bot.name, "channel_create", name, { type: type });
       return new Response(JSON.stringify({ ok: true, channel: chan }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -39084,7 +39128,7 @@ async function handle(request, event) {
     if (String(channel.serverId) !== String(serverId)) throw new Error("Salon introuvable sur ce serveur");
     if (channel.type !== "voice" && channel.type !== "stage") throw new Error("Ce salon n'est pas un salon vocal");
     const { install } = await resolveBotServerInstall(bot, serverId);
-    if (!install.botVoiceEnabled) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
+    if (!boolTrue(install.botVoiceEnabled)) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
     return channel;
   }
   // Un salon vocal n'a pas de composer texte (voir renderServerChannelContent
@@ -39100,7 +39144,7 @@ async function handle(request, event) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const { install } = await resolveBotServerInstall(bot, serverId);
-      if (!install.botVoiceEnabled) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
+      if (!boolTrue(install.botVoiceEnabled)) throw new Error("Ce bot n'a pas la permission de rejoindre le vocal sur ce serveur");
       const q = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents?" +
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "serverId", values: [serverId] })) +
         "&queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [200] })), { asAdmin: true });
@@ -40444,7 +40488,7 @@ async function handle(request, event) {
       const fileInfo = await awFetch("/storage/buckets/xultra_drive/files/" + fileId, { asAdmin: true });
       const realSize = fileInfo.sizeOriginal || 0;
       const meta = await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      if (meta && meta.driveSuspended) {
+      if (meta && boolTrue(meta.driveSuspended)) {
         await awFetch("/storage/buckets/xultra_drive/files/" + fileId, { method: "DELETE", asAdmin: true }).catch(function () {});
         await awFetch("/databases/" + AW_DB + "/collections/xdrive_items/documents/" + itemId, { method: "DELETE", asAdmin: true }).catch(function () {});
         return new Response(JSON.stringify({ ok: false, error: "drive_suspended" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -40875,7 +40919,7 @@ async function handle(request, event) {
           const used = m.diskUsed || 0;
           totalUsed += used;
           usersScanned++;
-          if (used > 0) topUsers.push({ uid: m.$id, used: used, suspended: !!m.driveSuspended });
+          if (used > 0) topUsers.push({ uid: m.$id, used: used, suspended: boolTrue(m.driveSuspended) });
         });
         if (docs.length < 100) break;
         cursor = docs[docs.length - 1].$id;
@@ -40944,7 +40988,7 @@ async function handle(request, event) {
       const targetUid = String((body && body.uid) || "");
       const suspended = !!(body && body.suspended);
       if (!targetUid) throw new Error("uid requis");
-      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + targetUid, { method: "PATCH", asAdmin: true, body: { data: { driveSuspended: suspended }, permissions: ["read(\"any\")"] } });
+      await awFetch("/databases/" + AW_DB + "/collections/user_meta/documents/" + targetUid, { method: "PATCH", asAdmin: true, body: { data: { driveSuspended: boolStr(suspended) }, permissions: ["read(\"any\")"] } });
       if (suspended) {
         await createInAppNotification(targetUid, "xdrive_suspended", "", "L'équipe IXin", "Ton accès à IXin Drive a été suspendu par l'équipe. Les fichiers déjà stockés restent en sécurité (toujours chiffrés), mais tu ne peux plus en ajouter pour le moment.", "");
       }
@@ -40973,7 +41017,7 @@ async function handle(request, event) {
       // logique dans /api/location/friends) — jamais annoncer "actif" à
       // quelqu'un qui rouvrirait le panneau après expiration.
       const expired = !!(doc && doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= Date.now());
-      return new Response(JSON.stringify({ ok: true, sharing: !!(doc && doc.sharing && !expired), visibleTo: visibleTo, sharingExpiresAt: (doc && !expired) ? (doc.sharingExpiresAt || null) : null }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+      return new Response(JSON.stringify({ ok: true, sharing: !!(doc && boolTrue(doc.sharing) && !expired), visibleTo: visibleTo, sharingExpiresAt: (doc && !expired) ? (doc.sharingExpiresAt || null) : null }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     }
@@ -40998,12 +41042,12 @@ async function handle(request, event) {
       const sharingExpiresAt = (sharing && durationMinutes > 0) ? new Date(Date.now() + durationMinutes * 60000).toISOString() : null;
       const perms = ["update(\"user:" + acc.$id + "\")", "delete(\"user:" + acc.$id + "\")"]
         .concat(sharing ? visibleTo.map(function (uid) { return "read(\"user:" + uid + "\")"; }) : []);
-      const data = { uid: String(acc.$id), sharing: sharing, visibleToJson: JSON.stringify(visibleTo), sharingExpiresAt: sharingExpiresAt };
+      const data = { uid: String(acc.$id), sharing: boolStr(sharing), visibleToJson: JSON.stringify(visibleTo), sharingExpiresAt: sharingExpiresAt };
       try {
         await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: data, permissions: perms } });
       } catch (e) {
         if (e && e.status === 404) {
-          await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ lat: 0, lng: 0 }, data), permissions: perms } });
+          await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents", { method: "POST", asAdmin: true, body: { documentId: acc.$id, data: Object.assign({ lat: "0", lng: "0" }, data), permissions: perms } });
         } else throw e;
       }
       return new Response(JSON.stringify({ ok: true, sharing: sharing, visibleTo: visibleTo, sharingExpiresAt: sharingExpiresAt }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -41021,12 +41065,12 @@ async function handle(request, event) {
       const lng = Number(body && body.lng);
       if (!isFinite(lat) || !isFinite(lng)) throw new Error("Coordonnées invalides");
       const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { asAdmin: true }).catch(function () { return null; });
-      if (!doc || !doc.sharing) throw new Error("Active le partage de position avant d'envoyer ta position");
+      if (!doc || !boolTrue(doc.sharing)) throw new Error("Active le partage de position avant d'envoyer ta position");
       // Le client ne doit jamais pouvoir prolonger un partage expiré en lui
       // envoyant simplement une position fraîche — la durée choisie fait foi
       // côté serveur, jamais côté client.
       if (doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= Date.now()) throw new Error("expired");
-      await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { lat: lat, lng: lng } } });
+      await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + acc.$id, { method: "PATCH", asAdmin: true, body: { data: { lat: String(lat), lng: String(lng) } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: (e && e.message === "expired") ? 410 : 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -41043,7 +41087,7 @@ async function handle(request, event) {
       const now = Date.now();
       const results = await Promise.all(friendUids.map(async function (fuid) {
         const doc = await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + fuid, { asAdmin: true }).catch(function () { return null; });
-        if (!doc || !doc.sharing) return null;
+        if (!doc || !boolTrue(doc.sharing)) return null;
         if (doc.sharingExpiresAt && new Date(doc.sharingExpiresAt).getTime() <= now) return null;
         let visibleTo = []; try { visibleTo = JSON.parse(doc.visibleToJson || "[]"); } catch (e) {}
         if (visibleTo.map(String).indexOf(myUid) < 0) return null;
@@ -41055,7 +41099,7 @@ async function handle(request, event) {
           name: (profile && (profile.displayName || profile.username)) || "Ami",
           avatar: (profile && profile.avatar) || "",
           profileExtraJson: (meta && meta.profileExtraJson) || "{}",
-          lat: doc.lat, lng: doc.lng, updatedAt: doc.$updatedAt
+          lat: toNum(doc.lat), lng: toNum(doc.lng), updatedAt: doc.$updatedAt
         };
       }));
       return new Response(JSON.stringify({ ok: true, friends: results.filter(Boolean) }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -41085,7 +41129,7 @@ async function handle(request, event) {
         if (visibleTo.map(String).indexOf(other) < 0) return;
         const newVisible = visibleTo.filter(function (u) { return String(u) !== other; });
         const perms = ["update(\"user:" + ownerUid + "\")", "delete(\"user:" + ownerUid + "\")"]
-          .concat(doc.sharing ? newVisible.map(function (u) { return "read(\"user:" + u + "\")"; }) : []);
+          .concat(boolTrue(doc.sharing) ? newVisible.map(function (u) { return "read(\"user:" + u + "\")"; }) : []);
         await awFetch("/databases/" + AW_DB + "/collections/location_shares/documents/" + ownerUid, { method: "PATCH", asAdmin: true, body: { data: { visibleToJson: JSON.stringify(newVisible) }, permissions: perms } }).catch(function () {});
       }));
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -41366,7 +41410,7 @@ async function handle(request, event) {
       }
       await awFetch("/databases/" + AW_DB + "/collections/reports/documents/" + reportId, {
         method: "PATCH", asAdmin: true,
-        body: { data: { status: action === "ban" ? "reviewed" : "dismissed", resolutionNote: note, lawEnforcementNotified: lawEnforcementNotified } }
+        body: { data: { status: action === "ban" ? "reviewed" : "dismissed", resolutionNote: note, lawEnforcementNotified: boolStr(lawEnforcementNotified) } }
       });
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
         method: "POST", asAdmin: true,
@@ -41469,7 +41513,7 @@ async function handle(request, event) {
       // directement (studio de badges) ou un badge custom marqué
       // grantsPlus:true déclenchent exactement le même octroi de IXin+ à vie.
       const exclusiveBadges = ["dev", "creator", "chainsmoker"];
-      const customPlusKeys = customBadgeDefs.filter(function (d) { return d.grantsPlus; }).map(function (d) { return d.key; });
+      const customPlusKeys = customBadgeDefs.filter(function (d) { return boolTrue(d.grantsPlus); }).map(function (d) { return d.key; });
       const eliteEligible = SHAMAN_UIDS.has(authUserId) || requestedBadges.some(function (b) { return exclusiveBadges.indexOf(b) >= 0; });
       const plusEligible = eliteEligible || requestedBadges.some(function (b) { return b === "xplus" || customPlusKeys.indexOf(b) >= 0; });
       const badges = requestedBadges.slice();
@@ -41606,7 +41650,7 @@ async function handle(request, event) {
       const bannerImageUrl = /^https:\/\//.test(String((body && body.bannerImageUrl) || "")) ? body.bannerImageUrl.slice(0, 500) : "";
       const doc = await awFetch("/databases/" + AW_DB + "/collections/custom_badges/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { key, icon, label, color, description, grantsPlus, createdBy: gate.acc.$id, permissionsJson: JSON.stringify(permissions), bannerImageUrl } }
+        body: { documentId: "unique()", data: { key, icon, label, color, description, grantsPlus: boolStr(grantsPlus), createdBy: gate.acc.$id, permissionsJson: JSON.stringify(permissions), bannerImageUrl } }
       });
       const by = (gate.profile && (gate.profile.displayName || gate.profile.username)) || gate.acc.name || "admin";
       await awFetch("/databases/" + AW_DB + "/collections/admin_logs/documents", {
@@ -41634,7 +41678,7 @@ async function handle(request, event) {
       }
       if (typeof body.color === "string" && /^#[0-9a-fA-F]{6}$/.test(body.color)) data.color = body.color;
       if (typeof body.description === "string") data.description = body.description.trim().slice(0, 500);
-      if (typeof body.grantsPlus === "boolean") data.grantsPlus = body.grantsPlus;
+      if (typeof body.grantsPlus === "boolean") data.grantsPlus = boolStr(body.grantsPlus);
       if (Array.isArray(body.permissions)) {
         const allowedPermKeys = GLOBAL_BADGE_PERMISSIONS.map(function (p) { return p.key; });
         data.permissionsJson = JSON.stringify(body.permissions.filter(function (p) { return allowedPermKeys.indexOf(p) >= 0; }));
@@ -44515,7 +44559,7 @@ async function handle(request, event) {
       const discoverable = !!(body && body.discoverable);
       let category = String((body && body.category) || "").trim().toLowerCase();
       if (category && SERVER_DISCOVERY_CATEGORIES.indexOf(category) < 0) category = "autre";
-      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { discoverable: discoverable, category: category } } });
+      const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { method: "PATCH", asAdmin: true, body: { data: { discoverable: boolStr(discoverable), category: category } } });
       const actorProfileDisco = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfileDisco && (actorProfileDisco.displayName || actorProfileDisco.username)) || acc.name, discoverable ? "server_discoverable_on" : "server_discoverable_off", "", { category: category });
       return new Response(JSON.stringify({ ok: true, server: updated }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -44530,7 +44574,7 @@ async function handle(request, event) {
     try {
       const category = String(url.searchParams.get("category") || "").trim().toLowerCase();
       const queries = [
-        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "discoverable", values: [true] })),
+        "queries[]=" + encodeURIComponent(JSON.stringify({ method: "equal", attribute: "discoverable", values: ["true"] })),
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "orderDesc", attribute: "$createdAt" })),
         "queries[]=" + encodeURIComponent(JSON.stringify({ method: "limit", values: [60] }))
       ];
@@ -44577,7 +44621,7 @@ async function handle(request, event) {
       const body = await request.json();
       const serverId = String((body && body.serverId) || "");
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true });
-      if (!server.discoverable) throw new Error("Ce serveur n'est pas ouvert à la découverte");
+      if (!boolTrue(server.discoverable)) throw new Error("Ce serveur n'est pas ouvert à la découverte");
       let banned = [];
       try { banned = JSON.parse(server.bannedUidsJson || "[]"); } catch (e) {}
       if (banned.indexOf(String(acc.$id)) >= 0) throw new Error("Tu as été banni de ce serveur");
@@ -44720,7 +44764,7 @@ async function handle(request, event) {
       const welcomeMessage = String((body && body.welcomeMessage) || "").trim().slice(0, 500);
       if (communityMode && !rulesText) throw new Error("Écris au moins quelques règles avant d'activer le mode communauté");
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
-        method: "PATCH", asAdmin: true, body: { data: { communityMode: communityMode, rulesText: rulesText, welcomeMessage: welcomeMessage } }
+        method: "PATCH", asAdmin: true, body: { data: { communityMode: boolStr(communityMode), rulesText: rulesText, welcomeMessage: welcomeMessage } }
       });
       const profile = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, communityMode ? "community_mode_on" : "community_mode_off", "", {});
@@ -45105,7 +45149,7 @@ async function handle(request, event) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const enabled = !!(body && body.enabled);
       const updated = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, {
-        method: "PATCH", asAdmin: true, body: { data: { widgetEnabled: enabled } }
+        method: "PATCH", asAdmin: true, body: { data: { widgetEnabled: boolStr(enabled) } }
       });
       const profile = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (profile && (profile.displayName || profile.username)) || acc.name, enabled ? "widget_enable" : "widget_disable", "", {});
@@ -45119,7 +45163,7 @@ async function handle(request, event) {
     try {
       const serverId = path.split("/")[4].replace(/\.json$/, "");
       const server = await awFetch("/databases/" + AW_DB + "/collections/servers/documents/" + serverId, { asAdmin: true }).catch(function () { return null; });
-      if (!server || !server.widgetEnabled) {
+      if (!server || !boolTrue(server.widgetEnabled)) {
         return new Response(JSON.stringify({ ok: false, error: "widget_disabled" }), { status: 404, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
       }
       const membersCount = await awFetch("/databases/" + AW_DB + "/collections/server_members/documents?" +
@@ -45345,7 +45389,7 @@ async function handle(request, event) {
       }
       const role = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, name: name, color: color, permissionsJson: JSON.stringify(perms), position: position, mentionable: mentionable } }
+        body: { documentId: "unique()", data: { serverId: serverId, name: name, color: color, permissionsJson: JSON.stringify(perms), position: String(position), mentionable: boolStr(mentionable) } }
       });
       const actorProfile1 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile1 && (actorProfile1.displayName || actorProfile1.username)) || acc.name, "role_create", name, { permissions: perms });
@@ -45374,7 +45418,7 @@ async function handle(request, event) {
       if (typeof body.name === "string") data.name = body.name.trim().slice(0, 64);
       if (typeof body.color === "string") data.color = body.color.slice(0, 16);
       if (Array.isArray(body.permissions)) data.permissionsJson = JSON.stringify(body.permissions.filter(function (p) { return SERVER_PERMISSIONS.indexOf(p) >= 0; }));
-      if (typeof body.mentionable === "boolean") data.mentionable = body.mentionable;
+      if (typeof body.mentionable === "boolean") data.mentionable = boolStr(body.mentionable);
       const updated = await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roleId, { method: "PATCH", asAdmin: true, body: { data: data } });
       const actorProfile2 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile2 && (actorProfile2.displayName || actorProfile2.username)) || acc.name, "role_update", updated.name, data);
@@ -45482,8 +45526,8 @@ async function handle(request, event) {
       }
       const posA = Number(roles[idx].position) || 0;
       const posB = Number(roles[swapIdx].position) || 0;
-      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roles[idx].$id, { method: "PATCH", asAdmin: true, body: { data: { position: posB } } });
-      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roles[swapIdx].$id, { method: "PATCH", asAdmin: true, body: { data: { position: posA } } });
+      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roles[idx].$id, { method: "PATCH", asAdmin: true, body: { data: { position: String(posB) } } });
+      await awFetch("/databases/" + AW_DB + "/collections/server_roles/documents/" + roles[swapIdx].$id, { method: "PATCH", asAdmin: true, body: { data: { position: String(posA) } } });
       return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
@@ -45996,7 +46040,7 @@ async function handle(request, event) {
       // explicitement la permission de lire le document concerné).
       const catPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: [], overwritesJson: "[]" });
       const cat = await awFetch("/databases/" + AW_DB + "/collections/server_categories/documents", {
-        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { serverId: serverId, name: name, position: Number(body.position) || 0 }, permissions: catPerms }
+        method: "POST", asAdmin: true, body: { documentId: "unique()", data: { serverId: serverId, name: name, position: String(Number(body.position) || 0) }, permissions: catPerms }
       });
       const actorProfile7 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile7 && (actorProfile7.displayName || actorProfile7.username)) || acc.name, "category_create", name, {});
@@ -46017,7 +46061,7 @@ async function handle(request, event) {
       if (!gate.ok) throw new Error(gate.error || "Permission refusée");
       const data = {};
       if (typeof body.name === "string") data.name = body.name.trim().slice(0, 64);
-      if (typeof body.position === "number") data.position = body.position;
+      if (typeof body.position === "number") data.position = String(body.position);
       if (Array.isArray(body.visibleRoleIds)) data.visibleRoleIds = body.visibleRoleIds.map(String);
       if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       const patchBody = { data: data };
@@ -46113,7 +46157,7 @@ async function handle(request, event) {
       const chanPerms = await computeChannelViewerReadPermissions(serverId, { visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson });
       const chan = await awFetch("/databases/" + AW_DB + "/collections/server_channels/documents", {
         method: "POST", asAdmin: true,
-        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: Number(body.position) || 0, visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
+        body: { documentId: "unique()", data: { serverId: serverId, categoryId: String(body.categoryId || ""), name: name, type: type, position: String(Number(body.position) || 0), visibleRoleIds: visibleRoleIds, overwritesJson: overwritesJson }, permissions: chanPerms }
       });
       const actorProfile9 = await resolveProfile(acc.$id);
       await logServerAudit(serverId, acc.$id, (actorProfile9 && (actorProfile9.displayName || actorProfile9.username)) || acc.name, "channel_create", name, { type: type });
@@ -46135,7 +46179,7 @@ async function handle(request, event) {
       const data = {};
       if (typeof body.name === "string") data.name = body.name.trim().slice(0, 64);
       if (typeof body.categoryId === "string") data.categoryId = body.categoryId;
-      if (typeof body.position === "number") data.position = body.position;
+      if (typeof body.position === "number") data.position = String(body.position);
       if (Array.isArray(body.visibleRoleIds)) data.visibleRoleIds = body.visibleRoleIds.map(String);
       if (Array.isArray(body.overwrites)) data.overwritesJson = JSON.stringify(sanitizeChannelOverwrites(body.overwrites));
       if (typeof body.slowmodeSeconds === "number") data.slowmodeSeconds = Math.max(0, Math.min(21600, Math.round(body.slowmodeSeconds)));
@@ -47299,7 +47343,7 @@ async function handle(request, event) {
       if (data.type !== "friend_request") {
         (async function () {
           const recipientProfile = await resolveProfile(uid).catch(function () { return null; });
-          const body = (recipientProfile && recipientProfile.notifPreview === false) ? "" : data.text;
+          const body = (recipientProfile && (recipientProfile.notifPreview === false || recipientProfile.notifPreview === "false")) ? "" : data.text;
           pushToUid(uid, { type: data.type, title: NOTIF_PUSH_TITLES[data.type] || (data.fromName || "IXin"), body: body || "Nouvelle notification", tag: "notif-" + data.type, url: notifPushUrl(data.type, uid, data.fromUid, data.refId) }).catch(function () {});
         })();
       }
@@ -47452,7 +47496,7 @@ async function handle(request, event) {
         // donc chercher SON profil (pas celui de l'expéditeur) avant de
         // décider quoi mettre dans le corps de la notification push.
         const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
-        if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
+        if (recipientProfile && (recipientProfile.notifPreview === false || recipientProfile.notifPreview === "false")) preview = "";
         await pushToUid(toUid, { type: "message", title: senderName, body: preview || "Nouveau message", tag: "dm-" + threadId, icon: senderIcon, url: "/?dm=" + threadId, threadId: threadId });
       } else if (type === "mention") {
         // Ping @pseudo dans un groupe : mêmes vérifications d'appartenance que
@@ -47470,7 +47514,7 @@ async function handle(request, event) {
         }
         let preview = String((body && body.preview) || "").slice(0, 140);
         const recipientProfile = await resolveProfile(toUid).catch(function () { return null; });
-        if (recipientProfile && recipientProfile.notifPreview === false) preview = "";
+        if (recipientProfile && (recipientProfile.notifPreview === false || recipientProfile.notifPreview === "false")) preview = "";
         await pushToUid(toUid, { type: "mention", title: "🔔 " + senderName + " t'a mentionné", body: preview || "Tu as été mentionné dans une conversation", tag: "dm-" + threadId, icon: senderIcon, url: "/?dm=" + threadId, threadId: threadId });
       } else if (type === "friend_request") {
         const fUrl = "/databases/" + AW_DB + "/collections/ultravoc_friends/documents?" +
