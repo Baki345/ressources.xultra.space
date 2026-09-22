@@ -6171,7 +6171,7 @@ a.bug-att-item{display:block}
     </div>
     <div class="bug-modal-body">
       <input id="bug-title" class="field-input" placeholder="Titre court" autocomplete="off" maxlength="120"/>
-      <textarea id="bug-desc" class="field-input" style="height:110px;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
+      <textarea id="bug-desc" class="field-input" style="height:110px;min-height:110px;flex-shrink:0;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
       <div class="bug-att-wrap">
         <div class="bug-att-head">
           <span>📎 Captures / vidéos (optionnel)</span>
