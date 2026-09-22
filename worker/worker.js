@@ -8550,6 +8550,7 @@ async function enterApp(e2ePassword){
   try{startCallPolling();}catch(e){}
   try{startResyncAfterGapWatcher();}catch(e){}
   try{startDmMessagePolling();}catch(e){}
+  try{startStoriesPolling();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
@@ -14732,6 +14733,7 @@ function resyncAfterGap(){
   try{loadFriends().then(function(){if(view==='friends')renderFriends();}).catch(function(){});}catch(e){}
   if(activeDm){try{loadMessages(activeDm);}catch(e){}}
   try{checkPendingIncomingCall();}catch(e){}
+  try{loadStories();}catch(e){}
 }
 // Filet de sécurité supplémentaire, en sondage régulier cette fois (même
 // principe que startCallPolling() plus bas) : resyncAfterGap() ne couvre que
@@ -14751,6 +14753,23 @@ function startDmMessagePolling(){
   dmMessagePollIntervalId=setInterval(function(){
     if(activeDm)appendNewMessages().catch(function(){});
   },4000);
+}
+// Même filet de sécurité que startDmMessagePolling() ci-dessus, pour les
+// stories : subscribeStoriesWatcher() (temps réel) est déjà en place, mais
+// une story publiée pendant que le WebSocket est mort (voir le commentaire
+// détaillé sur startCallPolling() plus bas — coupure Cloudflare après ~60s
+// d'inactivité) n'apparaissait qu'au prochain rechargement complet. Les
+// stories sont un évènement bien plus rare qu'un message ou un appel, donc
+// le WebSocket a statistiquement plus de chances d'être déjà mort au moment
+// où quelqu'un en publie une — d'où l'intérêt réel de ce filet ici aussi.
+// Scopé à la vue "dms" (seule vue où #stories-bar est visible), même logique
+// que le sondage messages scopé à activeDm.
+let storiesPollIntervalId=null;
+function startStoriesPolling(){
+  if(storiesPollIntervalId)return;
+  storiesPollIntervalId=setInterval(function(){
+    if(view==='dms')loadStories().catch(function(){});
+  },20000);
 }
 function startResyncAfterGapWatcher(){
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')resyncAfterGap();});
