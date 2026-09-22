@@ -4891,6 +4891,19 @@ a.bug-att-item{display:block}
 .crp-close{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.9rem;padding:4px 6px;flex-shrink:0}
 .crp-close:hover{color:#d8d8dd}
 .call-bar.embedded{position:static;max-width:none;margin:20px 14px 8px;box-shadow:none}
+/* Bulle flottante déplaçable/réductible (demandé explicitement) — seulement
+   hors de la conversation appelée (jamais .embedded, où la bulle est
+   intégrée au fil normal et n'a pas de raison de bouger). left/top posés en
+   inline par wireCallBarDrag() remplacent alors le centrage par défaut
+   (left/right auto + margin:auto) sans toucher au CSS de base. */
+.call-bar:not(.embedded) .cb-top{cursor:grab}
+.call-bar:not(.embedded).cb-dragging{cursor:grabbing;transition:none;user-select:none}
+.call-bar:not(.embedded).cb-dragging .cb-top{cursor:grabbing}
+.cb-minimize{width:32px;height:32px;border-radius:9px;background:rgba(255,255,255,.06);color:#d8d8dd;font-size:.95rem;display:grid;place-items:center;flex-shrink:0;align-self:flex-start}
+.call-bar.minimized{max-width:240px;padding:8px 10px}
+.call-bar.minimized .cb-controls,.call-bar.minimized .cb-video,.call-bar.minimized .live-pill,.call-bar.minimized .screen-pill,.call-bar.minimized .cb-gear{display:none!important}
+.call-bar.minimized .cb-status{display:none}
+.call-bar.minimized .cb-minimize svg{transform:rotate(180deg)}
 .cb-top{display:flex;align-items:center;gap:10px}
 .cb-av-wrap{position:relative;width:38px;height:38px;flex-shrink:0}
 .cb-av-wave{position:absolute;top:50%;left:50%;width:76px;height:76px;transform:translate(-50%,-50%);pointer-events:none}
@@ -6533,6 +6546,7 @@ a.bug-att-item{display:block}
       <div class="cb-name" id="cb-name">En appel · 1 participant<span class="cb-peer-badges" id="cb-peer-badges"></span></div>
       <div class="cb-status"><span class="cb-dot"></span><span id="cb-status">00:00</span> · <span id="cb-sub">Sonne…</span></div>
     </div>
+    <button type="button" class="cb-minimize" id="cb-minimize" title="Réduire"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>
     <button type="button" class="cb-gear" id="cb-settings" title="Paramètres audio/vidéo"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="15" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="9" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="17" cy="18" r="2" fill="currentColor" stroke="none"/></svg></button>
   </div>
   <div class="cb-controls">
@@ -14841,6 +14855,17 @@ async function saveDmPersonalization(threadId,patch){
   }
 }
 function dmpSetVar(el,name,val){if(val)el.style.setProperty(name,val);else el.style.removeProperty(name);}
+// dms.sharedWallpaperPosX/PosY/Scale sont des attributs STRING côté Appwrite
+// (voir schema.json) alors que ce sont des pourcentages numériques partout
+// côté client — un nombre JS brut envoyé tel quel se fait rejeter par
+// Appwrite ("Value must be a valid string"). On stringifie à l'écriture (voir
+// saveSharedWallpaper) et on reparse ici à la lecture, plutôt que de changer
+// le type de l'attribut (impossible à faire sans le supprimer/recréer, donc
+// perdre les valeurs déjà enregistrées).
+function wpNum(v,fallback){
+  const n=parseFloat(v);
+  return isFinite(n)?n:fallback;
+}
 function applyDmPersonalizationStyle(threadId){
   const msgsEl=\$('msgs');if(!msgsEl)return;
   const pers=dmPersonalizationCache[threadId]||{};
@@ -14865,8 +14890,8 @@ function applyDmPersonalizationStyle(threadId){
     // pour tout le monde dans la conversation — stocké sur le document du
     // thread lui-même, donc naturellement synchronisé en temps réel.
     msgsEl.style.backgroundImage='url(\\''+dm.sharedWallpaperUrl.replace(/'/g,'')+'\\')';
-    msgsEl.style.backgroundSize=(dm.sharedWallpaperScale||100)+'%';
-    msgsEl.style.backgroundPosition=(typeof dm.sharedWallpaperPosX==='number'?dm.sharedWallpaperPosX:50)+'% '+(typeof dm.sharedWallpaperPosY==='number'?dm.sharedWallpaperPosY:50)+'%';
+    msgsEl.style.backgroundSize=wpNum(dm.sharedWallpaperScale,100)+'%';
+    msgsEl.style.backgroundPosition=wpNum(dm.sharedWallpaperPosX,50)+'% '+wpNum(dm.sharedWallpaperPosY,50)+'%';
   }else{
     msgsEl.style.backgroundImage='';
     msgsEl.style.backgroundSize='';
@@ -14998,9 +15023,9 @@ function openSharedWallpaperModal(){
   const dm=dmsCache.find(function(d){return d.\$id===activeDm});
   swpState={
     url:(dm&&dm.sharedWallpaperUrl)||'',
-    posX:(dm&&typeof dm.sharedWallpaperPosX==='number')?dm.sharedWallpaperPosX:50,
-    posY:(dm&&typeof dm.sharedWallpaperPosY==='number')?dm.sharedWallpaperPosY:50,
-    scale:(dm&&dm.sharedWallpaperScale)?dm.sharedWallpaperScale:100
+    posX:wpNum(dm&&dm.sharedWallpaperPosX,50),
+    posY:wpNum(dm&&dm.sharedWallpaperPosY,50),
+    scale:wpNum(dm&&dm.sharedWallpaperScale,100)
   };
   \$('swp-zoom').value=swpState.scale;
   \$('swp-err').textContent='';
@@ -15065,9 +15090,9 @@ if(\$('swp-save'))\$('swp-save').addEventListener('click',async function(){
   try{
     await db.updateDocument(DB,'dms',activeDm,{
       sharedWallpaperUrl:swpState.url,
-      sharedWallpaperPosX:swpState.posX,
-      sharedWallpaperPosY:swpState.posY,
-      sharedWallpaperScale:swpState.scale
+      sharedWallpaperPosX:String(swpState.posX),
+      sharedWallpaperPosY:String(swpState.posY),
+      sharedWallpaperScale:String(swpState.scale)
     });
     const dm=dmsCache.find(function(d){return d.\$id===activeDm});
     if(dm){
@@ -17220,14 +17245,14 @@ function repositionCallPanel(){
   const bar=\$('call-bar');
   if(bar&&!bar.classList.contains('hidden')){
     const viewingCallDm=chatVisible&&view==='dms'&&activeDm&&callPeerUid&&activeDmPeerUid===callPeerUid;
-    if(viewingCallDm&&anchor){anchor.appendChild(bar);bar.classList.add('embedded');}
+    if(viewingCallDm&&anchor){anchor.appendChild(bar);bar.classList.add('embedded');bar.style.left='';bar.style.top='';bar.style.right='';bar.style.bottom='';bar.style.margin='';}
     else{document.body.appendChild(bar);bar.classList.remove('embedded');}
   }
   const gbar=\$('group-call-bar');
   if(gbar&&groupRoom&&groupCallContextType==='dm'){
     const viewingGroupDm=chatVisible&&view==='dms'&&activeDm===groupCallContextId;
     if(!viewingGroupDm&&gcbCinemaMode)exitGroupCinema();
-    if(viewingGroupDm&&anchor){anchor.appendChild(gbar);gbar.classList.remove('hidden');gbar.classList.add('embedded');}
+    if(viewingGroupDm&&anchor){anchor.appendChild(gbar);gbar.classList.remove('hidden');gbar.classList.add('embedded');gbar.style.left='';gbar.style.top='';gbar.style.right='';gbar.style.bottom='';gbar.style.margin='';}
     else{gbar.classList.add('hidden');gbar.classList.remove('embedded');document.body.appendChild(gbar);}
   }else if(gcbCinemaMode)exitGroupCinema();
   // Filet de sécurité : si on quitte le salon (retour à la liste, autre
@@ -31696,6 +31721,7 @@ function showCallBar(name,label,startedAtMs){
   \$('cb-av').textContent=ini(name||'?');
   \$('cb-av').onclick=function(){if(callPeerUid)openProfileModal(callPeerUid)};
   \$('call-bar').classList.remove('hidden');
+  \$('call-bar').classList.remove('minimized');
   if(startedAtMs)callStartedAt=startedAtMs;
   setCallStatusLabel(label);
   repositionCallPanel();
@@ -36128,6 +36154,46 @@ if(\$('vstage-exit'))\$('vstage-exit').addEventListener('click',function(){
 });
 if(\$('cb-mask'))\$('cb-mask').addEventListener('click',function(){videoMasked=true;renderVideoGrid();});
 if(\$('live-pill'))\$('live-pill').addEventListener('click',function(){videoMasked=false;renderVideoGrid();});
+if(\$('cb-minimize'))\$('cb-minimize').addEventListener('click',function(){
+  const bar=\$('call-bar');if(bar)bar.classList.toggle('minimized');
+});
+// Bulle flottante déplaçable (demandé explicitement) : glisser depuis l'en-tête
+// (.cb-top/.gcb-top) repositionne toute la bulle n'importe où sur l'écran,
+// tant qu'elle n'est pas .embedded (intégrée au fil de la conversation
+// appelée elle-même, où la faire bouger n'aurait pas de sens). Position
+// clampée à l'intérieur du viewport ; remise à zéro par repositionCallPanel()
+// dès qu'elle redevient embedded, pour ne pas garder une position figée la
+// prochaine fois qu'elle flotte à nouveau.
+function wireCallBarDrag(bar,handle){
+  if(!bar||!handle)return;
+  let dragging=false,offX=0,offY=0;
+  handle.addEventListener('pointerdown',function(e){
+    if(bar.classList.contains('embedded')||e.target.closest('button'))return;
+    dragging=true;
+    bar.classList.add('cb-dragging');
+    const rect=bar.getBoundingClientRect();
+    offX=e.clientX-rect.left;offY=e.clientY-rect.top;
+    bar.style.left=rect.left+'px';bar.style.top=rect.top+'px';
+    bar.style.right='auto';bar.style.bottom='auto';bar.style.margin='0';
+    try{handle.setPointerCapture(e.pointerId);}catch(ex){}
+  });
+  handle.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    const w=bar.offsetWidth,h=bar.offsetHeight;
+    bar.style.left=Math.max(4,Math.min(window.innerWidth-w-4,e.clientX-offX))+'px';
+    bar.style.top=Math.max(4,Math.min(window.innerHeight-h-4,e.clientY-offY))+'px';
+  });
+  function stopDrag(e){
+    if(!dragging)return;
+    dragging=false;
+    bar.classList.remove('cb-dragging');
+    try{handle.releasePointerCapture(e.pointerId);}catch(ex){}
+  }
+  handle.addEventListener('pointerup',stopDrag);
+  handle.addEventListener('pointercancel',stopDrag);
+}
+if(\$('call-bar'))wireCallBarDrag(\$('call-bar'),\$('call-bar').querySelector('.cb-top'));
+if(\$('group-call-bar'))wireCallBarDrag(\$('group-call-bar'),\$('group-call-bar').querySelector('.gcb-top'));
 
 if(\$('cb-settings'))\$('cb-settings').addEventListener('click',function(){
   \$('modal-call-settings').classList.remove('hidden');
