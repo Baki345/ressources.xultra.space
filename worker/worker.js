@@ -41710,6 +41710,24 @@ async function handle(request, event) {
     }
   }
 
+  // TEMPORAIRE — à retirer après usage : lit les vrais attributs live d'une
+  // collection (pour vérifier schema.json contre la réalité avant de corriger
+  // quoi que ce soit à l'aveugle).
+  if (path === "/api/admin/__fix_list_attrs" && request.method === "GET") {
+    if (url.searchParams.get("k") !== "ixin-fix-9f3a1c") {
+      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+    try {
+      const collection = url.searchParams.get("collection") || "";
+      if (!collection) throw new Error("collection requis");
+      const result = await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/attributes", { asAdmin: true });
+      const simplified = ((result && result.attributes) || []).map(function (a) { return { key: a.key, type: a.type, size: a.size, required: a.required, array: a.array }; });
+      return new Response(JSON.stringify({ ok: true, attributes: simplified }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // --- Voice call signaling (any authenticated user) ---
   // A plain client session cannot grant document permissions to another user's
   // role (Appwrite blocks that as an anti-privilege-escalation guard), so the
