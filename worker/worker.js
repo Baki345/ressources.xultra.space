@@ -5476,6 +5476,25 @@ a.bug-att-item{display:block}
 .vpn-pitch-item-title{font-size:.86rem;font-weight:800;color:#f0f0f3;margin-bottom:2px}
 .vpn-pitch-item-desc{font-size:.76rem;line-height:1.4;color:var(--muted)}
 .vpn-pitch-buy{border:1px solid rgba(196,181,253,.25);background:linear-gradient(160deg,rgba(124,58,237,.14),rgba(255,255,255,.02))}
+.vpn-pitch-price-tag{display:inline-flex;align-items:center;gap:4px;font-size:.72rem;font-weight:800;color:#e9d5ff;background:rgba(168,85,247,.16);border:1px solid rgba(196,181,253,.3);border-radius:999px;padding:2px 9px;margin-left:8px;white-space:nowrap;vertical-align:middle}
+.vpn-pitch-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin-bottom:16px;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.02)}
+.vpn-pitch-compare-col{padding:12px 12px}
+.vpn-pitch-compare-col.us{background:linear-gradient(160deg,rgba(124,58,237,.16),transparent)}
+.vpn-pitch-compare-mid{width:1px;background:rgba(255,255,255,.08)}
+.vpn-pitch-compare-head{font-size:.7rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;margin-bottom:9px;color:var(--muted)}
+.vpn-pitch-compare-col.us .vpn-pitch-compare-head{color:#e9d5ff}
+.vpn-pitch-compare-row{display:flex;gap:6px;align-items:flex-start;font-size:.78rem;line-height:1.4;color:var(--muted);margin-bottom:7px}
+.vpn-pitch-compare-col.us .vpn-pitch-compare-row{color:#f0e9fb}
+.vpn-pitch-compare-row:last-child{margin-bottom:0}
+.vpn-pitch-trust{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+.vpn-pitch-trust-item{display:flex;align-items:center;gap:5px;font-size:.72rem;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:999px;padding:5px 11px}
+.vpn-pitch-faq{margin-top:16px}
+.vpn-pitch-faq-item{border:1px solid rgba(255,255,255,.07);border-radius:12px;margin-bottom:8px;overflow:hidden;background:rgba(255,255,255,.02)}
+.vpn-pitch-faq-q{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;cursor:pointer;font-size:.84rem;font-weight:700;color:#f0f0f3;user-select:none}
+.vpn-pitch-faq-q::after{content:'+';font-size:1.1rem;font-weight:400;color:#c4b5fd;transition:transform .2s ease;flex-shrink:0}
+.vpn-pitch-faq-item.open .vpn-pitch-faq-q::after{transform:rotate(45deg)}
+.vpn-pitch-faq-a{max-height:0;overflow:hidden;transition:max-height .22s ease}
+.vpn-pitch-faq-a-in{padding:0 14px 13px;font-size:.79rem;line-height:1.5;color:var(--muted)}
 .oauth-doc-step{font-size:.85rem;line-height:1.55;color:var(--muted);margin-bottom:10px}
 .oauth-doc-step code{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 5px;font-size:.85em;color:#f0f0f3}
 .oauth-code-block{position:relative;margin-bottom:14px}
@@ -11939,7 +11958,25 @@ const VPN_PITCH_FEATURES=[
   {ic:'⚡',title:'WireGuard natif',desc:'Un protocole moderne, léger, pensé pour la vitesse — pas un vieux tunnel OpenVPN qui rame.'},
   {ic:'🌍',title:'Multi-serveurs',desc:'Choisis ton serveur depuis les paramètres — d\\'autres régions arrivent au fil du temps.'}
 ];
+// Comparaison générique ("VPN grand public", jamais un nom de marque
+// précis — même règle que le reste du site) : sert à répondre à l'objection
+// silencieuse "en quoi c'est différent d'un VPN à 3$ trouvé en pub ?" avant
+// même qu'elle soit posée, plutôt que de laisser deviner.
+const VPN_PITCH_COMPARE=[
+  {them:'Journaux souvent conservés, parfois revendus',us:'No-log — rien n\\'est jamais enregistré'},
+  {them:'Abonnement annuel imposé pour le bon prix',us:'30 jours à la fois, rachetable, jamais de reconduction forcée'},
+  {them:'Vieux protocole OpenVPN, souvent lent',us:'WireGuard natif — rapide et moderne'},
+  {them:'Boîte noire, infra à des inconnus',us:'Auto-hébergé par la même équipe que la plateforme'}
+];
+const VPN_PITCH_FAQ=[
+  {q:'Pourquoi pas un VPN gratuit ?',a:'Un VPN gratuit doit se financer autrement — souvent en vendant les données de navigation qu\\'il prétend protéger. Ici le service se paie directement, donc il n\\'y a rien d\\'autre à monétiser : pas de journaux, pas de revente.'},
+  {q:'Je peux annuler quand je veux ?',a:'Il n\\'y a pas d\\'abonnement récurrent qui se relance automatiquement — chaque achat couvre 30 jours. Tu rachètes seulement si tu veux continuer, sans démarche d\\'annulation.'},
+  {q:'Et si je perds ma clé ou mon appareil ?',a:'Une fois actif, un bouton « Révoquer cette clé » est disponible à tout moment dans cette page : l\\'ancienne clé devient inutilisable immédiatement et une nouvelle est générée pour toi.'},
+  {q:'Ça marche sur quoi ?',a:'Windows, macOS, Linux, ChromeOS, Android et iOS — avec un guide pas-à-pas pour chacun juste après l\\'achat, plus une appli desktop native qui gère le tunnel en un clic sur PC/Mac/Linux.'}
+];
 function vpnPitchHtml(){
+  const perDay=(VPN_PRICE_CAD_CLIENT/100/30);
+  const perDayLabel=(perDay*100).toFixed(0)+'¢/jour';
   return '<div class="vpn-pitch-hero">'
       +'<div class="vpn-pitch-shield"><svg viewBox="0 0 48 56"><defs><linearGradient id="vpnPitchShieldGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f5d0fe"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs><path d="M24 2l20 8v16c0 14-8.5 22.5-20 28C12.5 48.5 4 40 4 26V10z" fill="url(#vpnPitchShieldGrad)"/><path d="M15 27l6 6 12-13" stroke="#0a0a0c" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="vpn-pitch-shield-scan"></div></div>'
       +'<div class="vpn-pitch-title">Ton bouclier réseau, prêt en 30 secondes</div>'
@@ -11948,9 +11985,22 @@ function vpnPitchHtml(){
     +'<div class="vpn-pitch-grid">'+VPN_PITCH_FEATURES.map(function(f){
       return '<div class="vpn-pitch-item"><div class="vpn-pitch-item-ic">'+f.ic+'</div><div><div class="vpn-pitch-item-title">'+esc(f.title)+'</div><div class="vpn-pitch-item-desc">'+esc(f.desc)+'</div></div></div>';
     }).join('')+'</div>'
-    +'<div class="set-card vpn-pitch-buy"><div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 '+(VPN_PRICE_CAD_CLIENT/100).toFixed(2).replace('.',',')+' $ CA · 30 jours</div><div class="scr-sub">Rachetable à tout moment, sans engagement. Configuration prête immédiatement après paiement.</div></div><button type="button" class="btn-main" id="vpn-buy-btn">Débloquer mon VPN</button></div>'
+    +'<div class="vpn-pitch-compare">'
+      +'<div class="vpn-pitch-compare-col"><div class="vpn-pitch-compare-head">😐 VPN grand public</div>'+VPN_PITCH_COMPARE.map(function(c){return '<div class="vpn-pitch-compare-row">✕ '+esc(c.them)+'</div>';}).join('')+'</div>'
+      +'<div class="vpn-pitch-compare-mid"></div>'
+      +'<div class="vpn-pitch-compare-col us"><div class="vpn-pitch-compare-head">🛡️ IXin VPN</div>'+VPN_PITCH_COMPARE.map(function(c){return '<div class="vpn-pitch-compare-row">✓ '+esc(c.us)+'</div>';}).join('')+'</div>'
+    +'</div>'
+    +'<div class="set-card vpn-pitch-buy"><div class="set-card-row"><div class="scr-info"><div class="scr-label">💳 '+(VPN_PRICE_CAD_CLIENT/100).toFixed(2).replace('.',',')+' $ CA · 30 jours<span class="vpn-pitch-price-tag">≈ '+perDayLabel+'</span></div><div class="scr-sub">Rachetable à tout moment, sans engagement. Configuration prête immédiatement après paiement.</div></div><button type="button" class="btn-main" id="vpn-buy-btn">Débloquer mon VPN</button></div>'
       +'<div class="err" id="vpn-buy-err" style="min-height:1em;margin-top:6px"></div>'
-    +'</div>';
+      +'<div class="vpn-pitch-trust">'
+        +'<div class="vpn-pitch-trust-item">🔒 Paiement sécurisé Stripe</div>'
+        +'<div class="vpn-pitch-trust-item">⚡ Actif immédiatement</div>'
+        +'<div class="vpn-pitch-trust-item">🗑️ Clé révocable en un clic</div>'
+      +'</div>'
+    +'</div>'
+    +'<div class="vpn-pitch-faq">'+VPN_PITCH_FAQ.map(function(f,i){
+      return '<div class="vpn-pitch-faq-item" data-vpn-faq="'+i+'"><div class="vpn-pitch-faq-q">'+esc(f.q)+'</div><div class="vpn-pitch-faq-a"><div class="vpn-pitch-faq-a-in">'+esc(f.a)+'</div></div></div>';
+    }).join('')+'</div>';
 }
 // Bannière d'urgence sous le statut "Actif" — pousse discrètement au
 // renouvellement avant expiration plutôt que de laisser l'abonné découvrir
@@ -11985,6 +12035,16 @@ async function renderSetVpn(box){
   wireSetVpn(box,sub,active);
 }
 function wireSetVpn(box,sub,active){
+  box.querySelectorAll('[data-vpn-faq]').forEach(function(item){
+    const q=item.querySelector('.vpn-pitch-faq-q');
+    const a=item.querySelector('.vpn-pitch-faq-a');
+    if(!q||!a)return;
+    q.onclick=function(){
+      const willOpen=!item.classList.contains('open');
+      item.classList.toggle('open',willOpen);
+      a.style.maxHeight=willOpen?(a.scrollHeight+'px'):'0px';
+    };
+  });
   const buyBtn=\$('vpn-buy-btn');
   if(buyBtn)buyBtn.onclick=async function(){
     buyBtn.disabled=true;buyBtn.textContent='...';
