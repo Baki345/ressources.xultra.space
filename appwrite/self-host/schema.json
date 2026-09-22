@@ -1087,6 +1087,13 @@
     "array": false
    },
    {
+    "key": "wallpaperUrl",
+    "required": false,
+    "type": "string",
+    "size": 1000,
+    "array": false
+   },
+   {
     "key": "wallpaper",
     "required": false,
     "type": "string",

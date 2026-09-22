@@ -41677,6 +41677,33 @@ async function handle(request, event) {
     }
   }
 
+  // TEMPORAIRE — à retirer après usage (voir conversation) : crée un attribut
+  // string manquant sur une collection, via la clé admin Appwrite déjà
+  // configurée sur ce Worker. Générique (collection/key/size en body) pour
+  // pouvoir corriger plusieurs attributs manquants sans redéployer à chaque
+  // fois — sert à rattraper des champs référencés côté client mais jamais
+  // créés côté schéma Appwrite (ex. dm_personalization.wallpaperUrl).
+  if (path === "/api/admin/__fix_add_attr" && request.method === "POST") {
+    if (url.searchParams.get("k") !== "ixin-fix-9f3a1c") {
+      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+    try {
+      const body = await request.json();
+      const collection = String((body && body.collection) || "");
+      const key = String((body && body.key) || "");
+      const size = Number((body && body.size) || 500);
+      const required = !!(body && body.required);
+      if (!collection || !key) throw new Error("collection et key requis");
+      const result = await awFetch("/databases/" + AW_DB + "/collections/" + collection + "/attributes/string", {
+        method: "POST", asAdmin: true,
+        body: { key, size, required, default: required ? undefined : "" }
+      });
+      return new Response(JSON.stringify({ ok: true, result }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    }
+  }
+
   // --- Voice call signaling (any authenticated user) ---
   // A plain client session cannot grant document permissions to another user's
   // role (Appwrite blocks that as an anti-privilege-escalation guard), so the
