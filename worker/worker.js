@@ -41611,25 +41611,6 @@ async function handle(request, event) {
     }
   }
 
-  // TEMPORAIRE — à retirer juste après usage (voir conversation) : applique
-  // directement le correctif de schéma direct_call_ice.candidate (8000 ->
-  // 20000 chars) via la clé admin Appwrite déjà configurée sur ce Worker,
-  // sans passer par la console Appwrite ni un compte utilisateur.
-  if (path === "/api/admin/__fix_ice_size" && request.method === "POST") {
-    if (url.searchParams.get("k") !== "ixin-fix-9f3a1c") {
-      return new Response(JSON.stringify({ ok: false, error: "forbidden" }), { status: 403, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-    try {
-      const result = await awFetch("/databases/" + AW_DB + "/collections/direct_call_ice/attributes/string/candidate", {
-        method: "PATCH", asAdmin: true,
-        body: { required: false, size: 20000 }
-      });
-      return new Response(JSON.stringify({ ok: true, result }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    } catch (e) {
-      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), { status: 500, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
-    }
-  }
-
   // --- Voice call signaling (any authenticated user) ---
   // A plain client session cannot grant document permissions to another user's
   // role (Appwrite blocks that as an anti-privilege-escalation guard), so the
