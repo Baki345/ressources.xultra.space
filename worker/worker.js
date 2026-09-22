@@ -30644,7 +30644,13 @@ let makingOffer=false, ignoreOffer=false, callLive=false;
 let remoteTiles={cam:null,screen:null};
 let remoteMetaByMid={}, pendingRemoteTracksByMid={}, localMetaQueue=[];
 let remoteMicMuted=false, remoteDeafened=false, screenShareRevealed=false;
-let videoMasked=true, cinemaMode=false, enlargedTileKey=null, videoEls={};
+// videoMasked=true dès le départ (avant que quiconque n'ait jamais cliqué
+// #cb-mask, le bouton "Masquer" volontaire) cachait la toute première vidéo
+// d'un appel derrière le bandeau "toucher pour afficher" — jamais cliqué par
+// la plupart des gens, donc perçu comme "la caméra ne marche pas chez
+// l'autre" alors que le flux arrivait très bien. Doit démarrer visible : se
+// masquer est une action explicite (cb-mask), jamais l'état par défaut.
+let videoMasked=false, cinemaMode=false, enlargedTileKey=null, videoEls={};
 // Quel système d'appel occupe actuellement #call-video-stage en plein écran
 // (1:1, salon de groupe DM, ou salon vocal de serveur) — un seul à la fois
 // possible (les 3 systèmes s'excluent déjà mutuellement), sert juste à
@@ -31745,7 +31751,7 @@ function cleanupCallLocal(){
   if(\$('cb-peer-badges'))\$('cb-peer-badges').innerHTML='';
   if(\$('screen-reveal-pill'))\$('screen-reveal-pill').classList.add('hidden');
   if(cinemaMode)exitCinema();
-  videoMasked=true;enlargedTileKey=null;
+  videoMasked=false;enlargedTileKey=null;
   Object.keys(videoEls).forEach(function(k){
     const el=videoEls[k];
     if(el.parentElement)el.parentElement.removeChild(el);
