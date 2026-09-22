@@ -8507,6 +8507,7 @@ async function enterApp(e2ePassword){
   try{subscribeXBinFeedWatcher();}catch(e){}
   try{startCallPolling();}catch(e){}
   try{startResyncAfterGapWatcher();}catch(e){}
+  try{startDmMessagePolling();}catch(e){}
   startJwtRefreshLoop();
   startPresenceLoop();
   showView('dms');
@@ -14689,6 +14690,25 @@ function resyncAfterGap(){
   try{loadFriends().then(function(){if(view==='friends')renderFriends();}).catch(function(){});}catch(e){}
   if(activeDm){try{loadMessages(activeDm);}catch(e){}}
   try{checkPendingIncomingCall();}catch(e){}
+}
+// Filet de sécurité supplémentaire, en sondage régulier cette fois (même
+// principe que startCallPolling() plus bas) : resyncAfterGap() ne couvre que
+// les coupures détectables par le navigateur (visibilité, en/hors ligne) —
+// une reconnexion SILENCIEUSE du WebSocket Appwrite (un autre client.subscribe()
+// ajouté ailleurs dans l'app en changeant de vue, un timeout de proxy mobile,
+// une coupure réseau trop brève pour déclencher l'évènement "offline") peut
+// faire manquer un message sans qu'aucun de ces évènements ne se déclenche —
+// la conversation ouverte reste "en retard" jusqu'au prochain rechargement
+// complet. appendNewMessages() est déjà sans effet de bord si rien de neuf
+// (voir sa définition plus haut, déjà utilisée après envoi ET en temps réel)
+// donc un sondage discret par-dessus ne fait que rattraper ce que le temps
+// réel aurait dû livrer, jamais un remplacement.
+let dmMessagePollIntervalId=null;
+function startDmMessagePolling(){
+  if(dmMessagePollIntervalId)return;
+  dmMessagePollIntervalId=setInterval(function(){
+    if(activeDm)appendNewMessages().catch(function(){});
+  },4000);
 }
 function startResyncAfterGapWatcher(){
   document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')resyncAfterGap();});
