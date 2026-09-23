@@ -182,9 +182,15 @@ async function generateTurnCredential(secret, username) {
 // contrairement aux appels privés (1:1) en maillage direct, ça reste léger même
 // à plusieurs. Les jetons d'accès (JWT signés HS256) sont générés ici, jamais le
 // secret lui-même n'est envoyé au navigateur.
-const LIVEKIT_WS_URL = "wss://voice.xultra.space";
-const LIVEKIT_API_KEY = "API51792402caf597ed";
-const LIVEKIT_API_SECRET = "c42e2c1881c2db44aec27002acbc8d8a019cff224719368af7de17f3ee514aac";
+// voice.xultra.space ne pointait vers AUCUN vrai serveur LiveKit : le
+// sous-domaine était capturé par la Route Workers générique "*.xultra.space/*"
+// (voir wrangler.toml) qui renvoyait vers l'appli elle-même — aucun serveur
+// LiveKit n'a jamais été monté sur le VPS. Remplacé par un projet LiveKit
+// Cloud (managé, plan gratuit) : plus simple/fiable qu'auto-héberger un
+// serveur SFU en plus d'Appwrite sur le même VPS.
+const LIVEKIT_WS_URL = "wss://ixin-pi95s590.livekit.cloud";
+const LIVEKIT_API_KEY = "APIF2aviosfaNAi";
+const LIVEKIT_API_SECRET = "tE3fNzTzOYPeX8SY1fmgKj7P7zay8ftEOLjuJMa4uiEB";
 // Kit de démarrage téléchargeable (voir /api/bots/starter-kit) : un bot Node.js
 // complet, zéro dépendance (uniquement http + crypto, natifs), prêt à lancer
 // avec `node bot-x1.js` après avoir renseigné BOT_TOKEN dans un fichier .env.
