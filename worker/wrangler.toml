@@ -22,6 +22,22 @@ workers_dev = true
 main = "worker.js"
 compatibility_date = "2026-09-20"
 
+# SITE_KV : binding KV namespace (jamais un secret_text) — invisible via
+# `workers/scripts/.../settings` (qui ne liste que les secret_text), donc
+# absent du commentaire ci-dessus listant les "vrais secrets" déjà présents
+# sur bitter-violet-3f1a. Contrairement aux secrets, un déploiement qui ne
+# déclare PAS explicitement un kv_namespace ici le retire du script — ce qui
+# s'est produit le 2026-09-23 (les tout premiers `wrangler deploy` de cette
+# session utilisaient un wrangler.toml minimal sans cette section) et a cassé
+# le mode maintenance, le cache de traduction i18n, la limitation de débit et
+# l'inscription par clé d'accès (passkey) le temps que ce soit repéré et
+# corrigé ("Stockage indisponible"). Ne plus jamais déployer sans cette
+# section — id retrouvé via `wrangler kv:namespace list` (namespace nommé
+# "SITE_KV", contenait déjà maint_enabled/maint_message).
+[[kv_namespaces]]
+binding = "SITE_KV"
+id = "f59753be79e44608ae7e3553f11b2f71"
+
 # [env.production] retiré : il pointait vers "ressources-xultra-space-production",
 # un Worker distinct créé par erreur (aucun trafic réel ne lui a jamais été
 # routé) qui contenait en plus une VRAIE valeur de secret (VPN_MANAGER_SECRET)
