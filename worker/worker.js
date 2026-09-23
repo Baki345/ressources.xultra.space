@@ -8794,7 +8794,7 @@ async function e2eVerifyAndSync(pass,restoreIntent){
 }
 async function submitE2EBackupPassword(){
   const pass=\$('e2e-bb-pass').value||'';
-  if(!pass||!me||!me.email)return;
+  if(!pass||!me)return;
   const btn=\$('e2e-bb-submit');
   btn.disabled=true;btn.textContent='Vérification…';
   const wasRestoreMode=e2eBannerMode==='restore';
@@ -12627,7 +12627,7 @@ function wireSetPrivacy(box,privacy){
   if(e2eRestoreBtn)e2eRestoreBtn.onclick=async function(){
     const passInput=\$('priv-e2e-restore-pass');
     const pass=(passInput&&passInput.value)||'';
-    if(!pass||!me||!me.email){showToast('Entre ton mot de passe.','error');return}
+    if(!pass||!me){showToast(me&&me.email?'Entre ton mot de passe.':'Entre ta clé secrète.','error');return}
     e2eRestoreBtn.disabled=true;e2eRestoreBtn.textContent='Vérification…';
     const res=await e2eVerifyAndSync(pass,true);
     const resetZone=\$('priv-e2e-reset-zone');
