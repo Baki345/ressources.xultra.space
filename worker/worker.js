@@ -8485,15 +8485,19 @@ async function enterApp(e2ePassword){
        ne le transporte jamais), on propose de confirmer son mot de passe pour
        l'activer, plutôt que de laisser le risque silencieux de perdre l'accès
        aux messages en cas de changement d'appareil. */
-    /* Ce bandeau demande le MOT DE PASSE du compte (ensureE2EKeys/serverLogin
-       en dépendent tous les deux) — un compte connecté par clé secrète ou
-       passkey (voir /api/auth/devicekey/register, /api/auth/passkey/*) n'en a
-       tout simplement pas. Sans ce garde-fou, ces comptes voyaient un bandeau
+    /* Ce bandeau demande un secret (mot de passe pour un compte email, clé
+       secrète pour un compte clé secrète/passkey — voir e2eVerifyAndSync)
+       qu'on doit avoir SOUS LA MAIN pour pouvoir le proposer utilement. Un
+       compte email l'a toujours (son champ a son propre formulaire, jamais
+       besoin d'e2ePassword ici) ; un compte clé secrète ne l'a QUE juste
+       après une connexion par clé (e2ePassword=key, voir le login
+       devicekey plus haut) — une session restaurée automatiquement (comme au
+       chargement de la page) ne le transporte jamais, et un compte purement
+       passkey n'a de toute façon aucun secret saisissable à proposer ici.
+       Sans ce garde-fou, ces deux derniers cas voyaient un bandeau
        qu'aucune saisie ne pouvait jamais satisfaire ni faire disparaître
-       définitivement (la clé secrète tapée dans le champ mot de passe
-       échouait toujours, et "Plus tard" ne mémorise le rejet que pour la
-       session en cours). */
-    if(!me.email)return;
+       définitivement. */
+    if(!me.email&&!e2ePassword)return;
     if(status&&status.needsRestore&&!e2eBackupPromptDismissed){
       showE2EBanner('restore');
     }else if(status&&status.hasKey&&!status.backedUp&&!e2eBackupPromptDismissed){
@@ -8672,12 +8676,15 @@ if(\$('oauth-consent-deny'))\$('oauth-consent-deny').addEventListener('click',fu
 let e2eBannerMode='activate';
 function showE2EBanner(mode){
   e2eBannerMode=mode;
+  const secretWord=me&&me.email?'mot de passe':'clé secrète';
+  const passInput=\$('e2e-bb-pass');
+  if(passInput)passInput.placeholder='Ta '+secretWord;
   if(mode==='restore'){
-    \$('e2e-bb-ask-text').textContent='🔓 Cet appareil ne peut pas encore lire tes anciens messages chiffrés. Entre ton mot de passe pour les restaurer.';
+    \$('e2e-bb-ask-text').textContent='🔓 Cet appareil ne peut pas encore lire tes anciens messages chiffrés. Entre ta '+secretWord+' pour les restaurer.';
     \$('e2e-backup-confirm').textContent='Restaurer mes messages';
   }else{
     \$('e2e-bb-ask-text').textContent='🔒 Sécurise l\\'accès à tes messages chiffrés sur tes autres appareils.';
-    \$('e2e-backup-confirm').textContent='Confirmer mon mot de passe';
+    \$('e2e-backup-confirm').textContent='Confirmer ma '+secretWord;
   }
   \$('e2e-backup-banner').classList.remove('hidden');
 }
@@ -8717,9 +8724,25 @@ async function e2eVerifyAndSync(pass,restoreIntent){
      appelé dès applySession()) — une erreur 401 qui n'a rien à voir avec le
      mot de passe, mais qui s'affichait à tort comme "mot de passe
      incorrect" même quand le bon mot de passe était saisi. serverLogin()
-     passe par une requête serveur indépendante, sans ce conflit. */
+     passe par une requête serveur indépendante, sans ce conflit.
+     Un compte clé secrète/passkey (voir /api/auth/devicekey/register,
+     /api/auth/passkey/*) n'a pas de mot de passe : sa clé secrète tient lieu
+     d'équivalent (même principe — un secret que seul le titulaire du compte
+     connaît), vérifiée via /api/auth/devicekey/verify (même vérification que
+     serverLogin, sans ouvrir de session en plus). Un compte inscrit
+     UNIQUEMENT par passkey (jamais de clé secrète ajoutée) n'a ni l'un ni
+     l'autre — pas de solution ici pour l'instant : ce cas tape simplement sa
+     passkey (ou n'importe quoi) dans ce champ, /api/auth/devicekey/verify le
+     rejette comme une clé invalide, et le message d'erreur reste correct. */
   try{
-    const jj=await serverLogin(me.email,pass);
+    let jj;
+    if(me.email){
+      jj=await serverLogin(me.email,pass);
+    }else{
+      const r=await authPost('/api/auth/devicekey/verify',{deviceKey:pass}).catch(function(e){return {ok:false,error:(e&&e.message)};});
+      if(!r||!r.ok){showToast((r&&r.error)||'Clé secrète invalide.','error');return {ok:false};}
+      jj={ok:true};
+    }
     if(jj&&jj.mfaRequired){
       showToast('Ce compte a la double authentification activée : reconnecte-toi complètement pour restaurer tes messages.','error');
       return {ok:false};
@@ -9003,7 +9026,7 @@ if(\$('btn-devicekey-login'))\$('btn-devicekey-login').addEventListener('click',
     if(!r.ok||!jj.ok)throw new Error((jj&&jj.error)||'Connexion impossible');
     applySession(jj.secret,jj.jwt);
     xlog('login_devicekey_ok',{});
-    await enterApp();
+    await enterApp(key);
   }catch(e){
     xlog('login_devicekey_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Clé secrète invalide.');
@@ -12561,8 +12584,8 @@ function renderSetPrivacy(box){
       +'<div class="scr-sub" style="padding:0 4px">Si tu désactives ça, personne ne voit quand tu as lu ses messages — mais en échange, tu ne vois plus non plus si les tiens ont été vus.</div>'
     +'</div>'
     +'<div class="set-card"><div class="set-section-label">Messages chiffrés</div>'
-      +'<div class="scr-sub" style="padding:0 4px 10px">Si tu vois « 🔒 Message illisible sur cet appareil », c\\'est que cet appareil n\\'a pas encore la bonne clé de déchiffrement. Entre ton mot de passe ci-dessous pour la restaurer — ça marche sur n\\'importe quel appareil, à tout moment, pas besoin d\\'attendre une bannière.</div>'
-      +'<div class="set-card-row" style="gap:8px;flex-wrap:wrap"><input type="password" id="priv-e2e-restore-pass" placeholder="Ton mot de passe" style="flex:1;min-width:160px;padding:8px 10px;border-radius:8px;background:var(--elev);border:1px solid rgba(255,255,255,.1);color:inherit"><button type="button" class="set-mini-btn" id="priv-e2e-restore-btn">Restaurer mes messages</button></div>'
+      +'<div class="scr-sub" style="padding:0 4px 10px">Si tu vois « 🔒 Message illisible sur cet appareil », c\\'est que cet appareil n\\'a pas encore la bonne clé de déchiffrement. Entre '+(me&&me.email?'ton mot de passe':'ta clé secrète (ce compte n\\'a pas de mot de passe)')+' ci-dessous pour la restaurer — ça marche sur n\\'importe quel appareil, à tout moment, pas besoin d\\'attendre une bannière.</div>'
+      +'<div class="set-card-row" style="gap:8px;flex-wrap:wrap"><input type="password" id="priv-e2e-restore-pass" placeholder="'+(me&&me.email?'Ton mot de passe':'Ta clé secrète')+'" style="flex:1;min-width:160px;padding:8px 10px;border-radius:8px;background:var(--elev);border:1px solid rgba(255,255,255,.1);color:inherit"><button type="button" class="set-mini-btn" id="priv-e2e-restore-btn">Restaurer mes messages</button></div>'
       +'<div class="hidden" id="priv-e2e-reset-zone" style="padding:10px;margin-top:8px;border-radius:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25)">'
         +'<div class="scr-sub" style="color:#fca5a5">Cette sauvegarde a été chiffrée avec un ancien mot de passe et ne peut plus être déchiffrée — ça arrive quand le mot de passe du compte a été changé après l\\'activation de la sauvegarde. Impossible de récupérer l\\'historique déjà chiffré avec l\\'ancienne clé. Tu peux réinitialiser la sauvegarde avec la clé de CET appareil : les conversations déjà illisibles le resteront, mais tous tes appareils se resynchroniseront correctement pour la suite.</div>'
         +'<button type="button" class="set-mini-btn danger" id="priv-e2e-reset-btn" style="margin-top:8px">Réinitialiser la sauvegarde</button>'
@@ -47343,6 +47366,47 @@ async function handle(request, event) {
       await rateLimitClear(rlKey);
       const sess = await awFetch("/users/" + targetUid + "/sessions", { method: "POST", asAdmin: true, body: {} });
       return await finishLoginSession(sess.secret, sess.$id, targetUid);
+    } catch (e) {
+      return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
+      });
+    }
+  }
+
+  // Vérifie une clé secrète SANS créer de nouvelle session (contrairement à
+  // /api/auth/devicekey/login) — nécessaire pour la sauvegarde/restauration
+  // des clés E2E d'un compte clé secrète/passkey (voir e2eVerifyAndSync côté
+  // client) : ces comptes n'ont pas de mot de passe pour passer par
+  // serverLogin(), donc la clé secrète elle-même sert d'équivalent — mais
+  // rejouer /devicekey/login ouvrirait une session Appwrite EN PLUS de celle
+  // déjà active, exactement le conflit que serverLogin() évite déjà pour les
+  // comptes email (voir son commentaire). Ne vérifie jamais une clé au hasard :
+  // exige une session déjà active ET que la clé résolue pointe vers CE MÊME
+  // compte, jamais un autre pendant qu'on est connecté ici.
+  if (path === "/api/auth/devicekey/verify" && request.method === "POST") {
+    const acc = await resolveSessionUser(request);
+    if (!acc) return new Response(JSON.stringify({ ok: false, error: "auth_required" }), { status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors) });
+    try {
+      const body = await request.json();
+      const rlKey = "devicekey_verify:" + acc.$id;
+      if (!(await rateLimitCheck(rlKey, 10))) throw new Error("Trop de tentatives, réessaie dans 15 minutes.");
+      const parsed = parseAccessSecret((body && body.deviceKey) || "", "X1");
+      if (!parsed) { await rateLimitBump(rlKey, 900); throw new Error("Clé d'accès invalide"); }
+      let rec, targetUid;
+      try {
+        const resolved = await resolveRecoveryDoc(parsed.idPart);
+        rec = resolved.doc; targetUid = resolved.targetUid;
+      } catch (eLookup) {
+        await rateLimitBump(rlKey, 900);
+        throw new Error("Clé d'accès invalide");
+      }
+      if (String(targetUid) !== String(acc.$id)) { await rateLimitBump(rlKey, 900); throw new Error("Clé d'accès invalide"); }
+      if (!rec.keyHash || !(await verifySecretAgainstHash(parsed.secretPart, rec.keySalt, rec.keyHash))) {
+        await rateLimitBump(rlKey, 900);
+        throw new Error("Clé d'accès invalide");
+      }
+      await rateLimitClear(rlKey);
+      return new Response(JSON.stringify({ ok: true }), { headers: Object.assign({ "Content-Type": "application/json" }, cors) });
     } catch (e) {
       return new Response(JSON.stringify({ ok: false, error: (e && e.message) || "error" }), {
         status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
