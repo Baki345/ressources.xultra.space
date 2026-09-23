@@ -4938,9 +4938,9 @@ a.bug-att-item{display:block}
 .cmp-btn{flex-shrink:0;width:32px;height:32px;border-radius:50%;background:var(--elev);color:#f2f2f5;font-size:.85rem;display:grid;place-items:center}
 .cmp-btn.danger{background:rgba(239,68,68,.22);color:#fca5a5}
 @media (max-width:640px){.call-mini-pill{top:calc(8px + env(safe-area-inset-top));right:calc(8px + env(safe-area-inset-right))}.cmp-title{max-width:90px}}
-.gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:10px 0;max-height:280px;overflow-y:auto}
+.gcb-video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,180px));justify-content:center;gap:8px;margin:10px 0;max-height:280px;overflow-y:auto}
 .gcb-video-grid.hidden{display:none}
-.gcb-video-grid.n1{grid-template-columns:1fr}
+.gcb-video-grid.n1{grid-template-columns:minmax(140px,180px)}
 /* Plein écran cinéma : mêmes règles que .chan-voice-stage-grid (serveur) —
    colonnes JAMAIS en 1fr plein écran (une tuile ne s'étire plus pour
    "remplir" la grille) et vidéo en object-fit:contain (résolution/proportions
