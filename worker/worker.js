@@ -8771,6 +8771,20 @@ async function e2eVerifyAndSync(pass,restoreIntent){
         showToast('Cette sauvegarde a été chiffrée avec un ancien mot de passe (probablement changé depuis) — elle ne peut plus être déchiffrée.','error');
         return {ok:false,keyMismatch:true};
       }
+      if(status&&status.backedUp){
+        /* Aucune sauvegarde n'existait AVANT cet appel (backupExists reflète
+           l'état d'AVANT, voir ensureE2EKeys) — rien à restaurer sur CET
+           appareil, dont la clé locale était donc déjà correcte. Mais ça
+           n'explique pas, à soi seul, pourquoi ses propres messages
+           paraissaient illisibles : sans sauvegarde, un pair qui a mis en
+           cache une clé publique différente (avant un changement d'appareil
+           de sa part, par ex.) ne pourra de toute façon jamais lire ce que
+           celui-ci envoie tant qu'IL ne resynchronise pas de son côté — la
+           sauvegarde tout juste créée ici sert surtout les FUTURS appareils
+           de ce compte. */
+        showToast('Cet appareil n\\'avait encore aucune sauvegarde — c\\'est fait, sa clé est maintenant sauvegardée pour tes futurs appareils. Si ça reste illisible ici, le souci vient probablement d\\'un pair qui doit lui aussi resynchroniser sa propre clé.');
+        return {ok:true};
+      }
       showToast('Aucune sauvegarde trouvée pour ce compte sur le serveur.','error');
       return {ok:false};
     }
