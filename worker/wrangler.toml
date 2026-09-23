@@ -1,10 +1,31 @@
-name = "ressources-xultra-space"
+# IMPORTANT — nom du Worker qui sert réellement xultra.space en prod.
+# Découvert le 2026-09-23 après des heures de "wrangler deploy" qui
+# n'atteignaient jamais le site live : xultra.space (le domaine nu, sans
+# sous-domaine) est rattaché via un CUSTOM DOMAIN Cloudflare (prioritaire
+# sur n'importe quelle Route) au Worker nommé "bitter-violet-3f1a" — un nom
+# généré automatiquement par Cloudflare à un moment donné, qui ne
+# correspondait plus au nom déclaré ici. Un simple `wrangler deploy`
+# déployait donc vers un AUTRE Worker (celui nommé ci-dessous), inoffensif
+# mais qui ne servait jamais aucun trafic réel — voir aussi la route déclarée
+# plus bas, qui elle non plus ne gagne jamais face au Custom Domain pour le
+# domaine nu. `name` est donc maintenant aligné sur la réalité : un simple
+# `wrangler deploy` (sans --env) déploie enfin vers le bon Worker.
+name = "bitter-violet-3f1a"
 type = "service"
 account_id = "d69428d83fd24b06b7ddc68bf7c48ca1"
 workers_dev = true
-route = {pattern = "*.xultra.space/*", zone_name = "xultra.space"}
+# Pas de `route` ici : xultra.space est déjà servi via le Custom Domain
+# Cloudflare (prioritaire, voir plus haut), et le pattern générique
+# "*.xultra.space/*" est de toute façon déjà revendiqué par l'autre Worker
+# ("ressources-xultra-space-production", créé par erreur) — le déclarer ici
+# ferait juste échouer chaque déploiement sur cette étape pour rien.
 main = "worker.js"
 compatibility_date = "2026-09-20"
 
-[env.production]
-vars = { VPN_MANAGER_URL = "http://vpn.xultra.space:8080", VPN_MANAGER_SECRET = "caa6f9fd61bf3d7394cde7aedcd6a574c4f67e4f5e761c68f2064c453717ee01" }
+# [env.production] retiré : il pointait vers "ressources-xultra-space-production",
+# un Worker distinct créé par erreur (aucun trafic réel ne lui a jamais été
+# routé) qui contenait en plus une VRAIE valeur de secret (VPN_MANAGER_SECRET)
+# écrite en clair dans ce fichier suivi par git — mauvaise pratique à ne pas
+# reproduire. Les vrais secrets (AW_ADMIN_KEY, VPN_MANAGER_SECRET, etc.) sont
+# posés directement sur "bitter-violet-3f1a" via `wrangler secret put
+# <NOM> --name bitter-violet-3f1a`, jamais dans ce fichier.
