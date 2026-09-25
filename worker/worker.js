@@ -5931,9 +5931,9 @@ a.bug-att-item{display:block}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
-        <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico">👥</span>Groupe+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer le HUB VOCAL">🏘️+</button>
-        <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico">👤</span>Ami+</button>
+        <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg></span>Groupe+</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer le HUB VOCAL"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M12 21v-2M12 15h.01"/></svg>+</button>
+        <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span>Ami+</button>
       </div>
     </div>
     <div class="stories-bar hidden" id="stories-bar"></div>
@@ -5944,25 +5944,25 @@ a.bug-att-item{display:block}
         <div class="n" id="ub-name">—</div>
         <button type="button" class="ub-presence-btn" id="ub-presence-btn"><span class="pr-dot ub-static-dot" id="ub-presence-dot"></span><span id="ub-status">En ligne</span></button>
       </div>
-      <button type="button" class="ub-btn" id="ub-bell" title="Notifications">🔔<span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
+      <button type="button" class="ub-btn" id="ub-bell" title="Notifications"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg><span class="ub-badge hidden" id="ub-bell-badge">0</span></button>
       <button type="button" class="ub-btn" id="ub-more" title="Plus d'options">⋯</button>
       <div class="ub-popover hidden" id="ub-presence-popover"></div>
       <div class="ub-popover ub-more-menu hidden" id="ub-more-menu">
-        <button type="button" id="ub-status-mobile" class="mobile-only-menu-item">🖥️ État du système</button>
-        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item changelog-staff-only hidden">📋 Nouveautés<span class="mobile-menu-dot hidden" id="ub-changelog-mobile-dot"></span></button>
-        <button type="button" id="ub-suggestions-mobile" class="mobile-only-menu-item">💡 Boîte à idées</button>
-        <button type="button" id="ub-team-mobile" class="mobile-only-menu-item">🏅 Équipe & Badges</button>
-        <button type="button" id="ub-push">🔕 Activer les notifications</button>
-        <button type="button" id="ub-settings">⚙️ Paramètres</button>
-        <button type="button" id="ub-hunter" class="hidden">🐛 Panneau Bug Hunter</button>
-        <button type="button" id="btn-report-bug">🐞 Signaler un bug</button>
-        <button type="button" id="btn-logout">🚪 Déconnexion</button>
+        <button type="button" id="ub-status-mobile" class="mobile-only-menu-item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg> État du système</button>
+        <button type="button" id="ub-changelog-mobile" class="mobile-only-menu-item changelog-staff-only hidden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 11h6M9 15h6"/></svg> Nouveautés<span class="mobile-menu-dot hidden" id="ub-changelog-mobile-dot"></span></button>
+        <button type="button" id="ub-suggestions-mobile" class="mobile-only-menu-item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.8 1 .8 1.6v.5h5.4v-.5c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3z"/></svg> Boîte à idées</button>
+        <button type="button" id="ub-team-mobile" class="mobile-only-menu-item"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="9" r="4.5"/><path d="M8.5 13l-1.5 8 5-2.5 5 2.5-1.5-8"/></svg> Équipe &amp; Badges</button>
+        <button type="button" id="ub-push"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/><path d="M3 3l18 18"/></svg> Activer les notifications</button>
+        <button type="button" id="ub-settings"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Paramètres</button>
+        <button type="button" id="ub-hunter" class="hidden"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg> Panneau Bug Hunter</button>
+        <button type="button" id="btn-report-bug"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg> Signaler un bug</button>
+        <button type="button" id="btn-logout"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 3h9v18H6"/><path d="M15 3l3 1.5v15L15 21"/><path d="M11 12h.01"/></svg> Déconnexion</button>
       </div>
     </div>
   </aside>
   <section class="chat-col" id="chat-col">
     <div class="empty" id="chat-empty">
-      <div style="font-size:2rem">💬</div>
+      <div style="font-size:2rem"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></div>
       <h3>Sélectionne une conversation</h3>
       <p>Ou ouvre l'onglet Amis pour en démarrer une.</p>
     </div>
@@ -5970,12 +5970,12 @@ a.bug-att-item{display:block}
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-chat-back" title="Retour">←</button>
         <div class="av" id="ch-av">?<span class="dm-presence-bubble hidden" id="dm-presence-bubble" title=""></span></div>
-        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e">🔒 Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="dm-streak-badge hidden" id="ch-streak"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
+        <div class="titles"><div class="t" id="ch-title">—</div><div class="ch-sub-row"><span class="ch-e2e hidden" id="ch-e2e"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Chiffré de bout en bout</span><span class="ch-presence hidden" id="ch-presence"></span><span class="dm-streak-badge hidden" id="ch-streak"></span><span class="ch-typing hidden" id="ch-typing"></span></div></div>
         <button type="button" class="dm-call-badge hidden" id="dm-call-badge"><span class="dcb-dot"></span>Salon vocal actif — Rejoindre</button>
-        <button type="button" class="ub-btn hidden" id="btn-dm-personalize" title="Personnaliser cette conversation">🎨</button>
-        <button type="button" class="ub-btn" id="btn-search" title="Rechercher">🔍</button>
-        <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés">📌</button>
-        <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal">📞</button>
+        <button type="button" class="ub-btn hidden" id="btn-dm-personalize" title="Personnaliser cette conversation"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg></button>
+        <button type="button" class="ub-btn" id="btn-search" title="Rechercher"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></button>
+        <button type="button" class="ub-btn" id="btn-pinned" title="Messages épinglés"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M8 13h8l-1.5-2V5h1V3H8.5v2h1v6z"/></svg></button>
+        <button type="button" class="ub-btn call-btn" id="btn-call-start" title="Appel vocal"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></button>
       </div>
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
@@ -5987,7 +5987,7 @@ a.bug-att-item{display:block}
         <textarea id="msg-input" placeholder="Écrire un message…" rows="1"></textarea>
         <button type="button" class="composer-btn ai-fix-btn" id="btn-ai-fix" title="Corriger avec l'IA"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.4 4L17 8.4 13.4 9.8 12 14l-1.4-4.2L7 8.4l3.6-1.4L12 3z"/><path d="M19 14l.7 2 2 .8-2 .8-.7 2-.7-2-2-.8 2-.8z"/></svg></button>
         <button type="button" class="composer-btn" id="btn-emoji" title="Emoji"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8 14c1 1.6 2.5 2.5 4 2.5s3-.9 4-2.5"/></svg></button>
-        <button type="button" class="composer-btn composer-spoiler-btn" id="btn-spoiler-toggle" title="Marquer le prochain message comme spoiler ou 18+">🙈</button>
+        <button type="button" class="composer-btn composer-spoiler-btn" id="btn-spoiler-toggle" title="Marquer le prochain message comme spoiler ou 18+"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><path d="M4 6l16 12"/></svg></button>
         <button type="button" class="composer-btn" id="btn-voice" title="Message vocal"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>
         <button type="button" class="send-btn hidden" id="btn-send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M3 11.5L20 4l-6.5 17-3-6.5L3 11.5z"/></svg></button>
         <div class="attach-menu hidden" id="attach-menu">
