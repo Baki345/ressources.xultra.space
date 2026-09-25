@@ -6713,7 +6713,7 @@ a.bug-att-item{display:block}
       <p class="tos-final">En créant un compte, tu confirmes avoir lu et accepté cette charte.</p>
     </div>
     <div class="tos-foot">
-      <div class="tos-scroll-hint" id="tos-scroll-hint">⬇ Fais défiler jusqu'en bas pour continuer</div>
+      <div class="tos-scroll-hint" id="tos-scroll-hint"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 4v14"/><path d="M6 13l6 6 6-6"/></svg> Fais défiler jusqu'en bas pour continuer</div>
       <button type="button" class="btn-main" id="tos-accept-btn" disabled>J'ai lu et j'accepte</button>
       <button type="button" class="set-mini-btn" id="tos-decline-btn">Annuler</button>
     </div>
@@ -6723,14 +6723,14 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-changelog">
   <div class="modal-box changelog-panel">
     <button type="button" class="modal-close" id="cl-close">✕</button>
-    <h3>📋 Nouveautés</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 11h6M9 15h6"/></svg> Nouveautés</h3>
     <div class="cl-sub">Tout ce qui a changé récemment sur IXin</div>
     <div class="sg-tabs" id="cl-tabs">
       <button type="button" class="sg-tab on" data-cat="all">Général</button>
-      <button type="button" class="sg-tab" data-cat="feature">⚙️ Fonctionnalité</button>
-      <button type="button" class="sg-tab" data-cat="fix">🩹 Correctif</button>
-      <button type="button" class="sg-tab" data-cat="security">🔒 Sécurité</button>
-      <button type="button" class="sg-tab" data-cat="design">🎨 Design</button>
+      <button type="button" class="sg-tab" data-cat="feature"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Fonctionnalité</button>
+      <button type="button" class="sg-tab" data-cat="fix"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="4" y="9" width="16" height="6" rx="3" transform="rotate(-40 12 12)"/><circle cx="9" cy="9" r="1" transform="rotate(-40 12 12)"/><circle cx="15" cy="15" r="1" transform="rotate(-40 12 12)"/></svg> Correctif</button>
+      <button type="button" class="sg-tab" data-cat="security"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Sécurité</button>
+      <button type="button" class="sg-tab" data-cat="design"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg> Design</button>
     </div>
     <div class="cl-list" id="cl-list"></div>
   </div>
@@ -6739,16 +6739,16 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-suggestions">
   <div class="modal-box suggestions-panel">
     <button type="button" class="modal-close" id="sg-close">✕</button>
-    <h3>💡 Boîte à idées</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.5.4.8 1 .8 1.6v.5h5.4v-.5c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3z"/></svg> Boîte à idées</h3>
     <div class="cl-sub">Propose une idée pour IXin, vote pour tes préférées — les plus populaires ont plus de chances d'être développées !</div>
     <div class="sg-tabs" id="sg-tabs">
       <button type="button" class="sg-tab on" data-cat="all">Tout</button>
-      <button type="button" class="sg-tab" data-cat="feature">⚙️ Fonctionnalité</button>
-      <button type="button" class="sg-tab" data-cat="design">🎨 Design</button>
-      <button type="button" class="sg-tab" data-cat="marketing">📣 Marketing</button>
-      <button type="button" class="sg-tab" data-cat="other">💭 Autre</button>
+      <button type="button" class="sg-tab" data-cat="feature"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Fonctionnalité</button>
+      <button type="button" class="sg-tab" data-cat="design"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg> Design</button>
+      <button type="button" class="sg-tab" data-cat="marketing"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M3 10v4a1 1 0 0 0 1 1h2l9 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M17 10a3 3 0 0 1 0 4"/></svg> Marketing</button>
+      <button type="button" class="sg-tab" data-cat="other"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 4a7 5.2 0 0 0-7 5.2c0 2.2 1.4 4.1 3.5 4.9-.1.7-.5 1.5-1.2 2.2 1.3.1 2.4-.3 3.3-.9.4.1.9.1 1.4.1a7 5.2 0 0 0 0-10.4z"/><circle cx="17.5" cy="17" r="1.3"/><circle cx="20.5" cy="19.5" r=".8"/></svg> Autre</button>
     </div>
-    <button type="button" class="btn-main" id="sg-new-btn">✨ Proposer une idée</button>
+    <button type="button" class="btn-main" id="sg-new-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l1.4 4 4 1.4-4 1.4L12 14l-1.4-4.2-4-1.4 4-1.4z"/><path d="M19 14l.7 2 2 .8-2 .8-.7 2-.7-2-2-.8 2-.8z"/></svg> Proposer une idée</button>
     <div class="sg-form hidden" id="sg-form">
       <input type="text" id="sg-title" class="field-input" placeholder="Titre court" maxlength="120">
       <select id="sg-category" class="field-input">
@@ -10122,10 +10122,10 @@ const CHANGELOG=[
     body:'On a corrigé plusieurs bugs qui empêchaient parfois de bien s\\'entendre ou de se voir en appel. Le son, la caméra et le partage d\\'écran sont maintenant bien plus fiables, même entre mobile et ordinateur.'}
 ];
 const CHANGELOG_CATEGORIES={
-  feature:{icon:'⚙️',label:'Fonctionnalité',color:'#7c3aed'},
-  fix:{icon:'🩹',label:'Correctif',color:'#22c55e'},
-  security:{icon:'🔒',label:'Sécurité',color:'#06b6d4'},
-  design:{icon:'🎨',label:'Design',color:'#ec4899'}
+  feature:{icon:ICO.gear,label:'Fonctionnalité',color:'#7c3aed'},
+  fix:{icon:ICO.bandage,label:'Correctif',color:'#22c55e'},
+  security:{icon:ICO.lock,label:'Sécurité',color:'#06b6d4'},
+  design:{icon:ICO.palette,label:'Design',color:'#ec4899'}
 };
 let changelogFilter='all';
 function renderChangelog(){
@@ -10178,10 +10178,10 @@ if(\$('modal-changelog'))\$('modal-changelog').addEventListener('click',function
 
 /* ===== Boîte à idées (suggestions) ===== */
 const SUGGESTION_CATEGORIES={
-  feature:{icon:'⚙️',label:'Fonctionnalité',color:'#7c3aed'},
-  design:{icon:'🎨',label:'Design',color:'#ec4899'},
-  marketing:{icon:'📣',label:'Marketing',color:'#06b6d4'},
-  other:{icon:'💭',label:'Autre',color:'#9a8fb0'}
+  feature:{icon:ICO.gear,label:'Fonctionnalité',color:'#7c3aed'},
+  design:{icon:ICO.palette,label:'Design',color:'#ec4899'},
+  marketing:{icon:ICO.megaphone,label:'Marketing',color:'#06b6d4'},
+  other:{icon:ICO.thought,label:'Autre',color:'#9a8fb0'}
 };
 let suggestionsCache=[],suggestionFilter='all';
 function safeJsonArr(s){try{const a=JSON.parse(s||'[]');return Array.isArray(a)?a:[]}catch(e){return []}}
