@@ -1698,7 +1698,7 @@ async function resolveStaffRole(acc, profile) {
   } catch (e) {}
   return "member";
 }
-const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate", "server_create"];
+const MOD_CAPABILITIES = ["view", "tempban", "report_status", "notes", "bug_status", "support_tickets", "xdrive_view", "shop_moderate"];
 async function requireStaff(request, capability) {
   const acc = await resolveSessionUser(request);
   if (!acc) return { ok: false, status: 401, error: "auth_required" };
@@ -5879,7 +5879,7 @@ a.bug-att-item{display:block}
     <button type="button" class="rail-btn" id="nav-home" title="Accueil"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/><path d="M10 20v-6h4v6"/></svg></button>
     <button type="button" class="rail-btn on" id="nav-dms" data-view="dms" data-i18n-title="nav_dms" title="Messages"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4.5 4v-4H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-friends" data-view="friends" data-i18n-title="nav_friends" title="Amis"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.3 12.3c2.7.4 4.2 2.2 4.2 4.7"/></svg><span class="rail-badge hidden rail-friends-badge">0</span></button>
-    <button type="button" class="rail-btn" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
+    <button type="button" class="rail-btn owner-only hidden" id="nav-members" data-view="members" data-i18n-title="nav_members" title="Membres"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.5 4 5.6 4 9s-1.4 6.5-4 9c-2.6-2.5-4-5.6-4-9s1.4-6.5 4-9z"/></svg></button>
     <button type="button" class="rail-btn" id="nav-chatroulette" data-i18n-title="nav_chatroulette" title="Chatroulette"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.1" fill="currentColor" stroke="none"/></svg></button>
     <button type="button" class="rail-btn" id="nav-music" data-i18n-title="nav_music" title="Musique"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
     <button type="button" class="rail-btn" id="nav-xbin" data-i18n-skip title="XBin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg></button>
@@ -9323,6 +9323,12 @@ function playSectionEnter(el){
   el.classList.add('section-enter');
 }
 function showView(v){
+  // Section Membres réservée au staff le plus haut (staffRole==='owner',
+  // même niveau que .owner-only) — privacy maximale demandée explicitement :
+  // un membre normal ne doit jamais pouvoir parcourir l'annuaire complet des
+  // comptes de la plateforme, même en forçant l'accès (bouton nav caché via
+  // .owner-only côté HTML, ce garde bloque aussi un accès direct à la vue).
+  if(v==='members'&&staffRole!=='owner')v='friends';
   view=v;
   playSectionEnter(\$('list-body'));
   // Annule tout écran de chargement en attente d'un changement de section
@@ -9364,7 +9370,7 @@ function showView(v){
   \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'HUB VOCAL':'Membres'));
   \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Géré par le staff de IXin':'Membres'));
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
-  if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers'||!(staffRole==='owner'||staffRole==='mod'));
+  if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
   if(\$('stories-bar'))\$('stories-bar').classList.toggle('hidden',v!=='dms');
   if(v==='servers'){
@@ -43466,18 +43472,18 @@ async function handle(request, event) {
   }
 
   if (path === "/api/servers/create" && request.method === "POST") {
-    // HUB VOCAL (ex-"serveurs") : création réservée au staff de la
-    // plateforme (owner + mod) depuis le passage de IXin en communauté privée
-    // — un membre normal ne peut plus créer son propre espace public, il ne
-    // peut que rejoindre un HUB VOCAL existant via code d'invitation.
-    const staffGate = await requireStaff(request, "server_create");
-    if (!staffGate.ok) {
-      return new Response(JSON.stringify({ ok: false, error: staffGate.error === "auth_required" ? "auth_required" : "Réservé au staff de la plateforme" }), {
-        status: staffGate.status,
-        headers: Object.assign({ "Content-Type": "application/json" }, cors)
+    // Ré-ouvert à tout membre (demandé explicitement) : la restriction au
+    // staff (owner + mod), posée lors du passage de IXin en communauté
+    // privée à un seul HUB VOCAL, est levée — n'importe qui peut de nouveau
+    // créer son propre serveur, en plus du HUB VOCAL (voir resolveHubServer,
+    // toujours le tout premier serveur créé, jamais affecté par ceux créés
+    // depuis).
+    const acc = await resolveSessionUser(request);
+    if (!acc) {
+      return new Response(JSON.stringify({ ok: false, error: "auth_required" }), {
+        status: 401, headers: Object.assign({ "Content-Type": "application/json" }, cors)
       });
     }
-    const acc = staffGate.acc;
     try {
       const body = await request.json();
       const name = String((body && body.name) || "").trim().slice(0, 100);
