@@ -6771,7 +6771,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-dm-personalize">
   <div class="modal-box dmp-panel">
     <button type="button" class="modal-close" id="dmp-close">✕</button>
-    <h3>🎨 Personnaliser la conversation</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg> Personnaliser la conversation</h3>
     <div class="cl-sub">Ces réglages ne sont visibles que par toi — la personne en face ne voit rien de tout ça.</div>
     <div class="dmp-field">
       <label>Surnom pour cette personne</label>
@@ -6785,12 +6785,12 @@ a.bug-att-item{display:block}
     <div class="dmp-field">
       <label>Fond d'écran</label>
       <div class="dmp-wallpapers" id="dmp-wallpapers"></div>
-      <button type="button" class="set-mini-btn" id="dmp-wallpaper-upload-btn" style="margin-top:8px;align-self:flex-start">🖼️ Importer une image ou un GIF</button>
+      <button type="button" class="set-mini-btn" id="dmp-wallpaper-upload-btn" style="margin-top:8px;align-self:flex-start"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5L4 21"/></svg> Importer une image ou un GIF</button>
       <input type="file" id="dmp-wallpaper-file" class="hidden-input" accept="image/*">
       <div class="err" id="dmp-wallpaper-err"></div>
     </div>
     <div class="dmp-field">
-      <label>🌐 Fond d'écran partagé <span class="scr-sub" style="display:block;font-weight:400">Visible par tout le monde dans cette conversation — contrairement au fond ci-dessus, n'importe qui ici peut le changer.</span></label>
+      <label><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9z"/></svg> Fond d'écran partagé <span class="scr-sub" style="display:block;font-weight:400">Visible par tout le monde dans cette conversation — contrairement au fond ci-dessus, n'importe qui ici peut le changer.</span></label>
       <button type="button" class="set-mini-btn" id="dmp-open-shared-wallpaper" style="align-self:flex-start">Gérer le fond partagé</button>
     </div>
     <div style="display:flex;gap:8px;margin-top:6px">
@@ -6803,10 +6803,10 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-team">
   <div class="modal-box team-panel">
     <button type="button" class="modal-close" id="tm-close">✕</button>
-    <h3>🏅 Équipe & Badges</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="9" r="4.5"/><path d="M8.5 13l-1.5 8 5-2.5 5 2.5-1.5-8"/></svg> Équipe & Badges</h3>
     <div class="tm-tabs" id="tm-tabs">
-      <button type="button" class="tm-tab on" data-ttab="crew">👥 L'équipe</button>
-      <button type="button" class="tm-tab" data-ttab="badges">🏆 Badges &amp; paliers</button>
+      <button type="button" class="tm-tab on" data-ttab="crew"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg> L'équipe</button>
+      <button type="button" class="tm-tab" data-ttab="badges"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5a3 3 0 0 0 3 5"/><path d="M16 5h3a3 3 0 0 1-3 5"/><path d="M12 13v3"/><path d="M9 20h6"/><path d="M10 16.5h4l.5 3.5h-5z"/></svg> Badges &amp; paliers</button>
     </div>
     <div class="tm-body" id="tm-body"></div>
   </div>
@@ -6815,7 +6815,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-team-apply">
   <div class="modal-box">
     <button type="button" class="modal-close" id="ta-close">✕</button>
-    <h3 id="ta-title">🚀 Postuler</h3>
+    <h3 id="ta-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3c3 1.5 5 5 4.5 10.5L12 18l-4.5-4.5C7 8 9 4.5 12 3z"/><circle cx="12" cy="10" r="1.5"/><path d="M8 15l-2.5 2.5M16 15l2.5 2.5M9.5 18.5L8 21M14.5 18.5L16 21"/></svg> Postuler</h3>
     <div class="cl-sub" id="ta-sub">Envoie ta candidature pour ce poste.</div>
     <textarea id="ta-message" class="field-input" placeholder="Pourquoi toi ? Qu'est-ce que tu apportes à l'équipe ?" maxlength="1000" style="height:110px;padding-top:9px;resize:vertical"></textarea>
     <div class="err" id="ta-err"></div>
@@ -6827,30 +6827,30 @@ a.bug-att-item{display:block}
   <div class="modal-box bap-info-box">
     <button type="button" class="modal-close" id="bapi-close">✕</button>
     <div class="bap-hero">
-      <div class="bap-hero-icon">🛡️</div>
+      <div class="bap-hero-icon"><svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/></svg></div>
       <h3>Brigade Anti-Prédateurs</h3>
       <div class="bap-hero-sub">Des membres de confiance qui gardent IXin sûre pour tout le monde.</div>
     </div>
     <div class="bap-body">
       <div class="bap-section">
-        <div class="bap-section-title">🎯 Ta mission</div>
+        <div class="bap-section-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg> Ta mission</div>
         <div class="bap-section-text">Examiner les signalements envoyés par la communauté — harcèlement, contenu inapproprié, spam, usurpation d'identité — et décider d'une suite : classer sans suite, ou mettre le compte visé en pause 24h le temps qu'un vrai examen soit fait.</div>
       </div>
       <div class="bap-capability-grid">
-        <div class="bap-cap-card"><div class="bap-cap-icon">🚩</div><div class="bap-cap-label">File de signalements</div><div class="bap-cap-desc">Tous les signalements de la plateforme, en un seul endroit.</div></div>
-        <div class="bap-cap-card"><div class="bap-cap-icon">⏸️</div><div class="bap-cap-label">Pause 24h</div><div class="bap-cap-desc">Neutralise un compte le temps de vérifier, sans attendre.</div></div>
-        <div class="bap-cap-card"><div class="bap-cap-icon">🔔</div><div class="bap-cap-label">Alertes en direct</div><div class="bap-cap-desc">Une notification sur tous tes appareils à chaque nouveau signalement.</div></div>
-        <div class="bap-cap-card"><div class="bap-cap-icon">🛡️</div><div class="bap-cap-label">Badge officiel</div><div class="bap-cap-desc">Visible sur ton profil et partout où tu apparais.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg></div><div class="bap-cap-label">File de signalements</div><div class="bap-cap-desc">Tous les signalements de la plateforme, en un seul endroit.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/></svg></div><div class="bap-cap-label">Pause 24h</div><div class="bap-cap-desc">Neutralise un compte le temps de vérifier, sans attendre.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></div><div class="bap-cap-label">Alertes en direct</div><div class="bap-cap-desc">Une notification sur tous tes appareils à chaque nouveau signalement.</div></div>
+        <div class="bap-cap-card"><div class="bap-cap-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/></svg></div><div class="bap-cap-label">Badge officiel</div><div class="bap-cap-desc">Visible sur ton profil et partout où tu apparais.</div></div>
       </div>
       <div class="bap-warning-box">
-        <div class="bap-warning-title">⛔ Ce que tu ne verras JAMAIS</div>
+        <div class="bap-warning-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg> Ce que tu ne verras JAMAIS</div>
         <div class="bap-warning-text">Un signalement pour contenu à caractère sexuel impliquant un mineur n'apparaît pas dans ta file, et son média n'est montré à personne sauf l'équipe fondatrice — le message concerné est masqué automatiquement et instantanément, avant même que tu aies pu l'ouvrir. Ce n'est pas une option qu'on peut désactiver : c'est structurel, pour ta propre protection légale autant que par principe.</div>
       </div>
       <div class="bap-section">
-        <div class="bap-section-title">📨 Comment postuler</div>
+        <div class="bap-section-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg> Comment postuler</div>
         <div class="bap-section-text">Un simple message expliquant pourquoi tu veux ce rôle et ce qui fait de toi quelqu'un de fiable pour ça. L'équipe fondatrice valide chaque candidature à la main — ce n'est jamais automatique.</div>
       </div>
-      <button type="button" class="btn-main" id="bapi-apply-btn" style="width:100%;margin-top:4px">🚀 Postuler pour la BAP</button>
+      <button type="button" class="btn-main" id="bapi-apply-btn" style="width:100%;margin-top:4px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3c3 1.5 5 5 4.5 10.5L12 18l-4.5-4.5C7 8 9 4.5 12 3z"/><circle cx="12" cy="10" r="1.5"/><path d="M8 15l-2.5 2.5M16 15l2.5 2.5M9.5 18.5L8 21M14.5 18.5L16 21"/></svg> Postuler pour la BAP</button>
     </div>
   </div>
 </div>
