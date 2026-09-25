@@ -6635,16 +6635,16 @@ a.bug-att-item{display:block}
 
 <div class="call-mini-pill hidden" id="call-mini-pill">
   <button type="button" class="cmp-body" id="cmp-body">
-    <span class="cmp-avatar" id="cmp-avatar">📞</span>
+    <span class="cmp-avatar" id="cmp-avatar"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>
     <span class="cmp-text"><span class="cmp-title" id="cmp-title">Appel</span><span class="cmp-sub" id="cmp-sub"></span></span>
   </button>
-  <button type="button" class="cmp-btn" id="cmp-mute" title="Muet">🎤</button>
+  <button type="button" class="cmp-btn" id="cmp-mute" title="Muet"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/></svg></button>
   <button type="button" class="cmp-btn danger" id="cmp-leave" title="Quitter">✕</button>
 </div>
 
 <div class="e2e-backup-banner hidden" id="e2e-backup-banner">
   <div class="e2e-bb-row" id="e2e-bb-ask">
-    <span class="e2e-bb-text" id="e2e-bb-ask-text">🔒 Sécurise l'accès à tes messages chiffrés sur tes autres appareils.</span>
+    <span class="e2e-bb-text" id="e2e-bb-ask-text"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Sécurise l'accès à tes messages chiffrés sur tes autres appareils.</span>
     <button type="button" class="e2e-bb-btn" id="e2e-backup-confirm">Confirmer mon mot de passe</button>
     <button type="button" class="e2e-bb-x" id="e2e-backup-later" title="Plus tard">✕</button>
   </div>
@@ -6681,11 +6681,11 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-notifications">
   <div class="modal-box notif-panel">
     <button type="button" class="modal-close" id="ntf-close">✕</button>
-    <h3>🔔 Notifications</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg> Notifications</h3>
     <div class="notif-bulk-row" id="ntf-bulk-row">
-      <button type="button" class="ntf-bulk-btn hidden" id="ntf-accept-all">✅ Tout accepter</button>
+      <button type="button" class="ntf-bulk-btn hidden" id="ntf-accept-all"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 12l5 5L20 6"/></svg> Tout accepter</button>
       <button type="button" class="ntf-bulk-btn hidden" id="ntf-decline-all">✕ Tout refuser</button>
-      <button type="button" class="ntf-bulk-btn hidden" id="ntf-clear-all">🗑 Tout supprimer</button>
+      <button type="button" class="ntf-bulk-btn hidden" id="ntf-clear-all"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg> Tout supprimer</button>
     </div>
     <div class="notif-list" id="ntf-list"></div>
   </div>
@@ -6693,7 +6693,7 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-tos">
   <div class="modal-box tos-modal">
-    <h3>📜 Avant de nous rejoindre — la charte IXin</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M6 4h11a2 2 0 0 1 2 2v13a1.5 1.5 0 0 1-1.5 1.5H8a2 2 0 0 1-2-2z"/><path d="M6 4a2 2 0 0 0-2 2v11.5A1.5 1.5 0 0 0 5.5 19H8"/><path d="M9 8h7M9 12h7"/></svg> Avant de nous rejoindre — la charte IXin</h3>
     <div class="tos-body" id="tos-body">
       <p>IXin est né d'une conviction simple : internet appartient à ceux qui l'utilisent, pas à ceux qui le surveillent. Ce texte n'est pas un mur juridique que personne ne lit — c'est notre engagement envers toi, et ce qu'on attend de toi en retour. Deux minutes de lecture, promis.</p>
       <div class="tos-h">🌐 Notre mission — neutralité du net &amp; liberté d'expression</div>
