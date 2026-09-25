@@ -11440,48 +11440,89 @@ document.addEventListener('focusout',function(e){
   }
 });
 
+// Icônes SVG remplaçant les emojis dans l'interface active (demandé
+// explicitement, pour une identité visuelle cohérente plutôt que le rendu
+// emoji très variable d'un OS/police à l'autre) — jamais dans le contenu figé
+// (notes de version historiques), seulement les vrais éléments d'interface :
+// menu paramètres, nav, boutons, toasts. Même gabarit que les icônes de nav
+// déjà en dur dans le HTML (viewBox 24x24, trait, sans remplissage).
+function svgIco(inner){return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+inner+'</svg>';}
+const ICO={
+  user:svgIco('<circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/>'),
+  star:svgIco('<path d="M12 3l2.6 5.6 6.1.6-4.6 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6-4.6-4.1 6.1-.6z"/>'),
+  lock:svgIco('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+  wallet:svgIco('<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/><circle cx="17" cy="14.5" r="1.1"/>'),
+  palette:svgIco('<path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/>'),
+  shield:svgIco('<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/>'),
+  idcard:svgIco('<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5M5.5 17.2c.4-1.6 1.6-2.4 2.5-2.4s2.1.8 2.5 2.4"/>'),
+  blocked:svgIco('<circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/>'),
+  flag:svgIco('<path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/>'),
+  laptop:svgIco('<rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/>'),
+  link:svgIco('<path d="M9.5 14.5l5-5"/><path d="M11 6.5l1-1a4 4 0 0 1 5.7 5.7l-1.2 1.2"/><path d="M13 17.5l-1 1a4 4 0 0 1-5.7-5.7l1.2-1.2"/>'),
+  apps:svgIco('<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>'),
+  download:svgIco('<path d="M12 3v12"/><path d="M7 11l5 5 5-5"/><path d="M5 20h14"/>'),
+  theme:svgIco('<path d="M20 14.6A8 8 0 1 1 9.4 4a6.5 6.5 0 0 0 10.6 10.6z"/>'),
+  accessibility:svgIco('<circle cx="12" cy="4.5" r="1.7"/><path d="M12 7v6"/><path d="M7.5 9.5h9"/><path d="M12 13l-3 7"/><path d="M12 13l3 7"/>'),
+  mic:svgIco('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/><path d="M9 21h6"/>'),
+  bell:svgIco('<path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/>'),
+  keyboard:svgIco('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M6.5 10h.01M9.5 10h.01M12.5 10h.01M15.5 10h.01M17.5 10h.01M6.5 14h11"/>'),
+  globe:svgIco('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9z"/>'),
+  desktop:svgIco('<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/>'),
+  wrench:svgIco('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.8-2.8z"/>'),
+  gamepad:svgIco('<rect x="3" y="8" width="18" height="9" rx="4"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r=".9"/><circle cx="18" cy="13.5" r=".9"/>'),
+  code:svgIco('<path d="M9 8l-5 4 5 4"/><path d="M15 8l5 4-5 4"/>'),
+  bot:svgIco('<rect x="5" y="8" width="14" height="11" rx="2.5"/><path d="M12 8V5"/><circle cx="12" cy="4" r="1.2"/><circle cx="9" cy="13" r="1.3"/><circle cx="15" cy="13" r="1.3"/><path d="M9 17h6"/>'),
+  signal:svgIco('<path d="M5 19v-4M10 19v-8M15 19V7M20 19V4"/>'),
+  clipboard:svgIco('<rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 11h6M9 15h6"/>'),
+  scale:svgIco('<path d="M12 3v18"/><path d="M6 21h12"/><path d="M12 6l-5 3.5M12 6l5 3.5"/><path d="M4 9.5l3-3 3 3-3 3.5z"/><path d="M14 9.5l3-3 3 3-3 3.5z"/>'),
+  copyright:svgIco('<circle cx="12" cy="12" r="9"/><path d="M14.5 9.5a3 3 0 1 0 0 5"/>'),
+  headset:svgIco('<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19v1a2 2 0 0 1-2 2h-3"/>'),
+  bug:svgIco('<rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/>'),
+  flask:svgIco('<path d="M10 3h4"/><path d="M11 3v6l-5.5 9a2 2 0 0 0 1.7 3h9.6a2 2 0 0 0 1.7-3L13 9V3"/><path d="M8 15h8"/>'),
+  door:svgIco('<path d="M6 3h9v18H6"/><path d="M15 3l3 1.5v15L15 21"/><path d="M11 12h.01"/>')
+};
 const SETTINGS_GROUPS=[
   {label:'Compte',items:[
-    {key:'account',icon:'👤',title:'Mon compte'},
-    {key:'subscription',icon:'⭐',title:'Abonnement'},
-    {key:'vpn',icon:'🔒',title:'VPN'},
-    {key:'wallet',icon:'💰',title:'Portefeuille'},
-    {key:'profiles',icon:'🎨',title:'Profils'},
-    {key:'privacy',icon:'🔒',title:'Confidentialité et sécurité'},
-    {key:'agecheck',icon:'🔞',title:'Vérification d\\'âge'},
-    {key:'blocked',icon:'🚫',title:'Utilisateurs bloqués'},
-    {key:'myreports',icon:'🚩',title:'Mes signalements'},
-    {key:'devices',icon:'💻',title:'Appareils'},
-    {key:'connections',icon:'🔗',title:'Connexions'},
-    {key:'apps',icon:'🧩',title:'Applications autorisées'},
-    {key:'family',icon:'🛡️',title:'Coffre-fort / Family Center'}
+    {key:'account',icon:ICO.user,title:'Mon compte'},
+    {key:'subscription',icon:ICO.star,title:'Abonnement'},
+    {key:'vpn',icon:ICO.lock,title:'VPN'},
+    {key:'wallet',icon:ICO.wallet,title:'Portefeuille'},
+    {key:'profiles',icon:ICO.palette,title:'Profils'},
+    {key:'privacy',icon:ICO.lock,title:'Confidentialité et sécurité'},
+    {key:'agecheck',icon:ICO.idcard,title:'Vérification d\\'âge'},
+    {key:'blocked',icon:ICO.blocked,title:'Utilisateurs bloqués'},
+    {key:'myreports',icon:ICO.flag,title:'Mes signalements'},
+    {key:'devices',icon:ICO.laptop,title:'Appareils'},
+    {key:'connections',icon:ICO.link,title:'Connexions'},
+    {key:'apps',icon:ICO.apps,title:'Applications autorisées'},
+    {key:'family',icon:ICO.shield,title:'Coffre-fort / Family Center'}
   ]},
   {label:'Application',items:[
-    {key:'download',icon:'⬇️',title:'Télécharger l\\'application'},
-    {key:'appearance',icon:'🎭',title:'Apparence'},
-    {key:'accessibility',icon:'♿',title:'Accessibilité'},
-    {key:'voice',icon:'🎙️',title:'Voix et vidéo'},
-    {key:'notifications',icon:'🔔',title:'Notifications'},
-    {key:'shortcuts',icon:'⌨️',title:'Raccourcis clavier'},
-    {key:'language',icon:'🌐',title:'Langue'},
-    {key:'os',icon:'🖥️',title:'Paramètres du système'},
-    {key:'advanced',icon:'🛠️',title:'Avancé'},
-    {key:'activity',icon:'🎮',title:'Activité'}
+    {key:'download',icon:ICO.download,title:'Télécharger l\\'application'},
+    {key:'appearance',icon:ICO.theme,title:'Apparence'},
+    {key:'accessibility',icon:ICO.accessibility,title:'Accessibilité'},
+    {key:'voice',icon:ICO.mic,title:'Voix et vidéo'},
+    {key:'notifications',icon:ICO.bell,title:'Notifications'},
+    {key:'shortcuts',icon:ICO.keyboard,title:'Raccourcis clavier'},
+    {key:'language',icon:ICO.globe,title:'Langue'},
+    {key:'os',icon:ICO.desktop,title:'Paramètres du système'},
+    {key:'advanced',icon:ICO.wrench,title:'Avancé'},
+    {key:'activity',icon:ICO.gamepad,title:'Activité'}
   ]},
   {label:'Développeurs',items:[
-    {key:'developers',icon:'👨‍💻',title:'Se connecter avec IXin'},
-    {key:'bots',icon:'🤖',title:'Mes bots'}
+    {key:'developers',icon:ICO.code,title:'Se connecter avec IXin'},
+    {key:'bots',icon:ICO.bot,title:'Mes bots'}
   ]},
   {label:'',items:[
-    {key:'sysstatus',icon:'📡',title:'État du système'},
-    {key:'changelog',icon:'📋',title:'Notes de version'},
-    {key:'legalnotice',icon:'⚖️',title:'Mentions légales'},
-    {key:'privacypolicy',icon:'🔐',title:'Politique de confidentialité (RGPD)'},
-    {key:'legal',icon:'©️',title:'Copyright & propriété intellectuelle'},
-    {key:'helpdesk',icon:'🎧',title:'Aide & Support'},
-    {key:'support',icon:'🐞',title:'Signaler un bug'},
-    {key:'testers',icon:'🧪',title:'Rejoindre IXin Testers'},
-    {key:'logout',icon:'🚪',title:'Se déconnecter'}
+    {key:'sysstatus',icon:ICO.signal,title:'État du système'},
+    {key:'changelog',icon:ICO.clipboard,title:'Notes de version'},
+    {key:'legalnotice',icon:ICO.scale,title:'Mentions légales'},
+    {key:'privacypolicy',icon:ICO.lock,title:'Politique de confidentialité (RGPD)'},
+    {key:'legal',icon:ICO.copyright,title:'Copyright & propriété intellectuelle'},
+    {key:'helpdesk',icon:ICO.headset,title:'Aide & Support'},
+    {key:'support',icon:ICO.bug,title:'Signaler un bug'},
+    {key:'testers',icon:ICO.flask,title:'Rejoindre IXin Testers'},
+    {key:'logout',icon:ICO.door,title:'Se déconnecter'}
   ]}
 ];
 // La recherche des paramètres (settings-search) ne doit pas se limiter aux
@@ -26989,7 +27030,16 @@ function musicSyncLyricsTime(){
 async function musicSearchLrclib(title,artistName){
   try{
     const q='https://lrclib.net/api/search?track_name='+encodeURIComponent(title||'')+'&artist_name='+encodeURIComponent(artistName||'');
-    const res=await fetch(q);
+    // fetch() n'a aucun timeout par défaut — si lrclib.net répond lentement
+    // (ou pas du tout, sans jamais couper la connexion), cette recherche de
+    // paroles "en bonus" bloquait indéfiniment tout l'envoi d'un titre,
+    // signalé explicitement ("bloqué sur recherche des paroles"). 7s max,
+    // après quoi on abandonne juste la recherche (paroles vides, jamais
+    // bloquant) — musicParseLRC/le champ restent utilisables normalement.
+    const ac=new AbortController();
+    const timer=setTimeout(function(){ac.abort();},7000);
+    let res;
+    try{res=await fetch(q,{signal:ac.signal});}finally{clearTimeout(timer);}
     if(!res.ok)return '';
     const arr=await res.json();
     if(!arr||!arr.length)return '';
@@ -28087,6 +28137,17 @@ async function getMyBadges(){
   let meta=memberMetaByUid[me.\$id];
   if(!meta){try{meta=await db.getDocument(DB,'user_meta',me.\$id);memberMetaByUid[me.\$id]=meta;}catch(e){meta=null}}
   return parseBadges(meta);
+}
+// Déplacé ici depuis l'ancien hub "Créateurs" (supprimé) — même raison que
+// getMyBadges() ci-dessus : encore utilisé partout dans le Hub Musique
+// (écoutes, mentions j'aime, commentaires, reposts, abonnés) alors que rien
+// n'y faisait plus référence après la suppression, ce qui cassait toute la
+// page Musique avec "crtFmtCount is not defined".
+function crtFmtCount(n){
+  n=Number(n)||0;
+  if(n>=1000000)return (n/1000000).toFixed(1).replace('.0','')+'M';
+  if(n>=1000)return (n/1000).toFixed(1).replace('.0','')+'k';
+  return String(n);
 }
 
 
