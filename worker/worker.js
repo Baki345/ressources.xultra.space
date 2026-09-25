@@ -6895,14 +6895,14 @@ a.bug-att-item{display:block}
       <textarea id="tkc-input" class="field-input" placeholder="Écris ta réponse…" maxlength="4000" style="height:44px;padding-top:11px;resize:none"></textarea>
       <button type="button" class="btn-main" id="tkc-send">➤</button>
     </div>
-    <div class="ticket-chat-closed-note hidden" id="tkc-closed-note">🔒 Ce ticket est fermé.</div>
+    <div class="ticket-chat-closed-note hidden" id="tkc-closed-note"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Ce ticket est fermé.</div>
   </div>
 </div>
 
 <div class="overlay hidden" id="modal-bluesky-connect">
   <div class="modal-box" style="width:min(400px,100%)">
     <button type="button" class="modal-close" id="bsky-close">✕</button>
-    <h3>🦋 Connecter Bluesky</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 8c-1.5-3-4.5-5-7-4 -.8 3 .5 6.5 3 8-2.5-.5-4 .5-4 2 1.5 2 5 2 8-1.5"/><path d="M12 8c1.5-3 4.5-5 7-4 .8 3-.5 6.5-3 8 2.5-.5 4 .5 4 2-1.5 2-5 2-8-1.5"/></svg> Connecter Bluesky</h3>
     <div class="scr-sub" style="margin:6px 0 12px">Bluesky ne propose pas de connexion en un clic — crée un <b>mot de passe d'application</b> dans Réglages → Confidentialité et sécurité → Mots de passe d'application sur Bluesky, puis colle-le ici. Jamais ton vrai mot de passe de compte.</div>
     <label class="tkn-label">Identifiant</label>
     <input type="text" id="bsky-handle" class="field-input" placeholder="toi.bsky.social">
@@ -6932,7 +6932,7 @@ a.bug-att-item{display:block}
     <button type="button" class="modal-close" id="stp-close">✕</button>
     <div class="status-rain" id="status-rain"></div>
     <div class="status-panel-inner">
-      <h3>🖥️ État du système <span class="status-live-dot" id="stp-live-dot"></span></h3>
+      <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg> État du système <span class="status-live-dot" id="stp-live-dot"></span></h3>
       <div class="status-sub" id="stp-updated">Vérification en cours…</div>
       <div class="status-rows" id="stp-rows"></div>
     </div>
