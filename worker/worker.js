@@ -7411,29 +7411,26 @@ const APP_PLATFORMS=[
 // altéré, sans dépendre d'un compte ou d'un service tiers.
 // Rebuildés le 2026-09-25 (le bucket Appwrite desktop_builds était vide —
 // perdu lors de la migration vers l'instance auto-hébergée, voir
-// appwrite/self-host/ — plus aucun fichier n'y avait survécu). android/
-// chromeos gardent leur ancienne empreinte : l'APK n'a pas encore été
-// rebuildé, le lien de téléchargement reste cassé pour ces deux-là en
-// attendant (nécessite le SDK Android/Gradle, pas encore mis en place ici).
+// appwrite/self-host/ — plus aucun fichier n'y avait survécu), Android/
+// ChromeOS inclus (APK rebuildé via expo prebuild + gradlew assembleRelease,
+// signé avec une clé de release nouvellement générée — l'ancienne clé n'a
+// jamais été trouvée dans ce dépôt, un ancien appareil Android devra
+// désinstaller l'ancienne appli avant d'installer celle-ci).
 const APP_CHECKSUMS={
   win:'a68de2100bdab14df492961bdb9a104a6c59de70c6b20faa37f277bb2ab59555',
-  android:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
-  chromeos:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
+  android:'08b81bc16503ff2ba11b0150e623b37c806e83d71af427bf7637f29f81345665',
+  chromeos:'08b81bc16503ff2ba11b0150e623b37c806e83d71af427bf7637f29f81345665',
   'mac-arm':'078c0909183556a3bb0ac6185a6efe2714f9d93269983b14dca91cb7fe010584',
   'mac-intel':'de990594c85c2a93d9a3ca9a66ea919e543b20331dd5b19f71b641568de184ce',
   'linux-deb':'cb37e6cef7336174a0e3615f22aa7ea50965e6f7db328e24f36454389f5645ba',
   'linux-appimage':'f3c125f7aeba5277b99e0da39be39bfb3f74eaac50222f70605699a4f1fa31f3'
 };
-// Rapports VirusTotal publics — retirés pour win/mac/linux le 2026-09-25 : ce
-// sont les fichiers fraîchement rebuildés ci-dessus, jamais réellement
-// soumis à VirusTotal (pas de clé API disponible ici), donc plus question
-// d'afficher un badge "0/75 détections" mensonger. android/chromeos gardent
-// leur ancien rapport, valable pour l'ancien fichier (toujours cassé,
-// jamais rebuildé).
-const APP_VT={
-  android:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'},
-  chromeos:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'}
-};
+// Rapports VirusTotal publics retirés pour toutes les plateformes le
+// 2026-09-25 : tous les fichiers ci-dessus sont fraîchement rebuildés,
+// jamais réellement soumis à VirusTotal (pas de clé API disponible ici) —
+// plus question d'afficher un badge "0/75 détections" mensonger pour un
+// fichier jamais scanné.
+const APP_VT={};
 function appDlUrl(p){return APP_STORAGE_BASE+p.fileId+'/download?project='+APP_STORAGE_PROJECT;}
 function triggerAppPlatform(p){
   if(p.key==='ios'){openIosInstallSheet();return}
