@@ -5991,14 +5991,14 @@ a.bug-att-item{display:block}
         <button type="button" class="composer-btn" id="btn-voice" title="Message vocal"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v3M9 20h6"/></svg></button>
         <button type="button" class="send-btn hidden" id="btn-send"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="none"><path d="M3 11.5L20 4l-6.5 17-3-6.5L3 11.5z"/></svg></button>
         <div class="attach-menu hidden" id="attach-menu">
-          <button type="button" data-attach="image">🖼️<span>Photo / Vidéo</span></button>
-          <button type="button" data-attach="snap">👻<span>Ephem (vu une fois)</span></button>
-          <button type="button" data-attach="file">📄<span>Fichier</span></button>
-          <button type="button" data-attach="gif">🎞️<span>GIF</span></button>
-          <button type="button" data-attach="location" class="location-share-paused hidden">📍<span>Position</span></button>
+          <button type="button" data-attach="image"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5L4 21"/></svg><span>Photo / Vidéo</span></button>
+          <button type="button" data-attach="snap"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-3 0-5 2.3-5 5.2v3.3c0 1-.4 1.5-1.3 2.3-.7.6-.3 1.7.6 1.8l1 .1c.2 1.4 1.3 2.3 2.7 2.3M12 3c3 0 5 2.3 5 5.2v3.3c0 1 .4 1.5 1.3 2.3.7.6.3 1.7-.6 1.8l-1 .1c-.2 1.4-1.3 2.3-2.7 2.3"/><path d="M9.7 18c.4 1 1.3 1.7 2.3 1.7s1.9-.7 2.3-1.7"/></svg><span>Ephem (vu une fois)</span></button>
+          <button type="button" data-attach="file"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M15 3v5h5"/></svg><span>Fichier</span></button>
+          <button type="button" data-attach="gif"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10v4M11 10v4M11 12h2M16.5 10a1.7 1.7 0 0 0-1.5-1c-1.1 0-2 1-2 2.5s.9 2.5 2 2.5c.8 0 1.3-.4 1.5-.7v-1.2h-1.3"/></svg><span>GIF</span></button>
+          <button type="button" data-attach="location" class="location-share-paused hidden"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.3"/></svg><span>Position</span></button>
         </div>
         <div class="voice-record" id="voice-record">
-          <span class="vr-mic">🎤</span>
+          <span class="vr-mic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/></svg></span>
           <div class="vr-live-wave" id="vr-live-wave"></div>
           <div class="vr-timer" id="vr-timer">0:00</div>
           <div class="vr-cancel-hint">◀ Glisser pour annuler</div>
