@@ -5760,9 +5760,9 @@ a.bug-att-item{display:block}
     </div>
     <form id="pane-login" autocomplete="on">
       <div class="seg-group" id="login-auth-mode" style="margin-bottom:10px">
-        <button type="button" class="seg-btn on" data-login-mode="devicekey">🔒 Clé secrète</button>
-        <button type="button" class="seg-btn hidden" id="login-mode-passkey-btn" data-login-mode="passkey">🪪 Passkey</button>
-        <button type="button" class="seg-btn" data-login-mode="email">✉️ E-mail</button>
+        <button type="button" class="seg-btn on" data-login-mode="devicekey"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Clé secrète</button>
+        <button type="button" class="seg-btn hidden" id="login-mode-passkey-btn" data-login-mode="passkey"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg> Passkey</button>
+        <button type="button" class="seg-btn" data-login-mode="email"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M4 7l8 6 8-6"/></svg> E-mail</button>
       </div>
       <div id="login-devicekey-block">
         <div class="field"><label>Clé secrète</label><input id="in-devicekey" type="text" placeholder="X1-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"/></div>
@@ -5770,11 +5770,11 @@ a.bug-att-item{display:block}
       </div>
       <div class="hidden" id="login-passkey-block">
         <div class="field"><label>Pseudo#tag</label><input id="in-login-identifier" type="text" name="username" autocomplete="username" placeholder="pseudo#1234"/></div>
-        <button type="button" class="btn-main" id="btn-login-passkey" style="width:100%">🪪 Se connecter avec une passkey</button>
+        <button type="button" class="btn-main" id="btn-login-passkey" style="width:100%"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg> Se connecter avec une passkey</button>
       </div>
       <div class="hidden" id="login-email-block">
         <div class="field"><label data-i18n="auth_email">Email</label><input id="in-email" type="text" name="username" autocomplete="username" placeholder="toi@exemple.com"/></div>
-        <div class="field"><label data-i18n="auth_password">Mot de passe</label><div class="field-pw-wrap"><input id="in-pass" type="password" name="password" autocomplete="current-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass" title="Afficher le mot de passe" aria-label="Afficher le mot de passe">👁</button></div></div>
+        <div class="field"><label data-i18n="auth_password">Mot de passe</label><div class="field-pw-wrap"><input id="in-pass" type="password" name="password" autocomplete="current-password"/><button type="button" class="field-pw-toggle" data-pw-toggle="in-pass" title="Afficher le mot de passe" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></button></div></div>
         <button type="button" id="btn-forgot-password" style="margin:0 0 6px;background:none;border:0;color:var(--muted);font-size:.78rem;text-decoration:underline;cursor:pointer;padding:0" data-i18n="auth_forgot_password">Mot de passe oublié ?</button>
         <label class="remember-row" for="in-remember">
           <input type="checkbox" id="in-remember" checked/>
@@ -5791,7 +5791,7 @@ a.bug-att-item{display:block}
     </form>
     <div class="qr-login-block" id="qr-login-block">
       <button type="button" class="qr-login-toggle" id="qr-login-toggle">
-        <span class="qr-login-toggle-ico">📱</span>
+        <span class="qr-login-toggle-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
         <span class="qr-login-toggle-txt">Connexion instantanée par QR code</span>
         <span class="qr-login-toggle-chev">›</span>
       </button>
@@ -5805,32 +5805,32 @@ a.bug-att-item{display:block}
       <div class="scr-sub" style="margin-bottom:12px">Photo et bannière se personnalisent après l'inscription, depuis ton profil.</div>
       <div class="field-row">
         <div class="field field-grow"><label>Pseudo</label><input id="in-user" maxlength="24" autocomplete="username"/></div>
-        <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser">🎲</button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
+        <div class="field field-tag"><label>Tag <button type="button" class="pe-mini-btn" id="reg-tag-random" title="Randomiser"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="12" cy="12" r="1"/></svg></button></label><input id="in-tag" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="0000"/></div>
       </div>
       <div class="reg-section-div"><span>Méthode de connexion</span></div>
       <div class="seg-group" id="reg-auth-mode" style="margin-bottom:12px">
-        <button type="button" class="seg-btn on" data-reg-mode="devicekey">🔒 Clé secrète</button>
-        <button type="button" class="seg-btn hidden" id="reg-mode-passkey-btn" data-reg-mode="passkey">🪪 Passkey (biométrie)</button>
+        <button type="button" class="seg-btn on" data-reg-mode="devicekey"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Clé secrète</button>
+        <button type="button" class="seg-btn hidden" id="reg-mode-passkey-btn" data-reg-mode="passkey"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg> Passkey (biométrie)</button>
       </div>
-      <div class="scr-sub" id="reg-devicekey-note">🔒 Une clé secrète unique s'affichera une seule fois juste après l'inscription — elle remplace l'email et le mot de passe pour te reconnecter. Un code de secours séparé te permettra de récupérer ton compte si tu la perds. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
-      <div class="scr-sub hidden" id="reg-passkey-note">🪪 Utilise Face ID, Windows Hello, ton empreinte ou une clé de sécurité pour t'inscrire sans mot de passe. Un code de secours te sera aussi fourni pour récupérer ton compte si tu perds l'accès à cet appareil. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
+      <div class="scr-sub" id="reg-devicekey-note"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Une clé secrète unique s'affichera une seule fois juste après l'inscription — elle remplace l'email et le mot de passe pour te reconnecter. Un code de secours séparé te permettra de récupérer ton compte si tu la perds. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
+      <div class="scr-sub hidden" id="reg-passkey-note"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg> Utilise Face ID, Windows Hello, ton empreinte ou une clé de sécurité pour t'inscrire sans mot de passe. Un code de secours te sera aussi fourni pour récupérer ton compte si tu perds l'accès à cet appareil. Tu pourras ajouter un email à ton compte plus tard, depuis les paramètres.</div>
       <input type="text" id="in-hp" class="hp-field" tabindex="-1" autocomplete="off" aria-hidden="true"/>
       <div class="turnstile-wrap" id="turnstile-wrap-register"></div>
       <button type="submit" class="btn-main" id="btn-register">Créer ma clé secrète</button>
     </form>
     <div class="err" id="auth-err"></div>
     <p class="hint">β3.0 — étape 1 : connexion</p>
-    <p class="hint auth-beta-notice">🧪 IXin est en version bêta : certaines fonctionnalités peuvent encore contenir des bugs ou des incohérences. Signale-les nous depuis 🐞 une fois connecté(e), merci de ta patience !</p>
+    <p class="hint auth-beta-notice"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M10 3h4"/><path d="M11 3v6l-5.5 9a2 2 0 0 0 1.7 3h9.6a2 2 0 0 0 1.7-3L13 9V3"/><path d="M8 15h8"/></svg> IXin est en version bêta : certaines fonctionnalités peuvent encore contenir des bugs ou des incohérences. Signale-les nous depuis <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg> une fois connecté(e), merci de ta patience !</p>
     <div class="auth-legal-links">
-      <button type="button" data-legal="legal">⚖️ Mentions légales</button><span class="dl-sep">·</span>
-      <button type="button" data-legal="privacy">🔐 Confidentialité (RGPD)</button>
+      <button type="button" data-legal="legal"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3v18"/><path d="M6 21h12"/><path d="M12 6l-5 3.5M12 6l5 3.5"/><path d="M4 9.5l3-3 3 3-3 3.5z"/><path d="M14 9.5l3-3 3 3-3 3.5z"/></svg> Mentions légales</button><span class="dl-sep">·</span>
+      <button type="button" data-legal="privacy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Confidentialité (RGPD)</button>
     </div>
     <div class="desktop-dl" id="desktop-dl">
-      <button type="button" class="desktop-dl-btn" id="desktop-dl-btn">💻 Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
+      <button type="button" class="desktop-dl-btn" id="desktop-dl-btn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="4" y="5" width="16" height="10" rx="1.5"/><path d="M2 19h20"/></svg> Télécharger pour <span id="desktop-dl-os">ordinateur</span></button>
       <a class="dl-vt-badge hidden" id="dl-vt-badge" target="_blank" rel="noopener"></a>
-      <button type="button" class="dl-source-badge" id="dl-source-badge">🖥️ Voir le code source — XCodeHUB</button>
+      <button type="button" class="dl-source-badge" id="dl-source-badge"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg> Voir le code source — XCodeHUB</button>
       <div class="desktop-dl-others" id="desktop-dl-others"></div>
-      <button type="button" class="dl-verify-toggle" id="dl-verify-toggle">🔒 Vérifier l'empreinte du fichier (SHA-256)</button>
+      <button type="button" class="dl-verify-toggle" id="dl-verify-toggle"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Vérifier l'empreinte du fichier (SHA-256)</button>
       <div class="dl-verify-box hidden" id="dl-verify-box"></div>
     </div>
   </div>
@@ -10548,7 +10548,7 @@ function renderSetLegal(box){
 // informations soient consultables AVANT la création d'un compte, pas
 // seulement une fois connecté.
 function legalNoticeHtml(){
-  return '<h2>⚖️ Mentions légales</h2><div class="sc-desc">IXin est un projet en bêta — ces informations seront complétées au fur et à mesure que son statut juridique se précise.</div>'
+  return '<h2>'+ICO.scale+' Mentions légales</h2><div class="sc-desc">IXin est un projet en bêta — ces informations seront complétées au fur et à mesure que son statut juridique se précise.</div>'
     +'<div class="set-card"><div class="set-section-label">📝 Éditeur du site</div>'
       +'<div class="scr-sub">IXin (xultra.space) est édité par <b>CISCOSH</b>. Le site fonctionne actuellement comme un projet personnel en bêta, sans structure juridique déclarée à ce jour — cette section sera mise à jour dès que son statut sera clarifié. Contact : <a href="mailto:contact@xultra.space">contact@xultra.space</a>.</div>'
     +'</div>'
@@ -10568,7 +10568,7 @@ function legalNoticeHtml(){
     +'</div>';
 }
 function privacyPolicyHtml(){
-  return '<h2>🔐 Politique de confidentialité (RGPD)</h2><div class="sc-desc">Ce qu\\'on collecte, pourquoi, et comment reprendre le contrôle — en clair, pas en jargon juridique.</div>'
+  return '<h2>'+ICO.lock+' Politique de confidentialité (RGPD)</h2><div class="sc-desc">Ce qu\\'on collecte, pourquoi, et comment reprendre le contrôle — en clair, pas en jargon juridique.</div>'
     +'<div class="set-card"><div class="set-section-label">👤 Qui est responsable de tes données ?</div>'
       +'<div class="scr-sub"><b>CISCOSH</b>, éditeur de IXin — <a href="mailto:contact@xultra.space">contact@xultra.space</a>.</div>'
     +'</div>'
@@ -10761,7 +10761,7 @@ function isXultraDesktopAlready(){
 function renderSetDownload(box){
   const primary=APP_PLATFORMS.find(function(p){return p.key===detectAppPlatformKey();})||APP_PLATFORMS[0];
   const already=isXultraDesktopAlready();
-  box.innerHTML='<h2>⬇️ Télécharger l\\'application</h2><div class="sc-desc">IXin sur ton bureau ou ton téléphone : notifications natives, lancement plus rapide, toujours à jour.</div>'
+  box.innerHTML='<h2>'+ICO.download+' Télécharger l\\'application</h2><div class="sc-desc">IXin sur ton bureau ou ton téléphone : notifications natives, lancement plus rapide, toujours à jour.</div>'
     +(already?'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Déjà installée</div><div class="scr-sub">Tu utilises actuellement IXin depuis l\\'application installée sur cet appareil.</div></div></div></div>':'')
     +'<div class="set-card" style="text-align:center;padding:22px 16px">'
       +'<button type="button" class="btn-main" id="set-dl-btn" style="width:100%;font-size:.95rem;padding:14px">💻 Télécharger pour <span id="set-dl-os">ordinateur</span></button>'
@@ -11479,7 +11479,12 @@ const ICO={
   headset:svgIco('<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19v1a2 2 0 0 1-2 2h-3"/>'),
   bug:svgIco('<rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/>'),
   flask:svgIco('<path d="M10 3h4"/><path d="M11 3v6l-5.5 9a2 2 0 0 0 1.7 3h9.6a2 2 0 0 0 1.7-3L13 9V3"/><path d="M8 15h8"/>'),
-  door:svgIco('<path d="M6 3h9v18H6"/><path d="M15 3l3 1.5v15L15 21"/><path d="M11 12h.01"/>')
+  door:svgIco('<path d="M6 3h9v18H6"/><path d="M15 3l3 1.5v15L15 21"/><path d="M11 12h.01"/>'),
+  compass:svgIco('<circle cx="12" cy="12" r="9"/><path d="M15 9l-2 6-6 2 2-6z"/>'),
+  dice:svgIco('<rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="12" cy="12" r="1"/>'),
+  cloud:svgIco('<path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.7 1.5A3.5 3.5 0 0 0 7 18z"/>'),
+  musicNote:svgIco('<path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'),
+  bag:svgIco('<path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')
 };
 const SETTINGS_GROUPS=[
   {label:'Compte',items:[
@@ -12198,11 +12203,11 @@ function vpnDaysLeftBannerHtml(expiresAtIso){
   +'</div>';
 }
 async function renderSetVpn(box){
-  box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div><div class="set-card"><div class="scr-sub">Chargement…</div></div>';
+  box.innerHTML='<h2>'+ICO.lock+' VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div><div class="set-card"><div class="scr-sub">Chargement…</div></div>';
   let sub=null;
   try{sub=await db.getDocument(DB,'vpn_subscriptions',me.\$id);}catch(e){sub=null;}
   const active=!!(sub&&sub.expiresAt&&new Date(sub.expiresAt).getTime()>Date.now());
-  box.innerHTML='<h2>🔒 VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div>'
+  box.innerHTML='<h2>'+ICO.lock+' VPN</h2><div class="sc-desc">Ton VPN IXin (WireGuard, auto-hébergé) — indépendant de IXin+.</div>'
     +(active?
       ('<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">✅ Actif</div><div class="scr-sub">Expire le '+esc(fmtVpnDate(sub.expiresAt))+'.</div></div><button type="button" class="set-mini-btn" id="vpn-renew-btn">Renouveler</button></div>'
         +vpnDaysLeftBannerHtml(sub.expiresAt)
@@ -12471,7 +12476,7 @@ function ethToWeiHex(amountStr){
   return '0x'+wei.toString(16);
 }
 function renderSetWallet(box){
-  box.innerHTML='<h2>💰 Portefeuille</h2><div class="sc-desc">IXin Coins (monnaie interne, achetée par carte) et portefeuille externe relié (vraie crypto on-chain).</div>'
+  box.innerHTML='<h2>'+ICO.wallet+' Portefeuille</h2><div class="sc-desc">IXin Coins (monnaie interne, achetée par carte) et portefeuille externe relié (vraie crypto on-chain).</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Solde IXin Coins</div><div class="scr-sub" id="wal-balance">Chargement…</div></div></div></div>'
     +'<div class="set-card"><div class="set-section-label">🔋 Recharger</div><div class="scr-sub" style="margin-bottom:10px">Paiement par carte, sécurisé par Stripe — ton numéro de carte ne transite jamais par IXin.</div>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap">'+Object.keys(COIN_PACKS_CLIENT).map(function(k){
@@ -12884,7 +12889,7 @@ async function renderSetApps(box){
 }
 let oauthDevAppsCache=[];
 async function renderSetDevelopers(box){
-  box.innerHTML='<h2>👨‍💻 Se connecter avec IXin</h2>'
+  box.innerHTML='<h2>'+ICO.code+' Se connecter avec IXin</h2>'
     +'<div class="sc-desc">Ouvre une passerelle "Se connecter avec IXin" sur ton propre site : tes visiteurs se connectent avec leur compte IXin au lieu de créer un mot de passe de plus, et tu récupères leur identité de base (pseudo, avatar). Gratuit, ouvert à tout le monde, aucune approbation requise.</div>'
     +'<div class="set-card"><div class="set-card-row"><div class="scr-info"><div class="scr-label">Tes applications</div><div class="scr-sub">Chaque application a son propre client_id / client_secret.</div></div><button type="button" class="set-mini-btn" id="oauth-new-app-btn">+ Créer une application</button></div></div>'
     +'<div class="set-card hidden" id="oauth-new-app-form">'
@@ -13008,7 +13013,7 @@ const BOT_EVENT_TYPES=[
   {key:'member_leave',label:'➖ Membre parti'}
 ];
 async function renderSetBots(box){
-  box.innerHTML='<h2>🤖 Portail développeur de bots</h2>'
+  box.innerHTML='<h2>'+ICO.bot+' Portail développeur de bots</h2>'
     +'<div class="sc-desc">Crée un bot pour un serveur ou pour les messages privés : commandes /slash (avec options et choix), boutons, embeds, réponses automatiques — et une API de modération (kick/ban/timeout/rôles) pour les serveurs qui t\\'en accordent la permission. Ton bot est un simple point HTTPS que tu héberges toi-même — pas besoin de VPS si tu ne fais que répondre à des commandes. Ton premier bot fonctionnel et en ligne débloque le badge 🤖 Développeur de Bot.</div>'
     +'<div class="botdev-tabs">'
       +'<button type="button" class="botdev-tab-btn on" data-botdev-tab="mybots">🤖 Tes bots</button>'
@@ -13568,7 +13573,7 @@ function wireSetShortcuts(box){
 let setLangQuery='';
 function renderSetLanguage(box){
   if(MULTILANG_PAUSED){
-    box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">IXin est actuellement en français uniquement.</div>'
+    box.innerHTML='<h2>'+ICO.globe+' Langue</h2><div class="sc-desc">IXin est actuellement en français uniquement.</div>'
       +'<div class="set-card"><div class="set-section-label">⏸️ Support multilingue en pause</div>'
         +'<div class="scr-sub">Le temps de stabiliser la traduction automatique (des incohérences avaient été remontées), IXin reste temporairement en français pour tout le monde. Le sélecteur de langue reviendra dès que ce sera résolu — annoncé dans les Notes de version.</div>'
       +'</div>';
@@ -13578,7 +13583,7 @@ function renderSetLanguage(box){
   const curEntry=I18N_LANGS.find(function(l){return l.code===cur;});
   const q=setLangQuery.trim().toLowerCase();
   const list=q?I18N_LANGS.filter(function(l){return l.label.toLowerCase().indexOf(q)>=0||l.code.toLowerCase().indexOf(q)>=0;}):I18N_LANGS;
-  box.innerHTML='<h2>🌐 Langue</h2><div class="sc-desc">La langue de l\\'interface IXin — '+I18N_LANGS.length+' langues disponibles.</div>'
+  box.innerHTML='<h2>'+ICO.globe+' Langue</h2><div class="sc-desc">La langue de l\\'interface IXin — '+I18N_LANGS.length+' langues disponibles.</div>'
     +'<div class="set-card">'
     +'<input type="text" id="lang-search" class="field-input" placeholder="Rechercher une langue…" value="'+esc(setLangQuery)+'" style="margin-bottom:10px"/>'
     +'<div class="lang-grid" id="lang-grid">'
@@ -13640,7 +13645,7 @@ function renderSetAgeVerify(box){
   try{badges=JSON.parse((settingsMeta&&settingsMeta.badgesJson)||'[]');if(!Array.isArray(badges))badges=[];}catch(e){badges=[];}
   const verified=badges.indexOf('adult18')>=0;
   agecheckImageDataUrl=null;
-  box.innerHTML='<h2>🔞 Vérification d\\'âge</h2>'
+  box.innerHTML='<h2>'+ICO.idcard+' Vérification d\\'âge</h2>'
     +'<div class="sc-desc">Confirme que tu as bien plus de 18 ans grâce à une estimation faite par IA à partir d\\'un selfie — sert à débloquer, plus tard, des fonctionnalités et sections réservées aux adultes.</div>'
     +(verified
       ?('<div class="set-card" style="text-align:center;padding:22px"><div style="font-size:2.2rem">🔞✅</div><div style="font-weight:800;margin-top:6px">Badge 18+ VÉRIFIÉ obtenu</div><div class="scr-sub" style="margin-top:4px">Aucune action supplémentaire nécessaire.</div></div>')
@@ -21222,7 +21227,7 @@ async function openDiscoverOverlay(){
     overlay=document.createElement('div');
     overlay.className='discover-overlay';
     overlay.id='discover-overlay';
-    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="discover-close">← Retour</button><h2>🌍 Découvrir</h2></div>'
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="discover-close">← Retour</button><h2>'+ICO.compass+' Découvrir</h2></div>'
       +'<div class="discover-tabs"><button type="button" id="discover-tab-feed" class="on">🖼️ Flux</button><button type="button" id="discover-tab-map">🗺️ Carte</button></div>'
       +'<div class="discover-body" id="discover-body"></div>';
     document.body.appendChild(overlay);
@@ -21768,7 +21773,7 @@ function crToggleTextChat(){
 function renderChatroulette(){
   const overlay=\$('chatroulette-overlay');if(!overlay)return;
   if(crState==='landing'){
-    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>🎲 Chatroulette</h2></div>'
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>'+ICO.dice+' Chatroulette</h2></div>'
       +'<div class="discover-body cr-center">'
       +'<div style="font-size:3rem">🎲</div>'
       +'<h3>Discute avec un membre au hasard</h3>'
@@ -21781,7 +21786,7 @@ function renderChatroulette(){
     return;
   }
   if(crState==='waiting'){
-    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>🎲 Chatroulette</h2></div>'
+    overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="cr-close">← Retour</button><h2>'+ICO.dice+' Chatroulette</h2></div>'
       +'<div class="discover-body cr-center"><div class="cr-spinner"></div><div>Recherche d\\'un partenaire…</div>'
       +'<button type="button" class="set-mini-btn" id="cr-cancel">Annuler</button></div>';
     \$('cr-close').onclick=closeChatroulette;
@@ -22021,7 +22026,7 @@ function renderXBinShell(){
   const overlay=\$('xbin-overlay');if(!overlay)return;
   overlay.innerHTML='<div class="discover-head xbin-head">'
     +'<button type="button" class="set-mini-btn" id="xbin-close">← Retour</button>'
-    +'<h2>📋 XBin</h2>'
+    +'<h2>'+ICO.clipboard+' XBin</h2>'
     +'<div class="xbin-tabs">'
       +'<button type="button" class="xbin-tab'+(xbinView==='feed'?' on':'')+'" data-xbin-tab="feed">🌐 Découvrir</button>'
       +(me?'<button type="button" class="xbin-tab'+(xbinView==='mine'?' on':'')+'" data-xbin-tab="mine">🗂️ Mes pastes</button>':'')
@@ -22216,7 +22221,7 @@ function openXBinEditor(prefill){
   ensureHighlightJs();
   overlay.innerHTML='<div class="discover-head xbin-head">'
     +'<button type="button" class="set-mini-btn" id="xbin-editor-back">← Retour</button>'
-    +'<h2>📋 '+(xbinEditingId?'Modifier le paste':(prefill?'Dupliquer le paste':'Nouveau paste'))+'</h2>'
+    +'<h2>'+ICO.clipboard+' '+(xbinEditingId?'Modifier le paste':(prefill?'Dupliquer le paste':'Nouveau paste'))+'</h2>'
   +'</div>'
   +'<div class="discover-body xbin-body">'
     +'<div class="xbin-editor">'
@@ -22312,7 +22317,7 @@ async function openXBinPaste(id,preloaded){
   }
   overlay.classList.add('show');
   ensureHighlightJs();
-  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xbin-detail-back">← Retour</button><h2>📋 XBin</h2></div><div class="discover-body xbin-body" id="xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xbin-detail-back">← Retour</button><h2>'+ICO.clipboard+' XBin</h2></div><div class="discover-body xbin-body" id="xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
   \$('xbin-detail-back').onclick=function(){
     xbinView='feed';
     try{const url=new URL(location.href);url.searchParams.delete('xbin');history.replaceState(null,'',url.pathname+(url.search?url.search:''));}catch(e){}
@@ -24625,7 +24630,7 @@ async function openXDrive(){
     document.body.appendChild(overlay);
   }
   overlay.classList.add('show');
-  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-close-boot">← Retour</button><h2>☁️ IXin Drive</h2></div><div class="discover-body xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-close-boot">← Retour</button><h2>'+ICO.cloud+' IXin Drive</h2></div><div class="discover-body xbin-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
   overlay.querySelector('#xd-close-boot').onclick=closeXDrive;
   try{
     await xdFetchQuotaMeta();
@@ -24838,7 +24843,7 @@ async function xdOpenSharedView(token,fragmentKey){
   let overlay=\$('xdrive-overlay');
   if(!overlay){overlay=document.createElement('div');overlay.id='xdrive-overlay';overlay.className='discover-overlay xdrive-overlay';document.body.appendChild(overlay);}
   overlay.classList.add('show');
-  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-shared-close">✕</button><h2>☁️ IXin Drive — partage</h2></div><div class="discover-body xbin-body" id="xd-shared-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
+  overlay.innerHTML='<div class="discover-head xbin-head"><button type="button" class="set-mini-btn" id="xd-shared-close">✕</button><h2>'+ICO.cloud+' IXin Drive — partage</h2></div><div class="discover-body xbin-body" id="xd-shared-body"><div class="xbin-loading"><span class="bs-ring"></span></div></div>';
   overlay.querySelector('#xd-shared-close').onclick=function(){
     overlay.classList.remove('show');
     try{const url=new URL(location.href);url.searchParams.delete('dshare');history.replaceState(null,'',url.pathname);}catch(e){}
@@ -25788,7 +25793,7 @@ function renderMusicShell(){
   // dédiée" façon SoundCloud qu'elle vise ; on les masque comme pour la
   // consultation du profil d'un autre artiste (musicViewUid).
   const compact=!!musicViewUid||!!musicTrackPageId;
-  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>🎵 '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
+  overlay.innerHTML='<div class="discover-head"><button type="button" class="set-mini-btn" id="music-close">← Retour</button><h2>'+ICO.musicNote+' '+(musicViewUid?esc(musicViewName||'Musique'):'Musique')+'</h2>'
       +(isOtherProfile?'<button type="button" class="set-mini-btn music-follow-btn" id="music-follow-btn" style="margin-left:auto">+ Suivre</button>':'')
       +(compact?'':'<div class="music-upload-btns" style="display:flex;gap:8px;margin-left:auto"><button type="button" class="set-mini-btn" id="music-bulk-upload-btn">📀 Ajouter un album</button><button type="button" class="btn-main" id="music-upload-btn" style="width:auto;padding:8px 16px">+ Ajouter un titre</button></div>')+'</div>'
     +(compact?'':'<div class="seg-group music-tabs" id="music-tabs">'
@@ -28204,7 +28209,7 @@ function renderShopShell(){
   const overlay=\$('shop-overlay');if(!overlay)return;
   overlay.innerHTML='<div class="discover-head shop-head">'
     +'<button type="button" class="set-mini-btn" id="shop-close">← Retour</button>'
-    +'<h2>🛍️ Boutique</h2>'
+    +'<h2>'+ICO.bag+' Boutique</h2>'
     +'<div class="xbin-tabs">'
       +'<button type="button" class="xbin-tab'+(shopView==='browse'?' on':'')+'" data-shop-tab="browse">🌐 Parcourir</button>'
       +(shopIsCreator?'<button type="button" class="xbin-tab'+(shopView==='mine'?' on':'')+'" data-shop-tab="mine">🎨 Mes créations</button>':'')
