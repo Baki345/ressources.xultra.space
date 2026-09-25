@@ -7409,28 +7409,30 @@ const APP_PLATFORMS=[
 // chaque build, à mettre à jour manuellement si un fichier est republié) —
 // permet à qui le souhaite de vérifier qu'un fichier téléchargé n'a pas été
 // altéré, sans dépendre d'un compte ou d'un service tiers.
+// Rebuildés le 2026-09-25 (le bucket Appwrite desktop_builds était vide —
+// perdu lors de la migration vers l'instance auto-hébergée, voir
+// appwrite/self-host/ — plus aucun fichier n'y avait survécu). android/
+// chromeos gardent leur ancienne empreinte : l'APK n'a pas encore été
+// rebuildé, le lien de téléchargement reste cassé pour ces deux-là en
+// attendant (nécessite le SDK Android/Gradle, pas encore mis en place ici).
 const APP_CHECKSUMS={
-  win:'6074656a89d6ec83f7752e37fa9fc58c26765100ddfc4385e67867d42cf82768',
+  win:'a68de2100bdab14df492961bdb9a104a6c59de70c6b20faa37f277bb2ab59555',
   android:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
   chromeos:'6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a',
-  'mac-arm':'80762524fda6cc813dec03da566a8dd4e91d5ba35ed33b7a88d22708c7cb0066',
-  'mac-intel':'b057717e6f0978a7e7d2351b929a88913ebee31bff5ebd82ba505fbc0cbcb657',
-  'linux-deb':'326afeecddd8c72d82be7d4764a30cd988b58582423dcaf2a80c6293c3ec28f5',
-  'linux-appimage':'9c5154f514d7bd3f91c856a1ec5fc3fa77b5a91978fac4732dad25be386345a9'
+  'mac-arm':'078c0909183556a3bb0ac6185a6efe2714f9d93269983b14dca91cb7fe010584',
+  'mac-intel':'de990594c85c2a93d9a3ca9a66ea919e543b20331dd5b19f71b641568de184ce',
+  'linux-deb':'cb37e6cef7336174a0e3615f22aa7ea50965e6f7db328e24f36454389f5645ba',
+  'linux-appimage':'f3c125f7aeba5277b99e0da39be39bfb3f74eaac50222f70605699a4f1fa31f3'
 };
-// Rapports VirusTotal publics des fichiers actuellement publiés (scannés à
-// la demande, résultat 0/75 détections pour chacun) — à rescanner et
-// remettre à jour manuellement si un fichier est republié. Un lien public
-// vers virustotal.com est un signal de confiance plus reconnaissable pour
-// un utilisateur non technique qu'une simple empreinte SHA-256.
+// Rapports VirusTotal publics — retirés pour win/mac/linux le 2026-09-25 : ce
+// sont les fichiers fraîchement rebuildés ci-dessus, jamais réellement
+// soumis à VirusTotal (pas de clé API disponible ici), donc plus question
+// d'afficher un badge "0/75 détections" mensonger. android/chromeos gardent
+// leur ancien rapport, valable pour l'ancien fichier (toujours cassé,
+// jamais rebuildé).
 const APP_VT={
-  win:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6074656a89d6ec83f7752e37fa9fc58c26765100ddfc4385e67867d42cf82768'},
   android:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'},
-  chromeos:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'},
-  'mac-arm':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/80762524fda6cc813dec03da566a8dd4e91d5ba35ed33b7a88d22708c7cb0066'},
-  'mac-intel':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/b057717e6f0978a7e7d2351b929a88913ebee31bff5ebd82ba505fbc0cbcb657'},
-  'linux-deb':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/326afeecddd8c72d82be7d4764a30cd988b58582423dcaf2a80c6293c3ec28f5'},
-  'linux-appimage':{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/9c5154f514d7bd3f91c856a1ec5fc3fa77b5a91978fac4732dad25be386345a9'}
+  chromeos:{malicious:0,total:75,url:'https://www.virustotal.com/gui/file/6ee09fdb5c9762a395318bd338528fd91696a6b3902b741d54a57467d20b586a'}
 };
 function appDlUrl(p){return APP_STORAGE_BASE+p.fileId+'/download?project='+APP_STORAGE_PROJECT;}
 function triggerAppPlatform(p){
