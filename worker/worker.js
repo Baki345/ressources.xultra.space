@@ -3739,6 +3739,7 @@ html.xultra-restoring #stage{visibility:hidden}
 .empty>.empty-head,.empty>.empty-dash{position:relative;z-index:1}
 @media (prefers-reduced-motion:reduce){.empty-lofi-blob{animation:none!important}}
 .empty-head{flex-shrink:0}
+.empty-head svg{width:34px;height:34px}
 .empty-dash{width:100%;max-width:640px;display:flex;flex-direction:column;gap:14px;margin-top:26px;text-align:left}
 /* Cartes volontairement sombres/vitrées : tout le texte à l'intérieur des
    widgets (température, noms de membres...) est prévu clair-sur-sombre —
@@ -7013,7 +7014,13 @@ const ICO={
   trophy:svgIco('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5a3 3 0 0 0 3 5"/><path d="M16 5h3a3 3 0 0 1-3 5"/><path d="M12 13v3"/><path d="M9 20h6"/><path d="M10 16.5h4l.5 3.5h-5z"/>'),
   rocket:svgIco('<path d="M12 3c3 1.5 5 5 4.5 10.5L12 18l-4.5-4.5C7 8 9 4.5 12 3z"/><circle cx="12" cy="10" r="1.5"/><path d="M8 15l-2.5 2.5M16 15l2.5 2.5M9.5 18.5L8 21M14.5 18.5L16 21"/>'),
   target:svgIco('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>'),
-  pauseCircle:svgIco('<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>')
+  pauseCircle:svgIco('<circle cx="12" cy="12" r="9"/><path d="M10 9v6M14 9v6"/>'),
+  building:svgIco('<rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/>'),
+  chatBubble:svgIco('<path d="M4 5h16v11H8l-4 4z"/>'),
+  play:svgIco('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M10.5 9.5l4.5 2.5-4.5 2.5z" fill="currentColor" stroke="none"/>'),
+  windows:svgIco('<path d="M3 6l8-1v7H3z"/><path d="M12 4.7l9-1.2v8.1h-9z"/><path d="M3 13h8v7l-8-1z"/><path d="M12 13h9v8.5l-9-1.2z"/>'),
+  apple:svgIco('<path d="M15.5 8.3c-1 0-2 .6-2.7.6-.7 0-1.6-.6-2.6-.6-1.3 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.6c1.1 0 1.9-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.1 0-2.2-.9-2.2-3.3 0-2 1.6-3 1.7-3-1-1.4-2.4-1.5-2.9-1.5"/><path d="M13.5 6.5c.5-.6.9-1.5.8-2.5-.8.1-1.8.6-2.3 1.2-.5.6-1 1.5-.8 2.4.9 0 1.8-.5 2.3-1.1z"/>'),
+  linux:svgIco('<circle cx="12" cy="9" r="4"/><path d="M9 12l-2 7 5-2.5 5 2.5-2-7"/><circle cx="10.2" cy="8" r=".6" fill="currentColor" stroke="none"/><circle cx="13.8" cy="8" r=".6" fill="currentColor" stroke="none"/>')
 };
 // Plusieurs attributs booléens (mentionable, botVoiceEnabled, discoverable,
 // communityMode, widgetEnabled, starred, lawEnforcementNotified, grantsPlus,
@@ -8369,18 +8376,18 @@ function invalidateE2EPeerCache(peerUid){
 // visible (ex. "Boîte à idées" sur mobile, rangée dans le menu ⋯ fermé) est
 // silencieusement sautée plutôt que de pointer vers du vide.
 const TUTORIAL_STEPS=[
-  {desktopSel:'#nav-dms',mobileSel:'.tabbar [data-view="dms"]',placement:'right',icon:'💬',title:'Messages',text:'Tes conversations privées et de groupe — c\\'est l\\'écran d\\'accueil.'},
-  {desktopSel:'#nav-friends',mobileSel:'.tabbar [data-view="friends"]',placement:'right',icon:'👥',title:'Amis',text:'Envoie des demandes d\\'ami et gère celles que tu reçois.'},
-  {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:'🖥️',title:'HUB VOCAL',text:'Rejoins les salons textuels et vocaux gérés par le staff de IXin.'},
-  {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:'🎲',title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
-  {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:'🎵',title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
-  {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:'📋',title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
-  {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:'☁️',title:'IXin Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
-  {desktopSel:'#nav-shop',mobileSel:'#nav-shop-mobile',placement:'right',icon:'🛍️',title:'Boutique',text:'Achète des cadres d\\'avatar créés par la communauté, avec des IXin Coins.'},
-  {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:'💡',title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
-  {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:'👤',title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
-  {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:'🔔',title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
-  {desktopSel:'#ub-more',mobileSel:'#ub-more',placement:'top',icon:'⚙️',title:'Plus d\\'options',text:'Paramètres, signaler un bug, et le reste du menu ici.'}
+  {desktopSel:'#nav-dms',mobileSel:'.tabbar [data-view="dms"]',placement:'right',icon:ICO.chatBubble,title:'Messages',text:'Tes conversations privées et de groupe — c\\'est l\\'écran d\\'accueil.'},
+  {desktopSel:'#nav-friends',mobileSel:'.tabbar [data-view="friends"]',placement:'right',icon:ICO.people,title:'Amis',text:'Envoie des demandes d\\'ami et gère celles que tu reçois.'},
+  {desktopSel:'#nav-servers',mobileSel:'.tabbar [data-view="servers"]',placement:'right',icon:ICO.building,title:'HUB VOCAL',text:'Rejoins les salons textuels et vocaux gérés par le staff de IXin.'},
+  {desktopSel:'#nav-chatroulette',mobileSel:'#nav-chatroulette-mobile',placement:'right',icon:ICO.dice,title:'Chatroulette',text:'Discute au hasard, en texte ou en vidéo, avec d\\'autres membres.'},
+  {desktopSel:'#nav-music',mobileSel:'#nav-music-mobile',placement:'right',icon:ICO.musicNote,title:'Musique',text:'Publie tes propres titres, écoute ceux des autres, crée des playlists.'},
+  {desktopSel:'#nav-xbin',mobileSel:'#nav-xbin-mobile',placement:'right',icon:ICO.clipboard,title:'XBin',text:'Héberge et partage du texte ou du code, avec coloration syntaxique.'},
+  {desktopSel:'#nav-xdrive',mobileSel:'#nav-xdrive-mobile',placement:'right',icon:ICO.cloud,title:'IXin Drive',text:'1 Go de stockage chiffré de bout en bout, à toi seul.'},
+  {desktopSel:'#nav-shop',mobileSel:'#nav-shop-mobile',placement:'right',icon:ICO.bag,title:'Boutique',text:'Achète des cadres d\\'avatar créés par la communauté, avec des IXin Coins.'},
+  {desktopSel:'#nav-suggestions',mobileSel:'#ub-suggestions-mobile',placement:'right',icon:ICO.lightbulb,title:'Boîte à idées',text:'Propose une fonctionnalité ou vote pour celles des autres.'},
+  {desktopSel:'#ub-av',mobileSel:'#ub-av',placement:'top',icon:ICO.user,title:'Ton profil',text:'Personnalise ton avatar, ta bannière, ton thème, et bien plus.'},
+  {desktopSel:'#ub-bell',mobileSel:'#ub-bell',placement:'top',icon:ICO.bell,title:'Notifications',text:'Demandes d\\'ami, messages et alertes, toutes au même endroit.'},
+  {desktopSel:'#ub-more',mobileSel:'#ub-more',placement:'top',icon:ICO.gear,title:'Plus d\\'options',text:'Paramètres, signaler un bug, et le reste du menu ici.'}
 ];
 let tutState=null;
 function tutResolveTarget(step){
@@ -8424,7 +8431,7 @@ function showTutorialStep(i){
   tutState.index=i;
   const step=TUTORIAL_STEPS[i];
   \$('tut-step-label').textContent='Étape '+(i+1)+' / '+TUTORIAL_STEPS.length;
-  \$('tut-title').textContent=step.icon+' '+step.title;
+  \$('tut-title').innerHTML=step.icon+' '+esc(step.title);
   \$('tut-text').textContent=step.text;
   \$('tut-next').textContent=(i===TUTORIAL_STEPS.length-1)?'Terminer':'Suivant';
   \$('tut-dots').innerHTML=TUTORIAL_STEPS.map(function(_,di){return '<span class="tut-dot'+(di===i?' on':'')+'"></span>';}).join('');
@@ -9442,7 +9449,7 @@ function showView(v){
     }else{
       \$('server-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      renderEmptyState('🏘️','HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
+      renderEmptyState(ICO.building,'HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
       app.classList.remove('chat-open');
     }
     showSectionLoading();
@@ -9478,7 +9485,7 @@ function showView(v){
     }else{
       \$('chat-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      renderEmptyState('💬','Sélectionne une conversation','Ou ouvre l\\'onglet Amis pour en démarrer une.');
+      renderEmptyState(ICO.chatBubble,'Sélectionne une conversation','Ou ouvre l\\'onglet Amis pour en démarrer une.');
       app.classList.remove('chat-open');
     }
     renderDms();
@@ -9486,8 +9493,8 @@ function showView(v){
     return;
   }
   \$('chat-active').classList.add('hidden');
-  if(v==='friends')renderEmptyState('👥','Tes amis','Retrouve-les dans la liste à gauche, ou ajoutes-en de nouveaux.');
-  else renderEmptyState('👤','Tous les membres de IXin','Clique sur un membre dans la liste pour voir son profil.');
+  if(v==='friends')renderEmptyState(ICO.people,'Tes amis','Retrouve-les dans la liste à gauche, ou ajoutes-en de nouveaux.');
+  else renderEmptyState(ICO.user,'Tous les membres de IXin','Clique sur un membre dans la liste pour voir son profil.');
   app.classList.remove('chat-open');
   if(v==='friends')renderFriends();
   else{showSectionLoading();loadMembers().then(renderMembers).catch(function(e){xlog('members_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);}
@@ -32708,7 +32715,7 @@ function closeServerDetail(){
   document.getElementById('app').classList.remove('hub-fullwidth');
   \$('server-active').classList.add('hidden');
   \$('chat-empty').classList.remove('hidden');
-  renderEmptyState('🏘️','HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
+  renderEmptyState(ICO.building,'HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
   renderServersListView();
   repositionCallPanel();
 }
