@@ -4956,6 +4956,8 @@ a.bug-att-item{display:block}
 .gcb-vtile-name{position:absolute;left:6px;bottom:6px;font-size:.64rem;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:2px 7px;border-radius:999px;z-index:1}
 .gcb-vtile.pending-reveal{background:linear-gradient(160deg,rgba(76,10,24,.5),rgba(10,10,12,.9))}
 .gcb-vtile.pending-reveal .gcb-vtile-name{left:50%;bottom:auto;top:50%;transform:translate(-50%,-50%);white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.gcb-vtile-wave{position:absolute;top:0;left:0;width:100%;height:30%;min-height:22px;max-height:44px;z-index:1;pointer-events:none;opacity:.4;filter:drop-shadow(0 0 4px rgba(124,58,237,.5));transition:opacity .18s ease;background:linear-gradient(180deg,rgba(10,10,12,.55),transparent)}
+.gcb-vtile-wave.active{opacity:1}
 .gcb-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .gcb-info{flex:1;min-width:0}
 .gcb-title{font-weight:800;font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -6066,7 +6068,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-mfa">
   <div class="modal-box" style="width:min(360px,100%)">
     <button type="button" class="modal-close" id="mfa-close">✕</button>
-    <h3>🔐 Vérification en deux étapes</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Vérification en deux étapes</h3>
     <div class="sc-desc" id="mfa-desc">Entre le code à 6 chiffres de ton application d’authentification.</div>
     <div class="field"><label>Code</label><input id="mfa-otp-input" inputmode="numeric" maxlength="8" autocomplete="one-time-code" placeholder="000000"/></div>
     <div class="err" id="mfa-err" style="min-height:1.2em;margin:4px 0 8px"></div>
@@ -6078,7 +6080,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-forgot-password">
   <div class="modal-box" style="width:min(360px,100%)">
     <button type="button" class="modal-close" id="fp-close">✕</button>
-    <h3>🔑 Mot de passe oublié</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="7.5" cy="15.5" r="4"/><path d="M10.5 12.5L20 3M17 6l3 3M14 9l2 2"/></svg> Mot de passe oublié</h3>
     <div class="sc-desc">Entre l'adresse e-mail de ton compte IXin : si elle correspond à un compte, on t'envoie un lien pour choisir un nouveau mot de passe.</div>
     <div class="field"><label>Email</label><input id="fp-email" type="email" autocomplete="username" placeholder="toi@exemple.com"/></div>
     <div class="err" id="fp-err" style="min-height:1.2em;margin:4px 0 8px"></div>
@@ -6089,7 +6091,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-reset-password">
   <div class="modal-box" style="width:min(360px,100%)">
     <button type="button" class="modal-close" id="rp-close">✕</button>
-    <h3>🔑 Nouveau mot de passe</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="7.5" cy="15.5" r="4"/><path d="M10.5 12.5L20 3M17 6l3 3M14 9l2 2"/></svg> Nouveau mot de passe</h3>
     <div class="sc-desc">Choisis un nouveau mot de passe pour ton compte IXin.</div>
     <div class="field"><label>Nouveau mot de passe</label><input id="rp-new-pass" type="password" minlength="8" autocomplete="new-password"/></div>
     <div class="field"><label>Confirmer le mot de passe</label><input id="rp-new-pass2" type="password" minlength="8" autocomplete="new-password"/></div>
@@ -6100,7 +6102,7 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-save-credentials">
   <div class="modal-box" style="width:min(420px,100%)">
-    <h3 id="save-cred-title">🔒 Note bien ceci</h3>
+    <h3 id="save-cred-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Note bien ceci</h3>
     <div class="sc-desc" id="save-cred-desc">C'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l'accès à celui-ci. Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.</div>
     <div class="set-section-label" id="save-cred-key-wrap-label" style="margin-top:14px">Ta clé secrète</div>
     <div id="save-cred-key-wrap">
@@ -6127,7 +6129,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-group">
   <div class="modal-box">
     <button type="button" class="modal-close" id="mg-close">✕</button>
-    <h3>👥 Nouveau groupe</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg> Nouveau groupe</h3>
     <input id="mg-name" class="field-input" placeholder="Nom du groupe" autocomplete="off" maxlength="64"/>
     <div class="mg-hint">Choisis au moins 2 amis (6 max)</div>
     <div id="mg-friends" class="mg-friend-list"></div>
@@ -31715,6 +31717,37 @@ function drawParticipantWave(canvas,level){
     ctx2d.stroke();
   }
 }
+// Waveform en haut d'une tuile caméra du salon de groupe (#gcb-video-grid) —
+// remplace l'idée d'un simple cadre qui s'allume : une rangée de barres façon
+// égaliseur, dégradé violet→cyan (couleurs de marque), dont la hauteur ET la
+// luminosité suivent le niveau audio réel (LiveKit participant.audioLevel)
+// de CETTE personne précisément, jamais un simple on/off.
+function drawVtileWave(canvas,level){
+  if(!canvas)return;
+  if(!canvas._wctx){
+    canvas._wctx=canvas.getContext('2d');
+    canvas._wbars=22;
+    canvas._wsmoothed=new Array(canvas._wbars).fill(0);
+    canvas._wphase=Math.random()*10;
+  }
+  const ctx=canvas._wctx,w=canvas.width,h=canvas.height,bars=canvas._wbars,smoothed=canvas._wsmoothed;
+  canvas._wphase+=0.22;
+  ctx.clearRect(0,0,w,h);
+  const barW=w/bars,gap=barW*0.28;
+  for(let i=0;i<bars;i++){
+    const wobble=0.45+0.55*Math.sin(canvas._wphase+i*0.85);
+    const target=level*wobble;
+    smoothed[i]+=(target-smoothed[i])*0.4;
+    const barH=Math.max(2,Math.min(h,smoothed[i]*h*1.6));
+    const x=i*barW+gap/2,bw=barW-gap;
+    const grad=ctx.createLinearGradient(0,h-barH,0,h);
+    grad.addColorStop(0,'rgba(167,139,250,'+(0.55+smoothed[i]*0.45)+')');
+    grad.addColorStop(1,'rgba(6,182,212,'+(0.35+smoothed[i]*0.45)+')');
+    ctx.fillStyle=grad;
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,h-barH,bw,barH,1.5);ctx.fill();}
+    else ctx.fillRect(x,h-barH,bw,barH);
+  }
+}
 function startGroupWaveformLoop(){
   if(groupWaveRaf)return;
   let lastSpeakingSent=null,lastSpeakingSentAt=0;
@@ -31737,6 +31770,24 @@ function startGroupWaveformLoop(){
         const muteEl=tile.querySelector('.cb-av-mute');
         if(muteEl)muteEl.classList.toggle('hidden',!muted);
         drawParticipantWave(tile.querySelector('canvas'),level);
+      });
+    }
+    // Waveform des tuiles caméra de la grille vidéo (#gcb-video-grid, voir
+    // renderGroupCallVideoGrid) — toujours mise à jour même hors mode cinéma
+    // (la grille reste montée, juste repositionnée), même logique de niveau
+    // audio local/distant que ci-dessus.
+    const vgrid=\$('gcb-video-grid');
+    if(vgrid){
+      vgrid.querySelectorAll('.gcb-vtile-wave').forEach(function(wave){
+        const tile=wave.closest('.gcb-vtile');
+        const uid=tile&&tile.dataset.identity;
+        let level=0;
+        if(uid){
+          if(me&&uid===String(me.\$id)){level=groupRoom.localParticipant.audioLevel||0;}
+          else{const p=groupRoom.remoteParticipants.get(uid);if(p)level=p.audioLevel||0;}
+        }
+        wave.classList.toggle('active',level>0.03);
+        drawVtileWave(wave,level);
       });
     }
     // Même boucle pour les tuiles de la vue plein écran d'un salon vocal de
@@ -31842,7 +31893,7 @@ function renderGroupCallVideoGrid(){
     let camPub=null,screenPub=null;
     try{camPub=lp.getTrackPublication(LivekitClient.Track.Source.Camera);}catch(e){}
     try{screenPub=lp.getTrackPublication(LivekitClient.Track.Source.ScreenShare);}catch(e){}
-    if(camPub&&camPub.track)tiles.push({key:identity+':cam',track:camPub.track,label:baseName,mirror:isLocal});
+    if(camPub&&camPub.track)tiles.push({key:identity+':cam',track:camPub.track,label:baseName,mirror:isLocal,identity:identity,kind:'cam'});
     if(screenPub&&screenPub.track){
       // Même geste "pudeur" qu'en 1:1 (screenShareRevealed/#screen-reveal-pill,
       // voir renderVideoGrid) : le partage d'écran de quelqu'un d'autre ne
@@ -31851,7 +31902,7 @@ function renderGroupCallVideoGrid(){
       // plutôt qu'un simple booléen. Son propre partage (isLocal) reste lui
       // toujours visible, comme en 1:1.
       const revealed=isLocal||!!gcbScreenRevealed[identity];
-      tiles.push({key:identity+':screen',track:screenPub.track,label:baseName+' · Écran',mirror:false,pendingReveal:!revealed,revealIdentity:identity});
+      tiles.push({key:identity+':screen',track:screenPub.track,label:baseName+' · Écran',mirror:false,pendingReveal:!revealed,revealIdentity:identity,identity:identity,kind:'screen'});
     }
   }
   collect(myUid,true);
@@ -31871,6 +31922,16 @@ function renderGroupCallVideoGrid(){
     if(!wrap){
       wrap=document.createElement('div');
       wrap.className='gcb-vtile';
+      // Waveform live "qui s'illumine selon le son" (demandé explicitement,
+      // remplace tout indicateur statique) — uniquement sur la tuile caméra
+      // d'un participant, jamais sur un partage d'écran : voir la boucle de
+      // dessin dans startGroupWaveformLoop(), alimentée par le vrai niveau
+      // audio LiveKit (participant.audioLevel) de CETTE identité précise.
+      if(t.kind==='cam'){
+        const wave=document.createElement('canvas');
+        wave.className='gcb-vtile-wave';wave.width=260;wave.height=52;
+        wrap.appendChild(wave);
+      }
       const lbl=document.createElement('div');lbl.className='gcb-vtile-name';
       wrap.appendChild(lbl);
       wrap.addEventListener('click',function(){
@@ -31880,6 +31941,7 @@ function renderGroupCallVideoGrid(){
       });
       gcbVideoEls[t.key]=wrap;
     }
+    wrap.dataset.identity=t.identity||'';
     wrap._pendingReveal=!!t.pendingReveal;
     wrap._revealIdentity=t.revealIdentity;
     wrap.classList.toggle('pending-reveal',!!t.pendingReveal);
