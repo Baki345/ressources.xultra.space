@@ -6377,7 +6377,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-report">
   <div class="modal-box" style="width:min(380px,100%)">
     <button type="button" class="modal-close" id="rp-close">✕</button>
-    <h3 style="margin-bottom:4px">🚩 Signaler <span id="rp-target-name"></span></h3>
+    <h3 style="margin-bottom:4px"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg> Signaler <span id="rp-target-name"></span></h3>
     <p style="font-size:.78rem;color:var(--muted);margin-bottom:14px">Ton signalement est envoyé à l'équipe de modération. Elle seule peut le consulter.</p>
     <p id="rp-msg-preview" class="hidden" style="font-size:.78rem;font-style:italic;color:#c4b5fd;background:rgba(124,58,237,.1);border-radius:8px;padding:8px 10px;margin-bottom:12px;word-break:break-word"></p>
     <div class="field">
@@ -6457,11 +6457,11 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-oauth-consent">
   <div class="modal-box" style="text-align:center">
-    <div class="oauth-consent-icon" id="oauth-consent-icon">🔌</div>
+    <div class="oauth-consent-icon" id="oauth-consent-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3v6M15 3v6"/><path d="M6 9h12v4a6 6 0 0 1-12 0z"/><path d="M12 19v3"/></svg></div>
     <h3 id="oauth-consent-title">Chargement…</h3>
     <div class="call-sub" id="oauth-consent-sub"></div>
     <div class="oauth-consent-scopes" id="oauth-consent-scopes"></div>
-    <div class="oauth-consent-warn hidden" id="oauth-consent-warn">⚠️ L'URL de redirection ne correspond à aucune adresse enregistrée pour cette application. Ne continue pas si tu ne fais pas confiance à ce lien.</div>
+    <div class="oauth-consent-warn hidden" id="oauth-consent-warn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 3l10 18H2z"/><path d="M12 10v4"/><circle cx="12" cy="16.7" r=".4" fill="currentColor" stroke="none"/></svg> L'URL de redirection ne correspond à aucune adresse enregistrée pour cette application. Ne continue pas si tu ne fais pas confiance à ce lien.</div>
     <div style="display:flex;gap:10px;margin-top:18px">
       <button type="button" class="set-mini-btn" id="oauth-consent-deny" style="flex:1">Refuser</button>
       <button type="button" class="btn-main" id="oauth-consent-allow" style="flex:1">Autoriser</button>
@@ -6471,7 +6471,7 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-qr-approve">
   <div class="modal-box" style="text-align:center">
-    <div class="oauth-consent-icon">📱</div>
+    <div class="oauth-consent-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div>
     <h3>Connecter un nouvel appareil ?</h3>
     <div class="call-sub">Quelqu’un scanne un code de connexion sur xultra.space depuis un ordinateur ou un autre appareil. Confirme uniquement si c’est bien toi.</div>
     <div class="qr-approve-user" id="qr-approve-user"></div>
@@ -6486,12 +6486,12 @@ a.bug-att-item{display:block}
   <div class="modal-box settings-modal cs-modal">
     <button type="button" class="modal-close" id="cs-close">✕</button>
     <div class="cs-hero">
-      <div class="cs-hero-icon">🎛️</div>
+      <div class="cs-hero-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 18h2M8 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="6" cy="18" r="2"/></svg></div>
       <h3>Paramètres audio &amp; vidéo</h3>
       <div class="cs-hero-sub">Enregistrés automatiquement et valables partout — DM, salons de groupe, appels de serveur.</div>
     </div>
     <div class="cs-card">
-      <div class="cs-card-head"><span class="cs-card-ic">🎙️</span><span class="cs-card-title">Micro</span></div>
+      <div class="cs-card-head"><span class="cs-card-ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><path d="M12 17v4"/><path d="M9 21h6"/></svg></span><span class="cs-card-title">Micro</span></div>
       <div class="set-row">
         <label>Source</label>
         <select id="cs-mic-device"></select>
@@ -6516,11 +6516,11 @@ a.bug-att-item{display:block}
         <div class="cs-meter-wrap">
           <div class="mic-meter"><div class="mic-meter-fill" id="cs-mic-meter"></div></div>
         </div>
-        <div class="mic-test-row"><button type="button" id="cs-mic-record">🔴 Écouter ma voix (3s)</button></div>
+        <div class="mic-test-row"><button type="button" id="cs-mic-record"><svg viewBox="0 0 24 24" width="12" height="12"><circle cx="12" cy="12" r="8" fill="currentColor"/></svg> Écouter ma voix (3s)</button></div>
       </div>
     </div>
     <div class="cs-card">
-      <div class="cs-card-head"><span class="cs-card-ic">🔊</span><span class="cs-card-title">Sortie audio</span></div>
+      <div class="cs-card-head"><span class="cs-card-ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h4l5 4V6l-5 4z"/><path d="M16 9a4 4 0 0 1 0 6"/><path d="M18.5 7a7.5 7.5 0 0 1 0 10"/></svg></span><span class="cs-card-title">Sortie audio</span></div>
       <div class="set-row" id="cs-speaker-row">
         <label>Sortie</label>
         <select id="cs-speaker-device"></select>
@@ -6531,7 +6531,7 @@ a.bug-att-item{display:block}
       </div>
     </div>
     <div class="cs-card">
-      <div class="cs-card-head"><span class="cs-card-ic">📷</span><span class="cs-card-title">Caméra</span></div>
+      <div class="cs-card-head"><span class="cs-card-ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5L4 21"/></svg></span><span class="cs-card-title">Caméra</span></div>
       <div class="set-row">
         <label>Source</label>
         <select id="cs-cam-device"></select>
@@ -6551,7 +6551,7 @@ a.bug-att-item{display:block}
       </div>
     </div>
     <div class="cs-card">
-      <div class="cs-card-head"><span class="cs-card-ic">🖥️</span><span class="cs-card-title">Partage d'écran</span></div>
+      <div class="cs-card-head"><span class="cs-card-ic"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg></span><span class="cs-card-title">Partage d'écran</span></div>
       <div class="set-row">
         <label>Qualité</label>
         <select id="cs-screen-quality">
