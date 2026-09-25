@@ -6141,29 +6141,29 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-group-edit">
   <div class="modal-box">
     <button type="button" class="modal-close" id="ge-close">✕</button>
-    <h3>👥 Modifier le groupe</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg> Modifier le groupe</h3>
     <div class="ge-av-wrap" id="ge-av-wrap">
-      <div class="ge-av" id="ge-av">👥</div>
-      <div class="ge-av-edit">✏️ Changer la photo</div>
+      <div class="ge-av" id="ge-av"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg></div>
+      <div class="ge-av-edit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg> Changer la photo</div>
     </div>
     <input type="file" id="ge-file" accept="image/*" class="hidden"/>
     <input id="ge-name" class="field-input" placeholder="Nom du groupe" autocomplete="off" maxlength="64" style="margin-top:14px"/>
     <div class="err" id="ge-err"></div>
     <button type="button" class="btn-main" id="ge-save" style="margin-top:12px">Enregistrer</button>
-    <button type="button" class="set-mini-btn" id="ge-open-shared-wallpaper" style="margin-top:10px">🌐 Fond d'écran partagé du groupe</button>
+    <button type="button" class="set-mini-btn" id="ge-open-shared-wallpaper" style="margin-top:10px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9z"/></svg> Fond d'écran partagé du groupe</button>
   </div>
 </div>
 
 <div class="overlay hidden" id="modal-shared-wallpaper">
   <div class="modal-box dmp-panel">
     <button type="button" class="modal-close" id="swp-close">✕</button>
-    <h3>🌐 Fond d'écran partagé</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9z"/></svg> Fond d'écran partagé</h3>
     <div class="cl-sub">Visible par tout le monde dans cette conversation — n'importe qui ici peut le changer.</div>
     <div class="dmp-field">
       <label>Aperçu <span class="scr-sub" style="display:block;font-weight:400">Le cadrage/zoom s'adapte automatiquement à la vraie forme de l'écran de chacun — vérifie juste que ça rend bien dans les deux cas.</span></label>
       <div class="seg-group">
-        <button type="button" class="seg-btn on" data-swp-ratio="16:9">🖥️ Bureau (16:9)</button>
-        <button type="button" class="seg-btn" data-swp-ratio="9:16">📱 Téléphone (9:16)</button>
+        <button type="button" class="seg-btn on" data-swp-ratio="16:9"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg> Bureau (16:9)</button>
+        <button type="button" class="seg-btn" data-swp-ratio="9:16"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg> Téléphone (9:16)</button>
       </div>
       <div class="swp-preview-wrap"><div class="swp-preview ratio-16-9 empty" id="swp-preview"></div></div>
       <div class="scr-sub">Fais glisser l'image pour la repositionner.</div>
@@ -6173,7 +6173,7 @@ a.bug-att-item{display:block}
       <input type="range" id="swp-zoom" min="100" max="300" value="100">
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button type="button" class="set-mini-btn" id="swp-upload-btn">🖼️ Importer une image ou un GIF</button>
+      <button type="button" class="set-mini-btn" id="swp-upload-btn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5.5-5.5L4 21"/></svg> Importer une image ou un GIF</button>
       <button type="button" class="set-mini-btn danger" id="swp-remove-btn">Retirer</button>
     </div>
     <input type="file" id="swp-file" class="hidden-input" accept="image/*">
@@ -6187,7 +6187,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-gif">
   <div class="modal-box gif-picker">
     <button type="button" class="modal-close" id="gif-close">✕</button>
-    <h3>🎞️ Choisir un GIF</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10v4M11 10v4M11 12h2M16.5 10a1.7 1.7 0 0 0-1.5-1c-1.1 0-2 1-2 2.5s.9 2.5 2 2.5c.8 0 1.3-.4 1.5-.7v-1.2h-1.3"/></svg> Choisir un GIF</h3>
     <input id="gif-search" class="field-input" placeholder="Rechercher un GIF…" autocomplete="off"/>
     <div class="gif-grid" id="gif-grid"></div>
   </div>
@@ -6197,7 +6197,7 @@ a.bug-att-item{display:block}
   <div class="modal-box bug-modal-box">
     <button type="button" class="modal-close" id="mb-close">✕</button>
     <div class="bug-modal-hero">
-      <div class="bug-modal-hero-icon">🐞</div>
+      <div class="bug-modal-hero-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg></div>
       <h3 id="bug-modal-title">Signaler un bug</h3>
       <div class="bug-modal-hero-sub">Aide IXin à s'améliorer — chaque bug résolu te rapproche du palier suivant.</div>
     </div>
@@ -6206,7 +6206,7 @@ a.bug-att-item{display:block}
       <textarea id="bug-desc" class="field-input" style="height:110px;min-height:110px;flex-shrink:0;padding-top:9px;resize:vertical" placeholder="Décris le bug : ce que tu as fait, ce qui aurait dû se passer, ce qui s'est passé…" maxlength="2000"></textarea>
       <div class="bug-att-wrap">
         <div class="bug-att-head">
-          <span>📎 Captures / vidéos (optionnel)</span>
+          <span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg> Captures / vidéos (optionnel)</span>
           <span class="bug-att-limit" id="bug-att-limit">30 Mo max par fichier</span>
         </div>
         <div class="bug-att-grid" id="bug-att-grid"></div>
@@ -6221,7 +6221,7 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-hunter">
   <div class="modal-box hunter-panel">
     <button type="button" class="modal-close" id="hp-close">✕</button>
-    <h3>🐛 Panneau Bug Hunter</h3>
+    <h3><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg> Panneau Bug Hunter</h3>
     <div class="hunter-stats" id="hunter-stats">0/10 résolus</div>
     <button type="button" class="btn-main" id="hp-new" style="margin:10px 0">+ Nouveau rapport</button>
     <div id="hunter-bug-list"></div>
@@ -6234,19 +6234,19 @@ a.bug-att-item{display:block}
     <div class="pm-scroll">
       <div class="pc2-topbar">
         <span class="pc2-eyebrow">Profil IXin</span>
-        <button type="button" class="pc2-report-link" id="pm-report" title="Signaler ce membre">🚩 Signaler ce profil</button>
+        <button type="button" class="pc2-report-link" id="pm-report" title="Signaler ce membre"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg> Signaler ce profil</button>
       </div>
       <div id="pm-render"></div>
       <div id="pm-dashboard"></div>
       <div class="pm-btn-row pc2-actions">
-        <button type="button" class="btn-main hidden" id="pm-friend">➕ Ajouter en ami</button>
-        <button type="button" class="btn-main hidden" id="pm-music">🎵 Musique</button>
+        <button type="button" class="btn-main hidden" id="pm-friend"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Ajouter en ami</button>
+        <button type="button" class="btn-main hidden" id="pm-music"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg> Musique</button>
         <button type="button" class="btn-main" id="pm-message">Message</button>
-        <button type="button" class="btn-main hidden" id="pm-edit">✏️ Modifier le profil</button>
+        <button type="button" class="btn-main hidden" id="pm-edit"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg> Modifier le profil</button>
       </div>
       <div class="pm-icon-row">
-        <button type="button" class="pm-icon-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil">🔗</button>
-        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre">⛔</button>
+        <button type="button" class="pm-icon-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M11 6.5l1-1a4 4 0 0 1 5.7 5.7l-1.2 1.2"/><path d="M13 17.5l-1 1a4 4 0 0 1-5.7-5.7l1.2-1.2"/></svg></button>
+        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg></button>
       </div>
       <div class="pm-section pm-xbin-section hidden" id="pm-xbin-section"></div>
       <div class="pm-section pm-xdrive-section hidden" id="pm-xdrive-section"></div>
