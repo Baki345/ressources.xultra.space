@@ -2620,7 +2620,8 @@ html.xultra-restoring #stage{visibility:hidden}
 }
 @keyframes scFloat{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-7px) rotate(-3deg)}}
 @media (prefers-reduced-motion:reduce){.sc-art{animation:none}}
-.sc-icon{font-size:2.1rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.sc-icon{font-size:2.1rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));color:#fff}
+.sc-icon svg{width:1em;height:1em;display:block}
 .sc-art-1{background:linear-gradient(135deg,#1c1c1f,#c026d3)}
 .sc-art-2{background:linear-gradient(135deg,#1f1f22,#0ea5e9)}
 .sc-art-3{background:linear-gradient(135deg,#232326,#1c1c1f)}
@@ -4611,11 +4612,9 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .ew-members-fg{position:relative;z-index:1}
 @media (prefers-reduced-motion:reduce){.wx-planet{animation:none!important}}
 .profile-card-view{width:min(720px,96vw)}
-.pc2-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 44px 0 18px}
-.pc2-eyebrow{font-size:.66rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
-.pc2-report-link{font-size:.68rem;font-weight:800;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;text-decoration:underline;text-underline-offset:2px}
-.pc2-report-link:hover{color:#fca5a5}
-.pc2-report-link.hidden{display:none}
+.pc2-report-btn{position:absolute;top:12px;right:48px;width:28px;height:28px;border-radius:8px;background:var(--elev);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:5}
+.pc2-report-btn:hover{color:#fca5a5}
+.pc2-report-btn.hidden{display:none}
 .pc-card.pc-dashboard-header .pc-banner{height:150px}
 /* Bug remonté (capture d'écran) : align-items:flex-end + margin-top:-40px
    PARTAGÉS par toute la ligne (avatar 84px + bloc nom/tag bien plus court)
@@ -4673,7 +4672,6 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @media (max-width:640px){
   .profile-card-view{width:96vw}
   .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
-  .pc2-topbar{padding:12px 40px 0 14px}
   .pc2-header-row{padding:0 14px 12px;gap:10px}
   .pc2-header-extras{padding:8px 14px 0}
   .pc2-actions{padding:14px 14px 0}
@@ -5739,7 +5737,7 @@ a.bug-att-item{display:block}
   </div>
   <div class="ws-slide-wrap" id="ws-slide-wrap"></div>
   <div class="ws-dots" id="ws-dots"></div>
-  <button type="button" class="ws-login-btn" id="ws-login-btn">🔓 Se connecter / S'inscrire</button>
+  <button type="button" class="ws-login-btn" id="ws-login-btn"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg> Se connecter / S'inscrire</button>
 </div>
 <div id="install-banner" class="hidden">
   <span id="install-banner-text"></span>
@@ -5840,32 +5838,32 @@ a.bug-att-item{display:block}
   <div class="showcase" id="showcase">
     <div class="showcase-track" id="showcase-track">
       <div class="sc-slide">
-        <div class="sc-art sc-art-1"><span class="sc-icon">🔒</span></div>
+        <div class="sc-art sc-art-1"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span></div>
         <h3>Vos conversations n'appartiennent qu'à vous</h3>
         <p>Chiffrement de bout en bout sur tous les messages et médias échangés. Les clés restent sur vos appareils : même nous, on ne peut pas les lire.</p>
       </div>
       <div class="sc-slide">
-        <div class="sc-art sc-art-2"><span class="sc-icon">💬</span></div>
+        <div class="sc-art sc-art-2"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></span></div>
         <h3>Une messagerie pensée pour aller vite</h3>
         <p>Interface fluide et intuitive, conçue pour discuter sans friction — sur mobile comme sur ordinateur.</p>
       </div>
       <div class="sc-slide">
-        <div class="sc-art sc-art-3"><span class="sc-icon">📞</span></div>
+        <div class="sc-art sc-art-3"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span></div>
         <h3>Appels et partage d'écran en un clic</h3>
         <p>Lancez un appel vocal ou partagez votre écran instantanément, directement depuis votre conversation.</p>
       </div>
       <div class="sc-slide">
-        <div class="sc-art sc-art-4"><span class="sc-icon">🎨</span></div>
+        <div class="sc-art sc-art-4"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg></span></div>
         <h3>Ton profil, à ton image</h3>
         <p>Couleurs, thèmes, avatars, effets de nom — personnalisez votre profil pour qu'il vous ressemble vraiment.</p>
       </div>
       <div class="sc-slide">
-        <div class="sc-art sc-art-5"><span class="sc-icon">🛡️</span></div>
+        <div class="sc-art sc-art-5"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/></svg></span></div>
         <h3>Ton compte, bien gardé</h3>
         <p>Vérification anti-robot et recommandations de mot de passe robuste en temps réel : votre accès est protégé dès l'inscription.</p>
       </div>
       <div class="sc-slide">
-        <div class="sc-art sc-art-6"><span class="sc-icon">🔔</span></div>
+        <div class="sc-art sc-art-6"><span class="sc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg></span></div>
         <h3>Jamais un message manqué</h3>
         <p>Notifications instantanées, même quand l'application est fermée. Restez connecté à ce qui compte.</p>
       </div>
@@ -5983,7 +5981,7 @@ a.bug-att-item{display:block}
       <div id="call-panel-anchor"></div>
       <div class="msgs" id="msgs"></div>
       <div class="reply-preview" id="reply-preview"><span class="rp-info"></span><button type="button" class="rp-close" id="reply-preview-close">✕</button></div>
-      <div class="reply-preview edit-preview" id="edit-preview"><span class="rp-info">✏️ Modification du message</span><button type="button" class="rp-close" id="edit-preview-close">✕</button></div>
+      <div class="reply-preview edit-preview" id="edit-preview"><span class="rp-info"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg> Modification du message</span><button type="button" class="rp-close" id="edit-preview-close">✕</button></div>
       <div class="attach-preview" id="attach-preview"><div class="ap-thumbs" id="ap-thumbs"></div><div class="ap-meta"><span class="ap-info" id="ap-info"></span><div class="ap-quota" id="ap-quota"></div></div><button type="button" class="ap-close" id="attach-preview-close">✕</button></div>
       <div class="composer" id="composer">
         <button type="button" class="composer-btn" id="btn-attach" title="Joindre"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 6.5l-7.8 7.8a2.5 2.5 0 0 0 3.5 3.5l8.3-8.3a4.2 4.2 0 0 0-6-6L6.2 11.9a5.8 5.8 0 0 0 8.2 8.2"/></svg></button>
@@ -6013,33 +6011,33 @@ a.bug-att-item{display:block}
     <div class="chat-active hidden" id="admin-active">
       <div class="chat-top">
         <button type="button" class="ub-btn chat-back" id="btn-admin-back" title="Retour">←</button>
-        <div class="titles"><div class="t">🛡️ Panneau admin</div></div>
+        <div class="titles"><div class="t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/></svg> Panneau admin</div></div>
       </div>
       <div class="admin-subtabs">
         <div class="admin-subtab-group">
-        <button type="button" class="admin-subtab on" data-atab="dashboard"><span class="admin-subtab-ic">📊</span>Dashboard</button>
+        <button type="button" class="admin-subtab on" data-atab="dashboard"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V12M12 20V6M20 20v-9"/><path d="M3 20h18"/></svg></span>Dashboard</button>
         </div>
         <div class="admin-subtab-group">
-        <button type="button" class="admin-subtab" data-atab="members"><span class="admin-subtab-ic">👥</span>Membres</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="badges"><span class="admin-subtab-ic">🎖️</span>Badges</button>
+        <button type="button" class="admin-subtab" data-atab="members"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg></span>Membres</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="badges"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4.5"/><path d="M8.5 13l-1.5 8 5-2.5 5 2.5-1.5-8"/></svg></span>Badges</button>
         </div>
         <div class="admin-subtab-group">
-        <button type="button" class="admin-subtab" data-atab="reports"><span class="admin-subtab-ic">🚩</span>Signalements<span class="admin-subtab-count hidden" data-count-for="reports"></span></button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent"><span class="admin-subtab-ic">🚨</span>Urgents<span class="admin-subtab-count hidden" data-count-for="urgent"></span></button>
-        <button type="button" class="admin-subtab" data-atab="support"><span class="admin-subtab-ic">🎧</span>Support<span class="admin-subtab-count hidden" data-count-for="support"></span></button>
-        <button type="button" class="admin-subtab" data-atab="bans"><span class="admin-subtab-ic">🔨</span>Bannis</button>
-        <button type="button" class="admin-subtab" data-atab="bugs"><span class="admin-subtab-ic">🐞</span>Bugs<span class="admin-subtab-count hidden" data-count-for="bugs"></span></button>
+        <button type="button" class="admin-subtab" data-atab="reports"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg></span>Signalements<span class="admin-subtab-count hidden" data-count-for="reports"></span></button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="urgent"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4"/><circle cx="12" cy="17" r=".6" fill="currentColor" stroke="none"/></svg></span>Urgents<span class="admin-subtab-count hidden" data-count-for="urgent"></span></button>
+        <button type="button" class="admin-subtab" data-atab="support"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19v1a2 2 0 0 1-2 2h-3"/></svg></span>Support<span class="admin-subtab-count hidden" data-count-for="support"></span></button>
+        <button type="button" class="admin-subtab" data-atab="bans"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="13" width="8" height="4" rx="1" transform="rotate(-45 6 15)"/><path d="M10.5 10.5l4 4"/><path d="M16 20h6"/></svg></span>Bannis</button>
+        <button type="button" class="admin-subtab" data-atab="bugs"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="8" height="10" rx="4"/><path d="M12 8V5M9 5L7 3.5M15 5l2-1.5M5 12h3M16 12h3M5 16h3M16 16h3M9 20l-2 1.5M15 20l2 1.5"/></svg></span>Bugs<span class="admin-subtab-count hidden" data-count-for="bugs"></span></button>
         </div>
         <div class="admin-subtab-group">
-        <button type="button" class="admin-subtab" data-atab="team"><span class="admin-subtab-ic">📝</span>Candidatures<span class="admin-subtab-count hidden" data-count-for="team"></span></button>
-        <button type="button" class="admin-subtab" data-atab="calls"><span class="admin-subtab-ic">📞</span>Appels</button>
-        <button type="button" class="admin-subtab" data-atab="logs"><span class="admin-subtab-ic">🧾</span>Logs</button>
-        <button type="button" class="admin-subtab" data-atab="xdrive"><span class="admin-subtab-ic">☁️</span>IXin Drive</button>
+        <button type="button" class="admin-subtab" data-atab="team"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><rect x="9" y="2.5" width="6" height="3" rx="1"/><path d="M9 11h6M9 15h6"/></svg></span>Candidatures<span class="admin-subtab-count hidden" data-count-for="team"></span></button>
+        <button type="button" class="admin-subtab" data-atab="calls"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>Appels</button>
+        <button type="button" class="admin-subtab" data-atab="logs"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span>Logs</button>
+        <button type="button" class="admin-subtab" data-atab="xdrive"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.7 1.5A3.5 3.5 0 0 0 7 18z"/></svg></span>IXin Drive</button>
         </div>
         <div class="admin-subtab-group">
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="servers"><span class="admin-subtab-ic">🖥️</span>Serveurs</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="vpn"><span class="admin-subtab-ic">🔒</span>VPN</button>
-        <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance"><span class="admin-subtab-ic">🛠️</span>Maintenance</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="servers"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg></span>Serveurs</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="vpn"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></span>VPN</button>
+        <button type="button" class="admin-subtab owner-only hidden" data-atab="maintenance"><span class="admin-subtab-ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.8-2.8z"/></svg></span>Maintenance</button>
         </div>
       </div>
       <div class="admin-body" id="admin-body"></div>
@@ -6055,10 +6053,10 @@ a.bug-att-item{display:block}
       <div class="srv-tabs" id="srv-tabs">
         <button type="button" class="srv-tab on" data-srv-tab="overview">Vue d'ensemble</button>
         <button type="button" class="srv-tab" data-srv-tab="members">Membres</button>
-        <button type="button" class="srv-tab" data-srv-tab="events">📅 Événements</button>
+        <button type="button" class="srv-tab" data-srv-tab="events"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg> Événements</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-roles-btn" data-srv-tab="roles">Rôles</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-audit-btn" data-srv-tab="audit">Journal</button>
-        <button type="button" class="srv-tab hidden" id="srv-tab-insights-btn" data-srv-tab="insights">📊 Aperçu</button>
+        <button type="button" class="srv-tab hidden" id="srv-tab-insights-btn" data-srv-tab="insights"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20V12M12 20V6M20 20v-9"/><path d="M3 20h18"/></svg> Aperçu</button>
         <button type="button" class="srv-tab hidden" id="srv-tab-settings-btn" data-srv-tab="settings">Paramètres</button>
       </div>
       <div class="admin-body" id="srv-detail-body"></div>
@@ -6231,12 +6229,9 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-profile">
   <div class="modal-box profile-card profile-card-view" id="pm-box">
+    <button type="button" class="pc2-report-btn" id="pm-report" title="Signaler ce profil"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg></button>
     <button type="button" class="modal-close" id="pm-close">✕</button>
     <div class="pm-scroll">
-      <div class="pc2-topbar">
-        <span class="pc2-eyebrow">Profil IXin</span>
-        <button type="button" class="pc2-report-link" id="pm-report" title="Signaler ce membre"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg> Signaler ce profil</button>
-      </div>
       <div id="pm-render"></div>
       <div id="pm-dashboard"></div>
       <div class="pm-btn-row pc2-actions">
