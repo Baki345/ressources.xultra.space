@@ -4634,6 +4634,28 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-report-btn.hidden{display:none}
 .pc2-copy-id-btn{position:absolute;top:12px;right:84px;width:28px;height:28px;border-radius:8px;background:var(--elev);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:5}
 .pc2-copy-id-btn:hover{color:#fff}
+/* Barre d'outils du mode d'édition en direct (voir enterCardEditMode) —
+   flotte en haut de la fenêtre de profil pendant l'édition, jamais visible
+   en lecture normale. */
+.pm-edit-toolbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;padding:10px 16px;background:linear-gradient(180deg,#131315,rgba(19,19,21,.96));border-bottom:1px solid rgba(255,255,255,.08);flex-wrap:wrap}
+.pm-edit-toolbar.hidden{display:none}
+.pm-edit-status{font-size:.72rem;font-weight:700;color:var(--muted);margin-right:auto}
+.pm-edit-status.err{color:#fca5a5}
+.pm-edit-tbtn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#e5e5ea;font-size:.78rem;font-weight:700}
+.pm-edit-tbtn:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.22)}
+.pm-edit-tbtn.pm-edit-done{background:#22c55e;border-color:#22c55e;color:#08130d}
+.pm-edit-tbtn.pm-edit-done:hover{background:#4ade80}
+/* position:fixed + coordonnées posées en JS (voir le clic sur
+   pm-edit-style-btn) plutôt qu'absolute : #pm-box a overflow:hidden (pour
+   les coins arrondis de la bannière) qui aurait autrement rogné ce panneau
+   dès qu'il dépasse la fenêtre de profil — fixed + reparenté sur document.
+   body au premier clic échappe à ce clipping. */
+.pm-style-pop{position:fixed;z-index:3000;width:min(300px,calc(100vw - 32px));background:#18181b;border:1px solid rgba(255,255,255,.14);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.5);overflow:hidden}
+.pm-style-pop.hidden{display:none}
+.pm-style-pop-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.08);font-size:.8rem;font-weight:800}
+.pm-style-pop-close{width:22px;height:22px;border-radius:7px;background:rgba(255,255,255,.06);color:var(--muted)}
+.pm-style-pop-body{padding:12px 14px;display:flex;flex-direction:column;gap:10px;max-height:min(60vh,420px);overflow-y:auto}
+.pm-style-pop-body input[type="color"]{padding:2px;height:38px}
 .pc-card.pc-dashboard-header .pc-banner{height:150px}
 /* Avatar posé SOUS la bannière, sans la chevaucher (demandé explicitement —
    un chevauchement, même partiel, débordait visiblement sur la photo nette
@@ -4663,6 +4685,16 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-tag-val.revealed{filter:none;user-select:text}
 .pc-tag-eye{color:inherit;opacity:.55;display:inline-flex;align-items:center;transition:opacity .15s ease}
 .pc-tag-eye:hover{opacity:1}
+/* Mode d'édition en direct sur la fiche elle-même (voir enterCardEditMode) :
+   les champs texte (pseudo, tag, pronoms, bio, statut) deviennent
+   directement éditables sur place plutôt que dans un formulaire séparé —
+   un simple pointillé au survol/focus suffit à signaler "c'est cliquable",
+   sans casser la mise en page existante de la fiche en lecture. */
+.pc-edit-field{outline:none;border-radius:6px;cursor:text;transition:background .15s ease;padding:0 2px;margin:0 -2px}
+.pc-edit-field:hover{background:rgba(255,255,255,.06)}
+.pc-edit-field:focus{background:rgba(124,58,237,.16);box-shadow:0 0 0 1px rgba(124,58,237,.5)}
+.pc-edit-field.pc-edit-multiline{white-space:pre-wrap;display:block}
+.pc-edit-placeholder:empty:before{content:attr(data-placeholder);opacity:.45;pointer-events:none}
 .pc2-header-text .pc-tag{margin-top:0}
 /* Actions (ami/musique/message/modifier/partager/bloquer) déplacées ici,
    entre le pseudo et la pastille de présence — auparavant une rangée de gros
@@ -6284,6 +6316,40 @@ a.bug-att-item{display:block}
     <button type="button" class="pc2-copy-id-btn" id="pm-copy-id" title="Copier l'ID utilisateur"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
     <button type="button" class="pc2-report-btn" id="pm-report" title="Signaler ce profil"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg></button>
     <button type="button" class="modal-close" id="pm-close">✕</button>
+    <input type="file" id="pm-edit-avatar-file" accept="image/*" hidden/>
+    <input type="file" id="pm-edit-banner-file" accept="image/*" hidden/>
+    <div class="pm-edit-toolbar hidden" id="pm-edit-toolbar">
+      <span class="pm-edit-status hidden" id="pm-edit-status"></span>
+      <button type="button" class="pm-edit-tbtn" id="pm-edit-style-btn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/></svg> Style</button>
+      <button type="button" class="pm-edit-tbtn" id="pm-edit-advanced-btn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V19a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 17.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09c0 .68.4 1.29 1.04 1.56.61.25 1.31.11 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.27.63.88 1.04 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04z"/></svg> Options avancées</button>
+      <button type="button" class="pm-edit-tbtn pm-edit-done" id="pm-edit-done-btn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><path d="M4 12l5 5L20 6"/></svg> Terminé</button>
+    </div>
+    <div class="pm-style-pop hidden" id="pm-style-pop">
+      <div class="pm-style-pop-head"><span>Style de la fiche</span><button type="button" class="pm-style-pop-close" id="pm-style-pop-close">✕</button></div>
+      <div class="pm-style-pop-body">
+        <label class="pe-field"><span>Fond de la fiche</span>
+          <select id="pms-card-bg" class="field-input"><option value="default">Violet sombre animé</option><option value="blue">Bleu nuit animé</option><option value="green">Émeraude animé</option><option value="red">Rouge sombre animé</option><option value="mono">Anthracite animé</option><option value="banner">Assorti à la bannière</option></select>
+        </label>
+        <label class="pe-field"><span>Bordure de la carte</span>
+          <select id="pms-card-border" class="field-input"><option value="none">Aucune</option><option value="glow">Halo lumineux</option><option value="gradient">Dégradé animé</option></select>
+        </label>
+        <label class="pe-field"><span>Disposition de l'en-tête</span>
+          <select id="pms-layout" class="field-input"><option value="overlap">Avatar superposé</option><option value="centered">Centré</option></select>
+        </label>
+        <label class="pe-field"><span>Police</span>
+          <select id="pms-font" class="field-input"><option value="system">Système</option><option value="serif">Élégante (serif)</option><option value="mono">Mono (technique)</option><option value="rounded">Arrondie</option><option value="elegant">Raffinée</option></select>
+        </label>
+        <label class="pe-field"><span>Couleur du thème</span>
+          <input type="color" id="pms-bgcolor" class="field-input"/>
+        </label>
+        <label class="pe-field"><span>Couleur des boutons</span>
+          <input type="color" id="pms-btncolor" class="field-input"/>
+        </label>
+        <label class="pe-field"><span>Style de bouton</span>
+          <select id="pms-btnstyle" class="field-input"><option value="solid">Plein</option><option value="outline">Contour</option><option value="glass">Verre</option></select>
+        </label>
+      </div>
+    </div>
     <div class="pm-scroll">
       <div id="pm-render"></div>
       <div id="pm-dashboard"></div>
@@ -16188,11 +16254,19 @@ function buildProfileCardHtml(p,meta,badges,opts){
         +avatarHtml
         +'<div class="pc2-header-text" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
           +'<div class="pc2-header-eyebrow">Membre IXin</div>'
-          +'<h3 class="pc-name">'+esc(name)+serverTagBadgeHtml(extra)
-            +'<span class="pc-tag-inline"><span class="pc-tag-val" data-tag-val>#'+esc(p.tag||'0000')+'</span>'
-            +'<button type="button" class="pc-tag-eye" data-tag-eye title="Afficher le tag"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>'
+          +'<h3 class="pc-name">'
+            +(opts.editable
+              ?'<span class="pc-name-text pc-edit-field" contenteditable="true" data-editable="displayName">'+esc(name)+'</span>'
+              :esc(name))
+            +serverTagBadgeHtml(extra)
+            +(opts.editable
+              ?'<span class="pc-tag-inline"><span class="pc-tag-val revealed pc-edit-field" contenteditable="true" data-editable="tag">#'+esc(p.tag||'0000')+'</span></span>'
+              :'<span class="pc-tag-inline"><span class="pc-tag-val" data-tag-val>#'+esc(p.tag||'0000')+'</span>'
+                +'<button type="button" class="pc-tag-eye" data-tag-eye title="Afficher le tag"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>')
           +'</h3>'
-          +(extra.pronouns?'<div class="pc-tag">'+esc(extra.pronouns)+'</div>':'')
+          +(opts.editable
+            ?'<div class="pc-tag pc-edit-field pc-edit-placeholder" contenteditable="true" data-editable="pronouns" data-placeholder="Ajoute tes pronoms">'+esc(extra.pronouns||'')+'</div>'
+            :(extra.pronouns?'<div class="pc-tag">'+esc(extra.pronouns)+'</div>':''))
         +'</div>'
         +'<div class="pc2-header-actions" id="pm-header-actions">'
           +'<button type="button" class="pc2-hdr-btn hidden" id="pm-friend" title="Ajouter en ami" data-tip="Ajouter en ami"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M18 8v6M15 11h6"/></svg></button>'
@@ -16267,9 +16341,11 @@ function buildProfileDashboardHtml(p,meta,badges,opts){
       +'<div class="pc2-card-head"><span class="pc2-card-title">À propos</span>'
         +(meta.plan==='plus'?'<span class="pc2-xplus-pill">★ IXin+ à vie</span>':'')
       +'</div>'
-      +(bio
-        ?'<div class="pc2-bio-wrap"><div class="pc2-bio pc2-clamp" id="pc2-bio">'+esc(bio)+'</div><button type="button" class="pc2-bio-toggle hidden" id="pc2-bio-toggle">Afficher la bio complète</button></div>'
-        :'<div class="pc2-bio-wrap"><div class="pc2-bio" style="opacity:.5">Pas encore de bio.</div></div>')
+      +(opts.editable
+        ?'<div class="pc2-bio-wrap"><div class="pc2-bio pc-edit-field pc-edit-multiline pc-edit-placeholder" contenteditable="true" data-editable="bio" data-placeholder="Ajoute une bio...">'+esc(bio)+'</div></div>'
+        :(bio
+          ?'<div class="pc2-bio-wrap"><div class="pc2-bio pc2-clamp" id="pc2-bio">'+esc(bio)+'</div><button type="button" class="pc2-bio-toggle hidden" id="pc2-bio-toggle">Afficher la bio complète</button></div>'
+          :'<div class="pc2-bio-wrap"><div class="pc2-bio" style="opacity:.5">Pas encore de bio.</div></div>'))
       +(badgeCount?'<div class="pc2-badges-wrap"><div class="pc2-card-subhead"><span class="pc2-card-title-sm">Badges</span><span class="pc2-badges-count">'+badgeCount+' distinction'+(badgeCount>1?'s':'')+'</span></div><div class="pc-badges">'+badgeChipsHtml(badges)+'</div></div>':'')
       +(linksHtml2||spUrl2?'<div class="pc2-socials-wrap"><div class="pc-socials" style="justify-content:flex-start;margin-top:0">'+linksHtml2+(spUrl2?'<a class="pc-spotify" href="'+esc(spUrl2)+'" target="_blank" rel="noopener">🎧 Écouter sur Spotify</a>':'')+'</div></div>':'')
       +'<div class="pc2-stats-row">'
@@ -16278,9 +16354,13 @@ function buildProfileDashboardHtml(p,meta,badges,opts){
       +'</div>'
     +'</div>'
     +'<div class="pc2-col-side">'
-      +'<div class="pc2-card pc2-activity'+(statusActive?'':' hidden')+'" id="pc2-activity">'
+      +'<div class="pc2-card pc2-activity'+(opts.editable||statusActive?'':' hidden')+'" id="pc2-activity">'
         +'<span class="pc2-card-title-sm">En ce moment</span>'
-        +'<div class="pc2-activity-row"><span class="pc2-activity-icon">💬</span><span class="pc2-activity-text">'+esc(extra.customStatus||'')+'</span></div>'
+        +'<div class="pc2-activity-row"><span class="pc2-activity-icon">'+ICO.chatBubble+'</span>'
+          +(opts.editable
+            ?'<span class="pc2-activity-text pc-edit-field pc-edit-multiline pc-edit-placeholder" contenteditable="true" data-editable="customStatus" data-placeholder="Dis ce que tu fais...">'+esc(extra.customStatus||'')+'</span>'
+            :'<span class="pc2-activity-text">'+esc(extra.customStatus||'')+'</span>')
+        +'</div>'
       +'</div>'
       +'<div class="pc2-card pc2-xbin-pin hidden" id="pc2-xbin-pin">'
         +'<span class="pc2-card-title-sm">XBin épinglé</span>'
@@ -16362,7 +16442,39 @@ async function loadAndRenderHighlights(uid,container){
     btn.onclick=function(){openHighlightsViewer(items,parseInt(btn.getAttribute('data-hl-idx'),10));};
   });
 }
+// Le cadre choisi (glow/gradient, voir Personnalisation du profil) doit
+// entourer TOUTE la fenêtre de profil, pas seulement la carte d'en-tête
+// rendue dans #pm-render — voir .profile-card.border-glow/.border-gradient.
+// On récupère la classe/les couleurs posées par buildProfileCardHtml sur
+// .pc-card puis on les déplace sur #pm-box (la fenêtre elle-même) au lieu
+// de les dupliquer : une seule source de vérité pour le cadre. Partagé par
+// openProfileModal (lecture) et renderCardEditFrame (édition en direct),
+// qui doivent tous deux refléter un changement de bordure.
+function applyCardBorderToBox(renderEl){
+  const innerCard=renderEl.querySelector('.pc-card');
+  const pmBox=\$('pm-box');
+  if(!innerCard||!pmBox)return;
+  const borderClass=(innerCard.className.match(/border-\\S+/)||['border-none'])[0];
+  pmBox.className='modal-box profile-card profile-card-view '+borderClass;
+  pmBox.style.setProperty('--pc-glow',innerCard.style.getPropertyValue('--pc-glow'));
+  pmBox.style.setProperty('--pc-grad-a',innerCard.style.getPropertyValue('--pc-grad-a'));
+  pmBox.style.setProperty('--pc-grad-b',innerCard.style.getPropertyValue('--pc-grad-b'));
+  innerCard.classList.remove('border-glow','border-gradient','border-none');
+}
 async function openProfileModal(uid){
+  // Si on navigue directement vers une autre fiche (ex. clic sur une
+  // mention dans le chat) pendant qu'on était en mode édition de la
+  // sienne, sans être passé par "Terminé" ni le ✕ : on sauvegarde ce qui
+  // traînait et on referme proprement le mode édition avant d'afficher
+  // autre chose, plutôt que de laisser la barre d'outils/le popover Style
+  // visibles sur le profil de quelqu'un d'autre.
+  if(cardEditMode){
+    cardEditMode=false;
+    clearTimeout(cardEditSaveTimer);
+    if(peDraft)savePeDraft();
+    const tb=\$('pm-edit-toolbar');if(tb)tb.classList.add('hidden');
+    const sp=\$('pm-style-pop');if(sp)sp.classList.add('hidden');
+  }
   let p=membersCache.find(function(x){return (x.authUserId||x.\$id)===uid});
   /* Pour son PROPRE profil, meProfile est déjà en mémoire dès qu'on est
      connecté : pas besoin de compter sur le cache des membres (pas encore
@@ -16400,22 +16512,7 @@ async function openProfileModal(uid){
     renderEl.innerHTML=buildProfileCardHtml(p,meta,badges,{headerOnly:true,livePresenceOverride:livePresenceOverride});
     mountProfileCardExtras(renderEl);
     loadAndRenderHighlights(uid,renderEl.querySelector('#pc-highlights'));
-    // Le cadre choisi (glow/gradient, voir Personnalisation du profil) doit
-    // entourer TOUTE la fenêtre de profil, pas seulement la carte d'en-tête
-    // rendue ci-dessus — voir .profile-card.border-glow/.border-gradient.
-    // On récupère la classe/les couleurs posées par buildProfileCardHtml sur
-    // .pc-card puis on les déplace sur #pm-box (la fenêtre elle-même) au
-    // lieu de les dupliquer : une seule source de vérité pour le cadre.
-    const innerCard=renderEl.querySelector('.pc-card');
-    const pmBox=\$('pm-box');
-    if(innerCard&&pmBox){
-      const borderClass=(innerCard.className.match(/border-\\S+/)||['border-none'])[0];
-      pmBox.className='modal-box profile-card profile-card-view '+borderClass;
-      pmBox.style.setProperty('--pc-glow',innerCard.style.getPropertyValue('--pc-glow'));
-      pmBox.style.setProperty('--pc-grad-a',innerCard.style.getPropertyValue('--pc-grad-a'));
-      pmBox.style.setProperty('--pc-grad-b',innerCard.style.getPropertyValue('--pc-grad-b'));
-      innerCard.classList.remove('border-glow','border-gradient','border-none');
-    }
+    applyCardBorderToBox(renderEl);
   }
   const dashboardEl=\$('pm-dashboard');
   if(dashboardEl){
@@ -16520,11 +16617,204 @@ async function openProfileModal(uid){
   const editBtn=\$('pm-edit');
   if(editBtn){
     editBtn.classList.toggle('hidden',!isSelf);
-    editBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openProfileEditPanel(p,meta);};
+    editBtn.onclick=function(){enterCardEditMode(p,meta);};
   }
   \$('modal-profile').classList.remove('hidden');
 }
-if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){\$('modal-profile').classList.add('hidden')});
+/* ===== Mode d'édition en direct sur la fiche de profil =====
+   Remplace l'ancien réflexe "appuyer sur le crayon ouvre le studio dans une
+   fenêtre séparée" (demandé explicitement) : la fiche déjà affichée bascule
+   sur place en mode édition (texte directement modifiable, avatar/bannière
+   avec leur survol existant, un petit panneau "Style" pour le reste) et
+   s'enregistre au fil de l'eau — le studio complet (galerie d'avatars,
+   IXinMoji, réseaux sociaux, badges épinglés) reste accessible via "Options
+   avancées" pour ce qui reste trop complexe pour un simple champ en ligne. */
+let cardEditMode=false;
+let cardEditSaveTimer=null;
+function pmScheduleCardSave(){
+  const status=\$('pm-edit-status');
+  if(status){status.classList.remove('hidden','err');status.textContent='Modification…';}
+  clearTimeout(cardEditSaveTimer);
+  cardEditSaveTimer=setTimeout(async function(){
+    if(status){status.textContent='Enregistrement…';}
+    const res=await savePeDraft();
+    if(!status)return;
+    if(res.ok){
+      status.classList.remove('err');status.textContent='Enregistré';
+    }else{
+      status.classList.add('err');status.textContent=res.err||'Erreur d\\'enregistrement';
+    }
+    setTimeout(function(){if(status&&!status.classList.contains('err'))status.classList.add('hidden');},1500);
+  },700);
+}
+function wireCardEditableFields(container){
+  if(!container)return;
+  container.querySelectorAll('[data-editable]').forEach(function(el){
+    const field=el.getAttribute('data-editable');
+    el.addEventListener('keydown',function(e){
+      if(e.key==='Enter'&&!el.classList.contains('pc-edit-multiline')){e.preventDefault();el.blur();}
+    });
+    el.addEventListener('blur',function(){
+      let val=el.textContent.replace(/\\u00a0/g,' ');
+      if(field==='tag')val=val.replace(/[^0-9]/g,'').slice(0,4);
+      else if(field==='displayName')val=val.trim().slice(0,64);
+      else if(field==='pronouns')val=val.trim().slice(0,40);
+      else if(field==='bio')val=val.slice(0,500);
+      else if(field==='customStatus')val=val.trim().slice(0,60);
+      if(peDraft[field]===val)return;
+      peDraft[field]=val;
+      // Le tag s'affiche toujours "#XXXX" — sans ce préfixe réajouté ici, le
+      // "#" (non-chiffre, retiré par le filtre ci-dessus) disparaîtrait du
+      // champ après le tout premier changement.
+      el.textContent=field==='tag'?'#'+val:val;
+      pmScheduleCardSave();
+    });
+  });
+}
+function wireCardEditPencils(container){
+  if(!container)return;
+  container.querySelectorAll('[data-edit]').forEach(function(b){
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      const which=b.getAttribute('data-edit');
+      const input=\$(which==='avatar'?'pm-edit-avatar-file':'pm-edit-banner-file');
+      if(input)input.click();
+    });
+  });
+}
+function renderCardEditFrame(){
+  if(!peDraft)return;
+  const previewMeta=buildPreviewMetaFromDraft();
+  const badges=parseBadges(peOriginalMeta);
+  const renderEl=\$('pm-render');
+  if(renderEl){
+    renderEl.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{headerOnly:true,editable:true});
+    mountProfileCardExtras(renderEl);
+    wireCardEditableFields(renderEl);
+    wireCardEditPencils(renderEl);
+    applyCardBorderToBox(renderEl);
+    const musicBtn2=\$('pm-music');if(musicBtn2)musicBtn2.classList.add('hidden');
+    const friendBtn2=\$('pm-friend');if(friendBtn2)friendBtn2.classList.add('hidden');
+    const msgBtn2=\$('pm-message');if(msgBtn2)msgBtn2.classList.add('hidden');
+    const blockBtn2=\$('pm-block');if(blockBtn2)blockBtn2.classList.add('hidden');
+    const shareBtn2=\$('pm-share');if(shareBtn2)shareBtn2.classList.add('hidden');
+    const editBtn2=\$('pm-edit');if(editBtn2)editBtn2.classList.add('hidden');
+    const reportBtn2=\$('pm-report');if(reportBtn2)reportBtn2.classList.add('hidden');
+  }
+  const dashboardEl=\$('pm-dashboard');
+  if(dashboardEl){
+    dashboardEl.innerHTML=buildProfileDashboardHtml(peDraft,previewMeta,badges,{editable:true});
+    wireCardEditableFields(dashboardEl);
+  }
+}
+function enterCardEditMode(p,meta){
+  if(!me||!meProfile)return;
+  peOriginalMeta=meta||memberMetaByUid[String(me.\$id)]||{};
+  peDraft=buildPeDraftFromProfile(p||meProfile,peOriginalMeta);
+  cardEditMode=true;
+  renderCardEditFrame();
+  const toolbar=\$('pm-edit-toolbar');if(toolbar)toolbar.classList.remove('hidden');
+}
+async function exitCardEditMode(){
+  if(!cardEditMode)return;
+  clearTimeout(cardEditSaveTimer);
+  if(peDraft)await savePeDraft();
+  cardEditMode=false;
+  \$('pm-style-pop').classList.add('hidden');
+  const toolbar=\$('pm-edit-toolbar');if(toolbar)toolbar.classList.add('hidden');
+  if(activeProfileModalUid)openProfileModal(activeProfileModalUid);
+}
+if(\$('pm-edit-done-btn'))\$('pm-edit-done-btn').addEventListener('click',exitCardEditMode);
+if(\$('pm-edit-advanced-btn'))\$('pm-edit-advanced-btn').addEventListener('click',function(){
+  if(!peDraft)return;
+  \$('pm-style-pop').classList.add('hidden');
+  \$('modal-profile').classList.add('hidden');
+  // buildPreviewMetaFromDraft() (pas peOriginalMeta, resté figé sur l'état
+  // d'avant cette session d'édition) : sans ça, pronoms/statut/cadre
+  // d'avatar/bordure/fond déjà modifiés et auto-enregistrés en direct se
+  // seraient réinitialisés à leur ancienne valeur en rouvrant le studio.
+  openProfileEditPanel(peDraft,buildPreviewMetaFromDraft());
+});
+function syncStylePopFromDraft(){
+  if(!peDraft)return;
+  \$('pms-card-bg').value=peDraft.cardBg;
+  \$('pms-card-border').value=peDraft.cardBorder;
+  \$('pms-layout').value=peDraft.headerLayout;
+  \$('pms-font').value=peDraft.font;
+  \$('pms-bgcolor').value=peDraft.bgColor;
+  \$('pms-btncolor').value=peDraft.btnColor;
+  \$('pms-btnstyle').value=peDraft.btnStyle;
+}
+if(\$('pm-edit-style-btn'))\$('pm-edit-style-btn').addEventListener('click',function(){
+  if(!peDraft)return;
+  const pop=\$('pm-style-pop');
+  if(pop.parentElement!==document.body)document.body.appendChild(pop);
+  const willShow=pop.classList.contains('hidden');
+  if(willShow){
+    syncStylePopFromDraft();
+    const r=this.getBoundingClientRect();
+    const popW=Math.min(300,window.innerWidth-32);
+    let left=Math.min(r.left,window.innerWidth-popW-16);
+    left=Math.max(16,left);
+    pop.style.left=left+'px';
+    pop.style.top=Math.min(r.bottom+8,window.innerHeight-40)+'px';
+  }
+  pop.classList.toggle('hidden');
+});
+if(\$('pm-style-pop-close'))\$('pm-style-pop-close').addEventListener('click',function(){\$('pm-style-pop').classList.add('hidden');});
+document.addEventListener('mousedown',function(e){
+  const pop=\$('pm-style-pop');const trig=\$('pm-edit-style-btn');
+  if(!pop||pop.classList.contains('hidden'))return;
+  if(pop.contains(e.target)||(trig&&trig.contains(e.target)))return;
+  pop.classList.add('hidden');
+});
+[['pms-card-bg','cardBg'],['pms-card-border','cardBorder'],['pms-layout','headerLayout'],['pms-font','font'],['pms-btnstyle','btnStyle']].forEach(function(pair){
+  const el=\$(pair[0]);if(!el)return;
+  el.addEventListener('change',function(){
+    peDraft[pair[1]]=this.value;
+    renderCardEditFrame();
+    pmScheduleCardSave();
+  });
+});
+[['pms-bgcolor','bgColor'],['pms-btncolor','btnColor']].forEach(function(pair){
+  const el=\$(pair[0]);if(!el)return;
+  el.addEventListener('input',function(){
+    peDraft[pair[1]]=this.value;
+    renderCardEditFrame();
+  });
+  el.addEventListener('change',function(){pmScheduleCardSave();});
+});
+if(\$('pm-edit-avatar-file'))\$('pm-edit-avatar-file').addEventListener('change',async function(){
+  const f=this.files&&this.files[0];this.value='';if(!f||!peDraft)return;
+  if(!isSafeImageFile(f)){showToast('Format non supporté (PNG, JPG, WebP, AVIF ou GIF)','error');return}
+  if(f.size>maxAvatarBannerBytes()){showToast('Avatar trop lourd : '+fmtSize(maxAvatarBannerBytes())+' max'+(meIsPlus?'':' (30 Mo avec IXin+)'),'error');return}
+  try{
+    const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),f,[Appwrite.Permission.read(Appwrite.Role.any())]);
+    peDraft.avatar=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+    renderCardEditFrame();
+    pmScheduleCardSave();
+  }catch(e){showToast('Envoi de la photo impossible.','error');}
+});
+if(\$('pm-edit-banner-file'))\$('pm-edit-banner-file').addEventListener('change',function(){
+  const f=this.files&&this.files[0];this.value='';if(!f||!peDraft)return;
+  if(!isSafeImageFile(f)){showToast('Format non supporté (PNG, JPG, WebP, AVIF ou GIF)','error');return}
+  if(f.size>maxAvatarBannerBytes()){showToast('Bannière trop lourde : '+fmtSize(maxAvatarBannerBytes())+' max'+(meIsPlus?'':' (30 Mo avec IXin+)'),'error');return}
+  openBannerCropModal(f,async function(blob){
+    if(!blob||!peDraft)return;
+    try{
+      const cropped=blob.type==='image/gif'?blob:new File([blob],'banner.jpg',{type:'image/jpeg'});
+      const up=await storage.createFile(BUCKET,Appwrite.ID.unique(),cropped,[Appwrite.Permission.read(Appwrite.Role.any())]);
+      peDraft.bg=PROXY_EP+'/storage/buckets/'+BUCKET+'/files/'+up.\$id+'/view?project='+PID;
+      peDraft.bgType='image';
+      renderCardEditFrame();
+      pmScheduleCardSave();
+    }catch(e){showToast('Envoi de la bannière impossible.','error');}
+  });
+});
+if(\$('pm-close'))\$('pm-close').addEventListener('click',function(){
+  if(cardEditMode)exitCardEditMode();
+  \$('modal-profile').classList.add('hidden');
+});
 if(\$('ub-av'))\$('ub-av').addEventListener('click',function(){if(me)openProfileModal(me.\$id)});
 if(\$('ub-name'))\$('ub-name').addEventListener('click',function(){if(me)openProfileModal(me.\$id)});
 (function(){const av=\$('ub-av'),nm=\$('ub-name');if(av)av.style.cursor='pointer';if(nm)nm.style.cursor='pointer';})();
@@ -16603,9 +16893,12 @@ async function loadOwnedShopFrames(){
   }catch(e){ownedShopFrames=[];}
   renderFrameSwatches();
 }
-function openProfileEditPanel(p,meta){
+// Extrait d'openProfileEditPanel (le studio complet) pour être réutilisable
+// telle quelle par le mode d'édition en direct sur la fiche de profil elle-
+// même (voir enterCardEditMode) — les deux doivent partir du même brouillon,
+// sans dupliquer cette construction à deux endroits.
+function buildPeDraftFromProfile(p,meta){
   const theme=p.theme||'violet';
-  peOriginalMeta=meta||{};
   const extra=parseProfileExtra(meta&&meta.profileExtraJson);
   // Badges réellement obtenus (meta.badgesJson, via parseBadges) : la seule
   // source valable pour proposer un choix d'épinglage — jamais la liste
@@ -16613,7 +16906,7 @@ function openProfileEditPanel(p,meta){
   // (rétrogradation BAP/Support, etc.) et qu'il ne faut pas proposer à
   // nouveau ni laisser cocher.
   peEarnedBadges=parseBadges(meta);
-  peDraft={
+  return{
     displayName:p.displayName||p.username||'',
     tag:p.tag||String(Math.floor(1000+Math.random()*9000)),
     bio:p.bio||'',
@@ -16651,6 +16944,10 @@ function openProfileEditPanel(p,meta){
     // plutôt que de rester coché sur un badge qu'on ne peut plus proposer).
     pinnedBadges:Array.isArray(extra.pinnedBadges)?extra.pinnedBadges.filter(function(b){return peEarnedBadges.indexOf(b)>=0;}).slice(0,4):[]
   };
+}
+function openProfileEditPanel(p,meta){
+  peOriginalMeta=meta||{};
+  peDraft=buildPeDraftFromProfile(p,meta);
   \$('pe-name').value=peDraft.displayName;
   \$('pe-tag').value=peDraft.tag;
   \$('pe-bio').value=peDraft.bio;
@@ -16877,12 +17174,18 @@ function renderGalleryThumbs(){
     });
   });
 }
-function updatePePreview(){
-  const el=\$('pe-preview');if(!el||!peDraft)return;
-  const previewMeta=Object.assign({},peOriginalMeta,{
+// Partagé par updatePePreview (studio) et le mode d'édition en direct sur la
+// fiche elle-même (renderCardEditFrame) — un seul endroit qui sait comment
+// reconstruire un "meta" à jour à partir du brouillon en cours.
+function buildPreviewMetaFromDraft(){
+  return Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
     profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,cardBg:peDraft.cardBg,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges})
   });
+}
+function updatePePreview(){
+  const el=\$('pe-preview');if(!el||!peDraft)return;
+  const previewMeta=buildPreviewMetaFromDraft();
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
   mountProfileCardExtras(el);
@@ -17025,15 +17328,27 @@ document.querySelectorAll('.pe-tab').forEach(function(btn){
     document.querySelectorAll('.pe-pane').forEach(function(p2){p2.classList.toggle('hidden',p2.getAttribute('data-pane')!==tab)});
   });
 });
-if(\$('pe-close'))\$('pe-close').addEventListener('click',function(){\$('modal-profile-edit').classList.add('hidden')});
+if(\$('pe-close'))\$('pe-close').addEventListener('click',function(){
+  \$('modal-profile-edit').classList.add('hidden');
+  // Le studio n'est plus atteignable que depuis "Options avancées" du mode
+  // d'édition en direct (voir pm-edit-advanced-btn) — une fiche de profil
+  // était donc forcément déjà ouverte juste avant, en arrière-plan : on y
+  // retourne au lieu de laisser les deux fenêtres fermées sans rien afficher.
+  if(activeProfileModalUid)openProfileModal(activeProfileModalUid);
+});
 if(\$('modal-profile-edit'))\$('modal-profile-edit').addEventListener('click',function(e){if(e.target===this)this.classList.add('hidden')});
-if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
-  if(!peDraft||!me||!meProfile)return;
-  if(!/^[0-9]{4}\$/.test(peDraft.tag)){\$('pe-err').textContent='Le tag doit être 4 chiffres.';return}
+// Extrait de l'ancien handler pe-save : réutilisé tel quel par le mode
+// d'édition en direct (sauvegarde après chaque champ modifié, débouncée —
+// voir scheduleCardEditSave) en plus du bouton "Enregistrer" du studio.
+// Ne gère aucun état d'UI (bouton désactivé, texte) — seulement le réseau
+// et la synchronisation de meProfile/memberMetaByUid ; l'appelant décide
+// comment afficher {ok,partial,err}.
+async function savePeDraft(){
+  if(!peDraft||!me||!meProfile)return{ok:false,err:'no-draft'};
+  if(!/^[0-9]{4}\$/.test(peDraft.tag))return{ok:false,err:'Le tag doit être 4 chiffres.'};
   if(peDraft.tag!==meProfile.tag&&await isUsernameTagTaken(meProfile.username||meProfile.baseUsername||'',peDraft.tag,meProfile.\$id)){
-    \$('pe-err').textContent='Ce tag est déjà pris pour ton pseudo, choisis-en un autre.';return
+    return{ok:false,err:'Ce tag est déjà pris pour ton pseudo, choisis-en un autre.'};
   }
-  const btn=this;btn.disabled=true;btn.textContent='Enregistrement…';\$('pe-err').textContent='';
   try{
     await db.updateDocument(DB,'users',meProfile.\$id,{
       displayName:(peDraft.displayName||'').slice(0,64)||meProfile.displayName,
@@ -17087,14 +17402,24 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
       // ça masquait l'erreur réelle renvoyée par le serveur (ex. un souci de
       // schéma côté base) et rendait le bug impossible à diagnostiquer depuis
       // un simple retour utilisateur. On affiche maintenant le message exact.
-      \$('pe-err').textContent='Pseudo, bio et couleurs enregistrés, mais pronoms/statut/effets n\\'ont pas pu être sauvegardés : '+extraSaveErrMsg+'. Réessaie.';
-      showToast('Sauvegarde partielle — réessaie pour les effets de profil.','error');
-    }else{
-      showToast('Profil mis à jour !');
-      \$('modal-profile-edit').classList.add('hidden');
+      return{ok:false,partial:true,err:'Pseudo, bio et couleurs enregistrés, mais pronoms/statut/effets n\\'ont pas pu être sauvegardés : '+extraSaveErrMsg+'. Réessaie.'};
     }
-  }catch(e){\$('pe-err').textContent='Enregistrement impossible : '+((e&&e.message)||e);}
-  finally{btn.disabled=false;btn.textContent='Enregistrer';}
+    return{ok:true};
+  }catch(e){return{ok:false,err:'Enregistrement impossible : '+((e&&e.message)||e)};}
+}
+if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
+  if(!peDraft||!me||!meProfile)return;
+  const btn=this;btn.disabled=true;btn.textContent='Enregistrement…';\$('pe-err').textContent='';
+  const res=await savePeDraft();
+  if(res.ok){
+    showToast('Profil mis à jour !');
+    \$('modal-profile-edit').classList.add('hidden');
+    if(activeProfileModalUid)openProfileModal(activeProfileModalUid);
+  }else{
+    \$('pe-err').textContent=res.err||'Erreur inconnue';
+    if(res.partial)showToast('Sauvegarde partielle — réessaie pour les effets de profil.','error');
+  }
+  btn.disabled=false;btn.textContent='Enregistrer';
 });
 
 let reportTargetUid=null,reportMsgCtx=null,reportOnSuccessCallback=null;
