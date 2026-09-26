@@ -4444,6 +4444,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    (z-index:-1) — purement décoratif. */
 .pc-card-bg{position:absolute;inset:0;z-index:-1}
 .pc-card-bg-photo{background-size:cover;background-position:center;filter:blur(30px) brightness(.4) saturate(1.15);transform:scale(1.15)}
+/* Chevauchement signalé : le flou du reflet (filter:blur, jamais clippé par
+   la boîte de SON PROPRE élément, seulement par un ancestor overflow:hidden)
+   débordait bien au-delà de sa propre hauteur et restait visible/lumineux
+   par-dessus le début de la grille À propos/En ce moment juste en dessous
+   (fonds quasi transparents, rgba(255,255,255,.03) — n'importe quelle lueur
+   derrière se voit). Ce wrap clippe pile à la hauteur bannière+reflet ; la
+   marge négative égale à la hauteur du reflet annule son ajout au flux, pour
+   que l'avatar/la ligne d'en-tête démarrent exactement où avant (juste après
+   LA BANNIÈRE, comme cette hauteur unique le faisait déjà). */
+.pc-banner-wrap{position:relative;overflow:hidden;height:256px;margin-bottom:-84px}
+.pc-card.pc-dashboard-header .pc-banner-wrap{height:250px;margin-bottom:-100px}
+.pc-card.pc-centered .pc-banner-wrap{height:196px;margin-bottom:-84px}
 .pc-banner{height:172px;position:relative;overflow:hidden}
 .pc-banner-photo{background:#000}
 /* Bug remonté : une photo de bannière "contenue" (contain) laissait des
@@ -4698,6 +4710,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
   .pc-card.pc-dashboard-header .pc-banner{height:130px}
+  .pc-card.pc-dashboard-header .pc-banner-wrap{height:214px;margin-bottom:-84px}
   .pc-card.pc-dashboard-header .pc-banner-reflection{top:130px;height:84px}
   .pc-card.pc-dashboard-header .pc-av-frame{width:68px;height:68px}
   .pc2-presence-pill{padding:5px 9px}
@@ -16108,11 +16121,13 @@ function buildProfileCardHtml(p,meta,badges,opts){
     ? '<div class="pc-banner-reflection" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
     : '';
   const bannerHtml=(bgType==='image'&&bannerImg)
-    ? '<div class="pc-banner pc-banner-photo">'
-        +'<div class="pc-banner-fg" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
-        +bannerInnerHtml
+    ? '<div class="pc-banner-wrap">'
+        +'<div class="pc-banner pc-banner-photo">'
+          +'<div class="pc-banner-fg" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+          +bannerInnerHtml
+        +'</div>'
+        +bannerReflectionHtml
       +'</div>'
-      +bannerReflectionHtml
     : '<div class="pc-banner" style="'+bannerStyle+'">'+bannerInnerHtml+'</div>';
   /* Le petit point de présence SUR l'avatar reflète historiquement le statut
      MANUEL choisi (statusManual) — correct pour l'aperçu d'édition (on
