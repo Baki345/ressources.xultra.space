@@ -4677,9 +4677,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    (couleurs vives, texte en gros plan…) juste derrière, lu à tort comme "le
    reflet qui déborde encore" (signalé à plusieurs reprises, sur des
    bannières différentes à chaque fois — le point commun est ce fond
-   transparent, pas le reflet lui-même déjà clippé plus haut). Un fond
-   franchement opaque règle ça pour de bon, quelle que soit la photo. */
-.pc2-card{background:rgba(18,17,23,.92);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
+   transparent, pas le reflet lui-même déjà clippé plus haut). Un premier
+   passage à .92 restait insuffisant sur des bannières VRAIMENT saturées
+   (néons, aplats vifs) — les 8% restants suffisaient encore à teinter le
+   coin du fond visiblement. 100% opaque : plus aucune transparence à
+   percer, quelle que soit la photo. */
+.pc2-card{background:#141216;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:14px;text-align:left}
 .pc2-col-side{display:flex;flex-direction:column;gap:12px}
 .pc2-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .pc2-card-title{font-size:.68rem;font-weight:800;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
