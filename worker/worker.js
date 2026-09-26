@@ -7727,7 +7727,16 @@ function loadTurnstileScript(){
   tsScript.src='https://challenges.cloudflare.com/turnstile/v0/api.js';
   tsScript.crossOrigin='anonymous';
   tsScript.async=true;tsScript.defer=true;
-  tsScript.onload=function(){renderTurnstile('login');};
+  tsScript.onload=function(){
+    // Rendre l'onglet réellement affiché — si l'utilisateur a cliqué sur
+    // "Inscription" avant que ce script tiers (async) ait fini de charger,
+    // renderTurnstile('register') avait échoué silencieusement (turnstile
+    // pas encore défini) et rien ne le retentait jamais : le widget anti-robot
+    // restait vide sur l'écran d'inscription tant qu'on ne recliquait pas
+    // sur l'onglet une fois le script chargé.
+    const regPane=\$('pane-register');
+    renderTurnstile(regPane&&!regPane.classList.contains('hidden')?'register':'login');
+  };
   document.head.appendChild(tsScript);
 }
 function renderTurnstile(which){
@@ -7757,15 +7766,18 @@ function updatePasswordStrength(){
   if(!fill)return;
   const score=passwordStrength(pw);
   fill.style.width=score+'%';
+  const FACE_NEUTRAL='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8.5 15h7"/></svg>';
+  const FACE_SAD='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8.5 16.5c1-1.6 2.5-2.5 3.5-2.5s2.5.9 3.5 2.5"/></svg>';
+  const FACE_HAPPY='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none"/><path d="M8 14c1 1.6 2.5 2.5 4 2.5s3-.9 4-2.5"/></svg>';
   let color1,color2,em,txt;
-  if(!pw){color1='#ef4444';color2='#ef4444';em='😐';txt='Mot de passe';}
-  else if(score<40){color1='#ef4444';color2='#f87171';em='😢';txt='Faible';}
-  else if(score<70){color1='#f59e0b';color2='#fbbf24';em='😐';txt='Moyen';}
-  else{color1='#22c55e';color2='#4ade80';em='😊';txt='Robuste';}
+  if(!pw){color1='#ef4444';color2='#ef4444';em=FACE_NEUTRAL;txt='Mot de passe';}
+  else if(score<40){color1='#ef4444';color2='#f87171';em=FACE_SAD;txt='Faible';}
+  else if(score<70){color1='#f59e0b';color2='#fbbf24';em=FACE_NEUTRAL;txt='Moyen';}
+  else{color1='#22c55e';color2='#4ade80';em=FACE_HAPPY;txt='Robuste';}
   fill.style.background='linear-gradient(90deg,'+color1+','+color2+')';
   if(label)label.textContent=txt;
-  if(emoji&&emoji.textContent!==em){
-    emoji.textContent=em;
+  if(emoji&&emoji.innerHTML!==em){
+    emoji.innerHTML=em;
     emoji.classList.remove('bump');
     void emoji.offsetWidth;
     emoji.classList.add('bump');
@@ -7817,7 +7829,7 @@ document.querySelectorAll('[data-pw-toggle]').forEach(function(btn){
     const input=\$(btn.getAttribute('data-pw-toggle'));if(!input)return;
     const showing=input.type==='text';
     input.type=showing?'password':'text';
-    btn.textContent=showing?'👁':'🙈';
+    btn.innerHTML=showing?'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg>':'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>';
     btn.title=showing?'Afficher le mot de passe':'Masquer le mot de passe';
   });
 });
@@ -8726,7 +8738,7 @@ async function openOauthConsent(clientId,redirectUri,state,scope){
     \$('oauth-consent-icon').textContent=j.logoEmoji||'🔌';
     \$('oauth-consent-title').textContent=j.name+' veut se connecter';
     \$('oauth-consent-sub').textContent='avec ton compte IXin';
-    \$('oauth-consent-scopes').innerHTML='<div class="oauth-scope-row">✅ Ton pseudo, ton tag et ton avatar</div><div class="oauth-scope-row">🚫 Jamais ton e-mail, ton mot de passe, ni tes messages</div>';
+    \$('oauth-consent-scopes').innerHTML='<div class="oauth-scope-row"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 12l5 5L20 6"/></svg> Ton pseudo, ton tag et ton avatar</div><div class="oauth-scope-row"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg> Jamais ton e-mail, ton mot de passe, ni tes messages</div>';
     if(!j.redirectOk){\$('oauth-consent-warn').classList.remove('hidden');\$('oauth-consent-allow').disabled=true;}
   }catch(e){
     \$('oauth-consent-title').textContent='Erreur';
@@ -8753,10 +8765,10 @@ function showE2EBanner(mode){
   const passInput=\$('e2e-bb-pass');
   if(passInput)passInput.placeholder='Ta '+secretWord;
   if(mode==='restore'){
-    \$('e2e-bb-ask-text').textContent='🔓 Cet appareil ne peut pas encore lire tes anciens messages chiffrés. Entre ta '+secretWord+' pour les restaurer.';
+    \$('e2e-bb-ask-text').innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V9"/></svg> Cet appareil ne peut pas encore lire tes anciens messages chiffrés. Entre ta '+secretWord+' pour les restaurer.';
     \$('e2e-backup-confirm').textContent='Restaurer mes messages';
   }else{
-    \$('e2e-bb-ask-text').textContent='🔒 Sécurise l\\'accès à tes messages chiffrés sur tes autres appareils.';
+    \$('e2e-bb-ask-text').innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Sécurise l\\'accès à tes messages chiffrés sur tes autres appareils.';
     \$('e2e-backup-confirm').textContent='Confirmer ma '+secretWord;
   }
   \$('e2e-backup-banner').classList.remove('hidden');
@@ -9085,7 +9097,7 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
   if(!identifier){showErrTxt('Entre ton pseudo#tag ci-dessus, puis réessaie.');return}
   showErrTxt('');
   const btn=\$('btn-login-passkey');
-  btn.disabled=true;btn.textContent='🪪 Vérification…';
+  btn.disabled=true;btn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M13 10h5M13 14h5"/></svg> Vérification…';
   try{
     const jj=await loginWithPasskey(identifier);
     if(jj.mfaRequired){
@@ -9099,7 +9111,7 @@ if(\$('btn-login-passkey'))\$('btn-login-passkey').addEventListener('click',asyn
     xlog('login_passkey_fail',{msg:(e&&e.message)||String(e)});
     showErrTxt((e&&e.message)||'Connexion impossible avec cette passkey.');
   }
-  btn.disabled=false;btn.textContent='🪪 Se connecter avec une passkey';
+  btn.disabled=false;btn.innerHTML=ICO.idcard+' Se connecter avec une passkey';
 });
 if(\$('btn-devicekey-login'))\$('btn-devicekey-login').addEventListener('click',async function(){
   const key=(\$('in-devicekey').value||'').trim();
@@ -9212,7 +9224,7 @@ function showSaveCredentialsModal(deviceKey,recoveryCode,onDone){
   \$('save-cred-recovery-label').classList.toggle('hidden',!recoveryCode);
   \$('save-cred-recovery').classList.toggle('hidden',!recoveryCode);
   if(recoveryCode)\$('save-cred-recovery').textContent=recoveryCode;
-  \$('save-cred-title').textContent=(deviceKey&&recoveryCode)?'🔒 Note bien ceci':(deviceKey?'🔒 Ta nouvelle clé secrète':'🔒 Ton nouveau code de secours');
+  \$('save-cred-title').innerHTML=ICO.lock+(deviceKey&&recoveryCode?' Note bien ceci':(deviceKey?' Ta nouvelle clé secrète':' Ton nouveau code de secours'));
   \$('save-cred-desc').innerHTML=(deviceKey?'C\\'est la <b>seule</b> façon de te reconnecter sur un autre appareil, ou si tu perds l\\'accès à celui-ci. ':'')+'Note tout ça en lieu sûr (gestionnaire de mots de passe, papier) — plus jamais affiché ensuite.';
   modal.classList.remove('hidden');
   \$('save-cred-copy').onclick=function(){
