@@ -4419,19 +4419,27 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pm-grade{display:inline-block;margin:8px auto 0;padding:3px 12px;border-radius:999px;background:rgba(255,255,255,.06);font-size:.7rem;font-weight:700;letter-spacing:.03em}
 .pm-badges{display:flex;justify-content:center;gap:8px;margin:14px 0}
 .pm-badges .badge-chip{width:38px;height:38px;font-size:1.15rem}
-#pm-message{margin-top:4px}
-#pm-message.hidden{display:none}
 .pm-section{text-align:left;margin-top:14px;padding:12px;border-radius:12px;background:rgba(255,255,255,.03)}
 .pm-section-label{font-size:.66rem;font-weight:800;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
 .pm-section-body{font-size:.85rem;line-height:1.4}
 .pc-card{position:relative;transition:transform .1s ease;will-change:transform}
 /* Fond de toute la carte (demandé explicitement : "le reste du fond" sous
-   le reflet de bannière) — même dégradé/couleur que la bannière pour rester
-   cohérent, ou une copie FLOUTÉE (jamais nette, le texte doit rester
-   lisible par-dessus) de la même photo. Toujours derrière tout le reste
-   (z-index:-1) — purement décoratif. */
-.pc-card-bg{position:absolute;inset:0;z-index:-1}
-.pc-card-bg-photo{background-size:cover;background-position:center;filter:blur(30px) brightness(.4) saturate(1.15);transform:scale(1.15)}
+   le reflet de bannière). ÉTAIT dérivé de la bannière elle-même (dégradé ou
+   copie floutée de la photo) — mais une bannière très saturée restait
+   visible en transparence derrière les fiches À propos/En ce moment juste
+   en dessous, lu à répétition comme "le reflet qui déborde/chevauche"
+   malgré les fiches passées 100% opaques entre-temps : le vrai problème
+   était que ce fond RESSEMBLAIT au reflet juste au-dessus (même image),
+   les deux se confondant visuellement. Découplé de la bannière : un
+   dégradé sombre/violet animé et flouté façon lofi, indépendant de ce
+   qu'affiche la bannière — pas encore personnalisable (prévu, demande son
+   propre réglage/stockage séparé), pour l'instant identique pour tout le
+   monde. Toujours derrière tout le reste (z-index:-1) — purement
+   décoratif. */
+.pc-card-bg{position:absolute;inset:0;z-index:-1;overflow:hidden}
+.pc-card-bg-anim{background:linear-gradient(120deg,#160e22,#241533,#1a1030,#2d1b45,#120a1c);background-size:280% 280%;filter:blur(38px) saturate(1.1);animation:pcBgDrift 26s ease-in-out infinite}
+@keyframes pcBgDrift{0%{background-position:0% 30%}50%{background-position:100% 70%}100%{background-position:0% 30%}}
+@media (prefers-reduced-motion:reduce){.pc-card-bg-anim{animation:none}}
 /* Chevauchement signalé : le flou du reflet (filter:blur, jamais clippé par
    la boîte de SON PROPRE élément, seulement par un ancestor overflow:hidden)
    débordait bien au-delà de sa propre hauteur et restait visible/lumineux
@@ -4462,11 +4470,6 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    top: doit correspondre à la hauteur de LA bannière (variantes ci-dessous),
    sous l'avatar/le nom qui restent lisibles par-dessus (z-index:0, aucune
    interaction). */
-/* blur(30px) — identique à .pc-card-bg-photo juste en dessous (z-index:-1,
-   même image) : un flou plus léger ici (14px) créait une texture différente
-   de celle du fond de carte, visible comme un second "reflet" plus fin
-   pile là où celui-ci s'estompe (signalé sur capture) — les deux flous
-   assortis, la transition entre les deux devient invisible. */
 .pc-banner-reflection{position:absolute;left:0;right:0;top:172px;height:84px;z-index:0;background-size:cover;background-position:center;transform:scaleY(-1);filter:blur(30px) brightness(.4) saturate(1.15);opacity:.7;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);pointer-events:none}
 /* Hauteur alignée sur le bas réel de l'avatar dans cette ligne (padding-top
    10px + avatar 84px, voir .pc2-header-row/.pc-av-frame) + une petite marge,
@@ -4671,7 +4674,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-presence-label{font-size:.76rem;font-weight:800}
 .pc2-presence-sub{font-size:.64rem;color:var(--muted);margin-top:1px}
 .pc2-header-extras{padding:10px 20px 0}
-.pc2-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:14px 20px 0}
+/* padding-top monté à 30px (au lieu de 14) : la fiche touchait presque la
+   zone du reflet de bannière juste au-dessus, lu comme un chevauchement —
+   un vrai espace visuel entre les deux réglait ça, plus fiable qu'ajuster
+   encore la hauteur du reflet au pixel près. */
+.pc2-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;padding:30px 20px 0}
 /* Fond quasi transparent (.03) à l'origine, pensé comme un effet "verre" —
    mais laissait deviner n'importe quelle image de bannière très contrastée
    (couleurs vives, texte en gros plan…) juste derrière, lu à tort comme "le
@@ -4710,7 +4717,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-xbin-pin-meta{display:block;font-size:.68rem;color:var(--muted);margin-top:3px}
 @media (max-width:640px){
   .profile-card-view{width:96vw}
-  .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
+  .pc2-grid{grid-template-columns:1fr;padding:26px 14px 0}
   .pc2-header-row{padding:8px 14px 12px;gap:10px;flex-wrap:wrap}
   .pc2-header-actions{order:3;width:100%;margin-top:6px}
   .pc2-header-extras{padding:8px 14px 0}
@@ -16040,14 +16047,16 @@ function buildProfileCardHtml(p,meta,badges,opts){
   else if(bgType==='color')bannerStyle='background:'+esc(bgColor);
   else bannerStyle='background:linear-gradient(135deg,'+esc(bgColor)+',#0b0614)';
   // Fond de la fiche entière (demandé explicitement : "le reste du fond" en
-  // dessous du reflet de bannière) — même dégradé/couleur que la bannière
-  // pour un dégradé (continuité visuelle), ou une copie FLOUTÉE de la photo
-  // pour une bannière-image (jamais nette : le texte par-dessus doit rester
-  // lisible). Un seul réglage (celui de la bannière) pilote donc les deux,
-  // plutôt qu'une deuxième photo à uploader séparément.
-  const cardBgHtml=(bgType==='image'&&bannerImg)
-    ? '<div class="pc-card-bg pc-card-bg-photo" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
-    : '<div class="pc-card-bg" style="'+bannerStyle+'"></div>';
+  // dessous du reflet de bannière) : ÉTAIT une copie floutée de la bannière
+  // elle-même (photo ou dégradé) — mais avec une bannière très saturée, ce
+  // flou restait visible en transparence derrière les fiches À propos/En ce
+  // moment (signalé à plusieurs reprises), et surtout se confondait avec le
+  // reflet juste au-dessus, lu comme "un chevauchement". Découplé de la
+  // bannière : un dégradé sombre/violet animé, lent et flou (façon lofi),
+  // indépendant de ce que choisit la bannière — pas encore personnalisable
+  // (prévu, mais demande son propre réglage/stockage), donc pour l'instant
+  // le même pour tout le monde. */
+  const cardBgHtml='<div class="pc-card-bg pc-card-bg-anim"></div>';
   const btnColor=p.btnColor||bgColor;
   const btnTextColor=p.btnTextColor||'#ffffff';
   const textColor=p.textColor||'#f2ebff';
