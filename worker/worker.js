@@ -4618,24 +4618,18 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-copy-id-btn{position:absolute;top:12px;right:84px;width:28px;height:28px;border-radius:8px;background:var(--elev);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:5}
 .pc2-copy-id-btn:hover{color:#fff}
 .pc-card.pc-dashboard-header .pc-banner{height:150px}
-/* Bug remonté (capture d'écran) : align-items:flex-end + margin-top:-40px
-   PARTAGÉS par toute la ligne (avatar 84px + bloc nom/tag bien plus court)
-   alignaient tout le monde sur le MÊME bas — le bloc nom, plus court que
-   l'avatar, se retrouvait entraîné vers le haut par ricochet et son pseudo
-   finissait à cheval sur la bannière (photo opaque par-dessus le texte).
-   Passé en flex-start : le texte démarre proprement juste sous la bannière,
-   et seul l'avatar reçoit son propre décalage négatif pour la chevaucher
-   (même principe que la carte complète hors lecture, .pc-av-frame de base,
-   qui n'a jamais eu ce problème puisque le texte n'y partage pas son
-   alignement avec l'avatar). */
-.pc2-header-row{display:flex;align-items:flex-start;gap:14px;padding:0 20px 14px;position:relative}
+/* Avatar posé SOUS la bannière, sans la chevaucher (demandé explicitement —
+   un chevauchement, même partiel, débordait visiblement sur la photo nette
+   ci-dessus) : plus de marge négative. Un padding-top sur la ligne crée un
+   petit espace après la bannière pour tout le monde (avatar, pseudo, pastille
+   de présence — qui touchait sinon directement le bas de la bannière), et
+   align-items:center les centre les uns par rapport aux autres (sûr
+   maintenant que l'avatar n'a plus de décalage négatif — l'ancien bug où un
+   bloc plus court se retrouvait entraîné au-dessus de la bannière ne peut
+   plus se produire sans marge négative partagée). */
+.pc2-header-row{display:flex;align-items:center;gap:14px;padding:10px 20px 14px;position:relative}
 .pc-card.pc-dashboard-header .pc-avwrap{display:block;flex-shrink:0}
-/* Réduit de -40px à -24px : moins de chevauchement sur la photo NETTE de la
-   bannière, davantage de l'avatar visible dans la bande REFLET/floutée
-   (.pc-banner-reflection, même hauteur que cette ligne) — avatar et pseudo
-   démarrent tous deux au même niveau (haut de la ligne = haut du reflet),
-   au lieu que l'avatar déborde surtout sur la photo bien au-dessus du texte. */
-.pc-card.pc-dashboard-header .pc-av-frame{margin-top:-24px;width:84px;height:84px;border-radius:20px}
+.pc-card.pc-dashboard-header .pc-av-frame{width:84px;height:84px;border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av{border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av img.pc-av-img{border-radius:20px}
 .pc2-header-text{flex:1;min-width:0;padding-bottom:2px}
@@ -4684,7 +4678,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 @media (max-width:640px){
   .profile-card-view{width:96vw}
   .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
-  .pc2-header-row{padding:0 14px 12px;gap:10px}
+  .pc2-header-row{padding:8px 14px 12px;gap:10px}
   .pc2-header-extras{padding:8px 14px 0}
   .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
