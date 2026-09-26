@@ -4437,7 +4437,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    monde. Toujours derrière tout le reste (z-index:-1) — purement
    décoratif. */
 .pc-card-bg{position:absolute;inset:0;z-index:-1;overflow:hidden}
+.pc-card-bg-photo{background-size:cover;background-position:center;filter:blur(30px) brightness(.4) saturate(1.15);transform:scale(1.15)}
 .pc-card-bg-anim{background:linear-gradient(120deg,#160e22,#241533,#1a1030,#2d1b45,#120a1c);background-size:280% 280%;filter:blur(38px) saturate(1.1);animation:pcBgDrift 26s ease-in-out infinite}
+.pc-card-bg-anim.cbg-blue{background:linear-gradient(120deg,#0a1420,#0f2137,#0a1a2e,#123152,#081019)}
+.pc-card-bg-anim.cbg-green{background:linear-gradient(120deg,#0a1a12,#0f2b1c,#0a2016,#123a24,#08130d)}
+.pc-card-bg-anim.cbg-red{background:linear-gradient(120deg,#200a0d,#341015,#26090c,#451319,#150607)}
+.pc-card-bg-anim.cbg-mono{background:linear-gradient(120deg,#141416,#1e1e21,#131315,#26262a,#0e0e10)}
 @keyframes pcBgDrift{0%{background-position:0% 30%}50%{background-position:100% 70%}100%{background-position:0% 30%}}
 @media (prefers-reduced-motion:reduce){.pc-card-bg-anim{animation:none}}
 /* Chevauchement signalé : le flou du reflet (filter:blur, jamais clippé par
@@ -6355,6 +6360,9 @@ a.bug-att-item{display:block}
           <div class="pe-field"><span>Contour d'avatar</span><div class="pe-swatches" id="pe-frame-swatches"></div></div>
           <label class="pe-field"><span>Bordure de la carte</span>
             <select id="pe-card-border" class="field-input"><option value="none">Aucune</option><option value="glow">Halo lumineux</option><option value="gradient">Dégradé animé</option></select>
+          </label>
+          <label class="pe-field"><span>Fond de la fiche</span>
+            <select id="pe-card-bg" class="field-input"><option value="default">Violet sombre animé</option><option value="blue">Bleu nuit animé</option><option value="green">Émeraude animé</option><option value="red">Rouge sombre animé</option><option value="mono">Anthracite animé</option><option value="banner">Assorti à la bannière</option></select>
           </label>
           <label class="pe-field"><span>Police</span>
             <select id="pe-font" class="field-input"><option value="system">Système</option><option value="serif">Élégante (serif)</option><option value="mono">Mono (technique)</option><option value="rounded">Arrondie</option><option value="elegant">Raffinée</option></select>
@@ -16052,11 +16060,16 @@ function buildProfileCardHtml(p,meta,badges,opts){
   // flou restait visible en transparence derrière les fiches À propos/En ce
   // moment (signalé à plusieurs reprises), et surtout se confondait avec le
   // reflet juste au-dessus, lu comme "un chevauchement". Découplé de la
-  // bannière : un dégradé sombre/violet animé, lent et flou (façon lofi),
-  // indépendant de ce que choisit la bannière — pas encore personnalisable
-  // (prévu, mais demande son propre réglage/stockage), donc pour l'instant
-  // le même pour tout le monde. */
-  const cardBgHtml='<div class="pc-card-bg pc-card-bg-anim"></div>';
+  // bannière par défaut : un dégradé animé et flouté façon lofi, désormais
+  // personnalisable (extra.cardBg) — plusieurs teintes au choix, ou "banner"
+  // pour retrouver l'ancien comportement (dérivé de la bannière) pour qui le
+  // préférait quand même. */
+  const cardBg=['default','blue','green','red','mono','banner'].indexOf(extra.cardBg)>=0?extra.cardBg:'default';
+  const cardBgHtml=cardBg==='banner'
+    ? ((bgType==='image'&&bannerImg)
+        ? '<div class="pc-card-bg pc-card-bg-photo" style="background-image:url(\\''+esc(bannerImg.replace(/'/g,'%27'))+'\\')"></div>'
+        : '<div class="pc-card-bg" style="'+bannerStyle+'"></div>')
+    : '<div class="pc-card-bg pc-card-bg-anim'+(cardBg==='default'?'':' cbg-'+cardBg)+'"></div>';
   const btnColor=p.btnColor||bgColor;
   const btnTextColor=p.btnTextColor||'#ffffff';
   const textColor=p.textColor||'#f2ebff';
@@ -16632,6 +16645,7 @@ function openProfileEditPanel(p,meta){
     avatarFrameRecipe:extra.avatarFrameRecipe||null,
     avatarGallery:Array.isArray(extra.avatarGallery)?extra.avatarGallery.slice(0,6):[],
     cardBorder:['none','glow','gradient'].indexOf(extra.cardBorder)>=0?extra.cardBorder:'none',
+    cardBg:['default','blue','green','red','mono','banner'].indexOf(extra.cardBg)>=0?extra.cardBg:'default',
     // Ne garde que des badges réellement possédés (un badge perdu depuis le
     // dernier enregistrement disparaît silencieusement de la sélection,
     // plutôt que de rester coché sur un badge qu'on ne peut plus proposer).
@@ -16656,6 +16670,7 @@ function openProfileEditPanel(p,meta){
   \$('pe-particles').value=peDraft.particles;
   \$('pe-font').value=peDraft.font;
   \$('pe-card-border').value=peDraft.cardBorder;
+  \$('pe-card-bg').value=peDraft.cardBg;
   \$('pe-spotify').value=peDraft.spotify;
   SOCIAL_DEFS.forEach(function(def){
     const el=\$('pe-social-'+def.key);
@@ -16866,7 +16881,7 @@ function updatePePreview(){
   const el=\$('pe-preview');if(!el||!peDraft)return;
   const previewMeta=Object.assign({},peOriginalMeta,{
     socialLinksJson:JSON.stringify(peDraft.socialLinks),
-    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges})
+    profileExtraJson:JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,cardBg:peDraft.cardBg,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges})
   });
   const badges=parseBadges(peOriginalMeta);
   el.innerHTML=buildProfileCardHtml(peDraft,previewMeta,badges,{editable:true});
@@ -16908,6 +16923,7 @@ function wirePeInputs(){
   bindChange('pe-particles','particles');
   bindChange('pe-font','font');
   bindChange('pe-card-border','cardBorder');
+  bindChange('pe-card-bg','cardBg');
   bindInput('pe-spotify','spotify');
   bindInput('pe-pronouns','pronouns');
   bindInput('pe-custom-status','customStatus');
@@ -16951,10 +16967,12 @@ function wirePeInputs(){
     const randomizableFrames=(peOriginalMeta&&peOriginalMeta.plan==='plus')?AVATAR_FRAMES:AVATAR_FRAMES.filter(function(k){return k!=='xplus'});
     peDraft.avatarFrame=randomizableFrames[Math.floor(Math.random()*randomizableFrames.length)];
     peDraft.cardBorder=['none','glow','gradient'][Math.floor(Math.random()*3)];
+    peDraft.cardBg=['default','blue','green','red','mono'][Math.floor(Math.random()*5)];
     \$('pe-bgcolor').value=peDraft.bgColor;\$('pe-btncolor').value=peDraft.btnColor;
     \$('pe-bgtype').value=peDraft.bgType;\$('pe-btnstyle').value=peDraft.btnStyle;
     \$('pe-btnshape').value=peDraft.btnShape;\$('pe-layout').value=peDraft.headerLayout;
     \$('pe-particles').value=peDraft.particles;\$('pe-card-border').value=peDraft.cardBorder;
+    \$('pe-card-bg').value=peDraft.cardBg;
     renderThemeSwatches();renderFrameSwatches();updatePePreview();
   });
   if(\$('pe-gallery-file'))\$('pe-gallery-file').addEventListener('change',async function(){
@@ -17055,7 +17073,7 @@ if(\$('pe-save'))\$('pe-save').addEventListener('click',async function(){
        par plusieurs joueurs ("pronoms/effets qui ne marchent pas") sans
        qu'aucune erreur ne soit jamais visible. */
     let extraSaveFailed=false,extraSaveErrMsg='';
-    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges});
+    const newExtraJson=JSON.stringify({pronouns:peDraft.pronouns,customStatus:peDraft.customStatus,customStatusExpiresAt:peDraft.customStatusExpiresAt,avatarFrame:peDraft.avatarFrame,avatarFrameRecipe:peDraft.avatarFrameRecipe,avatarGallery:peDraft.avatarGallery,cardBorder:peDraft.cardBorder,cardBg:peDraft.cardBg,x1moji:peDraft.x1moji,useX1moji:peDraft.useX1moji,pinnedBadges:peDraft.pinnedBadges});
     try{
       await authPost('/api/account/update-meta',{
         socialLinksJson:JSON.stringify(peDraft.socialLinks),
