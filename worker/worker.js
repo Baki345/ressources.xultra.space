@@ -2672,18 +2672,6 @@ html.xultra-restoring #stage{visibility:hidden}
 .field select,.field textarea{width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.06);background:rgba(0,0,0,.25);color:#f2f2f5;padding:10px 14px;outline:0;transition:border-color .15s;font:inherit;resize:vertical}
 .field select{height:42px}
 .field select:focus,.field textarea:focus{border-color:#d4d4d8}
-.pm-btn-row{display:flex;gap:8px;align-items:stretch}
-.pm-btn-row .btn-main{flex:1}
-/* Remonté par un utilisateur ("les boutons ne sont pas beaux, improvisé") :
-   les icônes utilitaires (copier le lien, bloquer, signaler) partageaient
-   le même style rouge alarmant que les vrais boutons dangereux, collées
-   sans distinction à la même hauteur que les CTA principaux — un rang
-   séparé, plus petit et neutre par défaut (le rouge n'apparaît qu'au survol
-   des actions qui le méritent vraiment) lit beaucoup plus proprement. */
-.pm-icon-row{display:flex;gap:8px;justify-content:center;margin-top:10px}
-.pm-icon-btn{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:.92rem;display:grid;place-items:center;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease}
-.pm-icon-btn:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.16);color:#f2f2f5;transform:translateY(-1px)}
-.pm-icon-btn.pm-icon-danger:hover{background:rgba(239,68,68,.16);border-color:rgba(239,68,68,.35);color:#fca5a5}
 .remember-row{display:flex;align-items:center;gap:10px;margin:12px 0 4px;cursor:pointer;user-select:none}
 .remember-row input{flex-shrink:0;width:18px;height:18px;accent-color:#f5f5f7;cursor:pointer}
 .remember-row span{color:#d8d8dd;font-size:.88rem;font-weight:600}
@@ -4668,6 +4656,16 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc-tag-eye{color:inherit;opacity:.55;display:inline-flex;align-items:center;transition:opacity .15s ease}
 .pc-tag-eye:hover{opacity:1}
 .pc2-header-text .pc-tag{margin-top:0}
+/* Actions (ami/musique/message/modifier/partager/bloquer) déplacées ici,
+   entre le pseudo et la pastille de présence — auparavant une rangée de gros
+   boutons pleine largeur sous les badges, aujourd'hui une ligne compacte de
+   boutons-icônes qui comble le vide qu'il y avait dans l'en-tête. */
+.pc2-header-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.pc2-hdr-btn{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#e5e5ea;display:grid;place-items:center;flex-shrink:0;transition:background .15s ease,border-color .15s ease,color .15s ease,transform .1s ease}
+.pc2-hdr-btn:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.22);transform:translateY(-1px)}
+.pc2-hdr-btn:disabled{opacity:.5;cursor:default;transform:none}
+.pc2-hdr-btn.hidden{display:none}
+.pc2-hdr-btn-danger:hover{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.4);color:#fca5a5}
 .pc2-presence-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:7px 12px;flex-shrink:0;margin-bottom:2px;white-space:nowrap}
 .pc2-presence-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .pc2-presence-label{font-size:.76rem;font-weight:800}
@@ -4700,14 +4698,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-xbin-pin-item{display:block;width:100%;text-align:left;margin-top:8px;padding:0}
 .pc2-xbin-pin-title{display:block;font-size:.84rem;font-weight:800;line-height:1.3}
 .pc2-xbin-pin-meta{display:block;font-size:.68rem;color:var(--muted);margin-top:3px}
-.pc2-actions{display:flex;gap:8px;padding:16px 20px 0}
-.pc2-actions .btn-main{flex:1}
 @media (max-width:640px){
   .profile-card-view{width:96vw}
   .pc2-grid{grid-template-columns:1fr;padding:12px 14px 0}
-  .pc2-header-row{padding:8px 14px 12px;gap:10px}
+  .pc2-header-row{padding:8px 14px 12px;gap:10px;flex-wrap:wrap}
+  .pc2-header-actions{order:3;width:100%;margin-top:6px}
   .pc2-header-extras{padding:8px 14px 0}
-  .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
   .pc-card.pc-dashboard-header .pc-banner{height:130px}
   .pc-card.pc-dashboard-header .pc-banner-wrap{height:214px;margin-bottom:-84px}
@@ -6269,16 +6265,6 @@ a.bug-att-item{display:block}
     <div class="pm-scroll">
       <div id="pm-render"></div>
       <div id="pm-dashboard"></div>
-      <div class="pm-btn-row pc2-actions">
-        <button type="button" class="btn-main hidden" id="pm-friend"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M12 5v14M5 12h14"/></svg> Ajouter en ami</button>
-        <button type="button" class="btn-main hidden" id="pm-music"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg> Musique</button>
-        <button type="button" class="btn-main" id="pm-message">Message</button>
-        <button type="button" class="btn-main hidden" id="pm-edit"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg> Modifier le profil</button>
-      </div>
-      <div class="pm-icon-row">
-        <button type="button" class="pm-icon-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M11 6.5l1-1a4 4 0 0 1 5.7 5.7l-1.2 1.2"/><path d="M13 17.5l-1 1a4 4 0 0 1-5.7-5.7l1.2-1.2"/></svg></button>
-        <button type="button" class="pm-icon-btn pm-icon-danger" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg></button>
-      </div>
       <div class="pm-section pm-xbin-section hidden" id="pm-xbin-section"></div>
       <div class="pm-section pm-xdrive-section hidden" id="pm-xdrive-section"></div>
     </div>
@@ -16176,6 +16162,14 @@ function buildProfileCardHtml(p,meta,badges,opts){
           +'</h3>'
           +(extra.pronouns?'<div class="pc-tag">'+esc(extra.pronouns)+'</div>':'')
         +'</div>'
+        +'<div class="pc2-header-actions" id="pm-header-actions">'
+          +'<button type="button" class="pc2-hdr-btn hidden" id="pm-friend" title="Ajouter en ami" data-tip="Ajouter en ami"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M18 8v6M15 11h6"/></svg></button>'
+          +'<button type="button" class="pc2-hdr-btn hidden" id="pm-music" title="Musique" data-tip="Musique"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></button>'
+          +'<button type="button" class="pc2-hdr-btn" id="pm-message" title="Message" data-tip="Message"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></button>'
+          +'<button type="button" class="pc2-hdr-btn hidden" id="pm-edit" title="Modifier le profil" data-tip="Modifier le profil"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19l-4 1z"/><path d="M14 7l3 3"/></svg></button>'
+          +'<button type="button" class="pc2-hdr-btn" id="pm-share" title="Copier le lien du profil" data-tip="Copier le lien du profil"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 14.5l5-5"/><path d="M11 6.5l1-1a4 4 0 0 1 5.7 5.7l-1.2 1.2"/><path d="M13 17.5l-1 1a4 4 0 0 1-5.7-5.7l1.2-1.2"/></svg></button>'
+          +'<button type="button" class="pc2-hdr-btn pc2-hdr-btn-danger hidden" id="pm-block" title="Bloquer ce membre" data-tip="Bloquer ce membre"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg></button>'
+        +'</div>'
         +'<div class="pc2-presence-pill"><span class="pc2-presence-dot" style="background:'+pillDef.dot+'"></span><div><div class="pc2-presence-label">'+esc(pillDef.label)+'</div>'+(lastSeenPillTxt?'<div class="pc2-presence-sub">'+esc(lastSeenPillTxt)+'</div>':'')+'</div></div>'
       +'</div>'
       +'<div class="pc2-header-extras" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
@@ -16419,42 +16413,50 @@ async function openProfileModal(uid){
   msgBtn.onclick=function(){\$('modal-profile').classList.add('hidden');startDmWith(uid,name);};
   const friendBtn=\$('pm-friend');
   if(friendBtn){
+    const ICON_PERSON_PLUS='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M18 8v6M15 11h6"/></svg>';
+    const ICON_PERSON_CHECK='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6"/><path d="M15 11l2.5 2.5L22 8"/></svg>';
+    const ICON_SEND='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22l-4-9-9-4 20-7z"/></svg>';
     const rel=isSelf?null:friendsCache.find(function(f){return String(f.friendId)===String(uid)});
     if(isSelf||!me){
       friendBtn.classList.add('hidden');
     }else if(rel&&rel.status==='accepted'){
       friendBtn.classList.remove('hidden');
       friendBtn.disabled=true;
-      friendBtn.textContent='✅ Ami';
+      friendBtn.innerHTML=ICON_PERSON_CHECK;
+      friendBtn.title=friendBtn.dataset.tip='Ami';
       friendBtn.onclick=null;
     }else if(rel&&rel.status==='pending_out'){
       friendBtn.classList.remove('hidden');
       friendBtn.disabled=true;
-      friendBtn.textContent='📨 Demande envoyée';
+      friendBtn.innerHTML=ICON_SEND;
+      friendBtn.title=friendBtn.dataset.tip='Demande envoyée';
       friendBtn.onclick=null;
     }else if(rel&&rel.status==='pending_in'){
       friendBtn.classList.remove('hidden');
       friendBtn.disabled=false;
-      friendBtn.textContent='✅ Accepter sa demande';
+      friendBtn.innerHTML=ICON_PERSON_CHECK;
+      friendBtn.title=friendBtn.dataset.tip='Accepter sa demande';
       friendBtn.onclick=async function(){
         friendBtn.disabled=true;
         try{
           await acceptFriendRequest(rel.\$id,uid);
-          friendBtn.textContent='✅ Ami';
+          friendBtn.innerHTML=ICON_PERSON_CHECK;
+          friendBtn.title=friendBtn.dataset.tip='Ami';
           showToast('Vous êtes maintenant amis !');
-        }catch(e){friendBtn.disabled=false;friendBtn.textContent='✅ Accepter sa demande';showToast('Action impossible','error');}
+        }catch(e){friendBtn.disabled=false;friendBtn.title=friendBtn.dataset.tip='Accepter sa demande';showToast('Action impossible','error');}
       };
     }else{
       friendBtn.classList.remove('hidden');
       friendBtn.disabled=false;
-      friendBtn.textContent='➕ Ajouter en ami';
+      friendBtn.innerHTML=ICON_PERSON_PLUS;
+      friendBtn.title=friendBtn.dataset.tip='Ajouter en ami';
       friendBtn.onclick=async function(){
-        friendBtn.disabled=true;friendBtn.textContent='…';
+        friendBtn.disabled=true;
         try{
           const ok=await sendFriendRequest(uid,name);
-          if(ok){friendBtn.textContent='📨 Demande envoyée';}
-          else{friendBtn.disabled=false;friendBtn.textContent='➕ Ajouter en ami';}
-        }catch(e){friendBtn.disabled=false;friendBtn.textContent='➕ Ajouter en ami';showToast('Action impossible','error');}
+          if(ok){friendBtn.innerHTML=ICON_SEND;friendBtn.title=friendBtn.dataset.tip='Demande envoyée';}
+          else{friendBtn.disabled=false;}
+        }catch(e){friendBtn.disabled=false;showToast('Action impossible','error');}
       };
     }
   }
@@ -16473,7 +16475,9 @@ async function openProfileModal(uid){
   if(blockBtn){
     blockBtn.classList.toggle('hidden',!!isSelf);
     const isBlocked=blockedUids.indexOf(String(uid))>=0;
-    blockBtn.textContent=isBlocked?'✅':'⛔';
+    blockBtn.innerHTML=isBlocked
+      ?'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg>'
+      :'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6.2 6.2l11.6 11.6"/></svg>';
     blockBtn.title=isBlocked?'Débloquer ce membre':'Bloquer ce membre';
     blockBtn.dataset.tip=blockBtn.title;
     blockBtn.onclick=function(){
