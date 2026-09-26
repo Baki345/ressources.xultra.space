@@ -37240,15 +37240,12 @@ body{margin:0;background:var(--bg);color:#f5f4f8;font-family:-apple-system,Blink
 @keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,80px) scale(1.15)}}
 @keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,50px) scale(1.1)}}
 @keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.12)}}
-@media (prefers-reduced-motion:reduce){.orb,.f-card,.logo-ring,h1,.dl-btn{animation:none!important}}
-.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:72px 20px 90px;text-align:center}
-.logo-wrap{position:relative;width:104px;height:104px;margin:0 auto 22px;display:grid;place-items:center}
-.logo-ring{position:absolute;inset:-10px;border-radius:32px;background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent3),var(--accent));filter:blur(16px);opacity:.65;animation:spin 8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.logo-mark{position:relative;width:104px;height:104px;border-radius:28px;overflow:hidden;box-shadow:0 16px 40px rgba(124,58,237,.45)}
-.logo-mark svg{width:100%;height:100%;display:block}
-h1{font-size:clamp(2.1rem,5.5vw,3.4rem);font-weight:900;letter-spacing:-.02em;margin:24px 0 10px;background:linear-gradient(120deg,#fff,var(--accent2) 35%,var(--accent) 60%,var(--accent3) 80%,#fff);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@media (prefers-reduced-motion:reduce){.orb,.f-card,h1,.dl-btn{animation:none!important}}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:96px 20px 90px;text-align:center}
+#particles{position:fixed;inset:0;z-index:0;pointer-events:none}
+h1{position:relative;font-size:clamp(2.6rem,7vw,4.6rem);font-weight:900;letter-spacing:-.02em;margin:0 0 10px;background:linear-gradient(120deg,#fff,var(--accent2) 35%,var(--accent) 60%,var(--accent3) 80%,#fff);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite,breathe 4.5s ease-in-out infinite}
 @keyframes shine{to{background-position:300% center}}
+@keyframes breathe{0%,100%{filter:drop-shadow(0 0 18px rgba(167,139,250,.35))}50%{filter:drop-shadow(0 0 34px rgba(34,211,238,.5))}}
 .tagline{font-size:1.08rem;color:var(--muted);max-width:560px;margin:0 auto 38px;line-height:1.55}
 .cta-row{display:flex;justify-content:center;align-items:stretch;gap:14px;flex-wrap:wrap;margin-bottom:10px}
 .dl-btn,.browser-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;font-size:1rem;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
@@ -37277,15 +37274,9 @@ h1{font-size:clamp(2.1rem,5.5vw,3.4rem);font-weight:900;letter-spacing:-.02em;ma
 @media (max-width:900px){.features{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:520px){.features{grid-template-columns:1fr}.cta-row{flex-direction:column;align-items:stretch}.dl-btn,.browser-btn{justify-content:center}}
 </style></head><body>
+<canvas id="particles"></canvas>
 <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
 <div class="wrap">
-<div class="logo-wrap"><div class="logo-ring"></div><div class="logo-mark">
-<svg viewBox="0 0 104 104"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-<stop offset="0%" stop-color="#c026d3"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#22d3ee"/>
-</linearGradient></defs>
-<rect width="104" height="104" rx="26" fill="url(#lg)"/>
-<text x="52" y="70" text-anchor="middle" font-family="-apple-system,Segoe UI,Inter,sans-serif" font-size="50" font-weight="900" fill="#fff">IX</text>
-</svg></div></div>
 <h1>IXin</h1>
 <p class="tagline">Messagerie chiffrée, appels de groupe, serveurs communautaires, VPN intégré — une appli complète, taillée pour rester à toi.</p>
 <div class="cta-row">
@@ -37299,6 +37290,32 @@ h1{font-size:clamp(2.1rem,5.5vw,3.4rem);font-weight:900;letter-spacing:-.02em;ma
 <div class="features">${features}</div>
 </div>
 <script>(function(){
+var cv=document.getElementById('particles');var ctx=cv.getContext('2d');
+var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var W,H,dots;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;
+var n=Math.min(110,Math.round(W*H/14000));
+dots=new Array(n).fill(0).map(function(){return {
+  x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.6,
+  vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,
+  a:Math.random()*.5+.25,tw:Math.random()*Math.PI*2
+};});}
+resize();addEventListener('resize',resize);
+var palette=['167,139,250','34,211,238','232,121,249'];
+function frame(){
+ctx.clearRect(0,0,W,H);
+for(var i=0;i<dots.length;i++){
+  var d=dots[i];
+  d.x+=d.vx;d.y+=d.vy;d.tw+=.02;
+  if(d.x<0)d.x=W;if(d.x>W)d.x=0;if(d.y<0)d.y=H;if(d.y>H)d.y=0;
+  var alpha=d.a*(.6+.4*Math.sin(d.tw));
+  ctx.beginPath();ctx.arc(d.x,d.y,d.r,0,Math.PI*2);
+  ctx.fillStyle='rgba('+palette[i%3]+','+alpha.toFixed(3)+')';
+  ctx.fill();
+}
+if(!reduceMotion)requestAnimationFrame(frame);
+}
+frame();
 var PL=${platformLinksJson};
 function detect(){var ua=navigator.userAgent||'',pf=navigator.platform||'';
 if(/Android/i.test(ua))return 'android';
