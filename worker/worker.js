@@ -37164,6 +37164,100 @@ async function recomputeHunterBadge(uid) {
   }
 }
 
+// Nouveau domaine principal — getixin.com sert une page vitrine statique
+// (jamais l'appli elle-même) : fonctionnalités + téléchargement par
+// plateforme + un lien vers ixin.online pour continuer dans le navigateur.
+// Config de téléchargement dupliquée ici volontairement plutôt que
+// partagée avec APP_PLATFORMS (défini À L'INTÉRIEUR du template `APP`,
+// donc uniquement du texte côté client — inatteignable depuis ce code
+// serveur) : même bucket/projet Appwrite, mêmes fileId.
+const SPLASH_DL_BASE = "https://appwrite.xultra.space/v1/storage/buckets/desktop_builds/files/";
+const SPLASH_DL_PROJECT = "6aab2f4a00243807fa77";
+const SPLASH_PLATFORMS = [
+  { key: "win", label: "Windows", fileId: "xultra_dl_win_setup" },
+  { key: "mac-arm", label: "Mac (Apple Silicon)", fileId: "xultra_dl_mac_arm64" },
+  { key: "mac-intel", label: "Mac (Intel)", fileId: "xultra_dl_mac_x64" },
+  { key: "linux-deb", label: "Linux (.deb)", fileId: "xultra_dl_linux_deb" },
+  { key: "linux-appimage", label: "Linux (AppImage)", fileId: "xultra_dl_linux_appimage" },
+  { key: "android", label: "Android", fileId: "xultra_dl_android_apk" }
+];
+function splashDlUrl(fileId) {
+  return SPLASH_DL_BASE + fileId + "/download?project=" + SPLASH_DL_PROJECT;
+}
+function buildGetIxinSplashHtml() {
+  const logo = "https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_icon_512/view?project=" + SPLASH_DL_PROJECT;
+  const platformLinksJson = JSON.stringify(
+    SPLASH_PLATFORMS.reduce(function (acc, p) { acc[p.key] = { label: p.label, url: splashDlUrl(p.fileId) }; return acc; }, {})
+  );
+  const featureCards = [
+    { title: "Chiffré de bout en bout", desc: "Messages, appels et médias — même IXin ne peut pas les lire." },
+    { title: "Appels de groupe fluides", desc: "Vocal, vidéo et partage d'écran, en un clic, sans limite artificielle." },
+    { title: "Des serveurs à toi", desc: "Crée ton Hub Vocal, invite qui tu veux, structure-le comme tu veux." },
+    { title: "Un profil qui te ressemble", desc: "Bannière, thème, avatar animé IXinMoji — personnalise tout, en direct." }
+  ].map(function (f) {
+    return '<div class="f-card"><h3>' + f.title + "</h3><p>" + f.desc + "</p></div>";
+  }).join("");
+  return "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"/>" +
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
+    "<title>IXin — Messagerie chiffrée, appels, serveurs</title>" +
+    "<meta name=\"description\" content=\"IXin : messagerie chiffrée de bout en bout, appels de groupe, serveurs communautaires et profils personnalisables. Disponible sur ordinateur, mobile et navigateur.\"/>" +
+    "<link rel=\"icon\" href=\"" + logo + "\"/>" +
+    "<style>" +
+    ":root{--bg:#08070b;--elev:#141416;--line:rgba(255,255,255,.08);--muted:#9a8fb0;--accent:#a78bfa;--accent2:#22d3ee}" +
+    "*{box-sizing:border-box}" +
+    "body{margin:0;background:var(--bg);color:#f2f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;min-height:100vh}" +
+    ".bg-glow{position:fixed;inset:0;z-index:0;background:radial-gradient(60% 50% at 50% -10%,rgba(167,139,250,.25),transparent),radial-gradient(50% 40% at 90% 10%,rgba(34,211,238,.14),transparent);pointer-events:none}" +
+    ".wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:64px 20px 80px;text-align:center}" +
+    ".logo{width:76px;height:76px;border-radius:20px;box-shadow:0 12px 36px rgba(124,58,237,.35)}" +
+    "h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;letter-spacing:-.02em;margin:20px 0 8px;background:linear-gradient(120deg,#fff,var(--accent2) 45%,var(--accent) 75%,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}" +
+    ".tagline{font-size:1.05rem;color:var(--muted);max-width:520px;margin:0 auto 36px;line-height:1.5}" +
+    ".cta-row{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px}" +
+    ".dl-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 34px;border-radius:999px;font-size:1.02rem;font-weight:800;color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--accent2) 40%,var(--accent) 60%,#fff);background-size:220% 220%;box-shadow:0 14px 40px rgba(124,58,237,.4);border:0;cursor:pointer;text-decoration:none}" +
+    ".dl-sub{font-size:.78rem;color:var(--muted)}" +
+    ".other-toggle{background:none;border:0;color:var(--muted);font-size:.78rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px}" +
+    ".other-list{display:none;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px 0 0;max-width:600px}" +
+    ".other-list.on{display:flex}" +
+    ".other-list a{color:#e5e5ea;background:var(--elev);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;text-decoration:none}" +
+    ".browser-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem;font-weight:700;text-decoration:none;border-bottom:1px solid transparent}" +
+    ".browser-btn:hover{color:#f2f2f5;border-color:var(--muted)}" +
+    ".features{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:64px;text-align:left}" +
+    ".f-card{background:var(--elev);border:1px solid var(--line);border-radius:16px;padding:20px}" +
+    ".f-card h3{margin:0 0 6px;font-size:.98rem}" +
+    ".f-card p{margin:0;font-size:.84rem;color:var(--muted);line-height:1.5}" +
+    "@media (max-width:640px){.features{grid-template-columns:1fr}}" +
+    "</style></head><body>" +
+    "<div class=\"bg-glow\"></div>" +
+    "<div class=\"wrap\">" +
+    "<img class=\"logo\" src=\"" + logo + "\" alt=\"IXin\"/>" +
+    "<h1>IXin</h1>" +
+    "<p class=\"tagline\">Messagerie chiffrée, appels de groupe, serveurs communautaires — une appli, taillée pour rester à toi.</p>" +
+    "<div class=\"cta-row\">" +
+    "<a class=\"dl-btn\" id=\"dl-primary\" href=\"#\">Télécharger pour…</a>" +
+    "<span class=\"dl-sub\" id=\"dl-sub\"></span>" +
+    "<button type=\"button\" class=\"other-toggle\" id=\"dl-other-toggle\">Voir les autres plateformes</button>" +
+    "<div class=\"other-list\" id=\"dl-other-list\"></div>" +
+    "</div>" +
+    "<a class=\"browser-btn\" href=\"https://ixin.online/\">Continuer dans le navigateur →</a>" +
+    "<div class=\"features\">" + featureCards + "</div>" +
+    "</div>" +
+    "<script>(function(){" +
+    "var PL=" + platformLinksJson + ";" +
+    "function detect(){var ua=navigator.userAgent||'',pf=navigator.platform||'';" +
+    "if(/Android/i.test(ua))return 'android';" +
+    "if(/iPhone|iPad|iPod/i.test(ua))return null;" +
+    "if(/Win/i.test(pf))return 'win';" +
+    "if(/Mac/i.test(pf))return 'mac-arm';" +
+    "if(/Linux/i.test(pf))return 'linux-deb';" +
+    "return 'win';}" +
+    "var key=detect();var primary=document.getElementById('dl-primary');var sub=document.getElementById('dl-sub');" +
+    "if(key&&PL[key]){primary.href=PL[key].url;primary.textContent='Télécharger pour '+PL[key].label;sub.textContent='Détecté automatiquement — pas le bon système ? Choisis en dessous.';}" +
+    "else{primary.textContent='Télécharger l\\'appli';primary.href='https://ixin.online/';sub.textContent='Depuis iPhone/iPad : installe IXin comme appli web depuis Safari (Partager → Sur l\\'écran d\\'accueil).';}" +
+    "var list=document.getElementById('dl-other-list');" +
+    "Object.keys(PL).forEach(function(k){if(k===key)return;var a=document.createElement('a');a.href=PL[k].url;a.textContent=PL[k].label;list.appendChild(a);});" +
+    "document.getElementById('dl-other-toggle').addEventListener('click',function(){list.classList.toggle('on');});" +
+    "})();</script>" +
+    "</body></html>";
+}
 async function handle(request, event) {
   const url = new URL(request.url);
   // Force HTTPS : le compte Cloudflare de ce projet n'a pas les droits d'édition
@@ -37172,6 +37266,20 @@ async function handle(request, event) {
   if (url.protocol === "http:") {
     url.protocol = "https:";
     return Response.redirect(url.toString(), 301);
+  }
+  // xultra.space est l'ancien domaine, conservé uniquement pour rediriger
+  // (permanent) vers ixin.online — getixin.com, lui, ne sert JAMAIS l'appli,
+  // seulement la page vitrine ci-dessus (téléchargement + "continuer dans le
+  // navigateur" vers ixin.online).
+  const hostname = url.hostname.replace(/^www\./, "");
+  if (hostname === "xultra.space") {
+    const dest = "https://ixin.online" + url.pathname + url.search;
+    return Response.redirect(dest, 301);
+  }
+  if (hostname === "getixin.com") {
+    return new Response(buildGetIxinSplashHtml(), {
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" }
+    });
   }
   const path = url.pathname.replace(/\/+$/, "") || "/";
   const cors = {
