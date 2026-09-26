@@ -4615,6 +4615,8 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
 .pc2-report-btn{position:absolute;top:12px;right:48px;width:28px;height:28px;border-radius:8px;background:var(--elev);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:5}
 .pc2-report-btn:hover{color:#fca5a5}
 .pc2-report-btn.hidden{display:none}
+.pc2-copy-id-btn{position:absolute;top:12px;right:84px;width:28px;height:28px;border-radius:8px;background:var(--elev);color:var(--muted);display:flex;align-items:center;justify-content:center;z-index:5}
+.pc2-copy-id-btn:hover{color:#fff}
 .pc-card.pc-dashboard-header .pc-banner{height:150px}
 /* Bug remonté (capture d'écran) : align-items:flex-end + margin-top:-40px
    PARTAGÉS par toute la ligne (avatar 84px + bloc nom/tag bien plus court)
@@ -4628,12 +4630,22 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    alignement avec l'avatar). */
 .pc2-header-row{display:flex;align-items:flex-start;gap:14px;padding:0 20px 14px;position:relative}
 .pc-card.pc-dashboard-header .pc-avwrap{display:block;flex-shrink:0}
-.pc-card.pc-dashboard-header .pc-av-frame{margin-top:-40px;width:84px;height:84px;border-radius:20px}
+/* Réduit de -40px à -24px : moins de chevauchement sur la photo NETTE de la
+   bannière, davantage de l'avatar visible dans la bande REFLET/floutée
+   (.pc-banner-reflection, même hauteur que cette ligne) — avatar et pseudo
+   démarrent tous deux au même niveau (haut de la ligne = haut du reflet),
+   au lieu que l'avatar déborde surtout sur la photo bien au-dessus du texte. */
+.pc-card.pc-dashboard-header .pc-av-frame{margin-top:-24px;width:84px;height:84px;border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av{border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av img.pc-av-img{border-radius:20px}
 .pc2-header-text{flex:1;min-width:0;padding-bottom:2px}
 .pc2-header-eyebrow{font-size:.64rem;font-weight:800;letter-spacing:.08em;color:#d8d8dd;text-transform:uppercase}
 .pc2-header-text .pc-name{margin-top:2px;font-size:1.3rem}
+.pc-tag-inline{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:8px}
+.pc-tag-val{font-size:.72rem;font-weight:700;opacity:.7;filter:blur(4px);transition:filter .15s ease;user-select:none}
+.pc-tag-val.revealed{filter:none;user-select:text}
+.pc-tag-eye{color:inherit;opacity:.55;display:inline-flex;align-items:center;transition:opacity .15s ease}
+.pc-tag-eye:hover{opacity:1}
 .pc2-header-text .pc-tag{margin-top:0}
 .pc2-presence-pill{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:7px 12px;flex-shrink:0;margin-bottom:2px;white-space:nowrap}
 .pc2-presence-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -6229,6 +6241,7 @@ a.bug-att-item{display:block}
 
 <div class="overlay hidden" id="modal-profile">
   <div class="modal-box profile-card profile-card-view" id="pm-box">
+    <button type="button" class="pc2-copy-id-btn" id="pm-copy-id" title="Copier l'ID utilisateur"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>
     <button type="button" class="pc2-report-btn" id="pm-report" title="Signaler ce profil"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 21V4"/><path d="M6 4h11l-2.5 3.5L17 11H6"/></svg></button>
     <button type="button" class="modal-close" id="pm-close">✕</button>
     <div class="pm-scroll">
@@ -16133,8 +16146,11 @@ function buildProfileCardHtml(p,meta,badges,opts){
         +avatarHtml
         +'<div class="pc2-header-text" style="color:'+esc(textColor)+';font-family:'+fontFamily+'">'
           +'<div class="pc2-header-eyebrow">Membre IXin</div>'
-          +'<h3 class="pc-name">'+esc(name)+serverTagBadgeHtml(extra)+'</h3>'
-          +'<div class="pc-tag">#'+esc(p.tag||'0000')+(extra.pronouns?' · '+esc(extra.pronouns):'')+'</div>'
+          +'<h3 class="pc-name">'+esc(name)+serverTagBadgeHtml(extra)
+            +'<span class="pc-tag-inline"><span class="pc-tag-val" data-tag-val>#'+esc(p.tag||'0000')+'</span>'
+            +'<button type="button" class="pc-tag-eye" data-tag-eye title="Afficher le tag"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg></button></span>'
+          +'</h3>'
+          +(extra.pronouns?'<div class="pc-tag">'+esc(extra.pronouns)+'</div>':'')
         +'</div>'
         +'<div class="pc2-presence-pill"><span class="pc2-presence-dot" style="background:'+pillDef.dot+'"></span><div><div class="pc2-presence-label">'+esc(pillDef.label)+'</div>'+(lastSeenPillTxt?'<div class="pc2-presence-sub">'+esc(lastSeenPillTxt)+'</div>':'')+'</div></div>'
       +'</div>'
@@ -16248,6 +16264,17 @@ function mountProfileCardExtras(container){
   if(musicBtn)musicBtn.addEventListener('click',function(){openMusic(musicBtn.getAttribute('data-music-open'),musicBtn.getAttribute('data-music-name'));});
   const vpnBadge=container.querySelector('[data-geo-vpn-tip]');
   if(vpnBadge)vpnBadge.addEventListener('click',function(){showToast(vpnBadge.getAttribute('data-geo-vpn-tip'));});
+  const tagEye=container.querySelector('[data-tag-eye]');
+  const tagVal=container.querySelector('[data-tag-val]');
+  if(tagEye&&tagVal){
+    const EYE='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+    const EYE_SLASH='<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/><path d="M4 4l16 16"/></svg>';
+    tagEye.addEventListener('click',function(){
+      const revealed=tagVal.classList.toggle('revealed');
+      tagEye.title=revealed?'Masquer le tag':'Afficher le tag';
+      tagEye.innerHTML=revealed?EYE_SLASH:EYE;
+    });
+  }
   const card=container.querySelector('.pc-card');
   if(card){
     const n=parseInt(card.getAttribute('data-avatar-count')||'0',10);
@@ -16410,6 +16437,14 @@ async function openProfileModal(uid){
   const reportBtn=\$('pm-report');
   reportBtn.classList.toggle('hidden',!!isSelf);
   reportBtn.onclick=function(){\$('modal-profile').classList.add('hidden');openReportModal(uid,name);};
+  const copyIdBtn=\$('pm-copy-id');
+  if(copyIdBtn){
+    copyIdBtn.onclick=function(){
+      (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(uid):Promise.reject())
+        .then(function(){showToast('ID utilisateur copié !');})
+        .catch(function(){showToast(uid,'error');});
+    };
+  }
   const blockBtn=\$('pm-block');
   if(blockBtn){
     blockBtn.classList.toggle('hidden',!!isSelf);
