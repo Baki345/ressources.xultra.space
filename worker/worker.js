@@ -37173,16 +37173,27 @@ async function recomputeHunterBadge(uid) {
 // serveur) : même bucket/projet Appwrite, mêmes fileId.
 const SPLASH_DL_BASE = "https://appwrite.xultra.space/v1/storage/buckets/desktop_builds/files/";
 const SPLASH_DL_PROJECT = "6aab2f4a00243807fa77";
+// Même liste, mêmes clés, même détection et mêmes empreintes que
+// APP_PLATFORMS/APP_CHECKSUMS (§ Paramètres → Télécharger l'application,
+// dans le template APP) — dupliqué ici pour la même raison que
+// SPLASH_DL_BASE (code serveur, hors d'atteinte du template client). La clé
+// "chromeos" réutilise le même .apk qu'Android (ARC++), "ios" n'a pas de
+// fichier (Apple interdit l'installation hors App Store).
 const SPLASH_PLATFORMS = [
-  { key: "win", label: "Windows", fileId: "xultra_dl_win_setup" },
-  { key: "mac-arm", label: "Mac (Apple Silicon)", fileId: "xultra_dl_mac_arm64" },
-  { key: "mac-intel", label: "Mac (Intel)", fileId: "xultra_dl_mac_x64" },
-  { key: "linux-deb", label: "Linux (.deb)", fileId: "xultra_dl_linux_deb" },
-  { key: "linux-appimage", label: "Linux (AppImage)", fileId: "xultra_dl_linux_appimage" },
-  { key: "android", label: "Android", fileId: "xultra_dl_android_apk" }
+  { key: "win", label: "Windows", icon: "windows", fileId: "xultra_dl_win_setup", sha256: "a68de2100bdab14df492961bdb9a104a6c59de70c6b20faa37f277bb2ab59555", size: "76,5 Mo" },
+  { key: "android", label: "Android", icon: "android", fileId: "xultra_dl_android_apk", sha256: "08b81bc16503ff2ba11b0150e623b37c806e83d71af427bf7637f29f81345665", size: "115,6 Mo" },
+  { key: "chromeos", label: "Chromebook", icon: "desktop", fileId: "xultra_dl_android_apk", sha256: "08b81bc16503ff2ba11b0150e623b37c806e83d71af427bf7637f29f81345665", size: "115,6 Mo" },
+  { key: "mac-arm", label: "Mac (Apple Silicon)", icon: "apple", fileId: "xultra_dl_mac_arm64", sha256: "078c0909183556a3bb0ac6185a6efe2714f9d93269983b14dca91cb7fe010584", size: "90,0 Mo" },
+  { key: "mac-intel", label: "Mac (Intel)", icon: "apple", fileId: "xultra_dl_mac_x64", sha256: "de990594c85c2a93d9a3ca9a66ea919e543b20331dd5b19f71b641568de184ce", size: "94,3 Mo" },
+  { key: "linux-deb", label: "Linux (.deb)", icon: "linux", fileId: "xultra_dl_linux_deb", sha256: "cb37e6cef7336174a0e3615f22aa7ea50965e6f7db328e24f36454389f5645ba", size: "72,5 Mo" },
+  { key: "linux-appimage", label: "Linux (AppImage)", icon: "linux", fileId: "xultra_dl_linux_appimage", sha256: "f3c125f7aeba5277b99e0da39be39bfb3f74eaac50222f70605699a4f1fa31f3", size: "104,2 Mo" },
+  { key: "ios", label: "iPhone/iPad", icon: "apple", fileId: null, sha256: null, size: null }
 ];
 function splashDlUrl(fileId) {
   return SPLASH_DL_BASE + fileId + "/download?project=" + SPLASH_DL_PROJECT;
+}
+function splashVtUrl(hash) {
+  return "https://www.virustotal.com/gui/file/" + hash;
 }
 // Petites icônes SVG maison (même style que l'appli : viewBox 24x24, trait
 // currentColor) — pas de dépendance à un fichier externe pour ce qui peut
@@ -37204,12 +37215,27 @@ const SPLASH_ICONS = {
   apple: splashIco('<path d="M15.5 8.3c-1 0-2 .6-2.7.6-.7 0-1.6-.6-2.6-.6-1.3 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.6c1.1 0 1.9-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.1 0-2.2-.9-2.2-3.3 0-2 1.6-3 1.7-3-1-1.4-2.4-1.5-2.9-1.5"/><path d="M13.5 6.5c.5-.6.9-1.5.8-2.5-.8.1-1.8.6-2.3 1.2-.5.6-1 1.5-.8 2.4.9 0 1.8-.5 2.3-1.1z"/>'),
   linux: splashIco('<circle cx="12" cy="9" r="4"/><path d="M9 12l-2 7 5-2.5 5 2.5-2-7"/><circle cx="10.2" cy="8" r=".6" fill="currentColor" stroke="none"/><circle cx="13.8" cy="8" r=".6" fill="currentColor" stroke="none"/>'),
   arrow: splashIco('<path d="M5 12h13"/><path d="M13 6l6 6-6 6"/>'),
-  globe: splashIco('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.8 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.8-3.8-9S9.5 5.6 12 3z"/>')
+  globe: splashIco('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.8 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.8-3.8-9S9.5 5.6 12 3z"/>'),
+  android: splashIco('<path d="M6 10a6 6 0 0 1 12 0v6a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-6z"/><path d="M4 10v4M20 10v4M8.5 5.5L7 3.5M15.5 5.5L17 3.5"/><circle cx="9.5" cy="9.5" r=".8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="9.5" r=".8" fill="currentColor" stroke="none"/>'),
+  fingerprint: splashIco('<path d="M12 3a7 7 0 0 0-7 7v2c0 3 1 5 2 6"/><path d="M12 5.5a4.5 4.5 0 0 0-4.5 4.5v2c0 3.5 1.5 6 3 7.5"/><path d="M12 8a2 2 0 0 0-2 2v2.5c0 3 1 5.5 3 7.5"/><path d="M15.5 8.2c.7.9 1 2 1 3.3v2c0 2-.4 3.8-1.2 5.2"/><path d="M17.7 5.5A9 9 0 0 1 19 10v2.5c0 1.6-.2 3-.6 4.3"/>'),
+  shieldCheck: splashIco('<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>'),
+  copy: splashIco('<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>'),
+  close: splashIco('<path d="M6 6l12 12M18 6L6 18"/>')
 };
 function buildGetIxinSplashHtml() {
   const logo = "https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_icon_512/view?project=" + SPLASH_DL_PROJECT;
-  const platformLinksJson = JSON.stringify(
-    SPLASH_PLATFORMS.reduce(function (acc, p) { acc[p.key] = { label: p.label, url: splashDlUrl(p.fileId) }; return acc; }, {})
+  const platformDataJson = JSON.stringify(
+    SPLASH_PLATFORMS.reduce(function (acc, p) {
+      acc[p.key] = {
+        label: p.label,
+        url: p.fileId ? splashDlUrl(p.fileId) : null,
+        size: p.size,
+        sha256: p.sha256,
+        vt: p.sha256 ? splashVtUrl(p.sha256) : null,
+        iconSvg: SPLASH_ICONS[p.icon]
+      };
+      return acc;
+    }, {})
   );
   const features = [
     { icon: "lock", title: "Chiffré de bout en bout", desc: "Messages, appels et médias — même IXin ne peut pas les lire." },
@@ -37220,9 +37246,14 @@ function buildGetIxinSplashHtml() {
     { icon: "musicNote", title: "Musique partagée", desc: "Ajoute des titres, affiche ce que tu écoutes, découvre ce qu'écoutent tes amis." },
     { icon: "cloud", title: "XBin & IXin Drive", desc: "Partage du code, des fichiers, du texte — stocké et accessible où que tu sois." },
     { icon: "desktop", title: "Partout à la fois", desc: "Windows, Mac, Linux, Android et navigateur — un seul compte, synchronisé." }
-  ].map(function (f, i) {
-    return '<div class="f-card" style="animation-delay:' + (i * 70) + 'ms"><div class="f-ico">' + SPLASH_ICONS[f.icon] + "</div><h3>" + f.title + "</h3><p>" + f.desc + "</p></div>";
+  ];
+  const slides = features.map(function (f, i) {
+    return '<div class="slide' + (i === 0 ? " active" : "") + '" data-i="' + i + '"><div class="f-ico">' + SPLASH_ICONS[f.icon] + '</div><div class="slide-text"><h3>' + f.title + "</h3><p>" + f.desc + "</p></div></div>";
   }).join("");
+  const dotsHtml = features.map(function (_, i) {
+    return '<button type="button" class="dot' + (i === 0 ? " active" : "") + '" data-i="' + i + '" aria-label="Fonctionnalité ' + (i + 1) + '"></button>';
+  }).join("");
+  const platIconsRow = ["windows", "apple", "android", "linux"].map(function (k) { return SPLASH_ICONS[k]; }).join("");
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>IXin — Messagerie chiffrée, appels, serveurs, VPN</title>
@@ -37231,73 +37262,118 @@ function buildGetIxinSplashHtml() {
 <style>
 :root{--bg:#07060a;--elev:#15141a;--elev2:#1c1a24;--line:rgba(255,255,255,.09);--muted:#a79fc0;--accent:#a78bfa;--accent2:#22d3ee;--accent3:#e879f9}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:#f5f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;min-height:100vh;overflow-x:hidden}
-.orb{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.55}
-.orb-1{width:520px;height:520px;top:-200px;left:-120px;background:radial-gradient(circle,var(--accent),transparent 70%);animation:drift1 26s ease-in-out infinite}
-.orb-2{width:460px;height:460px;top:10%;right:-160px;background:radial-gradient(circle,var(--accent2),transparent 70%);animation:drift2 32s ease-in-out infinite}
-.orb-3{width:420px;height:420px;bottom:-220px;left:20%;background:radial-gradient(circle,var(--accent3),transparent 70%);animation:drift3 29s ease-in-out infinite}
-@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,80px) scale(1.15)}}
-@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,50px) scale(1.1)}}
-@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.12)}}
-@media (prefers-reduced-motion:reduce){.orb,.f-card,h1,.dl-btn{animation:none!important}}
-.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:96px 20px 90px;text-align:center}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--bg);color:#f5f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif}
 #particles{position:fixed;inset:0;z-index:0;pointer-events:none}
-h1{position:relative;font-size:clamp(2.6rem,7vw,4.6rem);font-weight:900;letter-spacing:-.02em;margin:0 0 10px;background:linear-gradient(120deg,#fff,var(--accent2) 35%,var(--accent) 60%,var(--accent3) 80%,#fff);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite,breathe 4.5s ease-in-out infinite}
+.orb{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.5}
+.orb-1{width:46vmax;height:46vmax;top:-18vmax;left:-14vmax;background:radial-gradient(circle,var(--accent),transparent 70%);animation:drift1 26s ease-in-out infinite}
+.orb-2{width:40vmax;height:40vmax;top:5%;right:-16vmax;background:radial-gradient(circle,var(--accent2),transparent 70%);animation:drift2 32s ease-in-out infinite}
+.orb-3{width:38vmax;height:38vmax;bottom:-16vmax;left:15%;background:radial-gradient(circle,var(--accent3),transparent 70%);animation:drift3 29s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(4vmax,5vmax) scale(1.15)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-4vmax,3vmax) scale(1.1)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3vmax,-4vmax) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.orb,h1,.dl-btn{animation:none!important}.slide{transition:opacity .3s ease!important;transform:none!important}}
+.stage{position:relative;z-index:1;height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,1.6dvh,18px);padding:14px 20px;max-width:760px;margin:0 auto;text-align:center}
+h1{margin:0;font-size:clamp(1.9rem,7dvh,3.4rem);font-weight:900;letter-spacing:-.02em;background:linear-gradient(120deg,#fff,var(--accent2) 35%,var(--accent) 60%,var(--accent3) 80%,#fff);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite,breathe 4.5s ease-in-out infinite}
 @keyframes shine{to{background-position:300% center}}
-@keyframes breathe{0%,100%{filter:drop-shadow(0 0 18px rgba(167,139,250,.35))}50%{filter:drop-shadow(0 0 34px rgba(34,211,238,.5))}}
-.tagline{font-size:1.08rem;color:var(--muted);max-width:560px;margin:0 auto 38px;line-height:1.55}
-.cta-row{display:flex;justify-content:center;align-items:stretch;gap:14px;flex-wrap:wrap;margin-bottom:10px}
-.dl-btn,.browser-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;font-size:1rem;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
-.dl-btn{color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--accent2) 40%,var(--accent) 60%,#fff);background-size:220% 220%;box-shadow:0 14px 40px rgba(124,58,237,.45);border:0;animation:glowpulse 3.4s ease-in-out infinite}
-@keyframes glowpulse{0%,100%{box-shadow:0 14px 40px rgba(124,58,237,.45)}50%{box-shadow:0 18px 52px rgba(34,211,238,.5)}}
-.browser-btn{color:#fff;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(6px)}
+@keyframes breathe{0%,100%{filter:drop-shadow(0 0 14px rgba(167,139,250,.35))}50%{filter:drop-shadow(0 0 26px rgba(34,211,238,.5))}}
+.tagline{font-size:clamp(.78rem,2.2dvh,1.02rem);color:var(--muted);max-width:56ch;line-height:1.5;margin:0}
+.cta-row{display:flex;justify-content:center;align-items:stretch;gap:12px;flex-wrap:wrap}
+.dl-btn,.browser-btn{display:inline-flex;align-items:center;gap:9px;padding:clamp(10px,1.7dvh,15px) clamp(16px,3vw,28px);border-radius:999px;font-size:clamp(.82rem,1.9dvh,.98rem);font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap;border:0}
+.dl-btn{color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--accent2) 40%,var(--accent) 60%,#fff);background-size:220% 220%;box-shadow:0 10px 30px rgba(124,58,237,.4);animation:glowpulse 3.4s ease-in-out infinite}
+@keyframes glowpulse{0%,100%{box-shadow:0 10px 30px rgba(124,58,237,.4)}50%{box-shadow:0 14px 40px rgba(34,211,238,.48)}}
+.browser-btn{color:#fff;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.22)}
 .browser-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4)}
-.browser-btn svg{width:17px;height:17px;transition:transform .2s ease}
-.browser-btn:hover svg{transform:translateX(3px)}
-.dl-sub{display:block;font-size:.78rem;color:var(--muted);margin-top:14px}
-.plat-row{display:flex;justify-content:center;gap:10px;margin-top:16px;color:var(--muted)}
-.plat-row svg{width:19px;height:19px}
-.other-toggle{background:none;border:0;color:var(--muted);font-size:.78rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:8px;margin-top:2px}
-.other-list{display:none;flex-wrap:wrap;justify-content:center;gap:8px;margin:8px auto 0;max-width:620px}
-.other-list.on{display:flex}
-.other-list a{color:#e5e5ea;background:var(--elev);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;text-decoration:none}
-.other-list a:hover{background:var(--elev2)}
-.features{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:72px;text-align:left}
-.f-card{background:var(--elev);border:1px solid var(--line);border-radius:18px;padding:22px 20px;opacity:0;transform:translateY(16px);animation:riseIn .55s ease forwards;transition:border-color .2s ease,transform .2s ease,background .2s ease}
-.f-card:hover{border-color:rgba(167,139,250,.5);transform:translateY(-3px);background:var(--elev2)}
-@keyframes riseIn{to{opacity:1;transform:translateY(0)}}
-.f-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:12px;background:linear-gradient(135deg,rgba(167,139,250,.22),rgba(34,211,238,.18));color:var(--accent2)}
-.f-ico svg{width:20px;height:20px}
-.f-card h3{margin:0 0 6px;font-size:.94rem}
-.f-card p{margin:0;font-size:.8rem;color:var(--muted);line-height:1.5}
-@media (max-width:900px){.features{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:520px){.features{grid-template-columns:1fr}.cta-row{flex-direction:column;align-items:stretch}.dl-btn,.browser-btn{justify-content:center}}
+.dl-btn svg,.browser-btn svg{width:16px;height:16px;flex-shrink:0}
+.arrow-wrap{display:inline-flex;transition:transform .2s ease}
+.browser-btn:hover .arrow-wrap{transform:translateX(3px)}
+.dl-sub{font-size:clamp(.66rem,1.5dvh,.78rem);color:var(--muted)}
+.plat-row{display:flex;justify-content:center;align-items:center;gap:10px;color:var(--muted)}
+.plat-row svg{width:clamp(14px,2.4dvh,18px);height:clamp(14px,2.4dvh,18px)}
+.plat-row .sep{width:1px;height:14px;background:var(--line)}
+.trust-link{display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:var(--muted);font-size:clamp(.66rem,1.5dvh,.78rem);font-weight:700;cursor:pointer;padding:0}
+.trust-link svg{width:13px;height:13px}
+.trust-link:hover{color:#fff}
+.slideshow{width:100%;max-width:600px}
+.slides{position:relative;height:clamp(76px,15dvh,116px)}
+.slide{position:absolute;inset:0;display:flex;align-items:center;gap:12px;opacity:0;transform:translateX(16px);transition:opacity .5s ease,transform .5s ease;pointer-events:none;text-align:left}
+.slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+.slide .f-ico{width:clamp(32px,6dvh,44px);height:clamp(32px,6dvh,44px);border-radius:11px;display:grid;place-items:center;flex-shrink:0;background:linear-gradient(135deg,rgba(167,139,250,.22),rgba(34,211,238,.18));color:var(--accent2)}
+.slide .f-ico svg{width:52%;height:52%}
+.slide h3{margin:0 0 3px;font-size:clamp(.82rem,2dvh,1.02rem)}
+.slide p{margin:0;font-size:clamp(.7rem,1.6dvh,.85rem);color:var(--muted);line-height:1.4}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:6px}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.22);border:0;cursor:pointer;padding:0;transition:all .2s ease}
+.dot.active{background:var(--accent2);width:18px;border-radius:4px}
+.veil{position:fixed;inset:0;background:rgba(4,3,7,.72);backdrop-filter:blur(4px);z-index:10;display:none}
+.veil.on{display:block}
+.modal{position:fixed;z-index:11;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,92vw);max-height:min(78dvh,640px);background:var(--elev);border:1px solid var(--line);border-radius:20px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.modal.on{display:flex}
+.modal-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);flex-shrink:0}
+.modal-head>span{display:flex;align-items:center;gap:8px;font-weight:800;font-size:.95rem}
+.modal-head svg{width:17px;height:17px;flex-shrink:0}
+.modal-head button{background:none;border:0;color:var(--muted);cursor:pointer;padding:4px}
+.modal-body{overflow-y:auto;padding:14px 18px 18px}
+.modal-note{font-size:.78rem;color:var(--muted);line-height:1.5;margin:0 0 14px}
+.prow{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.prow-top{display:flex;align-items:center;gap:8px}
+.prow-top svg{width:16px;height:16px;flex-shrink:0;color:var(--accent2)}
+.prow-label{font-weight:700;font-size:.84rem;flex:1}
+.prow-size{font-size:.72rem;color:var(--muted)}
+.prow-dl{color:var(--accent2);font-size:.76rem;font-weight:700;text-decoration:none;white-space:nowrap;background:none;border:0;cursor:pointer;font-family:inherit}
+.prow-hash{display:flex;align-items:center;gap:6px;margin-top:7px}
+.prow-hash code{flex:1;font-size:.66rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.prow-hash button,.prow-hash a{background:rgba(255,255,255,.06);border:1px solid var(--line);color:#e5e5ea;border-radius:8px;padding:5px 8px;font-size:.68rem;font-weight:700;text-decoration:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;flex-shrink:0;font-family:inherit}
+.prow-hash svg{width:12px;height:12px}
+.sheet-step{display:flex;gap:10px;align-items:flex-start;font-size:.84rem;line-height:1.5;margin-bottom:10px}
+.sheet-num{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#0a0a0c;font-weight:800;font-size:.74rem;display:grid;place-items:center;flex-shrink:0}
+.sheet-btn{width:100%;padding:12px;border-radius:10px;border:0;background:linear-gradient(120deg,var(--accent2),var(--accent));color:#0a0a0c;font-weight:800;cursor:pointer;margin-top:6px;font-size:.86rem}
+@media (max-height:560px){.tagline,.slideshow{display:none}}
+@media (max-width:560px){.cta-row{flex-direction:column;width:100%}.dl-btn,.browser-btn{justify-content:center;width:100%}}
 </style></head><body>
 <canvas id="particles"></canvas>
 <div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
-<div class="wrap">
+<div class="stage">
 <h1>IXin</h1>
-<p class="tagline">Messagerie chiffrée, appels de groupe, serveurs communautaires, VPN intégré — une appli complète, taillée pour rester à toi.</p>
+<p class="tagline">Messagerie chiffrée, appels de groupe, serveurs, VPN intégré — une appli complète, taillée pour rester à toi.</p>
 <div class="cta-row">
-<a class="dl-btn" id="dl-primary" href="#">${SPLASH_ICONS.desktop}<span id="dl-label">Télécharger pour…</span></a>
-<a class="browser-btn" href="https://ixin.online/">${SPLASH_ICONS.globe}<span>Continuer dans le navigateur</span>${SPLASH_ICONS.arrow}</a>
+<a class="dl-btn" id="dl-primary" href="#">${SPLASH_ICONS.desktop}<span id="dl-label">Détection…</span></a>
+<a class="browser-btn" href="https://ixin.online/">${SPLASH_ICONS.globe}<span>Continuer dans le navigateur</span><span class="arrow-wrap">${SPLASH_ICONS.arrow}</span></a>
 </div>
-<span class="dl-sub" id="dl-sub"></span>
-<div class="plat-row">${SPLASH_ICONS.windows}${SPLASH_ICONS.apple}${SPLASH_ICONS.linux}</div>
-<button type="button" class="other-toggle" id="dl-other-toggle">Voir les autres plateformes</button>
-<div class="other-list" id="dl-other-list"></div>
-<div class="features">${features}</div>
+<div class="dl-sub" id="dl-sub"></div>
+<div class="plat-row">
+${platIconsRow}
+<span class="sep"></span>
+<button type="button" class="trust-link" id="trust-open">${SPLASH_ICONS.fingerprint}<span>Vérifier les fichiers</span></button>
+</div>
+<div class="slideshow">
+<div class="slides" id="slides">${slides}</div>
+<div class="dots" id="dots">${dotsHtml}</div>
+</div>
+</div>
+<div class="veil" id="veil"></div>
+<div class="modal" id="trust-modal" role="dialog" aria-modal="true" aria-label="Téléchargements et vérification">
+<div class="modal-head"><span>${SPLASH_ICONS.shieldCheck}Téléchargements &amp; vérification</span><button type="button" id="trust-close">${SPLASH_ICONS.close}</button></div>
+<div class="modal-body">
+<p class="modal-note">Chaque fichier a une empreinte SHA-256 unique : compare-la à celle de ton téléchargement (<code>sha256sum</code> sous Linux/Mac, <code>Get-FileHash</code> sous Windows) pour confirmer qu'il n'a pas été modifié. Le lien VirusTotal ouvre le rapport de ce fichier précis — lance l'analyse toi-même si personne ne l'a encore fait.</p>
+<div id="prow-list"></div>
+</div>
+</div>
+<div class="modal" id="sheet-modal" role="dialog" aria-modal="true" aria-label="Instructions d'installation">
+<div class="modal-head"><span id="sheet-title"></span><button type="button" id="sheet-close">${SPLASH_ICONS.close}</button></div>
+<div class="modal-body" id="sheet-body"></div>
 </div>
 <script>(function(){
+var ICO_COPY=${JSON.stringify(SPLASH_ICONS.copy)};
+var ICO_VT=${JSON.stringify(SPLASH_ICONS.shieldCheck)};
 var cv=document.getElementById('particles');var ctx=cv.getContext('2d');
 var reduceMotion=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 var W,H,dots;
 function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;
-var n=Math.min(110,Math.round(W*H/14000));
+var n=Math.min(90,Math.round(W*H/16000));
 dots=new Array(n).fill(0).map(function(){return {
-  x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.6+.6,
-  vx:(Math.random()-.5)*.18,vy:(Math.random()-.5)*.18,
+  x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.6,
+  vx:(Math.random()-.5)*.16,vy:(Math.random()-.5)*.16,
   a:Math.random()*.5+.25,tw:Math.random()*Math.PI*2
 };});}
 resize();addEventListener('resize',resize);
@@ -37316,20 +37392,97 @@ for(var i=0;i<dots.length;i++){
 if(!reduceMotion)requestAnimationFrame(frame);
 }
 frame();
-var PL=${platformLinksJson};
-function detect(){var ua=navigator.userAgent||'',pf=navigator.platform||'';
-if(/Android/i.test(ua))return 'android';
-if(/iPhone|iPad|iPod/i.test(ua))return null;
-if(/Win/i.test(pf))return 'win';
-if(/Mac/i.test(pf))return 'mac-arm';
-if(/Linux/i.test(pf))return 'linux-deb';
-return 'win';}
-var key=detect();var primary=document.getElementById('dl-primary');var label=document.getElementById('dl-label');var sub=document.getElementById('dl-sub');
-if(key&&PL[key]){primary.href=PL[key].url;label.textContent='Télécharger pour '+PL[key].label;sub.textContent='Détecté automatiquement — pas le bon système ? Choisis en dessous.';}
-else{label.textContent="Télécharger l'appli";primary.href='https://ixin.online/';sub.textContent="Depuis iPhone/iPad : installe IXin comme appli web depuis Safari (Partager → Sur l'écran d'accueil).";}
-var list=document.getElementById('dl-other-list');
-Object.keys(PL).forEach(function(k){if(k===key)return;var a=document.createElement('a');a.href=PL[k].url;a.textContent=PL[k].label;list.appendChild(a);});
-document.getElementById('dl-other-toggle').addEventListener('click',function(){list.classList.toggle('on');});
+var PL=${platformDataJson};
+function detectKey(){
+  var ua=navigator.userAgent||'',pf=navigator.platform||'';
+  if(/CrOS/i.test(ua))return 'chromeos';
+  if(/iPhone|iPad|iPod/i.test(ua)||(pf==='MacIntel'&&navigator.maxTouchPoints>1))return 'ios';
+  if(/Android/i.test(ua))return 'android';
+  if(/Win/i.test(pf))return 'win';
+  if(/Mac/i.test(pf))return 'mac-arm';
+  if(/Linux/i.test(pf))return 'linux-deb';
+  return 'win';
+}
+var veil=document.getElementById('veil');
+var trustModal=document.getElementById('trust-modal');
+var sheetModal=document.getElementById('sheet-modal');
+function closeModals(){veil.classList.remove('on');trustModal.classList.remove('on');sheetModal.classList.remove('on');}
+veil.addEventListener('click',closeModals);
+document.getElementById('trust-close').addEventListener('click',closeModals);
+document.getElementById('sheet-close').addEventListener('click',closeModals);
+function openSheet(key){
+  var title=document.getElementById('sheet-title');
+  var body=document.getElementById('sheet-body');
+  if(key==='ios'){
+    title.textContent='Installer sur iPhone/iPad';
+    body.innerHTML=
+      '<div class="sheet-step"><span class="sheet-num">1</span>Ouvre <b>ixin.online</b> dans Safari</div>'+
+      '<div class="sheet-step"><span class="sheet-num">2</span>Appuie sur l\\'icône de partage en bas de l\\'écran</div>'+
+      '<div class="sheet-step"><span class="sheet-num">3</span>Choisis « Sur l\\'écran d\\'accueil »</div>'+
+      '<div class="sheet-step"><span class="sheet-num">4</span>Ouvre IXin depuis son icône : notifications et appels fonctionnent comme une vraie application</div>';
+  }else{
+    title.textContent='Installer sur Chromebook';
+    body.innerHTML=
+      '<div class="sheet-step"><span class="sheet-num">1</span>Vérifie que le Play Store est activé (Paramètres → Applications → Applications Android)</div>'+
+      '<div class="sheet-step"><span class="sheet-num">2</span>Télécharge le fichier .apk ci-dessous</div>'+
+      '<div class="sheet-step"><span class="sheet-num">3</span>Ouvre l\\'appli Fichiers, dossier Téléchargements, puis appuie sur le .apk pour l\\'installer</div>'+
+      '<button type="button" class="sheet-btn" id="sheet-dl">Télécharger le .apk</button>';
+    var dlBtn=document.getElementById('sheet-dl');
+    if(dlBtn)dlBtn.onclick=function(){location.href=PL.chromeos.url;closeModals();};
+  }
+  veil.classList.add('on');sheetModal.classList.add('on');
+}
+var key=detectKey();
+var primary=document.getElementById('dl-primary');
+var label=document.getElementById('dl-label');
+var sub=document.getElementById('dl-sub');
+var p=PL[key];
+if(key==='ios'||key==='chromeos'){
+  label.textContent=(key==='ios'?'Installer sur iPhone/iPad':'Installer sur Chromebook');
+  primary.setAttribute('href','#');
+  primary.addEventListener('click',function(e){e.preventDefault();openSheet(key);});
+  sub.textContent=(key==='ios'?"Apple n'autorise pas l'installation hors App Store — l'équivalent qui fonctionne vraiment, en 4 étapes.":"Utilise l'appli Android d'IXin, compatible avec les Chromebooks (ARC++).");
+}else{
+  label.textContent='Télécharger pour '+p.label;
+  primary.setAttribute('href',p.url);
+  sub.textContent='Détecté automatiquement selon ton appareil.';
+}
+var list=document.getElementById('prow-list');
+list.innerHTML=Object.keys(PL).map(function(k){
+  var d=PL[k];
+  var actionHtml=(d.url&&k!=='chromeos'&&k!=='ios')
+    ?('<a class="prow-dl" href="'+d.url+'">Télécharger</a>')
+    :('<button type="button" class="prow-dl" data-sheet="'+k+'">Instructions</button>');
+  var top='<div class="prow-top">'+d.iconSvg+'<span class="prow-label">'+d.label+'</span>'+(d.size?'<span class="prow-size">'+d.size+'</span>':'')+actionHtml+'</div>';
+  var hash=d.sha256?('<div class="prow-hash"><code>'+d.sha256+'</code><button type="button" data-copy="'+d.sha256+'">'+ICO_COPY+'Copier</button><a href="'+d.vt+'" target="_blank" rel="noopener">'+ICO_VT+'VirusTotal</a></div>'):'';
+  return '<div class="prow">'+top+hash+'</div>';
+}).join('');
+list.querySelectorAll('[data-copy]').forEach(function(b){
+  b.addEventListener('click',function(){
+    var h=b.getAttribute('data-copy');
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(h):Promise.reject()).then(function(){
+      var old=b.innerHTML;b.innerHTML='Copié !';setTimeout(function(){b.innerHTML=old;},1400);
+    }).catch(function(){});
+  });
+});
+list.querySelectorAll('[data-sheet]').forEach(function(b){
+  b.addEventListener('click',function(){closeModals();openSheet(b.getAttribute('data-sheet'));});
+});
+document.getElementById('trust-open').addEventListener('click',function(){veil.classList.add('on');trustModal.classList.add('on');});
+var slidesEl=document.querySelectorAll('.slide');
+var dotsEl=document.querySelectorAll('.dot');
+var idx=0,timer=null;
+function show(i){
+  slidesEl.forEach(function(s,j){s.classList.toggle('active',j===i);});
+  dotsEl.forEach(function(d,j){d.classList.toggle('active',j===i);});
+  idx=i;
+}
+dotsEl.forEach(function(d){d.addEventListener('click',function(){show(parseInt(d.getAttribute('data-i'),10));resetTimer();});});
+function resetTimer(){
+  if(timer)clearInterval(timer);
+  if(!reduceMotion)timer=setInterval(function(){show((idx+1)%slidesEl.length);},4200);
+}
+resetTimer();
 })();</script>
 </body></html>`;
 }
