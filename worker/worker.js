@@ -37325,15 +37325,15 @@ async function handle(request, event) {
     url.protocol = "https:";
     return Response.redirect(url.toString(), 301);
   }
-  // xultra.space est l'ancien domaine, conservé uniquement pour rediriger
-  // (permanent) vers ixin.online — getixin.com, lui, ne sert JAMAIS l'appli,
-  // seulement la page vitrine ci-dessus (téléchargement + "continuer dans le
-  // navigateur" vers ixin.online).
+  // xultra.space reste servi tel quel (pas de redirection forcée) : une PWA
+  // installée avec ce domaine comme scope se ferait éjecter par Chrome (barre
+  // "hors de l'appli") au moindre 301 vers une autre origine — ixin.online
+  // est le domaine mis en avant pour tout ce qui est nouveau (splash,
+  // partages, docs) mais l'ancien continue de fonctionner nativement.
+  // getixin.com, lui, ne sert JAMAIS l'appli, seulement la page vitrine
+  // ci-dessus (téléchargement + "continuer dans le navigateur" vers
+  // ixin.online).
   const hostname = url.hostname.replace(/^www\./, "");
-  if (hostname === "xultra.space") {
-    const dest = "https://ixin.online" + url.pathname + url.search;
-    return Response.redirect(dest, 301);
-  }
   if (hostname === "getixin.com") {
     return new Response(buildGetIxinSplashHtml(), {
       headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" }
