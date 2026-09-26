@@ -5935,7 +5935,7 @@ a.bug-att-item{display:block}
           <input id="search" class="search-box" placeholder="Rechercher" autocomplete="off"/>
         </div>
         <button type="button" class="pill-action-btn pill-action-group hidden" id="btn-new-group" title="Créer un groupe"><span class="pill-action-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M2.5 20c0-3 2.9-5.2 6.5-5.2s6.5 2.2 6.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.3c2.7.4 4.5 2.2 4.5 4.7"/></svg></span>Groupe+</button>
-        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer le HUB VOCAL"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M12 21v-2M12 15h.01"/></svg>+</button>
+        <button type="button" class="icon-btn hidden" id="btn-server-create" title="Créer un serveur"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M12 21v-2M12 15h.01"/></svg>+</button>
         <button type="button" class="pill-action-btn pill-action-friend" id="btn-add-friend"><span class="pill-action-ico"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></svg></span>Ami+</button>
       </div>
     </div>
@@ -6659,10 +6659,10 @@ a.bug-att-item{display:block}
 <div class="overlay hidden" id="modal-server-create">
   <div class="modal-box">
     <button type="button" class="modal-close" id="srv-create-close">✕</button>
-    <h3>Créer un HUB VOCAL</h3>
+    <h3>Créer un serveur</h3>
     <div class="set-row"><label>Nom</label><input type="text" id="srv-create-name" class="field-input" maxlength="100" placeholder="Ma communauté"></div>
     <div class="set-row"><label>Description (optionnel)</label><textarea id="srv-create-desc" class="field-input" maxlength="500" rows="3" placeholder="De quoi ça parle ?"></textarea></div>
-    <button type="button" class="btn-main" id="srv-create-submit">Créer mon HUB VOCAL</button>
+    <button type="button" class="btn-main" id="srv-create-submit">Créer mon serveur</button>
     <div class="err" id="srv-create-err"></div>
   </div>
 </div>
@@ -9428,8 +9428,8 @@ function showView(v){
     return;
   }
   \$('admin-active').classList.add('hidden');
-  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'HUB VOCAL':'Membres'));
-  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Géré par le staff de IXin':'Membres'));
+  \$('list-title').textContent=v==='dms'?'Messages':(v==='friends'?'Amis':(v==='servers'?'Serveurs':'Membres'));
+  \$('list-sub-txt').textContent=v==='dms'?'Conversations':(v==='friends'?'Amis':(v==='servers'?'Tes serveurs':'Membres'));
   if(\$('btn-new-group'))\$('btn-new-group').classList.toggle('hidden',v!=='dms');
   if(\$('btn-server-create'))\$('btn-server-create').classList.toggle('hidden',v!=='servers');
   if(\$('btn-add-friend'))\$('btn-add-friend').classList.toggle('hidden',v==='servers');
@@ -9443,21 +9443,18 @@ function showView(v){
     }else{
       \$('server-active').classList.add('hidden');
       \$('chat-empty').classList.remove('hidden');
-      renderEmptyState(ICO.building,'HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
+      renderEmptyState(ICO.building,'Tes serveurs','Choisis un serveur dans la liste à gauche, ou crées-en un nouveau.');
       app.classList.remove('chat-open');
     }
     showSectionLoading();
-    loadMyServers().then(function(list){
-      // Un seul espace communautaire dédié à IXin : jamais de liste à choisir
-      // — ton compte y est ajouté automatiquement à la connexion (voir
-      // ensureHubMembership côté Worker), donc on l'ouvre directement. On ne
-      // retombe sur l'ancien sélecteur (renderServersListView, avec ses
-      // boutons Créer/Rejoindre) que si le HUB n'existe pas encore du tout.
-      if(list.length){
-        if(!activeServer||activeServer.\$id!==list[0].\$id)openServerDetail(list[0].\$id);
-      }else{
-        renderServersListView();
-      }
+    // Écran d'accueil du HUB VOCAL (demandé explicitement) : on atterrit
+    // toujours sur la liste des serveurs dont on est propriétaire/membre
+    // (renderServersListView, dans la colonne de gauche) plutôt que de
+    // sauter automatiquement dans le premier — l'ouverture d'un serveur
+    // précis reste un clic volontaire sur son entrée dans cette liste (ou
+    // sur le bouton Créer, réouvert à tout le monde).
+    loadMyServers().then(function(){
+      renderServersListView();
     }).catch(function(e){xlog('servers_load_fail',{msg:(e&&e.message)||String(e)})}).finally(hideSectionLoading);
     repositionCallPanel();
     return;
@@ -32685,7 +32682,7 @@ function serverIsBoostedByMe(s){
 }
 function renderServersListView(){
   const box=\$('list-body');if(!box||view!=='servers')return;
-  if(!myServers.length){box.innerHTML='<div class="empty-hint">Le HUB VOCAL n\\'a pas encore été créé. Un membre du staff doit le créer (bouton en haut) — tout le monde y sera ajouté automatiquement.</div>';return}
+  if(!myServers.length){box.innerHTML='<div class="empty-hint">Tu n\\'es encore dans aucun serveur — crées-en un (bouton en haut) ou rejoins-en un avec un code d\\'invitation.</div>';return}
   box.innerHTML=myServers.map(function(s){
     const isOwner=me&&String(s.ownerId)===String(me.\$id);
     const isActive=activeServer&&activeServer.\$id===s.\$id;
@@ -32709,7 +32706,7 @@ function closeServerDetail(){
   document.getElementById('app').classList.remove('hub-fullwidth');
   \$('server-active').classList.add('hidden');
   \$('chat-empty').classList.remove('hidden');
-  renderEmptyState(ICO.building,'HUB VOCAL','Le staff de IXin n\\'a pas encore créé le HUB VOCAL.');
+  renderEmptyState(ICO.building,'Tes serveurs','Choisis un serveur dans la liste à gauche, ou crées-en un nouveau.');
   renderServersListView();
   repositionCallPanel();
 }
@@ -32732,7 +32729,7 @@ if(\$('srv-create-submit'))\$('srv-create-submit').addEventListener('click',asyn
     await loadMyServers();
     openServerDetail(res.server.\$id);
   }catch(e){\$('srv-create-err').textContent=(e&&e.message)||'Erreur';}
-  this.disabled=false;this.textContent='Créer mon HUB VOCAL';
+  this.disabled=false;this.textContent='Créer mon serveur';
 });
 
 function openServerJoinModal(prefillCode){
