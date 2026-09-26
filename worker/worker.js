@@ -4462,7 +4462,12 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    top: doit correspondre à la hauteur de LA bannière (variantes ci-dessous),
    sous l'avatar/le nom qui restent lisibles par-dessus (z-index:0, aucune
    interaction). */
-.pc-banner-reflection{position:absolute;left:0;right:0;top:172px;height:84px;z-index:0;background-size:cover;background-position:center;transform:scaleY(-1);filter:blur(14px) brightness(.4) saturate(1.15);opacity:.7;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);pointer-events:none}
+/* blur(30px) — identique à .pc-card-bg-photo juste en dessous (z-index:-1,
+   même image) : un flou plus léger ici (14px) créait une texture différente
+   de celle du fond de carte, visible comme un second "reflet" plus fin
+   pile là où celui-ci s'estompe (signalé sur capture) — les deux flous
+   assortis, la transition entre les deux devient invisible. */
+.pc-banner-reflection{position:absolute;left:0;right:0;top:172px;height:84px;z-index:0;background-size:cover;background-position:center;transform:scaleY(-1);filter:blur(30px) brightness(.4) saturate(1.15);opacity:.7;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);pointer-events:none}
 /* Hauteur alignée sur le bas réel de l'avatar dans cette ligne (padding-top
    10px + avatar 84px, voir .pc2-header-row/.pc-av-frame) + une petite marge,
    pour que le reflet s'arrête juste sous l'avatar au lieu de continuer bien
