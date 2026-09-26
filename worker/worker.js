@@ -4633,7 +4633,13 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    plus se produire sans marge négative partagée). */
 .pc2-header-row{display:flex;align-items:center;gap:14px;padding:10px 20px 14px;position:relative}
 .pc-card.pc-dashboard-header .pc-avwrap{display:block;flex-shrink:0}
-.pc-card.pc-dashboard-header .pc-av-frame{width:84px;height:84px;border-radius:20px}
+/* margin-top explicitement remis à 0 : sans ça, la règle de base
+   .pc-av-frame{margin-top:-42px} (jamais annulée ici avant, seulement
+   width/height/border-radius redéfinis) continuait de s'appliquer en
+   silence — l'avatar restait 42px plus haut que prévu, ce qui faussait
+   tout le calibrage de la hauteur du reflet ci-dessus (il s'arrêtait donc
+   bien plus bas que le bas réel de l'avatar). */
+.pc-card.pc-dashboard-header .pc-av-frame{margin-top:0;width:84px;height:84px;border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av{border-radius:20px}
 .pc-card.pc-dashboard-header .pc-av img.pc-av-img{border-radius:20px}
 .pc2-header-text{flex:1;min-width:0;padding-bottom:2px}
