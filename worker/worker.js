@@ -37184,79 +37184,137 @@ const SPLASH_PLATFORMS = [
 function splashDlUrl(fileId) {
   return SPLASH_DL_BASE + fileId + "/download?project=" + SPLASH_DL_PROJECT;
 }
+// Petites icônes SVG maison (même style que l'appli : viewBox 24x24, trait
+// currentColor) — pas de dépendance à un fichier externe pour ce qui peut
+// se dessiner en quelques chemins, contrairement au logo/favicon (PNG
+// hébergé sur Appwrite, gardé pour ceux-là).
+function splashIco(inner) {
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + inner + "</svg>";
+}
+const SPLASH_ICONS = {
+  lock: splashIco('<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
+  headset: splashIco('<path d="M4 13v-1a8 8 0 0 1 16 0v1"/><rect x="3" y="13" width="4" height="6" rx="1.5"/><rect x="17" y="13" width="4" height="6" rx="1.5"/><path d="M19 19v1a2 2 0 0 1-2 2h-3"/>'),
+  building: splashIco('<rect x="4" y="10" width="6" height="10"/><rect x="14" y="6" width="6" height="14"/><path d="M6.3 13h1.4M6.3 16h1.4M16.3 9h1.4M16.3 12h1.4M16.3 15h1.4"/>'),
+  shield: splashIco('<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/>'),
+  palette: splashIco('<path d="M12 3a9 8 0 1 0 0 16c1.1 0 2-.85 2-1.9 0-.5-.2-.95-.5-1.28-.3-.32-.5-.75-.5-1.22 0-.95.8-1.7 1.8-1.7H16.5a4.5 4.5 0 0 0 4.5-4.5C21 5.5 16.9 3 12 3z"/><circle cx="7.2" cy="10.8" r=".9"/><circle cx="9.8" cy="7.3" r=".9"/><circle cx="14.5" cy="7.3" r=".9"/>'),
+  musicNote: splashIco('<path d="M9 18V5l10-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'),
+  cloud: splashIco('<path d="M7 18h10a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.7 1.5A3.5 3.5 0 0 0 7 18z"/>'),
+  desktop: splashIco('<rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/>'),
+  windows: splashIco('<path d="M3 6l8-1v7H3z"/><path d="M12 4.7l9-1.2v8.1h-9z"/><path d="M3 13h8v7l-8-1z"/><path d="M12 13h9v8.5l-9-1.2z"/>'),
+  apple: splashIco('<path d="M15.5 8.3c-1 0-2 .6-2.7.6-.7 0-1.6-.6-2.6-.6-1.3 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.5 2.1 2.6 2 1-.1 1.4-.7 2.7-.7s1.6.7 2.7.6c1.1 0 1.9-1 2.5-2 .8-1.2 1.1-2.3 1.1-2.4-.1 0-2.2-.9-2.2-3.3 0-2 1.6-3 1.7-3-1-1.4-2.4-1.5-2.9-1.5"/><path d="M13.5 6.5c.5-.6.9-1.5.8-2.5-.8.1-1.8.6-2.3 1.2-.5.6-1 1.5-.8 2.4.9 0 1.8-.5 2.3-1.1z"/>'),
+  linux: splashIco('<circle cx="12" cy="9" r="4"/><path d="M9 12l-2 7 5-2.5 5 2.5-2-7"/><circle cx="10.2" cy="8" r=".6" fill="currentColor" stroke="none"/><circle cx="13.8" cy="8" r=".6" fill="currentColor" stroke="none"/>'),
+  arrow: splashIco('<path d="M5 12h13"/><path d="M13 6l6 6-6 6"/>'),
+  globe: splashIco('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.8 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.8-3.8-9S9.5 5.6 12 3z"/>')
+};
 function buildGetIxinSplashHtml() {
   const logo = "https://appwrite.xultra.space/v1/storage/buckets/app_icons/files/xultra_icon_512/view?project=" + SPLASH_DL_PROJECT;
   const platformLinksJson = JSON.stringify(
     SPLASH_PLATFORMS.reduce(function (acc, p) { acc[p.key] = { label: p.label, url: splashDlUrl(p.fileId) }; return acc; }, {})
   );
-  const featureCards = [
-    { title: "Chiffré de bout en bout", desc: "Messages, appels et médias — même IXin ne peut pas les lire." },
-    { title: "Appels de groupe fluides", desc: "Vocal, vidéo et partage d'écran, en un clic, sans limite artificielle." },
-    { title: "Des serveurs à toi", desc: "Crée ton Hub Vocal, invite qui tu veux, structure-le comme tu veux." },
-    { title: "Un profil qui te ressemble", desc: "Bannière, thème, avatar animé IXinMoji — personnalise tout, en direct." }
-  ].map(function (f) {
-    return '<div class="f-card"><h3>' + f.title + "</h3><p>" + f.desc + "</p></div>";
+  const features = [
+    { icon: "lock", title: "Chiffré de bout en bout", desc: "Messages, appels et médias — même IXin ne peut pas les lire." },
+    { icon: "headset", title: "Appels de groupe fluides", desc: "Vocal, vidéo et partage d'écran, en un clic, sans limite artificielle." },
+    { icon: "building", title: "Des serveurs à toi", desc: "Crée ton Hub Vocal, invite qui tu veux, structure-le comme tu veux." },
+    { icon: "shield", title: "VPN intégré", desc: "Chiffre ta connexion et masque ton IP directement depuis l'appli, sans outil tiers." },
+    { icon: "palette", title: "Un profil qui te ressemble", desc: "Bannière animée, thèmes, avatar IXinMoji — personnalise tout, en direct." },
+    { icon: "musicNote", title: "Musique partagée", desc: "Ajoute des titres, affiche ce que tu écoutes, découvre ce qu'écoutent tes amis." },
+    { icon: "cloud", title: "XBin & IXin Drive", desc: "Partage du code, des fichiers, du texte — stocké et accessible où que tu sois." },
+    { icon: "desktop", title: "Partout à la fois", desc: "Windows, Mac, Linux, Android et navigateur — un seul compte, synchronisé." }
+  ].map(function (f, i) {
+    return '<div class="f-card" style="animation-delay:' + (i * 70) + 'ms"><div class="f-ico">' + SPLASH_ICONS[f.icon] + "</div><h3>" + f.title + "</h3><p>" + f.desc + "</p></div>";
   }).join("");
-  return "<!doctype html><html lang=\"fr\"><head><meta charset=\"utf-8\"/>" +
-    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"/>" +
-    "<title>IXin — Messagerie chiffrée, appels, serveurs</title>" +
-    "<meta name=\"description\" content=\"IXin : messagerie chiffrée de bout en bout, appels de groupe, serveurs communautaires et profils personnalisables. Disponible sur ordinateur, mobile et navigateur.\"/>" +
-    "<link rel=\"icon\" href=\"" + logo + "\"/>" +
-    "<style>" +
-    ":root{--bg:#08070b;--elev:#141416;--line:rgba(255,255,255,.08);--muted:#9a8fb0;--accent:#a78bfa;--accent2:#22d3ee}" +
-    "*{box-sizing:border-box}" +
-    "body{margin:0;background:var(--bg);color:#f2f2f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;min-height:100vh}" +
-    ".bg-glow{position:fixed;inset:0;z-index:0;background:radial-gradient(60% 50% at 50% -10%,rgba(167,139,250,.25),transparent),radial-gradient(50% 40% at 90% 10%,rgba(34,211,238,.14),transparent);pointer-events:none}" +
-    ".wrap{position:relative;z-index:1;max-width:920px;margin:0 auto;padding:64px 20px 80px;text-align:center}" +
-    ".logo{width:76px;height:76px;border-radius:20px;box-shadow:0 12px 36px rgba(124,58,237,.35)}" +
-    "h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;letter-spacing:-.02em;margin:20px 0 8px;background:linear-gradient(120deg,#fff,var(--accent2) 45%,var(--accent) 75%,#fff);-webkit-background-clip:text;background-clip:text;color:transparent}" +
-    ".tagline{font-size:1.05rem;color:var(--muted);max-width:520px;margin:0 auto 36px;line-height:1.5}" +
-    ".cta-row{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:8px}" +
-    ".dl-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 34px;border-radius:999px;font-size:1.02rem;font-weight:800;color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--accent2) 40%,var(--accent) 60%,#fff);background-size:220% 220%;box-shadow:0 14px 40px rgba(124,58,237,.4);border:0;cursor:pointer;text-decoration:none}" +
-    ".dl-sub{font-size:.78rem;color:var(--muted)}" +
-    ".other-toggle{background:none;border:0;color:var(--muted);font-size:.78rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:6px}" +
-    ".other-list{display:none;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px 0 0;max-width:600px}" +
-    ".other-list.on{display:flex}" +
-    ".other-list a{color:#e5e5ea;background:var(--elev);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;text-decoration:none}" +
-    ".browser-btn{margin-top:22px;display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:.85rem;font-weight:700;text-decoration:none;border-bottom:1px solid transparent}" +
-    ".browser-btn:hover{color:#f2f2f5;border-color:var(--muted)}" +
-    ".features{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:64px;text-align:left}" +
-    ".f-card{background:var(--elev);border:1px solid var(--line);border-radius:16px;padding:20px}" +
-    ".f-card h3{margin:0 0 6px;font-size:.98rem}" +
-    ".f-card p{margin:0;font-size:.84rem;color:var(--muted);line-height:1.5}" +
-    "@media (max-width:640px){.features{grid-template-columns:1fr}}" +
-    "</style></head><body>" +
-    "<div class=\"bg-glow\"></div>" +
-    "<div class=\"wrap\">" +
-    "<img class=\"logo\" src=\"" + logo + "\" alt=\"IXin\"/>" +
-    "<h1>IXin</h1>" +
-    "<p class=\"tagline\">Messagerie chiffrée, appels de groupe, serveurs communautaires — une appli, taillée pour rester à toi.</p>" +
-    "<div class=\"cta-row\">" +
-    "<a class=\"dl-btn\" id=\"dl-primary\" href=\"#\">Télécharger pour…</a>" +
-    "<span class=\"dl-sub\" id=\"dl-sub\"></span>" +
-    "<button type=\"button\" class=\"other-toggle\" id=\"dl-other-toggle\">Voir les autres plateformes</button>" +
-    "<div class=\"other-list\" id=\"dl-other-list\"></div>" +
-    "</div>" +
-    "<a class=\"browser-btn\" href=\"https://ixin.online/\">Continuer dans le navigateur →</a>" +
-    "<div class=\"features\">" + featureCards + "</div>" +
-    "</div>" +
-    "<script>(function(){" +
-    "var PL=" + platformLinksJson + ";" +
-    "function detect(){var ua=navigator.userAgent||'',pf=navigator.platform||'';" +
-    "if(/Android/i.test(ua))return 'android';" +
-    "if(/iPhone|iPad|iPod/i.test(ua))return null;" +
-    "if(/Win/i.test(pf))return 'win';" +
-    "if(/Mac/i.test(pf))return 'mac-arm';" +
-    "if(/Linux/i.test(pf))return 'linux-deb';" +
-    "return 'win';}" +
-    "var key=detect();var primary=document.getElementById('dl-primary');var sub=document.getElementById('dl-sub');" +
-    "if(key&&PL[key]){primary.href=PL[key].url;primary.textContent='Télécharger pour '+PL[key].label;sub.textContent='Détecté automatiquement — pas le bon système ? Choisis en dessous.';}" +
-    "else{primary.textContent='Télécharger l\\'appli';primary.href='https://ixin.online/';sub.textContent='Depuis iPhone/iPad : installe IXin comme appli web depuis Safari (Partager → Sur l\\'écran d\\'accueil).';}" +
-    "var list=document.getElementById('dl-other-list');" +
-    "Object.keys(PL).forEach(function(k){if(k===key)return;var a=document.createElement('a');a.href=PL[k].url;a.textContent=PL[k].label;list.appendChild(a);});" +
-    "document.getElementById('dl-other-toggle').addEventListener('click',function(){list.classList.toggle('on');});" +
-    "})();</script>" +
-    "</body></html>";
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>IXin — Messagerie chiffrée, appels, serveurs, VPN</title>
+<meta name="description" content="IXin : messagerie chiffrée de bout en bout, appels de groupe, serveurs communautaires, VPN intégré et profils personnalisables. Disponible sur ordinateur, mobile et navigateur."/>
+<link rel="icon" href="${logo}"/>
+<style>
+:root{--bg:#07060a;--elev:#15141a;--elev2:#1c1a24;--line:rgba(255,255,255,.09);--muted:#a79fc0;--accent:#a78bfa;--accent2:#22d3ee;--accent3:#e879f9}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:#f5f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif;min-height:100vh;overflow-x:hidden}
+.orb{position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;opacity:.55}
+.orb-1{width:520px;height:520px;top:-200px;left:-120px;background:radial-gradient(circle,var(--accent),transparent 70%);animation:drift1 26s ease-in-out infinite}
+.orb-2{width:460px;height:460px;top:10%;right:-160px;background:radial-gradient(circle,var(--accent2),transparent 70%);animation:drift2 32s ease-in-out infinite}
+.orb-3{width:420px;height:420px;bottom:-220px;left:20%;background:radial-gradient(circle,var(--accent3),transparent 70%);animation:drift3 29s ease-in-out infinite}
+@keyframes drift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,80px) scale(1.15)}}
+@keyframes drift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-70px,50px) scale(1.1)}}
+@keyframes drift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(40px,-60px) scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.orb,.f-card,.logo-ring,h1,.dl-btn{animation:none!important}}
+.wrap{position:relative;z-index:1;max-width:980px;margin:0 auto;padding:72px 20px 90px;text-align:center}
+.logo-wrap{position:relative;width:104px;height:104px;margin:0 auto 22px;display:grid;place-items:center}
+.logo-ring{position:absolute;inset:-10px;border-radius:32px;background:conic-gradient(from 0deg,var(--accent),var(--accent2),var(--accent3),var(--accent));filter:blur(16px);opacity:.65;animation:spin 8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.logo-mark{position:relative;width:104px;height:104px;border-radius:28px;overflow:hidden;box-shadow:0 16px 40px rgba(124,58,237,.45)}
+.logo-mark svg{width:100%;height:100%;display:block}
+h1{font-size:clamp(2.1rem,5.5vw,3.4rem);font-weight:900;letter-spacing:-.02em;margin:24px 0 10px;background:linear-gradient(120deg,#fff,var(--accent2) 35%,var(--accent) 60%,var(--accent3) 80%,#fff);background-size:300% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 6s linear infinite}
+@keyframes shine{to{background-position:300% center}}
+.tagline{font-size:1.08rem;color:var(--muted);max-width:560px;margin:0 auto 38px;line-height:1.55}
+.cta-row{display:flex;justify-content:center;align-items:stretch;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.dl-btn,.browser-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 30px;border-radius:999px;font-size:1rem;font-weight:800;text-decoration:none;cursor:pointer;white-space:nowrap}
+.dl-btn{color:#0a0a0c;background:linear-gradient(120deg,#fff,var(--accent2) 40%,var(--accent) 60%,#fff);background-size:220% 220%;box-shadow:0 14px 40px rgba(124,58,237,.45);border:0;animation:glowpulse 3.4s ease-in-out infinite}
+@keyframes glowpulse{0%,100%{box-shadow:0 14px 40px rgba(124,58,237,.45)}50%{box-shadow:0 18px 52px rgba(34,211,238,.5)}}
+.browser-btn{color:#fff;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.22);backdrop-filter:blur(6px)}
+.browser-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.4)}
+.browser-btn svg{width:17px;height:17px;transition:transform .2s ease}
+.browser-btn:hover svg{transform:translateX(3px)}
+.dl-sub{display:block;font-size:.78rem;color:var(--muted);margin-top:14px}
+.plat-row{display:flex;justify-content:center;gap:10px;margin-top:16px;color:var(--muted)}
+.plat-row svg{width:19px;height:19px}
+.other-toggle{background:none;border:0;color:var(--muted);font-size:.78rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:8px;margin-top:2px}
+.other-list{display:none;flex-wrap:wrap;justify-content:center;gap:8px;margin:8px auto 0;max-width:620px}
+.other-list.on{display:flex}
+.other-list a{color:#e5e5ea;background:var(--elev);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:.8rem;font-weight:700;text-decoration:none}
+.other-list a:hover{background:var(--elev2)}
+.features{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:72px;text-align:left}
+.f-card{background:var(--elev);border:1px solid var(--line);border-radius:18px;padding:22px 20px;opacity:0;transform:translateY(16px);animation:riseIn .55s ease forwards;transition:border-color .2s ease,transform .2s ease,background .2s ease}
+.f-card:hover{border-color:rgba(167,139,250,.5);transform:translateY(-3px);background:var(--elev2)}
+@keyframes riseIn{to{opacity:1;transform:translateY(0)}}
+.f-ico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin-bottom:12px;background:linear-gradient(135deg,rgba(167,139,250,.22),rgba(34,211,238,.18));color:var(--accent2)}
+.f-ico svg{width:20px;height:20px}
+.f-card h3{margin:0 0 6px;font-size:.94rem}
+.f-card p{margin:0;font-size:.8rem;color:var(--muted);line-height:1.5}
+@media (max-width:900px){.features{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.features{grid-template-columns:1fr}.cta-row{flex-direction:column;align-items:stretch}.dl-btn,.browser-btn{justify-content:center}}
+</style></head><body>
+<div class="orb orb-1"></div><div class="orb orb-2"></div><div class="orb orb-3"></div>
+<div class="wrap">
+<div class="logo-wrap"><div class="logo-ring"></div><div class="logo-mark">
+<svg viewBox="0 0 104 104"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" stop-color="#c026d3"/><stop offset="50%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#22d3ee"/>
+</linearGradient></defs>
+<rect width="104" height="104" rx="26" fill="url(#lg)"/>
+<text x="52" y="70" text-anchor="middle" font-family="-apple-system,Segoe UI,Inter,sans-serif" font-size="50" font-weight="900" fill="#fff">IX</text>
+</svg></div></div>
+<h1>IXin</h1>
+<p class="tagline">Messagerie chiffrée, appels de groupe, serveurs communautaires, VPN intégré — une appli complète, taillée pour rester à toi.</p>
+<div class="cta-row">
+<a class="dl-btn" id="dl-primary" href="#">${SPLASH_ICONS.desktop}<span id="dl-label">Télécharger pour…</span></a>
+<a class="browser-btn" href="https://ixin.online/">${SPLASH_ICONS.globe}<span>Continuer dans le navigateur</span>${SPLASH_ICONS.arrow}</a>
+</div>
+<span class="dl-sub" id="dl-sub"></span>
+<div class="plat-row">${SPLASH_ICONS.windows}${SPLASH_ICONS.apple}${SPLASH_ICONS.linux}</div>
+<button type="button" class="other-toggle" id="dl-other-toggle">Voir les autres plateformes</button>
+<div class="other-list" id="dl-other-list"></div>
+<div class="features">${features}</div>
+</div>
+<script>(function(){
+var PL=${platformLinksJson};
+function detect(){var ua=navigator.userAgent||'',pf=navigator.platform||'';
+if(/Android/i.test(ua))return 'android';
+if(/iPhone|iPad|iPod/i.test(ua))return null;
+if(/Win/i.test(pf))return 'win';
+if(/Mac/i.test(pf))return 'mac-arm';
+if(/Linux/i.test(pf))return 'linux-deb';
+return 'win';}
+var key=detect();var primary=document.getElementById('dl-primary');var label=document.getElementById('dl-label');var sub=document.getElementById('dl-sub');
+if(key&&PL[key]){primary.href=PL[key].url;label.textContent='Télécharger pour '+PL[key].label;sub.textContent='Détecté automatiquement — pas le bon système ? Choisis en dessous.';}
+else{label.textContent="Télécharger l'appli";primary.href='https://ixin.online/';sub.textContent="Depuis iPhone/iPad : installe IXin comme appli web depuis Safari (Partager → Sur l'écran d'accueil).";}
+var list=document.getElementById('dl-other-list');
+Object.keys(PL).forEach(function(k){if(k===key)return;var a=document.createElement('a');a.href=PL[k].url;a.textContent=PL[k].label;list.appendChild(a);});
+document.getElementById('dl-other-toggle').addEventListener('click',function(){list.classList.toggle('on');});
+})();</script>
+</body></html>`;
 }
 async function handle(request, event) {
   const url = new URL(request.url);
