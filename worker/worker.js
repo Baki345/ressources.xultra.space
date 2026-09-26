@@ -4463,7 +4463,11 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
    sous l'avatar/le nom qui restent lisibles par-dessus (z-index:0, aucune
    interaction). */
 .pc-banner-reflection{position:absolute;left:0;right:0;top:172px;height:84px;z-index:0;background-size:cover;background-position:center;transform:scaleY(-1);filter:blur(14px) brightness(.4) saturate(1.15);opacity:.7;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);mask-image:linear-gradient(to bottom,rgba(0,0,0,.9),transparent);pointer-events:none}
-.pc-card.pc-dashboard-header .pc-banner-reflection{top:150px}
+/* Hauteur alignée sur le bas réel de l'avatar dans cette ligne (padding-top
+   10px + avatar 84px, voir .pc2-header-row/.pc-av-frame) + une petite marge,
+   pour que le reflet s'arrête juste sous l'avatar au lieu de continuer bien
+   plus bas dans le vide. */
+.pc-card.pc-dashboard-header .pc-banner-reflection{top:150px;height:100px}
 .pc-card.pc-centered .pc-banner-reflection{top:112px}
 .pc-avwrap{display:flex;justify-content:center}
 .pc-av-frame{width:78px;height:78px;margin-top:-42px;position:relative;z-index:1;border-radius:50%}
@@ -4683,7 +4687,7 @@ body.gif-hover-mode .gif-media:hover .gif-freeze{display:none}
   .pc2-actions{padding:14px 14px 0}
   .pc2-header-text .pc-name{font-size:1.1rem}
   .pc-card.pc-dashboard-header .pc-banner{height:130px}
-  .pc-card.pc-dashboard-header .pc-banner-reflection{top:130px}
+  .pc-card.pc-dashboard-header .pc-banner-reflection{top:130px;height:84px}
   .pc-card.pc-dashboard-header .pc-av-frame{width:68px;height:68px}
   .pc2-presence-pill{padding:5px 9px}
   .pc2-presence-label{font-size:.7rem}
